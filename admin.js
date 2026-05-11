@@ -1,6 +1,6 @@
 const SESSION_KEY = "te_admin_session";
 const SUPABASE_URL_KEY = "te_supabase_url";
-const SUPABASE_ANON_KEY = "te_supabase_anon_key";
+const SUPABASE_ANON_KEY_LS = "te_supabase_anon_key";
 
 let products = [];
 let deleteTargetId = null;
@@ -8,12 +8,111 @@ let deleteTargetId = null;
 const CAT_LABELS = {
   bolsos: "Bolsos & Mochilas",
   accesorios: "Accesorios",
-  maquillaje: "Maquillaje",
+  maquiagem: "Maquillaje",
   natura: "Natura"
 };
 
 const SUPABASE_URL = localStorage.getItem(SUPABASE_URL_KEY) || '';
-const SUPABASE_ANON_KEY = localStorage.getItem(SUPABASE_ANON_KEY) || '';
+const SUPABASE_ANON_KEY = localStorage.getItem(SUPABASE_ANON_KEY_LS) || '';
+
+const DEFAULT_PRODUCTS = [
+  {
+    id:1, name:"Bolso Glamour Camel",
+    category:"bolsos", categoryLabel:"Bolsos & Carteras",
+    price:380,
+    description:"Bolso de dama en piel sintética premium. Diseño elegante con cierre metálico dorado. Cabe cartera, celular, llaves y lo esencial.",
+    image:"https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=500&q=80",
+    badge:"Más vendido", badgeType:"best", featured:true
+  },
+  {
+    id:2, name:"Perfume Natura Essencial Feminino",
+    category:"natura", categoryLabel:"Natura",
+    price:498,
+    description:"Fragancia floral irresistible. Notas de jazmín, rosa y sándalo. Larga duración, perfecta para el día y la noche.",
+    image:"https://images.unsplash.com/photo-1590156206657-aec67f4dc4a7?auto=format&fit=crop&w=500&q=80",
+    badge:"Natura", badgeType:"natura", featured:true
+  },
+  {
+    id:3, name:"Set Aretes Dorados Flor",
+    category:"accesorios", categoryLabel:"Accesorios",
+    price:120,
+    description:"Aretes de flor con baño en oro. Ligeros y cómodos para uso diario. Incluye 3 pares en distintos tamaños. No dañan la piel.",
+    image:"https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=500&q=80",
+    badge:"Nuevo", badgeType:"new", featured:true
+  },
+  {
+    id:4, name:"Kit Maquillaje Natural Look",
+    category:"maquillaje", categoryLabel:"Maquillaje",
+    price:650,
+    description:"Kit completo para el look natural perfecto. Base, rubor, sombras nude, labial y pincel. Fórmula suave y larga duración.",
+    image:"https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=500&q=80",
+    badge:"Favorito", badgeType:"best", featured:true
+  },
+  {
+    id:5, name:"Mochila Trendy Canvas",
+    category:"bolsos", categoryLabel:"Bolsos & Mochilas",
+    price:320,
+    description:"Mochila de canvas resistente con diseño moderno. Compartimentos organizados, tirantes ajustables y bolsillo frontal con cierre.",
+    image:"https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=500&q=80",
+    badge:null, badgeType:null, featured:true
+  },
+  {
+    id:6, name:"Set Pulseras Boho Chic",
+    category:"accesorios", categoryLabel:"Accesorios",
+    price:180,
+    description:"Set de 7 pulseras con diseño boho. Mezcla de macramé, perlas y metal dorado. Se usan juntas o por separado.",
+    image:"https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=500&q=80",
+    badge:"Oferta", badgeType:"promo", featured:true
+  },
+  {
+    id:7, name:"Crema Natura Ekos Ucuuba",
+    category:"natura", categoryLabel:"Natura",
+    price:280,
+    description:"Crema corporal hidratante con extracto de ucuuba amazónica. Textura suave y aterciopelada. Piel suave desde la primera aplicación.",
+    image:"https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=500&q=80",
+    badge:"Natura", badgeType:"natura", featured:false
+  },
+  {
+    id:8, name:"Sombrero Verano Chic",
+    category:"accesorios", categoryLabel:"Accesorios",
+    price:220,
+    description:"Sombrero de ala ancha con lazo decorativo. Material de paja trenzada premium. Perfecto para playa, campo o paseo en ciudad.",
+    image:"https://images.unsplash.com/photo-1572307480813-ceb0e59d8325?auto=format&fit=crop&w=500&q=80",
+    badge:"Temporada", badgeType:"new", featured:false
+  },
+  {
+    id:9, name:"Lonchera Térmica Floral",
+    category:"bolsos", categoryLabel:"Loncheras",
+    price:250,
+    description:"Lonchera isotérmica con diseño floral. Mantiene alimentos fríos o calientes 6 horas. Fácil limpieza, asa para llevar.",
+    image:"https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=500&q=80",
+    badge:null, badgeType:null, featured:false
+  },
+  {
+    id:10, name:"Diadema Terciopelo Elegante",
+    category:"accesorios", categoryLabel:"Accesorios",
+    price:85,
+    description:"Diadema de terciopelo suave con lazo decorativo. Para looks casuales y formales. Disponible en varios colores.",
+    image:"https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=500&q=80",
+    badge:null, badgeType:null, featured:false
+  },
+  {
+    id:11, name:"Labial Natura Una Línea",
+    category:"maquillaje", categoryLabel:"Maquillaje",
+    price:195,
+    description:"Labial de alta cobertura con acabado sedoso. Fórmula hidratante con vitamina E. Duración de hasta 8 horas.",
+    image:"https://images.unsplash.com/photo-1586495777744-4e6232bf4e0c?auto=format&fit=crop&w=500&q=80",
+    badge:"Natura", badgeType:"natura", featured:false
+  },
+  {
+    id:12, name:"Cadenita Dorada Estrella",
+    category:"accesorios", categoryLabel:"Accesorios",
+    price:95,
+    description:"Cadenita fina con dije de estrella en baño de oro de 18k. Cierre de mosquetón. Ideal para regalar o usar a diario.",
+    image:"https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=500&q=80",
+    badge:"Nuevo", badgeType:"new", featured:false
+  }
+];
 
 function supabaseApi(path, opts = {}) {
   return fetch(SUPABASE_URL + '/rest/v1/' + path, {
@@ -46,7 +145,7 @@ function showSetupScreen() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('setup-screen').style.display = 'flex';
   document.getElementById('setup-url').value = localStorage.getItem(SUPABASE_URL_KEY) || '';
-  document.getElementById('setup-key').value = localStorage.getItem(SUPABASE_ANON_KEY) || '';
+  document.getElementById('setup-key').value = localStorage.getItem(SUPABASE_ANON_KEY_LS) || '';
 }
 
 /* ── AUTH ── */
@@ -88,7 +187,7 @@ function openSetupModal() {
   document.getElementById('setup-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
   document.getElementById('setup-url').value = localStorage.getItem(SUPABASE_URL_KEY) || '';
-  document.getElementById('setup-key').value = localStorage.getItem(SUPABASE_ANON_KEY) || '';
+  document.getElementById('setup-key').value = localStorage.getItem(SUPABASE_ANON_KEY_LS) || '';
 }
 
 function closeSetup() {
@@ -106,7 +205,7 @@ function saveSetup() {
   }
 
   localStorage.setItem(SUPABASE_URL_KEY, url);
-  localStorage.setItem(SUPABASE_ANON_KEY, key);
+  localStorage.setItem(SUPABASE_ANON_KEY_LS, key);
 
   showAuthScreen();
   toast('Supabase configurado ✓', 'success');
