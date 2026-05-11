@@ -1,5 +1,9 @@
-const ADMIN_PASS = "tres3ncantos";
 const SESSION_KEY = "te_admin_session";
+const SUPABASE_URL_KEY = "te_supabase_url";
+const SUPABASE_ANON_KEY = "te_supabase_anon_key";
+
+let products = [];
+let deleteTargetId = null;
 
 const CAT_LABELS = {
   bolsos: "Bolsos & Mochilas",
@@ -8,38 +12,132 @@ const CAT_LABELS = {
   natura: "Natura"
 };
 
-let deleteTargetId = null;
+const SUPABASE_URL = localStorage.getItem(SUPABASE_URL_KEY) || '';
+const SUPABASE_ANON_KEY = localStorage.getItem(SUPABASE_ANON_KEY) || '';
 
-/* ── INIT ── */
-document.addEventListener('DOMContentLoaded', () => {
-  if (sessionStorage.getItem(SESSION_KEY) === "1") showApp();
-});
-
-function doLogin() {
-  const val = document.getElementById('pwd-input').value;
-  const err = document.getElementById('pwd-err');
-  if (val === ADMIN_PASS) {
-    sessionStorage.setItem(SESSION_KEY, "1");
-    err.classList.remove('show');
-    showApp();
-  } else {
-    err.classList.add('show');
-    document.getElementById('pwd-input').value = '';
-    document.getElementById('pwd-input').focus();
-  }
+function supabaseApi(path, opts = {}) {
+  return fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    ...opts,
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+      ...opts.headers
+    }
+  }).then(r => {
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  });
 }
 
-function doLogout() {
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded', async () => {
+  if (localStorage.getItem(SESSION_KEY) === "1" && SUPABASE_URL && SUPABASE_ANON_KEY) {
+    showApp();
+  }
+});
+
+/* ── AUTH ── */
+async function doLoginEmail() {
+  const email = document.getElementById('email-input').value;
+  const password = document.getElementById('pwd-input').value;
+  const err = document.getElementById('pwd-err');
+
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    err.textContent = 'Configura Supabase primero';
+    err.classList.add('show');
+    return;
+  }
+
+  const data = await supabaseApi(
+    `users?email=eq.${encodeURIComponent(email)}&select=id,password`,
+    { method: 'GET' }
+  );
+
+  const user = Array.isArray(data) ? data[0] : null;
+
+  if (!user || user.password !== password) {
+    err.textContent = 'Credenciales incorrectas';
+    err.classList.add('show');
+    return;
+  }
+
+  sessionStorage.setItem(SESSION_KEY, "1");
+  showApp();
+}
+
+async function doLogout() {
   sessionStorage.removeItem(SESSION_KEY);
   location.reload();
 }
 
-function showApp() {
+/* ── SETUP SUPABASE ── */
+function openSetupModal() {
+  document.getElementById('setup-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('setup-url').value = localStorage.getItem(SUPABASE_URL_KEY) || '';
+  document.getElementById('setup-key').value = localStorage.getItem(SUPABASE_ANON_KEY) || '';
+}
+
+function closeSetup() {
+  document.getElementById('setup-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function saveSetup() {
+  const url = document.getElementById('setup-url').value.trim();
+  const key = document.getElementById('setup-key').value.trim();
+
+  if (!url || !key) {
+    toast('Completa ambos campos', 'error');
+    return;
+  }
+
+  localStorage.setItem(SUPABASE_URL_KEY, url);
+  localStorage.setItem(SUPABASE_ANON_KEY, key);
+
+  closeSetup();
+  toast('Supabase configurado ✓', 'success');
+}
+
+/* ── APP ── */
+async function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
-  loadProducts();
+  await loadProductsFromSupabase();
   renderStats();
   renderTable();
+}
+
+/* ── LOAD PRODUCTS ── */
+async function loadProductsFromSupabase() {
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    const data = await supabaseApi('products?select=*&order=position.asc');
+    if (Array.isArray(data) && data.length) {
+      products = data.map(p => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        categoryLabel: p.category_label,
+        price: p.price,
+        description: p.description,
+        image: p.image,
+        badge: p.badge,
+        badgeType: p.badge_type,
+        featured: p.featured,
+        outOfStock: p.out_of_stock,
+        originalPrice: p.original_price
+      }));
+      return;
+    }
+  }
+  try {
+    const saved = localStorage.getItem('te_products_v1');
+    products = saved ? JSON.parse(saved) : [...DEFAULT_PRODUCTS];
+  } catch {
+    products = [...DEFAULT_PRODUCTS];
+  }
 }
 
 /* ── STATS ── */
@@ -115,31 +213,37 @@ function renderTable() {
 }
 
 /* ── TOGGLE FEATURED ── */
-function toggleFeatured(id) {
+async function toggleFeatured(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   p.featured = !p.featured;
-  save(); renderTable(); renderStats();
+  await save();
+  renderTable();
+  renderStats();
   toast(p.featured ? 'Marcado como destacado ⭐' : 'Quitado de destacados', 'success');
 }
 
 /* ── TOGGLE OUT OF STOCK ── */
-function toggleOutOfStock(id) {
+async function toggleOutOfStock(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   p.outOfStock = !p.outOfStock;
-  save(); renderTable(); renderStats();
+  await save();
+  renderTable();
+  renderStats();
   toast(p.outOfStock ? 'Marcado como agotado' : 'Marcado como disponible', 'success');
 }
 
 /* ── DUPLICATE ── */
-function duplicateProduct(id) {
+async function duplicateProduct(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   const maxId = products.reduce((m, x) => Math.max(m, x.id), 0);
   const copy = { ...p, id: maxId + 1, name: 'Copia de ' + p.name, outOfStock: false };
   products.push(copy);
-  save(); renderTable(); renderStats();
+  await save();
+  renderTable();
+  renderStats();
   toast('Producto duplicado — edítalo para personalizarlo', 'success');
 }
 
@@ -170,7 +274,7 @@ function initDragDrop() {
       });
       row.classList.add(e.clientY < mid ? 'drop-above' : 'drop-below');
     });
-    row.addEventListener('drop', e => {
+    row.addEventListener('drop', async e => {
       e.preventDefault();
       const targetId = parseInt(row.dataset.id);
       if (targetId === dragSrcId) return;
@@ -180,7 +284,8 @@ function initDragDrop() {
       const [item] = products.splice(srcIdx, 1);
       const insertAt = isAbove ? (srcIdx < tgtIdx ? tgtIdx - 1 : tgtIdx) : (srcIdx < tgtIdx ? tgtIdx : tgtIdx + 1);
       products.splice(insertAt, 0, item);
-      save(); renderTable();
+      await save();
+      renderTable();
     });
   });
 }
@@ -332,7 +437,7 @@ function previewImg() {
   }
 }
 
-function saveProduct() {
+async function saveProduct() {
   const name = document.getElementById('f-name').value.trim();
   const price = parseFloat(document.getElementById('f-price').value);
   const image = document.getElementById('f-image').value.trim();
@@ -368,7 +473,7 @@ function saveProduct() {
     products.push({ id: maxId + 1, ...data });
   }
 
-  save();
+  await save();
   closeForm();
   renderTable();
   renderStats();
@@ -388,10 +493,10 @@ function closeDel() {
   document.body.style.overflow = '';
 }
 
-function confirmDelete() {
+async function confirmDelete() {
   if (deleteTargetId === null) return;
   products = products.filter(p => p.id !== deleteTargetId);
-  save();
+  await save();
   closeDel();
   renderTable();
   renderStats();
@@ -399,8 +504,32 @@ function confirmDelete() {
 }
 
 /* ── SAVE ── */
-function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+async function save() {
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    for (const p of products) {
+      await supabaseApi('products', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates' },
+        body: JSON.stringify({
+          id: p.id,
+          name: p.name,
+          category: p.category,
+          category_label: p.categoryLabel,
+          price: p.price,
+          description: p.description,
+          image: p.image,
+          badge: p.badge,
+          badge_type: p.badgeType,
+          featured: p.featured,
+          out_of_stock: p.outOfStock,
+          original_price: p.originalPrice,
+          position: products.indexOf(p)
+        })
+      });
+    }
+    return;
+  }
+  localStorage.setItem('te_products_v1', JSON.stringify(products));
 }
 
 /* ── EXPORT / IMPORT ── */
@@ -416,12 +545,12 @@ function importProducts(input) {
   const file = input.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = async e => {
     try {
       const data = JSON.parse(e.target.result);
       if (!Array.isArray(data)) throw new Error();
       products = data;
-      save();
+      await save();
       renderTable();
       renderStats();
       toast(`${data.length} productos importados ✓`, 'success');
@@ -433,10 +562,10 @@ function importProducts(input) {
   input.value = '';
 }
 
-function resetProducts() {
+async function resetProducts() {
   if (!confirm('¿Restablecer todos los productos al catálogo de demostración? Se perderán los cambios.')) return;
   products = [...DEFAULT_PRODUCTS];
-  save();
+  await save();
   renderTable();
   renderStats();
   toast('Catálogo restablecido ✓', 'success');
@@ -454,16 +583,8 @@ function toast(msg, type = '') {
 /* ── REVISTA ── */
 function openRevista() {
   const overlay = document.getElementById('revista-overlay');
-  const urlInput = document.getElementById('revista-url-input');
-  const saved = localStorage.getItem('te_revista_v1') || '';
-  if (saved && saved.startsWith('data:')) {
-    urlInput.value = '';
-    document.getElementById('revista-preview').style.display = 'block';
-    document.getElementById('revista-filename').textContent = 'PDF cargado localmente';
-  } else {
-    urlInput.value = saved;
-    document.getElementById('revista-preview').style.display = 'none';
-  }
+  document.getElementById('revista-url-input').value = '';
+  document.getElementById('revista-preview').style.display = 'none';
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
   initRevistaUpload();
@@ -531,7 +652,7 @@ function clearRevistaFile() {
   document.getElementById('revista-preview').style.display = 'none';
 }
 
-function saveRevista() {
+async function saveRevista() {
   const urlInput = document.getElementById('revista-url-input');
   const fileInput = document.getElementById('revista-file');
   const b64 = fileInput._base64;
@@ -543,9 +664,21 @@ function saveRevista() {
   }
 
   const value = b64 || url;
-  localStorage.setItem('te_revista_v1', value);
+
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    const result = await supabaseApi('config', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({ id: 'revista_url', value: value })
+    });
+    if (result.error) {
+      toast('Error al guardar en Supabase', 'error');
+      return;
+    }
+  } else {
+    localStorage.setItem('te_revista_v1', value);
+  }
+
   closeRevista();
   toast('Revista guardada correctamente ✓', 'success');
 }
-
-

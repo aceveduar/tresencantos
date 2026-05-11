@@ -24,12 +24,24 @@ CREATE TABLE config (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Create users table for admin authentication
+CREATE TABLE users (
+  id BIGSERIAL PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE,
+  password TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Insert default admin user (password: tres3ncantos)
+INSERT INTO users (email, password) VALUES ('admin@tresencantos.com', 'tres3ncantos');
+
 -- Insert default revista URL
 INSERT INTO config (id, value) VALUES ('revista_url', 'https://www.natura.com.mx/catalogos-digitales');
 
 -- Enable RLS
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
 -- Policy: everyone can read products
 CREATE POLICY "Products are viewable by everyone" ON products
@@ -46,3 +58,7 @@ CREATE POLICY "Config is viewable by everyone" ON config
 -- Policy: only authenticated users can modify config
 CREATE POLICY "Config is modifiable by authenticated users" ON config
   FOR ALL USING (auth.role() = 'authenticated');
+
+-- Policy: everyone can read users (for login)
+CREATE POLICY "Users are viewable by everyone" ON users
+  FOR SELECT USING (true);

@@ -2,9 +2,60 @@ const WA = "5215534548417";
 const WA_BASE = `https://wa.me/${WA}`;
 const STORAGE_KEY = "te_products_v1";
 const REVISTA_KEY = "te_revista_v1";
+
+const SUPABASE_URL = localStorage.getItem('te_supabase_url') || '';
+const SUPABASE_ANON_KEY = localStorage.getItem('te_supabase_anon_key') || '';
+
+let products = [];
 let revistaUrl = "";
 
-function loadRevista() {
+function supabaseApi(path, opts = {}) {
+  return fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    ...opts,
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+      ...opts.headers
+    }
+  }).then(r => r.json());
+}
+
+async function loadProducts() {
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    const data = await supabaseApi('products?select=*&order=position.asc');
+    if (Array.isArray(data) && data.length) {
+      products = data.map(p => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        categoryLabel: p.category_label,
+        price: p.price,
+        description: p.description,
+        image: p.image,
+        badge: p.badge,
+        badgeType: p.badge_type,
+        featured: p.featured,
+        outOfStock: p.out_of_stock,
+        originalPrice: p.original_price
+      }));
+      return;
+    }
+  }
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    products = saved ? JSON.parse(saved) : [...DEFAULT_PRODUCTS];
+  } catch { products = [...DEFAULT_PRODUCTS]; }
+}
+
+async function loadRevista() {
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    const data = await supabaseApi('config?id=eq.revista_url&select=value');
+    if (Array.isArray(data) && data.length) {
+      revistaUrl = data[0].value;
+      return;
+    }
+  }
   try {
     const saved = localStorage.getItem(REVISTA_KEY);
     revistaUrl = saved || "https://www.natura.com.mx/catalogos-digitales";
@@ -127,9 +178,9 @@ const observer = new IntersectionObserver(entries => {
   entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('visible'); observer.unobserve(e.target); } });
 }, { threshold: 0.1 });
 
-document.addEventListener('DOMContentLoaded', () => {
-  loadProducts();
-  loadRevista();
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadProducts();
+  await loadRevista();
   render();
   renderNatura();
   updateRevistaLink();
