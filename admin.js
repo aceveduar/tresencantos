@@ -451,4 +451,101 @@ function toast(msg, type = '') {
   el._t = setTimeout(() => el.classList.remove('show'), 3000);
 }
 
+/* ── REVISTA ── */
+function openRevista() {
+  const overlay = document.getElementById('revista-overlay');
+  const urlInput = document.getElementById('revista-url-input');
+  const saved = localStorage.getItem('te_revista_v1') || '';
+  if (saved && saved.startsWith('data:')) {
+    urlInput.value = '';
+    document.getElementById('revista-preview').style.display = 'block';
+    document.getElementById('revista-filename').textContent = 'PDF cargado localmente';
+  } else {
+    urlInput.value = saved;
+    document.getElementById('revista-preview').style.display = 'none';
+  }
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  initRevistaUpload();
+}
+
+function closeRevista() {
+  document.getElementById('revista-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function initRevistaUpload() {
+  const zone = document.getElementById('revista-upload-zone');
+  if (!zone) return;
+  zone.removeEventListener('click', zone._clickHandler);
+  zone.removeEventListener('dragover', zone._dragoverHandler);
+  zone.removeEventListener('dragleave', zone._dragleaveHandler);
+  zone.removeEventListener('drop', zone._dropHandler);
+
+  zone._clickHandler = () => document.getElementById('revista-file').click();
+  zone._dragoverHandler = e => { e.preventDefault(); zone.classList.add('drag-over'); };
+  zone._dragleaveHandler = () => zone.classList.remove('drag-over');
+  zone._dropHandler = e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type === 'application/pdf') {
+      processRevistaFile(file);
+    }
+  };
+
+  zone.addEventListener('click', zone._clickHandler);
+  zone.addEventListener('dragover', zone._dragoverHandler);
+  zone.addEventListener('dragleave', zone._dragleaveHandler);
+  zone.addEventListener('drop', zone._dropHandler);
+}
+
+function handleRevistaFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  processRevistaFile(file);
+}
+
+function processRevistaFile(file) {
+  if (file.type !== 'application/pdf') {
+    toast('Solo se permiten archivos PDF', 'error');
+    return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    toast('El PDF es muy grande. Máx 10MB.', 'error');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('revista-url-input').value = '';
+    document.getElementById('revista-preview').style.display = 'block';
+    document.getElementById('revista-filename').textContent = file.name;
+    document.getElementById('revista-file')._base64 = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearRevistaFile() {
+  document.getElementById('revista-file').value = '';
+  document.getElementById('revista-file')._base64 = null;
+  document.getElementById('revista-preview').style.display = 'none';
+}
+
+function saveRevista() {
+  const urlInput = document.getElementById('revista-url-input');
+  const fileInput = document.getElementById('revista-file');
+  const b64 = fileInput._base64;
+  const url = urlInput.value.trim();
+
+  if (!b64 && !url) {
+    toast('Ingresa una URL o sube un PDF', 'error');
+    return;
+  }
+
+  const value = b64 || url;
+  localStorage.setItem('te_revista_v1', value);
+  closeRevista();
+  toast('Revista guardada correctamente ✓', 'success');
+}
+
 
