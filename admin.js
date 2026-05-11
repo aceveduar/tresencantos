@@ -511,8 +511,8 @@ function processRevistaFile(file) {
     toast('Solo se permiten archivos PDF', 'error');
     return;
   }
-  if (file.size > 10 * 1024 * 1024) {
-    toast('El PDF es muy grande. Máx 10MB.', 'error');
+  if (file.size > 50 * 1024 * 1024) {
+    toast('El PDF es muy grande. Máx 50MB.', 'error');
     return;
   }
   const reader = new FileReader();
