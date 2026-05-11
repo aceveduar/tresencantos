@@ -155,7 +155,7 @@ tr.drop-below td{box-shadow:inset 0 -2px 0 var(--gold)}
     <input type="password" id="pwd-input" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLoginEmail()" style="margin-top:10px">
     <p class="err" id="pwd-err">Credenciales incorrectas. Inténtalo de nuevo.</p>
     <button class="btn-login" onclick="doLoginEmail()">Entrar</button>
-    <button class="btn-setup-link" onclick="openSetupModal()" style="margin-top:16px;background:none;border:none;color:#6B5C48;font-size:.82rem;cursor:pointer;text-decoration:underline">Configurar Supabase</button>
+    <button class="btn-setup-link" onclick="showSetupScreen()" style="margin-top:16px;background:none;border:none;color:#6B5C48;font-size:.82rem;cursor:pointer;text-decoration:underline">Configurar Supabase</button>
   </div>
 </div>
 
@@ -175,7 +175,7 @@ tr.drop-below td{box-shadow:inset 0 -2px 0 var(--gold)}
     </div>
     <p class="hint" style="text-align:left;font-size:.75rem;color:#9B8B78;margin-top:8px">Encuentras estas credenciales en: Supabase → Settings → API</p>
     <button class="btn-login" onclick="saveSetup()" style="margin-top:16px">Guardar y conectar</button>
-    <button class="btn-setup-link" onclick="document.getElementById('setup-screen').style.display='none';document.getElementById('auth-screen').style.display='flex'" style="margin-top:16px;background:none;border:none;color:#6B5C48;font-size:.82rem;cursor:pointer;text-decoration:underline">Volver al login</button>
+    <button class="btn-setup-link" onclick="showAuthScreen()" style="margin-top:16px;background:none;border:none;color:#6B5C48;font-size:.82rem;cursor:pointer;text-decoration:underline">Volver al login</button>
   </div>
 </div>
 

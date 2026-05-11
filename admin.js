@@ -37,6 +37,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
+function showAuthScreen() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+function showSetupScreen() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('setup-screen').style.display = 'flex';
+  document.getElementById('setup-url').value = localStorage.getItem(SUPABASE_URL_KEY) || '';
+  document.getElementById('setup-key').value = localStorage.getItem(SUPABASE_ANON_KEY) || '';
+}
+
 /* ── AUTH ── */
 async function doLoginEmail() {
   const email = document.getElementById('email-input').value;
@@ -96,7 +108,7 @@ function saveSetup() {
   localStorage.setItem(SUPABASE_URL_KEY, url);
   localStorage.setItem(SUPABASE_ANON_KEY, key);
 
-  closeSetup();
+  showAuthScreen();
   toast('Supabase configurado ✓', 'success');
 }
 
