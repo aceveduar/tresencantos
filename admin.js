@@ -196,17 +196,25 @@ function populateBadgeList() {
 }
 
 /* ── IMAGE UPLOAD ── */
+let imageUploadController = null;
+
 function handleFileSelect(input) {
   const file = input.files[0];
   if (!file) return;
+  document.getElementById('save-btn').disabled = true;
   compressAndPreview(file);
 }
 
 function compressAndPreview(file) {
+  if (imageUploadController) imageUploadController.abort();
+  const controller = new AbortController();
+  imageUploadController = controller;
+
   const reader = new FileReader();
   reader.onload = e => {
     const img = new Image();
     img.onload = () => {
+      if (controller.signal.aborted) return;
       const canvas = document.createElement('canvas');
       const MAX = 900;
       let w = img.width, h = img.height;
@@ -219,6 +227,10 @@ function compressAndPreview(file) {
       const preview = document.getElementById('f-img-preview');
       preview.src = b64;
       preview.classList.add('show');
+      document.getElementById('save-btn').disabled = false;
+    };
+    img.onerror = () => {
+      if (!controller.signal.aborted) toast('Error al procesar la imagen', 'error');
     };
     img.src = e.target.result;
   };
@@ -228,15 +240,28 @@ function compressAndPreview(file) {
 function initImageUpload() {
   const zone = document.getElementById('img-upload-zone');
   if (!zone) return;
-  zone.addEventListener('click', () => document.getElementById('f-img-file').click());
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-  zone.addEventListener('drop', e => {
+  zone.removeEventListener('click', zone._clickHandler);
+  zone.removeEventListener('dragover', zone._dragoverHandler);
+  zone.removeEventListener('dragleave', zone._dragleaveHandler);
+  zone.removeEventListener('drop', zone._dropHandler);
+
+  zone._clickHandler = () => document.getElementById('f-img-file').click();
+  zone._dragoverHandler = e => { e.preventDefault(); zone.classList.add('drag-over'); };
+  zone._dragleaveHandler = () => zone.classList.remove('drag-over');
+  zone._dropHandler = e => {
     e.preventDefault();
     zone.classList.remove('drag-over');
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) compressAndPreview(file);
-  });
+    if (file && file.type.startsWith('image/')) {
+      document.getElementById('save-btn').disabled = true;
+      compressAndPreview(file);
+    }
+  };
+
+  zone.addEventListener('click', zone._clickHandler);
+  zone.addEventListener('dragover', zone._dragoverHandler);
+  zone.addEventListener('dragleave', zone._dragleaveHandler);
+  zone.addEventListener('drop', zone._dropHandler);
 }
 
 /* ── FORM ── */
@@ -281,6 +306,7 @@ function openForm(id) {
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
   initImageUpload();
+  document.getElementById('save-btn').disabled = false;
   setTimeout(() => document.getElementById('f-name').focus(), 100);
 }
 
