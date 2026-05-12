@@ -8,12 +8,12 @@ let deleteTargetId = null;
 const CAT_LABELS = {
   bolsos: "Bolsos & Mochilas",
   accesorios: "Accesorios",
-  maquiagem: "Maquillaje",
+  maquillaje: "Maquillaje",
   natura: "Natura"
 };
 
-const SUPABASE_URL = localStorage.getItem(SUPABASE_URL_KEY) || '';
-const SUPABASE_ANON_KEY = localStorage.getItem(SUPABASE_ANON_KEY_LS) || '';
+const getSupabaseUrl = () => localStorage.getItem(SUPABASE_URL_KEY) || '';
+const getSupabaseKey = () => localStorage.getItem(SUPABASE_ANON_KEY_LS) || '';
 
 const DEFAULT_PRODUCTS = [
   {
@@ -115,23 +115,20 @@ const DEFAULT_PRODUCTS = [
 ];
 
 function supabaseApi(path, opts = {}) {
-  return fetch(SUPABASE_URL + '/rest/v1/' + path, {
+  return fetch(getSupabaseUrl() + '/rest/v1/' + path, {
     ...opts,
     headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+      apikey: getSupabaseKey(),
+      Authorization: 'Bearer ' + getSupabaseKey(),
       'Content-Type': 'application/json',
       ...opts.headers
     }
-  }).then(r => {
-    if (!r.ok) throw new Error(r.status);
-    return r.json();
-  });
+  }).then(r => r.json().then(data => ({ ok: r.ok, status: r.status, data })));
 }
 
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
-  if (localStorage.getItem(SESSION_KEY) === "1" && SUPABASE_URL && SUPABASE_ANON_KEY) {
+  if (localStorage.getItem(SESSION_KEY) === "1" && getSupabaseUrl() && getSupabaseKey()) {
     showApp();
   }
 });
@@ -154,31 +151,37 @@ async function doLoginEmail() {
   const password = document.getElementById('pwd-input').value;
   const err = document.getElementById('pwd-err');
 
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  if (!getSupabaseUrl() || !getSupabaseKey()) {
     err.textContent = 'Configura Supabase primero';
     err.classList.add('show');
     return;
   }
 
-  const data = await supabaseApi(
-    `users?email=eq.${encodeURIComponent(email)}&select=id,password`,
-    { method: 'GET' }
-  );
+  try {
+    const result = await supabaseApi(
+      `users?email=eq.${encodeURIComponent(email)}&select=id,password`,
+      { method: 'GET' }
+    );
 
-  const user = Array.isArray(data) ? data[0] : null;
+    const data = result.data;
+    const user = (result.ok && Array.isArray(data)) ? data[0] : null;
 
-  if (!user || user.password !== password) {
-    err.textContent = 'Credenciales incorrectas';
+    if (!user || user.password !== password) {
+      err.textContent = 'Credenciales incorrectas';
+      err.classList.add('show');
+      return;
+    }
+
+    localStorage.setItem(SESSION_KEY, "1");
+    showApp();
+  } catch (e) {
+    err.textContent = 'Error de conexión: ' + e.message;
     err.classList.add('show');
-    return;
   }
-
-  sessionStorage.setItem(SESSION_KEY, "1");
-  showApp();
 }
 
 async function doLogout() {
-  sessionStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(SESSION_KEY);
   location.reload();
 }
 
@@ -188,6 +191,8 @@ function openSetupModal() {
   document.body.style.overflow = 'hidden';
   document.getElementById('setup-url').value = localStorage.getItem(SUPABASE_URL_KEY) || '';
   document.getElementById('setup-key').value = localStorage.getItem(SUPABASE_ANON_KEY_LS) || '';
+  document.getElementById('setup-url-modal').value = localStorage.getItem(SUPABASE_URL_KEY) || '';
+  document.getElementById('setup-key-modal').value = localStorage.getItem(SUPABASE_ANON_KEY_LS) || '';
 }
 
 function closeSetup() {
@@ -195,7 +200,7 @@ function closeSetup() {
   document.body.style.overflow = '';
 }
 
-function saveSetup() {
+async function saveSetup() {
   const url = document.getElementById('setup-url').value.trim();
   const key = document.getElementById('setup-key').value.trim();
 
@@ -207,8 +212,17 @@ function saveSetup() {
   localStorage.setItem(SUPABASE_URL_KEY, url);
   localStorage.setItem(SUPABASE_ANON_KEY_LS, key);
 
+  const testResult = await fetch(url + '/rest/v1/products?select=id&limit=1', {
+    headers: { apikey: key, Authorization: 'Bearer ' + key }
+  }).then(r => r.json()).then(d => ({ ok: true, data: d })).catch(e => ({ ok: false, error: e }));
+
+  if (testResult.ok) {
+    toast('Supabase configurado y conexión verificada ✓', 'success');
+  } else {
+    toast('Supabase guardado pero error de conexión', 'error');
+  }
+
   showAuthScreen();
-  toast('Supabase configurado ✓', 'success');
 }
 
 /* ── APP ── */
@@ -223,9 +237,10 @@ async function showApp() {
 
 /* ── LOAD PRODUCTS ── */
 async function loadProductsFromSupabase() {
-  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-    const data = await supabaseApi('products?select=*&order=position.asc');
-    if (Array.isArray(data) && data.length) {
+  if (getSupabaseUrl() && getSupabaseKey()) {
+    const result = await supabaseApi('products?select=*&order=position.asc');
+    const data = result.data;
+    if (result.ok && Array.isArray(data) && data.length) {
       products = data.map(p => ({
         id: p.id,
         name: p.name,
@@ -616,9 +631,10 @@ async function confirmDelete() {
 
 /* ── SAVE ── */
 async function save() {
-  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+  if (getSupabaseUrl() && getSupabaseKey()) {
+    let hasError = false;
     for (const p of products) {
-      await supabaseApi('products', {
+      const result = await supabaseApi('products', {
         method: 'POST',
         headers: { 'Prefer': 'resolution=merge-duplicates' },
         body: JSON.stringify({
@@ -637,6 +653,13 @@ async function save() {
           position: products.indexOf(p)
         })
       });
+      if (!result.ok) {
+        console.error('Error guardando producto:', p.name, result);
+        hasError = true;
+      }
+    }
+    if (hasError) {
+      toast('Error al guardar en Supabase. ¿RLS activado?', 'error');
     }
     return;
   }
@@ -776,13 +799,13 @@ async function saveRevista() {
 
   const value = b64 || url;
 
-  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+  if (getSupabaseUrl() && getSupabaseKey()) {
     const result = await supabaseApi('config', {
       method: 'POST',
       headers: { 'Prefer': 'resolution=merge-duplicates' },
       body: JSON.stringify({ id: 'revista_url', value: value })
     });
-    if (result.error) {
+    if (!result.ok || result.data?.error) {
       toast('Error al guardar en Supabase', 'error');
       return;
     }
