@@ -574,7 +574,10 @@ async function saveProduct() {
   const image = document.getElementById('f-image').value.trim();
   const description = document.getElementById('f-description').value.trim();
 
+  console.log('saveProduct called:', { name, price, description });
+
   if (!name || isNaN(price) || !description) {
+    console.log('Validation failed - name:', !!name, 'price:', price, 'description:', !!description);
     toast('Completa nombre, precio y descripción.', 'error');
     return;
   }
@@ -604,7 +607,9 @@ async function saveProduct() {
     products.push({ id: maxId + 1, ...data });
   }
 
-  await save();
+  console.log('Calling save(), products now:', products.length);
+  const saveResult = await save();
+  console.log('save() completed, result:', saveResult);
   closeForm();
   renderTable();
   renderStats();
