@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Sync a Supabase - Tres Encantos</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #f5f0eb; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .card { background: white; border-radius: 16px; padding: 32px; max-width: 500px; width: 100%; box-shadow: 0 4px 24px rgba(0,0,0,0.1); }
+  h1 { font-size: 1.4rem; color: #5a4a3a; margin-bottom: 8px; }
+  p { color: #8a7a6a; margin-bottom: 24px; font-size: 0.9rem; }
+  label { display: block; font-size: 0.85rem; color: #6a5a4a; margin-bottom: 6px; }
+  input { width: 100%; padding: 12px; border: 2px solid #e0d8d0; border-radius: 8px; font-size: 1rem; margin-bottom: 16px; }
+  input:focus { outline: none; border-color: #b8a090; }
+  .btn { display: block; width: 100%; padding: 14px; background: #8B7355; color: white; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; margin-bottom: 12px; }
+  .btn:hover { background: #7a6348; }
+  .btn:disabled { background: #ccc; cursor: not-allowed; }
+  .log { background: #1a1a1a; color: #0f0; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 0.8rem; max-height: 300px; overflow-y: auto; margin-top: 16px; }
+  .log div { margin-bottom: 4px; }
+  .success { color: #4f4; }
+  .error { color: #f44; }
+  .info { color: #4af; }
+  .warn { color: #ffa; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Sync Productos → Supabase</h1>
+  <p>Inserta los 12 productos de demostración en tu base de datos de Supabase.</p>
+
+  <label>Supabase URL</label>
+  <input type="url" id="url" placeholder="https://xxxxx.supabase.co" value="">
+
+  <label>Anon/Public Key</label>
+  <input type="text" id="key" placeholder="eyJhbGciOiJIUzI1NiIs..." value="">
+
+  <button class="btn" id="syncBtn" onclick="startSync()">Insertar Productos</button>
+  <button class="btn" style="background:#dc3545" onclick="clearAll()">Borrar TODOS los productos</button>
+
+  <div id="log" class="log" style="display:none"></div>
+</div>
+
+<script>
+const DEFAULT_PRODUCTS = [
+  { id:1, name:"Bolso Glamour Camel", category:"bolsos", category_label:"Bolsos & Carteras", price:380, description:"Bolso de dama en piel sintética premium. Diseño elegante con cierre metálico dorado. Cabe cartera, celular, llaves y lo esencial.", image:"https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=500&q=80", badge:"Más vendido", badge_type:"best", featured:true, out_of_stock:false, original_price:null, position:0 },
+  { id:2, name:"Perfume Natura Essencial Feminino", category:"natura", category_label:"Natura", price:498, description:"Fragancia floral irresistible. Notas de jazmín, rosa y sándalo. Larga duración, perfecta para el día y la noche.", image:"https://images.unsplash.com/photo-1590156206657-aec67f4dc4a7?auto=format&fit=crop&w=500&q=80", badge:"Natura", badge_type:"natura", featured:true, out_of_stock:false, original_price:null, position:1 },
+  { id:3, name:"Set Aretes Dorados Flor", category:"accesorios", category_label:"Accesorios", price:120, description:"Aretes de flor con baño en oro. Ligeros y cómodos para uso diario. Incluye 3 pares en distintos tamaños. No dañan la piel.", image:"https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=500&q=80", badge:"Nuevo", badge_type:"new", featured:true, out_of_stock:false, original_price:null, position:2 },
+  { id:4, name:"Kit Maquillaje Natural Look", category:"maquillaje", category_label:"Maquillaje", price:650, description:"Kit completo para el look natural perfecto. Base, rubor, sombras nude, labial y pincel. Fórmula suave y larga duración.", image:"https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=500&q=80", badge:"Favorito", badge_type:"best", featured:true, out_of_stock:false, original_price:null, position:3 },
+  { id:5, name:"Mochila Trendy Canvas", category:"bolsos", category_label:"Bolsos & Mochilas", price:320, description:"Mochila de canvas resistente con diseño moderno. Compartimentos organizados, tirantes ajustables y bolsillo frontal con cierre.", image:"https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=500&q=80", badge:null, badge_type:null, featured:true, out_of_stock:false, original_price:null, position:4 },
+  { id:6, name:"Set Pulseras Boho Chic", category:"accesorios", category_label:"Accesorios", price:180, description:"Set de 7 pulseras con diseño boho. Mezcla de macramé, perlas y metal dorado. Se usan juntas o por separado.", image:"https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=500&q=80", badge:"Oferta", badge_type:"promo", featured:true, out_of_stock:false, original_price:null, position:5 },
+  { id:7, name:"Crema Natura Ekos Ucuuba", category:"natura", category_label:"Natura", price:280, description:"Crema corporal hidratante con extracto de ucuuba amazónica. Textura suave y aterciopelada. Piel suave desde la primera aplicación.", image:"https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=500&q=80", badge:"Natura", badge_type:"natura", featured:false, out_of_stock:false, original_price:null, position:6 },
+  { id:8, name:"Sombrero Verano Chic", category:"accesorios", category_label:"Accesorios", price:220, description:"Sombrero de ala ancha con lazo decorativo. Material de paja trenzada premium. Perfecto para playa, campo o paseo en ciudad.", image:"https://images.unsplash.com/photo-1572307480813-ceb0e59d8325?auto=format&fit=crop&w=500&q=80", badge:"Temporada", badge_type:"new", featured:false, out_of_stock:false, original_price:null, position:7 },
+  { id:9, name:"Lonchera Térmica Floral", category:"bolsos", category_label:"Loncheras", price:250, description:"Lonchera isotérmica con diseño floral. Mantiene alimentos fríos o calientes 6 horas. Fácil limpieza, asa para llevar.", image:"https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=500&q=80", badge:null, badge_type:null, featured:false, out_of_stock:false, original_price:null, position:8 },
+  { id:10, name:"Diadema Terciopelo Elegante", category:"accesorios", category_label:"Accesorios", price:85, description:"Diadema de terciopelo suave con lazo decorativo. Para looks casuales y formales. Disponible en varios colores.", image:"https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=500&q=80", badge:null, badge_type:null, featured:false, out_of_stock:false, original_price:null, position:9 },
+  { id:11, name:"Labial Natura Una Línea", category:"maquillaje", category_label:"Maquillaje", price:195, description:"Labial de alta cobertura con acabado sedoso. Fórmula hidratante con vitamina E. Duración de hasta 8 horas.", image:"https://images.unsplash.com/photo-1586495777744-4e6232bf4e0c?auto=format&fit=crop&w=500&q=80", badge:"Natura", badge_type:"natura", featured:false, out_of_stock:false, original_price:null, position:10 },
+  { id:12, name:"Cadenita Dorada Estrella", category:"accesorios", category_label:"Accesorios", price:95, description:"Cadenita fina con dije de estrella en baño de oro de 18k. Cierre de mosquetón. Ideal para regalar o usar a diario.", image:"https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=500&q=80", badge:"Nuevo", badge_type:"new", featured:false, out_of_stock:false, original_price:null, position:11 }
+];
+
+const logEl = document.getElementById('log');
+let log = '';
+
+function addLog(msg, type='') {
+  const span = type ? `<span class="${type}">[${type.toUpperCase()}]</span> ` : '';
+  log += `<div>${span}${msg}</div>`;
+  logEl.innerHTML = log;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function showLog() { logEl.style.display = 'block'; }
+
+async function supabaseApi(url, key, path, opts = {}) {
+  const res = await fetch(url + '/rest/v1/' + path, {
+    ...opts,
+    headers: {
+      apikey: key,
+      Authorization: 'Bearer ' + key,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates',
+      ...opts.headers
+    }
+  });
+  const text = await res.text();
+  let json;
+  try { json = JSON.parse(text); } catch { json = text; }
+  return { ok: res.ok, status: res.status, data: json };
+}
+
+async function startSync() {
+  const url = document.getElementById('url').value.trim();
+  const key = document.getElementById('key').value.trim();
+
+  if (!url || !key) { alert('Completa ambos campos'); return; }
+
+  const btn = document.getElementById('syncBtn');
+  btn.disabled = true;
+  btn.textContent = 'Insertando...';
+  showLog();
+  log = '';
+  addLog('Iniciando sync...', 'info');
+
+  for (let i = 0; i < DEFAULT_PRODUCTS.length; i++) {
+    const p = DEFAULT_PRODUCTS[i];
+    addLog(`Insertando ${i+1}/12: ${p.name}...`);
+    const result = await supabaseApi(url, key, 'products', {
+      method: 'POST',
+      body: JSON.stringify(p)
+    });
+    if (result.ok) {
+      addLog(`  ✓ Insertado`, 'success');
+    } else {
+      addLog(`  ✗ Error ${result.status}: ${JSON.stringify(result.data)}`, 'error');
+    }
+  }
+
+  addLog('¡Listo!', 'success');
+  btn.disabled = false;
+  btn.textContent = 'Insertar Productos';
+}
+
+async function clearAll() {
+  if (!confirm('¿Seguro? Esto borrará TODOS los productos de Supabase.')) return;
+
+  const url = document.getElementById('url').value.trim();
+  const key = document.getElementById('key').value.trim();
+
+  if (!url || !key) { alert('Completa ambos campos'); return; }
+
+  showLog();
+  log = '';
+  addLog('Borrando todos los productos...', 'warn');
+
+  const result = await supabaseApi(url, key, 'products?select=id', { method: 'GET' });
+
+  if (Array.isArray(result.data) && result.data.length) {
+    for (const p of result.data) {
+      await supabaseApi(url, key, `products?id=eq.${p.id}`, { method: 'DELETE' });
+    }
+    addLog(`Borrados ${result.data.length} productos`, 'success');
+  } else {
+    addLog('No había productos que borrar', 'info');
+  }
+}
+</script>
+</body>
+</html>
