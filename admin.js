@@ -123,7 +123,12 @@ function supabaseApi(path, opts = {}) {
       'Content-Type': 'application/json',
       ...opts.headers
     }
-  }).then(r => r.json().then(data => ({ ok: r.ok, status: r.status, data })));
+  }).then(async r => {
+    const text = await r.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = text || null; }
+    return { ok: r.ok, status: r.status, data };
+  });
 }
 
 /* ── INIT ── */
