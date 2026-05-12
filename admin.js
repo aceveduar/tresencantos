@@ -212,17 +212,22 @@ async function saveSetup() {
   localStorage.setItem(SUPABASE_URL_KEY, url);
   localStorage.setItem(SUPABASE_ANON_KEY_LS, key);
 
-  const testResult = await fetch(url + '/rest/v1/products?select=id&limit=1', {
-    headers: { apikey: key, Authorization: 'Bearer ' + key }
-  }).then(r => r.json()).then(d => ({ ok: true, data: d })).catch(e => ({ ok: false, error: e }));
-
-  if (testResult.ok) {
-    toast('Supabase configurado y conexión verificada ✓', 'success');
-  } else {
-    toast('Supabase guardado pero error de conexión', 'error');
-  }
-
+  toast('Verificando conexión...', '');
   showAuthScreen();
+
+  try {
+    const res = await fetch(url + '/rest/v1/', {
+      headers: { apikey: key, Authorization: 'Bearer ' + key }
+    });
+    if (res.ok) {
+      toast('Supabase configurado y conexión verificada ✓', 'success');
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast('Error ' + res.status + ': ' + (err.message || 'verifica URL y key'), 'error');
+    }
+  } catch (e) {
+    toast('No se pudo conectar: ' + e.message, 'error');
+  }
 }
 
 /* ── APP ── */
