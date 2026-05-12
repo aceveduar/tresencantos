@@ -34,6 +34,9 @@
   <label>Anon/Public Key</label>
   <input type="text" id="key" placeholder="eyJhbGciOiJIUzI1NiIs..." value="">
 
+  <label>Service Role Key (opcional, para bypassear RLS)</label>
+  <input type="text" id="serviceKey" placeholder="eyJhbGciOiJIUzI1NiIs..." value="">
+
   <button class="btn" id="syncBtn" onclick="startSync()">Insertar Productos</button>
   <button class="btn" style="background:#dc3545" onclick="clearAll()">Borrar TODOS los productos</button>
 
@@ -88,6 +91,9 @@ async function supabaseApi(url, key, path, opts = {}) {
 async function startSync() {
   const url = document.getElementById('url').value.trim();
   const key = document.getElementById('key').value.trim();
+  const serviceKey = document.getElementById('serviceKey').value.trim();
+
+  const apiKey = serviceKey || key;
 
   if (!url || !key) { alert('Completa ambos campos'); return; }
 
@@ -101,7 +107,7 @@ async function startSync() {
   for (let i = 0; i < DEFAULT_PRODUCTS.length; i++) {
     const p = DEFAULT_PRODUCTS[i];
     addLog(`Insertando ${i+1}/12: ${p.name}...`);
-    const result = await supabaseApi(url, key, 'products', {
+    const result = await supabaseApi(url, apiKey, 'products', {
       method: 'POST',
       body: JSON.stringify(p)
     });
@@ -122,6 +128,9 @@ async function clearAll() {
 
   const url = document.getElementById('url').value.trim();
   const key = document.getElementById('key').value.trim();
+  const serviceKey = document.getElementById('serviceKey').value.trim();
+
+  const apiKey = serviceKey || key;
 
   if (!url || !key) { alert('Completa ambos campos'); return; }
 
@@ -129,11 +138,11 @@ async function clearAll() {
   log = '';
   addLog('Borrando todos los productos...', 'warn');
 
-  const result = await supabaseApi(url, key, 'products?select=id', { method: 'GET' });
+  const result = await supabaseApi(url, apiKey, 'products?select=id', { method: 'GET' });
 
   if (Array.isArray(result.data) && result.data.length) {
     for (const p of result.data) {
-      await supabaseApi(url, key, `products?id=eq.${p.id}`, { method: 'DELETE' });
+      await supabaseApi(url, apiKey, `products?id=eq.${p.id}`, { method: 'DELETE' });
     }
     addLog(`Borrados ${result.data.length} productos`, 'success');
   } else {

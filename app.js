@@ -8,6 +8,25 @@ const SUPABASE_ANON_KEY = localStorage.getItem('te_supabase_anon_key') || '';
 
 let products = [];
 let revistaUrl = "";
+let currentFilter = 'all';
+let activeProduct = null;
+
+const WA_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.374 0 0 5.373 0 12c0 2.124.553 4.118 1.522 5.85L.057 23.499l5.772-1.513A11.94 11.94 0 0012 24c6.626 0 12-5.373 12-12S18.626 0 12 0zm0 21.799c-1.891 0-3.653-.507-5.18-1.394l-.371-.22-3.422.897.914-3.329-.242-.384A9.783 9.783 0 012.2 12c0-5.404 4.396-9.799 9.8-9.799 5.403 0 9.798 4.395 9.798 9.8 0 5.403-4.395 9.798-9.798 9.798z"/></svg>`;
+
+const DEFAULT_PRODUCTS = [
+  {id:1,name:"Bolso Glamour Camel",category:"bolsos",categoryLabel:"Bolsos & Carteras",price:380,description:"Bolso de dama en piel sintética premium. Diseño elegante con cierre metálico dorado. Cabe cartera, celular, llaves y lo esencial.",image:"https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=500&q=80",badge:"Más vendido",badgeType:"best",featured:true},
+  {id:2,name:"Perfume Natura Essencial Feminino",category:"natura",categoryLabel:"Natura",price:498,description:"Fragancia floral irresistible. Notas de jazmín, rosa y sándalo. Larga duración, perfecta para el día y la noche.",image:"https://images.unsplash.com/photo-1590156206657-aec67f4dc4a7?auto=format&fit=crop&w=500&q=80",badge:"Natura",badgeType:"natura",featured:true},
+  {id:3,name:"Set Aretes Dorados Flor",category:"accesorios",categoryLabel:"Accesorios",price:120,description:"Aretes de flor con baño en oro. Ligeros y cómodos para uso diario. Incluye 3 pares en distintos tamaños. No dañan la piel.",image:"https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=500&q=80",badge:"Nuevo",badgeType:"new",featured:true},
+  {id:4,name:"Kit Maquillaje Natural Look",category:"maquillaje",categoryLabel:"Maquillaje",price:650,description:"Kit completo para el look natural perfecto. Base, rubor, sombras nude, labial y pincel. Fórmula suave y larga duración.",image:"https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=500&q=80",badge:"Favorito",badgeType:"best",featured:true},
+  {id:5,name:"Mochila Trendy Canvas",category:"bolsos",categoryLabel:"Bolsos & Mochilas",price:320,description:"Mochila de canvas resistente con diseño moderno. Compartimentos organizados, tirantes ajustables y bolsillo frontal con cierre.",image:"https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=500&q=80",badge:null,badgeType:null,featured:true},
+  {id:6,name:"Set Pulseras Boho Chic",category:"accesorios",categoryLabel:"Accesorios",price:180,description:"Set de 7 pulseras con diseño boho. Mezcla de macramé, perlas y metal dorado. Se usan juntas o por separado.",image:"https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=500&q=80",badge:"Oferta",badgeType:"promo",featured:true},
+  {id:7,name:"Crema Natura Ekos Ucuuba",category:"natura",categoryLabel:"Natura",price:280,description:"Crema corporal hidratante con extracto de ucuuba amazónica. Textura suave y aterciopelada. Piel suave desde la primera aplicación.",image:"https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=500&q=80",badge:"Natura",badgeType:"natura",featured:false},
+  {id:8,name:"Sombrero Verano Chic",category:"accesorios",categoryLabel:"Accesorios",price:220,description:"Sombrero de ala ancha con lazo decorativo. Material de paja trenzada premium. Perfecto para playa, campo o paseo en ciudad.",image:"https://images.unsplash.com/photo-1572307480813-ceb0e59d8325?auto=format&fit=crop&w=500&q=80",badge:"Temporada",badgeType:"new",featured:false},
+  {id:9,name:"Lonchera Térmica Floral",category:"bolsos",categoryLabel:"Loncheras",price:250,description:"Lonchera isotérmica con diseño floral. Mantiene alimentos fríos o calientes 6 horas. Fácil limpieza, asa para llevar.",image:"https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=500&q=80",badge:null,badgeType:null,featured:false},
+  {id:10,name:"Diadema Terciopelo Elegante",category:"accesorios",categoryLabel:"Accesorios",price:85,description:"Diadema de terciopelo suave con lazo decorativo. Para looks casuales y formales. Disponible en varios colores.",image:"https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=500&q=80",badge:null,badgeType:null,featured:false},
+  {id:11,name:"Labial Natura Una Línea",category:"maquillaje",categoryLabel:"Maquillaje",price:195,description:"Labial de alta cobertura con acabado sedoso. Fórmula hidratante con vitamina E. Duración de hasta 8 horas.",image:"https://images.unsplash.com/photo-1586495777744-4e6232bf4e0c?auto=format&fit=crop&w=500&q=80",badge:"Natura",badgeType:"natura",featured:false},
+  {id:12,name:"Cadenita Dorada Estrella",category:"accesorios",categoryLabel:"Accesorios",price:95,description:"Cadenita fina con dije de estrella en baño de oro de 18k. Cierre de mosquetón. Ideal para regalar o usar a diario.",image:"https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=500&q=80",badge:"Nuevo",badgeType:"new",featured:false}
+];
 
 function supabaseApi(path, opts = {}) {
   return fetch(SUPABASE_URL + '/rest/v1/' + path, {
@@ -47,6 +66,28 @@ async function loadProducts() {
     const saved = localStorage.getItem(STORAGE_KEY);
     products = saved ? JSON.parse(saved) : [...DEFAULT_PRODUCTS];
   } catch { products = [...DEFAULT_PRODUCTS]; }
+}
+
+/* ── REVISTA ── */
+async function loadRevista() {
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    const data = await supabaseApi('config?id=eq.revista_url&select=value');
+    if (Array.isArray(data) && data.length) {
+      revistaUrl = data[0].value;
+      return;
+    }
+  }
+  try {
+    const saved = localStorage.getItem(REVISTA_KEY);
+    revistaUrl = saved || "https://www.natura.com.mx/catalogos-digitales";
+  } catch {
+    revistaUrl = "https://www.natura.com.mx/catalogos-digitales";
+  }
+}
+
+function updateRevistaLink() {
+  const link = document.getElementById("revista-link");
+  if (link) link.href = revistaUrl;
 }
 
 const observer = new IntersectionObserver(entries => {

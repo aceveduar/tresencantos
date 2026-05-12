@@ -1,0 +1,9 @@
+Bugs encontrados:
+
+app.js — faltan currentFilter, activeProduct, WA_SVG, DEFAULT_PRODUCTS, loadRevista(), updateRevistaLink() → la página principal no carga productos
+admin.js — sessionStorage para guardar sesión pero localStorage para leerla → login nunca persiste
+admin.js — URL y key de Supabase son constantes que se leen una sola vez → después de configurar, el login sigue fallando
+admin.html — IDs duplicados setup-url/setup-key en dos formularios → el modal de configuración no funciona
+admin.js — typo maquiagem en lugar de maquillaje
+admin.js — sin try/catch en el login → errores silenciosos
+supabase-schema.sql — políticas RLS solo permiten escritura a usuarios autenticados de Supabase Auth, pero el panel usa la anon key → guardar productos siempre falla con 403
