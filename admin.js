@@ -473,8 +473,7 @@ function mobileCard(p) {
         <div class="mpc-info">
           <div class="mpc-name">${p.name}</div>
           <div class="mpc-meta">${p.categoryLabel} · ${p.barcode ? `🔲 ${p.barcode}` : `#${p.id}`}</div>
-          ${priceHTML}
-          ${stockInfo}
+          <div class="mpc-price-row">${priceHTML}${stockInfo}</div>
         </div>
       </div>
       <div class="mpc-bottom">
