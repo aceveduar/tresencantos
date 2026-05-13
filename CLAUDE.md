@@ -28,15 +28,14 @@ El sitio no tiene checkout ni carrito — los pedidos se cierran por **WhatsApp*
 
 ```
 tresencantos/
-├── index.html          # Sitio público (catálogo + hero + Natura + about + WhatsApp)
-├── admin.html          # Panel de administración (auth + CRUD productos + revista)
-├── admin.js            # Toda la lógica del admin (~950 líneas)
-├── app.js              # Lógica del sitio público (carga productos, filtros, modal, WhatsApp)
-├── style.css           # Estilos del sitio público
-├── sync-supabase.html  # Utilidad standalone para seed inicial de productos
-├── logo.png            # Logo de Tres Encantos
-├── ofelia.jpeg         # Foto de la dueña (sección Natura)
-└── bugs.txt            # Log de bugs conocidos (histórico)
+├── index.html     # Sitio público (catálogo + hero + Natura + about + WhatsApp)
+├── admin.html     # Panel de administración (auth + CRUD productos + revista)
+├── admin.js       # Toda la lógica del admin
+├── app.js         # Lógica del sitio público (carga productos, filtros, modal, WhatsApp)
+├── style.css      # Estilos del sitio público
+├── logo.png       # Logo de Tres Encantos
+├── ofelia.jpeg    # Foto de la dueña (sección Natura)
+└── CLAUDE.md      # Este archivo
 ```
 
 ---
@@ -44,8 +43,14 @@ tresencantos/
 ## Supabase
 
 ### Credenciales
-Las credenciales se guardan en `localStorage` del browser (keys: `te_supabase_url`, `te_supabase_anon_key`).  
-Las credenciales de producción están en Supabase dashboard del proyecto — **no hardcodear en código**.
+Las credenciales están **hardcodeadas** en los primeros líneas de cada archivo:
+
+| Archivo | Key usada | Por qué |
+|---|---|---|
+| `app.js` | Anon key | Solo hace SELECT. Es segura en código público. |
+| `admin.js` | **Service role key** | Bypasea RLS para poder hacer INSERT/UPDATE/DELETE. Solo accesible desde el panel de admin. |
+
+**Regla de oro:** nunca usar el service role key en `app.js` (sitio público).
 
 - **Project URL:** `https://qxvrggmpaqhslgdmbhqw.supabase.co`
 - **Anon Key:** ver localStorage o Supabase Settings → API

@@ -1,6 +1,7 @@
 const SESSION_KEY = "te_admin_session";
 const SUPABASE_URL = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjYyMjYsImV4cCI6MjA5NDEwMjIyNn0.irCFwOR5HL_ZOVjFGVw9LqmzYicDZTNEmxcknu_j6cI';
+// Service role key: bypasea RLS — solo usar en admin, nunca en el sitio público
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUyNjIyNiwiZXhwIjoyMDk0MTAyMjI2fQ.B9nZ1KENDQsUtn9PFwiMTrXuMZuWWIphGnH8XPfeJjQ';
 
 let products = [];
 let deleteTargetId = null;
@@ -15,7 +16,17 @@ const CAT_LABELS = {
 };
 
 const getSupabaseUrl = () => SUPABASE_URL;
-const getSupabaseKey = () => SUPABASE_ANON_KEY;
+const getSupabaseKey = () => SUPABASE_SERVICE_KEY;
+
+function getFilteredProducts() {
+  const q = document.getElementById('search-input')?.value.toLowerCase() || '';
+  const cat = document.getElementById('cat-filter')?.value || 'all';
+  return products.filter(p => {
+    const matchCat = cat === 'all' || p.category === cat;
+    const matchQ = !q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+}
 
 function supabaseApi(path, opts = {}) {
   return fetch(getSupabaseUrl() + '/rest/v1/' + path, {
@@ -126,13 +137,7 @@ function renderStats() {
 
 /* ── TABLE ── */
 function renderTable() {
-  const q = document.getElementById('search-input')?.value.toLowerCase() || '';
-  const cat = document.getElementById('cat-filter')?.value || 'all';
-  const filtered = products.filter(p => {
-    const matchCat = cat === 'all' || p.category === cat;
-    const matchQ = !q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
-    return matchCat && matchQ;
-  });
+  const filtered = getFilteredProducts();
 
   const tbody = document.getElementById('products-table');
   if (!filtered.length) {
@@ -197,13 +202,7 @@ function toggleRowSelect(id, checked) {
 }
 
 function toggleSelectAll() {
-  const q = document.getElementById('search-input')?.value.toLowerCase() || '';
-  const cat = document.getElementById('cat-filter')?.value || 'all';
-  const filtered = products.filter(p => {
-    const matchCat = cat === 'all' || p.category === cat;
-    const matchQ = !q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
-    return matchCat && matchQ;
-  });
+  const filtered = getFilteredProducts();
   const allChecked = document.getElementById('select-all').checked;
   if (allChecked) filtered.forEach(p => selectedIds.add(p.id));
   else filtered.forEach(p => selectedIds.delete(p.id));
@@ -228,13 +227,7 @@ function updateBulkBar() {
 }
 
 function updateSelectAllCheckbox() {
-  const q = document.getElementById('search-input')?.value.toLowerCase() || '';
-  const cat = document.getElementById('cat-filter')?.value || 'all';
-  const filtered = products.filter(p => {
-    const matchCat = cat === 'all' || p.category === cat;
-    const matchQ = !q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
-    return matchCat && matchQ;
-  });
+  const filtered = getFilteredProducts();
   const checkbox = document.getElementById('select-all');
   if (!checkbox || !filtered.length) return;
   const allSelected = filtered.every(p => selectedIds.has(p.id));
@@ -563,7 +556,8 @@ async function saveProduct() {
         body: JSON.stringify(dbPayload)
       });
       if (!result.ok) {
-        toast('Error al actualizar. ¿RLS activado?', 'error');
+        const errMsg = result.data?.message || result.data?.hint || `HTTP ${result.status}`;
+        toast(`Error al actualizar: ${errMsg}`, 'error');
         return;
       }
     }
@@ -572,17 +566,16 @@ async function saveProduct() {
     const newProduct = { id: maxId + 1, ...data, position: products.length };
     products.push(newProduct);
 
-    if (getSupabaseUrl()) {
-      const result = await supabaseApi('products', {
-        method: 'POST',
-        headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-        body: JSON.stringify({ id: newProduct.id, ...dbPayload, position: newProduct.position })
-      });
-      if (!result.ok) {
-        products.pop();
-        toast('Error al guardar. ¿RLS activado?', 'error');
-        return;
-      }
+    const result = await supabaseApi('products', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ id: newProduct.id, ...dbPayload, position: newProduct.position })
+    });
+    if (!result.ok) {
+      products.pop();
+      const errMsg = result.data?.message || result.data?.hint || `HTTP ${result.status}`;
+      toast(`Error al guardar: ${errMsg}`, 'error');
+      return;
     }
   }
 
@@ -605,22 +598,19 @@ function closeDel() {
   document.body.style.overflow = '';
 }
 
-/* FIX: ahora DELETE va a Supabase primero; solo actualiza el estado local si tiene éxito */
 async function confirmDelete() {
   if (deleteTargetId === null) return;
   const id = deleteTargetId;
 
-  if (getSupabaseUrl()) {
-    const result = await supabaseApi(`products?id=eq.${id}`, {
-      method: 'DELETE',
-      headers: { 'Prefer': 'return=minimal' }
-    });
-    if (!result.ok) {
-      const msg = result.data?.message || result.data?.hint || `HTTP ${result.status}`;
-      toast('Error al eliminar: ' + msg, 'error');
-      closeDel();
-      return;
-    }
+  const result = await supabaseApi(`products?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: { 'Prefer': 'return=minimal' }
+  });
+  if (!result.ok) {
+    const msg = result.data?.message || result.data?.hint || `HTTP ${result.status}`;
+    toast('Error al eliminar: ' + msg, 'error');
+    closeDel();
+    return;
   }
 
   products = products.filter(p => p.id !== id);
@@ -634,10 +624,6 @@ async function confirmDelete() {
 
 /* ── SAVE — batch upsert (usado para reorder e import) ── */
 async function save() {
-  if (!getSupabaseUrl() || !getSupabaseKey()) {
-    toast('Configura Supabase para guardar productos', 'error');
-    return false;
-  }
   if (!products.length) return true;
 
   const payload = products.map((p, i) => ({
@@ -663,20 +649,12 @@ async function save() {
   });
 
   if (!result.ok) {
-    toast('Error al guardar en Supabase. ¿RLS activado?', 'error');
+    const errMsg = result.data?.message || result.data?.hint || result.data?.details || `HTTP ${result.status}`;
+    toast(`Error al guardar: ${errMsg}`, 'error');
+    console.error('Supabase save error:', result.status, result.data);
     return false;
   }
   return true;
-}
-
-/* ── CLEAR ALL (helper para import) ── */
-async function clearSupabaseProducts() {
-  if (!getSupabaseUrl()) return true;
-  const result = await supabaseApi('products?id=gt.0', {
-    method: 'DELETE',
-    headers: { 'Prefer': 'return=minimal' }
-  });
-  return result.ok || result.status === 204;
 }
 
 /* ── BULK ACTIONS ── */
@@ -846,39 +824,88 @@ function importProducts(input) {
   const reader = new FileReader();
   reader.onload = async e => {
     try {
-      const data = JSON.parse(e.target.result);
-      if (!Array.isArray(data) || !data.length) {
+      const raw = JSON.parse(e.target.result);
+      if (!Array.isArray(raw) || !raw.length) {
         toast('Archivo inválido o vacío', 'error');
         return;
       }
 
-      toast(`Importando ${data.length} productos...`, '');
+      // Normalizar — acepta camelCase (export del admin) y snake_case (export de Supabase)
+      const imported = raw.map((p, i) => ({
+        id: p.id,
+        name: p.name || '',
+        category: p.category || 'bolsos',
+        categoryLabel: p.categoryLabel || p.category_label || CAT_LABELS[p.category] || '',
+        price: Number(p.price) || 0,
+        originalPrice: p.originalPrice ?? p.original_price ?? null,
+        description: p.description || '',
+        image: p.image || '',
+        badge: p.badge || null,
+        badgeType: p.badgeType || p.badge_type || null,
+        featured: Boolean(p.featured),
+        outOfStock: Boolean(p.outOfStock ?? p.out_of_stock),
+        position: p.position ?? i
+      }));
 
-      // 1. Limpiar tabla en Supabase antes de insertar
-      if (getSupabaseUrl()) {
-        const cleared = await clearSupabaseProducts();
-        if (!cleared) {
-          toast('Error al limpiar productos en Supabase. Verifica permisos RLS.', 'error');
-          return;
-        }
+      const newCount    = imported.filter(p => !products.find(x => x.id === p.id)).length;
+      const updateCount = imported.length - newCount;
+
+      const lines = [`Importar ${imported.length} producto(s) del archivo:`];
+      if (newCount)    lines.push(`  • ${newCount} nuevo(s) se agregarán`);
+      if (updateCount) lines.push(`  • ${updateCount} existente(s) se actualizarán`);
+      lines.push('\nLos productos que no están en el archivo se conservarán.');
+      if (!confirm(lines.join('\n'))) return;
+
+      toast(`Importando ${imported.length} productos...`, '');
+
+      // Upsert solo los productos del archivo — los demás permanecen intactos en Supabase
+      const payload = imported.map(p => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        category_label: p.categoryLabel,
+        price: p.price,
+        description: p.description,
+        image: p.image,
+        badge: p.badge,
+        badge_type: p.badgeType,
+        featured: p.featured,
+        out_of_stock: p.outOfStock,
+        original_price: p.originalPrice,
+        position: p.position
+      }));
+
+      const result = await supabaseApi('products', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!result.ok) {
+        const errMsg = result.data?.message || result.data?.hint || `HTTP ${result.status}`;
+        toast(`Error al importar: ${errMsg}`, 'error');
+        console.error('Import error:', result.status, result.data);
+        return;
       }
 
-      // 2. Guardar snapshot por si el upsert falla y hay que hacer rollback
-      const prevProducts = products;
-      products = data;
-
-      // 3. Persistir en Supabase — si falla, revertir estado local
-      const saved = await save();
-      if (!saved) {
-        products = prevProducts;
-        return; // save() ya mostró el toast de error
+      // Merge en el array local: actualizar existentes + agregar nuevos al final
+      const merged = [...products];
+      for (const p of imported) {
+        const idx = merged.findIndex(x => x.id === p.id);
+        if (idx > -1) merged[idx] = p;
+        else merged.push(p);
       }
+      products = merged;
 
       selectedIds.clear();
       renderTable();
       renderStats();
       updateBulkBar();
-      toast(`${data.length} productos importados y guardados ✓`, 'success');
+      const summary = [
+        newCount    ? `${newCount} agregado(s)` : '',
+        updateCount ? `${updateCount} actualizado(s)` : ''
+      ].filter(Boolean).join(', ');
+      toast(`Importación completa: ${summary} ✓`, 'success');
     } catch {
       toast('Archivo inválido. Usa un JSON exportado de esta página.', 'error');
     }
@@ -970,18 +997,14 @@ async function saveRevista() {
 
   const value = b64 || url;
 
-  if (getSupabaseUrl() && getSupabaseKey()) {
-    const result = await supabaseApi('config', {
-      method: 'POST',
-      headers: { 'Prefer': 'resolution=merge-duplicates' },
-      body: JSON.stringify({ id: 'revista_url', value })
-    });
-    if (!result.ok || result.data?.error) {
-      toast('Error al guardar en Supabase', 'error');
-      return;
-    }
-  } else {
-    localStorage.setItem('te_revista_v1', value);
+  const result = await supabaseApi('config', {
+    method: 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates' },
+    body: JSON.stringify({ id: 'revista_url', value })
+  });
+  if (!result.ok || result.data?.error) {
+    toast('Error al guardar en Supabase', 'error');
+    return;
   }
 
   closeRevista();
