@@ -1,6 +1,6 @@
 const SESSION_KEY = "te_admin_session";
-const SUPABASE_URL_KEY = "te_supabase_url";
-const SUPABASE_ANON_KEY_LS = "te_supabase_anon_key";
+const SUPABASE_URL = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjYyMjYsImV4cCI6MjA5NDEwMjIyNn0.irCFwOR5HL_ZOVjFGVw9LqmzYicDZTNEmxcknu_j6cI';
 
 let products = [];
 let deleteTargetId = null;
@@ -14,8 +14,8 @@ const CAT_LABELS = {
   natura: "Natura"
 };
 
-const getSupabaseUrl = () => localStorage.getItem(SUPABASE_URL_KEY) || '';
-const getSupabaseKey = () => localStorage.getItem(SUPABASE_ANON_KEY_LS) || '';
+const getSupabaseUrl = () => SUPABASE_URL;
+const getSupabaseKey = () => SUPABASE_ANON_KEY;
 
 function supabaseApi(path, opts = {}) {
   return fetch(getSupabaseUrl() + '/rest/v1/' + path, {
@@ -36,21 +36,13 @@ function supabaseApi(path, opts = {}) {
 
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
-  if (localStorage.getItem(SESSION_KEY) === "1" && getSupabaseUrl() && getSupabaseKey()) {
+  if (localStorage.getItem(SESSION_KEY) === "1") {
     showApp();
   }
 });
 
 function showAuthScreen() {
-  document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
-}
-
-function showSetupScreen() {
-  document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('setup-screen').style.display = 'flex';
-  document.getElementById('setup-url').value = localStorage.getItem(SUPABASE_URL_KEY) || '';
-  document.getElementById('setup-key').value = localStorage.getItem(SUPABASE_ANON_KEY_LS) || '';
 }
 
 /* ── AUTH ── */
@@ -58,12 +50,6 @@ async function doLoginEmail() {
   const email = document.getElementById('email-input').value;
   const password = document.getElementById('pwd-input').value;
   const err = document.getElementById('pwd-err');
-
-  if (!getSupabaseUrl() || !getSupabaseKey()) {
-    err.textContent = 'Configura Supabase primero';
-    err.classList.add('show');
-    return;
-  }
 
   try {
     const result = await supabaseApi(
@@ -90,60 +76,9 @@ async function doLogout() {
   location.reload();
 }
 
-/* ── SETUP SUPABASE ── */
-function openSetupModal() {
-  document.getElementById('setup-overlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-  document.getElementById('setup-url-modal').value = localStorage.getItem(SUPABASE_URL_KEY) || '';
-  document.getElementById('setup-key-modal').value = localStorage.getItem(SUPABASE_ANON_KEY_LS) || '';
-}
-
-function closeSetup() {
-  document.getElementById('setup-overlay').classList.remove('open');
-  document.body.style.overflow = '';
-}
-
-async function saveSetup() {
-  // Detect whether we're saving from the setup screen or the in-app modal
-  const isModal = document.getElementById('setup-overlay').classList.contains('open');
-  const url = document.getElementById(isModal ? 'setup-url-modal' : 'setup-url').value.trim();
-  const key = document.getElementById(isModal ? 'setup-key-modal' : 'setup-key').value.trim();
-
-  if (!url || !key) {
-    toast('Completa ambos campos', 'error');
-    return;
-  }
-
-  localStorage.setItem(SUPABASE_URL_KEY, url);
-  localStorage.setItem(SUPABASE_ANON_KEY_LS, key);
-
-  if (isModal) {
-    closeSetup();
-  } else {
-    showAuthScreen();
-  }
-
-  toast('Verificando conexión...', '');
-
-  try {
-    const res = await fetch(url + '/rest/v1/', {
-      headers: { apikey: key, Authorization: 'Bearer ' + key }
-    });
-    if (res.ok) {
-      toast('Supabase configurado y conexión verificada ✓', 'success');
-    } else {
-      const err = await res.json().catch(() => ({}));
-      toast('Error ' + res.status + ': ' + (err.message || 'verifica URL y key'), 'error');
-    }
-  } catch (e) {
-    toast('No se pudo conectar: ' + e.message, 'error');
-  }
-}
-
 /* ── APP ── */
 async function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
   await loadProductsFromSupabase();
   renderStats();
@@ -152,26 +87,24 @@ async function showApp() {
 
 /* ── LOAD PRODUCTS ── */
 async function loadProductsFromSupabase() {
-  if (getSupabaseUrl() && getSupabaseKey()) {
-    const result = await supabaseApi('products?select=*&order=position.asc');
-    const data = result.data;
-    if (result.ok && Array.isArray(data) && data.length) {
-      products = data.map(p => ({
-        id: p.id,
-        name: p.name,
-        category: p.category,
-        categoryLabel: p.category_label,
-        price: p.price,
-        description: p.description,
-        image: p.image,
-        badge: p.badge,
-        badgeType: p.badge_type,
-        featured: p.featured,
-        outOfStock: p.out_of_stock,
-        originalPrice: p.original_price
-      }));
-      return;
-    }
+  const result = await supabaseApi('products?select=*&order=position.asc');
+  const data = result.data;
+  if (result.ok && Array.isArray(data) && data.length) {
+    products = data.map(p => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      categoryLabel: p.category_label,
+      price: p.price,
+      description: p.description,
+      image: p.image,
+      badge: p.badge,
+      badgeType: p.badge_type,
+      featured: p.featured,
+      outOfStock: p.out_of_stock,
+      originalPrice: p.original_price
+    }));
+    return;
   }
   products = [];
 }
