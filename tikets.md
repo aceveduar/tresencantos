@@ -1,6 +1,9 @@
-[ ] Cuando agrego un producto está cool elegir un archivo o poner la URL del archivo; lo que vas a implementar es que se pueda sacar una foto.
-[ ] Cuando agrego un producto, tiene la función de capturar el código de barras con la cámara, eso ayuda bastante. ¿Podríamos implementar algo similar para capturar nombre y descripción?
+[x ] Cuando agrego un producto está cool elegir un archivo o poner la URL del archivo; lo que vas a implementar es que se pueda sacar una foto.
+
+[x ] Cuando agrego un producto, tiene la función de capturar el código de barras con la cámara, eso ayuda bastante. ¿Podríamos implementar algo similar para capturar nombre y descripción?
+
 [ ] Corrige este bug: si entro al administrador, edito un producto y guardo, todo ok; el bug viene cuando voy y edito otro producto y guardo, este está pensando, dice "Actualizando", como si se quedara haciendo la función de guardado del producto que edité anteriormente. Puedo notar que ya no aparece, pero solo si recargo la página.
+
 [ ] En mobile vertical no tengo visible a la vista la opción duplicar, aparece solo si pongo mi teléfono en horizontal.
 [ ] POS no aparece en mobile vertical, pero sí que me gustaría.
 [ ] En POS estaba haciendo pruebas y vendí un producto, quisiera eliminar esa venta o no sé cómo podría controlar eso.

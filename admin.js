@@ -894,6 +894,7 @@ function openForm(id) {
 function closeForm() {
   document.getElementById('form-overlay').classList.remove('open');
   document.body.style.overflow = '';
+  setBtn(document.getElementById('save-btn'), false);
 }
 
 function syncCategoryLabel() {
