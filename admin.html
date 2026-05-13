@@ -156,6 +156,18 @@ input.row-check{cursor:pointer;width:15px;height:15px}
 /* PRODUCT COUNT */
 .prod-count{font-size:.78rem;color:#9B8B78;padding:5px 12px;border-radius:50px;background:#F0E8E0;white-space:nowrap;flex-shrink:0}
 
+/* STOCK CHIPS */
+.stock-chip{display:inline-block;font-size:.72rem;font-weight:600;padding:3px 8px;border-radius:50px;white-space:nowrap}
+.stock-ok{background:#D1FAE5;color:#065F46}
+.stock-low{background:#FEF3C7;color:#92400E}
+.stock-sold{background:#FEE2E2;color:#991B1B}
+
+/* SCANNER */
+.scanner-wrap{position:relative;background:#000;border-radius:var(--r);overflow:hidden;min-height:240px;display:flex;align-items:center;justify-content:center}
+.scanner-hint{color:#fff;font-size:.85rem;opacity:.7;text-align:center;padding:20px}
+#scanner-reader{width:100%}
+#scanner-reader video{border-radius:var(--r)}
+
 /* EMPTY STATE */
 .empty-state{text-align:center;padding:60px 20px}
 .empty-state .es-icon{font-size:2.4rem;margin-bottom:10px}
@@ -267,6 +279,7 @@ input.row-check{cursor:pointer;width:15px;height:15px}
     </div>
     <div class="topbar-right">
       <span id="session-user" class="session-user"></span>
+      <a href="pos.html" class="btn btn-gold btn-sm">🖥 POS</a>
       <a href="index.html" class="btn btn-outline btn-sm">← Ver sitio</a>
       <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
     </div>
@@ -298,6 +311,7 @@ input.row-check{cursor:pointer;width:15px;height:15px}
         <span class="s-icon">🔍</span>
         <input type="text" id="search-input" placeholder="Buscar producto..." oninput="renderTable()">
       </div>
+      <button class="btn btn-outline btn-sm" onclick="openSearchScanner()" title="Buscar por código de barras">📷</button>
       <select class="filter-select" id="cat-filter" onchange="renderTable()">
         <option value="all">Todas las categorías</option>
         <option value="bolsos">Bolsos & Mochilas</option>
@@ -327,6 +341,7 @@ input.row-check{cursor:pointer;width:15px;height:15px}
             <th>Producto</th>
             <th>Categoría</th>
             <th>Precio</th>
+            <th>Stock</th>
             <th>Estado</th>
             <th>Etiqueta</th>
             <th>Destacado</th>
@@ -417,6 +432,21 @@ input.row-check{cursor:pointer;width:15px;height:15px}
       </div>
       <div class="form-row">
         <div class="field">
+          <label>Código de barras</label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="f-barcode" placeholder="Escanea o escribe el código..." style="flex:1">
+            <button type="button" class="btn btn-outline btn-sm" onclick="openFormScanner()" title="Usar cámara">📷</button>
+          </div>
+          <p class="hint">EAN-13, QR, Code-128 — opcional</p>
+        </div>
+        <div class="field">
+          <label>Stock (unidades)</label>
+          <input type="number" id="f-stock" min="0" step="1" placeholder="0">
+          <p class="hint">Cantidad disponible en inventario</p>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
           <label class="checkbox-row">
             <input type="checkbox" id="f-featured">
             Mostrar en sección Natura destacada
@@ -493,6 +523,24 @@ input.row-check{cursor:pointer;width:15px;height:15px}
   </div>
 </div>
 
+<!-- SCANNER MODAL -->
+<div class="overlay" id="scanner-overlay">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-head">
+      <h3 id="scanner-title">Escanear código</h3>
+      <button class="modal-close-btn" onclick="closeAdminScanner()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:#6B5C48;margin-bottom:12px">Apunta la cámara al código de barras o QR del producto.</p>
+      <div class="scanner-wrap">
+        <div id="scanner-reader"></div>
+      </div>
+      <p id="scanner-status" style="margin-top:10px;font-size:.82rem;color:#9B8B78;text-align:center">Iniciando cámara...</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="admin.js"></script>
 </body>
 </html>

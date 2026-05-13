@@ -275,7 +275,9 @@ async function loadProductsFromSupabase() {
       badgeType: p.badge_type,
       featured: p.featured,
       outOfStock: p.out_of_stock,
-      originalPrice: p.original_price
+      originalPrice: p.original_price,
+      barcode: p.barcode || null,
+      stock: p.stock ?? 0
     }));
     return;
   }
@@ -288,17 +290,25 @@ function renderStats() {
   products.forEach(p => { cats[p.category] = (cats[p.category] || 0) + 1; });
   const featured = products.filter(p => p.featured).length;
   const oos = products.filter(p => p.outOfStock).length;
+  const sinStock = products.filter(p => p.stock === 0).length;
+  const stockBajo = products.filter(p => p.stock > 0 && p.stock <= 5).length;
   document.getElementById('stats').innerHTML = `
-    <div class="stat-card"><div class="num">${products.length}</div><div class="lbl">Productos totales</div></div>
+    <div class="stat-card"><div class="num">${products.length}</div><div class="lbl">Productos</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--red)">${sinStock}</div><div class="lbl">Sin stock</div></div>
+    <div class="stat-card"><div class="num" style="color:#92400E">${stockBajo}</div><div class="lbl">Stock bajo (≤5)</div></div>
     <div class="stat-card"><div class="num" style="color:var(--red)">${oos}</div><div class="lbl">Agotados</div></div>
     <div class="stat-card"><div class="num">${featured}</div><div class="lbl">Destacados</div></div>
-    <div class="stat-card"><div class="num">${cats.bolsos||0}</div><div class="lbl">Bolsos & Mochilas</div></div>
-    <div class="stat-card"><div class="num">${(cats.accesorios||0)}</div><div class="lbl">Accesorios</div></div>
   `;
 }
 
 /* ── TABLE ── */
 const isMobile = () => window.matchMedia('(max-width:640px)').matches;
+
+function stockChip(stock) {
+  const cls = stock === 0 ? 'sold' : stock <= 5 ? 'low' : 'ok';
+  const txt = stock === 0 ? 'Sin stock' : stock <= 5 ? `⚠ ${stock}` : stock;
+  return `<span class="stock-chip stock-${cls}">${txt}</span>`;
+}
 
 function desktopRow(p) {
   const fallback = `https://picsum.photos/seed/${p.id+10}/80/80`;
@@ -313,7 +323,7 @@ function desktopRow(p) {
       <img class="prod-thumb" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'">
       <div>
         <div class="prod-name">${p.name}</div>
-        <div class="prod-cat">#${p.id}</div>
+        <div class="prod-cat">${p.barcode ? `🔲 ${p.barcode}` : `#${p.id}`}</div>
       </div>
     </div>
   </td>
@@ -322,6 +332,7 @@ function desktopRow(p) {
     ${p.originalPrice ? `<span class="orig-price-cell">$${p.originalPrice.toLocaleString('es-MX')}</span>` : ''}
     $${p.price.toLocaleString('es-MX')}
   </td>
+  <td>${stockChip(p.stock)}</td>
   <td>
     <button onclick="toggleOutOfStock(${p.id})" class="oos-cell ${p.outOfStock ? 'soldout' : 'available'}">
       ${p.outOfStock ? 'Agotado' : 'Disponible'}
@@ -358,8 +369,9 @@ function mobileCard(p) {
         <img class="mpc-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'">
         <div class="mpc-info">
           <div class="mpc-name">${p.name}</div>
-          <div class="mpc-meta">${p.categoryLabel} · #${p.id}</div>
+          <div class="mpc-meta">${p.categoryLabel} · ${p.barcode ? `🔲 ${p.barcode}` : `#${p.id}`}</div>
           ${priceHTML}
+          ${stockChip(p.stock)}
         </div>
       </div>
       <div class="mpc-bottom">
@@ -396,7 +408,7 @@ function renderTable() {
   if (!filtered.length) {
     const isFiltered = (document.getElementById('search-input')?.value || '') ||
                        (document.getElementById('cat-filter')?.value !== 'all');
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state">
       <div class="es-icon">${isFiltered ? '🔍' : '📦'}</div>
       <p>${isFiltered ? 'Ningún producto coincide con el filtro.' : 'El catálogo está vacío.'}</p>
       ${!isFiltered ? `<button class="btn btn-gold btn-sm" onclick="openForm()">+ Agregar primer producto</button>` : ''}
@@ -678,6 +690,8 @@ function openForm(id) {
     document.getElementById('f-image').value = p.image;
     document.getElementById('f-featured').checked = p.featured;
     document.getElementById('f-out-of-stock').checked = p.outOfStock || false;
+    document.getElementById('f-barcode').value = p.barcode || '';
+    document.getElementById('f-stock').value = p.stock ?? 0;
     previewImg();
   } else {
     document.getElementById('f-id').value = '';
@@ -692,6 +706,8 @@ function openForm(id) {
     document.getElementById('f-image').value = '';
     document.getElementById('f-featured').checked = false;
     document.getElementById('f-out-of-stock').checked = false;
+    document.getElementById('f-barcode').value = '';
+    document.getElementById('f-stock').value = 0;
     document.getElementById('f-img-preview').classList.remove('show');
     document.getElementById('f-img-file').value = '';
   }
@@ -751,7 +767,9 @@ async function saveProduct() {
     badge: badge || null,
     badgeType: document.getElementById('f-badge-type').value || null,
     featured: document.getElementById('f-featured').checked,
-    outOfStock: document.getElementById('f-out-of-stock').checked
+    outOfStock: document.getElementById('f-out-of-stock').checked,
+    barcode: document.getElementById('f-barcode').value.trim() || null,
+    stock: parseInt(document.getElementById('f-stock').value) || 0
   };
 
   const dbPayload = {
@@ -765,7 +783,9 @@ async function saveProduct() {
     badge_type: data.badgeType,
     featured: data.featured,
     out_of_stock: data.outOfStock,
-    original_price: data.originalPrice
+    original_price: data.originalPrice,
+    barcode: data.barcode,
+    stock: data.stock
   };
 
   const saveBtn = document.getElementById('save-btn');
@@ -869,6 +889,8 @@ async function save() {
     featured: p.featured,
     out_of_stock: p.outOfStock,
     original_price: p.originalPrice,
+    barcode: p.barcode ?? null,
+    stock: p.stock ?? 0,
     position: i
   }));
 
@@ -1142,6 +1164,68 @@ function importProducts(input) {
   };
   reader.readAsText(file);
   input.value = '';
+}
+
+/* ── BARCODE SCANNER ── */
+let _scanCtx = null;
+let _scanInst = null;
+
+function openFormScanner() {
+  _scanCtx = 'form';
+  document.getElementById('scanner-title').textContent = 'Escanear código de barras';
+  _launchScanner();
+}
+
+function openSearchScanner() {
+  _scanCtx = 'search';
+  document.getElementById('scanner-title').textContent = 'Buscar producto por código';
+  _launchScanner();
+}
+
+function _launchScanner() {
+  document.getElementById('scanner-status').textContent = 'Iniciando cámara...';
+  document.getElementById('scanner-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  if (_scanInst) { _scanInst.clear().catch(() => {}); _scanInst = null; }
+
+  _scanInst = new Html5Qrcode('scanner-reader');
+  _scanInst.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: { width: 260, height: 100 } },
+    (code) => {
+      _onAdminScan(code);
+    },
+    () => {}
+  ).then(() => {
+    document.getElementById('scanner-status').textContent = 'Apunta al código de barras';
+  }).catch(() => {
+    document.getElementById('scanner-status').textContent = 'No se pudo acceder a la cámara. Verifica los permisos.';
+  });
+}
+
+function closeAdminScanner() {
+  if (_scanInst) { _scanInst.stop().catch(() => {}); _scanInst = null; }
+  document.getElementById('scanner-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function _onAdminScan(code) {
+  if (_scanCtx === 'form') {
+    document.getElementById('f-barcode').value = code;
+    closeAdminScanner();
+    toast(`Código asignado: ${code}`, 'success');
+  } else if (_scanCtx === 'search') {
+    closeAdminScanner();
+    const p = products.find(x => x.barcode === code);
+    if (p) {
+      document.getElementById('search-input').value = p.name;
+      renderTable();
+      toast(`Encontrado: ${p.name}`, 'success');
+    } else {
+      toast(`Código "${code}" — ningún producto asignado`, 'error');
+    }
+  }
 }
 
 /* ── TOAST ── */
