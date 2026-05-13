@@ -15,7 +15,7 @@ let products = [];
 let deleteTargetId = null;
 let selectedIds = new Set();
 let dragSrcId = null;
-let currentSort = 'position';
+let currentSort = 'recent';
 
 const CAT_LABELS = {
   bolsos: "Bolsos & Mochilas",
@@ -356,11 +356,31 @@ async function renderStats() {
   } catch {}
 
   document.getElementById('stats').innerHTML = `
-    <div class="stat-card"><div class="num">${products.length}</div><div class="lbl">Productos</div></div>
-    <div class="stat-card"><div class="num" style="color:var(--green)">${disponibles}</div><div class="lbl">Con existencias</div></div>
-    <div class="stat-card"><div class="num" style="color:var(--red)">${sinStock}</div><div class="lbl">Sin stock</div></div>
-    <div class="stat-card"><div class="num">${ventasHoy}</div><div class="lbl">Ventas hoy</div></div>
-    <div class="stat-card"><div class="num" style="color:var(--green)">$${ingresosHoy.toLocaleString('es-MX')}</div><div class="lbl">Ingresos hoy</div></div>
+    <div class="stat-card">
+      <div class="stat-icon si-gold">📦</div>
+      <div class="num">${products.length}</div>
+      <div class="lbl">Productos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-green">✅</div>
+      <div class="num" style="color:var(--green)">${disponibles}</div>
+      <div class="lbl">Con existencias</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-red">🚫</div>
+      <div class="num" style="color:var(--red)">${sinStock}</div>
+      <div class="lbl">Sin stock</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-blue">🛍</div>
+      <div class="num">${ventasHoy}</div>
+      <div class="lbl">Ventas hoy</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-amber">💵</div>
+      <div class="num" style="color:var(--green)">$${ingresosHoy.toLocaleString('es-MX')}</div>
+      <div class="lbl">Ingresos hoy</div>
+    </div>
   `;
 }
 
@@ -425,46 +445,55 @@ async function editStockInline(e, id) {
   input.addEventListener('blur', save);
 }
 
+const CAT_COLORS = {
+  bolsos:'#C9A462', accesorios:'#60a5fa',
+  maquillaje:'#f472b6', natura:'#34d399',
+  perfumes:'#a78bfa', loncheras:'#fb923c'
+};
+
 function desktopRow(p) {
   const fallback = `https://picsum.photos/seed/${p.id+10}/80/80`;
   const oos = p.outOfStock || p.stock === 0;
+  const badgeHTML = p.badge ? `<span class="badge badge-${p.badgeType||'none'} badge-xs">${p.badge}</span>` : '';
+  const featStar = `<span onclick="toggleFeatured(${p.id})" class="toggle-featured" title="${p.featured ? 'Quitar destacado' : 'Destacar'}">${p.featured ? '⭐' : '☆'}</span>`;
+  const catColor = CAT_COLORS[p.category] || '#9B8B78';
+  const catDot = `<span class="cat-dot" style="background:${catColor}"></span>`;
   return `
 <tr draggable="true" data-id="${p.id}" class="${selectedIds.has(p.id) ? 'row-selected' : ''}">
   <td class="col-check" style="text-align:center">
     <input type="checkbox" class="row-check" ${selectedIds.has(p.id) ? 'checked' : ''} onchange="toggleRowSelect(${p.id}, this.checked)">
   </td>
-  <td class="col-prod">
-    <div style="display:flex;align-items:center;gap:8px;min-width:0">
-      <span class="drag-handle" title="Arrastrar">⠿</span>
-      <img class="prod-thumb" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'">
+  <td class="col-product">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0">
+      <span class="drag-handle" title="Arrastrar para reordenar">⠿</span>
+      <img class="prod-thumb" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'"${oos ? ' style="opacity:.5;filter:grayscale(.5)"' : ''}>
       <div style="min-width:0;flex:1">
         <div class="prod-name" title="${p.name}">${p.name}</div>
-        <div class="prod-cat">${p.barcode ? `🔲 ${p.barcode}` : `${p.categoryLabel} · #${p.id}`}</div>
+        <div class="prod-meta">
+          ${catDot}
+          <span class="prod-meta-text">${p.categoryLabel} · #${p.id}${p.barcode ? ` · 🔲 ${p.barcode}` : ''}</span>
+          ${badgeHTML}${featStar}
+        </div>
       </div>
     </div>
   </td>
-  <td class="col-cat" style="font-size:.82rem">${p.categoryLabel}</td>
-  <td class="col-price price-cell">
-    ${p.originalPrice ? `<span class="orig-price-cell">$${p.originalPrice.toLocaleString('es-MX')}</span>` : ''}
-    $${p.price.toLocaleString('es-MX')}
+  <td class="col-price">
+    ${p.originalPrice ? `<div class="orig-price-cell">$${p.originalPrice.toLocaleString('es-MX')}</div>` : ''}
+    <div class="price-cell">$${p.price.toLocaleString('es-MX')}</div>
   </td>
-  <td class="col-stock">${stockChip(p)}</td>
-  <td class="col-status">
-    <button onclick="toggleOutOfStock(${p.id})" class="oos-cell ${oos ? 'soldout' : 'available'}">
-      ${oos ? 'Agotado' : 'Disponible'}
-    </button>
-  </td>
-  <td class="col-badge">${p.badge ? `<span class="badge badge-${p.badgeType||'none'}">${p.badge}</span>` : '<span style="color:#ccc">—</span>'}</td>
-  <td class="col-feat">
-    <button class="toggle-featured" onclick="toggleFeatured(${p.id})" title="${p.featured?'Quitar':'Destacar'}">
-      ${p.featured ? '⭐' : '☆'}
-    </button>
+  <td class="col-state">
+    <div class="state-cell">
+      <button onclick="toggleOutOfStock(${p.id})" class="oos-cell ${oos ? 'soldout' : 'available'}">
+        ${oos ? 'Agotado' : 'Disponible'}
+      </button>
+      ${stockChip(p)}
+    </div>
   </td>
   <td class="col-actions">
     <div class="actions">
-      <button class="btn btn-outline btn-sm" onclick="openForm(${p.id})">Editar</button>
-      <button class="btn btn-outline btn-sm" onclick="duplicateProduct(${p.id})" title="Duplicar">⧉</button>
-      <button class="btn btn-red btn-sm" onclick="askDelete(${p.id})">✕</button>
+      <button class="action-btn" onclick="openForm(${p.id})" title="Editar">✏</button>
+      <button class="action-btn" onclick="duplicateProduct(${p.id})" title="Duplicar">⧉</button>
+      <button class="action-btn del" onclick="askDelete(${p.id})" title="Eliminar">✕</button>
     </div>
   </td>
 </tr>`;
@@ -473,41 +502,56 @@ function desktopRow(p) {
 function mobileCard(p) {
   const fallback = `https://picsum.photos/seed/${p.id+10}/80/80`;
   const sel = selectedIds.has(p.id);
-  // Estado unificado: agotado si el booleano está activo O si el stock llegó a 0
   const oos = p.outOfStock || p.stock === 0;
+  const catColor = CAT_COLORS[p.category] || '#9B8B78';
+
   const priceHTML = p.originalPrice
-    ? `<div class="mpc-price"><s>$${p.originalPrice.toLocaleString('es-MX')}</s> $${p.price.toLocaleString('es-MX')} <span class="mpc-price-unit">MXN</span></div>`
-    : `<div class="mpc-price">$${p.price.toLocaleString('es-MX')} <span class="mpc-price-unit">MXN</span></div>`;
-  // Chip de stock solo cuando hay unidades (evita mostrar "Sin stock" + "Agotado" a la vez)
-  const stockInfo = (!oos && p.stock > 0) ? stockChip(p) : '';
+    ? `<span class="mpc-price-orig">$${p.originalPrice.toLocaleString('es-MX')}</span>
+       <span class="mpc-price">$${p.price.toLocaleString('es-MX')}</span>`
+    : `<span class="mpc-price">$${p.price.toLocaleString('es-MX')}</span>`;
+
+  const stockInfo = (!oos && p.stock > 0)
+    ? `<span class="mpc-stock-inline">${stockChip(p)}</span>` : '';
+
+  const badgeHTML = p.badge
+    ? `<span class="badge badge-${p.badgeType||'none'}" style="font-size:.62rem;padding:3px 8px">${p.badge}</span>`
+    : '';
+
   return `
 <tr class="mpc-row${sel ? ' row-selected' : ''}" data-id="${p.id}">
   <td>
     <div class="mpc${oos ? ' mpc-oos' : ''}">
       <div class="mpc-top">
-        <input type="checkbox" class="row-check mpc-check" ${sel ? 'checked' : ''} onchange="toggleRowSelect(${p.id}, this.checked)">
-        <img class="mpc-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'"${oos ? ' style="opacity:.55;filter:grayscale(.4)"' : ''}>
+        <div class="mpc-img-wrap">
+          <img class="mpc-img" src="${p.image}" alt="${p.name}"
+               onerror="this.onerror=null;this.src='${fallback}'"
+               ${oos ? 'style="opacity:.5;filter:grayscale(.4)"' : ''}>
+          <input type="checkbox" class="row-check mpc-check-over"
+                 ${sel ? 'checked' : ''} onchange="toggleRowSelect(${p.id}, this.checked)">
+        </div>
         <div class="mpc-info">
           <div class="mpc-name">${p.name}</div>
-          <div class="mpc-meta">${p.categoryLabel} · ${p.barcode ? `🔲 ${p.barcode}` : `#${p.id}`}</div>
+          <div class="mpc-cat-tag">
+            <span class="cat-dot" style="background:${catColor}"></span>
+            ${p.categoryLabel}${p.barcode ? ` · 🔲 ${p.barcode}` : ''}
+          </div>
           <div class="mpc-price-row">${priceHTML}${stockInfo}</div>
         </div>
       </div>
-      <div class="mpc-bottom">
-        <div class="mpc-row1">
-          <button onclick="toggleOutOfStock(${p.id})" class="oos-cell ${oos ? 'soldout' : 'available'} mpc-oos-btn">
-            ${oos ? 'Agotado' : 'Disponible'}
+      <div class="mpc-bar">
+        <button onclick="toggleOutOfStock(${p.id})"
+                class="oos-cell ${oos ? 'soldout' : 'available'} mpc-oos-btn">
+          ${oos ? 'Agotado' : 'Disponible'}
+        </button>
+        ${badgeHTML}
+        <div class="mpc-icon-group">
+          <button class="mpc-icon-btn${p.featured ? ' feat-active' : ''}"
+                  onclick="toggleFeatured(${p.id})"
+                  title="${p.featured ? 'Quitar destacado' : 'Destacar'}">
+            ${p.featured ? '⭐' : '☆'}
           </button>
-          ${p.badge ? `<span class="badge badge-${p.badgeType||'none'}">${p.badge}</span>` : '<span class="mpc-no-badge">Sin etiqueta</span>'}
-        </div>
-        <div class="mpc-row2">
-          <button class="toggle-featured mpc-feat-btn" onclick="toggleFeatured(${p.id})" title="${p.featured ? 'Quitar destacado' : 'Destacar'}">
-            ${p.featured ? '⭐ Destacado' : '☆ Destacar'}
-          </button>
-          <div class="mpc-actions">
-            <button class="btn btn-outline btn-sm" onclick="openForm(${p.id})">✏ Editar</button>
-            <button class="btn btn-red btn-sm" onclick="askDelete(${p.id})">✕</button>
-          </div>
+          <button class="mpc-icon-btn" onclick="openForm(${p.id})" title="Editar">✏</button>
+          <button class="mpc-icon-btn del-btn" onclick="askDelete(${p.id})" title="Eliminar">✕</button>
         </div>
       </div>
     </div>
@@ -533,7 +577,7 @@ function renderTable() {
   if (!filtered.length) {
     const isFiltered = (document.getElementById('search-input')?.value || '') ||
                        (document.getElementById('cat-filter')?.value !== 'all');
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state">
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">
       <div class="es-icon">${isFiltered ? '🔍' : '📦'}</div>
       <p>${isFiltered ? 'Ningún producto coincide con el filtro.' : 'El catálogo está vacío.'}</p>
       ${!isFiltered ? `<button class="btn btn-gold btn-sm" onclick="openForm()">+ Agregar primer producto</button>` : ''}
@@ -832,7 +876,7 @@ function openForm(id) {
     document.getElementById('f-featured').checked = false;
     document.getElementById('f-out-of-stock').checked = false;
     document.getElementById('f-barcode').value = '';
-    document.getElementById('f-stock').value = 0;
+    document.getElementById('f-stock').value = 1;
     document.getElementById('f-img-preview').classList.remove('show');
     document.getElementById('f-img-file').value = '';
   }
