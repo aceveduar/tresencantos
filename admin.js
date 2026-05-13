@@ -312,6 +312,7 @@ async function showApp() {
   await loadProductsFromSupabase();
   renderStats();
   renderTable();
+  loadDriveConfig();
 }
 
 /* ── LOAD PRODUCTS ── */
@@ -802,6 +803,78 @@ function populateBadgeList() {
   datalist.innerHTML = all.map(b => `<option value="${b}">`).join('');
 }
 
+/* ── GOOGLE DRIVE CONFIG ── */
+const DRIVE_EP_KEY = 'te_drive_ep';
+const DRIVE_SECRET = 'tres_encantos_drive';
+
+function loadDriveConfig() {
+  const ep = localStorage.getItem(DRIVE_EP_KEY);
+  const input = document.getElementById('drive-endpoint-input');
+  const statusTxt = document.getElementById('drive-status-txt');
+  const testBtn = document.getElementById('drive-test-btn');
+  if (!input) return;
+  if (ep) {
+    input.value = ep;
+    statusTxt.textContent = '(conectado — imágenes nuevas se guardan en Drive)';
+    statusTxt.style.color = 'var(--green)';
+    if (testBtn) testBtn.style.display = '';
+  }
+}
+
+function saveDriveEndpoint() {
+  const ep = document.getElementById('drive-endpoint-input').value.trim();
+  const statusTxt = document.getElementById('drive-status-txt');
+  const testBtn = document.getElementById('drive-test-btn');
+  if (ep) {
+    localStorage.setItem(DRIVE_EP_KEY, ep);
+    statusTxt.textContent = '(conectado — imágenes nuevas se guardan en Drive)';
+    statusTxt.style.color = 'var(--green)';
+    if (testBtn) testBtn.style.display = '';
+    toast('Drive configurado ✓', 'success');
+  } else {
+    localStorage.removeItem(DRIVE_EP_KEY);
+    statusTxt.textContent = '(no configurado — imágenes se guardan como base64)';
+    statusTxt.style.color = '';
+    if (testBtn) testBtn.style.display = 'none';
+    toast('Drive desconectado', '');
+  }
+}
+
+async function testDriveEndpoint() {
+  const ep = localStorage.getItem(DRIVE_EP_KEY);
+  if (!ep) return;
+  const btn = document.getElementById('drive-test-btn');
+  btn.textContent = 'Probando…';
+  btn.disabled = true;
+  try {
+    const r = await fetch(ep);
+    const txt = await r.text();
+    toast(txt === 'OK' ? 'Conexión con Drive OK ✓' : 'Respuesta inesperada: ' + txt,
+          txt === 'OK' ? 'success' : 'error');
+  } catch(e) {
+    toast('Error al conectar con Drive: ' + e.message, 'error');
+  }
+  btn.textContent = 'Probar';
+  btn.disabled = false;
+}
+
+async function uploadToDrive(b64) {
+  const ep = localStorage.getItem(DRIVE_EP_KEY);
+  if (!ep) return null;
+  try {
+    const res = await fetch(ep, {
+      method: 'POST',
+      body: JSON.stringify({
+        secret: DRIVE_SECRET,
+        image: b64,
+        name: `producto_${Date.now()}.jpg`
+      })
+    });
+    const data = await res.json();
+    return data.ok ? data.url : null;
+  } catch { return null; }
+}
+
 /* ── IMAGE UPLOAD ── */
 let imageUploadController = null;
 
@@ -830,11 +903,22 @@ function compressAndPreview(file) {
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
       const b64 = canvas.toDataURL('image/jpeg', 0.82);
-      document.getElementById('f-image').value = b64;
+
+      // Mostrar preview inmediatamente
       const preview = document.getElementById('f-img-preview');
       preview.src = b64;
       preview.classList.add('show');
-      document.getElementById('save-btn').disabled = false;
+
+      // Intentar subir a Drive; si no hay Drive o falla → usar base64
+      (async () => {
+        const hasDrive = !!localStorage.getItem(DRIVE_EP_KEY);
+        if (hasDrive) toast('Subiendo imagen a Drive…', '');
+        const driveUrl = await uploadToDrive(b64);
+        if (controller.signal.aborted) return;
+        document.getElementById('f-image').value = driveUrl || b64;
+        document.getElementById('save-btn').disabled = false;
+        if (driveUrl) toast('Imagen guardada en Drive ✓', 'success');
+      })();
     };
     img.onerror = () => {
       if (!controller.signal.aborted) toast('Error al procesar la imagen', 'error');

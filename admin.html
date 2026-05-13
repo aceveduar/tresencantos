@@ -588,6 +588,14 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           <span>📄 Revista Digital Natura</span>
           <button class="btn btn-gold btn-sm" onclick="openRevista()">Editar revista</button>
         </div>
+        <div class="io-bar" style="border-top:none;flex-wrap:wrap;gap:8px">
+          <span id="drive-status">🖼 Google Drive para imágenes <span style="font-size:.72rem;color:var(--muted-light)" id="drive-status-txt">(no configurado — imágenes se guardan como base64)</span></span>
+          <input type="url" id="drive-endpoint-input"
+                 placeholder="https://script.google.com/macros/s/.../exec"
+                 style="flex:1;min-width:220px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;outline:none;font-family:inherit">
+          <button class="btn btn-outline btn-sm" onclick="saveDriveEndpoint()">Guardar</button>
+          <button class="btn btn-outline btn-sm" onclick="testDriveEndpoint()" id="drive-test-btn" style="display:none">Probar</button>
+        </div>
       </div>
     </details>
 
