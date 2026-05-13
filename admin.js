@@ -1436,7 +1436,10 @@ function openOcrScanner() {
 
 function closeOcrScanner() {
   document.getElementById('ocr-overlay').classList.remove('open');
-  document.body.style.overflow = '';
+  // Restaurar scroll solo si ningún otro modal sigue abierto
+  const otherOpen = ['form-overlay','del-overlay','revista-overlay','scanner-overlay']
+    .some(id => document.getElementById(id)?.classList.contains('open'));
+  if (!otherOpen) document.body.style.overflow = '';
 }
 
 function _resetOcrModal() {
