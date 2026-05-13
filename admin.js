@@ -814,14 +814,15 @@ function compressAndPreview(file) {
 function initImageUpload() {
   const zone = document.getElementById('img-upload-zone');
   if (!zone) return;
-  zone.removeEventListener('click', zone._clickHandler);
   zone.removeEventListener('dragover', zone._dragoverHandler);
   zone.removeEventListener('dragleave', zone._dragleaveHandler);
+  zone.removeEventListener('dragend', zone._dragendHandler);
   zone.removeEventListener('drop', zone._dropHandler);
 
-  zone._clickHandler = () => document.getElementById('f-img-file').click();
+  // La zona solo maneja drag & drop — los botones internos abren galería/cámara
   zone._dragoverHandler = e => { e.preventDefault(); zone.classList.add('drag-over'); };
   zone._dragleaveHandler = () => zone.classList.remove('drag-over');
+  zone._dragendHandler = () => zone.classList.remove('drag-over');
   zone._dropHandler = e => {
     e.preventDefault();
     zone.classList.remove('drag-over');
@@ -832,9 +833,9 @@ function initImageUpload() {
     }
   };
 
-  zone.addEventListener('click', zone._clickHandler);
   zone.addEventListener('dragover', zone._dragoverHandler);
   zone.addEventListener('dragleave', zone._dragleaveHandler);
+  zone.addEventListener('dragend', zone._dragendHandler);
   zone.addEventListener('drop', zone._dropHandler);
 }
 
@@ -879,6 +880,7 @@ function openForm(id) {
     document.getElementById('f-stock').value = 1;
     document.getElementById('f-img-preview').classList.remove('show');
     document.getElementById('f-img-file').value = '';
+    document.getElementById('f-img-camera').value = '';
   }
 
   overlay.classList.add('open');

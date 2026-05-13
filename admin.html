@@ -220,10 +220,14 @@ tr:hover .drag-handle{opacity:1}
 .checkbox-row input{width:17px;height:17px;cursor:pointer;accent-color:var(--gold)}
 
 /* Upload zone */
-.img-upload-zone{border:2px dashed var(--border);border-radius:var(--r);padding:28px 20px;text-align:center;cursor:pointer;transition:.2s;background:#FAFAF8;margin-bottom:8px}
-.img-upload-zone:hover,.img-upload-zone.drag-over{border-color:var(--gold);background:var(--gold-light)}
-.img-upload-zone .up-icon{font-size:1.8rem;margin-bottom:8px}
-.img-upload-zone .up-text{font-size:.83rem;color:var(--muted);margin-bottom:10px}
+.img-upload-zone{border:2px dashed var(--border);border-radius:var(--r);padding:22px 20px;text-align:center;transition:.2s;background:#FAFAF8;margin-bottom:8px}
+.img-upload-zone.drag-over{border-color:var(--gold);background:var(--gold-light);box-shadow:0 0 0 4px rgba(201,164,98,.12)}
+.img-upload-zone .up-icon{font-size:1.8rem;margin-bottom:6px}
+.img-upload-zone .up-text{font-size:.82rem;color:var(--muted-light);margin-bottom:12px}
+/* Botones de carga de imagen */
+.img-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.btn-cam{background:var(--charcoal);color:#fff;border:none;box-shadow:0 2px 8px rgba(28,24,23,.2)}
+.btn-cam:hover{background:var(--charcoal-soft);color:#fff;transform:translateY(-1px);box-shadow:0 4px 14px rgba(28,24,23,.25)}
 .upload-or{text-align:center;font-size:.72rem;color:var(--muted-light);margin:12px 0;position:relative}
 .upload-or::before,.upload-or::after{content:'';position:absolute;top:50%;width:44%;height:1px;background:var(--border)}
 .upload-or::before{left:0}.upload-or::after{right:0}
@@ -637,15 +641,27 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       </div>
       <div class="field">
         <label>Imagen del producto</label>
+        <!-- Inputs ocultos — galería y cámara -->
+        <input type="file" id="f-img-file" accept="image/*" style="display:none" onchange="handleFileSelect(this)">
+        <input type="file" id="f-img-camera" accept="image/*" capture="environment" style="display:none" onchange="handleFileSelect(this)">
+        <!-- Zona de arrastre (drag & drop desktop) -->
         <div class="img-upload-zone" id="img-upload-zone">
-          <input type="file" id="f-img-file" accept="image/*" style="display:none" onchange="handleFileSelect(this)">
-          <div class="up-icon">📷</div>
+          <div class="up-icon">🖼️</div>
           <div class="up-text">Arrastra una foto aquí</div>
-          <button type="button" class="btn btn-outline btn-sm">Elegir archivo</button>
+          <div class="img-btns">
+            <button type="button" class="btn btn-outline btn-sm"
+                    onclick="document.getElementById('f-img-file').click()">
+              📁 Galería
+            </button>
+            <button type="button" class="btn btn-cam btn-sm"
+                    onclick="document.getElementById('f-img-camera').click()">
+              📷 Tomar foto
+            </button>
+          </div>
         </div>
         <div class="upload-or">o pega una URL</div>
         <input type="url" id="f-image" placeholder="https://…" oninput="previewImg()">
-        <p class="hint">Unsplash, Google Drive público, o sube directamente desde tu dispositivo.</p>
+        <p class="hint">Google Drive, Unsplash — o captura directo con la cámara del dispositivo.</p>
         <img id="f-img-preview" class="img-preview" alt="Vista previa">
       </div>
       <div class="form-row">
