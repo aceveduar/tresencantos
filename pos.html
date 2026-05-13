@@ -21,6 +21,7 @@ button,input,select{font-family:inherit}
 .topbar-left img{height:30px;border-radius:5px}
 .topbar-title{font-family:'Playfair Display',serif;font-size:1rem;color:#fff}
 .topbar-right{display:flex;gap:8px;align-items:center}
+.today-stats{font-size:.75rem;color:rgba(255,255,255,.65);background:rgba(255,255,255,.1);padding:4px 12px;border-radius:50px;white-space:nowrap}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:50px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;transition:.15s;white-space:nowrap}
 .btn-outline-white{background:transparent;border:1.5px solid rgba(255,255,255,.35);color:#fff}
 .btn-outline-white:hover{background:rgba(255,255,255,.1)}
@@ -142,6 +143,7 @@ button,input,select{font-family:inherit}
     <span class="topbar-title">Punto de Venta</span>
   </div>
   <div class="topbar-right">
+    <span id="today-stats" class="today-stats" style="display:none"></span>
     <a href="admin.html" class="btn btn-outline-white">← Admin</a>
   </div>
 </div>
@@ -470,6 +472,7 @@ async function cobrar() {
   document.getElementById('pos-search').value = '';
   showAllProducts();
 
+  loadTodayStats();
   showSaleDone(total, cash, change);
 }
 
@@ -531,10 +534,25 @@ function toast(msg, type = '') {
   el._t = setTimeout(() => el.classList.remove('show'), type === 'error' ? 4000 : 2500);
 }
 
+/* ── TODAY'S STATS ── */
+async function loadTodayStats() {
+  const hoy = new Date().toISOString().split('T')[0];
+  const result = await api(`sales?created_at=gte.${hoy}T00:00:00&select=total`);
+  const el = document.getElementById('today-stats');
+  if (!el) return;
+  if (result.ok && Array.isArray(result.data) && result.data.length > 0) {
+    const count = result.data.length;
+    const total = result.data.reduce((s, x) => s + (parseFloat(x.total) || 0), 0);
+    el.textContent = `${count} venta${count !== 1 ? 's' : ''} hoy · $${total.toLocaleString('es-MX')}`;
+    el.style.display = '';
+  }
+}
+
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
   await loadProducts();
   renderCart();
+  loadTodayStats();
   showAllProducts(); // mostrar catálogo completo al abrir
 
   // Enter en búsqueda → agrega el primer resultado disponible

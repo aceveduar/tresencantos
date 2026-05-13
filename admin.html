@@ -137,6 +137,14 @@ tr.drop-below td{box-shadow:inset 0 -2px 0 var(--gold)}
 .io-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px;padding:16px 20px;background:#fff;border-radius:var(--r);border:1px solid var(--border)}
 .io-bar span{font-size:.83rem;color:#6B5C48;flex:1}
 
+/* LOW STOCK ALERT */
+.low-stock-alert{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 16px;background:#FEF3C7;border:1px solid #F59E0B;border-radius:var(--r);margin-bottom:14px;font-size:.82rem;color:#92400E}
+.lsa-item{background:#fff;border:1px solid #F59E0B;border-radius:50px;padding:3px 10px;cursor:pointer;font-size:.78rem;transition:.15s;white-space:nowrap}
+.lsa-item:hover{background:var(--gold);color:#fff;border-color:var(--gold)}
+.lsa-item strong{font-weight:700}
+.lsa-close{margin-left:auto;background:none;border:none;cursor:pointer;color:#92400E;font-size:.9rem;padding:2px 6px;border-radius:4px}
+.lsa-close:hover{background:rgba(0,0,0,.08)}
+
 /* BULK BAR */
 .bulk-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:var(--charcoal);color:#fff;border-radius:var(--r);position:sticky;top:62px;z-index:40;margin-bottom:12px}
 .bulk-bar #bulk-count{font-size:.83rem;font-weight:600;margin-right:4px}

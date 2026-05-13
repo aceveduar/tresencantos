@@ -7,6 +7,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 let products = [];
 let revistaUrl = "";
 let currentFilter = 'all';
+let searchQuery  = '';
 let activeProduct = null;
 
 const WA_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.374 0 0 5.373 0 12c0 2.124.553 4.118 1.522 5.85L.057 23.499l5.772-1.513A11.94 11.94 0 0012 24c6.626 0 12-5.373 12-12S18.626 0 12 0zm0 21.799c-1.891 0-3.653-.507-5.18-1.394l-.371-.22-3.422.897.914-3.329-.242-.384A9.783 9.783 0 012.2 12c0-5.404 4.396-9.799 9.8-9.799 5.403 0 9.798 4.395 9.798 9.8 0 5.403-4.395 9.798-9.798 9.798z"/></svg>`;
@@ -29,7 +30,26 @@ function supabaseApi(path, opts = {}) {
 }
 
 /* ── LOAD PRODUCTS ── */
+function showSkeleton() {
+  const grid = document.getElementById('products-grid');
+  if (!grid) return;
+  grid.innerHTML = Array(6).fill(0).map(() => `
+    <div class="product-card skel-card">
+      <div class="skel-img"></div>
+      <div class="product-body">
+        <div class="skel-line" style="width:50%;height:10px;margin-bottom:8px"></div>
+        <div class="skel-line" style="width:85%;height:14px;margin-bottom:6px"></div>
+        <div class="skel-line" style="width:70%;height:11px;margin-bottom:16px"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="skel-line" style="width:35%;height:18px"></div>
+          <div class="skel-line" style="width:28%;height:36px;border-radius:50px"></div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
 async function loadProducts() {
+  showSkeleton();
   try {
     const result = await supabaseApi('products?select=*&order=position.asc');
     if (result.ok && Array.isArray(result.data) && result.data.length) {
@@ -88,13 +108,30 @@ document.addEventListener('DOMContentLoaded', async () => {
   initModal();
 });
 
+/* ── SEARCH ── */
+function onSearchInput(val) {
+  searchQuery = val.trim().toLowerCase();
+  render();
+}
+
 /* ── RENDER CATALOG ── */
 function render() {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
-  const list = currentFilter === 'all' ? products : products.filter(p => p.category === currentFilter);
+  const list = products.filter(p => {
+    const matchCat = currentFilter === 'all' || p.category === currentFilter;
+    const matchQ   = !searchQuery ||
+      p.name.toLowerCase().includes(searchQuery) ||
+      (p.description || '').toLowerCase().includes(searchQuery) ||
+      p.categoryLabel.toLowerCase().includes(searchQuery);
+    return matchCat && matchQ;
+  });
+
   if (!list.length) {
-    grid.innerHTML = `<div class="empty-msg"><div class="em-icon">🛍️</div><p>No hay productos aquí todavía.<br>¡Escríbenos y te decimos qué tenemos!</p></div>`;
+    const msg = searchQuery
+      ? `No encontramos "${searchQuery}". <a href="https://wa.me/${WA}?text=${encodeURIComponent(`¡Hola! Busco: ${searchQuery}`)}" target="_blank" rel="noopener" style="color:var(--gold)">Pregunta por WhatsApp →</a>`
+      : 'No hay productos aquí todavía.<br>¡Escríbenos y te decimos qué tenemos!';
+    grid.innerHTML = `<div class="empty-msg"><div class="em-icon">${searchQuery ? '🔍' : '🛍️'}</div><p>${msg}</p></div>`;
     return;
   }
   grid.innerHTML = list.map(cardHTML).join('');
@@ -197,11 +234,19 @@ function renderNatura() {
 
 /* ── FILTERS ── */
 function initFilters() {
+  // Contar productos por categoría
+  const counts = { all: products.length };
+  products.forEach(p => { counts[p.category] = (counts[p.category] || 0) + 1; });
+
   document.querySelectorAll('.filter-btn').forEach(btn => {
+    const f = btn.dataset.filter;
+    if (counts[f]) {
+      btn.innerHTML = `${btn.textContent} <span class="filter-count">${counts[f]}</span>`;
+    }
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      currentFilter = btn.dataset.filter;
+      currentFilter = f;
       render();
     });
   });

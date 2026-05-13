@@ -305,20 +305,44 @@ async function loadProductsFromSupabase() {
 }
 
 /* ── STATS ── */
-function renderStats() {
-  const cats = {};
-  products.forEach(p => { cats[p.category] = (cats[p.category] || 0) + 1; });
-  const featured = products.filter(p => p.featured).length;
-  const oos = products.filter(p => p.outOfStock).length;
-  const sinStock = products.filter(p => p.stock === 0).length;
+async function renderStats() {
+  const sinStock  = products.filter(p => p.stock === 0).length;
   const stockBajo = products.filter(p => p.stock > 0 && p.stock <= 5).length;
+  const featured  = products.filter(p => p.featured).length;
+
+  // Ventas del día
+  let ventasHoy = 0, ingresosHoy = 0;
+  try {
+    const hoy = new Date().toISOString().split('T')[0];
+    const sr = await supabaseApi(`sales?created_at=gte.${hoy}T00:00:00&select=total`);
+    if (sr.ok && Array.isArray(sr.data)) {
+      ventasHoy   = sr.data.length;
+      ingresosHoy = sr.data.reduce((s, x) => s + (parseFloat(x.total) || 0), 0);
+    }
+  } catch {}
+
   document.getElementById('stats').innerHTML = `
     <div class="stat-card"><div class="num">${products.length}</div><div class="lbl">Productos</div></div>
     <div class="stat-card"><div class="num" style="color:var(--red)">${sinStock}</div><div class="lbl">Sin stock</div></div>
-    <div class="stat-card"><div class="num" style="color:#92400E">${stockBajo}</div><div class="lbl">Stock bajo (≤5)</div></div>
-    <div class="stat-card"><div class="num" style="color:var(--red)">${oos}</div><div class="lbl">Agotados</div></div>
-    <div class="stat-card"><div class="num">${featured}</div><div class="lbl">Destacados</div></div>
+    <div class="stat-card"><div class="num" style="color:#92400E">${stockBajo}</div><div class="lbl">Stock bajo ≤5</div></div>
+    <div class="stat-card"><div class="num">${ventasHoy}</div><div class="lbl">Ventas hoy</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--green)">$${ingresosHoy.toLocaleString('es-MX')}</div><div class="lbl">Ingresos hoy</div></div>
   `;
+
+  renderLowStockAlert();
+}
+
+function renderLowStockAlert() {
+  document.getElementById('low-stock-alert')?.remove();
+  const criticos = products.filter(p => p.stock > 0 && p.stock <= 3);
+  if (!criticos.length) return;
+  const el = document.createElement('div');
+  el.id = 'low-stock-alert';
+  el.className = 'low-stock-alert';
+  el.innerHTML = `<span>⚠ Stock crítico:</span>${
+    criticos.map(p => `<span class="lsa-item" onclick="openForm(${p.id})">${p.name} <strong>(${p.stock})</strong></span>`).join('')
+  }<button class="lsa-close" onclick="this.closest('.low-stock-alert').remove()">✕</button>`;
+  document.getElementById('stats').after(el);
 }
 
 /* ── TABLE ── */

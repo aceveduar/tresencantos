@@ -113,9 +113,24 @@ section{padding:80px 20px}
 
 /* ── PRODUCTS ── */
 .products-section{background:var(--cream)}
+/* SEARCH BAR */
+.products-search{max-width:460px;margin:0 auto 28px;position:relative}
+.products-search input{width:100%;padding:13px 20px 13px 48px;border:1.5px solid var(--border);border-radius:50px;font-size:.95rem;outline:none;transition:.2s;background:#fff;box-shadow:0 2px 10px rgba(28,24,23,.07);font-family:'Inter',sans-serif}
+.products-search input:focus{border-color:var(--gold);box-shadow:0 2px 16px rgba(201,164,98,.22)}
+.products-search input::placeholder{color:#B8A98A}
+.products-search::before{content:'🔍';position:absolute;left:17px;top:50%;transform:translateY(-50%);font-size:.9rem;pointer-events:none}
+
 .products-filters{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:44px}
-.filter-btn{padding:8px 20px;border-radius:50px;border:1.5px solid var(--border);background:#fff;color:var(--text-mid);font-size:.83rem;font-weight:500;cursor:pointer;transition:var(--ease);font-family:'Inter',sans-serif}
+.filter-btn{padding:8px 20px;border-radius:50px;border:1.5px solid var(--border);background:#fff;color:var(--text-mid);font-size:.83rem;font-weight:500;cursor:pointer;transition:var(--ease);font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:6px}
 .filter-btn:hover,.filter-btn.active{background:var(--gold);color:#fff;border-color:var(--gold)}
+.filter-count{background:rgba(28,24,23,.12);border-radius:50px;font-size:.68rem;font-weight:700;padding:1px 6px;min-width:18px;text-align:center}
+.filter-btn.active .filter-count{background:rgba(255,255,255,.3)}
+
+/* SKELETON LOADER */
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+.skel-card{pointer-events:none}
+.skel-img{width:100%;aspect-ratio:4/3;border-radius:var(--r) var(--r) 0 0;background:linear-gradient(90deg,#EFE8E0 25%,#E5DDD6 50%,#EFE8E0 75%);background-size:400px 100%;animation:shimmer 1.4s infinite}
+.skel-line{border-radius:4px;background:linear-gradient(90deg,#EFE8E0 25%,#E5DDD6 50%,#EFE8E0 75%);background-size:400px 100%;animation:shimmer 1.4s infinite}
 .products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:26px}
 .empty-msg{grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-mid)}
 .empty-msg .em-icon{font-size:3rem;margin-bottom:12px}
