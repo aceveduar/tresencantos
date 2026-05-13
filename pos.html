@@ -136,12 +136,20 @@ button,a{touch-action:manipulation}
 .history-panel.open .history-toggle{transform:rotate(180deg)}
 .history-list{display:none;padding:0 8px 8px}
 .history-panel.open .history-list{display:block}
-.history-item{display:flex;align-items:center;justify-content:space-between;padding:6px 6px;border-radius:6px;font-size:.78rem;border-bottom:1px solid #F5F0EB}
+.history-item{display:flex;align-items:center;gap:6px;padding:7px 6px;border-radius:6px;font-size:.78rem;border-bottom:1px solid #F5F0EB;transition:background .12s}
 .history-item:last-child{border-bottom:none}
 .history-item:hover{background:#FDFAF6}
+.history-item-info{flex:1;min-width:0}
 .history-time{color:#9B8B78;font-size:.7rem;margin-top:1px}
-.history-amount{font-weight:700;font-family:'Playfair Display',serif;color:var(--green);font-size:.88rem}
+.history-amount{font-weight:700;font-family:'Playfair Display',serif;color:var(--green);font-size:.88rem;flex-shrink:0}
 .history-empty{padding:16px;text-align:center;color:#9B8B78;font-size:.8rem}
+.history-del-btn{
+  background:none;border:none;
+  color:#D1C5BC;cursor:pointer;
+  font-size:.78rem;padding:4px 7px;border-radius:6px;
+  flex-shrink:0;transition:.15s;line-height:1;
+}
+.history-del-btn:hover{color:var(--red);background:#FEE2E2}
 
 /* Loading */
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -298,7 +306,8 @@ if (!isAuthenticated()) {
 
 /* ── STATE ── */
 let products = [];
-let cart = []; // [{product, qty}]
+let cart = [];       // [{product, qty}]
+let salesCache = {}; // id → sale object (para poder eliminar con items)
 
 /* ── API ── */
 function api(path, opts = {}) {
@@ -488,22 +497,68 @@ async function loadHistory() {
   const result = await api(`sales?created_at=gte.${hoy}T00:00:00&select=id,total,created_at,items&order=created_at.desc&limit=20`);
   const el = document.getElementById('history-list');
   if (!result.ok || !result.data?.length) {
+    salesCache = {};
     el.innerHTML = '<div class="history-empty">Sin ventas aún hoy</div>';
     return;
   }
+  // Guardar en caché para poder acceder a items al eliminar
+  salesCache = {};
+  result.data.forEach(s => { salesCache[s.id] = s; });
+
   el.innerHTML = result.data.map(s => {
     const t = new Date(s.created_at);
     const time = t.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-    const items = Array.isArray(s.items) ? s.items.length : '—';
+    const itemCount = Array.isArray(s.items) ? s.items.length : 0;
+    // Resumen de productos vendidos
+    const summary = Array.isArray(s.items)
+      ? s.items.map(i => i.name).join(', ')
+      : '—';
     return `
 <div class="history-item">
-  <div>
-    <div style="font-weight:600">${items} artículo${items !== 1 ? 's' : ''}</div>
-    <div class="history-time">${time}</div>
+  <div class="history-item-info">
+    <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px" title="${summary}">${summary}</div>
+    <div class="history-time">${time} · ${itemCount} artículo${itemCount !== 1 ? 's' : ''}</div>
   </div>
   <div class="history-amount">$${parseFloat(s.total).toLocaleString('es-MX')}</div>
+  <button class="history-del-btn" onclick="deleteSale(${s.id})" title="Cancelar venta y restaurar stock">✕</button>
 </div>`;
   }).join('');
+}
+
+async function deleteSale(id) {
+  const sale = salesCache[id];
+  if (!sale) { toast('Venta no encontrada', 'error'); return; }
+
+  const total = parseFloat(sale.total).toLocaleString('es-MX');
+  const itemCount = Array.isArray(sale.items) ? sale.items.length : 0;
+  if (!confirm(`¿Cancelar la venta de $${total} (${itemCount} artículo${itemCount !== 1 ? 's' : ''})?\n\nSe restaurará el stock de los productos vendidos.`)) return;
+
+  // 1. Eliminar el registro de venta
+  const delResult = await api(`sales?id=eq.${id}`, { method: 'DELETE' });
+  if (!delResult.ok) {
+    toast('Error al eliminar la venta', 'error');
+    return;
+  }
+
+  // 2. Restaurar stock de cada producto vendido
+  if (Array.isArray(sale.items)) {
+    for (const item of sale.items) {
+      const p = products.find(x => x.id === item.id);
+      const newStock = (p ? p.stock : 0) + (item.qty || 1);
+      await api(`products?id=eq.${item.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ stock: newStock, out_of_stock: false })
+      });
+      if (p) { p.stock = newStock; p.outOfStock = false; }
+    }
+  }
+
+  // 3. Refrescar UI
+  delete salesCache[id];
+  await loadHistory();
+  await loadTodayStats();
+  showAllProducts();
+  toast('Venta eliminada y stock restaurado ✓', 'success');
 }
 
 function updateChange() {
