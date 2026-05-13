@@ -180,7 +180,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (document.getElementById('form-overlay')?.classList.contains('open'))    { closeForm(); return; }
       if (document.getElementById('del-overlay')?.classList.contains('open'))     { closeDel(); return; }
       if (document.getElementById('revista-overlay')?.classList.contains('open')) { closeRevista(); return; }
-      if (document.getElementById('ocr-overlay')?.classList.contains('open'))     { closeOcrScanner(); return; }
       if (document.getElementById('scanner-overlay')?.classList.contains('open')) { closeAdminScanner(); return; }
     }
 
@@ -1471,112 +1470,68 @@ function _onAdminScan(code) {
   }
 }
 
-/* ── OCR TEXT SCANNER ─────────────────────────────────────────────────── */
+/* ── VOICE DICTATION ──────────────────────────────────────────────────── */
+let _activeRec = null;
 
-function openOcrScanner() {
-  document.getElementById('ocr-overlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-  _resetOcrModal();
-}
+function dictate(fieldId) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    toast('Dictado no disponible. Usa Chrome o Safari.', 'error');
+    return;
+  }
 
-function closeOcrScanner() {
-  document.getElementById('ocr-overlay').classList.remove('open');
-  // Restaurar scroll solo si ningún otro modal sigue abierto
-  const otherOpen = ['form-overlay','del-overlay','revista-overlay','scanner-overlay']
-    .some(id => document.getElementById(id)?.classList.contains('open'));
-  if (!otherOpen) document.body.style.overflow = '';
-}
+  const btn   = document.getElementById(`dictate-${fieldId}`);
+  const field = document.getElementById(fieldId);
 
-function _resetOcrModal() {
-  document.getElementById('ocr-state-capture').style.display = '';
-  document.getElementById('ocr-img-preview').style.display = 'none';
-  document.getElementById('ocr-state-processing').style.display = 'none';
-  document.getElementById('ocr-state-result').style.display = 'none';
-  document.getElementById('ocr-img-file').value = '';
-  document.getElementById('ocr-img-camera').value = '';
-  document.getElementById('ocr-result-text').value = '';
-  document.getElementById('ocr-result-text').placeholder = '';
-}
+  // Si ya hay grabación activa → detener
+  if (_activeRec) {
+    _activeRec.stop();
+    return;
+  }
 
-function ocrRetry() { _resetOcrModal(); }
+  const sr = new SR();
+  sr.lang            = 'es-MX';
+  sr.continuous      = true;   // no para en silencios cortos
+  sr.interimResults  = true;   // muestra texto mientras se habla
 
-async function _ensureTesseract() {
-  if (typeof Tesseract !== 'undefined') return;
-  return new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://unpkg.com/tesseract.js@5/dist/tesseract.min.js';
-    s.onload = resolve;
-    s.onerror = () => reject(new Error('No se pudo cargar el motor OCR'));
-    document.head.appendChild(s);
-  });
-}
+  _activeRec = sr;
 
-async function handleOcrFile(input) {
-  const file = input.files[0];
-  if (!file) return;
+  const startValue = field.value.trimEnd();
+  let spoken = '';             // solo texto final confirmado
 
-  // Mostrar preview de la imagen capturada
-  const reader = new FileReader();
-  reader.onload = e => {
-    const prev = document.getElementById('ocr-img-preview');
-    prev.src = e.target.result;
-    prev.style.display = 'block';
-  };
-  reader.readAsDataURL(file);
+  btn.textContent = '⏹ Detener';
+  btn.classList.add('recording');
 
-  // Cambiar al estado "procesando"
-  document.getElementById('ocr-state-capture').style.display = 'none';
-  document.getElementById('ocr-state-processing').style.display = 'block';
-  document.getElementById('ocr-state-result').style.display = 'none';
-  document.getElementById('ocr-progress-text').textContent = 'Cargando motor de reconocimiento…';
-
-  try {
-    await _ensureTesseract();
-
-    const result = await Tesseract.recognize(file, 'spa+eng', {
-      logger: m => {
-        const el = document.getElementById('ocr-progress-text');
-        if (!el) return;
-        if (m.status === 'loading tesseract core')          el.textContent = 'Cargando motor OCR…';
-        else if (m.status === 'loading language traineddata') el.textContent = 'Descargando idioma (solo la primera vez)…';
-        else if (m.status === 'recognizing text')
-          el.textContent = `Reconociendo texto… ${Math.round(m.progress * 100)}%`;
-      }
-    });
-
-    const text = (result.data.text || '').trim();
-
-    document.getElementById('ocr-state-processing').style.display = 'none';
-    document.getElementById('ocr-state-result').style.display = 'block';
-    document.getElementById('ocr-result-text').value = text;
-
-    if (!text) {
-      document.getElementById('ocr-result-text').placeholder =
-        'No se detectó texto. Intenta con mejor iluminación o acercando más la cámara.';
+  sr.onresult = e => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) spoken += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
     }
-  } catch (err) {
-    document.getElementById('ocr-state-processing').style.display = 'none';
-    document.getElementById('ocr-state-capture').style.display = '';
-    toast('Error al reconocer texto. Verifica tu conexión e inténtalo de nuevo.', 'error');
-    console.error('OCR error:', err);
-  }
-}
+    const sep = startValue && (spoken || interim) ? ' ' : '';
+    // Mostrar texto final + interino en tiempo real
+    field.value = startValue + sep + spoken + interim;
+  };
 
-function applyOcrText(field) {
-  const raw = document.getElementById('ocr-result-text').value.trim();
-  if (!raw) { toast('No hay texto para aplicar', 'error'); return; }
+  const finish = () => {
+    _activeRec = null;
+    btn.textContent = '🎤 Dictar';
+    btn.classList.remove('recording');
+    // Dejar solo el texto final confirmado (sin interinos residuales)
+    const sep = startValue && spoken ? ' ' : '';
+    field.value = (startValue + sep + spoken).trim();
+  };
 
-  if (field === 'name') {
-    // Primera línea no vacía como nombre del producto
-    const firstLine = raw.split('\n').map(l => l.trim()).find(l => l.length > 1) || raw;
-    document.getElementById('f-name').value = firstLine;
-    closeOcrScanner();
-    toast('Nombre aplicado ✓', 'success');
-  } else if (field === 'desc') {
-    document.getElementById('f-description').value = raw;
-    closeOcrScanner();
-    toast('Descripción aplicada ✓', 'success');
-  }
+  sr.onend   = finish;
+  sr.onerror = e => {
+    finish();
+    if (e.error === 'not-allowed')
+      toast('Permiso de micrófono denegado. Actívalo en los ajustes del navegador.', 'error');
+    else if (e.error !== 'aborted')
+      toast('Error de micrófono: ' + e.error, 'error');
+  };
+
+  sr.start();
 }
 
 /* ── TOAST ── */

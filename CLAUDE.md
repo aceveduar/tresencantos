@@ -1,244 +1,222 @@
-# CLAUDE.md — Tres Encantos Admin Panel
+# CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto para asistencia con IA. Última actualización: 2026-05-12.
-
----
-
-## Descripción del Proyecto
-
-Panel de administración + sitio e-commerce/catálogo para **Tres Encantos**, una boutique mexicana que vende bolsos, accesorios, maquillaje y productos Natura. La dueña es **Ofelia**, consultora Diamond de Natura.
-
-El sitio no tiene checkout ni carrito — los pedidos se cierran por **WhatsApp**. El admin permite gestionar el catálogo que se muestra en el sitio público.
+Documentación técnica del proyecto. Última actualización: 2026-05-13.
 
 ---
 
-## Stack y Arquitectura
+## Descripción
 
-- **Frontend:** HTML + CSS + Vanilla JS (sin framework, sin bundler)
-- **Base de datos / Backend:** Supabase (PostgreSQL via REST API)
-- **Autenticación:** Custom — tabla `users` con email/password plano (no usa Supabase Auth)
-- **Hosting:** Archivos estáticos (sin servidor propio)
-- **Fuentes:** Google Fonts — Inter + Playfair Display
-
-**No hay `package.json`, no hay build step, no hay node_modules.** Todo corre directo en el browser.
+Panel de administración + POS + estadísticas + sitio e-commerce para **Tres Encantos**, boutique mexicana (bolsos, accesorios, maquillaje, Natura). Dueña: **Ofelia**, consultora Diamond de Natura. Los pedidos del sitio público se cierran por WhatsApp — no hay checkout.
 
 ---
 
-## Estructura de Archivos
+## Stack
+
+- **Frontend:** HTML + CSS + Vanilla JS — sin framework, sin bundler, sin node_modules
+- **Backend:** Supabase (PostgreSQL via REST API / PostgREST)
+- **Auth:** Supabase Auth JWT — token en `localStorage` key `te_admin_session`
+- **Hosting:** Archivos estáticos
+- **Fuentes:** Inter + Playfair Display (Google Fonts)
+
+---
+
+## Módulos y Archivos
 
 ```
 tresencantos/
-├── index.html     # Sitio público (catálogo + hero + Natura + about + WhatsApp)
-├── admin.html     # Panel de administración (auth + CRUD productos + revista)
-├── admin.js       # Toda la lógica del admin
-├── app.js         # Lógica del sitio público (carga productos, filtros, modal, WhatsApp)
-├── style.css      # Estilos del sitio público
-├── logo.png       # Logo de Tres Encantos
-├── ofelia.jpeg    # Foto de la dueña (sección Natura)
-└── CLAUDE.md      # Este archivo
+├── index.html   # Sitio público: catálogo, filtros, modal, hero, Natura, about
+├── app.js       # Lógica del sitio público
+├── style.css    # Estilos del sitio público
+├── admin.html   # Admin: CRUD productos, estilos inline, todo el CSS del admin
+├── admin.js     # Lógica del admin (~1740 líneas)
+├── pos.html     # Punto de Venta: carrito, cobro, historial de ventas
+├── stats.html   # Dashboard de estadísticas (Chart.js desde CDN)
+├── logo.png
+├── ofelia.jpeg
+└── CLAUDE.md
 ```
+
+### Navegación entre módulos
+```
+admin.html ──[📊 Stats]──► stats.html
+admin.html ──[🖥 POS]───► pos.html
+pos.html   ──[← Admin]──► admin.html
+pos.html   ──[📊]───────► stats.html  (solo desktop)
+stats.html ──[← Admin]──► admin.html
+```
+En mobile el admin oculta Stats y "← Ver sitio"; muestra POS.
 
 ---
 
 ## Supabase
 
-### Credenciales
-Las credenciales están **hardcodeadas** en los primeros líneas de cada archivo:
-
-| Archivo | Key usada | Por qué |
+### Credenciales (hardcodeadas por archivo)
+| Archivo | Key | Razón |
 |---|---|---|
-| `app.js` | Anon key | Solo hace SELECT. Es segura en código público. |
-| `admin.js` | **Service role key** | Bypasea RLS para poder hacer INSERT/UPDATE/DELETE. Solo accesible desde el panel de admin. |
-
-**Regla de oro:** nunca usar el service role key en `app.js` (sitio público).
+| `app.js` | Anon key | Solo SELECT público — seguro |
+| `admin.js`, `pos.html`, `stats.html` | Service role key | Bypasea RLS para operaciones de escritura |
 
 - **Project URL:** `https://qxvrggmpaqhslgdmbhqw.supabase.co`
-- **Anon Key:** ver localStorage o Supabase Settings → API
-- **Service Role Key:** solo usar para operaciones que requieran bypass de RLS (seed, reset masivo)
-- **Admin app user:** `admin@tresencantos.com` / password en tabla `users`
+- **Regla de oro:** nunca poner service role key en `app.js`
 
 ### Tablas
 
 #### `products`
-| Columna | Tipo | Descripción |
+| Columna | Tipo | Notas |
 |---|---|---|
-| `id` | int8, PK | ID numérico manual (no serial) |
-| `name` | text | Nombre del producto |
-| `category` | text | Código: `bolsos`, `accesorios`, `maquillaje`, `natura` |
-| `category_label` | text | Etiqueta visible: "Bolsos & Mochilas", etc. |
-| `price` | numeric | Precio actual en MXN |
-| `original_price` | numeric, nullable | Precio tachado (si está en oferta) |
-| `description` | text | Descripción larga |
-| `image` | text | URL o base64 JPEG (max ~900px, comprimido al subir) |
-| `badge` | text, nullable | Texto de insignia: "Más vendido", "Nuevo", etc. |
-| `badge_type` | text, nullable | Enum visual: `best`, `new`, `promo`, `natura` |
-| `featured` | bool | Mostrar en sección destacada |
-| `out_of_stock` | bool | Agotado — oculta botón WhatsApp en el sitio |
-| `position` | int4 | Orden en la tabla (drag & drop actualiza esto) |
+| `id` | int8 PK | Manual (no serial) — max(ids)+1 al crear |
+| `name` | text | |
+| `category` | text | `bolsos`, `accesorios`, `maquillaje`, `natura`, `perfumes`, `loncheras` |
+| `category_label` | text | Etiqueta visible |
+| `price` | numeric | MXN |
+| `original_price` | numeric nullable | Precio tachado si hay oferta |
+| `description` | text | |
+| `image` | text | URL o base64 JPEG (max 900px, calidad 0.82) |
+| `badge` | text nullable | "Más vendido", "Nuevo", etc. |
+| `badge_type` | text nullable | `best`, `new`, `promo`, `natura` |
+| `featured` | bool | Sección destacada + hero mobile |
+| `out_of_stock` | bool | Oculta botón WhatsApp en sitio, bloquea venta en POS |
+| `stock` | int4 | Unidades físicas. 0=agotado, 1=última pieza, >1=ok |
+| `barcode` | text nullable | EAN-13 / QR / Code-128 para escáner |
+| `position` | int4 | Orden drag & drop |
 
-#### `users`
-| Columna | Tipo | Descripción |
+**Regla de stock:** `out_of_stock` y `stock` se sincronizan: al marcar disponible con stock=0 → auto-asigna stock=1. Al vender en POS con stock resultante=0 → auto-marca out_of_stock=true.
+
+#### `sales`
+| Columna | Tipo | Notas |
 |---|---|---|
-| `id` | int8, PK | |
-| `email` | text | Email del admin |
-| `password` | text | **Plano, sin hash** (deuda de seguridad conocida) |
+| `id` | serial PK | |
+| `total` | numeric | Suma de la venta |
+| `created_at` | timestamptz | Auto (Supabase default) |
+| `items` | jsonb | `[{id, name, price, qty, subtotal}]` |
 
 #### `config`
-| Columna | Tipo | Descripción |
+| Columna | Tipo | Notas |
 |---|---|---|
-| `id` | text, PK | Key de configuración |
-| `value` | text | Valor (puede ser URL o base64 de PDF) |
+| `id` | text PK | Key de configuración |
+| `value` | text | URL o base64 del PDF de la revista |
 
-Registro relevante: `id = 'revista_url'` → URL o base64 del PDF de la revista Natura.
+`id = 'revista_url'` → PDF de la revista Natura.
 
-### RLS (Row Level Security)
-Si RLS está activado en `products`, el anon key necesita policies para `SELECT`, `INSERT`, `UPDATE`, `DELETE`. Sin ellas las operaciones del admin fallan con 403.
+#### `users` (legacy)
+Email + password plano. Solo existe para compatibilidad; la auth real usa Supabase Auth JWT.
 
-```sql
--- Solución rápida: permitir todo al anon (solo si el admin es la única app)
-CREATE POLICY "admin_all" ON products FOR ALL USING (true) WITH CHECK (true);
-
--- Mejor práctica: usar service role key en el admin
+### Auth JWT
+```javascript
+// Sesión en localStorage key "te_admin_session":
+{ access_token, refresh_token, expires_at }
+// Válida si: access_token existe Y expires_at > now/1000 + 60s
+// Se refresca automáticamente con refresh_token
 ```
 
 ---
 
-## Arquitectura del Admin (`admin.js`)
+## Admin (`admin.html` + `admin.js`)
 
 ### Patrón de datos
-- Array global `products = []` como única fuente de verdad en el cliente
-- Cargado desde Supabase al iniciar (`loadProductsFromSupabase`)
-- Cada operación actualiza Supabase **primero**, luego actualiza el array local si tiene éxito (no Optimistic UI, excepto drag & drop)
+- `products = []` — array global, fuente de verdad en cliente
+- Cargado al iniciar con `loadProductsFromSupabase()`
+- Supabase se actualiza primero; el array local se actualiza solo si el request es exitoso
 
-### `supabaseApi(path, opts)` — helper central
-Wrapper de `fetch` que añade headers `apikey` y `Authorization`. Lee URL y key desde localStorage en cada llamada (lazy — soporta reconfiguración sin reload).
+### Funcionalidades
+- **CRUD** con modal de formulario — doble clic/tap en fila para abrir edición
+- **Drag & drop** para reordenar (`position`)
+- **Inline stock:** tap en el número de stock → input editable (fix iOS: focus con rAF + blur diferido 300ms, font-size 16px)
+- **Toggle disponible/agotado:** si stock=0 al marcar disponible → auto-stock=1
+- **Duplicar producto**
+- **Búsqueda** por nombre/descripción + filtro por categoría + ordenamiento
+- **Escanear código de barras** (html5-qrcode) en el campo barcode y en búsqueda
+- **OCR de texto** (Tesseract.js, carga lazy) — foto de etiqueta → extrae nombre y descripción
+- **Captura de imagen:** galería, drag & drop, URL, o cámara directa (`capture="environment"`)
+- **Acciones bulk:** cambiar categoría, toggle featured/oos (con auto-stock), cambiar badge, exportar JSON, eliminar
+- **Import/Export JSON** — importar reemplaza catálogo completo con rollback local
+- **Revista Natura** — URL externa o PDF como base64 en tabla `config`
 
-### Flujo de operaciones CRUD
+### Bug resuelto: botón Guardar bloqueado en segunda edición
+`closeForm()` siempre llama `setBtn(saveBtn, false)` para limpiar el estado `data-loading` residual del guardado anterior.
 
-| Operación | Endpoint Supabase | Notas |
-|---|---|---|
-| Cargar productos | `GET /products?select=*&order=position.asc` | Al iniciar app |
-| Crear producto | `POST /products` con `Prefer: resolution=merge-duplicates` | ID manual = max(ids) + 1 |
-| Editar producto | `PATCH /products?id=eq.{id}` | Solo los campos cambiados |
-| Eliminar 1 | `DELETE /products?id=eq.{id}` | Primero DB, luego array local |
-| Eliminar N (bulk) | `DELETE /products?id=in.(1,2,3)` | Filtro `in` de PostgREST |
-| Toggle featured | `PATCH /products?id=eq.{id}` `{featured: bool}` | 1 campo, 1 request |
-| Toggle out_of_stock | `PATCH /products?id=eq.{id}` `{out_of_stock: bool}` | 1 campo, 1 request |
-| Reordenar (drag) | `POST /products` batch con `resolution=merge-duplicates` | Actualiza campo `position` de todos |
-| Bulk PATCH | `PATCH /products?id=in.(ids)` | Categoría, featured, oos, badge |
-| Importar JSON | `DELETE /products?id=gt.0` + `POST /products` batch | Limpia tabla y reinserla — con rollback si falla |
+### Stats cards (admin)
+```javascript
+sinStock   = products.filter(p => p.stock === 0 || p.outOfStock)
+disponibles = products.filter(p => p.stock > 0 && !p.outOfStock)
+```
 
-### Selección múltiple
-- Estado: `selectedIds = new Set()` (IDs numéricos)
-- `toggleRowSelect(id, checked)` — toggle individual
-- `toggleSelectAll()` — selecciona/deselecciona los filtrados visibles
-- `updateBulkBar()` — muestra/oculta la barra de acciones masivas
-- Las acciones bulk leen `selectedIds` directamente
+---
 
-### Imágenes
-- Subida local: canvas resize a max 900px → `toDataURL('image/jpeg', 0.82)` → base64
-- Almacenado en el campo `image` de Supabase (base64 o URL externa)
-- No se usa Supabase Storage
+## POS (`pos.html`)
+
+- Auth: mismo JWT check que admin
+- Usa **service role key** para leer y escribir
+- Productos cargados en memoria al abrir; búsqueda filtra en el cliente
+- **Validación de efectivo:** si el campo efectivo tiene valor, debe ser ≥ total antes de procesar
+- **Cobro:** registra en `sales` → reduce `stock` → auto-marca `out_of_stock=true` si stock=0
+- **Historial:** últimas 30 ventas (sin filtro de fecha) — abierto por defecto en desktop, cerrado en mobile
+- **Cancelar venta:** ✕ Cancelar en historial → borra registro en `sales` → restaura stock + `out_of_stock=false`
+- **Escáner de código de barras** para agregar al carrito
+
+---
+
+## Stats (`stats.html`)
+
+- Auth: mismo JWT check
+- Usa **service role key**
+- Períodos: Hoy / 7 días / 30 días / Todo (filtra `sales` por `created_at`)
+- **KPIs:** Ingresos, ventas, ticket promedio, productos en stock
+- **Gráficas (Chart.js CDN):** ingresos por día (barra), ventas por categoría (donut)
+- **Top productos:** agrega `items` de todas las ventas del período
+- **Ventas recientes:** últimas 10 del período
+- **Inventario:** agotados, última unidad, con existencias — lista de productos críticos
 
 ---
 
 ## Sitio Público (`app.js` + `index.html`)
 
-- Supabase URL y anon key **hardcodeados** en las primeras líneas de `app.js` — cualquier dispositivo carga el catálogo sin configuración previa
-- Carga productos desde `GET /products?select=*&order=position.asc`
-- Fallback a `products = []` (mensaje vacío) si Supabase no responde
-- Filtros por categoría (`bolsos`, `accesorios`, `maquillaje`, `natura`)
-- Modal de detalle de producto
-- Botón WhatsApp con mensaje pre-armado (número hardcodeado en `app.js`)
-- Hero visual con productos IDs 1, 3, 4 fijos — si se borran, el hero queda vacío
-- Sección Natura: primeros 4 productos con `category = 'natura'`
+- Usa **anon key** — solo hace SELECT
+- Carga `GET /products?select=*&order=position.asc`
+- **Hero mobile:** strip horizontal con productos `featured=true`, auto-scroll a 0.5px/frame (loop seamless con items duplicados). Pausa 3s al tocar.
+- **Filtros** por categoría, búsqueda en tiempo real, ordenamiento
+- **Modal** de detalle con botón "Pedir por WhatsApp"
+- **No hay botón flotante de WhatsApp** (eliminado)
+- `overflow-x:hidden` solo en `html` y `body`, NO en secciones individuales (causaba scroll separado por sección)
 
 ---
 
-## Funcionalidades del Admin
+## Design System (admin)
 
-### Autenticación
-- Login con email + password contra tabla `users`
-- Sesión en `localStorage` key `te_admin_session = "1"`
-- Sin expiración (hasta `doLogout()`)
-
-### Gestión de productos
-- CRUD completo con modal de formulario
-- Drag & drop para reordenar (actualiza campo `position`)
-- Toggle featured / agotado inline
-- Duplicar producto
-- Búsqueda + filtro por categoría en tiempo real
-
-### Acciones masivas (Bulk)
-Aparece la barra inferior cuando hay ≥1 producto seleccionado:
-- Cambiar categoría (prompt con opciones)
-- Toggle destacado (smart: si todos=true→false, si no→true)
-- Toggle agotado (misma lógica)
-- Cambiar insignia + tipo (prompt)
-- Exportar selección a JSON
-- Eliminar selección
-
-### Import / Export
-- **Exportar JSON:** descarga todos los productos como archivo JSON (camelCase, formato del array local `products`)
-- **Importar JSON:** reemplaza catálogo completo — llama `clearSupabaseProducts()` + `save()` en secuencia, con rollback del estado local si Supabase falla
-
-### Revista Digital Natura
-- Sube URL externa o PDF como base64
-- Se guarda en tabla `config` con `id = 'revista_url'`
-- Se muestra en `index.html` como enlace
-
----
-
-## Variables CSS (colores del sistema de diseño)
-
+Variables en `admin.html` `<style>` inline:
 ```css
---cream: #FAF5EE      /* fondo principal */
---gold: #C9A462       /* acento dorado (botones primarios, borders activos) */
---gold-dark: #A67C3A  /* hover del gold */
---charcoal: #1C1817   /* texto principal, fondo topbar */
---wa: #25D366         /* verde WhatsApp */
---red: #E85D5D        /* peligro, errores, eliminar */
---green: #2D6A4F      /* natura, disponible */
---border: #E8DDD0     /* bordes sutiles */
+--cream: #F7F2EB      --gold: #C9A462       --gold-dark: #A67C3A
+--gold-light: #FFF8EE --charcoal: #1C1817   --charcoal-soft: #2E2825
+--red: #E85D5D        --green: #2D6A4F      --border: #EAE0D4
+--muted: #8A7564      --muted-light: #B5A696
+```
+
+Colores de categoría (JS, inline):
+```javascript
+bolsos:'#C9A462'  accesorios:'#60a5fa'  maquillaje:'#f472b6'
+natura:'#34d399'  perfumes:'#a78bfa'    loncheras:'#fb923c'
 ```
 
 ---
 
-## Deudas Técnicas Conocidas
+## Deudas Técnicas
 
-| Problema | Impacto | Solución sugerida |
-|---|---|---|
-| Passwords en texto plano en tabla `users` | Seguridad crítica | Migrar a Supabase Auth o bcrypt |
-| Sin Realtime — cambios no se propagan entre sesiones | UX | Añadir Supabase JS client + `channel().on('postgres_changes')` |
-| Hero fijo en IDs 1, 3, 4 | Si se borran esos productos, el hero queda roto | Usar productos `featured = true` dinámicamente |
-| `clearSupabaseProducts` usa `id=gt.0` | Si hay IDs negativos no borra | Cambiar a `id=not.is.null` |
-| Sin paginación en la tabla admin | Con 500+ productos será lento | Añadir limit/offset o virtualización |
-| Imágenes base64 en DB | Filas muy pesadas, lento para cargar | Migrar a Supabase Storage |
-
----
-
-## Flujo de Sesión (admin)
-
-```
-GET admin.html
-  ↓
-localStorage tiene SESSION_KEY="1" + URL + key?
-  ├─ Sí → showApp() → loadProductsFromSupabase() → renderStats() + renderTable()
-  └─ No → showAuthScreen()
-            ↓
-         doLoginEmail() → query tabla users → match password
-            ↓
-         localStorage.set(SESSION_KEY, "1") → showApp()
-```
+| Problema | Impacto |
+|---|---|
+| Tabla `users` con password plano (legacy) | Seguridad — ya no se usa para auth real pero existe |
+| Imágenes base64 en DB | Filas pesadas — migrar a Supabase Storage |
+| Sin Realtime entre sesiones | Cambios no visibles en otras pestañas abiertas |
+| Hero mobile usa `featured=true` — correcto | (resuelto: ya no usa IDs fijos) |
+| `clearSupabaseProducts` filtra `id=gt.0` | No borra IDs negativos — cambiar a `id=not.is.null` |
+| Sin paginación en tabla admin | Lento con 500+ productos |
+| Tesseract.js OCR descarga ~8MB primera vez | Normal para la funcionalidad, pero lento en 3G |
 
 ---
 
-## Notas para Desarrollo Futuro
+## Notas de Desarrollo
 
-- **No hay build step** — editar archivos directamente y abrir en browser
-- **Para testear cambios en admin:** abrir `admin.html` directamente (file:// o servidor local)
-- **Para testear el sitio público:** `index.html`
-- **Para seed inicial de datos:** abrir `sync-supabase.html` e ingresar credenciales
-- **PostgREST (Supabase REST):** los filtros son query params (`?id=eq.1`, `?category=eq.bolsos`, `?id=in.(1,2,3)`)
-- **Batch upsert:** enviar array JSON en el body con `Prefer: resolution=merge-duplicates`
-- El campo `position` lo gestiona el admin automáticamente — el sitio público ordena por él
+- **Sin build step** — editar y abrir directamente en browser
+- **PostgREST filtros:** `?id=eq.1` `?id=in.(1,2,3)` `?category=eq.bolsos` `?order=position.asc`
+- **Batch upsert:** body JSON array + header `Prefer: resolution=merge-duplicates`
+- **Librerías CDN:** html5-qrcode@2.3.8 (escáner), Tesseract.js@5 (OCR, lazy), Chart.js@4 (stats)
+- `position` lo gestiona el admin — el sitio público y POS ordenan por él
