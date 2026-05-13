@@ -110,6 +110,22 @@ button,input,select{font-family:inherit}
 [data-loading]{opacity:.65;pointer-events:none}
 [data-loading]::after{content:'';display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;margin-left:10px;vertical-align:middle}
 
+/* SALE DONE OVERLAY */
+.sale-done-modal{background:#fff;border-radius:18px;padding:32px 28px;max-width:320px;width:100%;text-align:center;box-shadow:0 12px 48px rgba(0,0,0,.22)}
+@keyframes pop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.sale-done-modal{animation:pop .25s ease}
+.sd-icon{width:64px;height:64px;border-radius:50%;background:var(--green);color:#fff;font-size:1.8rem;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.sale-done-modal h2{font-family:'Playfair Display',serif;font-size:1.35rem;margin-bottom:20px}
+.sd-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #F0E8E0;font-size:.88rem;color:#6B5C48}
+.sd-row strong{font-family:'Playfair Display',serif;font-size:1rem;color:var(--charcoal)}
+.sd-change{border-bottom:none;margin-top:2px}
+.sd-change strong{color:var(--green);font-size:1.15rem}
+.sale-done-modal .btn-green{margin-top:18px;border-radius:12px;font-size:.95rem;padding:13px}
+
+/* CATEGORY HEADERS in product list */
+.cat-header{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9B8B78;padding:12px 4px 4px;margin-top:4px}
+.cat-header:first-child{padding-top:4px}
+
 @media(max-width:760px){
   .pos-left{max-height:42vh;border-right:none;border-bottom:1px solid var(--border)}
   .pos-right{flex:1}
@@ -172,6 +188,18 @@ button,input,select{font-family:inherit}
       </div>
       <button id="cobrar-btn" class="btn btn-green" onclick="cobrar()" disabled>✓ Cobrar</button>
     </div>
+  </div>
+</div>
+
+<!-- SALE DONE OVERLAY -->
+<div class="overlay" id="sale-done-overlay">
+  <div class="sale-done-modal">
+    <div class="sd-icon">✓</div>
+    <h2>Venta completada</h2>
+    <div class="sd-row"><span>Total cobrado</span><strong id="sd-total"></strong></div>
+    <div class="sd-row"><span>Efectivo recibido</span><strong id="sd-cash"></strong></div>
+    <div class="sd-row sd-change"><span>Cambio</span><strong id="sd-change"></strong></div>
+    <button class="btn btn-green" onclick="closeSaleDone()">+ Nueva venta</button>
   </div>
 </div>
 
@@ -253,13 +281,28 @@ async function loadProducts() {
 }
 
 /* ── SEARCH ── */
+function showAllProducts() {
+  const el = document.getElementById('pos-results');
+  if (!products.length) {
+    el.innerHTML = '<div class="pos-empty"><div class="em">📦</div>No hay productos cargados</div>';
+    return;
+  }
+  // Agrupar por categoría
+  const cats = {};
+  products.forEach(p => {
+    if (!cats[p.categoryLabel]) cats[p.categoryLabel] = [];
+    cats[p.categoryLabel].push(p);
+  });
+  el.innerHTML = Object.entries(cats).map(([label, items]) =>
+    `<div class="cat-header">${label}</div>` + items.map(p => productCard(p)).join('')
+  ).join('');
+}
+
 function searchProducts(q) {
   const el = document.getElementById('pos-results');
   const term = q.trim().toLowerCase();
-  if (!term) {
-    el.innerHTML = '<div class="pos-empty"><div class="em">🛍️</div>Escribe para buscar un producto o usa el escáner</div>';
-    return;
-  }
+  if (!term) { showAllProducts(); return; }
+
   const matches = products.filter(p =>
     p.name.toLowerCase().includes(term) ||
     (p.barcode && p.barcode.includes(term)) ||
@@ -416,15 +459,29 @@ async function cobrar() {
   }
 
   btn.removeAttribute('data-loading');
+
+  const cash = parseFloat(document.getElementById('pos-cash').value) || 0;
+  const change = Math.max(0, cash - total);
+
   cart = [];
   document.getElementById('pos-cash').value = '';
   renderCart();
-
-  // Limpiar búsqueda
   document.getElementById('pos-search').value = '';
-  searchProducts('');
+  showAllProducts();
 
-  toast(`Venta registrada — Total $${total.toLocaleString('es-MX')} ✓`, 'success');
+  showSaleDone(total, cash, change);
+}
+
+function showSaleDone(total, cash, change) {
+  document.getElementById('sd-total').textContent  = `$${total.toLocaleString('es-MX')} MXN`;
+  document.getElementById('sd-cash').textContent   = cash > 0 ? `$${cash.toLocaleString('es-MX')} MXN` : '—';
+  document.getElementById('sd-change').textContent = cash > 0 ? `$${change.toLocaleString('es-MX')} MXN` : '—';
+  document.getElementById('sale-done-overlay').classList.add('open');
+}
+
+function closeSaleDone() {
+  document.getElementById('sale-done-overlay').classList.remove('open');
+  document.getElementById('pos-search').focus();
 }
 
 /* ── SCANNER ── */
@@ -477,12 +534,33 @@ function toast(msg, type = '') {
 document.addEventListener('DOMContentLoaded', async () => {
   await loadProducts();
   renderCart();
+  showAllProducts(); // mostrar catálogo completo al abrir
 
-  // Atajos de teclado: Escape cierra escáner
+  // Enter en búsqueda → agrega el primer resultado disponible
+  document.getElementById('pos-search').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const term = e.target.value.trim().toLowerCase();
+    if (!term) return;
+    const match = products.find(p =>
+      !p.outOfStock && p.stock > 0 && (
+        p.name.toLowerCase().includes(term) ||
+        (p.barcode && p.barcode.includes(term))
+      )
+    );
+    if (match) {
+      addToCart(match.id);
+      e.target.value = '';
+      showAllProducts();
+    }
+  });
+
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closePosScanner();
-    // Barra espaciadora o F2 → focus en búsqueda (útil en tablet con teclado)
-    if ((e.key === 'F2' || (e.key === ' ' && document.activeElement.tagName !== 'INPUT')) && !document.getElementById('pos-scanner-overlay').classList.contains('open')) {
+    if (e.key === 'Escape') {
+      closePosScanner();
+      closeSaleDone();
+    }
+    if ((e.key === 'F2' || (e.key === ' ' && document.activeElement.tagName !== 'INPUT')) &&
+        !document.getElementById('pos-scanner-overlay').classList.contains('open')) {
       e.preventDefault();
       document.getElementById('pos-search').focus();
     }

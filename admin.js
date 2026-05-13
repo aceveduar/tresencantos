@@ -203,17 +203,37 @@ async function doLoginEmail() {
 
   setBtn(btn, true, 'Verificando...');
 
-  const result = await supabaseAuth('/token?grant_type=password', {
-    method: 'POST',
-    body: JSON.stringify({ email, password })
-  });
+  let result;
+  try {
+    result = await supabaseAuth('/token?grant_type=password', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    });
+  } catch (e) {
+    err.textContent = 'Error de conexión: ' + e.message;
+    err.classList.add('show');
+    setBtn(btn, false);
+    return;
+  }
 
   if (!result.ok || result.data?.error) {
     recordAttempt();
     const newWait = checkLockout();
-    err.textContent = newWait
-      ? `Credenciales incorrectas. Intenta en ${newWait}s.`
-      : 'Credenciales incorrectas';
+    const supabaseMsg = result.data?.error_description || result.data?.msg || result.data?.message || '';
+    console.error('Auth error:', result.status, result.data);
+
+    let errMsg;
+    if (supabaseMsg.toLowerCase().includes('not confirmed'))
+      errMsg = 'Email no verificado — desactiva "Email confirmations" en Supabase → Auth → Settings.';
+    else if (supabaseMsg.toLowerCase().includes('invalid login') || supabaseMsg.toLowerCase().includes('invalid credentials'))
+      errMsg = 'Email o contraseña incorrectos.';
+    else if (supabaseMsg)
+      errMsg = supabaseMsg; // mostrar el error real de Supabase
+    else
+      errMsg = `Error ${result.status} — abre la consola del navegador (F12) para más detalles.`;
+
+    if (newWait) errMsg += ` (bloqueado ${newWait}s)`;
+    err.textContent = errMsg;
     err.classList.add('show');
     setBtn(btn, false);
     return;
@@ -304,10 +324,52 @@ function renderStats() {
 /* ── TABLE ── */
 const isMobile = () => window.matchMedia('(max-width:640px)').matches;
 
-function stockChip(stock) {
-  const cls = stock === 0 ? 'sold' : stock <= 5 ? 'low' : 'ok';
-  const txt = stock === 0 ? 'Sin stock' : stock <= 5 ? `⚠ ${stock}` : stock;
-  return `<span class="stock-chip stock-${cls}">${txt}</span>`;
+function stockChip(p) {
+  const cls = p.stock === 0 ? 'sold' : p.stock <= 5 ? 'low' : 'ok';
+  const txt = p.stock === 0 ? 'Sin stock' : p.stock <= 5 ? `⚠ ${p.stock}` : p.stock;
+  return `<span class="stock-chip stock-${cls}" onclick="editStockInline(event,${p.id})" title="Toca para editar stock" style="cursor:pointer">${txt}</span>`;
+}
+
+async function editStockInline(e, id) {
+  e.stopPropagation();
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+
+  const chip = e.currentTarget;
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.min = '0';
+  input.value = p.stock;
+  input.style.cssText = 'width:64px;padding:3px 8px;border:2px solid var(--gold);border-radius:6px;font-size:.78rem;outline:none;font-family:inherit;font-weight:600;text-align:center';
+  chip.replaceWith(input);
+  input.select();
+  input.focus();
+
+  let saved = false;
+  const save = async () => {
+    if (saved) return;
+    saved = true;
+    const newStock = Math.max(0, parseInt(input.value) || 0);
+    if (newStock === p.stock) { renderTable(); return; }
+    const result = await supabaseApi(`products?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ stock: newStock })
+    });
+    if (result.ok) {
+      p.stock = newStock;
+      renderStats();
+      toast(`Stock actualizado → ${newStock}`, 'success');
+    } else {
+      toast('Error al actualizar stock', 'error');
+    }
+    renderTable();
+  };
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); save(); }
+    if (e.key === 'Escape') { saved = true; renderTable(); }
+  });
+  input.addEventListener('blur', save);
 }
 
 function desktopRow(p) {
@@ -332,7 +394,7 @@ function desktopRow(p) {
     ${p.originalPrice ? `<span class="orig-price-cell">$${p.originalPrice.toLocaleString('es-MX')}</span>` : ''}
     $${p.price.toLocaleString('es-MX')}
   </td>
-  <td>${stockChip(p.stock)}</td>
+  <td>${stockChip(p)}</td>
   <td>
     <button onclick="toggleOutOfStock(${p.id})" class="oos-cell ${p.outOfStock ? 'soldout' : 'available'}">
       ${p.outOfStock ? 'Agotado' : 'Disponible'}
@@ -371,7 +433,7 @@ function mobileCard(p) {
           <div class="mpc-name">${p.name}</div>
           <div class="mpc-meta">${p.categoryLabel} · ${p.barcode ? `🔲 ${p.barcode}` : `#${p.id}`}</div>
           ${priceHTML}
-          ${stockChip(p.stock)}
+          ${stockChip(p)}
         </div>
       </div>
       <div class="mpc-bottom">
