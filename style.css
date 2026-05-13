@@ -269,9 +269,15 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .admin-link:hover{opacity:.55}
 
 /* ── FLOATING WA ── */
-.wa-float{position:fixed;bottom:26px;right:20px;z-index:999;width:54px;height:54px;border-radius:50%;background:var(--wa);color:#fff;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,.5);transition:var(--ease);animation:pop-in .5s .3s ease both}
-.wa-float:hover{background:var(--wa-dark);transform:scale(1.12)}
-.wa-float svg{width:24px;height:24px}
+.wa-float{position:fixed;bottom:26px;right:20px;z-index:999;background:var(--wa);color:#fff;display:flex;align-items:center;gap:8px;padding:13px 20px;border-radius:50px;text-decoration:none;font-weight:700;font-size:.88rem;box-shadow:0 4px 20px rgba(37,211,102,.45);transition:var(--ease);animation:pop-in .5s .3s ease both;white-space:nowrap}
+.wa-float:hover{background:var(--wa-dark);transform:translateY(-2px);box-shadow:0 6px 26px rgba(37,211,102,.55)}
+.wa-float svg{flex-shrink:0}
+/* En desktop el botón de WA ya está en el nav — ocultar flotante */
+@media(min-width:769px){.wa-float{display:none}}
+
+/* Botón compartir en modal */
+.btn-share{background:transparent;border:1.5px solid var(--border);color:var(--text-mid);gap:5px}
+.btn-share:hover{border-color:var(--gold);color:var(--gold-dark)}
 @media(max-width:768px){
   .wa-float{width:50px;height:50px;bottom:20px;right:16px}
   .wa-float svg{width:22px;height:22px}

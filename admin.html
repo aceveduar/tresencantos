@@ -178,10 +178,14 @@ input.row-check{cursor:pointer;width:15px;height:15px}
 /* PRODUCT COUNT */
 .prod-count{font-size:.78rem;color:#9B8B78;padding:5px 12px;border-radius:50px;background:#F0E8E0;white-space:nowrap;flex-shrink:0}
 
-/* STOCK CHIPS */
+/* STOCK CHIPS
+   Para boutique con piezas únicas:
+   - ok  (>1) → verde
+   - one (=1) → gris neutro (estado normal en piezas únicas)
+   - sold (0) → rojo (único estado verdaderamente crítico) */
 .stock-chip{display:inline-block;font-size:.72rem;font-weight:600;padding:3px 8px;border-radius:50px;white-space:nowrap}
 .stock-ok{background:#D1FAE5;color:#065F46}
-.stock-low{background:#FEF3C7;color:#92400E}
+.stock-one{background:#F0EAE2;color:#6B5C48}
 .stock-sold{background:#FEE2E2;color:#991B1B}
 
 /* SCANNER */
@@ -194,6 +198,12 @@ input.row-check{cursor:pointer;width:15px;height:15px}
 .empty-state{text-align:center;padding:60px 20px}
 .empty-state .es-icon{font-size:2.4rem;margin-bottom:10px}
 .empty-state p{color:#9B8B78;margin-bottom:18px;font-size:.9rem;line-height:1.5}
+
+/* UNDO BAR */
+.undo-bar{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(110px);background:var(--charcoal);color:#fff;padding:11px 14px 11px 20px;border-radius:50px;display:flex;align-items:center;gap:14px;font-size:.84rem;z-index:490;transition:transform .3s ease;white-space:nowrap;box-shadow:0 4px 20px rgba(28,24,23,.3)}
+.undo-bar.show{transform:translateX(-50%) translateY(0)}
+.undo-bar button{background:var(--gold);border:none;color:#fff;padding:6px 16px;border-radius:50px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit}
+.undo-bar button:hover{background:var(--gold-dark)}
 
 /* SCROLL TO TOP */
 #scroll-top-btn{position:fixed;bottom:24px;right:20px;width:42px;height:42px;border-radius:50%;background:var(--charcoal);color:#fff;border:none;font-size:1.1rem;cursor:pointer;box-shadow:0 4px 14px rgba(28,24,23,.25);z-index:400;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;transform:translateY(8px)}
@@ -548,6 +558,12 @@ input.row-check{cursor:pointer;width:15px;height:15px}
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<!-- UNDO BAR -->
+<div id="undo-bar" class="undo-bar">
+  <span id="undo-msg"></span>
+  <button onclick="doUndo()">Deshacer</button>
+</div>
 
 <!-- SCROLL TO TOP -->
 <button id="scroll-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Volver arriba">↑</button>

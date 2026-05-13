@@ -160,10 +160,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
   document.addEventListener('keydown', e => {
-    if (e.key !== 'Escape') return;
-    if (document.getElementById('form-overlay')?.classList.contains('open'))    { closeForm(); return; }
-    if (document.getElementById('del-overlay')?.classList.contains('open'))     { closeDel(); return; }
-    if (document.getElementById('revista-overlay')?.classList.contains('open')) { closeRevista(); }
+    const inInput = ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName);
+    const modalOpen = document.querySelector('.overlay.open');
+
+    // Escape — cierra cualquier modal abierto
+    if (e.key === 'Escape') {
+      if (document.getElementById('form-overlay')?.classList.contains('open'))    { closeForm(); return; }
+      if (document.getElementById('del-overlay')?.classList.contains('open'))     { closeDel(); return; }
+      if (document.getElementById('revista-overlay')?.classList.contains('open')) { closeRevista(); return; }
+      if (document.getElementById('scanner-overlay')?.classList.contains('open')) { closeAdminScanner(); return; }
+    }
+
+    // Atajos solo cuando no hay modal abierto y no se está escribiendo
+    if (inInput || modalOpen) return;
+
+    // N — nuevo producto
+    if (e.key === 'n' || e.key === 'N') { e.preventDefault(); openForm(); }
+
+    // / — foco en búsqueda
+    if (e.key === '/') { e.preventDefault(); document.getElementById('search-input')?.focus(); }
+
+    // Z — deshacer última eliminación
+    if ((e.key === 'z' || e.key === 'Z') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); doUndo(); }
   });
 
   // Re-renderizar tabla al rotar el teléfono o redimensionar ventana
@@ -312,11 +330,9 @@ async function loadProductsFromSupabase() {
 
 /* ── STATS ── */
 async function renderStats() {
-  const sinStock  = products.filter(p => p.stock === 0).length;
-  const stockBajo = products.filter(p => p.stock > 0 && p.stock <= 5).length;
-  const featured  = products.filter(p => p.featured).length;
+  const sinStock   = products.filter(p => p.stock === 0).length;
+  const disponibles = products.filter(p => p.stock > 0).length;
 
-  // Ventas del día
   let ventasHoy = 0, ingresosHoy = 0;
   try {
     const hoy = new Date().toISOString().split('T')[0];
@@ -329,34 +345,22 @@ async function renderStats() {
 
   document.getElementById('stats').innerHTML = `
     <div class="stat-card"><div class="num">${products.length}</div><div class="lbl">Productos</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--green)">${disponibles}</div><div class="lbl">Con existencias</div></div>
     <div class="stat-card"><div class="num" style="color:var(--red)">${sinStock}</div><div class="lbl">Sin stock</div></div>
-    <div class="stat-card"><div class="num" style="color:#92400E">${stockBajo}</div><div class="lbl">Stock bajo ≤5</div></div>
     <div class="stat-card"><div class="num">${ventasHoy}</div><div class="lbl">Ventas hoy</div></div>
     <div class="stat-card"><div class="num" style="color:var(--green)">$${ingresosHoy.toLocaleString('es-MX')}</div><div class="lbl">Ingresos hoy</div></div>
   `;
-
-  renderLowStockAlert();
 }
 
-function renderLowStockAlert() {
-  document.getElementById('low-stock-alert')?.remove();
-  const criticos = products.filter(p => p.stock > 0 && p.stock <= 3);
-  if (!criticos.length) return;
-  const el = document.createElement('div');
-  el.id = 'low-stock-alert';
-  el.className = 'low-stock-alert';
-  el.innerHTML = `<span>⚠ Stock crítico:</span>${
-    criticos.map(p => `<span class="lsa-item" onclick="openForm(${p.id})">${p.name} <strong>(${p.stock})</strong></span>`).join('')
-  }<button class="lsa-close" onclick="this.closest('.low-stock-alert').remove()">✕</button>`;
-  document.getElementById('stats').after(el);
-}
 
 /* ── TABLE ── */
 const isMobile = () => window.matchMedia('(max-width:640px)').matches;
 
 function stockChip(p) {
-  const cls = p.stock === 0 ? 'sold' : p.stock <= 5 ? 'low' : 'ok';
-  const txt = p.stock === 0 ? 'Sin stock' : p.stock <= 5 ? `⚠ ${p.stock}` : p.stock;
+  // Para una boutique de piezas únicas: solo el 0 es crítico.
+  // 1 unidad es el estado normal — se muestra neutro, no como alerta.
+  const cls = p.stock === 0 ? 'sold' : p.stock === 1 ? 'one' : 'ok';
+  const txt = p.stock === 0 ? 'Sin stock' : p.stock;
   return `<span class="stock-chip stock-${cls}" onclick="editStockInline(event,${p.id})" title="Toca para editar stock" style="cursor:pointer">${txt}</span>`;
 }
 
@@ -971,13 +975,39 @@ async function confirmDelete() {
     return;
   }
 
+  const deleted = products.find(p => p.id === id);
+  const deletedIdx = products.findIndex(p => p.id === id);
+
   products = products.filter(p => p.id !== id);
   selectedIds.delete(id);
   closeDel();
   renderTable();
   renderStats();
   updateBulkBar();
-  toast('Producto eliminado', 'success');
+
+  // Toast con opción de deshacer (7 segundos)
+  toastUndo(`"${deleted?.name || 'Producto'}" eliminado`, async () => {
+    if (!deleted) return;
+    const r = await supabaseApi('products', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        id: deleted.id, name: deleted.name, category: deleted.category,
+        category_label: deleted.categoryLabel, price: deleted.price,
+        description: deleted.description, image: deleted.image,
+        badge: deleted.badge, badge_type: deleted.badgeType,
+        featured: deleted.featured, out_of_stock: deleted.outOfStock,
+        original_price: deleted.originalPrice, barcode: deleted.barcode,
+        stock: deleted.stock, position: deletedIdx
+      })
+    });
+    if (r.ok) {
+      products.splice(deletedIdx, 0, deleted);
+      renderTable();
+      renderStats();
+      toast(`"${deleted.name}" restaurado ✓`, 'success');
+    }
+  });
 }
 
 /* ── SAVE — batch upsert (usado para reorder e import) ── */
@@ -1344,6 +1374,27 @@ function toast(msg, type = '') {
   clearTimeout(el._t);
   const duration = type === 'error' ? 5000 : type === '' ? 1500 : 3000;
   el._t = setTimeout(() => el.classList.remove('show'), duration);
+}
+
+function toastUndo(msg, onUndo) {
+  const el = document.getElementById('undo-bar');
+  const msgEl = document.getElementById('undo-msg');
+  if (!el) return toast(msg, 'success');
+  if (el._t) { clearTimeout(el._t); el._undo = null; }
+  msgEl.textContent = msg;
+  el.classList.add('show');
+  el._undo = onUndo;
+  el._t = setTimeout(() => { el.classList.remove('show'); el._undo = null; }, 7000);
+}
+
+function doUndo() {
+  const el = document.getElementById('undo-bar');
+  if (!el?._undo) return;
+  clearTimeout(el._t);
+  const fn = el._undo;
+  el._undo = null;
+  el.classList.remove('show');
+  fn();
 }
 
 /* ── REVISTA ── */

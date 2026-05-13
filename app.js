@@ -150,9 +150,9 @@ function cardHTML(p) {
   const oosTag = oos ? `<span class="product-badge badge-oos" style="background:#9B8B78">Agotado</span>` : '';
   const pct = discountPct(p);
   const discountTag = pct > 0 ? `<span class="product-badge badge-discount">-${pct}%</span>` : '';
-  // "Últimos X" solo cuando hay pocas unidades, no hay descuento y no está agotado
-  const urgencyTag = (!oos && p.stock > 0 && p.stock <= 5 && pct === 0)
-    ? `<span class="product-badge" style="background:#92400E;left:auto;right:10px">Últimos ${p.stock}</span>` : '';
+  // "Últimas unidades" solo cuando hay 2+ piezas pero pocas (≥2 y ≤3), no para piezas únicas
+  const urgencyTag = (!oos && p.stock >= 2 && p.stock <= 3 && pct === 0)
+    ? `<span class="product-badge" style="background:#92400E;left:auto;right:10px">Últimas ${p.stock}</span>` : '';
   const fallback = `https://picsum.photos/seed/${p.id+10}/500/500`;
   const priceHTML = pct > 0
     ? `<div class="product-price"><s class="price-before">$${p.originalPrice.toLocaleString('es-MX')}</s> $${p.price.toLocaleString('es-MX')} <small>MXN</small></div>`
@@ -259,6 +259,19 @@ function filterTo(cat) {
   document.getElementById('productos')?.scrollIntoView({ behavior:'smooth' });
 }
 
+/* ── SHARE ── */
+async function shareProduct(id) {
+  const p = products.find(x => x.id === id);
+  if (!p || !navigator.share) return;
+  try {
+    await navigator.share({
+      title: p.name,
+      text: `${p.name} — $${p.price.toLocaleString('es-MX')} MXN\n${p.description}`,
+      url: window.location.href
+    });
+  } catch {}
+}
+
 /* ── WHATSAPP ── */
 function whatsapp(id) {
   const p = products.find(x => x.id === id);
@@ -286,8 +299,8 @@ function openModal(id) {
   const oos = p.outOfStock || p.stock === 0;
   const pct = discountPct(p);
   const modalDiscount = pct > 0 ? `<span class="product-badge badge-discount" style="position:absolute;top:10px;right:10px;left:auto">-${pct}%</span>` : '';
-  const modalUrgency = (!oos && p.stock > 0 && p.stock <= 5 && pct === 0)
-    ? `<span class="product-badge" style="position:absolute;top:10px;right:10px;left:auto;background:#92400E">Últimos ${p.stock}</span>` : '';
+  const modalUrgency = (!oos && p.stock >= 2 && p.stock <= 3 && pct === 0)
+    ? `<span class="product-badge" style="position:absolute;top:10px;right:10px;left:auto;background:#92400E">Últimas ${p.stock}</span>` : '';
   const modalPriceHTML = pct > 0
     ? `<div class="modal-price">
          <span class="modal-price-old">$${p.originalPrice.toLocaleString('es-MX')} MXN</span>
@@ -295,6 +308,9 @@ function openModal(id) {
          <span class="modal-discount">-${pct}% OFF</span>
        </div>`
     : `<div class="modal-price">$${p.price.toLocaleString('es-MX')} <small>MXN</small></div>`;
+  const shareBtn = navigator.share
+    ? `<button class="btn btn-share" onclick="shareProduct(${p.id})"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Compartir</button>`
+    : '';
   const modalBtn = oos
     ? `<button class="btn" style="background:#ccc;cursor:default;opacity:.8" disabled>Agotado por el momento</button>`
     : `<button class="btn btn-wa" onclick="whatsapp(${p.id})">${WA_SVG} Pedir por WhatsApp</button>`;
@@ -313,7 +329,10 @@ function openModal(id) {
     <p class="modal-desc">${p.description}</p>
     <div class="modal-foot">
       ${modalPriceHTML}
-      ${modalBtn}
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${modalBtn}
+        ${shareBtn}
+      </div>
     </div>
   </div>
 </div>`;

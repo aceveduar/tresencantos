@@ -67,7 +67,7 @@ button,a{touch-action:manipulation}
 .pos-prod-price{font-family:'Playfair Display',serif;font-weight:700;font-size:.95rem;flex-shrink:0}
 .pos-prod-stock{font-size:.7rem;font-weight:600;padding:2px 7px;border-radius:50px;flex-shrink:0}
 .stock-ok{background:#D1FAE5;color:#065F46}
-.stock-low{background:#FEF3C7;color:#92400E}
+.stock-one{background:#F0EAE2;color:#6B5C48}
 .stock-sold{background:#FEE2E2;color:#991B1B;cursor:not-allowed}
 .pos-empty{text-align:center;padding:40px 20px;color:#9B8B78;font-size:.88rem}
 .pos-empty .em{font-size:2rem;margin-bottom:8px}
@@ -120,6 +120,28 @@ button,a{touch-action:manipulation}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 .toast.success{background:var(--green)}
 .toast.error{background:var(--red)}
+
+/* CASH QUICK BUTTONS */
+.cash-quick{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.cash-quick button{flex:1;min-width:0;padding:9px 4px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:.82rem;font-weight:600;cursor:pointer;transition:.15s;color:var(--charcoal)}
+.cash-quick button:hover{border-color:var(--gold);background:var(--cream);color:var(--gold-dark)}
+.cash-quick .exact-btn{background:var(--cream);border-color:var(--gold);color:var(--gold-dark)}
+.cash-quick button:active{transform:scale(.95)}
+
+/* SALES HISTORY */
+.history-panel{border-top:1px solid var(--border);flex-shrink:0;max-height:200px;overflow-y:auto}
+.history-header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;font-size:.75rem;font-weight:700;color:#9B8B78;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;user-select:none;background:#fff;position:sticky;top:0}
+.history-header:hover{color:var(--charcoal)}
+.history-toggle{font-size:1rem;transition:transform .2s}
+.history-panel.open .history-toggle{transform:rotate(180deg)}
+.history-list{display:none;padding:0 8px 8px}
+.history-panel.open .history-list{display:block}
+.history-item{display:flex;align-items:center;justify-content:space-between;padding:6px 6px;border-radius:6px;font-size:.78rem;border-bottom:1px solid #F5F0EB}
+.history-item:last-child{border-bottom:none}
+.history-item:hover{background:#FDFAF6}
+.history-time{color:#9B8B78;font-size:.7rem;margin-top:1px}
+.history-amount{font-weight:700;font-family:'Playfair Display',serif;color:var(--green);font-size:.88rem}
+.history-empty{padding:16px;text-align:center;color:#9B8B78;font-size:.8rem}
 
 /* Loading */
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -188,10 +210,29 @@ button,a{touch-action:manipulation}
       <div class="cart-empty"><div class="em">🛒</div>El carrito está vacío</div>
     </div>
 
+    <!-- HISTORIAL DEL DÍA -->
+    <div class="history-panel" id="history-panel">
+      <div class="history-header" onclick="toggleHistory()">
+        <span>Ventas de hoy</span>
+        <span class="history-toggle" id="history-toggle">▾</span>
+      </div>
+      <div class="history-list" id="history-list">
+        <div class="history-empty">Sin ventas aún hoy</div>
+      </div>
+    </div>
+
     <div class="pos-checkout">
       <div class="total-row">
         <span class="total-label">Total</span>
         <span class="total-amount" id="pos-total">$0</span>
+      </div>
+      <!-- Billetes rápidos -->
+      <div class="cash-quick" id="cash-quick">
+        <button onclick="setCash(50)">$50</button>
+        <button onclick="setCash(100)">$100</button>
+        <button onclick="setCash(200)">$200</button>
+        <button onclick="setCash(500)">$500</button>
+        <button onclick="setCash(getTotal())" class="exact-btn">Exacto</button>
       </div>
       <div class="cash-row">
         <div class="cash-field">
@@ -334,8 +375,8 @@ function searchProducts(q) {
 }
 
 function productCard(p) {
-  const stockCls = p.stock === 0 ? 'stock-sold' : p.stock <= 5 ? 'stock-low' : 'stock-ok';
-  const stockTxt = p.stock === 0 ? 'Sin stock' : p.stock <= 5 ? `⚠ ${p.stock}` : p.stock;
+  const stockCls = p.stock === 0 ? 'stock-sold' : p.stock === 1 ? 'stock-one' : 'stock-ok';
+  const stockTxt = p.stock === 0 ? 'Sin stock' : p.stock;
   const disabled = (p.stock === 0 || p.outOfStock) ? 'style="opacity:.5;cursor:not-allowed"' : '';
   const fallback = `https://picsum.photos/seed/${p.id+10}/80/80`;
   return `
@@ -428,6 +469,43 @@ function renderCart() {
 </div>`).join('');
 }
 
+function setCash(amount) {
+  const total = getTotal();
+  const val = amount === total ? total : amount;
+  document.getElementById('pos-cash').value = val;
+  updateChange();
+  // Highlight el botón seleccionado
+  document.querySelectorAll('.cash-quick button').forEach(b => b.classList.remove('active-cash'));
+  event?.currentTarget?.classList.add('active-cash');
+}
+
+function toggleHistory() {
+  document.getElementById('history-panel').classList.toggle('open');
+}
+
+async function loadHistory() {
+  const hoy = new Date().toISOString().split('T')[0];
+  const result = await api(`sales?created_at=gte.${hoy}T00:00:00&select=id,total,created_at,items&order=created_at.desc&limit=20`);
+  const el = document.getElementById('history-list');
+  if (!result.ok || !result.data?.length) {
+    el.innerHTML = '<div class="history-empty">Sin ventas aún hoy</div>';
+    return;
+  }
+  el.innerHTML = result.data.map(s => {
+    const t = new Date(s.created_at);
+    const time = t.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    const items = Array.isArray(s.items) ? s.items.length : '—';
+    return `
+<div class="history-item">
+  <div>
+    <div style="font-weight:600">${items} artículo${items !== 1 ? 's' : ''}</div>
+    <div class="history-time">${time}</div>
+  </div>
+  <div class="history-amount">$${parseFloat(s.total).toLocaleString('es-MX')}</div>
+</div>`;
+  }).join('');
+}
+
 function updateChange() {
   const cash = parseFloat(document.getElementById('pos-cash').value) || 0;
   const total = getTotal();
@@ -488,6 +566,7 @@ async function cobrar() {
   showAllProducts();
 
   loadTodayStats();
+  loadHistory();
   showSaleDone(total, cash, change);
 }
 
@@ -568,6 +647,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadProducts();
   renderCart();
   loadTodayStats();
+  loadHistory();
   showAllProducts(); // mostrar catálogo completo al abrir
 
   // Enter en búsqueda → agrega el primer resultado disponible
