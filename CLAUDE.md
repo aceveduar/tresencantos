@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-05-13.
+Documentación técnica del proyecto. Última actualización: 2026-05-14.
 
 ---
 
@@ -126,11 +126,44 @@ Email + password plano. Solo existe para compatibilidad; la auth real usa Supaba
 - **Duplicar producto**
 - **Búsqueda** por nombre/descripción + filtro por categoría + ordenamiento
 - **Escanear código de barras** (html5-qrcode) en el campo barcode y en búsqueda
-- **OCR de texto** (Tesseract.js, carga lazy) — foto de etiqueta → extrae nombre y descripción
+- **Dictado por voz** (Web Speech API nativa) — botón 🎤 junto a Nombre y Descripción. `continuous:true`, reconstruye transcript desde `i=0` en cada evento para evitar duplicados. Funciona en Chrome y Safari. Sin librerías externas.
 - **Captura de imagen:** galería, drag & drop, URL, o cámara directa (`capture="environment"`)
+- **Google Drive para imágenes** — ver sección abajo
 - **Acciones bulk:** cambiar categoría, toggle featured/oos (con auto-stock), cambiar badge, exportar JSON, eliminar
 - **Import/Export JSON** — importar reemplaza catálogo completo con rollback local
 - **Revista Natura** — URL externa o PDF como base64 en tabla `config`
+
+### Google Drive para imágenes
+
+Imágenes de productos se pueden subir a una carpeta de Google Drive en lugar de guardarse como base64 en Supabase.
+
+**Arquitectura:**
+```
+Admin (browser) → POST base64 → Google Apps Script → Drive folder → devuelve URL thumbnail
+```
+
+**Configuración (ya hecha, solo documentar):**
+- Apps Script URL: guardada en `localStorage` key `te_drive_ep`
+- Secreto único: generado al guardar, en `localStorage` key `te_drive_secret`. **No está en el código fuente.**
+- Carpeta Drive ID: `1KRy8Aj5bd7bz4f0TpkIKMURthWBCS7om`
+- URL de imagen resultante: `https://drive.google.com/thumbnail?id=FILE_ID&sz=w900`
+
+**Si hay que reconfigurar** (nuevo dispositivo, borró localStorage):
+1. Admin → Herramientas → Google Drive → pegar URL del script → Guardar
+2. El campo gris muestra el secreto — copiarlo (toque = copia al portapapeles)
+3. En Apps Script: `const SECRET = 'el_secreto_copiado'` → Nueva versión → Implementar
+
+**Código del Apps Script** (`const FOLDER_ID` y `const SECRET` al inicio, resto no tocar):
+```javascript
+const FOLDER_ID = '1KRy8Aj5bd7bz4f0TpkIKMURthWBCS7om';
+const SECRET    = '...'; // viene del localStorage del admin
+```
+
+**Fallback:** si Drive falla o no está configurado, `compressAndPreview()` guarda base64. Nunca bloquea el flujo.
+
+**En `admin.js`:** funciones `uploadToDrive()`, `saveDriveEndpoint()`, `loadDriveConfig()`, `copyDriveSecret()`, `clearDrive()`, `testDriveEndpoint()`.
+
+---
 
 ### Bug resuelto: botón Guardar bloqueado en segunda edición
 `closeForm()` siempre llama `setBtn(saveBtn, false)` para limpiar el estado `data-loading` residual del guardado anterior.
@@ -204,7 +237,7 @@ natura:'#34d399'  perfumes:'#a78bfa'    loncheras:'#fb923c'
 | Problema | Impacto |
 |---|---|
 | Tabla `users` con password plano (legacy) | Seguridad — ya no se usa para auth real pero existe |
-| Imágenes base64 en DB | Filas pesadas — migrar a Supabase Storage |
+| Imágenes base64 en DB (productos viejos) | Los productos creados antes de Drive aún tienen base64 — se pueden reeditar para actualizar |
 | Sin Realtime entre sesiones | Cambios no visibles en otras pestañas abiertas |
 | Hero mobile usa `featured=true` — correcto | (resuelto: ya no usa IDs fijos) |
 | `clearSupabaseProducts` filtra `id=gt.0` | No borra IDs negativos — cambiar a `id=not.is.null` |
@@ -218,5 +251,6 @@ natura:'#34d399'  perfumes:'#a78bfa'    loncheras:'#fb923c'
 - **Sin build step** — editar y abrir directamente en browser
 - **PostgREST filtros:** `?id=eq.1` `?id=in.(1,2,3)` `?category=eq.bolsos` `?order=position.asc`
 - **Batch upsert:** body JSON array + header `Prefer: resolution=merge-duplicates`
-- **Librerías CDN:** html5-qrcode@2.3.8 (escáner), Tesseract.js@5 (OCR, lazy), Chart.js@4 (stats)
+- **Librerías CDN:** html5-qrcode@2.3.8 (escáner), Chart.js@4 (stats). Tesseract.js fue eliminado — reemplazado por Web Speech API nativa.
+- **Google Drive:** integración vía Apps Script. Secreto en localStorage, nunca en código fuente.
 - `position` lo gestiona el admin — el sitio público y POS ordenan por él

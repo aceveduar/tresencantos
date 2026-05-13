@@ -804,40 +804,74 @@ function populateBadgeList() {
 }
 
 /* ── GOOGLE DRIVE CONFIG ── */
-const DRIVE_EP_KEY = 'te_drive_ep';
-const DRIVE_SECRET = 'tres_encantos_drive';
+const DRIVE_EP_KEY     = 'te_drive_ep';
+const DRIVE_SECRET_KEY = 'te_drive_secret'; // guardado en localStorage, no en código
 
 function loadDriveConfig() {
-  const ep = localStorage.getItem(DRIVE_EP_KEY);
-  const input = document.getElementById('drive-endpoint-input');
+  const ep     = localStorage.getItem(DRIVE_EP_KEY);
+  const secret = localStorage.getItem(DRIVE_SECRET_KEY);
+  const epInput  = document.getElementById('drive-endpoint-input');
+  const secInput = document.getElementById('drive-secret-input');
   const statusTxt = document.getElementById('drive-status-txt');
-  const testBtn = document.getElementById('drive-test-btn');
-  if (!input) return;
-  if (ep) {
-    input.value = ep;
-    statusTxt.textContent = '(conectado — imágenes nuevas se guardan en Drive)';
+  if (!epInput) return;
+  if (ep && secret) {
+    epInput.value  = ep;
+    secInput.value = secret;
+    statusTxt.textContent = '✓ Conectado — imágenes nuevas van a Drive';
     statusTxt.style.color = 'var(--green)';
-    if (testBtn) testBtn.style.display = '';
+    document.getElementById('drive-test-btn')?.style && (document.getElementById('drive-test-btn').style.display = '');
+    document.getElementById('drive-clear-btn')?.style && (document.getElementById('drive-clear-btn').style.display = '');
   }
 }
 
 function saveDriveEndpoint() {
   const ep = document.getElementById('drive-endpoint-input').value.trim();
-  const statusTxt = document.getElementById('drive-status-txt');
-  const testBtn = document.getElementById('drive-test-btn');
-  if (ep) {
-    localStorage.setItem(DRIVE_EP_KEY, ep);
-    statusTxt.textContent = '(conectado — imágenes nuevas se guardan en Drive)';
-    statusTxt.style.color = 'var(--green)';
-    if (testBtn) testBtn.style.display = '';
-    toast('Drive configurado ✓', 'success');
-  } else {
-    localStorage.removeItem(DRIVE_EP_KEY);
-    statusTxt.textContent = '(no configurado — imágenes se guardan como base64)';
-    statusTxt.style.color = '';
-    if (testBtn) testBtn.style.display = 'none';
-    toast('Drive desconectado', '');
+  if (!ep) { toast('Pega primero la URL del Apps Script', 'error'); return; }
+
+  localStorage.setItem(DRIVE_EP_KEY, ep);
+
+  // Generar secreto único si no existe aún
+  let secret = localStorage.getItem(DRIVE_SECRET_KEY);
+  if (!secret) {
+    secret = 'te_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem(DRIVE_SECRET_KEY, secret);
   }
+
+  // Mostrar secreto en el campo — el usuario lo copia de ahí
+  document.getElementById('drive-secret-input').value = secret;
+
+  const statusTxt = document.getElementById('drive-status-txt');
+  statusTxt.textContent = '✓ Conectado — imágenes nuevas van a Drive';
+  statusTxt.style.color = 'var(--green)';
+  document.getElementById('drive-test-btn').style.display = '';
+  document.getElementById('drive-clear-btn').style.display = '';
+
+  toast('Drive guardado — copia el secreto del campo gris y pégalo en tu Apps Script', 'success');
+}
+
+function copyDriveSecret() {
+  const val = document.getElementById('drive-secret-input').value;
+  if (!val) return;
+  navigator.clipboard.writeText(val)
+    .then(() => toast('Secreto copiado al portapapeles ✓', 'success'))
+    .catch(() => {
+      // Fallback: seleccionar el texto manualmente
+      document.getElementById('drive-secret-input').select();
+      toast('Selecciona el texto y copia con Ctrl+C / ⌘C', '');
+    });
+}
+
+function clearDrive() {
+  if (!confirm('¿Desconectar Google Drive? Las imágenes futuras se guardarán como base64.')) return;
+  localStorage.removeItem(DRIVE_EP_KEY);
+  localStorage.removeItem(DRIVE_SECRET_KEY);
+  document.getElementById('drive-endpoint-input').value = '';
+  document.getElementById('drive-secret-input').value = '';
+  document.getElementById('drive-status-txt').textContent = '(no configurado)';
+  document.getElementById('drive-status-txt').style.color = '';
+  document.getElementById('drive-test-btn').style.display = 'none';
+  document.getElementById('drive-clear-btn').style.display = 'none';
+  toast('Drive desconectado', '');
 }
 
 async function testDriveEndpoint() {
@@ -859,16 +893,13 @@ async function testDriveEndpoint() {
 }
 
 async function uploadToDrive(b64) {
-  const ep = localStorage.getItem(DRIVE_EP_KEY);
-  if (!ep) return null;
+  const ep     = localStorage.getItem(DRIVE_EP_KEY);
+  const secret = localStorage.getItem(DRIVE_SECRET_KEY);
+  if (!ep || !secret) return null;
   try {
     const res = await fetch(ep, {
       method: 'POST',
-      body: JSON.stringify({
-        secret: DRIVE_SECRET,
-        image: b64,
-        name: `producto_${Date.now()}.jpg`
-      })
+      body: JSON.stringify({ secret, image: b64, name: `producto_${Date.now()}.jpg` })
     });
     const data = await res.json();
     return data.ok ? data.url : null;
