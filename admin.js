@@ -981,6 +981,7 @@ function openRevista() {
   const overlay = document.getElementById('revista-overlay');
   document.getElementById('revista-url-input').value = '';
   document.getElementById('revista-preview').style.display = 'none';
+  document.getElementById('revista-file')._pendingFile = null;
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
   initRevistaUpload();
@@ -1024,39 +1025,78 @@ function handleRevistaFile(input) {
 function processRevistaFile(file) {
   if (file.type !== 'application/pdf') { toast('Solo se permiten archivos PDF', 'error'); return; }
   if (file.size > 50 * 1024 * 1024) { toast('El PDF es muy grande. Máx 50MB.', 'error'); return; }
-  const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById('revista-url-input').value = '';
-    document.getElementById('revista-preview').style.display = 'block';
-    document.getElementById('revista-filename').textContent = file.name;
-    document.getElementById('revista-file')._base64 = e.target.result;
-  };
-  reader.readAsDataURL(file);
+  document.getElementById('revista-url-input').value = '';
+  document.getElementById('revista-preview').style.display = 'block';
+  document.getElementById('revista-filename').textContent =
+    `${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} MB`;
+  document.getElementById('revista-file')._pendingFile = file;
 }
 
 function clearRevistaFile() {
   document.getElementById('revista-file').value = '';
-  document.getElementById('revista-file')._base64 = null;
+  document.getElementById('revista-file')._pendingFile = null;
   document.getElementById('revista-preview').style.display = 'none';
 }
 
 async function saveRevista() {
   const urlInput = document.getElementById('revista-url-input');
   const fileInput = document.getElementById('revista-file');
-  const b64 = fileInput._base64;
-  const url = urlInput.value.trim();
+  const pendingFile = fileInput._pendingFile;
+  const urlVal = urlInput.value.trim();
 
-  if (!b64 && !url) { toast('Ingresa una URL o sube un PDF', 'error'); return; }
+  if (!pendingFile && !urlVal) { toast('Ingresa una URL o sube un PDF', 'error'); return; }
 
-  const value = b64 || url;
+  const saveBtn = document.querySelector('#revista-overlay .btn-gold');
+  let finalUrl = urlVal;
+
+  if (pendingFile) {
+    setBtn(saveBtn, true, 'Subiendo PDF...');
+
+    // Crear bucket si no existe (ignorar si ya existe)
+    try {
+      await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: 'revistas', name: 'revistas', public: true })
+      });
+    } catch {}
+
+    try {
+      const filename = `revista-${Date.now()}.pdf`;
+      const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/revistas/${filename}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/pdf',
+          'x-upsert': 'true'
+        },
+        body: pendingFile
+      });
+
+      setBtn(saveBtn, false);
+
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json().catch(() => ({}));
+        toast(`Error al subir: ${err.message || err.error || uploadRes.status}`, 'error');
+        return;
+      }
+
+      finalUrl = `${SUPABASE_URL}/storage/v1/object/public/revistas/${filename}`;
+    } catch (e) {
+      setBtn(saveBtn, false);
+      toast('Error de conexión al subir PDF: ' + e.message, 'error');
+      return;
+    }
+  }
 
   const result = await supabaseApi('config', {
     method: 'POST',
     headers: { 'Prefer': 'resolution=merge-duplicates' },
-    body: JSON.stringify({ id: 'revista_url', value })
+    body: JSON.stringify({ id: 'revista_url', value: finalUrl })
   });
+
   if (!result.ok || result.data?.error) {
-    toast('Error al guardar en Supabase', 'error');
+    toast('Error al guardar el enlace', 'error');
     return;
   }
 
