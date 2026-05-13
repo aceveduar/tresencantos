@@ -574,6 +574,19 @@ async function cobrar() {
   if (!cart.length) return;
   const total = getTotal();
 
+  // ── Validación de efectivo ──────────────────────────────────────────
+  const cash = parseFloat(document.getElementById('pos-cash').value) || 0;
+  if (cash > 0 && cash < total) {
+    toast(
+      `El efectivo recibido ($${cash.toLocaleString('es-MX')}) no cubre el total ($${total.toLocaleString('es-MX')})`,
+      'error'
+    );
+    document.getElementById('pos-cash').focus();
+    document.getElementById('pos-cash').select();
+    return;
+  }
+  // ───────────────────────────────────────────────────────────────────
+
   const btn = document.getElementById('cobrar-btn');
   btn.setAttribute('data-loading', '1');
   btn.disabled = true;
@@ -600,7 +613,7 @@ async function cobrar() {
   for (const { product: p, qty } of cart) {
     const newStock = Math.max(0, p.stock - qty);
     const patch = { stock: newStock };
-    if (newStock === 0) patch.out_of_stock = true; // sin stock → marcar agotado en frontend
+    if (newStock === 0) patch.out_of_stock = true;
     await api(`products?id=eq.${p.id}`, {
       method: 'PATCH',
       body: JSON.stringify(patch)
@@ -611,7 +624,6 @@ async function cobrar() {
 
   btn.removeAttribute('data-loading');
 
-  const cash = parseFloat(document.getElementById('pos-cash').value) || 0;
   const change = Math.max(0, cash - total);
 
   cart = [];
