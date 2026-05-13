@@ -107,22 +107,27 @@ function discountPct(p) {
 }
 
 function cardHTML(p) {
+  // Stock es la fuente de verdad: agotado si outOfStock manual O si el contador llegó a 0
+  const oos = p.outOfStock || p.stock === 0;
   const badge = p.badge ? `<span class="product-badge badge-${p.badgeType||'best'}">${p.badge}</span>` : '';
-  const oosTag = p.outOfStock ? `<span class="product-badge badge-oos" style="background:#9B8B78">Agotado</span>` : '';
+  const oosTag = oos ? `<span class="product-badge badge-oos" style="background:#9B8B78">Agotado</span>` : '';
   const pct = discountPct(p);
   const discountTag = pct > 0 ? `<span class="product-badge badge-discount">-${pct}%</span>` : '';
+  // "Últimos X" solo cuando hay pocas unidades, no hay descuento y no está agotado
+  const urgencyTag = (!oos && p.stock > 0 && p.stock <= 5 && pct === 0)
+    ? `<span class="product-badge" style="background:#92400E;left:auto;right:10px">Últimos ${p.stock}</span>` : '';
   const fallback = `https://picsum.photos/seed/${p.id+10}/500/500`;
   const priceHTML = pct > 0
     ? `<div class="product-price"><s class="price-before">$${p.originalPrice.toLocaleString('es-MX')}</s> $${p.price.toLocaleString('es-MX')} <small>MXN</small></div>`
     : `<div class="product-price">$${p.price.toLocaleString('es-MX')} <small>MXN</small></div>`;
-  const buyBtn = p.outOfStock
+  const buyBtn = oos
     ? `<button class="btn-buy btn-buy-oos" disabled>Agotado</button>`
     : `<button class="btn-buy" onclick="event.stopPropagation();whatsapp(${p.id})">${WA_SVG} Pedir</button>`;
   return `
-<article class="product-card reveal${p.outOfStock ? ' card-oos' : ''}" onclick="${p.outOfStock ? '' : `openModal(${p.id})`}">
+<article class="product-card reveal${oos ? ' card-oos' : ''}" onclick="openModal(${p.id})">
   <div class="product-img-wrap">
     <img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.onerror=null;this.src='${fallback}'">
-    ${badge}${oosTag}${discountTag}
+    ${badge}${oosTag}${discountTag}${urgencyTag}
   </div>
   <div class="product-body">
     <p class="product-cat">${p.categoryLabel}</p>
@@ -233,8 +238,11 @@ function openModal(id) {
   if (!p) return;
   activeProduct = p;
   const fallback = `https://picsum.photos/seed/${p.id+10}/500/500`;
+  const oos = p.outOfStock || p.stock === 0;
   const pct = discountPct(p);
   const modalDiscount = pct > 0 ? `<span class="product-badge badge-discount" style="position:absolute;top:10px;right:10px;left:auto">-${pct}%</span>` : '';
+  const modalUrgency = (!oos && p.stock > 0 && p.stock <= 5 && pct === 0)
+    ? `<span class="product-badge" style="position:absolute;top:10px;right:10px;left:auto;background:#92400E">Últimos ${p.stock}</span>` : '';
   const modalPriceHTML = pct > 0
     ? `<div class="modal-price">
          <span class="modal-price-old">$${p.originalPrice.toLocaleString('es-MX')} MXN</span>
@@ -242,13 +250,17 @@ function openModal(id) {
          <span class="modal-discount">-${pct}% OFF</span>
        </div>`
     : `<div class="modal-price">$${p.price.toLocaleString('es-MX')} <small>MXN</small></div>`;
+  const modalBtn = oos
+    ? `<button class="btn" style="background:#ccc;cursor:default;opacity:.8" disabled>Agotado por el momento</button>`
+    : `<button class="btn btn-wa" onclick="whatsapp(${p.id})">${WA_SVG} Pedir por WhatsApp</button>`;
   const overlay = document.getElementById('modal-overlay');
   overlay.innerHTML = `
 <div class="modal" role="dialog" aria-modal="true">
   <div class="modal-img-wrap">
-    <img class="modal-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'">
+    <img class="modal-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'"${oos ? ' style="filter:grayscale(.4)"' : ''}>
     <button class="modal-close" onclick="closeModal()">✕</button>
-    ${modalDiscount}
+    ${oos ? `<span class="product-badge badge-oos" style="position:absolute;top:10px;left:10px;background:#9B8B78">Agotado</span>` : ''}
+    ${modalDiscount}${modalUrgency}
   </div>
   <div class="modal-body">
     <p class="modal-cat">${p.categoryLabel}</p>
@@ -256,7 +268,7 @@ function openModal(id) {
     <p class="modal-desc">${p.description}</p>
     <div class="modal-foot">
       ${modalPriceHTML}
-      <button class="btn btn-wa" onclick="whatsapp(${p.id})">${WA_SVG} Pedir por WhatsApp</button>
+      ${modalBtn}
     </div>
   </div>
 </div>`;

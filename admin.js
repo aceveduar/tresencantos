@@ -351,14 +351,21 @@ async function editStockInline(e, id) {
     saved = true;
     const newStock = Math.max(0, parseInt(input.value) || 0);
     if (newStock === p.stock) { renderTable(); return; }
+
+    // Sincronizar outOfStock automáticamente con el stock
+    const patch = { stock: newStock };
+    if (newStock > 0 && p.outOfStock)  patch.out_of_stock = false; // reponer = disponible
+    if (newStock === 0 && !p.outOfStock) patch.out_of_stock = true; // agotarse = no disponible
+
     const result = await supabaseApi(`products?id=eq.${id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ stock: newStock })
+      body: JSON.stringify(patch)
     });
     if (result.ok) {
       p.stock = newStock;
+      if (patch.out_of_stock !== undefined) p.outOfStock = patch.out_of_stock;
       renderStats();
-      toast(`Stock actualizado → ${newStock}`, 'success');
+      toast(`Stock → ${newStock}${patch.out_of_stock !== undefined ? (patch.out_of_stock ? ' · Marcado agotado' : ' · Marcado disponible') : ''}`, 'success');
     } else {
       toast('Error al actualizar stock', 'error');
     }

@@ -446,16 +446,17 @@ async function cobrar() {
     return;
   }
 
-  // 2. Reducir stock de cada producto
+  // 2. Reducir stock y sincronizar outOfStock automáticamente
   for (const { product: p, qty } of cart) {
     const newStock = Math.max(0, p.stock - qty);
+    const patch = { stock: newStock };
+    if (newStock === 0) patch.out_of_stock = true; // sin stock → marcar agotado en frontend
     await api(`products?id=eq.${p.id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ stock: newStock })
+      body: JSON.stringify(patch)
     });
-    // Actualizar stock local
     const lp = products.find(x => x.id === p.id);
-    if (lp) lp.stock = newStock;
+    if (lp) { lp.stock = newStock; if (newStock === 0) lp.outOfStock = true; }
   }
 
   btn.removeAttribute('data-loading');
