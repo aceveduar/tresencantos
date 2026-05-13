@@ -369,11 +369,11 @@ async function renderStats() {
 const isMobile = () => window.matchMedia('(max-width:640px)').matches;
 
 function stockChip(p) {
-  // Para una boutique de piezas únicas: solo el 0 es crítico.
-  // 1 unidad es el estado normal — se muestra neutro, no como alerta.
+  // stock = 0 → muestra "0" en rojo (no "Sin stock" — eso ya lo indica el botón de Estado)
+  // stock = 1 → gris neutro (pieza única, estado normal)
+  // stock > 1 → verde
   const cls = p.stock === 0 ? 'sold' : p.stock === 1 ? 'one' : 'ok';
-  const txt = p.stock === 0 ? 'Sin stock' : p.stock;
-  return `<span class="stock-chip stock-${cls}" onclick="editStockInline(event,${p.id})" title="Toca para editar stock" style="cursor:pointer">${txt}</span>`;
+  return `<span class="stock-chip stock-${cls}" onclick="editStockInline(event,${p.id})" title="Toca para editar stock" style="cursor:pointer">${p.stock}</span>`;
 }
 
 async function editStockInline(e, id) {
@@ -427,39 +427,40 @@ async function editStockInline(e, id) {
 
 function desktopRow(p) {
   const fallback = `https://picsum.photos/seed/${p.id+10}/80/80`;
+  const oos = p.outOfStock || p.stock === 0;
   return `
 <tr draggable="true" data-id="${p.id}" class="${selectedIds.has(p.id) ? 'row-selected' : ''}">
-  <td style="width:36px;text-align:center">
+  <td class="col-check" style="text-align:center">
     <input type="checkbox" class="row-check" ${selectedIds.has(p.id) ? 'checked' : ''} onchange="toggleRowSelect(${p.id}, this.checked)">
   </td>
-  <td>
-    <div style="display:flex;align-items:center;gap:10px">
-      <span class="drag-handle" title="Arrastrar para reordenar">⠿</span>
+  <td class="col-prod">
+    <div style="display:flex;align-items:center;gap:8px;min-width:0">
+      <span class="drag-handle" title="Arrastrar">⠿</span>
       <img class="prod-thumb" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'">
-      <div>
-        <div class="prod-name">${p.name}</div>
-        <div class="prod-cat">${p.barcode ? `🔲 ${p.barcode}` : `#${p.id}`}</div>
+      <div style="min-width:0;flex:1">
+        <div class="prod-name" title="${p.name}">${p.name}</div>
+        <div class="prod-cat">${p.barcode ? `🔲 ${p.barcode}` : `${p.categoryLabel} · #${p.id}`}</div>
       </div>
     </div>
   </td>
-  <td>${p.categoryLabel}</td>
-  <td class="price-cell">
+  <td class="col-cat" style="font-size:.82rem">${p.categoryLabel}</td>
+  <td class="col-price price-cell">
     ${p.originalPrice ? `<span class="orig-price-cell">$${p.originalPrice.toLocaleString('es-MX')}</span>` : ''}
     $${p.price.toLocaleString('es-MX')}
   </td>
-  <td>${stockChip(p)}</td>
-  <td>
-    <button onclick="toggleOutOfStock(${p.id})" class="oos-cell ${p.outOfStock ? 'soldout' : 'available'}">
-      ${p.outOfStock ? 'Agotado' : 'Disponible'}
+  <td class="col-stock">${stockChip(p)}</td>
+  <td class="col-status">
+    <button onclick="toggleOutOfStock(${p.id})" class="oos-cell ${oos ? 'soldout' : 'available'}">
+      ${oos ? 'Agotado' : 'Disponible'}
     </button>
   </td>
-  <td>${p.badge ? `<span class="badge badge-${p.badgeType||'none'}">${p.badge}</span>` : '<span style="color:#ccc">—</span>'}</td>
-  <td>
+  <td class="col-badge">${p.badge ? `<span class="badge badge-${p.badgeType||'none'}">${p.badge}</span>` : '<span style="color:#ccc">—</span>'}</td>
+  <td class="col-feat">
     <button class="toggle-featured" onclick="toggleFeatured(${p.id})" title="${p.featured?'Quitar':'Destacar'}">
       ${p.featured ? '⭐' : '☆'}
     </button>
   </td>
-  <td>
+  <td class="col-actions">
     <div class="actions">
       <button class="btn btn-outline btn-sm" onclick="openForm(${p.id})">Editar</button>
       <button class="btn btn-outline btn-sm" onclick="duplicateProduct(${p.id})" title="Duplicar">⧉</button>

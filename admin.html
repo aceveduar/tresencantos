@@ -73,14 +73,35 @@ main{max-width:1100px;margin:0 auto;padding:28px 20px}
 
 /* TABLE */
 .table-wrap{background:#fff;border-radius:var(--r);border:1px solid var(--border);overflow:hidden}
-table{width:100%;border-collapse:collapse}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
 th{background:#F9F4EE;font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B5C48;padding:12px 16px;text-align:left;border-bottom:1px solid var(--border)}
 td{padding:12px 16px;font-size:.85rem;border-bottom:1px solid #F0E8E0;vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:#FDFAF6}
-.prod-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid var(--border)}
-.prod-name{font-weight:600;font-size:.88rem}
-.prod-cat{font-size:.72rem;color:#9B8B78;margin-top:2px}
+.prod-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid var(--border);flex-shrink:0}
+.prod-name{font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prod-cat{font-size:.72rem;color:#9B8B78;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ── COLUMNAS: porcentajes para distribución proporcional sin overflow ──
+   El total de % fijos = 63%; el col-prod toma el 37% restante.         */
+.col-check  {width:36px}               /* px fijo — muy pequeño */
+.col-prod   {/* toma el espacio libre */}
+.col-cat    {width:9%}
+.col-price  {width:8%}
+.col-stock  {width:7%;text-align:center}
+.col-status {width:10%}
+.col-badge  {width:9%}
+.col-feat   {width:6%;text-align:center}
+.col-actions{width:13%}
+/* Sin overflow en celdas */
+td,th{overflow:hidden;text-overflow:ellipsis}
+.col-cat,.col-badge{white-space:nowrap}
+/* Botones de acción más compactos dentro de la columna */
+.col-actions .btn-sm{padding:5px 8px;font-size:.76rem}
+.col-actions .actions{gap:4px;flex-wrap:nowrap}
+/* ── RESPONSIVE: ocultar columnas según ancho disponible ── */
+@media(max-width:1099px){.col-cat{display:none}}
+@media(max-width:979px) {.col-badge{display:none}}
+@media(max-width:860px) {.col-feat{display:none}}
 .price-cell{font-weight:700;font-family:'Playfair Display',serif;font-size:1rem}
 .badge{display:inline-block;font-size:.67rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:50px;color:#fff}
 .badge-best{background:var(--gold)}
@@ -396,15 +417,15 @@ input.row-check{cursor:pointer;width:15px;height:15px}
       <table>
         <thead>
           <tr>
-            <th style="width:32px"><input type="checkbox" id="select-all" onchange="toggleSelectAll()"></th>
-            <th>Producto</th>
-            <th>Categoría</th>
-            <th>Precio</th>
-            <th>Stock</th>
-            <th>Estado</th>
-            <th>Etiqueta</th>
-            <th>Destacado</th>
-            <th>Acciones</th>
+            <th class="col-check"><input type="checkbox" id="select-all" onchange="toggleSelectAll()"></th>
+            <th class="col-prod">Producto</th>
+            <th class="col-cat">Categoría</th>
+            <th class="col-price">Precio</th>
+            <th class="col-stock">Stock</th>
+            <th class="col-status">Estado</th>
+            <th class="col-badge">Etiqueta</th>
+            <th class="col-feat">Dest.</th>
+            <th class="col-actions">Acciones</th>
           </tr>
         </thead>
         <tbody id="products-table"></tbody>
