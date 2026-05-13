@@ -407,10 +407,9 @@ async function editStockInline(e, id) {
   input.type = 'number';
   input.min = '0';
   input.value = p.stock;
-  input.style.cssText = 'width:64px;padding:3px 8px;border:2px solid var(--gold);border-radius:6px;font-size:.78rem;outline:none;font-family:inherit;font-weight:600;text-align:center';
+  // Font-size >= 16px evita el zoom automático en iOS
+  input.style.cssText = 'width:64px;padding:3px 8px;border:2px solid var(--gold);border-radius:6px;font-size:16px;outline:none;font-family:inherit;font-weight:600;text-align:center';
   chip.replaceWith(input);
-  input.select();
-  input.focus();
 
   let saved = false;
   const save = async () => {
@@ -421,8 +420,8 @@ async function editStockInline(e, id) {
 
     // Sincronizar outOfStock automáticamente con el stock
     const patch = { stock: newStock };
-    if (newStock > 0 && p.outOfStock)  patch.out_of_stock = false; // reponer = disponible
-    if (newStock === 0 && !p.outOfStock) patch.out_of_stock = true; // agotarse = no disponible
+    if (newStock > 0 && p.outOfStock)  patch.out_of_stock = false;
+    if (newStock === 0 && !p.outOfStock) patch.out_of_stock = true;
 
     const result = await supabaseApi(`products?id=eq.${id}`, {
       method: 'PATCH',
@@ -443,7 +442,17 @@ async function editStockInline(e, id) {
     if (e.key === 'Enter')  { e.preventDefault(); save(); }
     if (e.key === 'Escape') { saved = true; renderTable(); }
   });
-  input.addEventListener('blur', save);
+
+  // rAF asegura que el DOM esté pintado antes de pedir foco (crítico en iOS Safari)
+  requestAnimationFrame(() => {
+    input.focus();
+    input.select();
+    // Registrar blur solo después de que el foco está establecido,
+    // evitando que el blur espurio del tap original cierre el input
+    setTimeout(() => {
+      if (!saved) input.addEventListener('blur', save);
+    }, 300);
+  });
 }
 
 const CAT_COLORS = {
@@ -670,9 +679,13 @@ async function toggleOutOfStock(id) {
   const btn = document.querySelector(`tr[data-id="${id}"] .oos-cell`);
   if (btn) btn.style.opacity = '0.35';
 
+  // Al marcar disponible con stock=0 → asignar 1 unidad automáticamente
+  const patch = { out_of_stock: newVal };
+  if (!newVal && p.stock === 0) patch.stock = 1;
+
   const result = await supabaseApi(`products?id=eq.${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ out_of_stock: newVal })
+    body: JSON.stringify(patch)
   });
   if (btn) btn.style.opacity = '';
   if (!result.ok) {
@@ -680,9 +693,13 @@ async function toggleOutOfStock(id) {
     return;
   }
   p.outOfStock = newVal;
+  if (patch.stock !== undefined) p.stock = patch.stock;
   renderTable();
   renderStats();
-  toast(newVal ? 'Marcado como agotado' : 'Marcado como disponible', 'success');
+  const msg = newVal ? 'Marcado como agotado'
+    : patch.stock ? 'Disponible · stock ajustado a 1'
+    : 'Marcado como disponible';
+  toast(msg, 'success');
 }
 
 /* ── DUPLICATE — POST single product ── */
