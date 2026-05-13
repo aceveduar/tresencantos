@@ -1497,27 +1497,29 @@ function dictate(fieldId) {
   _activeRec = sr;
 
   const startValue = field.value.trimEnd();
-  let spoken = '';             // solo texto final confirmado
+  let spoken = '';             // texto final acumulado, reconstruido en cada evento
 
   btn.textContent = '⏹ Detener';
   btn.classList.add('recording');
 
   sr.onresult = e => {
-    let interim = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (e.results[i].isFinal) spoken += e.results[i][0].transcript;
+    // Recorrer TODOS los resultados desde 0 (no desde e.resultIndex)
+    // para evitar duplicados cuando el browser re-entrega el mismo índice
+    const finals = [];
+    let interim  = '';
+    for (let i = 0; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finals.push(e.results[i][0].transcript.trim());
       else interim += e.results[i][0].transcript;
     }
+    spoken = finals.join(' ');                              // reconstrucción limpia
     const sep = startValue && (spoken || interim) ? ' ' : '';
-    // Mostrar texto final + interino en tiempo real
-    field.value = startValue + sep + spoken + interim;
+    field.value = startValue + sep + spoken + (interim ? ' ' + interim.trim() : '');
   };
 
   const finish = () => {
     _activeRec = null;
     btn.textContent = '🎤 Dictar';
     btn.classList.remove('recording');
-    // Dejar solo el texto final confirmado (sin interinos residuales)
     const sep = startValue && spoken ? ' ' : '';
     field.value = (startValue + sep + spoken).trim();
   };
