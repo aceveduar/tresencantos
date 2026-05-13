@@ -268,12 +268,7 @@ async function loadProductsFromSupabase() {
       return;
     }
   }
-  try {
-    const saved = localStorage.getItem('te_products_v1');
-    products = saved ? JSON.parse(saved) : [...DEFAULT_PRODUCTS];
-  } catch {
-    products = [...DEFAULT_PRODUCTS];
-  }
+  products = [];
 }
 
 /* ── STATS ── */
@@ -678,7 +673,7 @@ async function save() {
     }
     return;
   }
-  localStorage.setItem('te_products_v1', JSON.stringify(products));
+  toast('Configura Supabase para guardar productos', 'error');
 }
 
 /* ── EXPORT / IMPORT ── */

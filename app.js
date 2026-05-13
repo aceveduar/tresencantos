@@ -1,6 +1,5 @@
 const WA = "5215534548417";
 const WA_BASE = `https://wa.me/${WA}`;
-const STORAGE_KEY = "te_products_v1";
 const REVISTA_KEY = "te_revista_v1";
 
 const SUPABASE_URL = localStorage.getItem('te_supabase_url') || '';
@@ -62,10 +61,7 @@ async function loadProducts() {
       return;
     }
   }
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    products = saved ? JSON.parse(saved) : [...DEFAULT_PRODUCTS];
-  } catch { products = [...DEFAULT_PRODUCTS]; }
+  products = [];
 }
 
 /* ── REVISTA ── */
