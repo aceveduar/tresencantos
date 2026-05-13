@@ -190,6 +190,7 @@ button,a{touch-action:manipulation}
   </div>
   <div class="topbar-right">
     <span id="today-stats" class="today-stats" style="display:none"></span>
+    <a href="stats.html" class="btn btn-outline-white" style="display:none" id="btn-stats-pos">📊</a>
     <a href="admin.html" class="btn btn-outline-white">← Admin</a>
   </div>
 </div>
@@ -220,7 +221,7 @@ button,a{touch-action:manipulation}
     </div>
 
     <!-- HISTORIAL DE VENTAS -->
-    <div class="history-panel open" id="history-panel">
+    <div class="history-panel" id="history-panel">
       <div class="history-header" onclick="toggleHistory()">
         <span>Ventas recientes</span>
         <span class="history-toggle" id="history-toggle">▾</span>
@@ -721,7 +722,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderCart();
   loadTodayStats();
   loadHistory();
-  showAllProducts(); // mostrar catálogo completo al abrir
+  showAllProducts();
+  // Historial abierto por defecto solo en desktop (en mobile tapa el checkout)
+  if (window.innerWidth > 760) {
+    document.getElementById('history-panel').classList.add('open');
+    document.getElementById('btn-stats-pos').style.display = ''; // Stats solo en desktop
+  }
 
   // Enter en búsqueda → agrega el primer resultado disponible
   document.getElementById('pos-search').addEventListener('keydown', e => {

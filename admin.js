@@ -343,8 +343,8 @@ async function loadProductsFromSupabase() {
 
 /* ── STATS ── */
 async function renderStats() {
-  const sinStock   = products.filter(p => p.stock === 0).length;
-  const disponibles = products.filter(p => p.stock > 0).length;
+  const sinStock   = products.filter(p => p.stock === 0 || p.outOfStock).length;
+  const disponibles = products.filter(p => p.stock > 0 && !p.outOfStock).length;
 
   let ventasHoy = 0, ingresosHoy = 0;
   try {
@@ -1227,25 +1227,36 @@ async function bulkToggleFeatured() {
 async function bulkToggleOOS() {
   if (!selectedIds.size) return;
   const selected = products.filter(p => selectedIds.has(p.id));
-  // Si todos agotados → marcar disponibles. En cualquier otro caso → marcar agotados.
   const newVal = !selected.every(p => p.outOfStock);
 
   if (getSupabaseUrl()) {
+    // PATCH base: cambiar out_of_stock para todos
     const ids = [...selectedIds].join(',');
     const result = await supabaseApi(`products?id=in.(${ids})`, {
       method: 'PATCH',
       body: JSON.stringify({ out_of_stock: newVal })
     });
-    if (!result.ok) {
-      toast('Error al actualizar estado de stock', 'error');
-      return;
+    if (!result.ok) { toast('Error al actualizar estado de stock', 'error'); return; }
+
+    // Al marcar disponible: los que tenían stock=0 reciben stock=1 (igual que toggleOutOfStock individual)
+    if (!newVal) {
+      const needStock = selected.filter(p => p.stock === 0);
+      for (const p of needStock) {
+        await supabaseApi(`products?id=eq.${p.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ stock: 1 })
+        });
+        p.stock = 1;
+      }
     }
   }
 
   selected.forEach(p => { p.outOfStock = newVal; });
   renderTable();
   renderStats();
-  toast(newVal ? `${selectedIds.size} producto(s) marcados como agotados` : `${selectedIds.size} producto(s) marcados como disponibles`, 'success');
+  toast(newVal
+    ? `${selectedIds.size} producto(s) marcados como agotados`
+    : `${selectedIds.size} producto(s) marcados como disponibles`, 'success');
 }
 
 async function bulkSetBadge() {
