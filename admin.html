@@ -307,6 +307,35 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .stock-one{background:#F0EAE2;color:#6B5C48}
 .stock-sold{background:#FEE2E2;color:#991B1B}
 
+/* ══ OCR TEXT SCANNER ═══════════════════════════════════════════════════ */
+/* Fila de etiqueta con botón escanear */
+.field-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.field-label-row label{margin-bottom:0;flex:1}
+.ocr-label-btn{
+  font-size:.68rem;font-weight:600;padding:3px 10px;border-radius:50px;
+  border:1.5px solid var(--border);background:#fff;cursor:pointer;
+  color:var(--muted);display:inline-flex;align-items:center;gap:4px;
+  transition:.15s;white-space:nowrap;flex-shrink:0;
+}
+.ocr-label-btn:hover{border-color:var(--gold);color:var(--gold-dark);background:var(--gold-light)}
+/* Spinner OCR */
+.ocr-spinner{
+  width:30px;height:30px;
+  border:3px solid var(--border);border-top-color:var(--gold);
+  border-radius:50%;animation:spin .75s linear infinite;
+  margin:0 auto 10px;
+}
+/* Botones de aplicar resultado */
+.ocr-apply-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.ocr-apply-btns .btn{flex:1;min-width:0;justify-content:center;text-align:center}
+.ocr-apply-btns small{font-size:.7em;opacity:.7;font-weight:400;display:block}
+.ocr-retry-btn{
+  background:none;border:none;color:var(--muted);font-size:.78rem;
+  cursor:pointer;padding:2px 0;display:inline-block;
+  text-decoration:underline;text-underline-offset:2px;transition:.15s;
+}
+.ocr-retry-btn:hover{color:var(--gold-dark)}
+
 /* ══ SCANNER ════════════════════════════════════════════════════════════ */
 .scanner-wrap{position:relative;background:#111;border-radius:var(--r);overflow:hidden;min-height:260px;display:flex;align-items:center;justify-content:center}
 .scanner-hint{color:#fff;font-size:.85rem;opacity:.7;text-align:center;padding:20px}
@@ -587,7 +616,10 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       <input type="hidden" id="f-id">
       <div class="form-row">
         <div class="field" style="grid-column:1/-1">
-          <label>Nombre del producto</label>
+          <div class="field-label-row">
+            <label>Nombre del producto</label>
+            <button type="button" class="ocr-label-btn" onclick="openOcrScanner()">📷 Escanear etiqueta</button>
+          </div>
           <input type="text" id="f-name" placeholder="Ej: Bolso Glamour Camel">
         </div>
       </div>
@@ -636,7 +668,10 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         </div>
       </div>
       <div class="field">
-        <label>Descripción</label>
+        <div class="field-label-row">
+          <label>Descripción</label>
+          <button type="button" class="ocr-label-btn" onclick="openOcrScanner()">📷 Escanear etiqueta</button>
+        </div>
         <textarea id="f-description" placeholder="Describe el producto: materiales, uso, características…"></textarea>
       </div>
       <div class="field">
@@ -762,6 +797,68 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     <div class="modal-foot">
       <button class="btn btn-outline" onclick="closeRevista()">Cancelar</button>
       <button class="btn btn-gold" onclick="saveRevista()">Guardar revista</button>
+    </div>
+  </div>
+</div>
+
+<!-- OCR TEXT SCANNER MODAL -->
+<div class="overlay" id="ocr-overlay">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-head">
+      <h3>Escanear texto del producto</h3>
+      <button class="modal-close-btn" onclick="closeOcrScanner()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Estado 1: captura -->
+      <div id="ocr-state-capture">
+        <p style="font-size:.84rem;color:var(--muted);margin-bottom:16px;line-height:1.55">
+          Toma una foto del empaque, etiqueta o ficha del producto para extraer el texto automáticamente.
+        </p>
+        <input type="file" id="ocr-img-file" accept="image/*" style="display:none" onchange="handleOcrFile(this)">
+        <input type="file" id="ocr-img-camera" accept="image/*" capture="environment" style="display:none" onchange="handleOcrFile(this)">
+        <div class="img-btns">
+          <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('ocr-img-file').click()">
+            📁 Galería
+          </button>
+          <button type="button" class="btn btn-cam btn-sm" onclick="document.getElementById('ocr-img-camera').click()">
+            📷 Tomar foto
+          </button>
+        </div>
+      </div>
+
+      <!-- Preview de imagen -->
+      <img id="ocr-img-preview"
+           style="display:none;width:100%;max-height:190px;object-fit:contain;border-radius:var(--r);border:1px solid var(--border);margin-top:14px"
+           alt="">
+
+      <!-- Estado 2: procesando -->
+      <div id="ocr-state-processing" style="display:none;text-align:center;padding:28px 0 10px">
+        <div class="ocr-spinner"></div>
+        <p id="ocr-progress-text" style="font-size:.84rem;color:var(--muted)">Iniciando reconocimiento…</p>
+      </div>
+
+      <!-- Estado 3: resultado -->
+      <div id="ocr-state-result" style="display:none;margin-top:14px">
+        <div class="field" style="margin-bottom:12px">
+          <label>Texto reconocido — edita si es necesario</label>
+          <textarea id="ocr-result-text" rows="5" style="resize:vertical"></textarea>
+        </div>
+        <p style="font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px">Aplicar a:</p>
+        <div class="ocr-apply-btns">
+          <button class="btn btn-outline" onclick="applyOcrText('name')">
+            → Nombre<small>primera línea</small>
+          </button>
+          <button class="btn btn-gold" onclick="applyOcrText('desc')">
+            → Descripción<small>texto completo</small>
+          </button>
+        </div>
+        <button type="button" class="ocr-retry-btn" onclick="ocrRetry()">↺ Usar otra imagen</button>
+      </div>
+
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeOcrScanner()">Cerrar</button>
     </div>
   </div>
 </div>

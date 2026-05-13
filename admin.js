@@ -180,6 +180,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (document.getElementById('form-overlay')?.classList.contains('open'))    { closeForm(); return; }
       if (document.getElementById('del-overlay')?.classList.contains('open'))     { closeDel(); return; }
       if (document.getElementById('revista-overlay')?.classList.contains('open')) { closeRevista(); return; }
+      if (document.getElementById('ocr-overlay')?.classList.contains('open'))     { closeOcrScanner(); return; }
       if (document.getElementById('scanner-overlay')?.classList.contains('open')) { closeAdminScanner(); return; }
     }
 
@@ -1422,6 +1423,111 @@ function _onAdminScan(code) {
     } else {
       toast(`Código "${code}" — ningún producto asignado`, 'error');
     }
+  }
+}
+
+/* ── OCR TEXT SCANNER ─────────────────────────────────────────────────── */
+
+function openOcrScanner() {
+  document.getElementById('ocr-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  _resetOcrModal();
+}
+
+function closeOcrScanner() {
+  document.getElementById('ocr-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function _resetOcrModal() {
+  document.getElementById('ocr-state-capture').style.display = '';
+  document.getElementById('ocr-img-preview').style.display = 'none';
+  document.getElementById('ocr-state-processing').style.display = 'none';
+  document.getElementById('ocr-state-result').style.display = 'none';
+  document.getElementById('ocr-img-file').value = '';
+  document.getElementById('ocr-img-camera').value = '';
+  document.getElementById('ocr-result-text').value = '';
+  document.getElementById('ocr-result-text').placeholder = '';
+}
+
+function ocrRetry() { _resetOcrModal(); }
+
+async function _ensureTesseract() {
+  if (typeof Tesseract !== 'undefined') return;
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/tesseract.js@5/dist/tesseract.min.js';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('No se pudo cargar el motor OCR'));
+    document.head.appendChild(s);
+  });
+}
+
+async function handleOcrFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  // Mostrar preview de la imagen capturada
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('ocr-img-preview');
+    prev.src = e.target.result;
+    prev.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+
+  // Cambiar al estado "procesando"
+  document.getElementById('ocr-state-capture').style.display = 'none';
+  document.getElementById('ocr-state-processing').style.display = 'block';
+  document.getElementById('ocr-state-result').style.display = 'none';
+  document.getElementById('ocr-progress-text').textContent = 'Cargando motor de reconocimiento…';
+
+  try {
+    await _ensureTesseract();
+
+    const result = await Tesseract.recognize(file, 'spa+eng', {
+      logger: m => {
+        const el = document.getElementById('ocr-progress-text');
+        if (!el) return;
+        if (m.status === 'loading tesseract core')          el.textContent = 'Cargando motor OCR…';
+        else if (m.status === 'loading language traineddata') el.textContent = 'Descargando idioma (solo la primera vez)…';
+        else if (m.status === 'recognizing text')
+          el.textContent = `Reconociendo texto… ${Math.round(m.progress * 100)}%`;
+      }
+    });
+
+    const text = (result.data.text || '').trim();
+
+    document.getElementById('ocr-state-processing').style.display = 'none';
+    document.getElementById('ocr-state-result').style.display = 'block';
+    document.getElementById('ocr-result-text').value = text;
+
+    if (!text) {
+      document.getElementById('ocr-result-text').placeholder =
+        'No se detectó texto. Intenta con mejor iluminación o acercando más la cámara.';
+    }
+  } catch (err) {
+    document.getElementById('ocr-state-processing').style.display = 'none';
+    document.getElementById('ocr-state-capture').style.display = '';
+    toast('Error al reconocer texto. Verifica tu conexión e inténtalo de nuevo.', 'error');
+    console.error('OCR error:', err);
+  }
+}
+
+function applyOcrText(field) {
+  const raw = document.getElementById('ocr-result-text').value.trim();
+  if (!raw) { toast('No hay texto para aplicar', 'error'); return; }
+
+  if (field === 'name') {
+    // Primera línea no vacía como nombre del producto
+    const firstLine = raw.split('\n').map(l => l.trim()).find(l => l.length > 1) || raw;
+    document.getElementById('f-name').value = firstLine;
+    closeOcrScanner();
+    toast('Nombre aplicado ✓', 'success');
+  } else if (field === 'desc') {
+    document.getElementById('f-description').value = raw;
+    closeOcrScanner();
+    toast('Descripción aplicada ✓', 'success');
   }
 }
 
