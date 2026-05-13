@@ -1,6 +1,14 @@
-const SESSION_KEY = "te_admin_session";
+const SESSION_KEY  = "te_admin_session";
+const LOCKOUT_KEY  = "te_admin_lock";
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS   = 60 * 1000; // 1 minuto de bloqueo por cada 5 intentos fallidos
+
 const SUPABASE_URL = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
-// Service role key: bypasea RLS — solo usar en admin, nunca en el sitio público
+
+// Anon key — para operaciones de autenticación (login/logout/refresh)
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjYyMjYsImV4cCI6MjA5NDEwMjIyNn0.irCFwOR5HL_ZOVjFGVw9LqmzYicDZTNEmxcknu_j6cI';
+
+// Service role key — bypasea RLS para operaciones de datos del admin (nunca en el sitio público)
 const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUyNjIyNiwiZXhwIjoyMDk0MTAyMjI2fQ.B9nZ1KENDQsUtn9PFwiMTrXuMZuWWIphGnH8XPfeJjQ';
 
 let products = [];
@@ -45,6 +53,85 @@ function supabaseApi(path, opts = {}) {
   });
 }
 
+/* ── AUTH HELPERS ── */
+
+// Helper para endpoints de Supabase Auth (usa anon key, no service role)
+function supabaseAuth(path, opts = {}) {
+  return fetch(`${SUPABASE_URL}/auth/v1${path}`, {
+    ...opts,
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+      ...opts.headers
+    }
+  }).then(async r => {
+    const data = await r.json().catch(() => null);
+    return { ok: r.ok, status: r.status, data };
+  });
+}
+
+function isAuthenticated() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY));
+    // Token válido si no expiró (con 60s de margen)
+    return !!(s?.access_token && s.expires_at > Math.floor(Date.now() / 1000) + 60);
+  } catch { return false; }
+}
+
+async function refreshSessionIfNeeded() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY));
+    if (!s?.refresh_token) return false;
+
+    const result = await supabaseAuth('/token?grant_type=refresh_token', {
+      method: 'POST',
+      body: JSON.stringify({ refresh_token: s.refresh_token })
+    });
+
+    if (!result.ok || !result.data?.access_token) return false;
+
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      access_token:  result.data.access_token,
+      refresh_token: result.data.refresh_token,
+      expires_at:    Math.floor(Date.now() / 1000) + (result.data.expires_in || 3600),
+      email:         s.email
+    }));
+    return true;
+  } catch { return false; }
+}
+
+async function requireAuth() {
+  if (isAuthenticated()) return true;
+  // Token expirado — intentar renovar con el refresh token
+  const refreshed = await refreshSessionIfNeeded();
+  if (refreshed) return true;
+  localStorage.removeItem(SESSION_KEY);
+  document.getElementById('app-screen').style.display = 'none';
+  showAuthScreen();
+  return false;
+}
+
+function checkLockout() {
+  try {
+    const d = JSON.parse(sessionStorage.getItem(LOCKOUT_KEY) || '{}');
+    if (d.until && Date.now() < d.until) return Math.ceil((d.until - Date.now()) / 1000);
+    if (d.until) sessionStorage.removeItem(LOCKOUT_KEY);
+  } catch {}
+  return 0;
+}
+
+function recordAttempt() {
+  try {
+    const d = JSON.parse(sessionStorage.getItem(LOCKOUT_KEY) || '{}');
+    const count = (d.count || 0) + 1;
+    sessionStorage.setItem(LOCKOUT_KEY, JSON.stringify(
+      count >= MAX_ATTEMPTS ? { count: 0, until: Date.now() + LOCKOUT_MS } : { count }
+    ));
+  } catch {}
+}
+
+function clearAttempts() { sessionStorage.removeItem(LOCKOUT_KEY); }
+
 /* ── HELPERS ── */
 function setBtn(el, loading, text) {
   if (!el) return;
@@ -59,14 +146,31 @@ function setBtn(el, loading, text) {
 
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
-  if (localStorage.getItem(SESSION_KEY) === "1") {
-    showApp();
+  if (isAuthenticated()) {
+    await showApp();
+  } else if (localStorage.getItem(SESSION_KEY)) {
+    // Token expirado — intentar renovar silenciosamente
+    const refreshed = await refreshSessionIfNeeded();
+    if (refreshed) {
+      await showApp();
+    } else {
+      localStorage.removeItem(SESSION_KEY);
+      const err = document.getElementById('pwd-err');
+      if (err) { err.textContent = 'Tu sesión expiró. Ingresa de nuevo.'; err.classList.add('show'); }
+    }
   }
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (document.getElementById('form-overlay')?.classList.contains('open'))    { closeForm(); return; }
     if (document.getElementById('del-overlay')?.classList.contains('open'))     { closeDel(); return; }
     if (document.getElementById('revista-overlay')?.classList.contains('open')) { closeRevista(); }
+  });
+
+  // Re-renderizar tabla al rotar el teléfono o redimensionar ventana
+  let _resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(_resizeTimer);
+    _resizeTimer = setTimeout(renderTable, 180);
   });
 });
 
@@ -76,43 +180,77 @@ function showAuthScreen() {
 
 /* ── AUTH ── */
 async function doLoginEmail() {
-  const email = document.getElementById('email-input').value;
+  const email    = document.getElementById('email-input').value.trim();
   const password = document.getElementById('pwd-input').value;
-  const err = document.getElementById('pwd-err');
-  const btn = document.querySelector('.btn-login');
+  const err      = document.getElementById('pwd-err');
+  const btn      = document.querySelector('.btn-login');
 
   err.classList.remove('show');
+
+  // Bloqueo por demasiados intentos
+  const wait = checkLockout();
+  if (wait) {
+    err.textContent = `Demasiados intentos. Espera ${wait} segundo${wait !== 1 ? 's' : ''}.`;
+    err.classList.add('show');
+    return;
+  }
+
+  if (!email || !password) {
+    err.textContent = 'Completa email y contraseña';
+    err.classList.add('show');
+    return;
+  }
+
   setBtn(btn, true, 'Verificando...');
 
-  try {
-    const result = await supabaseApi(
-      `users?email=eq.${encodeURIComponent(email)}&select=id,password`,
-      { method: 'GET' }
-    );
-    const data = result.data;
-    const user = (result.ok && Array.isArray(data)) ? data[0] : null;
-    if (!user || user.password !== password) {
-      err.textContent = 'Credenciales incorrectas';
-      err.classList.add('show');
-      setBtn(btn, false);
-      return;
-    }
-    localStorage.setItem(SESSION_KEY, "1");
-    showApp();
-  } catch (e) {
-    err.textContent = 'Error de conexión: ' + e.message;
+  const result = await supabaseAuth('/token?grant_type=password', {
+    method: 'POST',
+    body: JSON.stringify({ email, password })
+  });
+
+  if (!result.ok || result.data?.error) {
+    recordAttempt();
+    const newWait = checkLockout();
+    err.textContent = newWait
+      ? `Credenciales incorrectas. Intenta en ${newWait}s.`
+      : 'Credenciales incorrectas';
     err.classList.add('show');
     setBtn(btn, false);
+    return;
   }
+
+  clearAttempts();
+  localStorage.setItem(SESSION_KEY, JSON.stringify({
+    access_token:  result.data.access_token,
+    refresh_token: result.data.refresh_token,
+    expires_at:    Math.floor(Date.now() / 1000) + (result.data.expires_in || 3600),
+    email:         result.data.user.email
+  }));
+  await showApp();
 }
 
 async function doLogout() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
+    if (s.access_token) {
+      await supabaseAuth('/logout', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${s.access_token}` }
+      });
+    }
+  } catch {}
   localStorage.removeItem(SESSION_KEY);
   location.reload();
 }
 
 /* ── APP ── */
 async function showApp() {
+  if (!await requireAuth()) return;
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
+    const el = document.getElementById('session-user');
+    if (el && s.email) el.textContent = s.email;
+  } catch {}
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
   await loadProductsFromSupabase();
@@ -160,36 +298,11 @@ function renderStats() {
 }
 
 /* ── TABLE ── */
-function renderTable() {
-  const filtered = getFilteredProducts();
+const isMobile = () => window.matchMedia('(max-width:640px)').matches;
 
-  const countEl = document.getElementById('prod-count');
-  if (countEl) {
-    if (products.length === 0) {
-      countEl.style.display = 'none';
-    } else {
-      countEl.style.display = '';
-      countEl.textContent = filtered.length === products.length
-        ? `${products.length} producto${products.length !== 1 ? 's' : ''}`
-        : `${filtered.length} de ${products.length}`;
-    }
-  }
-
-  const tbody = document.getElementById('products-table');
-  if (!filtered.length) {
-    const isFiltered = (document.getElementById('search-input')?.value || '') ||
-                       (document.getElementById('cat-filter')?.value !== 'all');
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">
-      <div class="es-icon">${isFiltered ? '🔍' : '📦'}</div>
-      <p>${isFiltered ? 'Ningún producto coincide con el filtro.' : 'El catálogo está vacío.'}</p>
-      ${!isFiltered ? `<button class="btn btn-gold btn-sm" onclick="openForm()">+ Agregar primer producto</button>` : ''}
-    </div></td></tr>`;
-    updateBulkBar();
-    return;
-  }
-
-  const fallback = id => `https://picsum.photos/seed/${id+10}/80/80`;
-  tbody.innerHTML = filtered.map(p => `
+function desktopRow(p) {
+  const fallback = `https://picsum.photos/seed/${p.id+10}/80/80`;
+  return `
 <tr draggable="true" data-id="${p.id}" class="${selectedIds.has(p.id) ? 'row-selected' : ''}">
   <td style="width:36px;text-align:center">
     <input type="checkbox" class="row-check" ${selectedIds.has(p.id) ? 'checked' : ''} onchange="toggleRowSelect(${p.id}, this.checked)">
@@ -197,7 +310,7 @@ function renderTable() {
   <td>
     <div style="display:flex;align-items:center;gap:10px">
       <span class="drag-handle" title="Arrastrar para reordenar">⠿</span>
-      <img class="prod-thumb" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback(p.id)}'">
+      <img class="prod-thumb" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'">
       <div>
         <div class="prod-name">${p.name}</div>
         <div class="prod-cat">#${p.id}</div>
@@ -227,10 +340,75 @@ function renderTable() {
       <button class="btn btn-red btn-sm" onclick="askDelete(${p.id})">✕</button>
     </div>
   </td>
-</tr>`).join('');
+</tr>`;
+}
+
+function mobileCard(p) {
+  const fallback = `https://picsum.photos/seed/${p.id+10}/80/80`;
+  const sel = selectedIds.has(p.id);
+  const priceHTML = p.originalPrice
+    ? `<div class="mpc-price"><s>$${p.originalPrice.toLocaleString('es-MX')}</s> $${p.price.toLocaleString('es-MX')} <span class="mpc-price-unit">MXN</span></div>`
+    : `<div class="mpc-price">$${p.price.toLocaleString('es-MX')} <span class="mpc-price-unit">MXN</span></div>`;
+  return `
+<tr class="mpc-row${sel ? ' row-selected' : ''}" data-id="${p.id}">
+  <td>
+    <div class="mpc">
+      <div class="mpc-top">
+        <input type="checkbox" class="row-check mpc-check" ${sel ? 'checked' : ''} onchange="toggleRowSelect(${p.id}, this.checked)">
+        <img class="mpc-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'">
+        <div class="mpc-info">
+          <div class="mpc-name">${p.name}</div>
+          <div class="mpc-meta">${p.categoryLabel} · #${p.id}</div>
+          ${priceHTML}
+        </div>
+      </div>
+      <div class="mpc-bottom">
+        <button onclick="toggleOutOfStock(${p.id})" class="oos-cell ${p.outOfStock ? 'soldout' : 'available'}">
+          ${p.outOfStock ? 'Agotado' : 'Disponible'}
+        </button>
+        <button class="toggle-featured" onclick="toggleFeatured(${p.id})">${p.featured ? '⭐' : '☆'}</button>
+        ${p.badge ? `<span class="badge badge-${p.badgeType||'none'}">${p.badge}</span>` : ''}
+        <div class="mpc-actions">
+          <button class="btn btn-outline btn-sm" onclick="openForm(${p.id})">Editar</button>
+          <button class="btn btn-red btn-sm" onclick="askDelete(${p.id})">✕</button>
+        </div>
+      </div>
+    </div>
+  </td>
+</tr>`;
+}
+
+function renderTable() {
+  const filtered = getFilteredProducts();
+  const mobile = isMobile();
+
+  const countEl = document.getElementById('prod-count');
+  if (countEl) {
+    countEl.style.display = products.length === 0 ? 'none' : '';
+    if (products.length > 0) {
+      countEl.textContent = filtered.length === products.length
+        ? `${products.length} producto${products.length !== 1 ? 's' : ''}`
+        : `${filtered.length} de ${products.length}`;
+    }
+  }
+
+  const tbody = document.getElementById('products-table');
+  if (!filtered.length) {
+    const isFiltered = (document.getElementById('search-input')?.value || '') ||
+                       (document.getElementById('cat-filter')?.value !== 'all');
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">
+      <div class="es-icon">${isFiltered ? '🔍' : '📦'}</div>
+      <p>${isFiltered ? 'Ningún producto coincide con el filtro.' : 'El catálogo está vacío.'}</p>
+      ${!isFiltered ? `<button class="btn btn-gold btn-sm" onclick="openForm()">+ Agregar primer producto</button>` : ''}
+    </div></td></tr>`;
+    updateBulkBar();
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(p => mobile ? mobileCard(p) : desktopRow(p)).join('');
 
   updateSelectAllCheckbox();
-  initDragDrop();
+  if (!mobile) initDragDrop();
 }
 
 /* ── SELECTION ── */

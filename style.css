@@ -239,6 +239,8 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .footer-col ul a:hover{color:var(--gold)}
 .footer-bottom{max-width:1200px;margin:0 auto;padding-top:26px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:.78rem}
 .footer-bottom a{color:var(--gold);text-decoration:none}
+.admin-link{opacity:.18;font-size:1rem;color:inherit!important;transition:opacity .25s;margin-left:auto}
+.admin-link:hover{opacity:.55}
 
 /* ── FLOATING WA ── */
 .wa-float{position:fixed;bottom:26px;right:20px;z-index:999;width:54px;height:54px;border-radius:50%;background:var(--wa);color:#fff;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,.5);transition:var(--ease);animation:pop-in .5s .3s ease both}
