@@ -552,6 +552,7 @@ function mobileCard(p) {
             ${p.featured ? '⭐' : '☆'}
           </button>
           <button class="mpc-icon-btn" onclick="openForm(${p.id})" title="Editar">✏</button>
+          <button class="mpc-icon-btn" onclick="duplicateProduct(${p.id})" title="Duplicar">⧉</button>
           <button class="mpc-icon-btn del-btn" onclick="askDelete(${p.id})" title="Eliminar">✕</button>
         </div>
       </div>
