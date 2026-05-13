@@ -349,6 +349,11 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .hero-mobile-strip{display:block}
 }
 
+/* Tablet — 3 columnas para productos */
+@media(max-width:1000px) and (min-width:601px){
+  .products-grid{grid-template-columns:repeat(3,1fr);gap:16px}
+}
+
 @media(max-width:900px){
   .natura-grid,.about-grid{grid-template-columns:1fr;gap:40px}
   .natura-grid>:first-child{order:2}
@@ -413,7 +418,7 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 
 /* Móvil pequeño */
 @media(max-width:480px){
-  .hero{padding:90px 20px 52px}
+  .hero{padding:72px 20px 40px}
   .section-header{margin-bottom:32px}
   .products-section{padding-bottom:88px} /* espacio para el botón WA flotante */
   .section-header h2{font-size:1.65rem}

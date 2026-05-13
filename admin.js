@@ -172,6 +172,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     clearTimeout(_resizeTimer);
     _resizeTimer = setTimeout(renderTable, 180);
   });
+
+  // Botón scroll-to-top
+  window.addEventListener('scroll', () => {
+    const btn = document.getElementById('scroll-top-btn');
+    if (btn) btn.classList.toggle('show', window.scrollY > 300);
+  }, { passive: true });
 });
 
 function showAuthScreen() {
@@ -450,32 +456,42 @@ function desktopRow(p) {
 function mobileCard(p) {
   const fallback = `https://picsum.photos/seed/${p.id+10}/80/80`;
   const sel = selectedIds.has(p.id);
+  // Estado unificado: agotado si el booleano está activo O si el stock llegó a 0
+  const oos = p.outOfStock || p.stock === 0;
   const priceHTML = p.originalPrice
     ? `<div class="mpc-price"><s>$${p.originalPrice.toLocaleString('es-MX')}</s> $${p.price.toLocaleString('es-MX')} <span class="mpc-price-unit">MXN</span></div>`
     : `<div class="mpc-price">$${p.price.toLocaleString('es-MX')} <span class="mpc-price-unit">MXN</span></div>`;
+  // Chip de stock solo cuando hay unidades (evita mostrar "Sin stock" + "Agotado" a la vez)
+  const stockInfo = (!oos && p.stock > 0) ? stockChip(p) : '';
   return `
 <tr class="mpc-row${sel ? ' row-selected' : ''}" data-id="${p.id}">
   <td>
-    <div class="mpc">
+    <div class="mpc${oos ? ' mpc-oos' : ''}">
       <div class="mpc-top">
         <input type="checkbox" class="row-check mpc-check" ${sel ? 'checked' : ''} onchange="toggleRowSelect(${p.id}, this.checked)">
-        <img class="mpc-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'">
+        <img class="mpc-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'"${oos ? ' style="opacity:.55;filter:grayscale(.4)"' : ''}>
         <div class="mpc-info">
           <div class="mpc-name">${p.name}</div>
           <div class="mpc-meta">${p.categoryLabel} · ${p.barcode ? `🔲 ${p.barcode}` : `#${p.id}`}</div>
           ${priceHTML}
-          ${stockChip(p)}
+          ${stockInfo}
         </div>
       </div>
       <div class="mpc-bottom">
-        <button onclick="toggleOutOfStock(${p.id})" class="oos-cell ${p.outOfStock ? 'soldout' : 'available'}">
-          ${p.outOfStock ? 'Agotado' : 'Disponible'}
-        </button>
-        <button class="toggle-featured" onclick="toggleFeatured(${p.id})">${p.featured ? '⭐' : '☆'}</button>
-        ${p.badge ? `<span class="badge badge-${p.badgeType||'none'}">${p.badge}</span>` : ''}
-        <div class="mpc-actions">
-          <button class="btn btn-outline btn-sm" onclick="openForm(${p.id})">Editar</button>
-          <button class="btn btn-red btn-sm" onclick="askDelete(${p.id})">✕</button>
+        <div class="mpc-row1">
+          <button onclick="toggleOutOfStock(${p.id})" class="oos-cell ${oos ? 'soldout' : 'available'} mpc-oos-btn">
+            ${oos ? 'Agotado' : 'Disponible'}
+          </button>
+          ${p.badge ? `<span class="badge badge-${p.badgeType||'none'}">${p.badge}</span>` : '<span class="mpc-no-badge">Sin etiqueta</span>'}
+        </div>
+        <div class="mpc-row2">
+          <button class="toggle-featured mpc-feat-btn" onclick="toggleFeatured(${p.id})" title="${p.featured ? 'Quitar destacado' : 'Destacar'}">
+            ${p.featured ? '⭐ Destacado' : '☆ Destacar'}
+          </button>
+          <div class="mpc-actions">
+            <button class="btn btn-outline btn-sm" onclick="openForm(${p.id})">✏ Editar</button>
+            <button class="btn btn-red btn-sm" onclick="askDelete(${p.id})">✕</button>
+          </div>
         </div>
       </div>
     </div>
