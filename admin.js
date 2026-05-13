@@ -4,6 +4,8 @@ const SUPABASE_ANON_KEY_LS = "te_supabase_anon_key";
 
 let products = [];
 let deleteTargetId = null;
+let selectedIds = new Set();
+let dragSrcId = null;
 
 const CAT_LABELS = {
   bolsos: "Bolsos & Mochilas",
@@ -167,16 +169,13 @@ async function doLoginEmail() {
       `users?email=eq.${encodeURIComponent(email)}&select=id,password`,
       { method: 'GET' }
     );
-
     const data = result.data;
     const user = (result.ok && Array.isArray(data)) ? data[0] : null;
-
     if (!user || user.password !== password) {
       err.textContent = 'Credenciales incorrectas';
       err.classList.add('show');
       return;
     }
-
     localStorage.setItem(SESSION_KEY, "1");
     showApp();
   } catch (e) {
@@ -194,8 +193,6 @@ async function doLogout() {
 function openSetupModal() {
   document.getElementById('setup-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
-  document.getElementById('setup-url').value = localStorage.getItem(SUPABASE_URL_KEY) || '';
-  document.getElementById('setup-key').value = localStorage.getItem(SUPABASE_ANON_KEY_LS) || '';
   document.getElementById('setup-url-modal').value = localStorage.getItem(SUPABASE_URL_KEY) || '';
   document.getElementById('setup-key-modal').value = localStorage.getItem(SUPABASE_ANON_KEY_LS) || '';
 }
@@ -206,8 +203,10 @@ function closeSetup() {
 }
 
 async function saveSetup() {
-  const url = document.getElementById('setup-url').value.trim();
-  const key = document.getElementById('setup-key').value.trim();
+  // Detect whether we're saving from the setup screen or the in-app modal
+  const isModal = document.getElementById('setup-overlay').classList.contains('open');
+  const url = document.getElementById(isModal ? 'setup-url-modal' : 'setup-url').value.trim();
+  const key = document.getElementById(isModal ? 'setup-key-modal' : 'setup-key').value.trim();
 
   if (!url || !key) {
     toast('Completa ambos campos', 'error');
@@ -217,8 +216,13 @@ async function saveSetup() {
   localStorage.setItem(SUPABASE_URL_KEY, url);
   localStorage.setItem(SUPABASE_ANON_KEY_LS, key);
 
+  if (isModal) {
+    closeSetup();
+  } else {
+    showAuthScreen();
+  }
+
   toast('Verificando conexión...', '');
-  showAuthScreen();
 
   try {
     const res = await fetch(url + '/rest/v1/', {
@@ -280,7 +284,7 @@ function renderStats() {
   document.getElementById('stats').innerHTML = `
     <div class="stat-card"><div class="num">${products.length}</div><div class="lbl">Productos totales</div></div>
     <div class="stat-card"><div class="num" style="color:var(--red)">${oos}</div><div class="lbl">Agotados</div></div>
-    <div class="stat-card"><div class="num">${featured}</div><div class="lbl">En sección Natura</div></div>
+    <div class="stat-card"><div class="num">${featured}</div><div class="lbl">Destacados</div></div>
     <div class="stat-card"><div class="num">${cats.bolsos||0}</div><div class="lbl">Bolsos & Mochilas</div></div>
     <div class="stat-card"><div class="num">${(cats.accesorios||0)}</div><div class="lbl">Accesorios</div></div>
   `;
@@ -292,22 +296,26 @@ function renderTable() {
   const cat = document.getElementById('cat-filter')?.value || 'all';
   const filtered = products.filter(p => {
     const matchCat = cat === 'all' || p.category === cat;
-    const matchQ = !q || p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
+    const matchQ = !q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
     return matchCat && matchQ;
   });
 
   const tbody = document.getElementById('products-table');
   if (!filtered.length) {
     tbody.innerHTML = `<tr class="empty-row"><td colspan="8">No se encontraron productos.</td></tr>`;
+    updateBulkBar();
     return;
   }
 
   const fallback = id => `https://picsum.photos/seed/${id+10}/80/80`;
   tbody.innerHTML = filtered.map(p => `
-<tr draggable="true" data-id="${p.id}">
-  <td><span class="drag-handle" title="Arrastrar para reordenar">⠿</span></td>
+<tr draggable="true" data-id="${p.id}" class="${selectedIds.has(p.id) ? 'row-selected' : ''}">
+  <td style="width:36px;text-align:center">
+    <input type="checkbox" class="row-check" ${selectedIds.has(p.id) ? 'checked' : ''} onchange="toggleRowSelect(${p.id}, this.checked)">
+  </td>
   <td>
-    <div style="display:flex;align-items:center;gap:12px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="drag-handle" title="Arrastrar para reordenar">⠿</span>
       <img class="prod-thumb" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback(p.id)}'">
       <div>
         <div class="prod-name">${p.name}</div>
@@ -340,47 +348,147 @@ function renderTable() {
   </td>
 </tr>`).join('');
 
+  updateSelectAllCheckbox();
   initDragDrop();
 }
 
-/* ── TOGGLE FEATURED ── */
+/* ── SELECTION ── */
+function toggleRowSelect(id, checked) {
+  if (checked) selectedIds.add(id);
+  else selectedIds.delete(id);
+  const row = document.querySelector(`#products-table tr[data-id="${id}"]`);
+  if (row) row.classList.toggle('row-selected', checked);
+  updateBulkBar();
+  updateSelectAllCheckbox();
+}
+
+function toggleSelectAll() {
+  const q = document.getElementById('search-input')?.value.toLowerCase() || '';
+  const cat = document.getElementById('cat-filter')?.value || 'all';
+  const filtered = products.filter(p => {
+    const matchCat = cat === 'all' || p.category === cat;
+    const matchQ = !q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+  const allChecked = document.getElementById('select-all').checked;
+  if (allChecked) filtered.forEach(p => selectedIds.add(p.id));
+  else filtered.forEach(p => selectedIds.delete(p.id));
+
+  document.querySelectorAll('#products-table .row-check').forEach(cb => {
+    const id = parseInt(cb.closest('tr').dataset.id);
+    cb.checked = selectedIds.has(id);
+    cb.closest('tr').classList.toggle('row-selected', selectedIds.has(id));
+  });
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulk-bar');
+  const countEl = document.getElementById('bulk-count');
+  if (selectedIds.size > 0) {
+    bar.style.display = 'flex';
+    countEl.textContent = `${selectedIds.size} seleccionado${selectedIds.size !== 1 ? 's' : ''}`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function updateSelectAllCheckbox() {
+  const q = document.getElementById('search-input')?.value.toLowerCase() || '';
+  const cat = document.getElementById('cat-filter')?.value || 'all';
+  const filtered = products.filter(p => {
+    const matchCat = cat === 'all' || p.category === cat;
+    const matchQ = !q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+  const checkbox = document.getElementById('select-all');
+  if (!checkbox || !filtered.length) return;
+  const allSelected = filtered.every(p => selectedIds.has(p.id));
+  const someSelected = filtered.some(p => selectedIds.has(p.id));
+  checkbox.checked = allSelected;
+  checkbox.indeterminate = !allSelected && someSelected;
+}
+
+/* ── TOGGLE FEATURED — targeted PATCH ── */
 async function toggleFeatured(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
-  p.featured = !p.featured;
-  await save();
+  const newVal = !p.featured;
+
+  if (getSupabaseUrl()) {
+    const result = await supabaseApi(`products?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ featured: newVal })
+    });
+    if (!result.ok) {
+      toast('Error al actualizar destacado', 'error');
+      return;
+    }
+  }
+
+  p.featured = newVal;
   renderTable();
   renderStats();
-  toast(p.featured ? 'Marcado como destacado ⭐' : 'Quitado de destacados', 'success');
+  toast(newVal ? 'Marcado como destacado ⭐' : 'Quitado de destacados', 'success');
 }
 
-/* ── TOGGLE OUT OF STOCK ── */
+/* ── TOGGLE OUT OF STOCK — targeted PATCH ── */
 async function toggleOutOfStock(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
-  p.outOfStock = !p.outOfStock;
-  await save();
+  const newVal = !p.outOfStock;
+
+  if (getSupabaseUrl()) {
+    const result = await supabaseApi(`products?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ out_of_stock: newVal })
+    });
+    if (!result.ok) {
+      toast('Error al actualizar estado de stock', 'error');
+      return;
+    }
+  }
+
+  p.outOfStock = newVal;
   renderTable();
   renderStats();
-  toast(p.outOfStock ? 'Marcado como agotado' : 'Marcado como disponible', 'success');
+  toast(newVal ? 'Marcado como agotado' : 'Marcado como disponible', 'success');
 }
 
-/* ── DUPLICATE ── */
+/* ── DUPLICATE — POST single product ── */
 async function duplicateProduct(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   const maxId = products.reduce((m, x) => Math.max(m, x.id), 0);
-  const copy = { ...p, id: maxId + 1, name: 'Copia de ' + p.name, outOfStock: false };
+  const copy = { ...p, id: maxId + 1, name: 'Copia de ' + p.name, outOfStock: false, position: products.length };
   products.push(copy);
-  await save();
+
+  if (getSupabaseUrl()) {
+    const result = await supabaseApi('products', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        id: copy.id, name: copy.name, category: copy.category,
+        category_label: copy.categoryLabel, price: copy.price,
+        description: copy.description, image: copy.image,
+        badge: copy.badge, badge_type: copy.badgeType,
+        featured: copy.featured, out_of_stock: copy.outOfStock,
+        original_price: copy.originalPrice, position: copy.position
+      })
+    });
+    if (!result.ok) {
+      products.pop();
+      toast('Error al duplicar en Supabase', 'error');
+      return;
+    }
+  }
+
   renderTable();
   renderStats();
   toast('Producto duplicado — edítalo para personalizarlo', 'success');
 }
 
 /* ── DRAG & DROP REORDER ── */
-let dragSrcId = null;
-
 function initDragDrop() {
   const rows = document.querySelectorAll('#products-table tr[data-id]');
   rows.forEach(row => {
@@ -568,16 +676,14 @@ function previewImg() {
   }
 }
 
+/* ── SAVE PRODUCT — targeted PATCH or single POST ── */
 async function saveProduct() {
   const name = document.getElementById('f-name').value.trim();
   const price = parseFloat(document.getElementById('f-price').value);
   const image = document.getElementById('f-image').value.trim();
   const description = document.getElementById('f-description').value.trim();
 
-  console.log('saveProduct called:', { name, price, description });
-
   if (!name || isNaN(price) || !description) {
-    console.log('Validation failed - name:', !!name, 'price:', price, 'description:', !!description);
     toast('Completa nombre, precio y descripción.', 'error');
     return;
   }
@@ -599,17 +705,53 @@ async function saveProduct() {
     outOfStock: document.getElementById('f-out-of-stock').checked
   };
 
+  const dbPayload = {
+    name: data.name,
+    category: data.category,
+    category_label: data.categoryLabel,
+    price: data.price,
+    description: data.description,
+    image: data.image,
+    badge: data.badge,
+    badge_type: data.badgeType,
+    featured: data.featured,
+    out_of_stock: data.outOfStock,
+    original_price: data.originalPrice
+  };
+
   if (idVal) {
     const idx = products.findIndex(p => p.id === parseInt(idVal));
     if (idx > -1) products[idx] = { ...products[idx], ...data };
+
+    if (getSupabaseUrl()) {
+      const result = await supabaseApi(`products?id=eq.${idVal}`, {
+        method: 'PATCH',
+        body: JSON.stringify(dbPayload)
+      });
+      if (!result.ok) {
+        toast('Error al actualizar. ¿RLS activado?', 'error');
+        return;
+      }
+    }
   } else {
     const maxId = products.reduce((m, p) => Math.max(m, p.id), 0);
-    products.push({ id: maxId + 1, ...data });
+    const newProduct = { id: maxId + 1, ...data, position: products.length };
+    products.push(newProduct);
+
+    if (getSupabaseUrl()) {
+      const result = await supabaseApi('products', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify({ id: newProduct.id, ...dbPayload, position: newProduct.position })
+      });
+      if (!result.ok) {
+        products.pop();
+        toast('Error al guardar. ¿RLS activado?', 'error');
+        return;
+      }
+    }
   }
 
-  console.log('Calling save(), products now:', products.length);
-  const saveResult = await save();
-  console.log('save() completed, result:', saveResult);
   closeForm();
   renderTable();
   renderStats();
@@ -629,51 +771,230 @@ function closeDel() {
   document.body.style.overflow = '';
 }
 
+/* FIX: ahora DELETE va a Supabase primero; solo actualiza el estado local si tiene éxito */
 async function confirmDelete() {
   if (deleteTargetId === null) return;
-  products = products.filter(p => p.id !== deleteTargetId);
-  await save();
+  const id = deleteTargetId;
+
+  if (getSupabaseUrl()) {
+    const result = await supabaseApi(`products?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: { 'Prefer': 'return=minimal' }
+    });
+    if (!result.ok) {
+      const msg = result.data?.message || result.data?.hint || `HTTP ${result.status}`;
+      toast('Error al eliminar: ' + msg, 'error');
+      closeDel();
+      return;
+    }
+  }
+
+  products = products.filter(p => p.id !== id);
+  selectedIds.delete(id);
   closeDel();
   renderTable();
   renderStats();
+  updateBulkBar();
   toast('Producto eliminado', 'success');
 }
 
-/* ── SAVE ── */
+/* ── SAVE — batch upsert (usado para reorder, import, reset) ── */
 async function save() {
-  if (getSupabaseUrl() && getSupabaseKey()) {
-    let hasError = false;
-    for (const p of products) {
-      const result = await supabaseApi('products', {
-        method: 'POST',
-        headers: { 'Prefer': 'resolution=merge-duplicates' },
-        body: JSON.stringify({
-          id: p.id,
-          name: p.name,
-          category: p.category,
-          category_label: p.categoryLabel,
-          price: p.price,
-          description: p.description,
-          image: p.image,
-          badge: p.badge,
-          badge_type: p.badgeType,
-          featured: p.featured,
-          out_of_stock: p.outOfStock,
-          original_price: p.originalPrice,
-          position: products.indexOf(p)
-        })
-      });
-      if (!result.ok) {
-        console.error('Error guardando producto:', p.name, result);
-        hasError = true;
-      }
+  if (!getSupabaseUrl() || !getSupabaseKey()) {
+    toast('Configura Supabase para guardar productos', 'error');
+    return false;
+  }
+  if (!products.length) return true;
+
+  const payload = products.map((p, i) => ({
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    category_label: p.categoryLabel,
+    price: p.price,
+    description: p.description,
+    image: p.image,
+    badge: p.badge,
+    badge_type: p.badgeType,
+    featured: p.featured,
+    out_of_stock: p.outOfStock,
+    original_price: p.originalPrice,
+    position: i
+  }));
+
+  const result = await supabaseApi('products', {
+    method: 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!result.ok) {
+    toast('Error al guardar en Supabase. ¿RLS activado?', 'error');
+    return false;
+  }
+  return true;
+}
+
+/* ── CLEAR ALL (helper para import/reset) ── */
+async function clearSupabaseProducts() {
+  if (!getSupabaseUrl()) return true;
+  const result = await supabaseApi('products?id=gt.0', {
+    method: 'DELETE',
+    headers: { 'Prefer': 'return=minimal' }
+  });
+  return result.ok || result.status === 204;
+}
+
+/* ── BULK ACTIONS ── */
+
+async function bulkDelete() {
+  if (!selectedIds.size) return;
+  if (!confirm(`¿Eliminar ${selectedIds.size} producto(s) seleccionado(s)?\nEsta acción no se puede deshacer.`)) return;
+
+  if (getSupabaseUrl()) {
+    const ids = [...selectedIds].join(',');
+    const result = await supabaseApi(`products?id=in.(${ids})`, {
+      method: 'DELETE',
+      headers: { 'Prefer': 'return=minimal' }
+    });
+    if (!result.ok) {
+      const msg = result.data?.message || `HTTP ${result.status}`;
+      toast('Error al eliminar: ' + msg, 'error');
+      return;
     }
-    if (hasError) {
-      toast('Error al guardar en Supabase. ¿RLS activado?', 'error');
-    }
+  }
+
+  products = products.filter(p => !selectedIds.has(p.id));
+  selectedIds.clear();
+  renderTable();
+  renderStats();
+  updateBulkBar();
+  toast('Productos eliminados', 'success');
+}
+
+async function bulkSetCategory() {
+  if (!selectedIds.size) return;
+  const options = Object.entries(CAT_LABELS).map(([k,v]) => `  ${k} → ${v}`).join('\n');
+  const cat = prompt(`Nueva categoría para ${selectedIds.size} producto(s):\n\n${options}\n\nEscribe el código:`);
+  if (cat === null) return;
+  const category = cat.trim().toLowerCase();
+  if (!CAT_LABELS[category]) {
+    toast('Categoría inválida. Opciones: bolsos, accesorios, maquillaje, natura', 'error');
     return;
   }
-  toast('Configura Supabase para guardar productos', 'error');
+  const categoryLabel = CAT_LABELS[category];
+
+  if (getSupabaseUrl()) {
+    const ids = [...selectedIds].join(',');
+    const result = await supabaseApi(`products?id=in.(${ids})`, {
+      method: 'PATCH',
+      body: JSON.stringify({ category, category_label: categoryLabel })
+    });
+    if (!result.ok) {
+      toast('Error al actualizar categoría', 'error');
+      return;
+    }
+  }
+
+  products.forEach(p => {
+    if (selectedIds.has(p.id)) { p.category = category; p.categoryLabel = categoryLabel; }
+  });
+  renderTable();
+  renderStats();
+  toast(`Categoría "${categoryLabel}" aplicada a ${selectedIds.size} producto(s)`, 'success');
+}
+
+async function bulkToggleFeatured() {
+  if (!selectedIds.size) return;
+  const selected = products.filter(p => selectedIds.has(p.id));
+  // Si todos son destacados → quitar. En cualquier otro caso → destacar todos.
+  const newVal = !selected.every(p => p.featured);
+
+  if (getSupabaseUrl()) {
+    const ids = [...selectedIds].join(',');
+    const result = await supabaseApi(`products?id=in.(${ids})`, {
+      method: 'PATCH',
+      body: JSON.stringify({ featured: newVal })
+    });
+    if (!result.ok) {
+      toast('Error al actualizar destacados', 'error');
+      return;
+    }
+  }
+
+  selected.forEach(p => { p.featured = newVal; });
+  renderTable();
+  renderStats();
+  toast(newVal ? `${selectedIds.size} producto(s) marcados como destacados ⭐` : `Destacado removido de ${selectedIds.size} producto(s)`, 'success');
+}
+
+async function bulkToggleOOS() {
+  if (!selectedIds.size) return;
+  const selected = products.filter(p => selectedIds.has(p.id));
+  // Si todos agotados → marcar disponibles. En cualquier otro caso → marcar agotados.
+  const newVal = !selected.every(p => p.outOfStock);
+
+  if (getSupabaseUrl()) {
+    const ids = [...selectedIds].join(',');
+    const result = await supabaseApi(`products?id=in.(${ids})`, {
+      method: 'PATCH',
+      body: JSON.stringify({ out_of_stock: newVal })
+    });
+    if (!result.ok) {
+      toast('Error al actualizar estado de stock', 'error');
+      return;
+    }
+  }
+
+  selected.forEach(p => { p.outOfStock = newVal; });
+  renderTable();
+  renderStats();
+  toast(newVal ? `${selectedIds.size} producto(s) marcados como agotados` : `${selectedIds.size} producto(s) marcados como disponibles`, 'success');
+}
+
+async function bulkSetBadge() {
+  if (!selectedIds.size) return;
+  const badge = prompt(`Insignia para ${selectedIds.size} producto(s) (vacío para quitar):`);
+  if (badge === null) return;
+  const finalBadge = badge.trim() || null;
+
+  let finalType = null;
+  if (finalBadge) {
+    const typeInput = prompt('Tipo de color:\n  best  → Dorada\n  new   → Negra\n  promo → Roja\n  natura→ Verde\n\nEscribe el tipo:');
+    if (typeInput === null) return;
+    finalType = ['best','new','promo','natura'].includes(typeInput.trim()) ? typeInput.trim() : null;
+  }
+
+  if (getSupabaseUrl()) {
+    const ids = [...selectedIds].join(',');
+    const result = await supabaseApi(`products?id=in.(${ids})`, {
+      method: 'PATCH',
+      body: JSON.stringify({ badge: finalBadge, badge_type: finalType })
+    });
+    if (!result.ok) {
+      toast('Error al actualizar insignia', 'error');
+      return;
+    }
+  }
+
+  products.forEach(p => {
+    if (selectedIds.has(p.id)) { p.badge = finalBadge; p.badgeType = finalType; }
+  });
+  renderTable();
+  toast(finalBadge
+    ? `Insignia "${finalBadge}" aplicada a ${selectedIds.size} producto(s)`
+    : `Insignias eliminadas de ${selectedIds.size} producto(s)`, 'success');
+}
+
+function bulkExport() {
+  if (!selectedIds.size) return;
+  const selected = products.filter(p => selectedIds.has(p.id));
+  const blob = new Blob([JSON.stringify(selected, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `tres-encantos-seleccion-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  toast(`${selected.length} producto(s) exportados ✓`, 'success');
 }
 
 /* ── EXPORT / IMPORT ── */
@@ -693,10 +1014,13 @@ function importProducts(input) {
     try {
       const data = JSON.parse(e.target.result);
       if (!Array.isArray(data)) throw new Error();
+      await clearSupabaseProducts();
       products = data;
       await save();
+      selectedIds.clear();
       renderTable();
       renderStats();
+      updateBulkBar();
       toast(`${data.length} productos importados ✓`, 'success');
     } catch {
       toast('Archivo inválido. Usa un JSON exportado de esta página.', 'error');
@@ -708,10 +1032,13 @@ function importProducts(input) {
 
 async function resetProducts() {
   if (!confirm('¿Restablecer todos los productos al catálogo de demostración? Se perderán los cambios.')) return;
-  products = [...DEFAULT_PRODUCTS];
+  await clearSupabaseProducts();
+  products = DEFAULT_PRODUCTS.map(p => ({ ...p, outOfStock: false }));
   await save();
+  selectedIds.clear();
   renderTable();
   renderStats();
+  updateBulkBar();
   toast('Catálogo restablecido ✓', 'success');
 }
 
@@ -754,9 +1081,7 @@ function initRevistaUpload() {
     e.preventDefault();
     zone.classList.remove('drag-over');
     const file = e.dataTransfer.files[0];
-    if (file && file.type === 'application/pdf') {
-      processRevistaFile(file);
-    }
+    if (file && file.type === 'application/pdf') processRevistaFile(file);
   };
 
   zone.addEventListener('click', zone._clickHandler);
@@ -772,14 +1097,8 @@ function handleRevistaFile(input) {
 }
 
 function processRevistaFile(file) {
-  if (file.type !== 'application/pdf') {
-    toast('Solo se permiten archivos PDF', 'error');
-    return;
-  }
-  if (file.size > 50 * 1024 * 1024) {
-    toast('El PDF es muy grande. Máx 50MB.', 'error');
-    return;
-  }
+  if (file.type !== 'application/pdf') { toast('Solo se permiten archivos PDF', 'error'); return; }
+  if (file.size > 50 * 1024 * 1024) { toast('El PDF es muy grande. Máx 50MB.', 'error'); return; }
   const reader = new FileReader();
   reader.onload = e => {
     document.getElementById('revista-url-input').value = '';
@@ -802,10 +1121,7 @@ async function saveRevista() {
   const b64 = fileInput._base64;
   const url = urlInput.value.trim();
 
-  if (!b64 && !url) {
-    toast('Ingresa una URL o sube un PDF', 'error');
-    return;
-  }
+  if (!b64 && !url) { toast('Ingresa una URL o sube un PDF', 'error'); return; }
 
   const value = b64 || url;
 
@@ -813,7 +1129,7 @@ async function saveRevista() {
     const result = await supabaseApi('config', {
       method: 'POST',
       headers: { 'Prefer': 'resolution=merge-duplicates' },
-      body: JSON.stringify({ id: 'revista_url', value: value })
+      body: JSON.stringify({ id: 'revista_url', value })
     });
     if (!result.ok || result.data?.error) {
       toast('Error al guardar en Supabase', 'error');
