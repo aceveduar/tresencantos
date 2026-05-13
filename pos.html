@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>POS — Tres Encantos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
@@ -12,8 +12,23 @@
   --cream:#FAF5EE;--gold:#C9A462;--gold-dark:#A67C3A;--charcoal:#1C1817;
   --red:#E85D5D;--green:#2D6A4F;--border:#E8DDD0;--r:10px;
 }
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal);height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 button,input,select{font-family:inherit}
+*{-webkit-tap-highlight-color:transparent}
+button,a{touch-action:manipulation}
+
+/* iOS input zoom fix — crítico en teléfono físico */
+@media(max-width:768px){
+  input,select{font-size:16px!important;-webkit-appearance:none}
+  /* Safe area topbar */
+  .topbar{padding-top:env(safe-area-inset-top);height:calc(54px + env(safe-area-inset-top))}
+  /* Safe area inferior (home indicator iPhone X+) */
+  .pos-checkout{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+  /* Targets táctiles */
+  .btn,.btn-green,.ci-qty button,.cart-clear{min-height:44px}
+  .pos-prod{min-height:64px}
+}
 
 /* TOPBAR */
 .topbar{background:var(--charcoal);color:#fff;padding:0 16px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px}

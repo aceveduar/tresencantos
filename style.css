@@ -24,8 +24,19 @@
   --ease:all .3s cubic-bezier(.4,0,.2,1);
 }
 
-html{scroll-behavior:smooth;overflow-x:hidden}
+html{
+  scroll-behavior:smooth;
+  overflow-x:hidden;
+  -webkit-text-size-adjust:100%; /* evita que iOS cambie el tamaño de texto al rotar */
+  text-size-adjust:100%;
+}
 body{font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--charcoal);line-height:1.6;overflow-x:hidden}
+
+/* ── TOUCH GLOBAL ── */
+a,button,[onclick],[role="button"]{
+  -webkit-tap-highlight-color:transparent; /* quita el flash gris al tocar en Android */
+  touch-action:manipulation;              /* elimina el delay de 300ms en el tap */
+}
 h1,h2,h3{font-family:'Playfair Display',serif;line-height:1.2}
 .script{font-family:'Dancing Script',cursive}
 img{max-width:100%;display:block}
@@ -467,4 +478,38 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .product-body{padding:10px 8px 12px}
   .hero h1{font-size:1.9rem}
   .hms-card{width:116px}
+}
+
+/* ── FIXES PARA TELÉFONO FÍSICO ── */
+@media(max-width:768px){
+  /* Evita el zoom automático de iOS Safari cuando se toca un input
+     (ocurre cuando font-size < 16px — el fix más impactante en iPhone) */
+  input,select,textarea{
+    font-size:16px!important;
+    -webkit-appearance:none; /* quita el estilo nativo de iOS en inputs */
+  }
+  select{
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B5C48' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:right 14px center;
+    padding-right:36px;
+    -webkit-appearance:none;
+  }
+
+  /* Targets táctiles mínimos 44×44px (guía Apple HIG) */
+  .btn,.btn-buy,.filter-btn,.nav-cta,.btn-login{min-height:44px}
+  .filter-btn{padding:10px 18px}
+
+  /* Safe area para iPhone X+ con notch o home indicator */
+  .header{padding-top:env(safe-area-inset-top)}
+  footer{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+
+  /* Producto cards — imagen no se corta */
+  .product-img-wrap img{object-fit:cover;width:100%;aspect-ratio:1/1}
+
+  /* Evita overflow horizontal invisible */
+  .container,.products-section,.hero,.natura-section,.about-section,.delivery-section{
+    max-width:100vw;
+    overflow-x:hidden;
+  }
 }
