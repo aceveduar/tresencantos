@@ -389,6 +389,19 @@ async function renderStats() {
 /* ── TABLE ── */
 const isMobile = () => window.matchMedia('(max-width:640px)').matches;
 
+// Detección de doble-tap en mobile (dblclick no es confiable en touch)
+const _dblTapTs = {};
+function handleMpcDoubleTap(e, id) {
+  if (e.target.closest('button,input,a')) return; // ignorar si toca un control
+  const now = Date.now();
+  if (now - (_dblTapTs[id] || 0) < 350) {
+    delete _dblTapTs[id];
+    openForm(id);
+  } else {
+    _dblTapTs[id] = now;
+  }
+}
+
 function stockChip(p) {
   // stock = 0 → muestra "0" en rojo (no "Sin stock" — eso ya lo indica el botón de Estado)
   // stock = 1 → gris neutro (pieza única, estado normal)
@@ -469,7 +482,9 @@ function desktopRow(p) {
   const catColor = CAT_COLORS[p.category] || '#9B8B78';
   const catDot = `<span class="cat-dot" style="background:${catColor}"></span>`;
   return `
-<tr draggable="true" data-id="${p.id}" class="${selectedIds.has(p.id) ? 'row-selected' : ''}">
+<tr draggable="true" data-id="${p.id}" class="${selectedIds.has(p.id) ? 'row-selected' : ''}"
+    ondblclick="if(!event.target.closest('button,input,a,.drag-handle'))openForm(${p.id})"
+    title="Doble clic para editar">
   <td class="col-check" style="text-align:center">
     <input type="checkbox" class="row-check" ${selectedIds.has(p.id) ? 'checked' : ''} onchange="toggleRowSelect(${p.id}, this.checked)">
   </td>
@@ -531,7 +546,7 @@ function mobileCard(p) {
 <tr class="mpc-row${sel ? ' row-selected' : ''}" data-id="${p.id}">
   <td>
     <div class="mpc${oos ? ' mpc-oos' : ''}">
-      <div class="mpc-top">
+      <div class="mpc-top" ontouchstart="handleMpcDoubleTap(event,${p.id})">
         <div class="mpc-img-wrap">
           <img class="mpc-img" src="${p.image}" alt="${p.name}"
                onerror="this.onerror=null;this.src='${fallback}'"
