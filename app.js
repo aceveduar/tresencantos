@@ -103,6 +103,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateRevistaLink();
   renderHeroVisual();
   renderHeroMobileStrip();
+  initAutoScroll();
   initFilters();
   initNav();
   initReveal();
@@ -199,16 +200,59 @@ function renderHeroMobileStrip() {
   const items = products.filter(p => p.featured);
   if (!items.length) return;
   const fallback = id => `https://picsum.photos/seed/${id+10}/200/200`;
-  container.innerHTML = `<div class="hms-inner">${
-    items.map(p => `
+  const cardHTML = p => `
 <div class="hms-card" onclick="openModal(${p.id})">
   <img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.onerror=null;this.src='${fallback(p.id)}'">
   <div class="hms-info">
     <div class="hms-name">${p.name}</div>
     <div class="hms-price">$${p.price.toLocaleString('es-MX')}</div>
   </div>
-</div>`).join('')
-  }</div>`;
+</div>`;
+  // Duplicar para loop seamless: [A,B,C,A,B,C]
+  const doubled = items.length > 1 ? [...items, ...items] : items;
+  container.innerHTML = `<div class="hms-inner">${doubled.map(cardHTML).join('')}</div>`;
+}
+
+/* ── AUTO-SCROLL DESTACADOS ── */
+function initAutoScroll() {
+  const strip = document.getElementById('hero-mobile-strip');
+  // No correr si el strip no está visible (desktop) o no hay contenido
+  if (!strip || strip.offsetParent === null) return;
+
+  let paused = false;
+  let resumeTimer;
+
+  // Pausa al tocar, reanuda 3s después de soltar
+  strip.addEventListener('touchstart', () => {
+    paused = true;
+    clearTimeout(resumeTimer);
+  }, { passive: true });
+
+  strip.addEventListener('touchend', () => {
+    clearTimeout(resumeTimer);
+    resumeTimer = setTimeout(() => { paused = false; }, 3000);
+  }, { passive: true });
+
+  const SPEED = 0.5; // px por frame ≈ 30 px/s a 60fps
+
+  // Esperar a que las imágenes carguen para medir scrollWidth correctamente
+  setTimeout(() => {
+    const halfWidth = strip.scrollWidth / 2;
+    // Si el contenido no desborda, no hay nada que hacer
+    if (halfWidth <= strip.clientWidth) return;
+
+    const tick = () => {
+      if (!paused) {
+        strip.scrollLeft += SPEED;
+        // Salto invisible: al llegar a la mitad volvemos al inicio (mismos cards)
+        if (strip.scrollLeft >= halfWidth) {
+          strip.scrollLeft -= halfWidth;
+        }
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, 800);
 }
 
 /* ── HERO VISUAL ── */
