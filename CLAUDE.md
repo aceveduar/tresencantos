@@ -139,8 +139,9 @@ Wrapper de `fetch` que añade headers `apikey` y `Authorization`. Lee URL y key 
 
 ## Sitio Público (`app.js` + `index.html`)
 
+- Supabase URL y anon key **hardcodeados** en las primeras líneas de `app.js` — cualquier dispositivo carga el catálogo sin configuración previa
 - Carga productos desde `GET /products?select=*&order=position.asc`
-- Fallback a array `DEFAULT_PRODUCTS` si Supabase no responde
+- Fallback a `products = []` (mensaje vacío) si Supabase no responde
 - Filtros por categoría (`bolsos`, `accesorios`, `maquillaje`, `natura`)
 - Modal de detalle de producto
 - Botón WhatsApp con mensaje pre-armado (número hardcodeado en `app.js`)

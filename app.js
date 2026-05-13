@@ -2,8 +2,8 @@ const WA = "5215534548417";
 const WA_BASE = `https://wa.me/${WA}`;
 const REVISTA_KEY = "te_revista_v1";
 
-const SUPABASE_URL = localStorage.getItem('te_supabase_url') || '';
-const SUPABASE_ANON_KEY = localStorage.getItem('te_supabase_anon_key') || '';
+const SUPABASE_URL = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjYyMjYsImV4cCI6MjA5NDEwMjIyNn0.irCFwOR5HL_ZOVjFGVw9LqmzYicDZTNEmxcknu_j6cI';
 
 let products = [];
 let revistaUrl = "";
