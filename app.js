@@ -101,11 +101,18 @@ function render() {
   grid.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 }
 
+function discountPct(p) {
+  if (!p.originalPrice || p.originalPrice <= p.price) return 0;
+  return Math.round((1 - p.price / p.originalPrice) * 100);
+}
+
 function cardHTML(p) {
   const badge = p.badge ? `<span class="product-badge badge-${p.badgeType||'best'}">${p.badge}</span>` : '';
   const oosTag = p.outOfStock ? `<span class="product-badge badge-oos" style="background:#9B8B78">Agotado</span>` : '';
+  const pct = discountPct(p);
+  const discountTag = pct > 0 ? `<span class="product-badge badge-discount">-${pct}%</span>` : '';
   const fallback = `https://picsum.photos/seed/${p.id+10}/500/500`;
-  const priceHTML = p.originalPrice
+  const priceHTML = pct > 0
     ? `<div class="product-price"><s class="price-before">$${p.originalPrice.toLocaleString('es-MX')}</s> $${p.price.toLocaleString('es-MX')} <small>MXN</small></div>`
     : `<div class="product-price">$${p.price.toLocaleString('es-MX')} <small>MXN</small></div>`;
   const buyBtn = p.outOfStock
@@ -115,7 +122,7 @@ function cardHTML(p) {
 <article class="product-card reveal${p.outOfStock ? ' card-oos' : ''}" onclick="${p.outOfStock ? '' : `openModal(${p.id})`}">
   <div class="product-img-wrap">
     <img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.onerror=null;this.src='${fallback}'">
-    ${badge}${oosTag}
+    ${badge}${oosTag}${discountTag}
   </div>
   <div class="product-body">
     <p class="product-cat">${p.categoryLabel}</p>
@@ -206,7 +213,11 @@ function filterTo(cat) {
 function whatsapp(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
-  const msg = `¡Hola Tres Encantos!\n\nMe interesa este producto:\n\n*${p.name}*\nPrecio: $${p.price.toLocaleString('es-MX')} MXN\n\n${p.description}\n\n¿Está disponible?`;
+  const pct = discountPct(p);
+  const priceText = pct > 0
+    ? `~$${p.originalPrice.toLocaleString('es-MX')} MXN~ → *$${p.price.toLocaleString('es-MX')} MXN* (-${pct}% 🔥)`
+    : `*$${p.price.toLocaleString('es-MX')} MXN*`;
+  const msg = `¡Hola! 😊 Me interesa este producto de Tres Encantos:\n\n*${p.name}*\nPrecio: ${priceText}\n\n¿Está disponible?`;
   window.open(`${WA_BASE}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
@@ -222,19 +233,29 @@ function openModal(id) {
   if (!p) return;
   activeProduct = p;
   const fallback = `https://picsum.photos/seed/${p.id+10}/500/500`;
+  const pct = discountPct(p);
+  const modalDiscount = pct > 0 ? `<span class="product-badge badge-discount" style="position:absolute;top:10px;right:10px;left:auto">-${pct}%</span>` : '';
+  const modalPriceHTML = pct > 0
+    ? `<div class="modal-price">
+         <span class="modal-price-old">$${p.originalPrice.toLocaleString('es-MX')} MXN</span>
+         $${p.price.toLocaleString('es-MX')} <small>MXN</small>
+         <span class="modal-discount">-${pct}% OFF</span>
+       </div>`
+    : `<div class="modal-price">$${p.price.toLocaleString('es-MX')} <small>MXN</small></div>`;
   const overlay = document.getElementById('modal-overlay');
   overlay.innerHTML = `
 <div class="modal" role="dialog" aria-modal="true">
   <div class="modal-img-wrap">
     <img class="modal-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'">
     <button class="modal-close" onclick="closeModal()">✕</button>
+    ${modalDiscount}
   </div>
   <div class="modal-body">
     <p class="modal-cat">${p.categoryLabel}</p>
     <h2 class="modal-title">${p.name}</h2>
     <p class="modal-desc">${p.description}</p>
     <div class="modal-foot">
-      <div class="modal-price">$${p.price.toLocaleString('es-MX')} <small>MXN</small></div>
+      ${modalPriceHTML}
       <button class="btn btn-wa" onclick="whatsapp(${p.id})">${WA_SVG} Pedir por WhatsApp</button>
     </div>
   </div>

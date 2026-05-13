@@ -131,6 +131,7 @@ section{padding:80px 20px}
 .badge-new{background:var(--charcoal)}
 .badge-promo{background:#E85D5D}
 .badge-natura{background:#40916C}
+.badge-discount{background:#E85D5D;left:auto;right:10px;font-size:.78rem;font-weight:800;letter-spacing:.02em}
 .product-body{padding:18px;flex:1;display:flex;flex-direction:column}
 .product-cat{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-dark);margin-bottom:7px}
 .product-body h3{font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:7px;line-height:1.3}
@@ -265,6 +266,8 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .modal-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .modal-price{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700}
 .modal-price small{font-size:.55em;font-weight:400;color:var(--text-mid);font-family:'Inter',sans-serif}
+.modal-price-old{display:block;font-size:.5em;font-weight:400;font-family:'Inter',sans-serif;text-decoration:line-through;color:var(--text-light);margin-bottom:2px}
+.modal-discount{display:inline-block;background:#E85D5D;color:#fff;font-size:.38em;font-weight:800;padding:4px 10px;border-radius:50px;vertical-align:middle;margin-left:10px;font-family:'Inter',sans-serif;letter-spacing:.03em}
 
 /* ── ANIMATIONS ── */
 .reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}
