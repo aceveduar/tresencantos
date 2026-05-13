@@ -367,6 +367,16 @@ input.row-check{cursor:pointer;width:15px;height:15px}
         <option value="maquillaje">Maquillaje</option>
         <option value="natura">Natura</option>
       </select>
+      <select class="filter-select" id="sort-select" onchange="currentSort=this.value;renderTable()">
+        <option value="position">Mi orden</option>
+        <option value="recent">Más recientes</option>
+        <option value="name-az">Nombre A → Z</option>
+        <option value="name-za">Nombre Z → A</option>
+        <option value="price-desc">Precio: mayor</option>
+        <option value="price-asc">Precio: menor</option>
+        <option value="stock-asc">Stock: sin existencia</option>
+        <option value="stock-desc">Stock: con existencia</option>
+      </select>
       <span id="prod-count" class="prod-count" style="display:none"></span>
     </div>
 

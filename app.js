@@ -7,7 +7,8 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 let products = [];
 let revistaUrl = "";
 let currentFilter = 'all';
-let searchQuery  = '';
+let searchQuery   = '';
+let currentSort   = 'default';
 let activeProduct = null;
 
 const WA_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.374 0 0 5.373 0 12c0 2.124.553 4.118 1.522 5.85L.057 23.499l5.772-1.513A11.94 11.94 0 0012 24c6.626 0 12-5.373 12-12S18.626 0 12 0zm0 21.799c-1.891 0-3.653-.507-5.18-1.394l-.371-.22-3.422.897.914-3.329-.242-.384A9.783 9.783 0 012.2 12c0-5.404 4.396-9.799 9.8-9.799 5.403 0 9.798 4.395 9.798 9.8 0 5.403-4.395 9.798-9.798 9.798z"/></svg>`;
@@ -114,11 +115,17 @@ function onSearchInput(val) {
   render();
 }
 
+/* ── SORT ── */
+function setSortOption(val) {
+  currentSort = val;
+  render();
+}
+
 /* ── RENDER CATALOG ── */
 function render() {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
-  const list = products.filter(p => {
+  let list = products.filter(p => {
     const matchCat = currentFilter === 'all' || p.category === currentFilter;
     const matchQ   = !searchQuery ||
       p.name.toLowerCase().includes(searchQuery) ||
@@ -126,6 +133,13 @@ function render() {
       p.categoryLabel.toLowerCase().includes(searchQuery);
     return matchCat && matchQ;
   });
+
+  switch (currentSort) {
+    case 'recent':     list = [...list].sort((a, b) => b.id - a.id); break;
+    case 'price-asc':  list = [...list].sort((a, b) => a.price - b.price); break;
+    case 'price-desc': list = [...list].sort((a, b) => b.price - a.price); break;
+    case 'name':       list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'es')); break;
+  }
 
   if (!list.length) {
     const msg = searchQuery

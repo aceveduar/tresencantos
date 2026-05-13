@@ -15,6 +15,7 @@ let products = [];
 let deleteTargetId = null;
 let selectedIds = new Set();
 let dragSrcId = null;
+let currentSort = 'position';
 
 const CAT_LABELS = {
   bolsos: "Bolsos & Mochilas",
@@ -27,13 +28,24 @@ const getSupabaseUrl = () => SUPABASE_URL;
 const getSupabaseKey = () => SUPABASE_SERVICE_KEY;
 
 function getFilteredProducts() {
-  const q = document.getElementById('search-input')?.value.toLowerCase() || '';
+  const q   = document.getElementById('search-input')?.value.toLowerCase() || '';
   const cat = document.getElementById('cat-filter')?.value || 'all';
-  return products.filter(p => {
+  const filtered = products.filter(p => {
     const matchCat = cat === 'all' || p.category === cat;
-    const matchQ = !q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
+    const matchQ   = !q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
     return matchCat && matchQ;
   });
+
+  switch (currentSort) {
+    case 'recent':     return [...filtered].sort((a, b) => b.id - a.id);
+    case 'name-az':    return [...filtered].sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    case 'name-za':    return [...filtered].sort((a, b) => b.name.localeCompare(a.name, 'es'));
+    case 'price-asc':  return [...filtered].sort((a, b) => a.price - b.price);
+    case 'price-desc': return [...filtered].sort((a, b) => b.price - a.price);
+    case 'stock-asc':  return [...filtered].sort((a, b) => a.stock - b.stock);
+    case 'stock-desc': return [...filtered].sort((a, b) => b.stock - a.stock);
+    default:           return filtered; // position (orden del drag & drop)
+  }
 }
 
 function supabaseApi(path, opts = {}) {

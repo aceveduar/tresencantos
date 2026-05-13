@@ -85,12 +85,21 @@
     <div class="products-search reveal">
       <input type="search" id="products-search-input" placeholder="Buscar producto..." oninput="onSearchInput(this.value)" autocomplete="off">
     </div>
-    <div class="products-filters">
-      <button class="filter-btn active" data-filter="all">Todo</button>
-      <button class="filter-btn" data-filter="bolsos">Bolsos & Mochilas</button>
-      <button class="filter-btn" data-filter="accesorios">Accesorios</button>
-      <button class="filter-btn" data-filter="maquillaje">Maquillaje</button>
-      <button class="filter-btn" data-filter="natura">Natura</button>
+    <div class="products-filters-row">
+      <div class="products-filters">
+        <button class="filter-btn active" data-filter="all">Todo</button>
+        <button class="filter-btn" data-filter="bolsos">Bolsos & Mochilas</button>
+        <button class="filter-btn" data-filter="accesorios">Accesorios</button>
+        <button class="filter-btn" data-filter="maquillaje">Maquillaje</button>
+        <button class="filter-btn" data-filter="natura">Natura</button>
+      </div>
+      <select class="sort-select" id="sort-select" onchange="setSortOption(this.value)" aria-label="Ordenar por">
+        <option value="default">Relevancia</option>
+        <option value="recent">Más recientes</option>
+        <option value="price-asc">Precio: menor</option>
+        <option value="price-desc">Precio: mayor</option>
+        <option value="name">Nombre A-Z</option>
+      </select>
     </div>
     <div class="products-grid" id="products-grid"></div>
   </div>
