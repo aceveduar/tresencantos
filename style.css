@@ -432,7 +432,7 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 @media(max-width:480px){
   .hero{padding:72px 20px 40px}
   .section-header{margin-bottom:32px}
-  .products-section{padding-bottom:88px} /* espacio para el botón WA flotante */
+  .products-section{padding-bottom:40px}
   .section-header h2{font-size:1.65rem}
 
   /* Hero buttons */
@@ -508,9 +508,8 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   /* Producto cards — imagen no se corta */
   .product-img-wrap img{object-fit:cover;width:100%;aspect-ratio:1/1}
 
-  /* Evita overflow horizontal invisible */
+  /* max-width sin overflow — evita crear contextos de scroll por sección */
   .container,.products-section,.hero,.natura-section,.about-section,.delivery-section{
     max-width:100vw;
-    overflow-x:hidden;
   }
 }
