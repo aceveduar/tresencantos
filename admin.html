@@ -137,7 +137,7 @@ tr.drop-below td{box-shadow:inset 0 -2px 0 var(--gold)}
 .io-bar span{font-size:.83rem;color:#6B5C48;flex:1}
 
 /* BULK BAR */
-.bulk-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:10px 16px;background:var(--charcoal);color:#fff;border-radius:var(--r)}
+.bulk-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:var(--charcoal);color:#fff;border-radius:var(--r);position:sticky;top:62px;z-index:40;margin-bottom:12px}
 .bulk-bar #bulk-count{font-size:.83rem;font-weight:600;margin-right:4px}
 .bulk-bar .btn{font-size:.78rem;padding:6px 12px;border:1.5px solid rgba(255,255,255,.3);color:#fff;background:transparent;border-radius:50px}
 .bulk-bar .btn:hover{background:rgba(255,255,255,.15)}
@@ -146,8 +146,22 @@ tr.drop-below td{box-shadow:inset 0 -2px 0 var(--gold)}
 tr.row-selected td{background:#FFF8EE !important}
 input.row-check{cursor:pointer;width:15px;height:15px}
 
+/* LOADING SPINNER */
+@keyframes spin{to{transform:rotate(360deg)}}
+[data-loading]{opacity:.65;pointer-events:none;cursor:default}
+[data-loading]::after{content:'';display:inline-block;width:11px;height:11px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;margin-left:8px;vertical-align:middle}
+.btn-login[data-loading]::after{width:14px;height:14px}
+
+/* PRODUCT COUNT */
+.prod-count{font-size:.78rem;color:#9B8B78;padding:5px 12px;border-radius:50px;background:#F0E8E0;white-space:nowrap;flex-shrink:0}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:60px 20px}
+.empty-state .es-icon{font-size:2.4rem;margin-bottom:10px}
+.empty-state p{color:#9B8B78;margin-bottom:18px;font-size:.9rem;line-height:1.5}
+
 /* TOAST */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--charcoal);color:#fff;padding:12px 24px;border-radius:50px;font-size:.85rem;font-weight:500;z-index:500;transition:.3s ease;opacity:0}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--charcoal);color:#fff;padding:12px 24px;border-radius:50px;font-size:.85rem;font-weight:500;z-index:500;transition:.3s ease;opacity:0;max-width:90vw;text-align:center}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 .toast.success{background:var(--green)}
 .toast.error{background:var(--red)}
@@ -214,6 +228,7 @@ input.row-check{cursor:pointer;width:15px;height:15px}
         <option value="maquillaje">Maquillaje</option>
         <option value="natura">Natura</option>
       </select>
+      <span id="prod-count" class="prod-count" style="display:none"></span>
       <button class="btn btn-gold" onclick="openForm()">+ Agregar producto</button>
     </div>
 
@@ -356,7 +371,7 @@ input.row-check{cursor:pointer;width:15px;height:15px}
       <p style="color:#6B5C48;font-size:.92rem;margin-bottom:20px">Esta acción no se puede deshacer. El producto desaparecerá del sitio.</p>
       <div class="modal-foot">
         <button class="btn btn-outline" onclick="closeDel()">Cancelar</button>
-        <button class="btn btn-red" onclick="confirmDelete()">Sí, eliminar</button>
+        <button id="del-confirm-btn" class="btn btn-red" onclick="confirmDelete()">Sí, eliminar</button>
       </div>
     </div>
   </div>

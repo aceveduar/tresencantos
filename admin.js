@@ -45,11 +45,29 @@ function supabaseApi(path, opts = {}) {
   });
 }
 
+/* ── HELPERS ── */
+function setBtn(el, loading, text) {
+  if (!el) return;
+  if (loading) {
+    el.dataset.loading = '1';
+    if (text) { el.dataset.origText = el.textContent; el.textContent = text; }
+  } else {
+    delete el.dataset.loading;
+    if (el.dataset.origText) { el.textContent = el.dataset.origText; delete el.dataset.origText; }
+  }
+}
+
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
   if (localStorage.getItem(SESSION_KEY) === "1") {
     showApp();
   }
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (document.getElementById('form-overlay')?.classList.contains('open'))    { closeForm(); return; }
+    if (document.getElementById('del-overlay')?.classList.contains('open'))     { closeDel(); return; }
+    if (document.getElementById('revista-overlay')?.classList.contains('open')) { closeRevista(); }
+  });
 });
 
 function showAuthScreen() {
@@ -61,6 +79,10 @@ async function doLoginEmail() {
   const email = document.getElementById('email-input').value;
   const password = document.getElementById('pwd-input').value;
   const err = document.getElementById('pwd-err');
+  const btn = document.querySelector('.btn-login');
+
+  err.classList.remove('show');
+  setBtn(btn, true, 'Verificando...');
 
   try {
     const result = await supabaseApi(
@@ -72,6 +94,7 @@ async function doLoginEmail() {
     if (!user || user.password !== password) {
       err.textContent = 'Credenciales incorrectas';
       err.classList.add('show');
+      setBtn(btn, false);
       return;
     }
     localStorage.setItem(SESSION_KEY, "1");
@@ -79,6 +102,7 @@ async function doLoginEmail() {
   } catch (e) {
     err.textContent = 'Error de conexión: ' + e.message;
     err.classList.add('show');
+    setBtn(btn, false);
   }
 }
 
@@ -139,9 +163,27 @@ function renderStats() {
 function renderTable() {
   const filtered = getFilteredProducts();
 
+  const countEl = document.getElementById('prod-count');
+  if (countEl) {
+    if (products.length === 0) {
+      countEl.style.display = 'none';
+    } else {
+      countEl.style.display = '';
+      countEl.textContent = filtered.length === products.length
+        ? `${products.length} producto${products.length !== 1 ? 's' : ''}`
+        : `${filtered.length} de ${products.length}`;
+    }
+  }
+
   const tbody = document.getElementById('products-table');
   if (!filtered.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="8">No se encontraron productos.</td></tr>`;
+    const isFiltered = (document.getElementById('search-input')?.value || '') ||
+                       (document.getElementById('cat-filter')?.value !== 'all');
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">
+      <div class="es-icon">${isFiltered ? '🔍' : '📦'}</div>
+      <p>${isFiltered ? 'Ningún producto coincide con el filtro.' : 'El catálogo está vacío.'}</p>
+      ${!isFiltered ? `<button class="btn btn-gold btn-sm" onclick="openForm()">+ Agregar primer producto</button>` : ''}
+    </div></td></tr>`;
     updateBulkBar();
     return;
   }
@@ -241,18 +283,18 @@ async function toggleFeatured(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   const newVal = !p.featured;
+  const btn = document.querySelector(`tr[data-id="${id}"] .toggle-featured`);
+  if (btn) btn.style.opacity = '0.35';
 
-  if (getSupabaseUrl()) {
-    const result = await supabaseApi(`products?id=eq.${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ featured: newVal })
-    });
-    if (!result.ok) {
-      toast('Error al actualizar destacado', 'error');
-      return;
-    }
+  const result = await supabaseApi(`products?id=eq.${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ featured: newVal })
+  });
+  if (btn) btn.style.opacity = '';
+  if (!result.ok) {
+    toast('Error al actualizar destacado', 'error');
+    return;
   }
-
   p.featured = newVal;
   renderTable();
   renderStats();
@@ -264,18 +306,18 @@ async function toggleOutOfStock(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   const newVal = !p.outOfStock;
+  const btn = document.querySelector(`tr[data-id="${id}"] .oos-cell`);
+  if (btn) btn.style.opacity = '0.35';
 
-  if (getSupabaseUrl()) {
-    const result = await supabaseApi(`products?id=eq.${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ out_of_stock: newVal })
-    });
-    if (!result.ok) {
-      toast('Error al actualizar estado de stock', 'error');
-      return;
-    }
+  const result = await supabaseApi(`products?id=eq.${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ out_of_stock: newVal })
+  });
+  if (btn) btn.style.opacity = '';
+  if (!result.ok) {
+    toast('Error al actualizar estado de stock', 'error');
+    return;
   }
-
   p.outOfStock = newVal;
   renderTable();
   renderStats();
@@ -350,7 +392,9 @@ function initDragDrop() {
       const [item] = products.splice(srcIdx, 1);
       const insertAt = isAbove ? (srcIdx < tgtIdx ? tgtIdx - 1 : tgtIdx) : (srcIdx < tgtIdx ? tgtIdx : tgtIdx + 1);
       products.splice(insertAt, 0, item);
-      await save();
+      toast('Guardando orden...', '');
+      const ok = await save();
+      if (ok) toast('Orden guardado ✓', 'success');
       renderTable();
     });
   });
@@ -546,6 +590,9 @@ async function saveProduct() {
     original_price: data.originalPrice
   };
 
+  const saveBtn = document.getElementById('save-btn');
+  setBtn(saveBtn, true, idVal ? 'Actualizando...' : 'Guardando...');
+
   if (idVal) {
     const idx = products.findIndex(p => p.id === parseInt(idVal));
     if (idx > -1) products[idx] = { ...products[idx], ...data };
@@ -556,6 +603,7 @@ async function saveProduct() {
         body: JSON.stringify(dbPayload)
       });
       if (!result.ok) {
+        setBtn(saveBtn, false);
         const errMsg = result.data?.message || result.data?.hint || `HTTP ${result.status}`;
         toast(`Error al actualizar: ${errMsg}`, 'error');
         return;
@@ -573,6 +621,7 @@ async function saveProduct() {
     });
     if (!result.ok) {
       products.pop();
+      setBtn(saveBtn, false);
       const errMsg = result.data?.message || result.data?.hint || `HTTP ${result.status}`;
       toast(`Error al guardar: ${errMsg}`, 'error');
       return;
@@ -601,12 +650,15 @@ function closeDel() {
 async function confirmDelete() {
   if (deleteTargetId === null) return;
   const id = deleteTargetId;
+  const btn = document.getElementById('del-confirm-btn');
+  setBtn(btn, true, 'Eliminando...');
 
   const result = await supabaseApi(`products?id=eq.${id}`, {
     method: 'DELETE',
     headers: { 'Prefer': 'return=minimal' }
   });
   if (!result.ok) {
+    setBtn(btn, false);
     const msg = result.data?.message || result.data?.hint || `HTTP ${result.status}`;
     toast('Error al eliminar: ' + msg, 'error');
     closeDel();
@@ -920,7 +972,8 @@ function toast(msg, type = '') {
   el.textContent = msg;
   el.className = 'toast show' + (type ? ' ' + type : '');
   clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.remove('show'), 3000);
+  const duration = type === 'error' ? 5000 : type === '' ? 1500 : 3000;
+  el._t = setTimeout(() => el.classList.remove('show'), duration);
 }
 
 /* ── REVISTA ── */
