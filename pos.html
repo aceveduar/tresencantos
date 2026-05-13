@@ -129,27 +129,28 @@ button,a{touch-action:manipulation}
 .cash-quick button:active{transform:scale(.95)}
 
 /* SALES HISTORY */
-.history-panel{border-top:1px solid var(--border);flex-shrink:0;max-height:200px;overflow-y:auto}
-.history-header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;font-size:.75rem;font-weight:700;color:#9B8B78;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;user-select:none;background:#fff;position:sticky;top:0}
+.history-panel{border-top:1px solid var(--border);flex-shrink:0;max-height:260px;overflow-y:auto}
+.history-header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;font-size:.75rem;font-weight:700;color:#9B8B78;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;user-select:none;background:#fff;position:sticky;top:0;z-index:1}
 .history-header:hover{color:var(--charcoal)}
 .history-toggle{font-size:1rem;transition:transform .2s}
 .history-panel.open .history-toggle{transform:rotate(180deg)}
 .history-list{display:none;padding:0 8px 8px}
 .history-panel.open .history-list{display:block}
-.history-item{display:flex;align-items:center;gap:6px;padding:7px 6px;border-radius:6px;font-size:.78rem;border-bottom:1px solid #F5F0EB;transition:background .12s}
+.history-item{display:flex;align-items:center;gap:6px;padding:8px 6px;border-radius:6px;font-size:.78rem;border-bottom:1px solid #F5F0EB;transition:background .12s}
 .history-item:last-child{border-bottom:none}
 .history-item:hover{background:#FDFAF6}
 .history-item-info{flex:1;min-width:0}
-.history-time{color:#9B8B78;font-size:.7rem;margin-top:1px}
+.history-time{color:#9B8B78;font-size:.7rem;margin-top:2px}
 .history-amount{font-weight:700;font-family:'Playfair Display',serif;color:var(--green);font-size:.88rem;flex-shrink:0}
 .history-empty{padding:16px;text-align:center;color:#9B8B78;font-size:.8rem}
 .history-del-btn{
-  background:none;border:none;
-  color:#D1C5BC;cursor:pointer;
-  font-size:.78rem;padding:4px 7px;border-radius:6px;
-  flex-shrink:0;transition:.15s;line-height:1;
+  display:inline-flex;align-items:center;gap:3px;
+  background:none;border:1.5px solid #E8DDD0;
+  color:#9B8B78;cursor:pointer;
+  font-size:.7rem;font-weight:600;padding:4px 8px;border-radius:50px;
+  flex-shrink:0;transition:.15s;white-space:nowrap;font-family:inherit;
 }
-.history-del-btn:hover{color:var(--red);background:#FEE2E2}
+.history-del-btn:hover{color:var(--red);background:#FEE2E2;border-color:#FECACA}
 
 /* Loading */
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -218,14 +219,14 @@ button,a{touch-action:manipulation}
       <div class="cart-empty"><div class="em">🛒</div>El carrito está vacío</div>
     </div>
 
-    <!-- HISTORIAL DEL DÍA -->
-    <div class="history-panel" id="history-panel">
+    <!-- HISTORIAL DE VENTAS -->
+    <div class="history-panel open" id="history-panel">
       <div class="history-header" onclick="toggleHistory()">
-        <span>Ventas de hoy</span>
+        <span>Ventas recientes</span>
         <span class="history-toggle" id="history-toggle">▾</span>
       </div>
       <div class="history-list" id="history-list">
-        <div class="history-empty">Sin ventas aún hoy</div>
+        <div class="history-empty">Cargando ventas…</div>
       </div>
     </div>
 
@@ -493,34 +494,39 @@ function toggleHistory() {
 }
 
 async function loadHistory() {
-  const hoy = new Date().toISOString().split('T')[0];
-  const result = await api(`sales?created_at=gte.${hoy}T00:00:00&select=id,total,created_at,items&order=created_at.desc&limit=20`);
+  // Últimas 30 ventas sin filtro de fecha — así se puede cancelar ventas de días anteriores
+  const result = await api(`sales?select=id,total,created_at,items&order=created_at.desc&limit=30`);
   const el = document.getElementById('history-list');
   if (!result.ok || !result.data?.length) {
     salesCache = {};
-    el.innerHTML = '<div class="history-empty">Sin ventas aún hoy</div>';
+    el.innerHTML = '<div class="history-empty">Sin ventas registradas</div>';
     return;
   }
-  // Guardar en caché para poder acceder a items al eliminar
   salesCache = {};
   result.data.forEach(s => { salesCache[s.id] = s; });
 
+  const hoy = new Date().toISOString().split('T')[0];
+
   el.innerHTML = result.data.map(s => {
     const t = new Date(s.created_at);
-    const time = t.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    const saleDay = s.created_at.split('T')[0];
+    // Hoy → solo hora; días anteriores → fecha corta + hora
+    const timeLabel = saleDay === hoy
+      ? t.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+      : t.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+        + ' · ' + t.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+
     const itemCount = Array.isArray(s.items) ? s.items.length : 0;
-    // Resumen de productos vendidos
-    const summary = Array.isArray(s.items)
-      ? s.items.map(i => i.name).join(', ')
-      : '—';
+    const summary = Array.isArray(s.items) ? s.items.map(i => i.name).join(', ') : '—';
+
     return `
 <div class="history-item">
   <div class="history-item-info">
-    <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px" title="${summary}">${summary}</div>
-    <div class="history-time">${time} · ${itemCount} artículo${itemCount !== 1 ? 's' : ''}</div>
+    <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px" title="${summary}">${summary}</div>
+    <div class="history-time">${timeLabel} · ${itemCount} art.</div>
   </div>
   <div class="history-amount">$${parseFloat(s.total).toLocaleString('es-MX')}</div>
-  <button class="history-del-btn" onclick="deleteSale(${s.id})" title="Cancelar venta y restaurar stock">✕</button>
+  <button class="history-del-btn" onclick="deleteSale(${s.id})">✕ Cancelar</button>
 </div>`;
   }).join('');
 }
