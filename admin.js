@@ -413,7 +413,8 @@ async function loadProductsFromSupabase() {
       originalPrice: p.original_price,
       barcode: p.barcode || null,
       stock: p.stock ?? 0,
-      cost: p.cost ?? null
+      cost: p.cost ?? null,
+      isPublished: p.is_published ?? true
     }));
     return;
   }
@@ -1188,6 +1189,7 @@ function openForm(id) {
     document.getElementById('f-image').value = p.image;
     document.getElementById('f-featured').checked = p.featured;
     document.getElementById('f-out-of-stock').checked = p.outOfStock || false;
+    document.getElementById('f-published').checked = p.isPublished !== false; // default true
     document.getElementById('f-barcode').value = p.barcode || '';
     document.getElementById('f-stock').value = p.stock ?? 0;
     document.getElementById('f-cost').value = p.cost ?? '';
@@ -1272,8 +1274,8 @@ async function saveProduct() {
   const image = document.getElementById('f-image').value.trim();
   const description = document.getElementById('f-description').value.trim();
 
-  if (!name || isNaN(price) || !description) {
-    toast('Completa nombre, precio y descripción.', 'error');
+  if (!name || isNaN(price)) {
+    toast('Completa nombre y precio.', 'error');
     return;
   }
 
@@ -1294,7 +1296,8 @@ async function saveProduct() {
     outOfStock: document.getElementById('f-out-of-stock').checked,
     barcode: document.getElementById('f-barcode').value.trim() || null,
     stock: parseInt(document.getElementById('f-stock').value) || 0,
-    cost: parseFloat(document.getElementById('f-cost').value) || null
+    cost: parseFloat(document.getElementById('f-cost').value) || null,
+    isPublished: document.getElementById('f-published').checked
   };
 
   const dbPayload = {
@@ -1311,7 +1314,8 @@ async function saveProduct() {
     original_price: data.originalPrice,
     barcode: data.barcode,
     stock: data.stock,
-    cost: data.cost
+    cost: data.cost,
+    is_published: data.isPublished
   };
 
   const saveBtn = document.getElementById('save-btn');

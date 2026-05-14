@@ -52,7 +52,8 @@ function showSkeleton() {
 async function loadProducts() {
   showSkeleton();
   try {
-    const result = await supabaseApi('products?select=*&order=position.asc');
+    // is_published=true: solo publicados. out_of_stock=false: solo con stock
+    const result = await supabaseApi('products?select=*&is_published=eq.true&out_of_stock=eq.false&order=position.asc');
     if (result.ok && Array.isArray(result.data) && result.data.length) {
       products = result.data.map(p => ({
         id: p.id,

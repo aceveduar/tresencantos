@@ -815,7 +815,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       </div>
       <div class="field">
         <div class="field-label-row">
-          <label>Descripción</label>
+          <label>Descripción <span style="font-weight:400;color:var(--muted-light)">(opcional)</span></label>
           <button type="button" class="dictate-btn" id="dictate-f-description" onclick="dictate('f-description')">🎤 Dictar</button>
         </div>
         <textarea id="f-description" placeholder="Describe el producto: materiales, uso, características…"></textarea>
@@ -863,10 +863,19 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       <div class="form-row">
         <div class="field">
           <label class="checkbox-row">
+            <input type="checkbox" id="f-published" checked>
+            Publicar en sitio web
+          </label>
+          <p class="hint">Si está desactivado, el producto solo existe en el inventario y POS, no se muestra al público.</p>
+        </div>
+        <div class="field">
+          <label class="checkbox-row">
             <input type="checkbox" id="f-featured">
             Mostrar en sección destacada
           </label>
         </div>
+      </div>
+      <div class="form-row">
         <div class="field">
           <label class="checkbox-row">
             <input type="checkbox" id="f-out-of-stock">
