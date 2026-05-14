@@ -72,7 +72,13 @@ main{max-width:1100px;margin:0 auto;padding:28px 28px 60px}
 .sc-status.ready{color:var(--green)}
 .sc-status.error{color:var(--red)}
 .sc-field{margin-bottom:10px}
+.sc-field-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.sc-field-label-row label{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 .sc-field label{display:block;font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.sc-mic-btn{background:none;border:none;cursor:pointer;font-size:.78rem;color:var(--muted);padding:1px 5px;border-radius:5px;transition:.15s;white-space:nowrap;font-family:inherit;line-height:1.4}
+.sc-mic-btn:hover{color:var(--gold-dark);background:var(--gold-light)}
+.sc-mic-btn.recording{color:var(--red);animation:mic-pulse .8s ease-in-out infinite}
+@keyframes mic-pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .sc-field input,.sc-field select,.sc-field textarea{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;outline:none;font-family:inherit;color:var(--charcoal);background:#FAFAF8}
 .sc-field input:focus,.sc-field select:focus,.sc-field textarea:focus{border-color:var(--gold);background:#fff}
 .sc-field textarea{resize:vertical;min-height:70px;font-size:.83rem;line-height:1.5}
@@ -282,12 +288,20 @@ function renderCard(item) {
   <div class="sc-body">
     <div class="sc-status ${item.status}">${statusLabel[item.status]||'Pendiente'}</div>
     <div class="sc-field">
-      <label>Nombre del producto</label>
+      <div class="sc-field-label-row">
+        <label>Nombre del producto</label>
+        <button type="button" class="sc-mic-btn" id="mic-name-${item.id}"
+                onclick="dictateField(this, this.closest('.sc-field').querySelector('input'), '${item.id}', 'name')">🎤 Dictar</button>
+      </div>
       <input type="text" value="${escHtml(item.name)}" placeholder="Ej: Bolso Glamour Camel"
              onchange="updateItem('${item.id}','name',this.value)">
     </div>
     <div class="sc-field">
-      <label>Descripción (opcional)</label>
+      <div class="sc-field-label-row">
+        <label>Descripción (opcional)</label>
+        <button type="button" class="sc-mic-btn" id="mic-desc-${item.id}"
+                onclick="dictateField(this, this.closest('.sc-field').querySelector('textarea'), '${item.id}', 'description')">🎤 Dictar</button>
+      </div>
       <textarea placeholder="Materiales, uso, características…"
                 onchange="updateItem('${item.id}','description',this.value)">${escHtml(item.description)}</textarea>
     </div>
@@ -491,6 +505,60 @@ async function compressDataUrl(dataUrl) {
     };
     img.src = dataUrl;
   });
+}
+
+/* ── VOICE DICTATION ── */
+let _stagingRec = null;
+
+function dictateField(btn, field, itemId, fieldKey) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { toast('Dictado no disponible. Usa Chrome o Safari.', 'error'); return; }
+
+  if (_stagingRec) { _stagingRec.stop(); return; }
+
+  const sr = new SR();
+  sr.lang = 'es-MX';
+  sr.continuous = true;
+  sr.interimResults = true;
+  _stagingRec = sr;
+
+  const startValue = (field.value || '').trimEnd();
+  let spoken = '';
+
+  btn.textContent = '⏹ Detener';
+  btn.classList.add('recording');
+
+  sr.onresult = e => {
+    const finals = [];
+    let interim = '';
+    for (let i = 0; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finals.push(e.results[i][0].transcript.trim());
+      else interim += e.results[i][0].transcript;
+    }
+    spoken = finals.join(' ');
+    const sep = startValue && (spoken || interim) ? ' ' : '';
+    field.value = startValue + sep + spoken + (interim ? ' ' + interim.trim() : '');
+  };
+
+  const finish = () => {
+    _stagingRec = null;
+    btn.textContent = '🎤 Dictar';
+    btn.classList.remove('recording');
+    const sep = startValue && spoken ? ' ' : '';
+    field.value = (startValue + sep + spoken).trim();
+    if (field.value) updateItem(itemId, fieldKey, field.value);
+  };
+
+  sr.onend   = finish;
+  sr.onerror = e => {
+    finish();
+    if (e.error === 'not-allowed')
+      toast('Permiso de micrófono denegado. Actívalo en los ajustes del navegador.', 'error');
+    else if (e.error !== 'aborted')
+      toast('Error de micrófono: ' + e.error, 'error');
+  };
+
+  sr.start();
 }
 
 /* ── TOAST ── */
