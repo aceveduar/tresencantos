@@ -291,8 +291,32 @@ tr:hover .drag-handle{opacity:1}
 .img-preview{width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:var(--r);border:1px solid var(--border);margin-top:10px;display:none}
 .img-preview.show{display:block}
 .modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 28px;border-top:1px solid var(--border);flex-shrink:0;background:#fff;border-radius:0 0 20px 20px}
-.checkbox-row{display:flex;align-items:center;gap:10px;font-size:.88rem;cursor:pointer;color:var(--charcoal)}
-.checkbox-row input{width:17px;height:17px;cursor:pointer;accent-color:var(--gold)}
+/* ── TOGGLE SWITCH (reemplaza checkboxes estándar) ── */
+.checkbox-row{display:flex;align-items:center;gap:12px;font-size:.88rem;cursor:pointer;color:var(--charcoal)}
+.checkbox-row input[type=checkbox]{
+  appearance:none;-webkit-appearance:none;
+  width:44px;height:26px;border-radius:13px;background:#D1D5DB;
+  border:none;flex-shrink:0;position:relative;cursor:pointer;
+  transition:background .22s;margin:0;
+}
+.checkbox-row input[type=checkbox]:checked{background:var(--green)}
+.checkbox-row input[type=checkbox]::after{
+  content:'';position:absolute;
+  width:20px;height:20px;border-radius:50%;background:#fff;
+  top:3px;left:3px;
+  box-shadow:0 1px 4px rgba(0,0,0,.28);
+  transition:transform .22s cubic-bezier(.34,1.56,.64,1);
+}
+.checkbox-row input[type=checkbox]:checked::after{transform:translateX(18px)}
+
+/* ── SECCIONES DEL FORMULARIO ── */
+.form-section{
+  font-size:.64rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted-light);margin:18px 0 12px;
+  padding-top:16px;border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:7px;
+}
+.form-section:first-child{margin-top:4px;border-top:none;padding-top:0}
 
 /* Upload zone */
 .img-upload-zone{border:2px dashed var(--border);border-radius:var(--r);padding:22px 20px;text-align:center;transition:.2s;background:#FAFAF8;margin-bottom:8px}
@@ -301,8 +325,8 @@ tr:hover .drag-handle{opacity:1}
 .img-upload-zone .up-text{font-size:.82rem;color:var(--muted-light);margin-bottom:12px}
 /* Botones de carga de imagen */
 .img-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-.btn-cam{background:var(--charcoal);color:#fff;border:none;box-shadow:0 2px 8px rgba(28,24,23,.2)}
-.btn-cam:hover{background:var(--charcoal-soft);color:#fff;transform:translateY(-1px);box-shadow:0 4px 14px rgba(28,24,23,.25)}
+.btn-cam{background:var(--gold);color:#fff;border:none;box-shadow:0 2px 8px rgba(201,164,98,.35)}
+.btn-cam:hover{background:var(--gold-dark);color:#fff;transform:translateY(-1px);box-shadow:0 4px 14px rgba(201,164,98,.45)}
 .upload-or{text-align:center;font-size:.72rem;color:var(--muted-light);margin:12px 0;position:relative}
 .upload-or::before,.upload-or::after{content:'';position:absolute;top:50%;width:44%;height:1px;background:var(--border)}
 .upload-or::before{left:0}.upload-or::after{right:0}
@@ -595,8 +619,28 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .modal{max-width:100%!important;max-height:92vh;border-radius:20px 20px 0 0;margin:0}
   .overlay.open .modal{transform:scale(1) translateY(0)}
   .form-row{grid-template-columns:1fr;gap:0}
-  .modal-foot{flex-direction:column-reverse;gap:8px;border-radius:0;padding:14px 20px 20px}
+  /* Footer sticky: siempre visible sin scroll */
+  .modal-foot{
+    position:sticky;bottom:0;z-index:10;
+    flex-direction:column-reverse;gap:8px;
+    border-radius:0;padding:12px 20px 24px;
+    background:#fff;
+  }
   .modal-foot .btn{width:100%;justify-content:center;padding:14px}
+
+  /* Zona de imagen: ocultar drag zone en mobile, solo botones */
+  .img-upload-zone .up-icon,.img-upload-zone .up-text{display:none}
+  .img-upload-zone{padding:8px;border-style:solid;background:transparent}
+  .img-btns .btn{flex:1;justify-content:center;min-height:44px}
+
+  /* Ocultar campo "Etiqueta visible" — se llena automáticamente */
+  #field-cat-label{display:none}
+
+  /* Toggle más grande en mobile */
+  .checkbox-row{gap:14px;padding:4px 0}
+  .checkbox-row input[type=checkbox]{width:48px;height:28px;border-radius:14px}
+  .checkbox-row input[type=checkbox]::after{width:22px;height:22px}
+  .checkbox-row input[type=checkbox]:checked::after{transform:translateX(20px)}
 
   /* Search wrap sin min-width en mobile */
   .search-wrap{min-width:0}
@@ -795,6 +839,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     </div>
     <div class="modal-body">
       <input type="hidden" id="f-id">
+      <p class="form-section">📋 Información básica</p>
       <div class="form-row">
         <div class="field" style="grid-column:1/-1">
           <div class="field-label-row">
@@ -814,11 +859,12 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
             <!-- Opciones cargadas dinámicamente por renderCategorySelects() -->
           </select>
         </div>
-        <div class="field">
+        <div class="field" id="field-cat-label">
           <label>Etiqueta visible</label>
           <input type="text" id="f-category-label" placeholder="Ej: Bolsos & Carteras">
         </div>
       </div>
+      <p class="form-section">💰 Precios</p>
       <div class="form-row">
         <div class="field">
           <label>Precio de venta (MXN)</label>
@@ -848,6 +894,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           <p class="hint">Llena "Precio de costo" para ver la ganancia estimada.</p>
         </div>
       </div>
+      <p class="form-section">🏷 Detalles</p>
       <div class="form-row">
         <div class="field">
           <label>Insignia (opcional)</label>
@@ -901,6 +948,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         <p class="hint">Google Drive, Unsplash — o captura directo con la cámara del dispositivo.</p>
         <img id="f-img-preview" class="img-preview" alt="Vista previa">
       </div>
+      <p class="form-section">📦 Inventario</p>
       <div class="form-row">
         <div class="field">
           <label>Código de barras</label>
@@ -916,6 +964,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           <p class="hint">Cantidad disponible en inventario</p>
         </div>
       </div>
+      <p class="form-section">⚙️ Visibilidad</p>
       <div class="form-row">
         <div class="field">
           <label class="checkbox-row">
