@@ -334,7 +334,8 @@ async function loadProductsFromSupabase() {
       outOfStock: p.out_of_stock,
       originalPrice: p.original_price,
       barcode: p.barcode || null,
-      stock: p.stock ?? 0
+      stock: p.stock ?? 0,
+      cost: p.cost ?? null
     }));
     return;
   }
@@ -1010,6 +1011,8 @@ function openForm(id) {
     document.getElementById('f-out-of-stock').checked = p.outOfStock || false;
     document.getElementById('f-barcode').value = p.barcode || '';
     document.getElementById('f-stock').value = p.stock ?? 0;
+    document.getElementById('f-cost').value = p.cost ?? '';
+    updateMarginDisplay();
     previewImg();
   } else {
     document.getElementById('f-id').value = '';
@@ -1026,6 +1029,8 @@ function openForm(id) {
     document.getElementById('f-out-of-stock').checked = false;
     document.getElementById('f-barcode').value = '';
     document.getElementById('f-stock').value = 1;
+    document.getElementById('f-cost').value = '';
+    document.getElementById('f-margin-display').textContent = 'Margen: —';
     document.getElementById('f-img-preview').classList.remove('show');
     document.getElementById('f-img-file').value = '';
     document.getElementById('f-img-camera').value = '';
@@ -1042,6 +1047,18 @@ function closeForm() {
   document.getElementById('form-overlay').classList.remove('open');
   document.body.style.overflow = '';
   setBtn(document.getElementById('save-btn'), false);
+}
+
+function updateMarginDisplay() {
+  const price = parseFloat(document.getElementById('f-price')?.value) || 0;
+  const cost  = parseFloat(document.getElementById('f-cost')?.value)  || 0;
+  const el    = document.getElementById('f-margin-display');
+  if (!el) return;
+  if (!cost || !price) { el.textContent = 'Margen: —'; el.style.color = ''; return; }
+  const pct = ((price - cost) / price * 100).toFixed(1);
+  const amt = (price - cost).toLocaleString('es-MX');
+  el.textContent = `Margen: $${amt} (${pct}%)`;
+  el.style.color = parseFloat(pct) >= 30 ? 'var(--green)' : parseFloat(pct) >= 10 ? 'var(--gold-dark)' : 'var(--red)';
 }
 
 function syncCategoryLabel() {
@@ -1089,7 +1106,8 @@ async function saveProduct() {
     featured: document.getElementById('f-featured').checked,
     outOfStock: document.getElementById('f-out-of-stock').checked,
     barcode: document.getElementById('f-barcode').value.trim() || null,
-    stock: parseInt(document.getElementById('f-stock').value) || 0
+    stock: parseInt(document.getElementById('f-stock').value) || 0,
+    cost: parseFloat(document.getElementById('f-cost').value) || null
   };
 
   const dbPayload = {
@@ -1105,7 +1123,8 @@ async function saveProduct() {
     out_of_stock: data.outOfStock,
     original_price: data.originalPrice,
     barcode: data.barcode,
-    stock: data.stock
+    stock: data.stock,
+    cost: data.cost
   };
 
   const saveBtn = document.getElementById('save-btn');
@@ -1256,6 +1275,26 @@ async function save() {
 }
 
 /* ── BULK ACTIONS ── */
+
+async function bulkRestock() {
+  if (!selectedIds.size) return;
+  const input = prompt(`¿Cuántas unidades agregar a los ${selectedIds.size} producto(s) seleccionado(s)?`);
+  if (input === null) return;
+  const qty = parseInt(input);
+  if (!qty || qty <= 0) { toast('Ingresa una cantidad válida', 'error'); return; }
+
+  const selected = products.filter(p => selectedIds.has(p.id));
+  for (const p of selected) {
+    const newStock = (p.stock || 0) + qty;
+    const result = await supabaseApi(`products?id=eq.${p.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ stock: newStock, out_of_stock: false })
+    });
+    if (result.ok) { p.stock = newStock; p.outOfStock = false; }
+  }
+  renderTable(); renderStats();
+  toast(`+${qty} unidades agregadas a ${selectedIds.size} producto(s) ✓`, 'success');
+}
 
 async function bulkDelete() {
   if (!selectedIds.size) return;

@@ -193,25 +193,25 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   <!-- KPIs -->
   <div class="kpi-grid">
     <div class="kpi-card">
-      <span class="kpi-icon">💰</span>
+      <span class="kpi-icon si-gold">💰</span>
       <div class="kpi-value" id="kpi-revenue">—</div>
       <div class="kpi-label">Ingresos</div>
       <div class="kpi-sub" id="kpi-revenue-sub"></div>
     </div>
     <div class="kpi-card">
-      <span class="kpi-icon">🛍</span>
+      <span class="kpi-icon si-green">🛍</span>
       <div class="kpi-value" id="kpi-sales">—</div>
       <div class="kpi-label">Ventas</div>
       <div class="kpi-sub" id="kpi-sales-sub"></div>
     </div>
     <div class="kpi-card">
-      <span class="kpi-icon">📊</span>
+      <span class="kpi-icon si-blue">📊</span>
       <div class="kpi-value" id="kpi-avg">—</div>
       <div class="kpi-label">Ticket promedio</div>
       <div class="kpi-sub" id="kpi-avg-sub"></div>
     </div>
     <div class="kpi-card">
-      <span class="kpi-icon">📦</span>
+      <span class="kpi-icon si-red">📦</span>
       <div class="kpi-value" id="kpi-stock">—</div>
       <div class="kpi-label">Productos en stock</div>
       <div class="kpi-sub" id="kpi-stock-sub"></div>
@@ -267,6 +267,19 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
         <div id="recent-sales">
           <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HORA PICO -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <h2>Hora pico</h2>
+      <span id="hour-period-label"></span>
+    </div>
+    <div class="card-body">
+      <div class="chart-canvas-wrap" style="height:200px">
+        <canvas id="hour-chart"></canvas>
       </div>
     </div>
   </div>
@@ -332,9 +345,11 @@ function api(path, opts={}) {
 /* ── STATE ── */
 let currentPeriod = 'week';
 let sales = [];
+let prevSales = [];   // período anterior para comparación
 let products = [];
 let revenueChart = null;
 let catChart = null;
+let hourChart = null;
 
 /* ── PERIODS ── */
 const PERIODS = {
@@ -343,14 +358,29 @@ const PERIODS = {
   month: () => { const d = new Date(); d.setDate(d.getDate()-29); d.setHours(0,0,0,0); return d.toISOString(); },
   all:   () => null
 };
+// Retorna el inicio del período ANTERIOR equivalente (para comparar)
+const PREV_PERIODS = {
+  today: () => { const d = new Date(); d.setDate(d.getDate()-1); d.setHours(0,0,0,0); return [d.toISOString(), PERIODS.today()]; },
+  week:  () => { const e = new Date(); e.setDate(e.getDate()-6); e.setHours(0,0,0,0); const s = new Date(e); s.setDate(s.getDate()-7); return [s.toISOString(), e.toISOString()]; },
+  month: () => { const e = new Date(); e.setDate(e.getDate()-29); e.setHours(0,0,0,0); const s = new Date(e); s.setDate(s.getDate()-30); return [s.toISOString(), e.toISOString()]; },
+  all:   () => null
+};
 const PERIOD_LABELS = { today:'Hoy', week:'Últimos 7 días', month:'Últimos 30 días', all:'Todo el tiempo' };
 
 /* ── LOAD ── */
 async function loadSales() {
   const from = PERIODS[currentPeriod]();
   const filter = from ? `&created_at=gte.${from}` : '';
-  const r = await api(`sales?select=id,total,created_at,items&order=created_at.desc${filter}&limit=500`);
-  sales = (r.ok && Array.isArray(r.data)) ? r.data : [];
+  const r = await api(`sales?select=id,total,created_at,items,payment_method,type&order=created_at.desc${filter}&limit=500`);
+  sales = (r.ok && Array.isArray(r.data)) ? r.data.filter(s => s.type !== 'apartado') : [];
+}
+
+async function loadPreviousSales() {
+  const range = PREV_PERIODS[currentPeriod]?.();
+  if (!range) { prevSales = []; return; }
+  const [from, to] = range;
+  const r = await api(`sales?select=id,total,created_at,type&created_at=gte.${from}&created_at=lt.${to}&limit=500`);
+  prevSales = (r.ok && Array.isArray(r.data)) ? r.data.filter(s => s.type !== 'apartado') : [];
 }
 
 async function loadProducts() {
@@ -364,28 +394,82 @@ function renderAll() {
   document.getElementById('chart-period-label').textContent = lbl;
   document.getElementById('top-prod-period').textContent = lbl;
   document.getElementById('recent-period').textContent = lbl;
+  document.getElementById('hour-period-label').textContent = lbl;
 
   renderKPIs();
   renderRevenueChart();
   renderCatChart();
   renderTopProducts();
   renderRecentSales();
+  renderHourChart();
   renderInventory();
 }
 
-/* KPIs */
-function renderKPIs() {
-  const totalRev = sales.reduce((s, x) => s + parseFloat(x.total||0), 0);
-  const count = sales.length;
-  const avg = count ? totalRev / count : 0;
-  const inStock = products.filter(p => p.stock > 0 && !p.out_of_stock).length;
-  const total = products.length;
+/* KPIs con delta vs período anterior */
+function kpiDelta(curr, prev) {
+  if (!prev || currentPeriod === 'all') return '';
+  if (prev === 0) return '';
+  const pct = (curr - prev) / prev * 100;
+  const sign = pct >= 0 ? '+' : '';
+  const color = pct >= 0 ? '#065F46' : '#991B1B';
+  const bg    = pct >= 0 ? '#D1FAE5' : '#FEE2E2';
+  return ` <span style="font-size:.66rem;font-weight:700;padding:2px 6px;border-radius:50px;background:${bg};color:${color}">${sign}${pct.toFixed(0)}%</span>`;
+}
 
-  document.getElementById('kpi-revenue').textContent = `$${totalRev.toLocaleString('es-MX', {maximumFractionDigits:0})}`;
-  document.getElementById('kpi-sales').textContent = count;
-  document.getElementById('kpi-avg').textContent = count ? `$${avg.toLocaleString('es-MX', {maximumFractionDigits:0})}` : '—';
-  document.getElementById('kpi-stock').textContent = `${inStock}`;
+function renderKPIs() {
+  const totalRev  = sales.reduce((s,x) => s + parseFloat(x.total||0), 0);
+  const count     = sales.length;
+  const avg       = count ? totalRev / count : 0;
+  const inStock   = products.filter(p => p.stock > 0 && !p.out_of_stock).length;
+  const total     = products.length;
+
+  const prevRev   = prevSales.reduce((s,x) => s + parseFloat(x.total||0), 0);
+  const prevCount = prevSales.length;
+  const prevAvg   = prevCount ? prevRev / prevCount : 0;
+
+  const fmt = n => `$${n.toLocaleString('es-MX', {maximumFractionDigits:0})}`;
+
+  document.getElementById('kpi-revenue').innerHTML = fmt(totalRev) + kpiDelta(totalRev, prevRev);
+  document.getElementById('kpi-revenue-sub').textContent = prevRev > 0 ? `Período ant.: ${fmt(prevRev)}` : '';
+  document.getElementById('kpi-sales').innerHTML = count + kpiDelta(count, prevCount);
+  document.getElementById('kpi-sales-sub').textContent = prevCount > 0 ? `Período ant.: ${prevCount}` : '';
+  document.getElementById('kpi-avg').innerHTML = (count ? fmt(avg) : '—') + kpiDelta(avg, prevAvg);
+  document.getElementById('kpi-avg-sub').textContent = prevAvg > 0 ? `Período ant.: ${fmt(prevAvg)}` : '';
+  document.getElementById('kpi-stock').textContent = inStock;
   document.getElementById('kpi-stock-sub').textContent = `de ${total} producto${total!==1?'s':''}`;
+}
+
+/* Hora pico */
+function renderHourChart() {
+  const byHour = Array(24).fill(0);
+  sales.forEach(s => { byHour[new Date(s.created_at).getHours()] += parseFloat(s.total||0); });
+  const ctx = document.getElementById('hour-chart')?.getContext('2d');
+  if (!ctx) return;
+  if (hourChart) { hourChart.destroy(); hourChart = null; }
+  if (sales.length === 0) {
+    document.getElementById('hour-chart').parentElement.innerHTML = '<p class="no-data">Sin datos en el período</p>';
+    return;
+  }
+  const maxH = byHour.indexOf(Math.max(...byHour));
+  hourChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: Array.from({length:24}, (_,i) => `${i}h`),
+      datasets: [{
+        data: byHour,
+        backgroundColor: byHour.map((_, i) => i === maxH ? '#C9A462' : 'rgba(201,164,98,.35)'),
+        borderRadius: 4, borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: c => `$${c.parsed.y.toLocaleString('es-MX')}` }}},
+      scales: {
+        y: { beginAtZero:true, ticks:{ callback: v=>`$${v.toLocaleString('es-MX')}`, font:{size:10} }, grid:{color:'#F0E8E0'} },
+        x: { grid:{display:false}, ticks:{font:{size:9}, maxRotation:0} }
+      }
+    }
+  });
 }
 
 /* Revenue chart */
@@ -575,15 +659,14 @@ function renderInventory() {
 async function setPeriod(period) {
   currentPeriod = period;
   document.querySelectorAll('.period-btn').forEach(b => b.classList.toggle('active', b.dataset.period===period));
-  // Mostrar loading en KPIs
   ['kpi-revenue','kpi-sales','kpi-avg'].forEach(id => document.getElementById(id).textContent = '…');
-  await loadSales();
+  await Promise.all([loadSales(), loadPreviousSales()]);
   renderAll();
 }
 
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
-  await Promise.all([loadProducts(), loadSales()]);
+  await Promise.all([loadProducts(), loadSales(), loadPreviousSales()]);
   renderAll();
 });
 </script>
