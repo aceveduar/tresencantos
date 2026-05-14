@@ -342,11 +342,14 @@ tr.drop-below td{box-shadow:inset 0 -2px 0 var(--gold)}
 .badge-oos{background:#9B8B78}
 .oos-cell{
   font-size:.72rem;font-weight:700;padding:5px 12px;border-radius:50px;
+  display:inline-flex;align-items:center;gap:5px;
   display:inline-block;border:none;cursor:pointer;transition:.15s;white-space:nowrap;
 }
 .oos-cell.available{background:#D1FAE5;color:#065F46}
+.oos-cell.available::before{content:'';width:6px;height:6px;border-radius:50%;background:#059669;flex-shrink:0}
 .oos-cell.available:hover{background:#A7F3D0;transform:translateY(-1px)}
 .oos-cell.soldout{background:#FEE2E2;color:#991B1B}
+.oos-cell.soldout::before{content:'';width:6px;height:6px;border-radius:50%;background:#DC2626;flex-shrink:0}
 .oos-cell.soldout:hover{background:#FECACA;transform:translateY(-1px)}
 
 /* Strikethrough price */
@@ -497,12 +500,25 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     display:flex;flex-wrap:nowrap;overflow-x:auto;
     scrollbar-width:none;-webkit-overflow-scrolling:touch;
     gap:8px;margin:-4px -12px 16px;padding:4px 12px 8px;
+    /* Fade en el borde derecho para indicar que hay más */
+    -webkit-mask:linear-gradient(to right,#000 80%,transparent 100%);
+    mask:linear-gradient(to right,#000 80%,transparent 100%);
   }
   .stats::-webkit-scrollbar{display:none}
-  .stat-card{flex-shrink:0;width:118px;min-width:0;padding:11px 13px 12px}
-  .stat-icon{width:26px;height:26px;border-radius:8px;font-size:.78rem;margin-bottom:8px}
-  .stat-card .num{font-size:1.2rem}
-  .stat-card .lbl{font-size:.58rem;letter-spacing:.04em;margin-top:4px;line-height:1.3}
+  .stat-card{flex-shrink:0;width:115px;min-width:0;padding:10px 12px 11px}
+  .stat-icon{width:24px;height:24px;border-radius:7px;font-size:.74rem;margin-bottom:7px}
+  .stat-card .num{font-size:1.15rem}
+  .stat-card .lbl{font-size:.58rem;letter-spacing:.03em;margin-top:3px;line-height:1.3}
+
+  /* ── TARJETAS DE PRODUCTO — más compactas ──────────────────── */
+  .mpc-top{padding:10px 12px 8px;gap:10px}
+  .mpc-img{width:62px;height:62px;border-radius:10px}
+  .mpc-name{font-size:.88rem}
+  .mpc-bar{padding:8px 12px 10px;gap:6px}
+  /* oos-cell con dot — más compacto en mobile */
+  .mpc-oos-btn{font-size:.72rem!important;padding:0 10px!important}
+  /* Iconos de acción: SVG bien centrado */
+  .mpc-icon-btn svg{display:block}
 
   /* Toolbar */
   .toolbar{flex-wrap:wrap;gap:6px;margin-bottom:14px;padding:10px 12px;border-radius:var(--r)}

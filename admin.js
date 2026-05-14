@@ -1,5 +1,9 @@
 const SESSION_KEY  = "te_admin_session";
 const LOCKOUT_KEY  = "te_admin_lock";
+
+// SVG icons — renderizado fiable en iOS y Android (emoji ✏⧉ fallan en muchas fuentes)
+const ICON_EDIT = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+const ICON_COPY = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS   = 60 * 1000; // 1 minuto de bloqueo por cada 5 intentos fallidos
 
@@ -446,7 +450,7 @@ async function renderStats() {
     <div class="stat-card">
       <div class="stat-icon si-green">✅</div>
       <div class="num" style="color:var(--green)">${disponibles}</div>
-      <div class="lbl">Con existencias</div>
+      <div class="lbl">Con stock</div>
     </div>
     <div class="stat-card">
       <div class="stat-icon si-red">🚫</div>
@@ -532,8 +536,8 @@ function adminCard(p) {
         ${stockChip(p)}
       </div>
       <div class="ac-actions">
-        <button class="action-btn" onclick="openForm(${p.id})" title="Editar">✏</button>
-        <button class="action-btn" onclick="duplicateProduct(${p.id})" title="Duplicar">⧉</button>
+        <button class="action-btn" onclick="openForm(${p.id})" title="Editar">${ICON_EDIT}</button>
+        <button class="action-btn" onclick="duplicateProduct(${p.id})" title="Duplicar">${ICON_COPY}</button>
         <button class="action-btn del" onclick="askDelete(${p.id})" title="Eliminar">✕</button>
       </div>
     </div>
@@ -690,8 +694,8 @@ function desktopRow(p) {
   </td>
   <td class="col-actions">
     <div class="actions">
-      <button class="action-btn" onclick="openForm(${p.id})" title="Editar">✏</button>
-      <button class="action-btn" onclick="duplicateProduct(${p.id})" title="Duplicar">⧉</button>
+      <button class="action-btn" onclick="openForm(${p.id})" title="Editar">${ICON_EDIT}</button>
+      <button class="action-btn" onclick="duplicateProduct(${p.id})" title="Duplicar">${ICON_COPY}</button>
       <button class="action-btn del" onclick="askDelete(${p.id})" title="Eliminar">✕</button>
     </div>
   </td>
@@ -749,8 +753,8 @@ function mobileCard(p) {
                   title="${p.featured ? 'Quitar destacado' : 'Destacar'}">
             ${p.featured ? '⭐' : '☆'}
           </button>
-          <button class="mpc-icon-btn" onclick="openForm(${p.id})" title="Editar">✏</button>
-          <button class="mpc-icon-btn" onclick="duplicateProduct(${p.id})" title="Duplicar">⧉</button>
+          <button class="mpc-icon-btn" onclick="openForm(${p.id})" title="Editar">${ICON_EDIT}</button>
+          <button class="mpc-icon-btn" onclick="duplicateProduct(${p.id})" title="Duplicar">${ICON_COPY}</button>
           <button class="mpc-icon-btn del-btn" onclick="askDelete(${p.id})" title="Eliminar">✕</button>
         </div>
       </div>
