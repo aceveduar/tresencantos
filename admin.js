@@ -722,7 +722,8 @@ function mobileCard(p) {
 function renderTable() {
   const filtered  = getFilteredProducts();
   const mobile    = isMobile();
-  const useCards  = !mobile && currentAdminView === 'cards';
+  // En mobile, "cards" también activa la vista de grid (2 columnas con adminCard)
+  const useCards  = currentAdminView === 'cards';
 
   const countEl = document.getElementById('prod-count');
   if (countEl) {
@@ -765,6 +766,7 @@ function renderTable() {
     return;
   }
 
+  // Vista lista: mobile → mpc cards, desktop → tabla
   const tbody = document.getElementById('products-table');
   if (tbody) tbody.innerHTML = filtered.map(p => mobile ? mobileCard(p) : desktopRow(p)).join('');
 
