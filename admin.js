@@ -1263,6 +1263,13 @@ function syncCategoryLabel() {
   document.getElementById('f-category-label').value = getCatLabel(cat);
 }
 
+function clearField(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.value = '';
+  el.focus();
+}
+
 function previewImg() {
   const url = document.getElementById('f-image').value.trim();
   const preview = document.getElementById('f-img-preview');

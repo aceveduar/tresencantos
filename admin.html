@@ -777,7 +777,10 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         <div class="field" style="grid-column:1/-1">
           <div class="field-label-row">
             <label>Nombre del producto</label>
-            <button type="button" class="dictate-btn" id="dictate-f-name" onclick="dictate('f-name')">🎤 Dictar</button>
+            <div style="display:flex;gap:5px">
+              <button type="button" class="dictate-btn" id="dictate-f-name" onclick="dictate('f-name')">🎤 Dictar</button>
+              <button type="button" class="dictate-btn" onclick="clearField('f-name')" title="Limpiar campo">✕</button>
+            </div>
           </div>
           <input type="text" id="f-name" placeholder="Ej: Bolso Glamour Camel">
         </div>
@@ -844,7 +847,10 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       <div class="field">
         <div class="field-label-row">
           <label>Descripción <span style="font-weight:400;color:var(--muted-light)">(opcional)</span></label>
-          <button type="button" class="dictate-btn" id="dictate-f-description" onclick="dictate('f-description')">🎤 Dictar</button>
+          <div style="display:flex;gap:5px">
+            <button type="button" class="dictate-btn" id="dictate-f-description" onclick="dictate('f-description')">🎤 Dictar</button>
+            <button type="button" class="dictate-btn" onclick="clearField('f-description')" title="Limpiar campo">✕</button>
+          </div>
         </div>
         <textarea id="f-description" placeholder="Describe el producto: materiales, uso, características…"></textarea>
       </div>
