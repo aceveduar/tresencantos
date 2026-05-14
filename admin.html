@@ -463,17 +463,31 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .btn-versite{display:none}
   .btn-stats-admin{display:none}
 
-  /* Stats */
-  .stats{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
-  .stat-card{padding:14px 14px}
-  .stat-card .num{font-size:1.4rem}
-  .stat-card .lbl{font-size:.67rem}
+  /* Topbar compacto */
+  .th-long{display:none}
+  .th-short{display:inline!important}
+
+  /* Stats → tira horizontal deslizable */
+  .stats{
+    display:flex;flex-wrap:nowrap;overflow-x:auto;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    gap:8px;margin:-4px -12px 16px;padding:4px 12px 8px;
+  }
+  .stats::-webkit-scrollbar{display:none}
+  .stat-card{flex-shrink:0;width:108px;min-width:0;padding:10px 12px 12px}
+  .stat-icon{width:26px;height:26px;border-radius:8px;font-size:.78rem;margin-bottom:8px}
+  .stat-card .num{font-size:1.15rem}
+  .stat-card .lbl{font-size:.6rem;letter-spacing:.04em;margin-top:4px}
 
   /* Toolbar */
-  .toolbar{flex-wrap:wrap;gap:8px;margin-bottom:14px;padding:12px 14px;border-radius:var(--r)}
+  .toolbar{flex-wrap:wrap;gap:6px;margin-bottom:14px;padding:10px 12px;border-radius:var(--r)}
   .toolbar .btn-gold{order:-1;width:100%;justify-content:center;padding:13px}
-  .search-wrap{flex:1 1 calc(100% - 48px)}
-  .filter-select{flex:1;min-width:0}
+  /* Búsqueda + escáner en la misma fila */
+  .search-wrap{flex:1}
+  /* Categoría: fila propia a ancho completo */
+  #cat-filter{flex:1 1 100%;min-width:0}
+  /* Orden + view-toggle comparten la última fila */
+  #sort-select{flex:1;min-width:0}
   .prod-count{display:none}
 
   /* IO bars */
@@ -635,7 +649,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     <div class="topbar-left">
       <img src="logo.png" alt="">
       <div class="topbar-divider"></div>
-      <h2>Administrar Tienda</h2>
+      <h2><span class="th-long">Administrar Tienda</span><span class="th-short" style="display:none">Admin</span></h2>
     </div>
     <div class="topbar-right">
       <span id="session-user" class="session-user"></span>
