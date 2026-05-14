@@ -394,9 +394,58 @@ button,a{touch-action:manipulation}
   .pos-search-bar .btn{width:36px;height:36px;padding:0;border-radius:8px;justify-content:center;font-size:1rem;flex-shrink:0}
 }
 
-/* Teléfonos pequeños (≤640px): ocultar toggle de vista — solo lista */
+/* ── TAB BAR (teléfonos ≤640px) ─────────────────────────────────── */
+.pos-tab-bar{
+  display:none; /* oculto en desktop y tablet */
+  background:#fff;
+  border-top:1.5px solid var(--border);
+  flex-shrink:0;
+}
+.pos-tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:8px 4px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));
+  border:none;background:transparent;cursor:pointer;
+  font-size:.64rem;font-weight:600;color:#9B8B78;
+  font-family:inherit;transition:color .15s;position:relative;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.pos-tab-icon{font-size:1.25rem;line-height:1;display:block}
+.pos-tab.active{color:var(--charcoal)}
+.pos-tab.active::before{
+  content:'';position:absolute;top:0;left:28%;right:28%;
+  height:2.5px;background:var(--gold);border-radius:0 0 3px 3px;
+}
+.pos-tab-badge{
+  position:absolute;top:4px;left:calc(50% + 6px);
+  background:var(--gold);color:#fff;
+  font-size:.55rem;font-weight:800;
+  min-width:16px;height:16px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  border:1.5px solid #fff;
+}
+
 @media(max-width:640px){
+  /* Activar tab bar */
+  .pos-tab-bar{display:flex}
+  /* Ocultar toggle de vista — solo lista */
   .pos-view-toggle{display:none}
+
+  /* Paneles en pantalla completa según pestaña activa */
+  .pos-left.tab-active{display:flex!important;flex-direction:column;flex:1;max-height:none!important;overflow:hidden}
+  .pos-left.tab-hidden{display:none!important}
+  .pos-right.tab-active{display:flex!important;flex-direction:column;flex:1;overflow:hidden}
+  .pos-right.tab-hidden{display:none!important}
+
+  /* Cuando el panel derecho es pantalla completa, el carrito crece */
+  .pos-right.tab-active .cart-items{
+    flex:1;max-height:none!important;overflow-y:auto;
+  }
+  .pos-right.tab-active .pos-checkout{flex-shrink:0}
+  .pos-right.tab-active .cart-header{flex-shrink:0}
+  .pos-right.tab-active .apartados-panel{flex-shrink:0}
+
+  /* 🛒 del topbar oculto en móvil: la pestaña lo reemplaza */
+  #cart-topbar-btn{display:none}
 }
 
 /* CART TOPBAR BUTTON */
@@ -483,7 +532,7 @@ button,a{touch-action:manipulation}
 <div class="pos-body">
 
   <!-- IZQUIERDO: búsqueda + productos -->
-  <div class="pos-left">
+  <div class="pos-left" id="pos-left">
     <div class="pos-search-bar">
       <input type="search" id="pos-search" placeholder="Buscar producto..." oninput="searchProducts(this.value)" autocomplete="off">
       <div class="pos-view-toggle">
@@ -503,7 +552,7 @@ button,a{touch-action:manipulation}
   <div class="pos-divider" id="pos-divider"></div>
 
   <!-- DERECHO: carrito + cobro -->
-  <div class="pos-right">
+  <div class="pos-right" id="pos-right">
     <div class="cart-header">
       <span>🛒 Carrito <span id="cart-count" style="color:#9B8B78;font-weight:400"></span></span>
       <button class="cart-clear" onclick="clearCart()">Vaciar</button>
@@ -596,6 +645,19 @@ button,a{touch-action:manipulation}
 
       <button id="cobrar-btn" class="btn btn-green" onclick="cobrar()" disabled>✓ Cobrar</button>
     </div>
+  </div>
+
+  <!-- TAB BAR — solo teléfonos (≤640px) -->
+  <div class="pos-tab-bar" id="pos-tab-bar">
+    <button class="pos-tab active" id="tab-catalog" onclick="switchPosTab('catalog')">
+      <span class="pos-tab-icon">🔍</span>
+      <span>Catálogo</span>
+    </button>
+    <button class="pos-tab" id="tab-cart" onclick="switchPosTab('cart')">
+      <span class="pos-tab-icon">🛒</span>
+      <span>Cobrar</span>
+      <span class="pos-tab-badge" id="tab-cart-badge" style="display:none"></span>
+    </button>
   </div>
 </div>
 
@@ -898,8 +960,30 @@ function getTotal() {
   return cart.reduce((s, x) => s + x.product.price * x.qty, 0);
 }
 
+/* ── TAB NAVIGATION (mobile) ── */
+let _currentTab = 'catalog';
+const isTabMode = () => window.innerWidth <= 640;
+
+function switchPosTab(tab) {
+  _currentTab = tab;
+  if (!isTabMode()) return;
+  const left  = document.getElementById('pos-left');
+  const right = document.getElementById('pos-right');
+  if (!left || !right) return;
+  const isCatalog = tab === 'catalog';
+  left.classList.toggle('tab-active',  isCatalog);
+  left.classList.toggle('tab-hidden',  !isCatalog);
+  right.classList.toggle('tab-active', !isCatalog);
+  right.classList.toggle('tab-hidden', isCatalog);
+  document.getElementById('tab-catalog')?.classList.toggle('active', isCatalog);
+  document.getElementById('tab-cart')?.classList.toggle('active',    !isCatalog);
+  if (!isCatalog) updateChange(); // recalcular cambio al abrir cobro
+}
+
 /* ── CART TOPBAR PREVIEW ── */
 function toggleCartPreview() {
+  // En mobile las pestañas reemplazan el dropdown
+  if (isTabMode()) { switchPosTab(_currentTab === 'cart' ? 'catalog' : 'cart'); return; }
   const preview = document.getElementById('cart-preview');
   const backdrop = document.getElementById('cart-preview-backdrop');
   const isOpen = preview.classList.contains('open');
@@ -940,17 +1024,16 @@ function renderCartPreview() {
 
 function syncCartTopbar() {
   const totalItems = cart.reduce((s, x) => s + x.qty, 0);
+  // Badge topbar (desktop)
   const badge = document.getElementById('cart-topbar-badge');
   const btn   = document.getElementById('cart-topbar-btn');
-  if (badge) {
-    badge.textContent = totalItems > 0 ? totalItems : '';
-    badge.style.display = totalItems > 0 ? 'flex' : 'none';
-  }
-  if (btn) btn.classList.toggle('has-items', totalItems > 0);
-  // Si el preview está abierto, actualizarlo en tiempo real
-  if (document.getElementById('cart-preview')?.classList.contains('open')) {
-    renderCartPreview();
-  }
+  if (badge) { badge.textContent = totalItems > 0 ? totalItems : ''; badge.style.display = totalItems > 0 ? 'flex' : 'none'; }
+  if (btn)   btn.classList.toggle('has-items', totalItems > 0);
+  // Badge pestaña (mobile)
+  const tabBadge = document.getElementById('tab-cart-badge');
+  if (tabBadge) { tabBadge.textContent = totalItems > 0 ? totalItems : ''; tabBadge.style.display = totalItems > 0 ? 'flex' : 'none'; }
+  // Preview abierto → actualizar
+  if (document.getElementById('cart-preview')?.classList.contains('open')) renderCartPreview();
 }
 
 function renderCart() {
@@ -1486,6 +1569,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (window.innerWidth > 760) {
     document.getElementById('btn-stats-pos').style.display = '';
   }
+
+  // Inicializar pestañas en teléfonos
+  if (isTabMode()) switchPosTab('catalog');
+
+  // Reajustar pestañas al rotar el dispositivo
+  window.addEventListener('resize', () => {
+    if (isTabMode()) switchPosTab(_currentTab);
+    else {
+      // Volver a layout desktop: quitar clases de pestaña
+      document.getElementById('pos-left')?.classList.remove('tab-active','tab-hidden');
+      document.getElementById('pos-right')?.classList.remove('tab-active','tab-hidden');
+    }
+  });
 
   // Enter en búsqueda → agrega el primer resultado disponible
   document.getElementById('pos-search').addEventListener('keydown', e => {
