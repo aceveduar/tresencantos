@@ -1951,7 +1951,8 @@ async function addCategory() {
 }
 
 /* ── VOICE DICTATION ──────────────────────────────────────────────────── */
-let _activeRec = null;
+let _activeRec    = null;
+let _dictStopping = false; // true cuando el usuario detiene manualmente
 
 function dictate(fieldId) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1963,57 +1964,84 @@ function dictate(fieldId) {
   const btn   = document.getElementById(`dictate-${fieldId}`);
   const field = document.getElementById(fieldId);
 
-  // Si ya hay grabación activa → detener
+  // Usuario detiene manualmente
   if (_activeRec) {
+    _dictStopping = true;
     _activeRec.stop();
     return;
   }
 
-  const sr = new SR();
-  sr.lang            = 'es-MX';
-  sr.continuous      = true;   // no para en silencios cortos
-  sr.interimResults  = true;   // muestra texto mientras se habla
-
-  _activeRec = sr;
+  _dictStopping = false;
 
   const startValue = field.value.trimEnd();
-  let spoken = '';             // texto final acumulado, reconstruido en cada evento
+  let finalChunks  = []; // chunks confirmados — se acumula entre reinicios de sesión
 
   btn.textContent = '⏹ Detener';
   btn.classList.add('recording');
 
-  sr.onresult = e => {
-    // Recorrer TODOS los resultados desde 0 (no desde e.resultIndex)
-    // para evitar duplicados cuando el browser re-entrega el mismo índice
-    const finals = [];
-    let interim  = '';
-    for (let i = 0; i < e.results.length; i++) {
-      if (e.results[i].isFinal) finals.push(e.results[i][0].transcript.trim());
-      else interim += e.results[i][0].transcript;
-    }
-    spoken = finals.join(' ');                              // reconstrucción limpia
-    const sep = startValue && (spoken || interim) ? ' ' : '';
-    field.value = startValue + sep + spoken + (interim ? ' ' + interim.trim() : '');
-  };
-
-  const finish = () => {
+  const finalize = () => {
     _activeRec = null;
     btn.textContent = '🎤 Dictar';
     btn.classList.remove('recording');
-    const sep = startValue && spoken ? ' ' : '';
-    field.value = (startValue + sep + spoken).trim();
+    const spoken = finalChunks.join(' ');
+    const sep    = startValue && spoken ? ' ' : '';
+    field.value  = (startValue + sep + spoken).trim();
   };
 
-  sr.onend   = finish;
-  sr.onerror = e => {
-    finish();
-    if (e.error === 'not-allowed')
-      toast('Permiso de micrófono denegado. Actívalo en los ajustes del navegador.', 'error');
-    else if (e.error !== 'aborted')
-      toast('Error de micrófono: ' + e.error, 'error');
+  const launch = () => {
+    const sr = new SR();
+    sr.lang           = 'es-MX';
+    sr.continuous     = true;
+    sr.interimResults = true;
+    _activeRec = sr;
+
+    sr.onresult = e => {
+      let interim = '';
+      // e.resultIndex → solo procesar chunks NUEVOS en este evento
+      // Esto evita el bug de duplicados en Android donde el mismo
+      // texto se re-entrega como resultado de índice anterior
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i];
+        if (r.isFinal) {
+          const text = r[0].transcript.trim();
+          if (text) finalChunks.push(text);
+        } else {
+          interim = r[0].transcript.trim();
+        }
+      }
+      const spoken = finalChunks.join(' ');
+      const sep    = startValue && (spoken || interim) ? ' ' : '';
+      field.value  = startValue + sep + spoken + (interim ? ' ' + interim : '');
+    };
+
+    sr.onend = () => {
+      _activeRec = null;
+      if (_dictStopping) {
+        // Detención manual — terminar limpiamente
+        _dictStopping = false;
+        finalize();
+      } else {
+        // Fin automático: iOS/Android paran en silencios aunque continuous=true
+        // Reiniciar transparentemente para que el usuario pueda seguir dictando
+        try { launch(); } catch { finalize(); }
+      }
+    };
+
+    sr.onerror = e => {
+      if (e.error === 'not-allowed') {
+        _dictStopping = true;
+        toast('Permiso de micrófono denegado. Actívalo en los ajustes del navegador.', 'error');
+      } else if (e.error === 'aborted') {
+        // Normal: ocurre cuando llamamos .stop() — onend lo maneja
+      } else if (e.error !== 'no-speech') {
+        toast('Error de micrófono: ' + e.error, 'error');
+      }
+    };
+
+    try { sr.start(); } catch { finalize(); }
   };
 
-  sr.start();
+  launch();
 }
 
 /* ── TOAST ── */
