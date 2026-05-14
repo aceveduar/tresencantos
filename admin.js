@@ -354,10 +354,18 @@ async function showApp() {
   } catch {}
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
+
+  // Mostrar skeleton mientras cargan datos
+  const tbody = document.getElementById('products-table');
+  if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:48px;color:var(--muted)">
+    <div style="display:inline-block;width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:12px"></div>
+    <br>Cargando catálogo…
+  </td></tr>`;
+
   await loadCategories();
   await loadProductsFromSupabase();
   renderStats();
-  renderTable();
+  setAdminView(currentAdminView);
   loadDriveConfig();
 }
 
@@ -435,6 +443,70 @@ async function renderStats() {
 
 /* ── TABLE ── */
 const isMobile = () => window.matchMedia('(max-width:640px)').matches;
+
+let currentAdminView = localStorage.getItem('te_admin_view') || 'list';
+
+function setAdminView(view) {
+  currentAdminView = view;
+  localStorage.setItem('te_admin_view', view);
+  document.getElementById('vbtn-list')?.classList.toggle('active', view === 'list');
+  document.getElementById('vbtn-cards')?.classList.toggle('active', view === 'cards');
+  renderTable();
+}
+
+function adminCard(p) {
+  const fallback = `https://picsum.photos/seed/${p.id+10}/300/300`;
+  const oos = p.outOfStock || p.stock === 0;
+  const sel = selectedIds.has(p.id);
+  const catColor = getCatColor(p.category);
+  const badgeHTML = p.badge
+    ? `<span class="badge badge-${p.badgeType||'none'} ac-badge-pos" style="font-size:.6rem;padding:2px 6px">${p.badge}</span>`
+    : '';
+  const priceHTML = p.originalPrice
+    ? `<span class="ac-orig">$${p.originalPrice.toLocaleString('es-MX')}</span><span class="ac-price">$${p.price.toLocaleString('es-MX')}</span>`
+    : `<span class="ac-price">$${p.price.toLocaleString('es-MX')}</span>`;
+
+  return `
+<div class="admin-card${sel?' card-selected':''}${oos?' card-oos':''}"
+     data-id="${p.id}"
+     ondblclick="openForm(${p.id})"
+     ondragstart="void 0">
+  <div class="ac-img-wrap">
+    <img class="ac-img" src="${p.image}" alt="${p.name}"
+         onerror="this.onerror=null;this.src='${fallback}'">
+    <input type="checkbox" class="ac-check row-check"
+           ${sel?'checked':''} onchange="toggleRowSelect(${p.id},this.checked)">
+    ${badgeHTML}
+    <div class="ac-oos-label"></div>
+    <button class="ac-star toggle-featured" onclick="toggleFeatured(${p.id})"
+            title="${p.featured?'Quitar destacado':'Destacar'}">
+      ${p.featured?'⭐':'☆'}
+    </button>
+  </div>
+  <div class="ac-body">
+    <div class="ac-name" title="${p.name}">${p.name}</div>
+    <div class="ac-meta">
+      <span class="cat-dot" style="background:${catColor}"></span>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.categoryLabel}</span>
+      <span style="flex-shrink:0">· #${p.id}</span>
+    </div>
+    <div class="ac-price-row">${priceHTML}</div>
+    <div class="ac-footer">
+      <div style="display:flex;align-items:center;gap:4px">
+        <button onclick="toggleOutOfStock(${p.id})" class="oos-cell ${oos?'soldout':'available'}" style="font-size:.65rem;padding:3px 8px">
+          ${oos?'Agotado':'Disponible'}
+        </button>
+        ${stockChip(p)}
+      </div>
+      <div class="ac-actions">
+        <button class="action-btn" onclick="openForm(${p.id})" title="Editar">✏</button>
+        <button class="action-btn" onclick="duplicateProduct(${p.id})" title="Duplicar">⧉</button>
+        <button class="action-btn del" onclick="askDelete(${p.id})" title="Eliminar">✕</button>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
 
 // Detección de doble-tap en mobile (dblclick no es confiable en touch)
 const _dblTapTs = {};
@@ -629,8 +701,9 @@ function mobileCard(p) {
 }
 
 function renderTable() {
-  const filtered = getFilteredProducts();
-  const mobile = isMobile();
+  const filtered  = getFilteredProducts();
+  const mobile    = isMobile();
+  const useCards  = !mobile && currentAdminView === 'cards';
 
   const countEl = document.getElementById('prod-count');
   if (countEl) {
@@ -642,20 +715,39 @@ function renderTable() {
     }
   }
 
-  const tbody = document.getElementById('products-table');
+  const tableEl  = document.getElementById('products-table-el');
+  const cardGrid = document.getElementById('products-card-grid');
+  if (tableEl)  tableEl.style.display  = useCards ? 'none' : '';
+  if (cardGrid) cardGrid.style.display = useCards ? '' : 'none';
+
   if (!filtered.length) {
     const isFiltered = (document.getElementById('search-input')?.value || '') ||
                        (document.getElementById('cat-filter')?.value !== 'all');
-    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">
+    const emptyHTML = `<div class="empty-state">
       <div class="es-icon">${isFiltered ? '🔍' : '📦'}</div>
       <p>${isFiltered ? 'Ningún producto coincide con el filtro.' : 'El catálogo está vacío.'}</p>
-      ${!isFiltered ? `<button class="btn btn-gold btn-sm" onclick="openForm()">+ Agregar primer producto</button>` : ''}
-    </div></td></tr>`;
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        ${isFiltered ? `<button class="btn btn-outline btn-sm" onclick="clearAdminFilters()">✕ Limpiar filtros</button>` : ''}
+        ${!isFiltered ? `<button class="btn btn-gold btn-sm" onclick="openForm()">+ Agregar primer producto</button>` : ''}
+      </div>
+    </div>`;
+    if (useCards && cardGrid) { cardGrid.innerHTML = emptyHTML; }
+    else {
+      const tbody = document.getElementById('products-table');
+      if (tbody) tbody.innerHTML = `<tr><td colspan="5">${emptyHTML}</td></tr>`;
+    }
     updateBulkBar();
     return;
   }
 
-  tbody.innerHTML = filtered.map(p => mobile ? mobileCard(p) : desktopRow(p)).join('');
+  if (useCards && cardGrid) {
+    cardGrid.innerHTML = filtered.map(p => adminCard(p)).join('');
+    updateBulkBar();
+    return;
+  }
+
+  const tbody = document.getElementById('products-table');
+  if (tbody) tbody.innerHTML = filtered.map(p => mobile ? mobileCard(p) : desktopRow(p)).join('');
 
   updateSelectAllCheckbox();
   if (!mobile) initDragDrop();
@@ -1101,6 +1193,14 @@ function updateMarginDisplay() {
   const amt = (price - cost).toLocaleString('es-MX');
   el.textContent = `Margen: $${amt} (${pct}%)`;
   el.style.color = parseFloat(pct) >= 30 ? 'var(--green)' : parseFloat(pct) >= 10 ? 'var(--gold-dark)' : 'var(--red)';
+}
+
+function clearAdminFilters() {
+  const s = document.getElementById('search-input');
+  const c = document.getElementById('cat-filter');
+  if (s) s.value = '';
+  if (c) c.value = 'all';
+  renderTable();
 }
 
 function syncCategoryLabel() {

@@ -177,6 +177,47 @@ button,a{touch-action:manipulation}
 .cat-header{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9B8B78;padding:12px 4px 4px;margin-top:4px}
 .cat-header:first-child{padding-top:4px}
 
+/* VIEW TOGGLE POS */
+.pos-view-toggle{display:flex;gap:2px;background:var(--cream);border-radius:8px;padding:2px;flex-shrink:0}
+.pos-vbtn{width:30px;height:30px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:.15s;color:#9B8B78}
+.pos-vbtn.active{background:var(--charcoal);color:#fff;box-shadow:0 1px 3px rgba(28,24,23,.15)}
+.pos-vbtn:hover:not(.active){color:var(--charcoal)}
+
+/* POS CARD GRID */
+.pos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;padding:10px}
+.pos-card{
+  background:#fff;border-radius:12px;overflow:hidden;
+  cursor:pointer;border:1.5px solid var(--border);
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .18s,border-color .18s;
+  box-shadow:0 1px 4px rgba(0,0,0,.07);
+  display:flex;flex-direction:column;
+}
+.pos-card:hover{border-color:var(--gold);transform:translateY(-3px);box-shadow:0 6px 18px rgba(0,0,0,.12)}
+.pos-card:active{transform:scale(.97)}
+.pos-card.card-sold{opacity:.55;cursor:not-allowed;filter:grayscale(.4)}
+.pos-card-img-wrap{position:relative;overflow:hidden}
+.pos-card-img{width:100%;aspect-ratio:1;object-fit:cover;display:block;transition:transform .3s ease}
+.pos-card:hover:not(.card-sold) .pos-card-img{transform:scale(1.05)}
+.pos-card-add{
+  position:absolute;inset:0;background:rgba(201,164,98,.0);
+  display:flex;align-items:center;justify-content:center;
+  transition:background .2s;
+}
+.pos-card:hover:not(.card-sold) .pos-card-add{background:rgba(201,164,98,.15)}
+.pos-card-add-icon{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--gold);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;font-weight:700;
+  opacity:0;transform:scale(.7);transition:.2s;
+  box-shadow:0 3px 10px rgba(201,164,98,.5);
+}
+.pos-card:hover:not(.card-sold) .pos-card-add-icon{opacity:1;transform:scale(1)}
+.pos-card-body{padding:8px 10px 10px;flex:1;display:flex;flex-direction:column;gap:3px}
+.pos-card-name{font-size:.76rem;font-weight:600;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;color:var(--charcoal);flex:1}
+.pos-card-price{font-family:'Playfair Display',serif;font-weight:700;font-size:.9rem;color:var(--charcoal)}
+.pos-card-stock{font-size:.64rem;display:inline-block}
+
 /* CATEGORY CHIPS */
 .cat-chip-bar{display:flex;gap:6px;padding:8px 14px;background:#fff;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;flex-shrink:0;-webkit-overflow-scrolling:touch}
 .cat-chip-bar::-webkit-scrollbar{display:none}
@@ -227,10 +268,59 @@ button,a{touch-action:manipulation}
 .btn-wa-ticket{width:100%;margin-top:8px;padding:11px;border-radius:12px;border:none;background:#25D366;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
 .btn-wa-ticket:hover{background:#1da851}
 
+/* ── MOBILE ── */
 @media(max-width:760px){
+  /* Layout: apilado, sin divisor */
+  .pos-body{grid-template-columns:1fr;grid-template-rows:auto 1fr}
   .pos-left{max-height:42vh;border-right:none;border-bottom:1px solid var(--border)}
-  .pos-right{flex:1}
-  .btn-green{padding:12px 18px;font-size:.9rem}
+  .pos-right{flex:1;min-height:0}
+  .pos-divider{display:none}
+
+  /* Chips de categoría más pequeños */
+  .cat-chip{padding:5px 12px;font-size:.72rem}
+
+  /* Carrito compacto */
+  .cart-header{padding:8px 12px}
+  .ci-qty button{min-height:38px;min-width:38px;width:38px;height:38px}
+
+  /* Historial y apartados compactos */
+  .history-panel{max-height:140px}
+  .apartados-panel{max-height:120px}
+
+  /* CHECKOUT — touch-friendly */
+  .pos-checkout{padding:8px 12px 12px}
+  .cash-quick button{min-height:44px;padding:10px 4px;font-size:.8rem}
+  .pay-btn{min-height:44px;font-size:.82rem}
+  .discount-type-btn{min-height:38px;padding:8px 12px;font-size:.78rem}
+  #pos-discount{height:38px;font-size:16px!important}
+  #pos-note{height:40px;font-size:16px!important;padding:10px 12px}
+  #pos-customer{font-size:16px!important}
+  #pos-anticipo,#pos-pendiente{font-size:16px!important;padding:9px 10px}
+  .apartado-field-row{grid-template-columns:1fr}
+  .cash-field input{font-size:16px!important;padding:10px 12px}
+  .cash-field label{font-size:.7rem}
+  .btn-green{min-height:48px;font-size:.95rem;border-radius:12px}
+  .apartado-toggle-label{padding:6px 0;font-size:.85rem}
+
+  /* Vista tarjetas en mobile: 2 columnas */
+  .pos-grid{grid-template-columns:1fr 1fr;gap:8px;padding:8px}
+  .pos-card-body{padding:6px 8px 8px}
+  .pos-card-name{font-size:.73rem}
+  .pos-card-price{font-size:.84rem}
+
+  /* Toggle de vista más grande */
+  .pos-vbtn{width:36px;height:36px}
+
+  /* Topbar */
+  .topbar{padding:0 12px}
+}
+
+/* Pantallas muy pequeñas */
+@media(max-width:380px){
+  .pos-grid{grid-template-columns:1fr 1fr;gap:6px;padding:6px}
+  .cat-chip{padding:5px 9px;font-size:.68rem}
+  .cash-quick{flex-wrap:wrap}
+  .cash-quick button{flex:1 1 calc(33% - 4px);min-width:0}
 }
 </style>
 </head>
@@ -256,6 +346,10 @@ button,a{touch-action:manipulation}
   <div class="pos-left">
     <div class="pos-search-bar">
       <input type="search" id="pos-search" placeholder="Buscar producto..." oninput="searchProducts(this.value)" autocomplete="off">
+      <div class="pos-view-toggle">
+        <button class="pos-vbtn active" id="pos-vbtn-list"  onclick="setPosView('list')"  title="Lista">☰</button>
+        <button class="pos-vbtn"        id="pos-vbtn-cards" onclick="setPosView('cards')" title="Tarjetas">⊞</button>
+      </div>
       <button class="btn btn-gold" onclick="openPosScanner()" title="Escanear código de barras">📷</button>
     </div>
     <!-- Chips de categoría -->
@@ -311,7 +405,7 @@ button,a{touch-action:manipulation}
         <span class="discount-label">Descuento</span>
         <button class="discount-type-btn active" id="disc-pct-btn" onclick="setDiscountType('pct')">%</button>
         <button class="discount-type-btn" id="disc-fixed-btn" onclick="setDiscountType('fixed')">$</button>
-        <input type="number" id="pos-discount" min="0" placeholder="0" oninput="updateChange()">
+        <input type="number" id="pos-discount" min="0" placeholder="0" oninput="clampDiscount();updateChange()">
         <span class="discount-amount" id="pos-discount-amount"></span>
       </div>
 
@@ -433,8 +527,9 @@ let cart        = [];
 let salesCache  = {};
 let currentCat  = 'all';
 let payMethod   = 'efectivo';
-let discType    = 'pct';      // 'pct' | 'fixed'
-let _lastSale   = {};         // para el ticket de WhatsApp
+let discType    = 'pct';
+let _lastSale   = {};
+let posView     = localStorage.getItem('te_pos_view') || 'list';
 
 /* ── API ── */
 function api(path, opts = {}) {
@@ -474,6 +569,37 @@ async function loadProducts() {
   }
 }
 
+/* ── VIEW TOGGLE ── */
+function setPosView(view) {
+  posView = view;
+  localStorage.setItem('te_pos_view', view);
+  document.getElementById('pos-vbtn-list')?.classList.toggle('active', view === 'list');
+  document.getElementById('pos-vbtn-cards')?.classList.toggle('active', view === 'cards');
+  showAllProducts();
+}
+
+function posCard(p) {
+  const oos = p.stock === 0 || p.outOfStock;
+  const stockCls = p.stock === 0 ? 'stock-sold' : p.stock === 1 ? 'stock-one' : 'stock-ok';
+  const stockTxt = p.stock === 0 ? 'Sin stock' : `${p.stock} ud${p.stock!==1?'s':''}`;
+  const fallback  = `https://picsum.photos/seed/${p.id+10}/200/200`;
+  return `
+<div class="pos-card${oos?' card-sold':''}" onclick="${oos?'':` addToCart(${p.id})`}">
+  <div class="pos-card-img-wrap">
+    <img class="pos-card-img" src="${p.image}" alt="${p.name}"
+         onerror="this.onerror=null;this.src='${fallback}'">
+    <div class="pos-card-add">
+      <div class="pos-card-add-icon">+</div>
+    </div>
+  </div>
+  <div class="pos-card-body">
+    <div class="pos-card-name">${p.name}</div>
+    <div class="pos-card-price">$${p.price.toLocaleString('es-MX')}</div>
+    <span class="pos-card-stock ${stockCls}">${stockTxt}</span>
+  </div>
+</div>`;
+}
+
 /* ── CATEGORY CHIPS ── */
 function renderCategoryChips() {
   const bar = document.getElementById('cat-chip-bar');
@@ -505,6 +631,28 @@ function getFilteredProducts(q = '') {
   });
 }
 
+function renderPosProducts(list, groupByCategory = false) {
+  const el = document.getElementById('pos-results');
+  if (!list.length) return;
+  if (posView === 'cards') {
+    el.innerHTML = `<div class="pos-grid">${list.map(p => posCard(p)).join('')}</div>`;
+    return;
+  }
+  // Vista lista (con headers de categoría si es showAll)
+  if (groupByCategory) {
+    const cats = {};
+    list.forEach(p => {
+      if (!cats[p.categoryLabel]) cats[p.categoryLabel] = [];
+      cats[p.categoryLabel].push(p);
+    });
+    el.innerHTML = Object.entries(cats).map(([label, items]) =>
+      `<div class="cat-header">${label}</div>` + items.map(p => productCard(p)).join('')
+    ).join('');
+  } else {
+    el.innerHTML = list.map(p => productCard(p)).join('');
+  }
+}
+
 function showAllProducts() {
   const el = document.getElementById('pos-results');
   if (!products.length) {
@@ -516,25 +664,18 @@ function showAllProducts() {
     el.innerHTML = '<div class="pos-empty"><div class="em">🔍</div>Sin productos en esta categoría</div>';
     return;
   }
-  const cats = {};
-  filtered.forEach(p => {
-    if (!cats[p.categoryLabel]) cats[p.categoryLabel] = [];
-    cats[p.categoryLabel].push(p);
-  });
-  el.innerHTML = Object.entries(cats).map(([label, items]) =>
-    `<div class="cat-header">${label}</div>` + items.map(p => productCard(p)).join('')
-  ).join('');
+  renderPosProducts(filtered, currentCat === 'all' && posView === 'list');
 }
 
 function searchProducts(q) {
   const el = document.getElementById('pos-results');
-  const matches = getFilteredProducts(q).slice(0, 30);
+  const matches = getFilteredProducts(q).slice(0, 40);
   if (!q.trim() && currentCat === 'all') { showAllProducts(); return; }
   if (!matches.length) {
     el.innerHTML = `<div class="pos-empty"><div class="em">🔍</div>Sin resultados</div>`;
     return;
   }
-  el.innerHTML = matches.map(p => productCard(p)).join('');
+  renderPosProducts(matches, false);
 }
 
 function productCard(p) {
@@ -722,6 +863,14 @@ async function deleteSale(id) {
 }
 
 /* ── DESCUENTO ── */
+function clampDiscount() {
+  const input = document.getElementById('pos-discount');
+  if (!input) return;
+  const val = parseFloat(input.value) || 0;
+  if (discType === 'pct' && val > 100) input.value = 100;
+  if (val < 0) input.value = 0;
+}
+
 function setDiscountType(type) {
   discType = type;
   document.getElementById('disc-pct-btn').classList.toggle('active', type === 'pct');
@@ -838,8 +987,10 @@ function updateChange() {
   updateAnticipoInfo();
 }
 
+let _cobrandoAhora = false;
 async function cobrar() {
-  if (!cart.length) return;
+  if (!cart.length || _cobrandoAhora) return;
+  _cobrandoAhora = true;
   const isApartado = document.getElementById('pos-is-apartado')?.checked;
   const customer   = document.getElementById('pos-customer')?.value.trim() || '';
   const note       = document.getElementById('pos-note')?.value.trim() || '';
@@ -881,7 +1032,7 @@ async function cobrar() {
   };
 
   const saleResult = await api('sales', { method:'POST', headers:{'Prefer':'return=minimal'}, body:JSON.stringify(saleData) });
-  if (!saleResult.ok) { btn.removeAttribute('data-loading'); btn.disabled = false; toast('Error al registrar la venta', 'error'); return; }
+  if (!saleResult.ok) { btn.removeAttribute('data-loading'); btn.disabled = false; _cobrandoAhora = false; toast('Error al registrar la venta', 'error'); return; }
 
   // Reducir stock
   for (const { product: p, qty } of cart) {
@@ -909,6 +1060,7 @@ async function cobrar() {
   showAllProducts();
   loadTodayStats(); loadHistory(); loadApartados();
 
+  _cobrandoAhora = false;
   if (isApartado) {
     toast(`Apartado registrado para ${customer} ✓`, 'success');
   } else {
@@ -1054,6 +1206,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initDivider();
   await loadProducts();
   renderCategoryChips();
+  setPosView(posView); // aplica vista guardada
   renderCart();
   loadTodayStats();
   loadHistory();

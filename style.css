@@ -421,7 +421,7 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 
   /* SOCIAL — columna */
   .social-links{flex-direction:column;align-items:center}
-  .soc-link{width:260px;max-width:100%;justify-content:center}
+  .soc-link{width:min(260px,100%);justify-content:center}
 
   /* PILLARS — 2 columnas en mobile, la tercera centrada */
   .pillars-grid{grid-template-columns:1fr 1fr;max-width:100%;gap:16px}
@@ -475,10 +475,13 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 
 /* Teléfonos muy chicos */
 @media(max-width:360px){
-  .products-grid{gap:10px}
+  .products-grid{grid-template-columns:1fr 1fr;gap:8px}
   .product-body{padding:10px 8px 12px}
-  .hero h1{font-size:1.9rem}
-  .hms-card{width:116px}
+  .hero h1{font-size:1.8rem}
+  .hms-card{width:108px}
+  /* Filtros en pantalla muy angosta */
+  .products-filters{gap:6px}
+  .filter-btn{padding:8px 12px;font-size:.73rem}
 }
 
 /* ── FIXES PARA TELÉFONO FÍSICO ── */

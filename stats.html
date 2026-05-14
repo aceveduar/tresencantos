@@ -142,29 +142,46 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 
 /* ── MOBILE ── */
 @media(max-width:768px){
-  main{padding:18px 14px 48px}
-  .topbar{padding:0 16px;height:56px}
+  main{padding:16px 12px 48px}
+  .topbar{padding:0 14px;height:56px}
   .topbar-left img{height:28px}
   .topbar-title{font-size:.9rem}
 
-  .period-bar{width:100%;border-radius:12px;justify-content:space-between}
-  .period-btn{flex:1;text-align:center;padding:7px 8px;font-size:.78rem}
+  /* Period bar: touch targets mínimos 44px */
+  .period-bar{width:100%;border-radius:12px;justify-content:space-between;padding:4px}
+  .period-btn{flex:1;text-align:center;padding:10px 6px;font-size:.76rem;min-height:44px;display:flex;align-items:center;justify-content:center}
 
-  .kpi-grid{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  .kpi-grid{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
   .kpi-card{padding:14px 14px 12px}
-  .kpi-value{font-size:1.45rem}
-  .kpi-label{font-size:.64rem}
+  .kpi-value{font-size:1.35rem}
+  .kpi-label{font-size:.63rem}
 
   .charts-row{grid-template-columns:1fr;gap:12px}
-  .chart-canvas-wrap{height:200px}
+  .chart-canvas-wrap{height:190px}
   .bottom-row{grid-template-columns:1fr;gap:12px}
-  .card-head{padding:14px 16px 12px}
-  .card-body{padding:14px 16px}
+  .card-head{padding:13px 14px 11px}
+  .card-body{padding:12px 14px}
+
+  /* Inventario: 3 col → 1 fila responsive */
+  .inv-summary{grid-template-columns:repeat(3,1fr);gap:8px}
+  .inv-stat{padding:10px 8px}
+  .inv-stat .n{font-size:1.3rem}
+  .inv-stat .l{font-size:.62rem}
 }
+
 @media(max-width:480px){
-  .kpi-icon{font-size:1.1rem;margin-bottom:7px}
-  .kpi-value{font-size:1.25rem}
+  .kpi-icon{font-size:1rem;margin-bottom:6px}
+  .kpi-value{font-size:1.2rem}
   .topbar-right .btn-back span{display:none}
+
+  /* Inventario: 3 col muy pequeño → 2+1 */
+  .inv-summary{grid-template-columns:1fr 1fr;gap:8px}
+  .inv-stat:nth-child(3){grid-column:1/-1}
+}
+
+@media(max-width:360px){
+  .kpi-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .period-btn{font-size:.7rem;padding:10px 4px}
 }
 </style>
 </head>
