@@ -591,6 +591,27 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .bulk-bar .btn{font-size:.68rem;padding:5px 8px}
   main{padding:14px 10px}
 }
+
+/* ── TABLETA (641px–1024px) ─────────────────────────────────────────────
+   En portrait la tabla puede estar apretada; reducimos columnas fijas
+   y mostramos las acciones de card sin requerir hover.               */
+@media(min-width:641px) and (max-width:1024px){
+  main{padding:18px 18px}
+  .col-price  {width:80px}
+  .col-state  {width:130px}
+  .col-actions{width:112px}
+  .stats{grid-template-columns:repeat(3,1fr)}
+  .admin-cards-grid{grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:12px;padding:14px}
+}
+
+/* ── DISPOSITIVOS SIN HOVER (táctiles: tablets, teléfonos) ────────────
+   Las acciones están ocultas hasta hover, pero en touch no hay hover.
+   Las mostramos siempre en dispositivos que no soportan hover.        */
+@media(hover:none){
+  .actions        {opacity:1!important}
+  .ac-actions     {opacity:1!important}
+  .drag-handle    {display:none!important}  /* drag & drop no funciona en touch */
+}
 </style>
 </head>
 <body>
