@@ -298,6 +298,13 @@ button,a{touch-action:manipulation}
 
 /* ── MOBILE ── */
 @media(max-width:760px){
+  /* Topbar compacto: solo iconos, sin texto en los botones */
+  .btn-label{display:none}
+  .today-stats{display:none!important} /* demasiado ancho; el badge del carrito ya muestra el estado */
+  .cart-topbar-btn,.history-oc-btn,.btn-outline-white{padding:6px 10px!important}
+  .topbar{padding:0 10px;gap:6px}
+  .topbar-title{font-size:.88rem}
+
   /* Layout: apilado vertical, sin divisor */
   .pos-body{display:flex;flex-direction:column;overflow:hidden}
   .pos-left{flex-shrink:0;max-height:40vh;border-right:none;border-bottom:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column}
@@ -420,9 +427,9 @@ button,a{touch-action:manipulation}
       🛒
       <span id="cart-topbar-badge" class="cart-badge" style="display:none"></span>
     </button>
-    <button class="history-oc-btn" onclick="openHistory()" id="btn-history-pos">🕐 Historial</button>
+    <button class="history-oc-btn" onclick="openHistory()" id="btn-history-pos">🕐 <span class="btn-label">Historial</span></button>
     <a href="stats.html" class="btn btn-outline-white" style="display:none" id="btn-stats-pos">📊</a>
-    <a href="admin.html" class="btn btn-outline-white">← Admin</a>
+    <a href="admin.html" class="btn btn-outline-white">← <span class="btn-label">Admin</span></a>
   </div>
 </div>
 
