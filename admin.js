@@ -1995,18 +1995,22 @@ function dictate(fieldId) {
     sr.interimResults = true;
     _activeRec = sr;
 
+    const doneIdx = new Set(); // índices ya finalizados — el Set evita re-procesarlos
+    // Android devuelve e.resultIndex=0 siempre, aunque sean resultados viejos;
+    // por eso iteramos desde 0 y usamos doneIdx como guard en lugar de resultIndex
+
     sr.onresult = e => {
       let interim = '';
-      // e.resultIndex → solo procesar chunks NUEVOS en este evento
-      // Esto evita el bug de duplicados en Android donde el mismo
-      // texto se re-entrega como resultado de índice anterior
-      for (let i = e.resultIndex; i < e.results.length; i++) {
+      for (let i = 0; i < e.results.length; i++) {
         const r = e.results[i];
         if (r.isFinal) {
-          const text = r[0].transcript.trim();
-          if (text) finalChunks.push(text);
+          if (!doneIdx.has(i)) {             // primera vez que vemos este índice como final
+            doneIdx.add(i);
+            const text = r[0].transcript.trim();
+            if (text) finalChunks.push(text);
+          }
         } else {
-          interim = r[0].transcript.trim();
+          interim = r[0].transcript.trim();  // siempre el interino más reciente
         }
       }
       const spoken = finalChunks.join(' ');
@@ -2017,12 +2021,12 @@ function dictate(fieldId) {
     sr.onend = () => {
       _activeRec = null;
       if (_dictStopping) {
-        // Detención manual — terminar limpiamente
         _dictStopping = false;
         finalize();
       } else {
-        // Fin automático: iOS/Android paran en silencios aunque continuous=true
-        // Reiniciar transparentemente para que el usuario pueda seguir dictando
+        // iOS/Android paran en silencios aunque continuous=true → reiniciar
+        // doneIdx se recrea en launch() (nueva sesión = nuevos índices desde 0)
+        // finalChunks se conserva para acumular entre sesiones
         try { launch(); } catch { finalize(); }
       }
     };
