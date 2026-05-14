@@ -298,34 +298,36 @@ button,a{touch-action:manipulation}
 
 /* ── MOBILE ── */
 @media(max-width:760px){
-  /* Topbar compacto: solo iconos, sin texto en los botones */
-  .btn-label{display:none}
-  .today-stats{display:none!important} /* demasiado ancho; el badge del carrito ya muestra el estado */
-  .cart-topbar-btn,.history-oc-btn,.btn-outline-white{padding:6px 10px!important}
-  .topbar{padding:0 10px;gap:6px}
-  .topbar-title{font-size:.88rem}
+  /* ── TOPBAR COMPACTO ─────────────────────────────────────── */
+  .topbar{padding:0 10px;gap:0}          /* regla única — sin duplicados */
+  .topbar-right{gap:4px}                 /* menos espacio entre botones  */
+  .btn-label{display:none}               /* ocultar "Historial" y "Admin" */
+  .title-long{display:none}              /* ocultar "Punto de Venta"     */
+  .title-short{display:inline!important} /* mostrar "POS"                */
+  .today-stats{display:none!important}   /* chip demasiado ancho en móvil */
+  /* Botones solo-ícono: padding mínimo */
+  .cart-topbar-btn{padding:5px 8px!important}
+  .history-oc-btn{padding:5px 8px!important}
+  .topbar-right .btn-outline-white{padding:5px 8px!important}
+  /* Imagen de logo más pequeña */
+  .topbar-left img{height:26px}
+  .topbar-left{gap:7px}
+  .topbar-title{font-size:.9rem}
 
-  /* Layout: apilado vertical, sin divisor */
+  /* ── LAYOUT VERTICAL ─────────────────────────────────────── */
   .pos-body{display:flex;flex-direction:column;overflow:hidden}
   .pos-left{flex-shrink:0;max-height:40vh;border-right:none;border-bottom:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column}
   .pos-divider{display:none}
-
-  /* Panel derecho: scrollable para que el checkout siempre sea accesible */
   .pos-right{flex:1;overflow-y:auto;overflow-x:hidden;display:block;min-height:0}
-  /* El carrito tiene altura fija para no opacar el checkout */
   .cart-items{max-height:120px;overflow-y:auto;flex:none}
 
-  /* Chips de categoría más pequeños */
+  /* ── CHIPS Y CARRITO ─────────────────────────────────────── */
   .cat-chip{padding:5px 12px;font-size:.72rem}
-
-  /* Carrito compacto */
   .cart-header{padding:8px 12px}
   .ci-qty button{min-height:38px;min-width:38px;width:38px;height:38px}
-
-  /* Apartados compactos en mobile */
   .apartados-panel{max-height:120px}
 
-  /* CHECKOUT — touch-friendly */
+  /* ── CHECKOUT TOUCH-FRIENDLY ─────────────────────────────── */
   .pos-checkout{padding:8px 12px 12px}
   .cash-quick button{min-height:44px;padding:10px 4px;font-size:.8rem}
   .pay-btn{min-height:44px;font-size:.82rem}
@@ -340,17 +342,12 @@ button,a{touch-action:manipulation}
   .btn-green{min-height:48px;font-size:.95rem;border-radius:12px}
   .apartado-toggle-label{padding:6px 0;font-size:.85rem}
 
-  /* Vista tarjetas en mobile: 2 columnas */
+  /* ── VISTA TARJETAS ──────────────────────────────────────── */
   .pos-grid{grid-template-columns:1fr 1fr;gap:8px;padding:8px}
   .pos-card-body{padding:6px 8px 8px}
   .pos-card-name{font-size:.73rem}
   .pos-card-price{font-size:.84rem}
-
-  /* Toggle de vista más grande */
   .pos-vbtn{width:36px;height:36px}
-
-  /* Topbar */
-  .topbar{padding:0 12px}
 }
 
 /* CART TOPBAR BUTTON */
@@ -419,7 +416,7 @@ button,a{touch-action:manipulation}
 <div class="topbar">
   <div class="topbar-left">
     <img src="logo.png" alt="Tres Encantos">
-    <span class="topbar-title">Punto de Venta</span>
+    <span class="topbar-title"><span class="title-long">Punto de Venta</span><span class="title-short" style="display:none">POS</span></span>
   </div>
   <div class="topbar-right">
     <span id="today-stats" class="today-stats" style="display:none"></span>
