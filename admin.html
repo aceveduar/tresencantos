@@ -811,10 +811,16 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           <input type="number" id="f-original-price" min="0" step="1" placeholder="500">
           <p class="hint">Solo si está en oferta</p>
         </div>
-        <div class="field" style="display:flex;align-items:flex-end">
-          <div id="f-margin-display" style="width:100%;padding:10px 14px;background:#F0E8E0;border-radius:var(--r);font-size:.84rem;color:var(--muted)">
+        <div class="field" style="display:flex;flex-direction:column;gap:6px;justify-content:flex-end">
+          <label style="font-size:.78rem;font-weight:600;color:var(--muted)">
+            Margen sobre venta
+            <span title="El margen indica qué porcentaje del precio de venta es ganancia.&#10;&#10;Fórmula: (Precio − Costo) ÷ Precio × 100&#10;&#10;🟢 ≥30% — óptimo&#10;🟡 10–29% — moderado&#10;🔴 &lt;10% — bajo&#10;&#10;Solo tú lo ves; no aparece en el catálogo público."
+                  style="cursor:help;font-weight:400;color:var(--gold-dark)">ⓘ</span>
+          </label>
+          <div id="f-margin-display" style="padding:10px 14px;background:#F0E8E0;border-radius:var(--r);font-size:.84rem;color:var(--muted)">
             Margen: —
           </div>
+          <p class="hint">Llena "Precio de costo" para ver la ganancia estimada.</p>
         </div>
       </div>
       <div class="form-row">
