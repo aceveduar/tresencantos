@@ -1951,8 +1951,7 @@ async function addCategory() {
 }
 
 /* ── VOICE DICTATION ──────────────────────────────────────────────────── */
-let _activeRec    = null;
-let _dictStopping = false; // true cuando el usuario detiene manualmente
+let _activeRec = null;
 
 function dictate(fieldId) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1964,88 +1963,57 @@ function dictate(fieldId) {
   const btn   = document.getElementById(`dictate-${fieldId}`);
   const field = document.getElementById(fieldId);
 
-  // Usuario detiene manualmente
+  // Si ya hay grabación activa → detener
   if (_activeRec) {
-    _dictStopping = true;
     _activeRec.stop();
     return;
   }
 
-  _dictStopping = false;
+  const sr = new SR();
+  sr.lang            = 'es-MX';
+  sr.continuous      = true;   // no para en silencios cortos
+  sr.interimResults  = true;   // muestra texto mientras se habla
+
+  _activeRec = sr;
 
   const startValue = field.value.trimEnd();
-  let finalChunks  = []; // chunks confirmados — se acumula entre reinicios de sesión
+  let spoken = '';             // texto final acumulado, reconstruido en cada evento
 
   btn.textContent = '⏹ Detener';
   btn.classList.add('recording');
 
-  const finalize = () => {
+  sr.onresult = e => {
+    // Recorrer TODOS los resultados desde 0 (no desde e.resultIndex)
+    // para evitar duplicados cuando el browser re-entrega el mismo índice
+    const finals = [];
+    let interim  = '';
+    for (let i = 0; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finals.push(e.results[i][0].transcript.trim());
+      else interim += e.results[i][0].transcript;
+    }
+    spoken = finals.join(' ');                              // reconstrucción limpia
+    const sep = startValue && (spoken || interim) ? ' ' : '';
+    field.value = startValue + sep + spoken + (interim ? ' ' + interim.trim() : '');
+  };
+
+  const finish = () => {
     _activeRec = null;
     btn.textContent = '🎤 Dictar';
     btn.classList.remove('recording');
-    const spoken = finalChunks.join(' ');
-    const sep    = startValue && spoken ? ' ' : '';
-    field.value  = (startValue + sep + spoken).trim();
+    const sep = startValue && spoken ? ' ' : '';
+    field.value = (startValue + sep + spoken).trim();
   };
 
-  const launch = () => {
-    const sr = new SR();
-    sr.lang           = 'es-MX';
-    sr.continuous     = true;
-    sr.interimResults = true;
-    _activeRec = sr;
-
-    const doneIdx = new Set(); // índices ya finalizados — el Set evita re-procesarlos
-    // Android devuelve e.resultIndex=0 siempre, aunque sean resultados viejos;
-    // por eso iteramos desde 0 y usamos doneIdx como guard en lugar de resultIndex
-
-    sr.onresult = e => {
-      let interim = '';
-      for (let i = 0; i < e.results.length; i++) {
-        const r = e.results[i];
-        if (r.isFinal) {
-          if (!doneIdx.has(i)) {             // primera vez que vemos este índice como final
-            doneIdx.add(i);
-            const text = r[0].transcript.trim();
-            if (text) finalChunks.push(text);
-          }
-        } else {
-          interim = r[0].transcript.trim();  // siempre el interino más reciente
-        }
-      }
-      const spoken = finalChunks.join(' ');
-      const sep    = startValue && (spoken || interim) ? ' ' : '';
-      field.value  = startValue + sep + spoken + (interim ? ' ' + interim : '');
-    };
-
-    sr.onend = () => {
-      _activeRec = null;
-      if (_dictStopping) {
-        _dictStopping = false;
-        finalize();
-      } else {
-        // iOS/Android paran en silencios aunque continuous=true → reiniciar
-        // doneIdx se recrea en launch() (nueva sesión = nuevos índices desde 0)
-        // finalChunks se conserva para acumular entre sesiones
-        try { launch(); } catch { finalize(); }
-      }
-    };
-
-    sr.onerror = e => {
-      if (e.error === 'not-allowed') {
-        _dictStopping = true;
-        toast('Permiso de micrófono denegado. Actívalo en los ajustes del navegador.', 'error');
-      } else if (e.error === 'aborted') {
-        // Normal: ocurre cuando llamamos .stop() — onend lo maneja
-      } else if (e.error !== 'no-speech') {
-        toast('Error de micrófono: ' + e.error, 'error');
-      }
-    };
-
-    try { sr.start(); } catch { finalize(); }
+  sr.onend   = finish;
+  sr.onerror = e => {
+    finish();
+    if (e.error === 'not-allowed')
+      toast('Permiso de micrófono denegado. Actívalo en los ajustes del navegador.', 'error');
+    else if (e.error !== 'aborted')
+      toast('Error de micrófono: ' + e.error, 'error');
   };
 
-  launch();
+  sr.start();
 }
 
 /* ── TOAST ── */
