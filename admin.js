@@ -429,7 +429,8 @@ async function renderStats() {
   let ventasHoy = 0, ingresosHoy = 0;
   try {
     const hoy = new Date().toISOString().split('T')[0];
-    const sr = await supabaseApi(`sales?created_at=gte.${hoy}T00:00:00&select=total`);
+    // Solo ventas completadas (type=venta), no apartados pendientes
+    const sr = await supabaseApi(`sales?created_at=gte.${hoy}T00:00:00&type=eq.venta&select=total`);
     if (sr.ok && Array.isArray(sr.data)) {
       ventasHoy   = sr.data.length;
       ingresosHoy = sr.data.reduce((s, x) => s + (parseFloat(x.total) || 0), 0);
@@ -464,6 +465,12 @@ async function renderStats() {
     </div>
   `;
 }
+
+// Refrescar ingresos/ventas del día cuando el usuario vuelve a esta pestaña
+// (por ejemplo, tras cancelar ventas de prueba en el POS)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && isAuthenticated()) renderStats();
+});
 
 
 /* ── TABLE ── */
