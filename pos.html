@@ -325,7 +325,7 @@ button,a{touch-action:manipulation}
   .discount-type-btn{min-height:38px;padding:8px 12px;font-size:.78rem}
   #pos-discount{height:38px;font-size:16px!important}
   #pos-note{height:40px;font-size:16px!important;padding:10px 12px}
-  #pos-customer{font-size:16px!important}
+  #pos-customer,#pos-phone{font-size:16px!important}
   #pos-anticipo,#pos-pendiente{font-size:16px!important;padding:9px 10px}
   .apartado-field-row{grid-template-columns:1fr}
   .cash-field input{font-size:16px!important;padding:10px 12px}
@@ -472,6 +472,7 @@ button,a{touch-action:manipulation}
       <div id="apartado-fields" style="display:none">
         <div class="apartado-fields">
           <input type="text" id="pos-customer" placeholder="👤 Nombre del cliente" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%">
+          <input type="tel" id="pos-phone" placeholder="📱 Teléfono (opcional)" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%">
           <div class="apartado-field-row">
             <div class="cash-field">
               <label>Anticipo recibido</label>
@@ -1038,7 +1039,9 @@ async function cobrar() {
   if (!cart.length || _cobrandoAhora) return;
   _cobrandoAhora = true;
   const isApartado = document.getElementById('pos-is-apartado')?.checked;
-  const customer   = document.getElementById('pos-customer')?.value.trim() || '';
+  const customerName = document.getElementById('pos-customer')?.value.trim() || '';
+  const phone        = document.getElementById('pos-phone')?.value.trim() || '';
+  const customer     = customerName + (phone ? ` · 📱 ${phone}` : '');
   const note       = document.getElementById('pos-note')?.value.trim() || '';
   const disc       = getDiscount();
   const total      = getDiscountedTotal();
@@ -1097,7 +1100,7 @@ async function cobrar() {
 
   // Reset UI
   cart = [];
-  ['pos-cash','pos-discount','pos-note','pos-customer','pos-anticipo'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  ['pos-cash','pos-discount','pos-note','pos-customer','pos-phone','pos-anticipo'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   document.getElementById('pos-is-apartado').checked = false;
   document.getElementById('apartado-fields').style.display = 'none';
   document.getElementById('cobrar-btn').textContent = '✓ Cobrar';
