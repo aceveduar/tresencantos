@@ -551,7 +551,7 @@ function stockChip(p) {
   // stock = 1 → gris neutro (pieza única, estado normal)
   // stock > 1 → verde
   const cls = p.stock === 0 ? 'sold' : p.stock === 1 ? 'one' : 'ok';
-  return `<span class="stock-chip stock-${cls}" onclick="editStockInline(event,${p.id})" title="Toca para editar stock" style="cursor:pointer">${p.stock}</span>`;
+  return `<span class="stock-chip stock-${cls}" onclick="editStockInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar stock" style="cursor:pointer">${p.stock}</span>`;
 }
 
 async function editStockInline(e, id) {
@@ -620,7 +620,8 @@ async function editStockInline(e, id) {
     if (ev.key === 'Escape') { saved = true; renderTable(); }
   });
 
-  requestAnimationFrame(() => {
+  // setTimeout más fiable que rAF en Android para que el teclado no se cierre
+  setTimeout(() => {
     input.focus();
     if (!mobile) input.select();
     // Desktop: blur guarda con timeout generoso para evitar blur espurio
@@ -628,7 +629,7 @@ async function editStockInline(e, id) {
     if (!mobile) {
       setTimeout(() => { if (!saved) input.addEventListener('blur', save); }, 500);
     }
-  });
+  }, 50);
 }
 
 // getCatColor() reemplaza CAT_COLORS — usa el array dinámico de categorías
