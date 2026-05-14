@@ -514,6 +514,7 @@ function adminCard(p) {
       <span class="cat-dot" style="background:${catColor}"></span>
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.categoryLabel}</span>
       <span style="flex-shrink:0">· #${p.id}</span>
+      ${publishedBadge(p)}
     </div>
     <div class="ac-price-row">${priceHTML}</div>
     <div class="ac-footer">
@@ -634,6 +635,12 @@ async function editStockInline(e, id) {
 
 // getCatColor() reemplaza CAT_COLORS — usa el array dinámico de categorías
 
+function publishedBadge(p) {
+  return p.isPublished === false
+    ? `<span style="background:#F1F5F9;color:#64748B;font-size:.6rem;font-weight:700;padding:2px 6px;border-radius:50px;flex-shrink:0;white-space:nowrap;border:1px solid #E2E8F0">🙈 Oculto</span>`
+    : '';
+}
+
 function desktopRow(p) {
   const fallback = `https://picsum.photos/seed/${p.id+10}/80/80`;
   const oos = p.outOfStock || p.stock === 0;
@@ -657,7 +664,7 @@ function desktopRow(p) {
         <div class="prod-meta">
           ${catDot}
           <span class="prod-meta-text">${p.categoryLabel} · #${p.id}${p.barcode ? ` · 🔲 ${p.barcode}` : ''}</span>
-          ${badgeHTML}${featStar}
+          ${badgeHTML}${featStar}${publishedBadge(p)}
         </div>
       </div>
     </div>
@@ -728,7 +735,7 @@ function mobileCard(p) {
                 class="oos-cell ${oos ? 'soldout' : 'available'} mpc-oos-btn">
           ${oos ? 'Agotado' : 'Disponible'}
         </button>
-        ${badgeHTML}
+        ${badgeHTML}${publishedBadge(p)}
         <div class="mpc-icon-group">
           <button class="mpc-icon-btn${p.featured ? ' feat-active' : ''}"
                   onclick="toggleFeatured(${p.id})"
