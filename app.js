@@ -209,9 +209,8 @@ function renderHeroMobileStrip() {
     <div class="hms-price">$${p.price.toLocaleString('es-MX')}</div>
   </div>
 </div>`;
-  // Duplicar para loop seamless: [A,B,C,A,B,C]
-  const doubled = items.length > 1 ? [...items, ...items] : items;
-  container.innerHTML = `<div class="hms-inner">${doubled.map(cardHTML).join('')}</div>`;
+  // Renderizar una sola copia; initAutoScroll duplica solo si el contenido desborda
+  container.innerHTML = `<div class="hms-inner">${items.map(cardHTML).join('')}</div>`;
 }
 
 /* ── AUTO-SCROLL DESTACADOS ── */
@@ -223,7 +222,6 @@ function initAutoScroll() {
   let paused = false;
   let resumeTimer;
 
-  // Pausa al tocar, reanuda 3s después de soltar
   strip.addEventListener('touchstart', () => {
     paused = true;
     clearTimeout(resumeTimer);
@@ -234,18 +232,24 @@ function initAutoScroll() {
     resumeTimer = setTimeout(() => { paused = false; }, 3000);
   }, { passive: true });
 
-  const SPEED = 0.5; // px por frame ≈ 30 px/s a 60fps
+  const SPEED = 0.5;
 
-  // Esperar a que las imágenes carguen para medir scrollWidth correctamente
+  // Esperar a que las imágenes carguen para medir correctamente
   setTimeout(() => {
+    const inner = strip.querySelector('.hms-inner');
+    if (!inner) return;
+
+    // Si el contenido ya cabe sin scroll, mostrar estático (sin duplicar)
+    if (strip.scrollWidth <= strip.clientWidth) return;
+
+    // Duplicar para loop seamless solo cuando hay desbordamiento real
+    inner.innerHTML += inner.innerHTML;
     const halfWidth = strip.scrollWidth / 2;
-    // Si el contenido no desborda, no hay nada que hacer
-    if (halfWidth <= strip.clientWidth) return;
 
     const tick = () => {
       if (!paused) {
         strip.scrollLeft += SPEED;
-        // Salto invisible: al llegar a la mitad volvemos al inicio (mismos cards)
+        // Salto invisible al llegar a la mitad: vuelve al inicio con los mismos cards
         if (strip.scrollLeft >= halfWidth) {
           strip.scrollLeft -= halfWidth;
         }
