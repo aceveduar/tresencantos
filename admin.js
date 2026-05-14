@@ -17,12 +17,56 @@ let selectedIds = new Set();
 let dragSrcId = null;
 let currentSort = 'recent';
 
-const CAT_LABELS = {
-  bolsos: "Bolsos & Mochilas",
-  accesorios: "Accesorios",
-  maquillaje: "Maquillaje",
-  natura: "Natura"
-};
+/* Categorías — cargadas dinámicamente desde config.categories */
+let categories = []; // [{code, label, color}]
+
+const CAT_DEFAULTS = [
+  {code:'bolsos',     label:'Bolsos & Mochilas', color:'#C9A462'},
+  {code:'accesorios', label:'Accesorios',         color:'#60a5fa'},
+  {code:'maquillaje', label:'Maquillaje',          color:'#f472b6'},
+  {code:'natura',     label:'Natura',              color:'#34d399'},
+  {code:'perfumes',   label:'Perfumes',            color:'#a78bfa'},
+  {code:'loncheras',  label:'Loncheras',           color:'#fb923c'}
+];
+const CAT_PALETTE = ['#C9A462','#60a5fa','#f472b6','#34d399','#a78bfa','#fb923c','#fbbf24','#a3e635','#2dd4bf','#f87171'];
+
+function getCatLabel(code) { return categories.find(c => c.code === code)?.label || code; }
+function getCatColor(code) { return categories.find(c => c.code === code)?.color || '#9B8B78'; }
+
+async function loadCategories() {
+  const r = await supabaseApi('config?id=eq.categories&select=value');
+  if (r.ok && r.data?.length && r.data[0].value) {
+    try { categories = JSON.parse(r.data[0].value); } catch { categories = [...CAT_DEFAULTS]; }
+  } else {
+    categories = [...CAT_DEFAULTS];
+    await _saveCategories();
+  }
+  renderCategorySelects();
+}
+
+async function _saveCategories() {
+  return supabaseApi('config', {
+    method: 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: 'categories', value: JSON.stringify(categories) })
+  });
+}
+
+function renderCategorySelects() {
+  // Select del formulario de producto
+  const fSel = document.getElementById('f-category');
+  if (fSel) {
+    const cur = fSel.value;
+    fSel.innerHTML = categories.map(c => `<option value="${c.code}">${c.label}</option>`).join('');
+    if (cur && categories.find(c => c.code === cur)) fSel.value = cur;
+  }
+  // Select del filtro de la tabla
+  const tSel = document.getElementById('cat-filter');
+  if (tSel) {
+    tSel.innerHTML = `<option value="all">Todas las categorías</option>` +
+      categories.map(c => `<option value="${c.code}">${c.label}</option>`).join('');
+  }
+}
 
 const getSupabaseUrl = () => SUPABASE_URL;
 const getSupabaseKey = () => SUPABASE_SERVICE_KEY;
@@ -180,6 +224,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (document.getElementById('form-overlay')?.classList.contains('open'))    { closeForm(); return; }
       if (document.getElementById('del-overlay')?.classList.contains('open'))     { closeDel(); return; }
       if (document.getElementById('revista-overlay')?.classList.contains('open')) { closeRevista(); return; }
+      if (document.getElementById('cat-overlay')?.classList.contains('open'))     { closeCatManager(); return; }
       if (document.getElementById('scanner-overlay')?.classList.contains('open')) { closeAdminScanner(); return; }
     }
 
@@ -309,6 +354,7 @@ async function showApp() {
   } catch {}
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
+  await loadCategories();
   await loadProductsFromSupabase();
   renderStats();
   renderTable();
@@ -469,18 +515,14 @@ async function editStockInline(e, id) {
   });
 }
 
-const CAT_COLORS = {
-  bolsos:'#C9A462', accesorios:'#60a5fa',
-  maquillaje:'#f472b6', natura:'#34d399',
-  perfumes:'#a78bfa', loncheras:'#fb923c'
-};
+// getCatColor() reemplaza CAT_COLORS — usa el array dinámico de categorías
 
 function desktopRow(p) {
   const fallback = `https://picsum.photos/seed/${p.id+10}/80/80`;
   const oos = p.outOfStock || p.stock === 0;
   const badgeHTML = p.badge ? `<span class="badge badge-${p.badgeType||'none'} badge-xs">${p.badge}</span>` : '';
   const featStar = `<span onclick="toggleFeatured(${p.id})" class="toggle-featured" title="${p.featured ? 'Quitar destacado' : 'Destacar'}">${p.featured ? '⭐' : '☆'}</span>`;
-  const catColor = CAT_COLORS[p.category] || '#9B8B78';
+  const catColor = getCatColor(p.category);
   const catDot = `<span class="cat-dot" style="background:${catColor}"></span>`;
   return `
 <tr draggable="true" data-id="${p.id}" class="${selectedIds.has(p.id) ? 'row-selected' : ''}"
@@ -529,7 +571,7 @@ function mobileCard(p) {
   const fallback = `https://picsum.photos/seed/${p.id+10}/80/80`;
   const sel = selectedIds.has(p.id);
   const oos = p.outOfStock || p.stock === 0;
-  const catColor = CAT_COLORS[p.category] || '#9B8B78';
+  const catColor = getCatColor(p.category);
 
   const priceHTML = p.originalPrice
     ? `<span class="mpc-price-orig">$${p.originalPrice.toLocaleString('es-MX')}</span>
@@ -1017,8 +1059,8 @@ function openForm(id) {
   } else {
     document.getElementById('f-id').value = '';
     document.getElementById('f-name').value = '';
-    document.getElementById('f-category').value = 'bolsos';
-    document.getElementById('f-category-label').value = CAT_LABELS.bolsos;
+    document.getElementById('f-category').value = categories[0]?.code || 'bolsos';
+    document.getElementById('f-category-label').value = categories[0]?.label || '';
     document.getElementById('f-price').value = '';
     document.getElementById('f-original-price').value = '';
     document.getElementById('f-badge').value = '';
@@ -1063,7 +1105,7 @@ function updateMarginDisplay() {
 
 function syncCategoryLabel() {
   const cat = document.getElementById('f-category').value;
-  document.getElementById('f-category-label').value = CAT_LABELS[cat] || '';
+  document.getElementById('f-category-label').value = getCatLabel(cat);
 }
 
 function previewImg() {
@@ -1096,7 +1138,7 @@ async function saveProduct() {
   const data = {
     name,
     category: document.getElementById('f-category').value,
-    categoryLabel: document.getElementById('f-category-label').value.trim() || CAT_LABELS[document.getElementById('f-category').value],
+    categoryLabel: document.getElementById('f-category-label').value.trim() || getCatLabel(document.getElementById('f-category').value),
     price,
     originalPrice: (origPrice && origPrice > price) ? origPrice : null,
     description,
@@ -1323,15 +1365,15 @@ async function bulkDelete() {
 
 async function bulkSetCategory() {
   if (!selectedIds.size) return;
-  const options = Object.entries(CAT_LABELS).map(([k,v]) => `  ${k} → ${v}`).join('\n');
+  const options = categories.map(c => `  ${c.code} → ${c.label}`).join('\n');
   const cat = prompt(`Nueva categoría para ${selectedIds.size} producto(s):\n\n${options}\n\nEscribe el código:`);
   if (cat === null) return;
   const category = cat.trim().toLowerCase();
-  if (!CAT_LABELS[category]) {
-    toast('Categoría inválida. Opciones: bolsos, accesorios, maquillaje, natura', 'error');
+  if (!categories.find(c => c.code === category)) {
+    toast('Código inválido. Usa uno de la lista.', 'error');
     return;
   }
-  const categoryLabel = CAT_LABELS[category];
+  const categoryLabel = getCatLabel(category);
 
   if (getSupabaseUrl()) {
     const ids = [...selectedIds].join(',');
@@ -1483,7 +1525,7 @@ function importProducts(input) {
         id: p.id,
         name: p.name || '',
         category: p.category || 'bolsos',
-        categoryLabel: p.categoryLabel || p.category_label || CAT_LABELS[p.category] || '',
+        categoryLabel: p.categoryLabel || p.category_label || getCatLabel(p.category) || '',
         price: Number(p.price) || 0,
         originalPrice: p.originalPrice ?? p.original_price ?? null,
         description: p.description || '',
@@ -1622,6 +1664,82 @@ function _onAdminScan(code) {
       toast(`Código "${code}" — ningún producto asignado`, 'error');
     }
   }
+}
+
+/* ── CATEGORY MANAGER ─────────────────────────────────────────────────── */
+
+function openCatManager() {
+  document.getElementById('cat-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  renderCatManagerList();
+}
+
+function closeCatManager() {
+  document.getElementById('cat-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function renderCatManagerList() {
+  const el = document.getElementById('cat-list');
+  if (!el) return;
+  el.innerHTML = categories.length ? categories.map((c, i) => `
+<div class="cat-mgr-row">
+  <span class="cat-dot" style="background:${c.color || '#9B8B78'};width:10px;height:10px;flex-shrink:0"></span>
+  <span class="cat-mgr-code">${c.code}</span>
+  <input type="text" value="${c.label}" class="cat-label-input"
+         onblur="updateCatLabel(${i}, this.value)"
+         onkeydown="if(event.key==='Enter')this.blur()"
+         placeholder="Nombre visible">
+  <button class="action-btn del" onclick="deleteCategoryAt(${i})" title="Eliminar">✕</button>
+</div>`).join('') : '<p style="color:var(--muted);font-size:.84rem;text-align:center;padding:12px">Sin categorías</p>';
+}
+
+async function updateCatLabel(idx, newLabel) {
+  const label = newLabel.trim();
+  if (!label || label === categories[idx]?.label) return;
+  const code = categories[idx].code;
+  categories[idx].label = label;
+  await _saveCategories();
+  renderCategorySelects();
+  // Actualizar category_label en todos los productos de esta categoría
+  await supabaseApi(`products?category=eq.${code}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ category_label: label })
+  });
+  products.filter(p => p.category === code).forEach(p => { p.categoryLabel = label; });
+  renderTable();
+  toast(`Categoría "${label}" actualizada ✓`, 'success');
+}
+
+async function deleteCategoryAt(idx) {
+  const c = categories[idx];
+  const count = products.filter(p => p.category === c.code).length;
+  const msg = count > 0
+    ? `¿Eliminar "${c.label}"? ${count} producto(s) tendrán esta categoría. ¿Continuar?`
+    : `¿Eliminar la categoría "${c.label}"?`;
+  if (!confirm(msg)) return;
+  categories.splice(idx, 1);
+  await _saveCategories();
+  renderCategorySelects();
+  renderCatManagerList();
+  toast('Categoría eliminada', 'success');
+}
+
+async function addCategory() {
+  const codeInput  = document.getElementById('new-cat-code');
+  const labelInput = document.getElementById('new-cat-label');
+  const code  = codeInput.value.trim().toLowerCase().replace(/\s+/g, '_');
+  const label = labelInput.value.trim();
+  if (!code || !label) { toast('Completa el código y el nombre', 'error'); return; }
+  if (!/^[a-z0-9_]+$/.test(code)) { toast('El código solo puede tener letras, números y guión bajo', 'error'); return; }
+  if (categories.find(c => c.code === code)) { toast('Ya existe una categoría con ese código', 'error'); return; }
+  const color = CAT_PALETTE[categories.length % CAT_PALETTE.length];
+  categories.push({ code, label, color });
+  await _saveCategories();
+  renderCategorySelects();
+  renderCatManagerList();
+  codeInput.value = ''; labelInput.value = '';
+  toast(`Categoría "${label}" creada ✓`, 'success');
 }
 
 /* ── VOICE DICTATION ──────────────────────────────────────────────────── */

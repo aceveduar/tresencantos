@@ -323,6 +323,16 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 }
 @keyframes pulse-rec{0%,100%{opacity:1}50%{opacity:.55}}
 
+/* ══ CATEGORY MANAGER ════════════════════════════════════════════════════ */
+.cat-mgr-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)}
+.cat-mgr-row:last-child{border-bottom:none}
+.cat-mgr-code{font-size:.76rem;font-weight:700;color:var(--muted);background:var(--cream);padding:3px 8px;border-radius:50px;white-space:nowrap;flex-shrink:0;min-width:80px;text-align:center}
+.cat-label-input{flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:.88rem;outline:none;font-family:inherit;color:var(--charcoal)}
+.cat-label-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,164,98,.1)}
+.new-cat-grid{display:grid;grid-template-columns:1fr 1.5fr;gap:8px;margin-top:6px}
+.new-cat-grid input{padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:.88rem;outline:none;font-family:inherit}
+.new-cat-grid input:focus{border-color:var(--gold)}
+
 /* ══ SCANNER ════════════════════════════════════════════════════════════ */
 .scanner-wrap{position:relative;background:#111;border-radius:var(--r);overflow:hidden;min-height:260px;display:flex;align-items:center;justify-content:center}
 .scanner-hint{color:#fff;font-size:.85rem;opacity:.7;text-align:center;padding:20px}
@@ -524,10 +534,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       <button class="btn btn-outline btn-sm" onclick="openSearchScanner()" title="Buscar por código de barras">📷</button>
       <select class="filter-select" id="cat-filter" onchange="renderTable()">
         <option value="all">Todas las categorías</option>
-        <option value="bolsos">Bolsos & Mochilas</option>
-        <option value="accesorios">Accesorios</option>
-        <option value="maquillaje">Maquillaje</option>
-        <option value="natura">Natura</option>
+        <!-- Opciones cargadas dinámicamente por renderCategorySelects() -->
       </select>
       <select class="filter-select" id="sort-select" onchange="currentSort=this.value;renderTable()">
         <option value="position">Mi orden</option>
@@ -577,6 +584,10 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         <span class="tools-arrow">›</span>
       </summary>
       <div class="tools-body">
+        <div class="io-bar" style="border-top:none">
+          <span>🏷 Categorías del catálogo</span>
+          <button class="btn btn-outline btn-sm" onclick="openCatManager()">Gestionar categorías</button>
+        </div>
         <div class="io-bar" style="margin-bottom:0;border-radius:0 0 0 0;border-top:none">
           <span>💾 Respaldo de productos (JSON)</span>
           <button class="btn btn-outline btn-sm" onclick="exportProducts()">Exportar JSON</button>
@@ -643,10 +654,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         <div class="field">
           <label>Categoría</label>
           <select id="f-category" onchange="syncCategoryLabel()">
-            <option value="bolsos">Bolsos & Mochilas</option>
-            <option value="accesorios">Accesorios</option>
-            <option value="maquillaje">Maquillaje</option>
-            <option value="natura">Natura</option>
+            <!-- Opciones cargadas dinámicamente por renderCategorySelects() -->
           </select>
         </div>
         <div class="field">
@@ -825,6 +833,40 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     <div class="modal-foot">
       <button class="btn btn-outline" onclick="closeRevista()">Cancelar</button>
       <button class="btn btn-gold" onclick="saveRevista()">Guardar revista</button>
+    </div>
+  </div>
+</div>
+
+<!-- CATEGORY MANAGER MODAL -->
+<div class="overlay" id="cat-overlay" style="z-index:300">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-head">
+      <h3>🏷 Gestionar categorías</h3>
+      <button class="modal-close-btn" onclick="closeCatManager()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.83rem;color:var(--muted);margin-bottom:14px;line-height:1.5">
+        Edita el nombre de cada categoría directamente. El código (en gris) identifica los productos internamente.
+      </p>
+
+      <!-- Lista de categorías existentes -->
+      <div id="cat-list"></div>
+
+      <!-- Agregar nueva -->
+      <div class="field" style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border)">
+        <label>Nueva categoría</label>
+        <div class="new-cat-grid">
+          <input type="text" id="new-cat-code"  placeholder="código (ej: ropa)"
+                 onkeydown="if(event.key==='Enter')addCategory()">
+          <input type="text" id="new-cat-label" placeholder="Nombre visible (ej: Ropa)"
+                 onkeydown="if(event.key==='Enter')addCategory()">
+        </div>
+        <p class="hint" style="margin-top:5px">El código: solo letras minúsculas, números y guión bajo. No se puede cambiar después.</p>
+        <button class="btn btn-gold btn-sm" onclick="addCategory()" style="margin-top:10px">+ Agregar categoría</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeCatManager()">Cerrar</button>
     </div>
   </div>
 </div>
