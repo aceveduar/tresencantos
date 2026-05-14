@@ -1046,9 +1046,9 @@ async function cobrar() {
   let paidAmount, change;
 
   if (isApartado) {
-    if (!customer) { toast('Ingresa el nombre del cliente', 'error'); document.getElementById('pos-customer').focus(); return; }
+    if (!customer) { toast('Ingresa el nombre del cliente', 'error'); document.getElementById('pos-customer').focus(); _cobrandoAhora = false; return; }
     paidAmount = parseFloat(document.getElementById('pos-anticipo')?.value) || 0;
-    if (paidAmount <= 0) { toast('Ingresa el anticipo recibido', 'error'); document.getElementById('pos-anticipo').focus(); return; }
+    if (paidAmount <= 0) { toast('Ingresa el anticipo recibido', 'error'); document.getElementById('pos-anticipo').focus(); _cobrandoAhora = false; return; }
     change = 0;
   } else if (payMethod === 'efectivo') {
     const cash = parseFloat(document.getElementById('pos-cash').value) || 0;
