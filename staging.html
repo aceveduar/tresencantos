@@ -294,7 +294,8 @@ function renderCard(item) {
                 onclick="dictateField(this, this.closest('.sc-field').querySelector('input'), '${item.id}', 'name')">🎤 Dictar</button>
       </div>
       <input type="text" value="${escHtml(item.name)}" placeholder="Ej: Bolso Glamour Camel"
-             onchange="updateItem('${item.id}','name',this.value)">
+             onchange="updateItem('${item.id}','name',this.value)"
+             onblur="if(this.value.trim()){this.value=this.value.trim().replace(/\\S+/g,w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase());updateItem('${item.id}','name',this.value)}">
     </div>
     <div class="sc-field">
       <div class="sc-field-label-row">

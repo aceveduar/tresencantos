@@ -1263,6 +1263,16 @@ function syncCategoryLabel() {
   document.getElementById('f-category-label').value = getCatLabel(cat);
 }
 
+/* Capitaliza la primera letra de cada palabra (NomPropio) */
+function toTitleCase(str) {
+  return str.trim().replace(/\S+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
+function applyTitleCase(fieldId) {
+  const el = document.getElementById(fieldId);
+  if (el && el.value.trim()) el.value = toTitleCase(el.value);
+}
+
 function clearField(id) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -1284,6 +1294,7 @@ function previewImg() {
 
 /* ── SAVE PRODUCT — targeted PATCH or single POST ── */
 async function saveProduct() {
+  applyTitleCase('f-name'); // aplicar NomPropio antes de leer el valor
   const name = document.getElementById('f-name').value.trim();
   const price = parseFloat(document.getElementById('f-price').value);
   const image = document.getElementById('f-image').value.trim();
