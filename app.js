@@ -160,13 +160,22 @@ function discountPct(p) {
 }
 
 function cardHTML(p) {
-  // Stock es la fuente de verdad: agotado si outOfStock manual O si el contador llegó a 0
   const oos = p.outOfStock || p.stock === 0;
-  const badge = p.badge ? `<span class="product-badge badge-${p.badgeType||'best'}">${p.badge}</span>` : '';
-  const oosTag = oos ? `<span class="product-badge badge-oos" style="background:#9B8B78">Agotado</span>` : '';
   const pct = discountPct(p);
-  const discountTag = pct > 0 ? `<span class="product-badge badge-discount">-${pct}%</span>` : '';
-  // "Últimas unidades" solo cuando hay 2+ piezas pero pocas (≥2 y ≤3), no para piezas únicas
+  const oosTag = oos ? `<span class="product-badge badge-oos" style="background:#9B8B78">Agotado</span>` : '';
+
+  // Cuando hay descuento e insignia: apilar en top-left como un solo elemento visual
+  let badgeArea = '';
+  if (pct > 0 && p.badge) {
+    badgeArea = `<span class="product-badge badge-discount" style="left:10px;right:auto">-${pct}%</span>`
+               + `<span class="product-badge badge-${p.badgeType||'best'}" style="top:36px">${p.badge}</span>`;
+  } else if (pct > 0) {
+    badgeArea = `<span class="product-badge badge-discount">-${pct}%</span>`;
+  } else if (p.badge) {
+    badgeArea = `<span class="product-badge badge-${p.badgeType||'best'}">${p.badge}</span>`;
+  }
+
+  // "Últimas unidades" solo cuando hay 2–3 piezas y no hay descuento
   const urgencyTag = (!oos && p.stock >= 2 && p.stock <= 3 && pct === 0)
     ? `<span class="product-badge" style="background:#92400E;left:auto;right:10px">Últimas ${p.stock}</span>` : '';
   const fallback = `https://picsum.photos/seed/${p.id+10}/500/500`;
@@ -180,7 +189,7 @@ function cardHTML(p) {
 <article class="product-card reveal${oos ? ' card-oos' : ''}" onclick="openModal(${p.id})">
   <div class="product-img-wrap">
     <img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.onerror=null;this.src='${fallback}'">
-    ${badge}${oosTag}${discountTag}${urgencyTag}
+    ${oosTag}${badgeArea}${urgencyTag}
   </div>
   <div class="product-body">
     <p class="product-cat">${p.categoryLabel}</p>
@@ -361,7 +370,17 @@ function openModal(id) {
   const fallback = `https://picsum.photos/seed/${p.id+10}/500/500`;
   const oos = p.outOfStock || p.stock === 0;
   const pct = discountPct(p);
-  const modalDiscount = pct > 0 ? `<span class="product-badge badge-discount" style="position:absolute;top:10px;right:10px;left:auto">-${pct}%</span>` : '';
+  // En el modal: discount + badge también se apilan top-left si ambos existen
+  let modalBadgeArea = '';
+  if (pct > 0 && p.badge) {
+    modalBadgeArea = `<span class="product-badge badge-discount" style="position:absolute;top:10px;left:10px;right:auto">-${pct}%</span>`
+                   + `<span class="product-badge badge-${p.badgeType||'best'}" style="position:absolute;top:36px;left:10px">${p.badge}</span>`;
+  } else if (pct > 0) {
+    modalBadgeArea = `<span class="product-badge badge-discount" style="position:absolute;top:10px;right:10px;left:auto">-${pct}%</span>`;
+  } else if (p.badge) {
+    modalBadgeArea = `<span class="product-badge badge-${p.badgeType||'best'}" style="position:absolute;top:10px;left:10px">${p.badge}</span>`;
+  }
+  const modalDiscount = '';
   const modalUrgency = (!oos && p.stock >= 2 && p.stock <= 3 && pct === 0)
     ? `<span class="product-badge" style="position:absolute;top:10px;right:10px;left:auto;background:#92400E">Últimas ${p.stock}</span>` : '';
   const modalPriceHTML = pct > 0
@@ -384,7 +403,7 @@ function openModal(id) {
     <img class="modal-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'"${oos ? ' style="filter:grayscale(.4)"' : ''}>
     <button class="modal-close" onclick="closeModal()">✕</button>
     ${oos ? `<span class="product-badge badge-oos" style="position:absolute;top:10px;left:10px;background:#9B8B78">Agotado</span>` : ''}
-    ${modalDiscount}${modalUrgency}
+    ${modalBadgeArea}${modalUrgency}
   </div>
   <div class="modal-body">
     <p class="modal-cat">${p.categoryLabel}</p>
