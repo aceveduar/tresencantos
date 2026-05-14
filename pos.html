@@ -52,9 +52,6 @@ button,a{touch-action:manipulation}
 .pos-divider{width:5px;background:var(--border);cursor:col-resize;flex-shrink:0;position:relative;z-index:10;transition:background .15s}
 .pos-divider:hover,.pos-divider.dragging{background:var(--gold)}
 .pos-divider::after{content:'⋮';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--muted-light);font-size:.9rem;pointer-events:none}
-@media(max-width:760px){
-  .pos-body{grid-template-columns:1fr;grid-template-rows:auto 1fr}
-}
 
 /* PANEL IZQUIERDO */
 .pos-left{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border)}
@@ -270,11 +267,15 @@ button,a{touch-action:manipulation}
 
 /* ── MOBILE ── */
 @media(max-width:760px){
-  /* Layout: apilado, sin divisor */
-  .pos-body{grid-template-columns:1fr;grid-template-rows:auto 1fr}
-  .pos-left{max-height:42vh;border-right:none;border-bottom:1px solid var(--border)}
-  .pos-right{flex:1;min-height:0}
+  /* Layout: apilado vertical, sin divisor */
+  .pos-body{display:flex;flex-direction:column;overflow:hidden}
+  .pos-left{flex-shrink:0;max-height:40vh;border-right:none;border-bottom:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column}
   .pos-divider{display:none}
+
+  /* Panel derecho: scrollable para que el checkout siempre sea accesible */
+  .pos-right{flex:1;overflow-y:auto;overflow-x:hidden;display:block;min-height:0}
+  /* El carrito tiene altura fija para no opacar el checkout */
+  .cart-items{max-height:120px;overflow-y:auto;flex:none}
 
   /* Chips de categoría más pequeños */
   .cat-chip{padding:5px 12px;font-size:.72rem}
