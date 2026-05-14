@@ -964,15 +964,21 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 
       <!-- Agregar nueva -->
       <div class="field" style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border)">
-        <label>Nueva categoría</label>
-        <div class="new-cat-grid">
-          <input type="text" id="new-cat-code"  placeholder="código (ej: ropa)"
+        <label>Nueva categoría / subcategoría</label>
+        <div class="new-cat-grid" style="grid-template-columns:1fr 1.5fr;gap:8px;margin-bottom:8px">
+          <input type="text" id="new-cat-code"  placeholder="código (ej: perfumes)"
                  onkeydown="if(event.key==='Enter')addCategory()">
-          <input type="text" id="new-cat-label" placeholder="Nombre visible (ej: Ropa)"
+          <input type="text" id="new-cat-label" placeholder="Nombre visible (ej: Perfumes)"
                  onkeydown="if(event.key==='Enter')addCategory()">
         </div>
-        <p class="hint" style="margin-top:5px">El código: solo letras minúsculas, números y guión bajo. No se puede cambiar después.</p>
-        <button class="btn btn-gold btn-sm" onclick="addCategory()" style="margin-top:10px">+ Agregar categoría</button>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <label style="font-size:.74rem;color:var(--muted);font-weight:600;white-space:nowrap">Categoría padre (opcional):</label>
+          <select id="new-cat-parent" style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;outline:none;font-family:inherit">
+            <option value="">— Es categoría raíz —</option>
+          </select>
+        </div>
+        <p class="hint">El código: solo letras, números y guión bajo. No se puede cambiar después.</p>
+        <button class="btn btn-gold btn-sm" onclick="addCategory();populateCatParentSelect()" style="margin-top:10px">+ Agregar</button>
       </div>
     </div>
     <div class="modal-foot">

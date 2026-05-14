@@ -52,19 +52,43 @@ async function _saveCategories() {
   });
 }
 
+/* Helpers para subcategorías */
+function rootCats()     { return categories.filter(c => !c.parent); }
+function subCats(code)  { return categories.filter(c => c.parent === code); }
+function allLeafCats()  { return categories.filter(c => !subCats(c.code).length); }
+function catDisplayName(c) {
+  if (!c.parent) return c.label;
+  const parent = categories.find(x => x.code === c.parent);
+  return parent ? `${parent.label} › ${c.label}` : c.label;
+}
+
 function renderCategorySelects() {
-  // Select del formulario de producto
+  // Select del formulario de producto — sólo hojas (sin hijos)
   const fSel = document.getElementById('f-category');
   if (fSel) {
     const cur = fSel.value;
-    fSel.innerHTML = categories.map(c => `<option value="${c.code}">${c.label}</option>`).join('');
+    const roots = rootCats();
+    fSel.innerHTML = roots.map(r => {
+      const subs = subCats(r.code);
+      if (subs.length) {
+        return `<optgroup label="${r.label}">${subs.map(s => `<option value="${s.code}">${s.label}</option>`).join('')}</optgroup>`;
+      }
+      return `<option value="${r.code}">${r.label}</option>`;
+    }).join('');
     if (cur && categories.find(c => c.code === cur)) fSel.value = cur;
   }
-  // Select del filtro de la tabla
+  // Select del filtro de la tabla — raíces + hojas indentadas
   const tSel = document.getElementById('cat-filter');
   if (tSel) {
+    const roots = rootCats();
     tSel.innerHTML = `<option value="all">Todas las categorías</option>` +
-      categories.map(c => `<option value="${c.code}">${c.label}</option>`).join('');
+      roots.map(r => {
+        const subs = subCats(r.code);
+        if (subs.length) {
+          return `<optgroup label="${r.label}">${subs.map(s => `<option value="${s.code}">${s.label}</option>`).join('')}</optgroup>`;
+        }
+        return `<option value="${r.code}">${r.label}</option>`;
+      }).join('');
   }
 }
 
@@ -1789,10 +1813,18 @@ function _onAdminScan(code) {
 
 /* ── CATEGORY MANAGER ─────────────────────────────────────────────────── */
 
+function populateCatParentSelect() {
+  const sel = document.getElementById('new-cat-parent');
+  if (!sel) return;
+  sel.innerHTML = `<option value="">— Es categoría raíz —</option>` +
+    rootCats().map(r => `<option value="${r.code}">${r.label}</option>`).join('');
+}
+
 function openCatManager() {
   document.getElementById('cat-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
   renderCatManagerList();
+  populateCatParentSelect();
 }
 
 function closeCatManager() {
@@ -1803,16 +1835,25 @@ function closeCatManager() {
 function renderCatManagerList() {
   const el = document.getElementById('cat-list');
   if (!el) return;
-  el.innerHTML = categories.length ? categories.map((c, i) => `
-<div class="cat-mgr-row">
-  <span class="cat-dot" style="background:${c.color || '#9B8B78'};width:10px;height:10px;flex-shrink:0"></span>
+  if (!categories.length) {
+    el.innerHTML = '<p style="color:var(--muted);font-size:.84rem;text-align:center;padding:12px">Sin categorías</p>';
+    return;
+  }
+  const rows = [];
+  rootCats().forEach(r => {
+    rows.push({ c:r, i:categories.indexOf(r), indent:false });
+    subCats(r.code).forEach(s => rows.push({ c:s, i:categories.indexOf(s), indent:true }));
+  });
+  el.innerHTML = rows.map(({ c, i, indent }) => `
+<div class="cat-mgr-row" style="${indent ? `padding-left:20px;border-left:3px solid ${c.color||'#ccc'};margin-left:8px` : ''}">
+  <span class="cat-dot" style="background:${c.color||'#9B8B78'};width:10px;height:10px;flex-shrink:0"></span>
   <span class="cat-mgr-code">${c.code}</span>
   <input type="text" value="${c.label}" class="cat-label-input"
          onblur="updateCatLabel(${i}, this.value)"
          onkeydown="if(event.key==='Enter')this.blur()"
          placeholder="Nombre visible">
   <button class="action-btn del" onclick="deleteCategoryAt(${i})" title="Eliminar">✕</button>
-</div>`).join('') : '<p style="color:var(--muted);font-size:.84rem;text-align:center;padding:12px">Sin categorías</p>';
+</div>`).join('');
 }
 
 async function updateCatLabel(idx, newLabel) {
@@ -1847,20 +1888,25 @@ async function deleteCategoryAt(idx) {
 }
 
 async function addCategory() {
-  const codeInput  = document.getElementById('new-cat-code');
-  const labelInput = document.getElementById('new-cat-label');
-  const code  = codeInput.value.trim().toLowerCase().replace(/\s+/g, '_');
-  const label = labelInput.value.trim();
+  const codeInput   = document.getElementById('new-cat-code');
+  const labelInput  = document.getElementById('new-cat-label');
+  const parentInput = document.getElementById('new-cat-parent');
+  const code   = codeInput.value.trim().toLowerCase().replace(/\s+/g, '_');
+  const label  = labelInput.value.trim();
+  const parent = parentInput?.value || '';
   if (!code || !label) { toast('Completa el código y el nombre', 'error'); return; }
   if (!/^[a-z0-9_]+$/.test(code)) { toast('El código solo puede tener letras, números y guión bajo', 'error'); return; }
   if (categories.find(c => c.code === code)) { toast('Ya existe una categoría con ese código', 'error'); return; }
   const color = CAT_PALETTE[categories.length % CAT_PALETTE.length];
-  categories.push({ code, label, color });
+  const newCat = { code, label, color };
+  if (parent && categories.find(c => c.code === parent)) newCat.parent = parent;
+  categories.push(newCat);
   await _saveCategories();
   renderCategorySelects();
   renderCatManagerList();
   codeInput.value = ''; labelInput.value = '';
-  toast(`Categoría "${label}" creada ✓`, 'success');
+  if (parentInput) parentInput.value = '';
+  toast(`${parent ? 'Subcategoría' : 'Categoría'} "${label}" creada ✓`, 'success');
 }
 
 /* ── VOICE DICTATION ──────────────────────────────────────────────────── */
