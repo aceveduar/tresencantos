@@ -534,14 +534,35 @@ async function editStockInline(e, id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
 
-  const chip = e.currentTarget;
+  const chip   = e.currentTarget;
+  const mobile = isMobile();
+
+  // type="text" + inputMode="numeric" es más fiable que type="number" en Android
   const input = document.createElement('input');
-  input.type = 'number';
-  input.min = '0';
+  input.type       = 'text';
+  input.inputMode  = 'numeric';
+  input.pattern    = '[0-9]*';
+  input.autocomplete = 'off';
   input.value = p.stock;
-  // Font-size >= 16px evita el zoom automático en iOS
-  input.style.cssText = 'width:64px;padding:3px 8px;border:2px solid var(--gold);border-radius:6px;font-size:16px;outline:none;font-family:inherit;font-weight:600;text-align:center';
-  chip.replaceWith(input);
+  input.style.cssText = 'width:52px;padding:3px 7px;border:2px solid var(--gold);border-radius:6px;font-size:16px;outline:none;font-family:inherit;font-weight:600;text-align:center';
+
+  // En mobile: envolver input + botón ✓ explícito (evita depender de blur en Android)
+  let container;
+  if (mobile) {
+    container = document.createElement('span');
+    container.style.cssText = 'display:inline-flex;align-items:center;gap:4px;vertical-align:middle';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = '✓';
+    btn.style.cssText = 'background:var(--gold);border:none;color:#fff;border-radius:6px;padding:4px 7px;font-size:.82rem;cursor:pointer;font-family:inherit;line-height:1;touch-action:manipulation';
+    btn.ontouchend = e2 => { e2.preventDefault(); save(); };
+    btn.onclick = () => save();
+    container.appendChild(input);
+    container.appendChild(btn);
+    chip.replaceWith(container);
+  } else {
+    chip.replaceWith(input);
+  }
 
   let saved = false;
   const save = async () => {
@@ -550,7 +571,6 @@ async function editStockInline(e, id) {
     const newStock = Math.max(0, parseInt(input.value) || 0);
     if (newStock === p.stock) { renderTable(); return; }
 
-    // Sincronizar outOfStock automáticamente con el stock
     const patch = { stock: newStock };
     if (newStock > 0 && p.outOfStock)  patch.out_of_stock = false;
     if (newStock === 0 && !p.outOfStock) patch.out_of_stock = true;
@@ -570,20 +590,19 @@ async function editStockInline(e, id) {
     renderTable();
   };
 
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter')  { e.preventDefault(); save(); }
-    if (e.key === 'Escape') { saved = true; renderTable(); }
+  input.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter')  { ev.preventDefault(); save(); }
+    if (ev.key === 'Escape') { saved = true; renderTable(); }
   });
 
-  // rAF asegura que el DOM esté pintado antes de pedir foco (crítico en iOS Safari)
   requestAnimationFrame(() => {
     input.focus();
-    input.select();
-    // Registrar blur solo después de que el foco está establecido,
-    // evitando que el blur espurio del tap original cierre el input
-    setTimeout(() => {
-      if (!saved) input.addEventListener('blur', save);
-    }, 300);
+    if (!mobile) input.select();
+    // Desktop: blur guarda con timeout generoso para evitar blur espurio
+    // Mobile: NO usar blur — el botón ✓ es el único trigger de guardado
+    if (!mobile) {
+      setTimeout(() => { if (!saved) input.addEventListener('blur', save); }, 500);
+    }
   });
 }
 
