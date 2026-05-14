@@ -167,22 +167,63 @@ button,a{touch-action:manipulation}
   transition:.15s;font-family:inherit;white-space:nowrap;
 }
 .history-oc-btn:hover{background:rgba(255,255,255,.12)}
-/* Items del historial */
-.history-item{display:flex;align-items:center;gap:6px;padding:10px 8px;border-radius:8px;font-size:.82rem;border-bottom:1px solid #F5F0EB;transition:background .12s}
-.history-item:last-child{border-bottom:none}
-.history-item:hover{background:#FDFAF6}
-.history-item-info{flex:1;min-width:0}
-.history-time{color:#9B8B78;font-size:.72rem;margin-top:2px}
-.history-amount{font-weight:700;font-family:'Playfair Display',serif;color:var(--green);font-size:.9rem;flex-shrink:0}
+/* ── HISTORIAL REDISEÑADO ─────────────────────────────────────────── */
 .history-empty{padding:24px;text-align:center;color:#9B8B78;font-size:.84rem}
-.history-del-btn{
-  display:inline-flex;align-items:center;gap:3px;
-  background:none;border:1.5px solid #E8DDD0;
-  color:#9B8B78;cursor:pointer;
-  font-size:.72rem;font-weight:600;padding:5px 10px;border-radius:50px;
-  flex-shrink:0;transition:.15s;white-space:nowrap;font-family:inherit;
+
+/* Separador de fecha */
+.hi-date-sep{
+  font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:#9B8B78;padding:14px 4px 6px;margin-top:2px;
 }
-.history-del-btn:hover{color:var(--red);background:#FEE2E2;border-color:#FECACA}
+.hi-date-sep:first-child{padding-top:4px}
+
+/* Tarjeta de venta */
+.hi-card{
+  background:#fff;border:1px solid #EDE5DC;border-radius:10px;
+  margin-bottom:8px;overflow:hidden;
+  transition:box-shadow .15s;
+}
+.hi-card:hover{box-shadow:0 2px 10px rgba(28,24,23,.08)}
+
+/* Cabecera: hora · badge · total · ✕ */
+.hi-head{
+  display:flex;align-items:center;gap:6px;
+  padding:8px 10px;background:#FDFAF6;
+  border-bottom:1px solid #EDE5DC;
+}
+.hi-time{font-size:.74rem;color:#9B8B78;white-space:nowrap}
+.hi-spacer{flex:1}
+.hi-total{font-weight:700;font-family:'Playfair Display',serif;color:var(--green);font-size:.9rem;white-space:nowrap}
+.hi-del{
+  background:none;border:none;color:#C8BAB0;cursor:pointer;
+  font-size:.85rem;padding:2px 5px;border-radius:6px;transition:.15s;line-height:1;
+}
+.hi-del:hover{color:var(--red);background:#FEE2E2}
+
+/* Lista de artículos */
+.hi-items{padding:6px 10px}
+.hi-item{
+  display:flex;align-items:baseline;gap:6px;
+  padding:3px 0;border-bottom:1px dashed #F0E8E0;font-size:.8rem;
+}
+.hi-item:last-child{border-bottom:none}
+.hi-item-name{flex:1;color:var(--charcoal);font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hi-item-qty{color:#9B8B78;white-space:nowrap;font-size:.75rem}
+.hi-item-sub{font-weight:700;font-family:'Playfair Display',serif;white-space:nowrap;font-size:.82rem}
+
+/* Pie: descuento · nota · cliente */
+.hi-footer{
+  display:flex;flex-wrap:wrap;gap:5px;
+  padding:5px 10px 7px;border-top:1px solid #F0E8E0;
+  background:#FDFAF6;font-size:.74rem;color:#9B8B78;
+}
+.hi-tag{display:inline-flex;align-items:center;gap:3px;background:#F3ECE4;padding:2px 7px;border-radius:50px}
+.hi-tag.discount{background:#FEF3C7;color:#92400E}
+.hi-tag.note{background:#EFF6FF;color:#1E40AF}
+.hi-tag.customer{background:#F0FDF4;color:#166534}
+
+/* Botón cancelar (reservado para confirmación) */
+.history-del-btn{display:none} /* reemplazado por hi-del */
 
 /* Loading */
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -972,7 +1013,7 @@ function closeHistory() {
 }
 
 async function loadHistory() {
-  const result = await api(`sales?select=id,total,created_at,items,payment_method,type,customer,discount&order=created_at.desc&limit=30`);
+  const result = await api(`sales?select=id,total,created_at,items,payment_method,type,customer,discount,note,paid_amount&order=created_at.desc&limit=50`);
   const el = document.getElementById('history-list');
   if (!result.ok || !result.data?.length) {
     salesCache = {};
@@ -980,34 +1021,69 @@ async function loadHistory() {
     return;
   }
   salesCache = {};
-  // Solo ventas completadas en el caché (no apartados — esos se gestionan aparte)
   result.data.filter(s => s.type !== 'apartado').forEach(s => { salesCache[s.id] = s; });
 
-  const hoy = new Date().toISOString().split('T')[0];
+  const hoy    = new Date().toISOString().split('T')[0];
+  const ayer   = new Date(Date.now() - 86400000).toISOString().split('T')[0];
   const ventas = result.data.filter(s => s.type !== 'apartado');
 
-  el.innerHTML = ventas.map(s => {
-    const t = new Date(s.created_at);
-    const saleDay = s.created_at.split('T')[0];
-    const timeLabel = saleDay === hoy
-      ? t.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
-      : t.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
-        + ' · ' + t.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-    const summary = Array.isArray(s.items) ? s.items.map(i => i.name).join(', ') : '—';
-    const payBadge = s.payment_method === 'transferencia'
-      ? '<span class="pay-badge pay-transferencia">📱 Transfer.</span>'
-      : '<span class="pay-badge pay-efectivo">💵 Efectivo</span>';
-    return `
-<div class="history-item">
-  <div class="history-item-info">
-    <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px" title="${summary}">${summary}</div>
-    <div class="history-time">${timeLabel}</div>
+  // Agrupar por día
+  const grupos = {};
+  ventas.forEach(s => {
+    const dia = s.created_at.split('T')[0];
+    if (!grupos[dia]) grupos[dia] = [];
+    grupos[dia].push(s);
+  });
+
+  const html = Object.entries(grupos).map(([dia, sales]) => {
+    const titulo = dia === hoy  ? 'Hoy'
+                 : dia === ayer ? 'Ayer'
+                 : new Date(dia + 'T12:00:00').toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
+
+    const cards = sales.map(s => {
+      const t        = new Date(s.created_at);
+      const hora     = t.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
+      const total    = parseFloat(s.total) || 0;
+      const disc     = parseFloat(s.discount) || 0;
+      const items    = Array.isArray(s.items) ? s.items : [];
+      const totalQty = items.reduce((n, i) => n + (i.qty || 1), 0);
+
+      const payBadge = s.payment_method === 'transferencia'
+        ? '<span class="pay-badge pay-transferencia" style="font-size:.62rem">📱</span>'
+        : '<span class="pay-badge pay-efectivo" style="font-size:.62rem">💵</span>';
+
+      const itemsHTML = items.map(i => `
+<div class="hi-item">
+  <span class="hi-item-name">${i.name}</span>
+  <span class="hi-item-qty">×${i.qty || 1}</span>
+  <span class="hi-item-sub">$${((i.subtotal ?? i.price * (i.qty || 1))).toLocaleString('es-MX')}</span>
+</div>`).join('');
+
+      const tags = [];
+      if (disc > 0)    tags.push(`<span class="hi-tag discount">🏷 −$${disc.toLocaleString('es-MX')}</span>`);
+      if (s.note)      tags.push(`<span class="hi-tag note">📝 ${s.note}</span>`);
+      if (s.customer)  tags.push(`<span class="hi-tag customer">👤 ${s.customer}</span>`);
+      const footerHTML = tags.length
+        ? `<div class="hi-footer">${tags.join('')}</div>` : '';
+
+      return `
+<div class="hi-card">
+  <div class="hi-head">
+    <span class="hi-time">${hora} · ${totalQty} art.</span>
+    <span class="hi-spacer"></span>
+    ${payBadge}
+    <span class="hi-total">$${total.toLocaleString('es-MX')}</span>
+    <button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar venta">✕</button>
   </div>
-  ${payBadge}
-  <div class="history-amount">$${parseFloat(s.total).toLocaleString('es-MX')}</div>
-  <button class="history-del-btn" onclick="deleteSale(${s.id})">✕</button>
+  <div class="hi-items">${itemsHTML || '<div style="color:#9B8B78;font-size:.78rem;padding:4px 0">Sin detalle</div>'}</div>
+  ${footerHTML}
 </div>`;
-  }).join('') || '<div class="history-empty">Sin ventas completadas</div>';
+    }).join('');
+
+    return `<div class="hi-date-sep">${titulo}</div>${cards}`;
+  }).join('');
+
+  el.innerHTML = html || '<div class="history-empty">Sin ventas completadas</div>';
 }
 
 async function deleteSale(id) {
