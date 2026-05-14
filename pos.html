@@ -353,6 +353,11 @@ button,a{touch-action:manipulation}
   .pos-search-bar .btn{width:36px;height:36px;padding:0;border-radius:8px;justify-content:center;font-size:1rem;flex-shrink:0}
 }
 
+/* Teléfonos pequeños (≤640px): ocultar toggle de vista — solo lista */
+@media(max-width:640px){
+  .pos-view-toggle{display:none}
+}
+
 /* CART TOPBAR BUTTON */
 .cart-topbar-btn{
   position:relative;display:inline-flex;align-items:center;gap:5px;
@@ -644,7 +649,7 @@ let currentCat  = 'all';
 let payMethod   = 'efectivo';
 let discType    = 'pct';
 let _lastSale   = {};
-let posView     = localStorage.getItem('te_pos_view') || 'list';
+let posView     = (window.innerWidth <= 640) ? 'list' : (localStorage.getItem('te_pos_view') || 'list');
 
 /* ── API ── */
 function api(path, opts = {}) {
