@@ -47,7 +47,11 @@ button,a{touch-action:manipulation}
 .btn-green:disabled{background:#ccc;cursor:not-allowed}
 
 /* LAYOUT */
-.pos-body{display:grid;grid-template-columns:1fr 410px;flex:1;overflow:hidden;gap:0}
+.pos-body{display:grid;grid-template-columns:1fr 5px 1fr;flex:1;overflow:hidden;gap:0}
+/* Divisor arrastrable */
+.pos-divider{width:5px;background:var(--border);cursor:col-resize;flex-shrink:0;position:relative;z-index:10;transition:background .15s}
+.pos-divider:hover,.pos-divider.dragging{background:var(--gold)}
+.pos-divider::after{content:'⋮';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--muted-light);font-size:.9rem;pointer-events:none}
 @media(max-width:760px){
   .pos-body{grid-template-columns:1fr;grid-template-rows:auto 1fr}
 }
@@ -260,6 +264,9 @@ button,a{touch-action:manipulation}
       <div class="pos-empty"><div class="em">🛍️</div>Cargando productos…</div>
     </div>
   </div>
+
+  <!-- DIVISOR ARRASTRABLE -->
+  <div class="pos-divider" id="pos-divider"></div>
 
   <!-- DERECHO: carrito + cobro -->
   <div class="pos-right">
@@ -1003,8 +1010,48 @@ async function loadTodayStats() {
   }
 }
 
+/* ── DIVISOR ARRASTRABLE ── */
+function initDivider() {
+  const divider = document.getElementById('pos-divider');
+  const body    = document.querySelector('.pos-body');
+  if (!divider || !body) return;
+
+  // Restaurar proporción guardada
+  const saved = localStorage.getItem('te_pos_split');
+  if (saved) body.style.gridTemplateColumns = saved;
+
+  let dragging = false;
+
+  divider.addEventListener('mousedown', e => {
+    dragging = true;
+    divider.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const rect  = body.getBoundingClientRect();
+    const leftW = Math.max(200, Math.min(e.clientX - rect.left, rect.width - 200));
+    const pct   = (leftW / rect.width * 100).toFixed(1);
+    const cols  = `${pct}% 5px 1fr`;
+    body.style.gridTemplateColumns = cols;
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    divider.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    localStorage.setItem('te_pos_split', body.style.gridTemplateColumns);
+  });
+}
+
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
+  initDivider();
   await loadProducts();
   renderCategoryChips();
   renderCart();
