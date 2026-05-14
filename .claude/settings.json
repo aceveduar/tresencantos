@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const fs=require\\('fs'\\);const h=fs.readFileSync\\('pos.html','utf8'\\);const m=h.match\\(/<script>\\([\\\\s\\\\S]*?\\)<\\\\/script>/\\);try{new Function\\(m[1]\\);console.log\\('OK'\\)}catch\\(e\\){console.error\\(e.message\\)}\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
+    ]
+  }
+}

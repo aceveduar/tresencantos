@@ -409,6 +409,15 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .stock-one{background:#F0EAE2;color:#6B5C48}
 .stock-sold{background:#FEE2E2;color:#991B1B}
 
+/* ══ INLINE EDIT — categoría y visibilidad ═══════════════════════════════ */
+.cat-label-inline{cursor:pointer;border-bottom:1px dashed transparent;transition:border-color .15s,color .15s;touch-action:manipulation}
+.cat-label-inline:hover{border-bottom-color:var(--gold);color:var(--gold-dark)}
+.pub-toggle{font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:50px;flex-shrink:0;white-space:nowrap;border:1px solid;cursor:pointer;touch-action:manipulation;font-family:inherit;line-height:1;transition:.15s}
+.pub-hidden{background:#F1F5F9;color:#64748B;border-color:#E2E8F0}
+.pub-hidden:hover{background:#E2E8F0;color:#475569}
+.pub-visible{background:#ECFDF5;color:#059669;border-color:#A7F3D0}
+.pub-visible:hover{background:#D1FAE5;color:#047857}
+
 /* ══ VOICE DICTATION ════════════════════════════════════════════════════ */
 .field-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .field-label-row label{margin-bottom:0;flex:1}

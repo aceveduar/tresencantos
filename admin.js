@@ -523,9 +523,9 @@ function adminCard(p) {
     <div class="ac-name" title="${p.name}">${p.name}</div>
     <div class="ac-meta">
       <span class="cat-dot" style="background:${catColor}"></span>
-      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.categoryLabel}</span>
+      <span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" title="Toca para cambiar categoría" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.categoryLabel}</span>
       <span style="flex-shrink:0">· #${p.id}</span>
-      ${publishedBadge(p)}
+      ${publishedToggle(p)}
     </div>
     <div class="ac-price-row">${priceHTML}</div>
     <div class="ac-footer">
@@ -646,10 +646,76 @@ async function editStockInline(e, id) {
 
 // getCatColor() reemplaza CAT_COLORS — usa el array dinámico de categorías
 
-function publishedBadge(p) {
-  return p.isPublished === false
-    ? `<span style="background:#F1F5F9;color:#64748B;font-size:.6rem;font-weight:700;padding:2px 6px;border-radius:50px;flex-shrink:0;white-space:nowrap;border:1px solid #E2E8F0">🙈 Oculto</span>`
-    : '';
+function publishedToggle(p) {
+  if (p.isPublished === false) {
+    return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-hidden" title="Tap para publicar en sitio web">🙈 Oculto</button>`;
+  }
+  return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-visible" title="Tap para ocultar del sitio web">🌐 Web</button>`;
+}
+
+async function togglePublished(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const newVal = p.isPublished === false ? true : false;
+  const result = await supabaseApi(`products?id=eq.${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ is_published: newVal })
+  });
+  if (!result.ok) { toast('Error al actualizar visibilidad', 'error'); return; }
+  p.isPublished = newVal;
+  renderTable();
+  renderStats();
+  toast(newVal ? '🌐 Publicado en sitio web' : '🙈 Oculto del sitio web', 'success');
+}
+
+function editCategoryInline(e, id) {
+  e.stopPropagation();
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const span = e.currentTarget;
+  const sel = document.createElement('select');
+  sel.style.cssText = 'border:2px solid var(--gold);border-radius:6px;padding:2px 6px;font-size:.78rem;font-family:inherit;background:#fff;color:var(--charcoal);outline:none;max-width:150px;cursor:pointer;touch-action:manipulation';
+  rootCats().forEach(r => {
+    const subs = subCats(r.code);
+    if (subs.length) {
+      const og = document.createElement('optgroup');
+      og.label = r.label;
+      subs.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.code; opt.textContent = s.label;
+        if (s.code === p.category) opt.selected = true;
+        og.appendChild(opt);
+      });
+      sel.appendChild(og);
+    } else {
+      const opt = document.createElement('option');
+      opt.value = r.code; opt.textContent = r.label;
+      if (r.code === p.category) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  });
+  span.replaceWith(sel);
+  let saved = false;
+  const save = async () => {
+    if (saved) return; saved = true;
+    const newCode = sel.value;
+    if (newCode === p.category) { renderTable(); return; }
+    const cat = categories.find(c => c.code === newCode);
+    if (!cat) { renderTable(); return; }
+    const result = await supabaseApi(`products?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ category: newCode, category_label: cat.label })
+    });
+    if (result.ok) {
+      p.category = newCode; p.categoryLabel = cat.label;
+      toast(`Categoría → ${cat.label}`, 'success');
+    } else { toast('Error al actualizar categoría', 'error'); }
+    renderTable();
+  };
+  sel.addEventListener('change', save);
+  sel.addEventListener('blur', () => { if (!saved) renderTable(); });
+  sel.addEventListener('keydown', ev => { if (ev.key === 'Escape') { saved = true; renderTable(); } });
+  setTimeout(() => sel.focus(), 50);
 }
 
 function desktopRow(p) {
@@ -661,7 +727,7 @@ function desktopRow(p) {
   const catDot = `<span class="cat-dot" style="background:${catColor}"></span>`;
   return `
 <tr draggable="true" data-id="${p.id}" class="${selectedIds.has(p.id) ? 'row-selected' : ''}"
-    ondblclick="if(!event.target.closest('button,input,a,.drag-handle'))openForm(${p.id})"
+    ondblclick="if(!event.target.closest('button,input,select,a,.drag-handle,.cat-label-inline'))openForm(${p.id})"
     title="Doble clic para editar">
   <td class="col-check" style="text-align:center">
     <input type="checkbox" class="row-check" ${selectedIds.has(p.id) ? 'checked' : ''} onchange="toggleRowSelect(${p.id}, this.checked)">
@@ -674,8 +740,8 @@ function desktopRow(p) {
         <div class="prod-name" title="${p.name}">${p.name}</div>
         <div class="prod-meta">
           ${catDot}
-          <span class="prod-meta-text">${p.categoryLabel} · #${p.id}${p.barcode ? ` · 🔲 ${p.barcode}` : ''}</span>
-          ${badgeHTML}${featStar}${publishedBadge(p)}
+          <span class="prod-meta-text"><span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${p.categoryLabel}</span> · #${p.id}${p.barcode ? ` · 🔲 ${p.barcode}` : ''}</span>
+          ${badgeHTML}${featStar}${publishedToggle(p)}
         </div>
       </div>
     </div>
@@ -713,8 +779,7 @@ function mobileCard(p) {
        <span class="mpc-price">$${p.price.toLocaleString('es-MX')}</span>`
     : `<span class="mpc-price">$${p.price.toLocaleString('es-MX')}</span>`;
 
-  const stockInfo = (!oos && p.stock > 0)
-    ? `<span class="mpc-stock-inline">${stockChip(p)}</span>` : '';
+  const stockInfo = `<span class="mpc-stock-inline">${stockChip(p)}</span>`;
 
   const badgeHTML = p.badge
     ? `<span class="badge badge-${p.badgeType||'none'}" style="font-size:.62rem;padding:3px 8px">${p.badge}</span>`
@@ -736,7 +801,7 @@ function mobileCard(p) {
           <div class="mpc-name">${p.name}</div>
           <div class="mpc-cat-tag">
             <span class="cat-dot" style="background:${catColor}"></span>
-            ${p.categoryLabel}${p.barcode ? ` · 🔲 ${p.barcode}` : ''}
+            <span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría">${p.categoryLabel}</span>${p.barcode ? ` · 🔲 ${p.barcode}` : ''}
           </div>
           <div class="mpc-price-row">${priceHTML}${stockInfo}</div>
         </div>
@@ -746,7 +811,7 @@ function mobileCard(p) {
                 class="oos-cell ${oos ? 'soldout' : 'available'} mpc-oos-btn">
           ${oos ? 'Agotado' : 'Disponible'}
         </button>
-        ${badgeHTML}${publishedBadge(p)}
+        ${badgeHTML}${publishedToggle(p)}
         <div class="mpc-icon-group">
           <button class="mpc-icon-btn${p.featured ? ' feat-active' : ''}"
                   onclick="toggleFeatured(${p.id})"
