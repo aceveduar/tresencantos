@@ -1082,6 +1082,29 @@ async function loadAppConfig() {
       if (row.id === 'drive_secret') driveSecret = row.value || null;
     });
   }
+  // Migración automática: si había config en localStorage la subimos a Supabase una sola vez
+  const migrations = [];
+  if (!driveEp) {
+    const oldEp = localStorage.getItem('te_drive_ep');
+    const oldSecret = localStorage.getItem('te_drive_secret');
+    if (oldEp && oldSecret) {
+      driveEp = oldEp; driveSecret = oldSecret;
+      migrations.push(
+        supabaseApi('config', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates,return=minimal'}, body: JSON.stringify({id:'drive_ep',     value: oldEp}) }),
+        supabaseApi('config', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates,return=minimal'}, body: JSON.stringify({id:'drive_secret', value: oldSecret}) })
+      );
+    }
+  }
+  if (!groqApiKey) {
+    const oldKey = localStorage.getItem('te_groq_key');
+    if (oldKey) {
+      groqApiKey = oldKey;
+      migrations.push(
+        supabaseApi('config', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates,return=minimal'}, body: JSON.stringify({id:'groq_key', value: oldKey}) })
+      );
+    }
+  }
+  if (migrations.length) await Promise.all(migrations);
   loadDriveConfig();
   loadGroqKeyStatus();
 }
@@ -1184,13 +1207,17 @@ async function testDriveEndpoint() {
 async function uploadToDrive(b64) {
   if (!driveEp || !driveSecret) return null;
   try {
-    const res = await fetch(ep, {
+    const res = await fetch(driveEp, {
       method: 'POST',
-      body: JSON.stringify({ secret, image: b64, name: `producto_${Date.now()}.jpg` })
+      body: JSON.stringify({ secret: driveSecret, image: b64, name: `producto_${Date.now()}.jpg` })
     });
     const data = await res.json();
+    if (!data.ok) toast(`Drive: ${data.error || 'Error al subir imagen'}`, 'error');
     return data.ok ? data.url : null;
-  } catch { return null; }
+  } catch(e) {
+    toast('Drive no responde — imagen guardada localmente', 'error');
+    return null;
+  }
 }
 
 /* ── IMAGE UPLOAD ── */

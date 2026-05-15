@@ -165,9 +165,13 @@ function cardHTML(p) {
   const oosTag = oos ? `<span class="product-badge badge-oos" style="background:#9B8B78">Agotado</span>` : '';
 
   let badgeArea = '';
-  if (pct > 0 && p.badge) {
-    badgeArea = `<span class="badge-combo"><span class="bc-pct">-${pct}%</span><span class="bc-label">${p.badge}</span></span>`;
+  const badgeIsPromo = !p.badgeType || p.badgeType === 'promo';
+  if (pct > 0 && p.badge && !badgeIsPromo) {
+    // Badge aporta info diferente al descuento (Nuevo, Más vendido, Natura) → mostrar ambos en esquinas opuestas
+    badgeArea = `<span class="product-badge badge-${p.badgeType}">${p.badge}</span>`
+              + `<span class="product-badge badge-discount">-${pct}%</span>`;
   } else if (pct > 0) {
+    // Descuento solo (o badge era "OFERTA" — redundante): solo el %
     badgeArea = `<span class="product-badge badge-discount">-${pct}%</span>`;
   } else if (p.badge) {
     badgeArea = `<span class="product-badge badge-${p.badgeType||'best'}">${p.badge}</span>`;
@@ -369,8 +373,10 @@ function openModal(id) {
   const oos = p.outOfStock || p.stock === 0;
   const pct = discountPct(p);
   let modalBadgeArea = '';
-  if (pct > 0 && p.badge) {
-    modalBadgeArea = `<span class="badge-combo" style="position:absolute;top:10px;left:10px"><span class="bc-pct">-${pct}%</span><span class="bc-label">${p.badge}</span></span>`;
+  const modalBadgeIsPromo = !p.badgeType || p.badgeType === 'promo';
+  if (pct > 0 && p.badge && !modalBadgeIsPromo) {
+    modalBadgeArea = `<span class="product-badge badge-${p.badgeType}" style="position:absolute;top:10px;left:10px">${p.badge}</span>`
+                   + `<span class="product-badge badge-discount" style="position:absolute;top:10px;right:10px;left:auto">-${pct}%</span>`;
   } else if (pct > 0) {
     modalBadgeArea = `<span class="product-badge badge-discount" style="position:absolute;top:10px;right:10px;left:auto">-${pct}%</span>`;
   } else if (p.badge) {
