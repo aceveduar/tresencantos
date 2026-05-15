@@ -445,7 +445,7 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 
 /* Móvil pequeño */
 @media(max-width:480px){
-  .hero{padding:72px 20px 40px}
+  .hero{padding:64px 20px 28px;min-height:100svh;min-height:-webkit-fill-available}
   .section-header{margin-bottom:32px}
   .products-section{padding-bottom:40px}
   .section-header h2{font-size:1.65rem}
@@ -489,11 +489,21 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .pillar-card{padding:24px 16px}
 }
 
+/* iPhones medianos — evita que el h1 rompa en 3 líneas */
+@media(max-width:430px) and (min-width:361px){
+  .hero h1{font-size:1.82rem;margin-bottom:12px}
+  .hero p{margin-bottom:20px}
+  .hero-tag{margin-bottom:16px}
+}
+
 /* Teléfonos muy chicos */
 @media(max-width:360px){
   .products-grid{grid-template-columns:1fr 1fr;gap:8px}
   .product-body{padding:10px 8px 12px}
-  .hero h1{font-size:1.8rem}
+  .hero h1{font-size:1.75rem;margin-bottom:12px}
+  .hero p{font-size:.92rem;margin-bottom:22px}
+  .hero-tag{margin-bottom:18px;padding:7px 14px}
+  .hero-btns{gap:10px}
   .hms-card{width:130px}
   /* Filtros en pantalla muy angosta */
   .products-filters{gap:6px}
