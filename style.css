@@ -139,6 +139,17 @@ section{padding:80px 20px}
   .products-filters-row{flex-wrap:nowrap;gap:8px;align-items:center}
   .products-filters{margin-bottom:0}
   .sort-select{font-size:16px!important;width:auto;flex-shrink:0;padding:8px 10px;font-size:.78rem!important}
+  /* Header catálogo compacto — productos suben */
+  .products-section .section-header{margin-bottom:20px}
+  .products-section .section-header h2{font-size:1.55rem;margin-bottom:6px}
+  .products-section .section-header p{font-size:.84rem}
+  .products-search{margin-bottom:16px}
+  .products-filters-row{margin-bottom:24px}
+  /* Fade derecho en chips — indica que hay más filtros */
+  .products-filters{
+    -webkit-mask-image:linear-gradient(to right,black 82%,transparent 100%);
+    mask-image:linear-gradient(to right,black 82%,transparent 100%);
+  }
 }
 .filter-btn{padding:8px 20px;border-radius:50px;border:1.5px solid var(--border);background:#fff;color:var(--text-mid);font-size:.83rem;font-weight:500;cursor:pointer;transition:var(--ease);font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:6px}
 .filter-btn:hover,.filter-btn.active{background:var(--gold);color:#fff;border-color:var(--gold)}
@@ -185,6 +196,7 @@ section{padding:80px 20px}
 /* ── NATURA ── */
 .natura-section{background:linear-gradient(135deg,#1B4332 0%,#2D6A4F 50%,#40916C 100%);color:#fff}
 .natura-grid{display:grid;grid-template-columns:1fr 1.15fr;gap:64px;align-items:center}
+.natura-h2{color:#fff;font-size:2.2rem;line-height:1.2;margin:0 0 18px}
 .natura-text p{opacity:.84;line-height:1.85;margin-bottom:14px;font-size:.96rem}
 .natura-text p strong{opacity:1;color:#fff}
 .natura-btns{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
@@ -471,9 +483,10 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .product-price{font-size:1.1rem}
   .btn-buy{width:100%;justify-content:center;padding:11px 14px}
 
-  /* Natura carrusel mobile */
+  /* Natura mobile */
   .nc-card{flex:0 0 78%}
   .natura-grid>:first-child{order:1}
+  .natura-h2{font-size:1.7rem}
 
   /* Natura order banner */
   .natura-order-banner{padding:20px;gap:16px}
