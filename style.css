@@ -399,7 +399,12 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .natura-grid,.about-grid{grid-template-columns:1fr;gap:40px}
   .footer-grid{grid-template-columns:1fr 1fr}
   .natura-text{text-align:center}
+  .natura-text p{text-align:left}
   .natura-btns{justify-content:center}
+  /* Grid 2×2 estático en lugar de carrusel */
+  .nc-wrap{display:grid;grid-template-columns:1fr 1fr;overflow:visible;scroll-snap-type:none;gap:12px}
+  .nc-card{flex:none}
+  .nc-nav{display:none!important}
 }
 
 /* Mobile */
@@ -484,7 +489,6 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .btn-buy{width:100%;justify-content:center;padding:11px 14px}
 
   /* Natura mobile */
-  .nc-card{flex:0 0 78%}
   .natura-grid>:first-child{order:1}
   .natura-h2{font-size:1.7rem}
 

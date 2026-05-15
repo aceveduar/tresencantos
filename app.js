@@ -282,6 +282,7 @@ function renderNatura() {
 }
 
 function _initNaturaCarousel(total) {
+  if (window.innerWidth <= 900) return; // mobile: grid 2×2, sin carrusel
   const wrap   = document.getElementById('nc-wrap');
   const dotsEl = document.getElementById('nc-dots');
   const nav    = document.getElementById('nc-nav');
