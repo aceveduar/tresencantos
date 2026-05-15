@@ -182,8 +182,8 @@ function cardHTML(p) {
     ? `<span class="product-badge" style="background:#92400E;left:auto;right:10px">Últimas ${p.stock}</span>` : '';
   const fallback = `https://picsum.photos/seed/${p.id+10}/500/500`;
   const priceHTML = pct > 0
-    ? `<div class="product-price"><s class="price-before">$${p.originalPrice.toLocaleString('es-MX')}</s> $${p.price.toLocaleString('es-MX')} <small>MXN</small></div>`
-    : `<div class="product-price">$${p.price.toLocaleString('es-MX')} <small>MXN</small></div>`;
+    ? `<div class="product-price"><s class="price-before">$${p.originalPrice.toLocaleString('es-MX')}</s> $${p.price.toLocaleString('es-MX')}</div>`
+    : `<div class="product-price">$${p.price.toLocaleString('es-MX')}</div>`;
   const buyBtn = oos
     ? `<button class="btn-buy btn-buy-oos" disabled>Agotado</button>`
     : `<button class="btn-buy" onclick="event.stopPropagation();whatsapp(${p.id})">${WA_SVG} Pedir</button>`;
@@ -239,7 +239,7 @@ function renderHeroVisual() {
   <img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.onerror=null;this.src='${fallback(p.id)}'">
   <div class="hc-info">
     <div class="hc-name">${p.name}</div>
-    <div class="hc-price">$${p.price.toLocaleString('es-MX')} MXN</div>
+    <div class="hc-price">$${p.price.toLocaleString('es-MX')}</div>
   </div>
 </div>`).join('');
 }
