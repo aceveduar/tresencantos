@@ -56,18 +56,19 @@
     <div class="hero-text">
       <div class="hero-tag">
         <span class="dot"></span>
-        Maquixco, San Juan Teotihuacán · Entregas a domicilio
+        Maquixco, San Juan Teotihuacán · Envíos a domicilio
       </div>
       <h1>Porque tú te mereces<br>lo más <em>bonito</em> que existe.</h1>
-      <p>Bolsos, accesorios, maquillaje y lo mejor de Natura. Todo lo que una mujer necesita — a un mensaje de distancia.</p>
+      <p>Bolsos, mochilas, belleza y Natura — todo por WhatsApp.</p>
       <div class="hero-btns">
         <a href="#productos" class="btn btn-dark">Ver productos</a>
         <a href="https://wa.me/5215534548417?text=¡Hola!%20Quiero%20ver%20qué%20tienen%20disponible%20en%20Tres%20Encantos%20"
            class="btn btn-gold" target="_blank" rel="noopener">
-          Escríbenos
+          Pedir por WhatsApp
         </a>
       </div>
       <!-- Strip de productos visible solo en mobile -->
+      <p class="hms-label">✦ Más buscados</p>
       <div class="hero-mobile-strip" id="hero-mobile-strip" aria-hidden="true"></div>
     </div>
     <div class="hero-visual" id="hero-visual" aria-hidden="true"></div>
@@ -108,14 +109,12 @@
 <!-- NATURA -->
 <section id="natura" class="natura-section">
   <div class="container">
-    <div class="section-header reveal">
-      <span class="section-tag">Consultora Diamante Natura ✦</span>
-      <h2>La belleza que cuida</h2>
-      <p>Ofelia es Consultora Diamante de Natura México — el nivel se gana con años de trabajo, conocimiento y clientes satisfechas. Compra con quien realmente sabe.</p>
-    </div>
     <div class="natura-grid">
+
+      <!-- TEXTO -->
       <div class="natura-text reveal">
-        <h3>La naturaleza en cada producto</h3>
+        <span class="section-tag" style="background:rgba(255,255,255,.15);color:#fff;margin-bottom:20px;display:inline-block">Consultora Diamante Natura ✦</span>
+        <h2 style="color:#fff;font-size:2.2rem;line-height:1.2;margin:0 0 18px">La belleza<br>que cuida</h2>
         <p>Natura nació en Brasil con una idea poderosa: la belleza no debería hacerle daño al planeta. Ofelia lo creyó desde el primer producto que probó — y ya no paró.</p>
         <p>Perfumes, cremas, maquillaje y cuidado capilar. Cuando le compras a Ofelia, tienes la asesoría de alguien que los usa, los conoce y <strong>los recomienda con honestidad</strong>.</p>
         <div class="natura-btns">
@@ -126,7 +125,17 @@
           </a>
         </div>
       </div>
-      <div class="natura-products-grid reveal" id="natura-grid"></div>
+
+      <!-- CARRUSEL -->
+      <div class="natura-carousel reveal">
+        <div class="nc-wrap" id="nc-wrap"></div>
+        <div class="nc-nav" id="nc-nav" style="display:none">
+          <button class="nc-arrow" onclick="naturaNav(-1)" aria-label="Anterior">&#8249;</button>
+          <div class="nc-dots" id="nc-dots"></div>
+          <button class="nc-arrow" onclick="naturaNav(1)" aria-label="Siguiente">&#8250;</button>
+        </div>
+      </div>
+
     </div>
 
     <!-- ── BANNER: TIENDA NATURA DE OFELIA ───────────────────────────────────

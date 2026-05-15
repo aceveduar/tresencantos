@@ -183,21 +183,33 @@ section{padding:80px 20px}
 
 /* ── NATURA ── */
 .natura-section{background:linear-gradient(135deg,#1B4332 0%,#2D6A4F 50%,#40916C 100%);color:#fff}
-.natura-section .section-tag{background:rgba(255,255,255,.15);color:#fff}
-.natura-section .section-header h2,.natura-section .section-header p{color:#fff}
-.natura-section .section-header p{opacity:.82}
-.natura-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
-.natura-text h3{font-size:1.55rem;margin-bottom:14px;line-height:1.3}
-.natura-text p{opacity:.84;line-height:1.85;margin-bottom:18px;font-size:.96rem}
+.natura-grid{display:grid;grid-template-columns:1fr 1.15fr;gap:64px;align-items:center}
+.natura-text p{opacity:.84;line-height:1.85;margin-bottom:14px;font-size:.96rem}
 .natura-text p strong{opacity:1;color:#fff}
 .natura-btns{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
-.natura-products-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-.nc-card{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:var(--ease)}
-.nc-card:hover{background:rgba(255,255,255,.22);transform:translateY(-3px)}
-.nc-card img{width:100%;aspect-ratio:1;object-fit:cover}
-.nc-info{padding:12px}
-.nc-name{font-size:.82rem;font-weight:600;margin-bottom:4px;line-height:1.3}
-.nc-price{font-size:.98rem;font-weight:700;font-family:'Playfair Display',serif}
+/* Carrusel */
+.natura-carousel{position:relative}
+.nc-wrap{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;border-radius:var(--r)}
+.nc-wrap::-webkit-scrollbar{display:none}
+.nc-card{flex:0 0 calc(50% - 7px);scroll-snap-align:start;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:transform .3s,background .3s;backdrop-filter:blur(4px)}
+.nc-card:hover{background:rgba(255,255,255,.2);transform:translateY(-5px)}
+.nc-img-wrap{position:relative;padding-top:118%;overflow:hidden}
+.nc-img-wrap img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .5s}
+.nc-card:hover .nc-img-wrap img{transform:scale(1.06)}
+.nc-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(27,67,50,.7) 0%,transparent 50%);display:flex;align-items:flex-end;padding:14px;opacity:0;transition:opacity .3s}
+.nc-card:hover .nc-overlay{opacity:1}
+.nc-overlay span{background:rgba(255,255,255,.95);color:#1B4332;font-size:.7rem;font-weight:700;padding:5px 12px;border-radius:50px;letter-spacing:.04em}
+.nc-info{padding:12px 14px 15px}
+.nc-cat{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.55;margin-bottom:5px}
+.nc-name{font-size:.84rem;font-weight:600;line-height:1.3;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.nc-price{font-size:1.02rem;font-weight:700;font-family:'Playfair Display',serif}
+/* Navegación */
+.nc-nav{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px}
+.nc-dots{display:flex;gap:7px;align-items:center}
+.nc-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);border:none;cursor:pointer;padding:0;transition:.25s;flex-shrink:0}
+.nc-dot.active{background:#fff;width:20px;border-radius:4px}
+.nc-arrow{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.3rem;transition:.2s;padding:0;line-height:1;flex-shrink:0}
+.nc-arrow:hover{background:rgba(255,255,255,.3)}
 
 /* ── ABOUT ── */
 .about-section{background:#fff}
@@ -303,34 +315,36 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .reveal.visible{opacity:1;transform:translateY(0)}
 
 /* ── HERO MOBILE STRIP ── */
+.hms-label{display:none;font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:24px 0 10px}
 .hero-mobile-strip{
   display:none;
-  margin-top:28px;
   width:100%;
-  max-width:100%;
   overflow-x:auto;
   overflow-y:visible;
   scrollbar-width:none;
   -webkit-overflow-scrolling:touch;
+  scroll-snap-type:x mandatory;
 }
 .hero-mobile-strip::-webkit-scrollbar{display:none}
-.hms-inner{display:flex;gap:12px;padding:4px 2px 8px;width:max-content}
+.hms-inner{display:flex;gap:14px;padding:4px 2px 12px;width:max-content}
 .hms-card{
-  flex-shrink:0;width:130px;background:#fff;
-  border-radius:14px;overflow:hidden;
-  box-shadow:0 4px 18px rgba(28,24,23,.1);
-  cursor:pointer;transition:transform .2s ease;
+  flex-shrink:0;width:150px;background:#fff;
+  border-radius:16px;overflow:hidden;
+  box-shadow:0 6px 22px rgba(28,24,23,.11);
+  cursor:pointer;transition:transform .2s ease,box-shadow .2s;
   border:1px solid var(--border);
+  scroll-snap-align:start;
 }
-.hms-card:active{transform:scale(.96)}
-.hms-card img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
-.hms-info{padding:9px 10px 10px}
+.hms-card:active{transform:scale(.96);box-shadow:0 2px 10px rgba(28,24,23,.08)}
+.hms-card img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+.hms-info{padding:10px 11px 12px}
 .hms-name{
-  font-size:.72rem;font-weight:600;color:var(--charcoal);
+  font-size:.74rem;font-weight:600;color:var(--charcoal);
   font-family:'Playfair Display',serif;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;line-height:1.35;margin-bottom:5px;min-height:2em;
 }
-.hms-price{font-size:.72rem;font-weight:700;color:var(--gold-dark)}
+.hms-price{font-size:.78rem;font-weight:700;color:var(--gold-dark)}
 
 /* ── NATURA ORDER BANNER ── */
 .natura-order-banner{
@@ -358,6 +372,7 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .hero-text .hero-btns{justify-content:center}
   .hero-text p{margin-left:auto;margin-right:auto;max-width:480px}
   .hero-visual{display:none}
+  .hms-label{display:block}
   .hero-mobile-strip{display:block}
 }
 
@@ -369,7 +384,6 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 
 @media(max-width:900px){
   .natura-grid,.about-grid{grid-template-columns:1fr;gap:40px}
-  .natura-grid>:first-child{order:2}
   .footer-grid{grid-template-columns:1fr 1fr}
   .natura-text{text-align:center}
   .natura-btns{justify-content:center}
@@ -456,8 +470,9 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .product-price{font-size:1.1rem}
   .btn-buy{width:100%;justify-content:center;padding:11px 14px}
 
-  /* Natura grid */
-  .natura-products-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  /* Natura carrusel mobile */
+  .nc-card{flex:0 0 78%}
+  .natura-grid>:first-child{order:1}
 
   /* Natura order banner */
   .natura-order-banner{padding:20px;gap:16px}
@@ -479,7 +494,7 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .products-grid{grid-template-columns:1fr 1fr;gap:8px}
   .product-body{padding:10px 8px 12px}
   .hero h1{font-size:1.8rem}
-  .hms-card{width:108px}
+  .hms-card{width:130px}
   /* Filtros en pantalla muy angosta */
   .products-filters{gap:6px}
   .filter-btn{padding:8px 12px;font-size:.73rem}

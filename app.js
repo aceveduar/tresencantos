@@ -224,52 +224,8 @@ function renderHeroMobileStrip() {
   container.innerHTML = `<div class="hms-inner">${items.map(cardHTML).join('')}</div>`;
 }
 
-/* ── AUTO-SCROLL DESTACADOS ── */
-function initAutoScroll() {
-  const strip = document.getElementById('hero-mobile-strip');
-  // No correr si el strip no está visible (desktop) o no hay contenido
-  if (!strip || strip.offsetParent === null) return;
-
-  let paused = false;
-  let resumeTimer;
-
-  strip.addEventListener('touchstart', () => {
-    paused = true;
-    clearTimeout(resumeTimer);
-  }, { passive: true });
-
-  strip.addEventListener('touchend', () => {
-    clearTimeout(resumeTimer);
-    resumeTimer = setTimeout(() => { paused = false; }, 3000);
-  }, { passive: true });
-
-  const SPEED = 0.5;
-
-  // Esperar a que las imágenes carguen para medir correctamente
-  setTimeout(() => {
-    const inner = strip.querySelector('.hms-inner');
-    if (!inner) return;
-
-    // Si el contenido ya cabe sin scroll, mostrar estático (sin duplicar)
-    if (strip.scrollWidth <= strip.clientWidth) return;
-
-    // Duplicar para loop seamless solo cuando hay desbordamiento real
-    inner.innerHTML += inner.innerHTML;
-    const halfWidth = strip.scrollWidth / 2;
-
-    const tick = () => {
-      if (!paused) {
-        strip.scrollLeft += SPEED;
-        // Salto invisible al llegar a la mitad: vuelve al inicio con los mismos cards
-        if (strip.scrollLeft >= halfWidth) {
-          strip.scrollLeft -= halfWidth;
-        }
-      }
-      requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  }, 800);
-}
+/* Auto-scroll eliminado — scroll manual con momentum nativo */
+function initAutoScroll() { /* no-op */ }
 
 /* ── HERO VISUAL ── */
 function renderHeroVisual() {
@@ -288,22 +244,85 @@ function renderHeroVisual() {
 </div>`).join('');
 }
 
-/* ── RENDER NATURA GRID ── */
+/* ── RENDER NATURA CARRUSEL ── */
+let _ncTimer = null;
+let _ncPage  = 0;
+
+const _ncCatLabel = code => ({
+  natura_perfumes:'Perfumería', natura_cuerpo:'Cuerpo', natura_facial:'Facial',
+  natura_cabello:'Cabello', natura_maquillaje:'Maquillaje'
+})[code] || 'Natura';
+
 function renderNatura() {
-  const grid = document.getElementById('natura-grid');
-  if (!grid) return;
-  const naturaList = products.filter(p => p.category === 'natura' || p.category?.startsWith('natura_')).slice(0, 4);
-  if (!naturaList.length) { grid.style.display = 'none'; return; }
-  const fallback = id => `https://picsum.photos/seed/${id+20}/500/500`;
-  grid.innerHTML = naturaList.map(p => `
-<div class="nc-card reveal" onclick="openModal(${p.id})">
-  <img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.onerror=null;this.src='${fallback(p.id)}'">
+  const wrap = document.getElementById('nc-wrap');
+  if (!wrap) return;
+  const list = products
+    .filter(p => p.category === 'natura' || p.category?.startsWith('natura_'))
+    .slice(0, 8);
+  if (!list.length) {
+    document.querySelector('.natura-carousel')?.style.setProperty('display','none');
+    return;
+  }
+  const fb = id => `https://picsum.photos/seed/${id+20}/500/500`;
+  wrap.innerHTML = list.map(p => `
+<div class="nc-card" onclick="openModal(${p.id})">
+  <div class="nc-img-wrap">
+    <img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.onerror=null;this.src='${fb(p.id)}'">
+    <div class="nc-overlay"><span>Ver producto →</span></div>
+  </div>
   <div class="nc-info">
+    <div class="nc-cat">${_ncCatLabel(p.category)}</div>
     <div class="nc-name">${p.name}</div>
     <div class="nc-price">$${p.price.toLocaleString('es-MX')}</div>
   </div>
 </div>`).join('');
-  grid.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  _initNaturaCarousel(list.length);
+}
+
+function _initNaturaCarousel(total) {
+  const wrap   = document.getElementById('nc-wrap');
+  const dotsEl = document.getElementById('nc-dots');
+  const nav    = document.getElementById('nc-nav');
+  if (!wrap || !dotsEl) return;
+  clearInterval(_ncTimer);
+  _ncPage = 0;
+
+  const perPage = () => window.innerWidth > 600 ? 2 : 1;
+  const pages   = () => Math.ceil(total / perPage());
+
+  const buildDots = () => {
+    const n = pages();
+    nav.style.display = n > 1 ? 'flex' : 'none';
+    dotsEl.innerHTML = Array.from({length: n}, (_, i) =>
+      `<button class="nc-dot${i===0?' active':''}" onclick="naturaGoTo(${i})" aria-label="Página ${i+1}"></button>`
+    ).join('');
+  };
+  buildDots();
+
+  window.naturaGoTo = page => {
+    const n = pages();
+    _ncPage = (page + n) % n;
+    const card = wrap.querySelector('.nc-card');
+    if (!card) return;
+    wrap.scrollTo({ left: _ncPage * perPage() * (card.offsetWidth + 14), behavior:'smooth' });
+    dotsEl.querySelectorAll('.nc-dot').forEach((d,i) => d.classList.toggle('active', i === _ncPage));
+  };
+
+  window.naturaNav = dir => naturaGoTo(_ncPage + dir);
+
+  const start = () => { _ncTimer = setInterval(() => naturaGoTo(_ncPage + 1), 4200); };
+  const stop  = () => clearInterval(_ncTimer);
+  start();
+  wrap.addEventListener('mouseenter', stop);
+  wrap.addEventListener('mouseleave', start);
+  wrap.addEventListener('touchstart', stop, {passive:true});
+  wrap.addEventListener('touchend',   () => setTimeout(start, 3000));
+
+  let _resizeT;
+  window.addEventListener('resize', () => {
+    clearTimeout(_resizeT);
+    _resizeT = setTimeout(() => { buildDots(); naturaGoTo(0); }, 150);
+  });
 }
 
 /* ── FILTERS ── */
