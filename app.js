@@ -292,7 +292,7 @@ function renderHeroVisual() {
 function renderNatura() {
   const grid = document.getElementById('natura-grid');
   if (!grid) return;
-  const naturaList = products.filter(p => p.category === 'natura').slice(0, 4);
+  const naturaList = products.filter(p => p.category === 'natura' || p.category?.startsWith('natura_')).slice(0, 4);
   if (!naturaList.length) { grid.style.display = 'none'; return; }
   const fallback = id => `https://picsum.photos/seed/${id+20}/500/500`;
   grid.innerHTML = naturaList.map(p => `

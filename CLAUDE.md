@@ -28,10 +28,10 @@ tresencantos/
 ├── app.js        # Lógica del sitio público
 ├── style.css     # Estilos del sitio público
 ├── admin.html    # Admin: CRUD productos, estilos inline
-├── admin.js      # Lógica del admin (~1900 líneas)
+├── admin.js      # Lógica del admin (~2100 líneas)
 ├── pos.html      # Punto de Venta: carrito, cobro, apartados, historial offcanvas
 ├── stats.html    # Dashboard de estadísticas (Chart.js CDN)
-├── staging.html  # Zona de preparación: subida masiva + IA Gemini
+├── staging.html  # Zona de preparación: subida masiva + IA Groq
 ├── logo.png
 ├── ofelia.jpeg
 └── CLAUDE.md
@@ -129,6 +129,11 @@ ALTER TABLE sales ADD COLUMN IF NOT EXISTS customer      text;
 |---|---|
 | `revista_url` | URL o base64 del PDF de la revista Natura |
 | `categories` | JSON array de categorías: `[{code, label, color, parent?}]` |
+| `groq_key` | API key de Groq para IA (plain text) |
+| `drive_ep` | URL del Google Apps Script proxy de Drive |
+| `drive_secret` | Secreto de autenticación Drive ↔ Apps Script |
+
+**Importante:** `groq_key`, `drive_ep` y `drive_secret` ya no están en `localStorage` — viven en esta tabla para ser compartidos entre todos los dispositivos y usuarios admin.
 
 #### `users` (legacy)
 Email + password plano. Ya no se usa para auth real (Supabase Auth JWT).
@@ -161,22 +166,32 @@ Guardadas en `config.id='categories'` como JSON. Estructura con soporte de subca
 ### Patrón de datos
 - `products = []` — array global, fuente de verdad en cliente
 - `categories = []` — cargado desde `config` al iniciar, antes que los productos
+- `groqApiKey`, `driveEp`, `driveSecret` — globals cargados desde `config` en Supabase al iniciar
 - Supabase primero; array local solo si el request es exitoso
+
+### Carga de config al iniciar (`loadAppConfig`)
+Se ejecuta en `showApp()` antes de cargar productos. Hace una sola query:
+```
+GET config?id=in.(groq_key,drive_ep,drive_secret)&select=id,value
+```
+Incluye **migración automática**: si los valores no están en Supabase pero sí en `localStorage` (instalaciones antiguas), los copia a Supabase silenciosamente en el primer arranque.
 
 ### Funcionalidades
 - **CRUD** con modal — doble clic/tap en fila para editar
 - **Vista lista / tarjetas** — toggle ☰/⊞ en toolbar, guardado en localStorage. En mobile: "Lista" = cards anchas, "Grid" = 2 columnas compactas
 - **Drag & drop** para reordenar (`position`)
-- **Inline stock:** tap en chip de número → input editable. Android fix: `type="text"+inputMode="numeric"` + botón ✓ explícito (no depende de `blur`)
+- **Inline stock:** tap en chip de número → input editable. Android fix: `type="text"+inputMode="numeric"` + botón ✓ explícito. El chip aparece siempre (incluso en agotados con stock=0) para facilitar el restock.
+- **Inline categoría:** tap en el label de categoría → select nativo. Guarda con `change`, cancela con `blur`/Escape.
+- **Inline visibilidad web:** badge "🙈 Oculto" / "🌐 Web" es un botón — tap para alternar `is_published`. Aparece en todas las vistas (lista, grid, tabla desktop).
 - **Toggle disponible/agotado:** stock=0 + marcar disponible → auto stock=1
 - **Precio de costo:** campo interno — muestra margen en tiempo real (verde ≥30%, ámbar ≥10%, rojo <10%)
-- **is_published:** checkbox "Publicar en sitio web" — si off, el producto existe en inventario/POS pero no en el catálogo público
 - **Reabastecimiento rápido:** bulk action "📦 Reabastecer" — selecciona productos, ingresa cantidad a agregar
 - **Duplicar producto**
 - **Búsqueda** + filtro por categoría (con subcategorías en `<optgroup>`) + ordenamiento
 - **Escanear código de barras** (html5-qrcode) en campo barcode y búsqueda
 - **Dictado por voz** (Web Speech API) — botón 🎤 junto a Nombre y Descripción. Reconstruye transcript desde `i=0` para evitar duplicados
 - **Captura de imagen:** galería, drag & drop, URL, o cámara (`capture="environment"`)
+- **IA en formulario de producto** — botón "✨ Completar con IA" aparece tras subir imagen; usa Groq para rellenar nombre, descripción y categoría automáticamente
 - **Google Drive para imágenes** — ver sección abajo
 - **Acciones bulk:** categoría, featured, oos, badge, exportar JSON, eliminar, reabastecer
 - **Import/Export JSON** — importar reemplaza catálogo con rollback local
@@ -184,22 +199,46 @@ Guardadas en `config.id='categories'` como JSON. Estructura con soporte de subca
 - **Staging area** → `staging.html` (botón 🗂 en topbar)
 - **Revista Natura** — URL o PDF base64 en `config`
 
+### IA en formulario de producto
+Aparece el botón **"✨ Completar con IA"** al subir una imagen (galería, cámara o drag & drop):
+- Usa `groqApiKey` global (cargado de Supabase)
+- Modelo: `meta-llama/llama-4-scout-17b-16e-instruct` vía `https://api.groq.com/openai/v1/chat/completions`
+- Rellena: nombre, descripción, categoría con animación de destello dorado
+- Si no hay key configurada: muestra mini input inline para pegarla (se guarda en Supabase al confirmar)
+- `currentFormImageDataUrl` guarda el base64 de la imagen actual para el análisis
+
 ### Google Drive para imágenes
 **Arquitectura:** `Admin → POST base64 → Google Apps Script → Drive → URL thumbnail`
 
-**Config (guardada en localStorage):**
-- `te_drive_ep` — URL del Apps Script
-- `te_drive_secret` — secreto único generado al configurar (no está en código fuente)
+**Config (guardada en `config` de Supabase):**
+| Campo Supabase | Contenido |
+|---|---|
+| `drive_ep` | URL del Apps Script (`/macros/s/.../exec`) |
+| `drive_secret` | Secreto único generado al configurar |
+
 - Carpeta Drive ID: `1KRy8Aj5bd7bz4f0TpkIKMURthWBCS7om`
 - URL resultante: `https://drive.google.com/thumbnail?id=FILE_ID&sz=w900`
+- Globals en admin.js: `driveEp`, `driveSecret` — se usan en `uploadToDrive()`
 
-**Reconfigurar:** Admin → Herramientas → Google Drive → pegar URL → Guardar → copiar secreto del campo gris → pegarlo en Apps Script (`const SECRET = '...'`) → Nueva versión → Implementar.
+**Apps Script actual (`scrip_imagenes`):**
+```javascript
+const FOLDER_ID = '1KRy8Aj5bd7bz4f0TpkIKMURthWBCS7om';
+const SECRET    = 'te_ifth9j1y0gbmp67g8i6'; // debe coincidir con drive_secret en Supabase
+```
 
-**Fallback:** si Drive falla, guarda base64. Nunca bloquea.
+**⚠️ Regla crítica — despliegue:** Cada vez que cambia el `SECRET` en el código del Apps Script, se debe crear una **nueva versión del despliegue**:
+> Apps Script → Implementar → Administrar implementaciones → ✏️ editar → Nueva versión → Implementar
+
+Si no se hace esto, el Apps Script sigue ejecutando la versión antigua con el secreto viejo → error "no autorizado" en uploads.
+
+**Reconfigurar:** Admin → Herramientas → Google Drive → pegar URL → Guardar → copiar secreto del campo gris → pegarlo en Apps Script (`const SECRET = '...'`) → Nueva versión → Implementar → Probar conexión.
+
+**Fallback:** si Drive falla, guarda base64. Nunca bloquea. Muestra toast de error específico.
 
 ### Bugs resueltos relevantes
 - `closeForm()` llama `setBtn(saveBtn, false)` → evita botón Guardar bloqueado en segunda edición
 - Inline stock en Android: `type="text"` + `inputMode="numeric"` + botón ✓ sin depender de `blur`
+- `uploadToDrive`: usaba variables `ep`/`secret` undefined tras refactor — corregido a `driveEp`/`driveSecret`
 
 ---
 
@@ -252,12 +291,15 @@ Zona de preparación de productos antes de publicar al inventario.
 4. "Publicar listas" → crea productos en Supabase con `is_published=false` y `price=0`
 5. En el admin: ajustar precio y activar "Publicar en sitio web" cuando estén listos
 
-**IA con Gemini Flash:**
-- API Key de Gemini guardada en localStorage `te_gemini_key` (gratis en aistudio.google.com)
-- Envía imagen + prompt en español a `gemini-1.5-flash`
+**IA con Groq (Llama 4 Scout Vision):**
+- API Key leída de `config.id='groq_key'` en Supabase — compartida con admin, sin configurar por dispositivo
+- Modelo: `meta-llama/llama-4-scout-17b-16e-instruct` vía `https://api.groq.com/openai/v1/chat/completions`
 - Extrae nombre (<60 chars), descripción (<200 chars) y categoría
-- 800ms de pausa entre llamadas en análisis masivo (respetar rate limit)
+- 1.5s de pausa entre llamadas en análisis masivo (free tier: ~30 req/min)
 - El prompt incluye las categorías disponibles para que la IA asigne correctamente
+- Free tier de Groq: sin restricción regional, sin tarjeta de crédito, ~1000 req/día
+
+**Por qué Groq y no Gemini:** Gemini free tier tiene `limit: 0` en México (restricción regional). Groq no tiene esta restricción.
 
 ---
 
@@ -269,6 +311,23 @@ Zona de preparación de productos antes de publicar al inventario.
 - **Hero mobile:** auto-scroll 0.5px/frame, loop seamless (items duplicados), pausa 3s al tocar
 - **Filtros** por categoría, búsqueda, ordenamiento; modal de detalle con botón WhatsApp
 - Sin botón flotante de WhatsApp (eliminado)
+
+### Lógica de badges en cards
+Regla: descuento % y badge "OFERTA/promo" son redundantes — el % gana siempre.
+
+| Situación | Resultado |
+|---|---|
+| Descuento + badge `promo` (OFERTA) | Solo `-X%` (badge omitido) |
+| Descuento + badge `best`/`new`/`natura` | Badge izquierda + `-X%` derecha (info complementaria) |
+| Solo descuento | Solo `-X%` |
+| Solo badge | Solo el badge |
+
+### Descripción de productos — line-clamp
+- **Desktop:** 3 líneas (`-webkit-line-clamp: 3`)
+- **Tablet 3col (601–1000px):** 2 líneas
+- **Mobile (<480px):** 2 líneas
+- **Título:** 2 líneas en todos los breakpoints
+- `flex: 1` en `.product-desc` empuja el precio siempre al fondo, independiente del largo del texto
 
 ---
 
@@ -305,7 +364,7 @@ Colores de categoría: **dinámicos desde `categories[]`**, campo `color` de cad
 - **PostgREST filtros:** `?id=eq.1` `?id=in.(1,2,3)` `?is_published=eq.true` `?order=position.asc`
 - **Batch upsert:** body array JSON + header `Prefer: resolution=merge-duplicates`
 - **Librerías CDN:** html5-qrcode@2.3.8 (escáner), Chart.js@4 (stats)
-- **IA:** Gemini 1.5 Flash vía REST en staging.html; key en localStorage `te_gemini_key`
-- **Google Drive:** Apps Script como proxy. Secreto en localStorage, nunca en código
+- **IA:** Groq Llama 4 Scout Vision — key en `config` Supabase (`groq_key`), compartida entre admin y staging
+- **Google Drive:** Apps Script como proxy. Secreto en `config` Supabase (`drive_secret`), nunca en código fuente. Al cambiar el secreto → siempre desplegar nueva versión del Apps Script.
 - `position` lo gestiona el admin — sitio público y POS ordenan por él
 - **SQL pendiente** para sesiones nuevas: ver sección "SQL — Migraciones Pendientes" arriba

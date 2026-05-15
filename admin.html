@@ -908,7 +908,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
               <button type="button" class="dictate-btn" onclick="clearField('f-name')" title="Limpiar campo">✕</button>
             </div>
           </div>
-          <input type="text" id="f-name" placeholder="Ej: Bolso Glamour Camel" onblur="applyTitleCase('f-name')">
+          <input type="text" id="f-name" placeholder="Ej: Bolso Glamour Camel" onblur="applyTitleCase('f-name');suggestCategoryFromName()" oninput="suggestCategoryFromName()">
         </div>
       </div>
       <div class="form-row">

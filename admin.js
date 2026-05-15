@@ -25,12 +25,35 @@ let currentSort = 'recent';
 let categories = []; // [{code, label, color}]
 
 const CAT_DEFAULTS = [
-  {code:'bolsos',     label:'Bolsos & Mochilas', color:'#C9A462'},
-  {code:'accesorios', label:'Accesorios',         color:'#60a5fa'},
-  {code:'maquillaje', label:'Maquillaje',          color:'#f472b6'},
-  {code:'natura',     label:'Natura',              color:'#34d399'},
-  {code:'perfumes',   label:'Perfumes',            color:'#a78bfa'},
-  {code:'loncheras',  label:'Loncheras',           color:'#fb923c'}
+  // ── BOLSOS ──────────────────────────────────────────────
+  {code:'bolsos',              label:'Bolsos',              color:'#C9A462'},
+  {code:'bolsos_dama',         label:'Bolsos Dama',         color:'#C9A462', parent:'bolsos'},
+  {code:'bolsos_casual',       label:'Bolsos Casual',       color:'#C9A462', parent:'bolsos'},
+  {code:'cosmetiqueras',       label:'Cosmetiqueras',       color:'#C9A462', parent:'bolsos'},
+  // ── MOCHILAS (incluye cangureras, lapiceras, loncheras) ─
+  {code:'mochilas',            label:'Mochilas',            color:'#60a5fa'},
+  {code:'mochilas_dama',       label:'Mochilas Dama',       color:'#60a5fa', parent:'mochilas'},
+  {code:'mochilas_personaje',  label:'Mochilas Personaje',  color:'#60a5fa', parent:'mochilas'},
+  {code:'mochilas_deportivas', label:'Mochilas Deportivas', color:'#60a5fa', parent:'mochilas'},
+  {code:'cangureras',          label:'Cangureras',          color:'#60a5fa', parent:'mochilas'},
+  {code:'lapiceras',           label:'Lapiceras',           color:'#60a5fa', parent:'mochilas'},
+  {code:'loncheras',           label:'Loncheras',           color:'#60a5fa', parent:'mochilas'},
+  // ── ACCESORIOS ──────────────────────────────────────────
+  {code:'accesorios',          label:'Accesorios',          color:'#f472b6'},
+  {code:'cabello',             label:'Cabello',             color:'#f472b6', parent:'accesorios'},
+  {code:'bisuteria',           label:'Bisutería & Joyería', color:'#f472b6', parent:'accesorios'},
+  {code:'moda',                label:'Moda',                color:'#f472b6', parent:'accesorios'},
+  // ── BELLEZA ─────────────────────────────────────────────
+  {code:'belleza',             label:'Belleza',             color:'#a78bfa'},
+  {code:'maquillaje',          label:'Maquillaje',          color:'#a78bfa', parent:'belleza'},
+  {code:'unas',                label:'Uñas & Manicure',     color:'#a78bfa', parent:'belleza'},
+  // ── NATURA ──────────────────────────────────────────────
+  {code:'natura',              label:'Natura',              color:'#34d399'},
+  {code:'natura_perfumes',     label:'Perfumería',          color:'#34d399', parent:'natura'},
+  {code:'natura_cuerpo',       label:'Cuerpo',              color:'#34d399', parent:'natura'},
+  {code:'natura_facial',       label:'Facial',              color:'#34d399', parent:'natura'},
+  {code:'natura_cabello',      label:'Cabello Natura',      color:'#34d399', parent:'natura'},
+  {code:'natura_maquillaje',   label:'Maquillaje Natura',   color:'#34d399', parent:'natura'},
 ];
 const CAT_PALETTE = ['#C9A462','#60a5fa','#f472b6','#34d399','#a78bfa','#fb923c','#fbbf24','#a3e635','#2dd4bf','#f87171'];
 
@@ -1212,7 +1235,12 @@ async function uploadToDrive(b64) {
       body: JSON.stringify({ secret: driveSecret, image: b64, name: `producto_${Date.now()}.jpg` })
     });
     const data = await res.json();
-    if (!data.ok) toast(`Drive: ${data.error || 'Error al subir imagen'}`, 'error');
+    if (!data.ok) {
+      const msg = (data.error || '').toLowerCase().includes('autorizado')
+        ? 'Drive: secreto incorrecto — ve a Herramientas → Google Drive, copia el secreto del campo gris y pégalo en tu Apps Script'
+        : `Drive: ${data.error || 'Error al subir imagen'}`;
+      toast(msg, 'error');
+    }
     return data.ok ? data.url : null;
   } catch(e) {
     toast('Drive no responde — imagen guardada localmente', 'error');
@@ -1500,6 +1528,54 @@ function clearAdminFilters() {
 function syncCategoryLabel() {
   const cat = document.getElementById('f-category').value;
   document.getElementById('f-category-label').value = getCatLabel(cat);
+}
+
+/* Sugiere categoría automáticamente al escribir el nombre del producto */
+function suggestCategoryFromName() {
+  const name = (document.getElementById('f-name')?.value || '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, ''); // quita acentos para comparar
+  if (!name || name.length < 4) return;
+
+  const rules = [
+    // Natura primero — muy específico
+    [/natura|ekos|chronos|kaiak|mamae|nuxe/,                                  'natura'],
+    // Perfumería Natura
+    [/perfum|colonia|desodoran/,                                               'natura_perfumes'],
+    // Mochilas y derivados
+    [/mochila/,                                                                'mochilas_dama'],
+    [/mochila.*(personaj|niñ|infantil|kawaii|escolar)/,                        'mochilas_personaje'],
+    [/mochila.*(deport|gym|sport)/,                                            'mochilas_deportivas'],
+    [/lonchera/,                                                               'loncheras'],
+    [/cangurera|riñonera|fanny/,                                               'cangureras'],
+    [/lapicera|estuche.*(lapiz|pluma)/,                                        'lapiceras'],
+    // Bolsos
+    [/bolso|bolsa.*(dama|mujer|elegante|cuero|piel)/,                          'bolsos_dama'],
+    [/bolso.*(casual|tela|lona)|tote|shopper/,                                 'bolsos_casual'],
+    [/cosmetiquera|neceser|organizador.*(maquilla|cosmet)/,                    'cosmetiqueras'],
+    // Accesorios cabello
+    [/diadema|dona|liga|pasador|pinza|broche|valerin|cofia|cepillo|cabello/,   'cabello'],
+    // Bisutería
+    [/arete|collar|cadena|pulsera|bisuter|joya|anillo|cristal/,               'bisuteria'],
+    // Moda
+    [/gorra|sombrero|chalina|sombrilla|bufanda/,                               'moda'],
+    // Belleza - uñas
+    [/uña|esmalte|lima|manicure|postiza|poligel|gel uv|brillo de uña/,         'unas'],
+    // Belleza - maquillaje
+    [/maquilla|labial|base|corrector|rubor|sombra.*(ojo)|cejas|pestañ|rimmel/, 'maquillaje'],
+  ];
+
+  for (const [regex, code] of rules) {
+    if (regex.test(name)) {
+      const sel = document.getElementById('f-category');
+      if (!sel || sel.value === code) return; // ya está asignado, no interrumpir
+      sel.value = code;
+      if (sel.value !== code) return; // código no existe en las opciones actuales
+      syncCategoryLabel();
+      sel.classList.add('ai-filled');
+      setTimeout(() => sel.classList.remove('ai-filled'), 1400);
+      return;
+    }
+  }
 }
 
 /* Capitaliza la primera letra de cada palabra (NomPropio) */
