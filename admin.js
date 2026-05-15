@@ -1173,6 +1173,7 @@ async function uploadToDrive(b64) {
 
 /* ── IMAGE UPLOAD ── */
 let imageUploadController = null;
+let currentFormImageDataUrl = null; // base64 de la imagen actual para análisis IA
 
 function handleFileSelect(input) {
   const file = input.files[0];
@@ -1204,6 +1205,8 @@ function compressAndPreview(file) {
       const preview = document.getElementById('f-img-preview');
       preview.src = b64;
       preview.classList.add('show');
+      currentFormImageDataUrl = b64;
+      showAiFormBtn();
 
       // Intentar subir a Drive; si no hay Drive o falla → usar base64
       (async () => {
@@ -1250,6 +1253,108 @@ function initImageUpload() {
   zone.addEventListener('dragleave', zone._dragleaveHandler);
   zone.addEventListener('dragend', zone._dragendHandler);
   zone.addEventListener('drop', zone._dropHandler);
+}
+
+/* ── AI FORM ANALYSIS ── */
+function showAiFormBtn() {
+  const wrap = document.getElementById('ai-form-wrap');
+  if (!wrap) return;
+  wrap.style.display = '';
+  wrap.style.opacity = '0';
+  requestAnimationFrame(() => { wrap.style.transition = 'opacity .3s'; wrap.style.opacity = '1'; });
+  // Restablecer estado del botón
+  const btn = document.getElementById('ai-form-btn');
+  if (btn) { btn.disabled = false; btn.style.borderColor = ''; btn.style.color = ''; }
+  const icon = document.querySelector('#ai-form-btn .ai-form-icon');
+  const label = document.querySelector('#ai-form-btn .ai-form-label');
+  if (icon) icon.textContent = '✨';
+  if (label) label.textContent = 'Completar con IA';
+}
+
+function hideAiFormBtn() {
+  const wrap = document.getElementById('ai-form-wrap');
+  if (wrap) wrap.style.display = 'none';
+  const kp = document.getElementById('ai-key-prompt');
+  if (kp) kp.style.display = 'none';
+  currentFormImageDataUrl = null;
+}
+
+async function analyzeFormImage() {
+  if (!currentFormImageDataUrl) { toast('Primero sube una imagen', 'error'); return; }
+  const key = localStorage.getItem('te_groq_key');
+  if (!key) {
+    const kp = document.getElementById('ai-key-prompt');
+    if (kp) { kp.style.display = ''; document.getElementById('ai-key-prompt-input')?.focus(); }
+    return;
+  }
+  const btn = document.getElementById('ai-form-btn');
+  const icon = document.querySelector('#ai-form-btn .ai-form-icon');
+  const lbl  = document.querySelector('#ai-form-btn .ai-form-label');
+  btn.disabled = true;
+  icon.innerHTML = '<span class="ai-spinner"></span>';
+  lbl.textContent = 'Analizando imagen…';
+  try {
+    const cats = categories.map(c => c.label).join(', ');
+    const prompt = `Eres un experto en e-commerce de moda y accesorios para boutiques mexicanas.
+Analiza esta imagen de producto y responde SOLO con un JSON válido, sin markdown, con esta estructura exacta:
+{"name":"<nombre corto del producto, máximo 60 chars>","description":"<descripción atractiva de 1-2 oraciones, máximo 200 chars>","category":"<una de estas categorías exactas: ${cats}>"}
+Si no reconoces el producto, usa valores razonables. El idioma debe ser español.`;
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({
+        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+        messages: [{ role: 'user', content: [
+          { type: 'text', text: prompt },
+          { type: 'image_url', image_url: { url: currentFormImageDataUrl } }
+        ]}],
+        temperature: 0.3, max_tokens: 256
+      })
+    });
+    if (!response.ok) {
+      const eb = await response.json().catch(() => ({}));
+      throw new Error(eb?.error?.message || `Error ${response.status}`);
+    }
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content || '';
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('La IA no devolvió un formato reconocible');
+    const parsed = JSON.parse(jsonMatch[0]);
+    const flash = el => { el.classList.add('ai-filled'); setTimeout(() => el.classList.remove('ai-filled'), 1600); };
+    if (parsed.name) { const el = document.getElementById('f-name'); el.value = parsed.name; flash(el); }
+    if (parsed.description) { const el = document.getElementById('f-description'); el.value = parsed.description; flash(el); }
+    if (parsed.category) {
+      const match = categories.find(c => c.label.toLowerCase() === (parsed.category || '').toLowerCase());
+      if (match) {
+        const el = document.getElementById('f-category');
+        el.value = match.code;
+        el.dispatchEvent(new Event('change')); // actualiza la etiqueta visible
+        flash(el);
+      }
+    }
+    toast('✨ Campos completados con IA', 'success');
+    icon.textContent = '✓';
+    lbl.textContent = 'Analizado — edita si es necesario';
+    btn.style.borderColor = 'var(--green)'; btn.style.color = 'var(--green)';
+    setTimeout(() => {
+      icon.textContent = '✨'; lbl.textContent = 'Volver a analizar';
+      btn.style.borderColor = ''; btn.style.color = '';
+      btn.disabled = false;
+    }, 3000);
+  } catch(err) {
+    toast('Error IA: ' + err.message, 'error');
+    icon.textContent = '✨'; lbl.textContent = 'Completar con IA';
+    btn.disabled = false;
+  }
+}
+
+function saveInlineAiKey() {
+  const val = document.getElementById('ai-key-prompt-input')?.value.trim();
+  if (!val || !val.startsWith('gsk_')) { toast('Ingresa una key válida de Groq (empieza con gsk_)', 'error'); return; }
+  localStorage.setItem('te_groq_key', val);
+  document.getElementById('ai-key-prompt').style.display = 'none';
+  toast('Key guardada ✓', 'success');
+  analyzeFormImage();
 }
 
 /* ── FORM ── */
@@ -1299,6 +1404,7 @@ function openForm(id) {
     document.getElementById('f-img-preview').classList.remove('show');
     document.getElementById('f-img-file').value = '';
     document.getElementById('f-img-camera').value = '';
+    hideAiFormBtn();
   }
 
   overlay.classList.add('open');

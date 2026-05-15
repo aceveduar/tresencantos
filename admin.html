@@ -409,6 +409,26 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .stock-one{background:#F0EAE2;color:#6B5C48}
 .stock-sold{background:#FEE2E2;color:#991B1B}
 
+/* ══ AI ANALYZE BUTTON (formulario de producto) ════════════════════════ */
+#ai-form-wrap{margin-top:10px;transition:opacity .3s}
+.btn-ai-form{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:10px 16px;
+  background:linear-gradient(135deg,var(--charcoal),var(--charcoal-soft));
+  color:var(--gold);border:1.5px solid var(--gold);border-radius:10px;
+  font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;transition:.2s;
+}
+.btn-ai-form:hover:not(:disabled){background:var(--gold);color:#fff;transform:translateY(-1px);box-shadow:0 4px 14px rgba(201,164,98,.4)}
+.btn-ai-form:disabled{opacity:.6;cursor:not-allowed;transform:none!important}
+.btn-ai-form .ai-spinner{width:14px;height:14px;border:2px solid rgba(201,164,98,.3);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+#ai-key-prompt{background:var(--gold-light);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:8px}
+#ai-key-prompt p{margin:0 0 8px;font-size:.78rem;color:var(--charcoal)}
+#ai-key-prompt-wrap{display:flex;gap:6px}
+#ai-key-prompt-input{flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;background:#fff;color:var(--charcoal)}
+#ai-key-prompt-input:focus{border-color:var(--gold)}
+@keyframes ai-field-flash{0%{background:rgba(201,164,98,.25);border-color:var(--gold)}100%{background:transparent;border-color:var(--border)}}
+.ai-filled{animation:ai-field-flash 1.5s ease forwards;border-radius:var(--r-sm)}
+
 /* ══ INLINE EDIT — categoría y visibilidad ═══════════════════════════════ */
 .cat-label-inline{cursor:pointer;border-bottom:1px dashed transparent;transition:border-color .15s,color .15s;touch-action:manipulation}
 .cat-label-inline:hover{border-bottom-color:var(--gold);color:var(--gold-dark)}
@@ -972,6 +992,20 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         <input type="url" id="f-image" placeholder="https://…" oninput="previewImg()">
         <p class="hint">Google Drive, Unsplash — o captura directo con la cámara del dispositivo.</p>
         <img id="f-img-preview" class="img-preview" alt="Vista previa">
+        <!-- Botón IA — aparece tras subir imagen -->
+        <div id="ai-form-wrap" style="display:none">
+          <button type="button" id="ai-form-btn" class="btn-ai-form" onclick="analyzeFormImage()">
+            <span class="ai-form-icon">✨</span>
+            <span class="ai-form-label">Completar con IA</span>
+          </button>
+          <div id="ai-key-prompt" style="display:none">
+            <p>Para usar IA agrega tu Groq key — gratis en <strong>console.groq.com</strong> → API Keys</p>
+            <div id="ai-key-prompt-wrap">
+              <input type="password" id="ai-key-prompt-input" placeholder="gsk_..." autocomplete="off">
+              <button type="button" onclick="saveInlineAiKey()" class="btn btn-gold btn-sm">Guardar</button>
+            </div>
+          </div>
+        </div>
       </div>
       <p class="form-section">📦 Inventario</p>
       <div class="form-row">
