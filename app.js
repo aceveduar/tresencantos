@@ -128,7 +128,9 @@ function render() {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
   let list = products.filter(p => {
-    const matchCat = currentFilter === 'all' || p.category === currentFilter;
+    const matchCat = currentFilter === 'all'
+      || p.category === currentFilter
+      || p.category.startsWith(currentFilter + '_');
     const matchQ   = !searchQuery ||
       p.name.toLowerCase().includes(searchQuery) ||
       (p.description || '').toLowerCase().includes(searchQuery) ||
@@ -329,7 +331,12 @@ function _initNaturaCarousel(total) {
 function initFilters() {
   // Contar productos por categoría
   const counts = { all: products.length };
-  products.forEach(p => { counts[p.category] = (counts[p.category] || 0) + 1; });
+  products.forEach(p => {
+    counts[p.category] = (counts[p.category] || 0) + 1;
+    // Acumular en la raíz padre (ej: 'bolsos_dama' suma en 'bolsos')
+    const root = p.category.split('_')[0];
+    if (root !== p.category) counts[root] = (counts[root] || 0) + 1;
+  });
 
   document.querySelectorAll('.filter-btn').forEach(btn => {
     const f = btn.dataset.filter;
