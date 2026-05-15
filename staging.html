@@ -150,10 +150,10 @@ main{max-width:1100px;margin:0 auto;padding:28px 28px 60px}
 
   <!-- CONFIGURACIÓN IA -->
   <div class="ai-config">
-    <label>🤖 API Key (Gemini):</label>
-    <input type="password" id="ai-key-input" placeholder="AIza..." autocomplete="off">
+    <label>🤖 API Key (Groq):</label>
+    <input type="password" id="ai-key-input" placeholder="gsk_..." autocomplete="off">
     <button class="btn btn-outline btn-sm" onclick="saveAiKey()">Guardar key</button>
-    <p class="hint">La key se guarda solo en este navegador. Obtén una gratis en <strong>aistudio.google.com</strong> → "Get API Key". Con esta key la IA leerá cada imagen y extraerá nombre, descripción y categoría automáticamente.</p>
+    <p class="hint">La key se guarda solo en este navegador. Obtén una gratis en <strong>console.groq.com</strong> → "API Keys" → "Create API Key". Sin tarjeta, sin restricciones regionales.</p>
   </div>
 
   <!-- ZONA DE SUBIDA -->
@@ -194,7 +194,7 @@ main{max-width:1100px;margin:0 auto;padding:28px 28px 60px}
 const SUPABASE_URL     = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
 const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUyNjIyNiwiZXhwIjoyMDk0MTAyMjI2fQ.B9nZ1KENDQsUtn9PFwiMTrXuMZuWWIphGnH8XPfeJjQ';
 const SESSION_KEY = 'te_admin_session';
-const AI_KEY_KEY  = 'te_gemini_key';
+const AI_KEY_KEY  = 'te_groq_key';
 
 /* ── AUTH ── */
 (function(){
@@ -362,12 +362,12 @@ function updateBottomBar() {
   document.getElementById('bb-ready').textContent = `${ready} lista${ready!==1?'s':''}`;
 }
 
-/* ── AI ANALYSIS (Gemini Flash) ── */
+/* ── AI ANALYSIS (Groq — Llama 4 Scout Vision) ── */
 async function analyzeOne(id) {
   const item = stagingItems.find(x => x.id === id);
   if (!item) return;
   const key = localStorage.getItem(AI_KEY_KEY);
-  if (!key) { toast('Primero agrega tu API Key de Gemini', 'error'); return; }
+  if (!key) { toast('Primero agrega tu API Key de Groq', 'error'); return; }
 
   item.status = 'processing';
   updateCardStatus(item);
@@ -379,30 +379,35 @@ Analiza esta imagen de producto y responde SOLO con un JSON válido, sin markdow
 {"name":"<nombre corto del producto, máximo 60 chars>","description":"<descripción atractiva de 1-2 oraciones, máximo 200 chars>","category":"<una de estas categorías exactas: ${cats}>"}
 Si no reconoces el producto, usa valores razonables. El idioma debe ser español.`;
 
-    // Convertir dataUrl a base64 puro
-    const base64 = item.dataUrl.split(',')[1];
-    const mimeType = item.dataUrl.split(';')[0].split(':')[1];
+    const dataUrl = item.dataUrl;
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: prompt },
-              { inline_data: { mime_type: mimeType, data: base64 } }
-            ]
-          }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 256 }
-        })
-      }
-    );
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`
+      },
+      body: JSON.stringify({
+        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: dataUrl } }
+          ]
+        }],
+        temperature: 0.3,
+        max_tokens: 256
+      })
+    });
 
-    if (!response.ok) throw new Error(`Gemini API error: ${response.status}`);
+    if (!response.ok) {
+      let errDetail = '';
+      try { const errBody = await response.json(); errDetail = errBody?.error?.message || ''; } catch {}
+      throw new Error(`Groq API error: ${response.status}${errDetail ? ' — ' + errDetail : ''}`);
+    }
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const text = data.choices?.[0]?.message?.content || '';
 
     // Extraer JSON de la respuesta
     const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -434,7 +439,7 @@ Si no reconoces el producto, usa valores razonables. El idioma debe ser español
     item.status = 'error';
     updateCardStatus(item);
     toast('Error al analizar: ' + err.message, 'error');
-    console.error('Gemini error:', err);
+    console.error('Groq error:', err);
   }
 }
 
@@ -445,7 +450,7 @@ async function analyzeAll() {
   btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> Analizando ${pending.length}…`;
   for (const item of pending) {
     await analyzeOne(item.id);
-    await new Promise(r => setTimeout(r, 4000)); // free tier: 15 req/min → ≥4s entre llamadas
+    await new Promise(r => setTimeout(r, 1500)); // Groq free tier: ~30 req/min
   }
   btn.disabled = false; btn.textContent = '🤖 Analizar todas con IA';
 }
