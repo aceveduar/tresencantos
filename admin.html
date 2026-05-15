@@ -845,6 +845,20 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         </div>
         <div class="io-bar" style="border-top:none;flex-wrap:wrap;gap:10px">
           <div style="width:100%;display:flex;align-items:center;gap:8px">
+            <span style="font-size:.84rem;color:var(--muted)">🤖 Inteligencia Artificial (Groq)</span>
+            <span style="font-size:.72rem" id="groq-key-status">(no configurado)</span>
+          </div>
+          <div style="width:100%;display:flex;gap:8px;flex-wrap:wrap">
+            <input type="password" id="groq-key-input" placeholder="gsk_..." autocomplete="off"
+                   style="flex:2;min-width:200px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;outline:none;font-family:inherit">
+            <button class="btn btn-gold btn-sm" onclick="saveGroqKey()">Guardar</button>
+          </div>
+          <p style="width:100%;font-size:.73rem;color:var(--muted-light);line-height:1.5;margin-top:-4px">
+            Key gratis en <strong>console.groq.com</strong> → API Keys → Create API key. Se guarda en la nube y funciona en todos los dispositivos automáticamente.
+          </p>
+        </div>
+        <div class="io-bar" style="border-top:none;flex-wrap:wrap;gap:10px">
+          <div style="width:100%;display:flex;align-items:center;gap:8px">
             <span style="font-size:.84rem;color:var(--muted)">🖼 Google Drive</span>
             <span style="font-size:.72rem" id="drive-status-txt">(no configurado)</span>
           </div>

@@ -164,11 +164,9 @@ function cardHTML(p) {
   const pct = discountPct(p);
   const oosTag = oos ? `<span class="product-badge badge-oos" style="background:#9B8B78">Agotado</span>` : '';
 
-  // Cuando hay descuento e insignia: apilar en top-left como un solo elemento visual
   let badgeArea = '';
   if (pct > 0 && p.badge) {
-    badgeArea = `<span class="product-badge badge-discount" style="left:10px;right:auto">-${pct}%</span>`
-               + `<span class="product-badge badge-${p.badgeType||'best'}" style="top:36px">${p.badge}</span>`;
+    badgeArea = `<span class="badge-combo"><span class="bc-pct">-${pct}%</span><span class="bc-label">${p.badge}</span></span>`;
   } else if (pct > 0) {
     badgeArea = `<span class="product-badge badge-discount">-${pct}%</span>`;
   } else if (p.badge) {
@@ -370,11 +368,9 @@ function openModal(id) {
   const fallback = `https://picsum.photos/seed/${p.id+10}/500/500`;
   const oos = p.outOfStock || p.stock === 0;
   const pct = discountPct(p);
-  // En el modal: discount + badge también se apilan top-left si ambos existen
   let modalBadgeArea = '';
   if (pct > 0 && p.badge) {
-    modalBadgeArea = `<span class="product-badge badge-discount" style="position:absolute;top:10px;left:10px;right:auto">-${pct}%</span>`
-                   + `<span class="product-badge badge-${p.badgeType||'best'}" style="position:absolute;top:36px;left:10px">${p.badge}</span>`;
+    modalBadgeArea = `<span class="badge-combo" style="position:absolute;top:10px;left:10px"><span class="bc-pct">-${pct}%</span><span class="bc-label">${p.badge}</span></span>`;
   } else if (pct > 0) {
     modalBadgeArea = `<span class="product-badge badge-discount" style="position:absolute;top:10px;right:10px;left:auto">-${pct}%</span>`;
   } else if (p.badge) {

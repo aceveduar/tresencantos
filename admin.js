@@ -391,10 +391,10 @@ async function showApp() {
   </td></tr>`;
 
   await loadCategories();
+  await loadAppConfig();
   await loadProductsFromSupabase();
   renderStats();
   setAdminView(currentAdminView);
-  loadDriveConfig();
 }
 
 /* ── LOAD PRODUCTS ── */
@@ -1068,20 +1068,32 @@ function populateBadgeList() {
   datalist.innerHTML = all.map(b => `<option value="${b}">`).join('');
 }
 
-/* ── GOOGLE DRIVE CONFIG ── */
-const DRIVE_EP_KEY     = 'te_drive_ep';
-const DRIVE_SECRET_KEY = 'te_drive_secret'; // guardado en localStorage, no en código
+/* ── CONFIG GLOBAL (Supabase — disponible en todos los dispositivos) ── */
+let groqApiKey  = null;
+let driveEp     = null;
+let driveSecret = null;
+
+async function loadAppConfig() {
+  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret)&select=id,value');
+  if (r.ok && r.data) {
+    r.data.forEach(row => {
+      if (row.id === 'groq_key')     groqApiKey  = row.value || null;
+      if (row.id === 'drive_ep')     driveEp     = row.value || null;
+      if (row.id === 'drive_secret') driveSecret = row.value || null;
+    });
+  }
+  loadDriveConfig();
+  loadGroqKeyStatus();
+}
 
 function loadDriveConfig() {
-  const ep     = localStorage.getItem(DRIVE_EP_KEY);
-  const secret = localStorage.getItem(DRIVE_SECRET_KEY);
-  const epInput  = document.getElementById('drive-endpoint-input');
-  const secInput = document.getElementById('drive-secret-input');
+  const epInput   = document.getElementById('drive-endpoint-input');
+  const secInput  = document.getElementById('drive-secret-input');
   const statusTxt = document.getElementById('drive-status-txt');
   if (!epInput) return;
-  if (ep && secret) {
-    epInput.value  = ep;
-    secInput.value = secret;
+  if (driveEp && driveSecret) {
+    epInput.value  = driveEp;
+    secInput.value = driveSecret;
     statusTxt.textContent = '✓ Conectado — imágenes nuevas van a Drive';
     statusTxt.style.color = 'var(--green)';
     document.getElementById('drive-test-btn')?.style && (document.getElementById('drive-test-btn').style.display = '');
@@ -1089,28 +1101,47 @@ function loadDriveConfig() {
   }
 }
 
-function saveDriveEndpoint() {
+function loadGroqKeyStatus() {
+  const el = document.getElementById('groq-key-status');
+  if (!el) return;
+  if (groqApiKey) {
+    el.textContent = '✓ Configurado — IA activa en todos los dispositivos';
+    el.style.color = 'var(--green)';
+  }
+}
+
+async function saveGroqKey() {
+  const val = document.getElementById('groq-key-input')?.value.trim();
+  if (!val || !val.startsWith('gsk_')) { toast('Ingresa una key válida de Groq (empieza con gsk_)', 'error'); return; }
+  const r = await supabaseApi('config', {
+    method: 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: 'groq_key', value: val })
+  });
+  if (r.ok) {
+    groqApiKey = val;
+    loadGroqKeyStatus();
+    toast('🤖 Groq key guardada — IA disponible para todos los usuarios ✓', 'success');
+  } else { toast('Error al guardar la key', 'error'); }
+}
+
+async function saveDriveEndpoint() {
   const ep = document.getElementById('drive-endpoint-input').value.trim();
   if (!ep) { toast('Pega primero la URL del Apps Script', 'error'); return; }
-
-  localStorage.setItem(DRIVE_EP_KEY, ep);
-
-  // Generar secreto único si no existe aún
-  let secret = localStorage.getItem(DRIVE_SECRET_KEY);
-  if (!secret) {
-    secret = 'te_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-    localStorage.setItem(DRIVE_SECRET_KEY, secret);
+  if (!driveSecret) {
+    driveSecret = 'te_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
   }
-
-  // Mostrar secreto en el campo — el usuario lo copia de ahí
-  document.getElementById('drive-secret-input').value = secret;
-
+  driveEp = ep;
+  await Promise.all([
+    supabaseApi('config', { method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id: 'drive_ep', value: ep }) }),
+    supabaseApi('config', { method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id: 'drive_secret', value: driveSecret }) })
+  ]);
+  document.getElementById('drive-secret-input').value = driveSecret;
   const statusTxt = document.getElementById('drive-status-txt');
   statusTxt.textContent = '✓ Conectado — imágenes nuevas van a Drive';
   statusTxt.style.color = 'var(--green)';
   document.getElementById('drive-test-btn').style.display = '';
   document.getElementById('drive-clear-btn').style.display = '';
-
   toast('Drive guardado — copia el secreto del campo gris y pégalo en tu Apps Script', 'success');
 }
 
@@ -1119,17 +1150,16 @@ function copyDriveSecret() {
   if (!val) return;
   navigator.clipboard.writeText(val)
     .then(() => toast('Secreto copiado al portapapeles ✓', 'success'))
-    .catch(() => {
-      // Fallback: seleccionar el texto manualmente
-      document.getElementById('drive-secret-input').select();
-      toast('Selecciona el texto y copia con Ctrl+C / ⌘C', '');
-    });
+    .catch(() => { document.getElementById('drive-secret-input').select(); toast('Selecciona el texto y copia con Ctrl+C / ⌘C', ''); });
 }
 
-function clearDrive() {
+async function clearDrive() {
   if (!confirm('¿Desconectar Google Drive? Las imágenes futuras se guardarán como base64.')) return;
-  localStorage.removeItem(DRIVE_EP_KEY);
-  localStorage.removeItem(DRIVE_SECRET_KEY);
+  await Promise.all([
+    supabaseApi('config?id=eq.drive_ep',     { method: 'DELETE' }),
+    supabaseApi('config?id=eq.drive_secret', { method: 'DELETE' })
+  ]);
+  driveEp = null; driveSecret = null;
   document.getElementById('drive-endpoint-input').value = '';
   document.getElementById('drive-secret-input').value = '';
   document.getElementById('drive-status-txt').textContent = '(no configurado)';
@@ -1140,27 +1170,19 @@ function clearDrive() {
 }
 
 async function testDriveEndpoint() {
-  const ep = localStorage.getItem(DRIVE_EP_KEY);
-  if (!ep) return;
+  if (!driveEp) return;
   const btn = document.getElementById('drive-test-btn');
-  btn.textContent = 'Probando…';
-  btn.disabled = true;
+  btn.textContent = 'Probando…'; btn.disabled = true;
   try {
-    const r = await fetch(ep);
+    const r = await fetch(driveEp);
     const txt = await r.text();
-    toast(txt === 'OK' ? 'Conexión con Drive OK ✓' : 'Respuesta inesperada: ' + txt,
-          txt === 'OK' ? 'success' : 'error');
-  } catch(e) {
-    toast('Error al conectar con Drive: ' + e.message, 'error');
-  }
-  btn.textContent = 'Probar';
-  btn.disabled = false;
+    toast(txt === 'OK' ? 'Conexión con Drive OK ✓' : 'Respuesta inesperada: ' + txt, txt === 'OK' ? 'success' : 'error');
+  } catch(e) { toast('Error al conectar con Drive: ' + e.message, 'error'); }
+  btn.textContent = 'Probar'; btn.disabled = false;
 }
 
 async function uploadToDrive(b64) {
-  const ep     = localStorage.getItem(DRIVE_EP_KEY);
-  const secret = localStorage.getItem(DRIVE_SECRET_KEY);
-  if (!ep || !secret) return null;
+  if (!driveEp || !driveSecret) return null;
   try {
     const res = await fetch(ep, {
       method: 'POST',
@@ -1210,7 +1232,7 @@ function compressAndPreview(file) {
 
       // Intentar subir a Drive; si no hay Drive o falla → usar base64
       (async () => {
-        const hasDrive = !!localStorage.getItem(DRIVE_EP_KEY);
+        const hasDrive = !!driveEp;
         if (hasDrive) toast('Subiendo imagen a Drive…', '');
         const driveUrl = await uploadToDrive(b64);
         if (controller.signal.aborted) return;
@@ -1281,7 +1303,7 @@ function hideAiFormBtn() {
 
 async function analyzeFormImage() {
   if (!currentFormImageDataUrl) { toast('Primero sube una imagen', 'error'); return; }
-  const key = localStorage.getItem('te_groq_key');
+  const key = groqApiKey;
   if (!key) {
     const kp = document.getElementById('ai-key-prompt');
     if (kp) { kp.style.display = ''; document.getElementById('ai-key-prompt-input')?.focus(); }
@@ -1348,13 +1370,21 @@ Si no reconoces el producto, usa valores razonables. El idioma debe ser español
   }
 }
 
-function saveInlineAiKey() {
+async function saveInlineAiKey() {
   const val = document.getElementById('ai-key-prompt-input')?.value.trim();
   if (!val || !val.startsWith('gsk_')) { toast('Ingresa una key válida de Groq (empieza con gsk_)', 'error'); return; }
-  localStorage.setItem('te_groq_key', val);
-  document.getElementById('ai-key-prompt').style.display = 'none';
-  toast('Key guardada ✓', 'success');
-  analyzeFormImage();
+  const r = await supabaseApi('config', {
+    method: 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: 'groq_key', value: val })
+  });
+  if (r.ok) {
+    groqApiKey = val;
+    loadGroqKeyStatus();
+    document.getElementById('ai-key-prompt').style.display = 'none';
+    toast('Key guardada para todos los dispositivos ✓', 'success');
+    analyzeFormImage();
+  } else { toast('Error al guardar la key', 'error'); }
 }
 
 /* ── FORM ── */

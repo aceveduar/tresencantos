@@ -150,10 +150,10 @@ main{max-width:1100px;margin:0 auto;padding:28px 28px 60px}
 
   <!-- CONFIGURACIÓN IA -->
   <div class="ai-config">
-    <label>🤖 API Key (Groq):</label>
+    <label>🤖 API Key (Groq): <span id="ai-key-status" style="font-size:.72rem;font-weight:400;color:#8A7564;margin-left:6px">(no configurado)</span></label>
     <input type="password" id="ai-key-input" placeholder="gsk_..." autocomplete="off">
     <button class="btn btn-outline btn-sm" onclick="saveAiKey()">Guardar key</button>
-    <p class="hint">La key se guarda solo en este navegador. Obtén una gratis en <strong>console.groq.com</strong> → "API Keys" → "Create API Key". Sin tarjeta, sin restricciones regionales.</p>
+    <p class="hint">Key gratis en <strong>console.groq.com</strong> → API Keys → Create API key. Se guarda en la nube — funciona en todos los dispositivos sin volver a configurar.</p>
   </div>
 
   <!-- ZONA DE SUBIDA -->
@@ -194,8 +194,6 @@ main{max-width:1100px;margin:0 auto;padding:28px 28px 60px}
 const SUPABASE_URL     = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
 const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUyNjIyNiwiZXhwIjoyMDk0MTAyMjI2fQ.B9nZ1KENDQsUtn9PFwiMTrXuMZuWWIphGnH8XPfeJjQ';
 const SESSION_KEY = 'te_admin_session';
-const AI_KEY_KEY  = 'te_groq_key';
-
 /* ── AUTH ── */
 (function(){
   try {
@@ -208,6 +206,7 @@ const AI_KEY_KEY  = 'te_groq_key';
 /* ── STATE ── */
 let stagingItems = []; // [{id, file, dataUrl, name, description, category, categoryLabel, status}]
 let categories   = [];
+let groqApiKey   = null;
 
 /* ── API ── */
 function api(path, opts={}) {
@@ -217,13 +216,22 @@ function api(path, opts={}) {
   }).then(async r => { const data=await r.json().catch(()=>null); return {ok:r.ok,data}; });
 }
 
-/* ── LOAD CATEGORIES ── */
-async function loadCategories() {
-  const r = await api('config?id=eq.categories&select=value');
-  if (r.ok && r.data?.length) {
-    try { categories = JSON.parse(r.data[0].value); } catch {}
+/* ── LOAD CONFIG (categorías + groq key desde Supabase) ── */
+async function loadConfig() {
+  const r = await api('config?id=in.(categories,groq_key)&select=id,value');
+  if (r.ok && r.data) {
+    r.data.forEach(row => {
+      if (row.id === 'categories') { try { categories = JSON.parse(row.value); } catch {} }
+      if (row.id === 'groq_key')   { groqApiKey = row.value || null; }
+    });
   }
   renderCatOptions();
+  const statusEl = document.getElementById('ai-key-status');
+  const inputEl  = document.getElementById('ai-key-input');
+  if (groqApiKey) {
+    if (statusEl) { statusEl.textContent = '✓ Configurado globalmente'; statusEl.style.color = '#2D6A4F'; }
+    if (inputEl)  inputEl.placeholder = 'gsk_••••••• (ya guardado)';
+  }
 }
 
 function renderCatOptions() {
@@ -235,11 +243,23 @@ function renderCatOptions() {
   });
 }
 
-/* ── AI KEY ── */
-function saveAiKey() {
+/* ── AI KEY — guardar en Supabase ── */
+async function saveAiKey() {
   const k = document.getElementById('ai-key-input').value.trim();
-  if (k) { localStorage.setItem(AI_KEY_KEY, k); toast('API Key guardada ✓', 'success'); }
-  else   { localStorage.removeItem(AI_KEY_KEY); toast('Key eliminada', ''); }
+  if (!k || !k.startsWith('gsk_')) { toast('Ingresa una key válida (empieza con gsk_)', 'error'); return; }
+  const r = await api('config', {
+    method: 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: 'groq_key', value: k })
+  });
+  if (r.ok) {
+    groqApiKey = k;
+    const statusEl = document.getElementById('ai-key-status');
+    if (statusEl) { statusEl.textContent = '✓ Guardado — disponible en todos los dispositivos'; statusEl.style.color = '#2D6A4F'; }
+    document.getElementById('ai-key-input').value = '';
+    document.getElementById('ai-key-input').placeholder = 'gsk_••••••• (ya guardado)';
+    toast('Groq key guardada en la nube ✓', 'success');
+  } else { toast('Error al guardar', 'error'); }
 }
 
 /* ── UPLOAD ── */
@@ -366,8 +386,8 @@ function updateBottomBar() {
 async function analyzeOne(id) {
   const item = stagingItems.find(x => x.id === id);
   if (!item) return;
-  const key = localStorage.getItem(AI_KEY_KEY);
-  if (!key) { toast('Primero agrega tu API Key de Groq', 'error'); return; }
+  const key = groqApiKey;
+  if (!key) { toast('Configura la key de Groq en Admin → Herramientas → IA', 'error'); return; }
 
   item.status = 'processing';
   updateCardStatus(item);
@@ -578,11 +598,7 @@ function toast(msg, type='') {
 
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
-  // Cargar key guardada
-  const savedKey = localStorage.getItem(AI_KEY_KEY);
-  if (savedKey) document.getElementById('ai-key-input').value = savedKey;
-
-  await loadCategories();
+  await loadConfig();
   initUpload();
 });
 </script>

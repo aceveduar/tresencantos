@@ -164,7 +164,10 @@ section{padding:80px 20px}
 .badge-new{background:var(--charcoal)}
 .badge-promo{background:#E85D5D}
 .badge-natura{background:#40916C}
-.badge-discount{background:#E85D5D;left:auto;right:10px;font-size:.78rem;font-weight:800;letter-spacing:.02em}
+.badge-discount{background:linear-gradient(135deg,#C0392B,#E85D5D);left:auto;right:10px;font-size:.82rem;font-weight:900;letter-spacing:.01em;box-shadow:0 2px 8px rgba(232,93,93,.35)}
+.badge-combo{position:absolute;top:10px;left:10px;right:auto;display:flex;flex-direction:column;align-items:center;padding:7px 13px 6px;border-radius:14px;color:#fff;background:linear-gradient(160deg,#C0392B 0%,#E85D5D 100%);box-shadow:0 3px 12px rgba(192,57,43,.45);gap:1px}
+.badge-combo .bc-pct{font-size:.92rem;font-weight:900;letter-spacing:-.01em;line-height:1}
+.badge-combo .bc-label{font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.92;line-height:1}
 .product-body{padding:18px;flex:1;display:flex;flex-direction:column}
 .product-cat{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-dark);margin-bottom:7px}
 .product-body h3{font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:7px;line-height:1.3}
