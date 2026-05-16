@@ -1897,6 +1897,8 @@ function closeDel() {
   deleteTargetId = null;
   document.getElementById('del-overlay').classList.remove('open');
   document.body.style.overflow = '';
+  const btn = document.getElementById('del-confirm-btn');
+  if (btn) setBtn(btn, false);
 }
 
 async function confirmDelete() {
@@ -1923,6 +1925,7 @@ async function confirmDelete() {
 
   products = products.filter(p => p.id !== id);
   selectedIds.delete(id);
+  setBtn(btn, false);
   closeDel();
   renderTable();
   renderStats();
