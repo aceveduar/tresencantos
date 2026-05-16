@@ -536,10 +536,16 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .empty-state p{color:var(--muted);margin-bottom:20px;font-size:.92rem;line-height:1.6}
 
 /* ══ UNDO BAR ═══════════════════════════════════════════════════════════ */
-.undo-bar{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(110px);background:var(--charcoal);color:#fff;padding:12px 16px 12px 22px;border-radius:50px;display:flex;align-items:center;gap:16px;font-size:.84rem;z-index:490;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;box-shadow:0 6px 28px rgba(28,24,23,.3)}
-.undo-bar.show{transform:translateX(-50%) translateY(0)}
-.undo-bar button{background:var(--gold);border:none;color:#fff;padding:7px 18px;border-radius:50px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+.undo-bar{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(110px);background:var(--charcoal);color:#fff;padding:10px 10px 10px 18px;border-radius:50px;display:flex;align-items:center;gap:10px;font-size:.82rem;z-index:490;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .3s;opacity:0;max-width:min(90vw,400px);box-shadow:0 6px 28px rgba(28,24,23,.3)}
+.undo-bar.show{transform:translateX(-50%) translateY(0);opacity:1}
+.undo-bar .undo-msg{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.undo-bar button{background:var(--gold);border:none;color:#fff;padding:7px 16px;border-radius:50px;font-size:.76rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;flex-shrink:0;white-space:nowrap}
 .undo-bar button:hover{background:var(--gold-dark)}
+/* Action bar — igual que undo-bar pero con acción personalizada */
+.action-bar{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(110px);background:var(--charcoal);color:#fff;padding:10px 10px 10px 18px;border-radius:50px;display:flex;align-items:center;gap:10px;font-size:.82rem;z-index:489;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .3s;opacity:0;max-width:min(90vw,400px);box-shadow:0 6px 28px rgba(28,24,23,.3)}
+.action-bar.show{transform:translateX(-50%) translateY(0);opacity:1}
+.action-bar button{background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:50px;font-size:.76rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;flex-shrink:0;white-space:nowrap}
+.action-bar button:hover{background:rgba(255,255,255,.28)}
 
 /* ══ SCROLL TO TOP ══════════════════════════════════════════════════════ */
 #scroll-top-btn{position:fixed;bottom:28px;right:24px;width:40px;height:40px;border-radius:50%;background:var(--charcoal);color:#fff;border:none;font-size:1rem;cursor:pointer;box-shadow:0 4px 18px rgba(28,24,23,.25);z-index:400;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s}
@@ -551,7 +557,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 }
 
 /* ══ TOAST ══════════════════════════════════════════════════════════════ */
-.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--charcoal);color:#fff;padding:13px 26px;border-radius:50px;font-size:.85rem;font-weight:500;z-index:500;transition:.3s ease;opacity:0;max-width:90vw;text-align:center;box-shadow:0 4px 20px rgba(28,24,23,.25)}
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--charcoal);color:#fff;padding:11px 22px;border-radius:50px;font-size:.84rem;font-weight:500;z-index:500;transition:.3s ease;opacity:0;max-width:min(90vw,380px);text-align:center;box-shadow:0 4px 20px rgba(28,24,23,.25);line-height:1.45}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 .toast.success{background:var(--green)}
 .toast.error{background:var(--red)}
@@ -1294,8 +1300,13 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 
 <!-- UNDO BAR -->
 <div id="undo-bar" class="undo-bar">
-  <span id="undo-msg"></span>
+  <span id="undo-msg" class="undo-msg"></span>
   <button onclick="doUndo()">Deshacer</button>
+</div>
+<!-- ACTION BAR (para acciones como "Editar duplicado") -->
+<div id="action-bar" class="action-bar">
+  <span id="action-msg"></span>
+  <button id="action-btn" onclick="doAction()"></button>
 </div>
 
 <!-- SCROLL TO TOP -->

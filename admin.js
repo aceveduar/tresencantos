@@ -677,7 +677,7 @@ async function editStockInline(e, id) {
       p.stock = newStock;
       if (patch.out_of_stock !== undefined) p.outOfStock = patch.out_of_stock;
       renderStats();
-      toast(`Stock → ${newStock}${patch.out_of_stock !== undefined ? (patch.out_of_stock ? ' · Marcado agotado' : ' · Marcado disponible') : ''}`, 'success');
+      toast(`Stock → ${newStock}${patch.out_of_stock !== undefined ? (patch.out_of_stock ? ' · Marcado agotado' : ' · Marcado disponible') : ''}`);
     } else {
       toast('Error al actualizar stock', 'error');
     }
@@ -765,7 +765,7 @@ function editCategoryInline(e, id) {
     });
     if (result.ok) {
       p.category = newCode; p.categoryLabel = cat.label;
-      toast(`Categoría → ${cat.label}`, 'success');
+      toast(`Categoría → ${cat.label}`);
     } else { toast('Error al actualizar categoría', 'error'); }
     renderTable();
   };
@@ -1012,7 +1012,7 @@ async function toggleFeatured(id) {
   p.featured = newVal;
   renderTable();
   renderStats();
-  toast(newVal ? 'Marcado como destacado ⭐' : 'Quitado de destacados', 'success');
+  toast(newVal ? 'Marcado como destacado ⭐' : 'Quitado de destacados');
 }
 
 /* ── TOGGLE OUT OF STOCK — targeted PATCH ── */
@@ -1043,7 +1043,7 @@ async function toggleOutOfStock(id) {
   const msg = newVal ? 'Marcado como agotado'
     : patch.stock ? 'Disponible · stock ajustado a 1'
     : 'Marcado como disponible';
-  toast(msg, 'success');
+  toast(msg);
 }
 
 /* ── DUPLICATE — POST single product ── */
@@ -1076,7 +1076,7 @@ async function duplicateProduct(id) {
 
   renderTable();
   renderStats();
-  toast('Producto duplicado — edítalo para personalizarlo', 'success');
+  toastAction('Producto duplicado', 'Editar →', () => openForm(copy.id));
 }
 
 /* ── DRAG & DROP REORDER ── */
@@ -1116,7 +1116,7 @@ function initDragDrop() {
       products.splice(insertAt, 0, item);
       toast('Guardando orden...', '');
       const ok = await save();
-      if (ok) toast('Orden guardado ✓', 'success');
+      if (ok) toast('Orden guardado ✓');
       renderTable();
     });
   });
@@ -1883,7 +1883,7 @@ async function saveProduct() {
   closeForm();
   renderTable();
   renderStats();
-  toast(idVal ? 'Producto actualizado ✓' : 'Producto agregado ✓', 'success');
+  toast(idVal ? 'Guardado ✓' : 'Producto agregado ✓');
 }
 
 /* ── DELETE ── */
@@ -1932,7 +1932,7 @@ async function confirmDelete() {
   updateBulkBar();
 
   // Toast con opción de deshacer (7 segundos)
-  toastUndo(`"${deleted?.name || 'Producto'}" eliminado`, async () => {
+  toastUndo(`"${truncName(deleted?.name || 'Producto')}" eliminado`, async () => {
     if (!deleted) return;
     const r = await supabaseApi('products', {
       method: 'POST',
@@ -1951,7 +1951,7 @@ async function confirmDelete() {
       products.splice(deletedIdx, 0, deleted);
       renderTable();
       renderStats();
-      toast(`"${deleted.name}" restaurado ✓`, 'success');
+      toast(`"${truncName(deleted.name)}" restaurado ✓`, 'success');
     }
   });
 }
@@ -2537,6 +2537,8 @@ function toast(msg, type = '') {
   el._t = setTimeout(() => el.classList.remove('show'), duration);
 }
 
+const truncName = (s, n = 28) => s && s.length > n ? s.slice(0, n) + '…' : (s || '');
+
 function toastUndo(msg, onUndo) {
   const el = document.getElementById('undo-bar');
   const msgEl = document.getElementById('undo-msg');
@@ -2546,6 +2548,28 @@ function toastUndo(msg, onUndo) {
   el.classList.add('show');
   el._undo = onUndo;
   el._t = setTimeout(() => { el.classList.remove('show'); el._undo = null; }, 7000);
+}
+
+function toastAction(msg, btnLabel, onAction, duration = 5000) {
+  const el    = document.getElementById('action-bar');
+  const msgEl = document.getElementById('action-msg');
+  const btn   = document.getElementById('action-btn');
+  if (!el) return toast(msg, 'success');
+  if (el._t) { clearTimeout(el._t); el._action = null; }
+  msgEl.textContent = msg;
+  btn.textContent   = btnLabel;
+  el.classList.add('show');
+  el._action = onAction;
+  el._t = setTimeout(() => { el.classList.remove('show'); el._action = null; }, duration);
+}
+
+function doAction() {
+  const el = document.getElementById('action-bar');
+  if (!el?._action) return;
+  clearTimeout(el._t);
+  el.classList.remove('show');
+  el._action();
+  el._action = null;
 }
 
 function doUndo() {

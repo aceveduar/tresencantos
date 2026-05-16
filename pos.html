@@ -153,10 +153,11 @@ button,a{touch-action:manipulation}
 .scan-status{padding:10px 18px 16px;color:#aaa;font-size:.82rem;text-align:center}
 
 /* TOAST */
-.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--charcoal);color:#fff;padding:10px 22px;border-radius:50px;font-size:.82rem;font-weight:500;z-index:500;transition:.25s ease;opacity:0;max-width:90vw;text-align:center}
+.toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(80px);background:var(--charcoal);color:#fff;padding:10px 22px;border-radius:50px;font-size:.82rem;font-weight:500;z-index:500;transition:.25s ease;opacity:0;max-width:min(90vw,360px);text-align:center;line-height:1.4}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 .toast.success{background:var(--green)}
 .toast.error{background:var(--red)}
+@media(max-width:640px){.toast{bottom:calc(68px + env(safe-area-inset-bottom))}}
 /* CART ADD FEEDBACK */
 .pos-prod-add.btn-added,.pos-card-add-icon.btn-added{background:var(--green)!important;color:#fff!important;border-color:var(--green)!important;transform:scale(1.15)}
 @keyframes badge-pop{0%{transform:scale(1)}40%{transform:scale(1.6)}70%{transform:scale(.9)}100%{transform:scale(1)}}
