@@ -1676,6 +1676,53 @@ function applyDescriptionFormat(fieldId) {
   if (el && el.value.trim()) el.value = formatDescription(el.value);
 }
 
+/* ── VALIDACIÓN DEL FORMULARIO ─────────────────────────────────────── */
+function clearFieldError(el) {
+  const field = el?.closest?.('.field');
+  if (!field) return;
+  field.classList.remove('field-invalid');
+  field.querySelector('.field-error-msg')?.remove();
+}
+
+function validateForm() {
+  // Limpiar errores previos
+  document.querySelectorAll('.field-invalid').forEach(f => f.classList.remove('field-invalid'));
+  document.querySelectorAll('.field-error-msg').forEach(e => e.remove());
+
+  let firstInvalid = null;
+
+  const markError = (inputId, msg) => {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const field = input.closest('.field');
+    if (!field) return;
+    field.classList.add('field-invalid');
+    const err = document.createElement('p');
+    err.className = 'field-error-msg';
+    err.textContent = '⚠ ' + msg;
+    field.appendChild(err);
+    // Auto-limpiar al corregir
+    input.addEventListener('input', () => clearFieldError(input), { once: true });
+    input.addEventListener('change', () => clearFieldError(input), { once: true });
+    if (!firstInvalid) firstInvalid = input;
+  };
+
+  const name  = document.getElementById('f-name')?.value.trim();
+  const price = parseFloat(document.getElementById('f-price')?.value);
+  const cat   = document.getElementById('f-category')?.value;
+
+  if (!name)           markError('f-name',     'El nombre es obligatorio');
+  if (!price || price <= 0) markError('f-price', 'Ingresa un precio de venta válido');
+  if (!cat)            markError('f-category', 'Selecciona una categoría');
+
+  if (firstInvalid) {
+    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    firstInvalid.focus();
+  }
+
+  return !firstInvalid;
+}
+
 function clearField(id) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -1699,6 +1746,7 @@ function previewImg() {
 async function saveProduct() {
   applyTitleCase('f-name');
   applyDescriptionFormat('f-description');
+  if (!validateForm()) return;
   const name = document.getElementById('f-name').value.trim();
   const price = parseFloat(document.getElementById('f-price').value);
   const image = document.getElementById('f-image').value.trim();

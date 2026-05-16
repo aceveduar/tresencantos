@@ -325,6 +325,21 @@ tr:hover .drag-handle{opacity:1}
 }
 .checkbox-row input[type=checkbox]:checked::after{transform:translateX(18px)}
 
+/* ── VALIDACIÓN DE CAMPOS ── */
+.field-invalid > input,
+.field-invalid > select,
+.field-invalid > textarea,
+.field-invalid > .field-label-row + input,
+.field-invalid > .field-label-row + select {
+  border-color:var(--red)!important;
+  background:#FFF8F8!important;
+  box-shadow:0 0 0 3px rgba(232,93,93,.1)!important;
+}
+.field-error-msg{
+  font-size:.72rem;color:var(--red);margin-top:5px;
+  display:flex;align-items:center;gap:4px;font-weight:500;
+}
+
 /* ── SECCIONES DEL FORMULARIO ── */
 .form-section{
   font-size:.64rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
