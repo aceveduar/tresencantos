@@ -1333,14 +1333,17 @@ async function loadHistory() {
   salesCache = {};
   result.data.forEach(s => { salesCache[s.id] = s; });
 
-  const hoy    = new Date().toISOString().split('T')[0];
-  const ayer   = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  // Convertir fecha UTC → clave YYYY-MM-DD en horario de México
+  const TZ = 'America/Mexico_City';
+  const mxDateKey = iso => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date(iso));
+  const hoy  = mxDateKey(new Date().toISOString());
+  const ayer = mxDateKey(new Date(Date.now() - 86400000).toISOString());
   const ventas = result.data;
 
-  // Agrupar por día
+  // Agrupar por día en horario México
   const grupos = {};
   ventas.forEach(s => {
-    const dia = s.created_at.split('T')[0];
+    const dia = mxDateKey(s.created_at);
     if (!grupos[dia]) grupos[dia] = [];
     grupos[dia].push(s);
   });
@@ -1351,8 +1354,8 @@ async function loadHistory() {
                  : new Date(dia + 'T12:00:00').toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
 
     const cards = sales.map(s => {
-      const t        = new Date(s.created_at);
-      const hora     = t.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
+      const t = new Date(s.created_at);
+      const hora = t.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit', timeZone: TZ });
       const total    = parseFloat(s.total) || 0;
       const disc     = parseFloat(s.discount) || 0;
       const items    = Array.isArray(s.items) ? s.items : [];
