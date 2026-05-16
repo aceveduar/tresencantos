@@ -552,6 +552,8 @@ function adminCard(p) {
   const priceHTML = p.originalPrice
     ? `<span class="ac-orig">$${p.originalPrice.toLocaleString('es-MX')}</span><span class="ac-price">$${p.price.toLocaleString('es-MX')}</span>`
     : `<span class="ac-price">$${p.price.toLocaleString('es-MX')}</span>`;
+  const oosTitle = oos ? 'Agotado — toca para marcar disponible' : 'Disponible — toca para agotar';
+  const pubTitle = p.isPublished === false ? 'Oculto del sitio — toca para publicar' : 'Visible en sitio — toca para ocultar';
 
   return `
 <div class="admin-card${sel?' card-selected':''}${oos?' card-oos':''}"
@@ -575,15 +577,19 @@ function adminCard(p) {
     <div class="ac-meta">
       <span class="cat-dot" style="background:${catColor}"></span>
       <span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" title="Toca para cambiar categoría" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.categoryLabel}</span>
-      ${publishedToggle(p)}
     </div>
     <div class="ac-price-row">${priceHTML}</div>
     <div class="ac-footer">
-      <div style="display:flex;align-items:center;gap:4px">
-        <button onclick="toggleOutOfStock(${p.id})" class="oos-cell ${oos?'soldout':'available'}" style="font-size:.65rem;padding:3px 8px">
-          ${oos?'Agotado':'Disponible'}
-        </button>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button class="ac-status-dot ${oos?'ac-dot-sold':'ac-dot-avail'}"
+                onclick="toggleOutOfStock(${p.id})"
+                title="${oosTitle}"></button>
         ${stockChip(p)}
+        <button class="ac-pub-dot" onclick="togglePublished(${p.id})"
+                ontouchstart="event.stopPropagation()"
+                title="${pubTitle}">
+          ${p.isPublished===false?'🙈':'🌐'}
+        </button>
       </div>
       <div class="ac-actions">
         <button class="action-btn" onclick="openForm(${p.id})" title="Editar">${ICON_EDIT}</button>
