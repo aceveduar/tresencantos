@@ -11,6 +11,9 @@ let searchQuery   = '';
 let currentSort   = 'default';
 let activeProduct = null;
 
+const CATALOG_LIMIT = 12;
+let _catalogShowAll = false;
+
 const WA_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.374 0 0 5.373 0 12c0 2.124.553 4.118 1.522 5.85L.057 23.499l5.772-1.513A11.94 11.94 0 0012 24c6.626 0 12-5.373 12-12S18.626 0 12 0zm0 21.799c-1.891 0-3.653-.507-5.18-1.394l-.371-.22-3.422.897.914-3.329-.242-.384A9.783 9.783 0 012.2 12c0-5.404 4.396-9.799 9.8-9.799 5.403 0 9.798 4.395 9.798 9.8 0 5.403-4.395 9.798-9.798 9.798z"/></svg>`;
 
 function supabaseApi(path, opts = {}) {
@@ -127,12 +130,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 /* ── SEARCH ── */
 function onSearchInput(val) {
   searchQuery = val.trim().toLowerCase();
+  _catalogShowAll = false;
   render();
 }
 
 /* ── SORT ── */
 function setSortOption(val) {
   currentSort = val;
+  _catalogShowAll = false;
   render();
 }
 
@@ -165,8 +170,27 @@ function render() {
     grid.innerHTML = `<div class="empty-msg"><div class="em-icon">${searchQuery ? '🔍' : '🛍️'}</div><p>${msg}</p></div>`;
     return;
   }
-  grid.innerHTML = list.map(cardHTML).join('');
+
+  const isDefaultView = currentFilter === 'all' && !searchQuery;
+  const limited = isDefaultView && !_catalogShowAll;
+  const visible = limited ? list.slice(0, CATALOG_LIMIT) : list;
+  const remaining = limited ? list.length - CATALOG_LIMIT : 0;
+
+  grid.innerHTML = visible.map(cardHTML).join('');
+
+  if (remaining > 0) {
+    const wrap = document.createElement('div');
+    wrap.className = 'load-more-wrap';
+    wrap.innerHTML = `<button class="btn-load-more" onclick="showAllCatalog()">Ver ${remaining} productos más</button>`;
+    grid.appendChild(wrap);
+  }
+
   grid.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+}
+
+function showAllCatalog() {
+  _catalogShowAll = true;
+  render();
 }
 
 function discountPct(p) {
@@ -361,6 +385,7 @@ function initFilters() {
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentFilter = f;
+      _catalogShowAll = false;
       render();
     });
   });
@@ -368,6 +393,7 @@ function initFilters() {
 
 function filterTo(cat) {
   currentFilter = cat;
+  _catalogShowAll = false;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === cat));
   render();
   document.getElementById('productos')?.scrollIntoView({ behavior:'smooth' });
