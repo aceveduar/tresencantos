@@ -1392,10 +1392,24 @@ async function analyzeFormImage() {
   lbl.textContent = 'Analizando imagen…';
   try {
     const catList = categories.map(c => `"${c.code}" (${c.label})`).join(', ');
-    const systemPrompt = `Eres el asistente de catálogo de Tres Encantos, una boutique mexicana en Maquixco, San Juan Teotihuacán. Vendemos bolsos, mochilas, accesorios, maquillaje y productos Natura.
-Tu voz es cálida, femenina y aspiracional — como una amiga con buen gusto que dice "esto te va a quedar perfecto". Evita tecnicismos y códigos de inventario. Escribe siempre en español de México.`;
-    const userPrompt = `Analiza la imagen y responde ÚNICAMENTE con JSON válido sin markdown ni texto extra:
-{"name":"nombre atractivo máximo 55 chars, incluye marca si es visible (ej: Bolso David Jones Negro), sin códigos ni SKUs","description":"1-2 oraciones con tono emocional y comercial — qué hace sentir o para qué ocasión sirve, máximo 180 chars","category":"código exacto de una de estas opciones: ${catList}"}`;
+    const systemPrompt = `Eres el asistente de catálogo de Tres Encantos, boutique mexicana. Vendemos bolsos, mochilas, accesorios, maquillaje y productos Natura.
+Voz cálida y aspiracional, español de México. Cuando detectes texto o números en la imagen sé preciso — nunca inventes datos que no estén visibles.`;
+    const userPrompt = `Analiza esta imagen de producto y responde ÚNICAMENTE con JSON válido, sin markdown ni texto extra.
+
+OBLIGATORIOS (siempre devuélvelos, no importa qué):
+• "name": nombre comercial atractivo, máximo 55 chars. Incluye marca si es legible (ej: "Bolso David Jones Negro"). Sin códigos, sin SKUs.
+• "description": 1-2 oraciones emocionales y comerciales — qué hace sentir, para qué ocasión. Máximo 180 chars.
+
+OPCIONALES (devuelve null o "" si no estás seguro — nunca fuerces un valor):
+• "category": elige el código exacto de esta lista SOLO si el producto coincide claramente. Si tienes duda, devuelve "".
+  Opciones: ${catList}
+• "price": busca en la imagen un precio escrito a mano con plumón o lapicero, en etiqueta adhesiva de color, o impreso en el empaque.
+  - Devuelve solo el número sin símbolos (ej: 350).
+  - NO confundas con: mililitros (ml), onzas (oz), gramos (g), tallas (S/M/L/XL), porcentajes (%), códigos de barras, números de lote o cualquier otro valor numérico que no sea precio.
+  - Si no hay precio visible o tienes la mínima duda, devuelve null.
+
+Formato de respuesta:
+{"name":"...","description":"...","category":"código exacto o cadena vacía","price":número_sin_símbolo_o_null}`;
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
@@ -1408,7 +1422,7 @@ Tu voz es cálida, femenina y aspiracional — como una amiga con buen gusto que
             { type: 'image_url', image_url: { url: currentFormImageDataUrl } }
           ]}
         ],
-        temperature: 0.7, max_tokens: 300
+        temperature: 0.3, max_tokens: 450
       })
     });
     if (!response.ok) {
@@ -1421,7 +1435,7 @@ Tu voz es cálida, femenina y aspiracional — como una amiga con buen gusto que
     if (!jsonMatch) throw new Error('La IA no devolvió un formato reconocible');
     const parsed = JSON.parse(jsonMatch[0]);
     const flash = el => { el.classList.add('ai-filled'); setTimeout(() => el.classList.remove('ai-filled'), 1600); };
-    if (parsed.name) { const el = document.getElementById('f-name'); el.value = parsed.name; flash(el); }
+    if (parsed.name)        { const el = document.getElementById('f-name');        el.value = parsed.name;        flash(el); }
     if (parsed.description) { const el = document.getElementById('f-description'); el.value = parsed.description; flash(el); }
     if (parsed.category) {
       const match = categories.find(c =>
@@ -1435,7 +1449,21 @@ Tu voz es cálida, femenina y aspiracional — como una amiga con buen gusto que
         flash(el);
       }
     }
-    toast('✨ Campos completados con IA', 'success');
+    // Precio detectado en imagen (plumón, etiqueta, impreso)
+    const rawPrice = parsed.price;
+    if (rawPrice !== null && rawPrice !== undefined) {
+      const num = Number(rawPrice);
+      if (!isNaN(num) && num > 0 && num < 100000) {
+        const el = document.getElementById('f-price');
+        el.value = Math.round(num);
+        flash(el);
+        updateMarginDisplay();
+      }
+    }
+    const filled = [parsed.name ? 'nombre' : null, parsed.description ? 'descripción' : null,
+                    parsed.category ? 'categoría' : null, (rawPrice && Number(rawPrice) > 0) ? 'precio' : null]
+                   .filter(Boolean).join(', ');
+    toast(`✨ Completado: ${filled}`, 'success');
     icon.textContent = '✓';
     lbl.textContent = 'Analizado — edita si es necesario';
     btn.style.borderColor = 'var(--green)'; btn.style.color = 'var(--green)';
