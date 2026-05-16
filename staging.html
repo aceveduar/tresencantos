@@ -134,7 +134,7 @@ main{max-width:1100px;margin:0 auto;padding:28px 28px 60px}
     <span class="topbar-title">Zona de Preparación</span>
   </div>
   <div class="topbar-right">
-    <a href="admin.html" class="btn-back">← Admin</a>
+    <a href="admin.html" class="btn-back">← Inventario</a>
   </div>
 </div>
 
@@ -387,7 +387,7 @@ async function analyzeOne(id) {
   const item = stagingItems.find(x => x.id === id);
   if (!item) return;
   const key = groqApiKey;
-  if (!key) { toast('Configura la key de Groq en Admin → Herramientas → IA', 'error'); return; }
+  if (!key) { toast('Configura la key de Groq en Inventario → Herramientas → IA', 'error'); return; }
 
   item.status = 'processing';
   updateCardStatus(item);
@@ -514,7 +514,7 @@ async function publishReady() {
 
   renderGrid(); updateBottomBar();
   btn.disabled = false; btn.textContent = '✓ Publicar listas al inventario';
-  toast(`${success} producto(s) añadido(s) al inventario. Edítalos en el Admin para ajustar precio y publicarlos.`, 'success');
+  toast(`${success} producto(s) añadido(s). Edítalos en Inventario para ajustar precio y publicarlos.`, 'success');
 }
 
 async function compressDataUrl(dataUrl) {

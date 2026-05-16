@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Admin — Tres Encantos</title>
+<title>Inventario — Tres Encantos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
 <style>
@@ -731,7 +731,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 <div id="auth-screen">
   <div class="auth-box">
     <img src="logo.png" alt="Tres Encantos">
-    <h1>Panel de Administración</h1>
+    <h1>Inventario</h1>
     <p>Ingresa tus credenciales para continuar</p>
     <input type="email" id="email-input" placeholder="Email" onkeydown="if(event.key==='Enter')doLoginEmail()">
     <input type="password" id="pwd-input" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLoginEmail()" style="margin-top:10px">
@@ -746,13 +746,13 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     <div class="topbar-left">
       <img src="logo.png" alt="">
       <div class="topbar-divider"></div>
-      <h2><span class="th-long">Administrar Tienda</span><span class="th-short" style="display:none">Admin</span></h2>
+      <h2><span class="th-long">Inventario</span><span class="th-short" style="display:none">Inventario</span></h2>
     </div>
     <div class="topbar-right">
       <span id="session-user" class="session-user"></span>
       <a href="staging.html" class="btn btn-outline btn-sm btn-stats-admin">🗂 Staging</a>
-      <a href="stats.html" class="btn btn-outline btn-sm btn-stats-admin">📊 Stats</a>
-      <a href="pos.html" class="btn btn-gold btn-sm">🖥 POS</a>
+      <a href="stats.html" class="btn btn-outline btn-sm btn-stats-admin">📊 Reportes</a>
+      <a href="pos.html" class="btn btn-gold btn-sm">🖥 Caja</a>
       <a href="index.html" class="btn btn-outline btn-sm btn-versite">← Ver sitio</a>
       <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
     </div>
@@ -1044,7 +1044,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
             <input type="checkbox" id="f-published" checked>
             Publicar en sitio web
           </label>
-          <p class="hint">Si está desactivado, el producto solo existe en el inventario y POS, no se muestra al público.</p>
+          <p class="hint">Si está desactivado, el producto solo existe en Inventario y Caja, no se muestra al público.</p>
         </div>
         <div class="field">
           <label class="checkbox-row">

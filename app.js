@@ -96,7 +96,19 @@ const observer = new IntersectionObserver(entries => {
   entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('visible'); observer.unobserve(e.target); } });
 }, { threshold: 0.1 });
 
+function initAdminBar() {
+  try {
+    const raw = localStorage.getItem('te_admin_session');
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (!s.access_token || !s.expires_at) return;
+    if (s.expires_at <= Math.floor(Date.now() / 1000) + 60) return;
+    document.body.classList.add('admin-bar-shown');
+  } catch {}
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+  initAdminBar();
   await loadProducts();
   await loadRevista();
   render();

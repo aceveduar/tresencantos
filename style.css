@@ -270,6 +270,21 @@ section{padding:80px 20px}
 .d-addr-ref{font-size:.8rem;color:rgba(255,255,255,.55);font-style:italic}
 .d-addr-col,.d-addr-city{font-size:.82rem;color:rgba(255,255,255,.65)}
 
+/* ── BARRA ADMIN (solo con sesión activa) ── */
+#admin-bar{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:9999;
+  height:36px;background:rgba(28,24,23,.97);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;gap:8px;
+}
+#admin-bar a{
+  color:#C9A462;text-decoration:none;font-size:.72rem;font-weight:600;
+  letter-spacing:.05em;text-transform:uppercase;padding:4px 14px;border-radius:50px;
+  transition:background .15s,color .15s;white-space:nowrap;
+}
+#admin-bar a:hover{background:rgba(201,164,98,.18);color:#FFF8EE}
+body.admin-bar-shown #admin-bar{display:flex}
+body.admin-bar-shown .header{top:36px}
+
 /* ── BOTÓN FLOTANTE WHATSAPP ── */
 #wa-float{
   position:fixed;bottom:22px;right:18px;z-index:200;
