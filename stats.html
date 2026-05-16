@@ -344,6 +344,34 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
     </div>
   </div>
 
+  <!-- RENTABILIDAD -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <h2>Rentabilidad</h2>
+      <span id="rent-label" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body">
+      <div class="inv-summary">
+        <div class="inv-stat green">
+          <div class="n" id="rent-high">—</div>
+          <div class="l">Alta ≥30%</div>
+        </div>
+        <div class="inv-stat amber">
+          <div class="n" id="rent-mid">—</div>
+          <div class="l">Media 10–29%</div>
+        </div>
+        <div class="inv-stat red">
+          <div class="n" id="rent-low">—</div>
+          <div class="l">Baja &lt;10%</div>
+        </div>
+      </div>
+      <div id="rent-no-cost" style="display:none;margin-bottom:10px;padding:8px 10px;background:#F9F4EE;border-radius:8px;font-size:.78rem;color:#8A7564">
+        ⚪ <strong id="rent-no-cost-n">0</strong> productos sin costo registrado — edítalos en Inventario para ver su margen
+      </div>
+      <div id="rent-list"></div>
+    </div>
+  </div>
+
   <!-- INVENTARIO -->
   <div class="card">
     <div class="card-head">
@@ -444,7 +472,7 @@ async function loadPreviousSales() {
 }
 
 async function loadProducts() {
-  const r = await api('products?select=id,name,category,category_label,price,stock,out_of_stock&order=position.asc&limit=500');
+  const r = await api('products?select=id,name,category,category_label,price,cost,stock,out_of_stock&order=position.asc&limit=500');
   products = (r.ok && Array.isArray(r.data)) ? r.data : [];
 }
 
@@ -463,6 +491,7 @@ function renderAll() {
   renderRecentSales();
   renderHourChart();
   renderInventory();
+  renderRentabilidad();
 }
 
 /* KPIs con delta vs período anterior */
@@ -713,6 +742,51 @@ function renderInventory() {
   <span class="badge-sm ${i.cls}">${i.badge}</span>
 </div>`).join('')
     : '<p class="no-data" style="padding:16px 0">Todo el inventario tiene existencias ✓</p>';
+}
+
+/* ── RENTABILIDAD ── */
+function renderRentabilidad() {
+  const margin = p => p.cost > 0 && p.price > 0
+    ? Math.round((p.price - p.cost) / p.price * 100) : null;
+
+  const withCost = products.filter(p => p.cost > 0 && p.price > 0);
+  const noCost   = products.filter(p => !p.cost || p.cost <= 0);
+  const high = withCost.filter(p => margin(p) >= 30);
+  const mid  = withCost.filter(p => margin(p) >= 10 && margin(p) < 30);
+  const low  = withCost.filter(p => margin(p) < 10);
+
+  document.getElementById('rent-high').textContent = high.length;
+  document.getElementById('rent-mid').textContent  = mid.length;
+  document.getElementById('rent-low').textContent  = low.length;
+  document.getElementById('rent-label').textContent =
+    withCost.length ? `${withCost.length} producto${withCost.length!==1?'s':''} con costo` : 'Sin costos registrados';
+
+  const noCostEl = document.getElementById('rent-no-cost');
+  noCostEl.style.display = noCost.length ? '' : 'none';
+  document.getElementById('rent-no-cost-n').textContent = noCost.length;
+
+  const watchList = [...low, ...mid]
+    .map(p => ({ ...p, pct: margin(p) }))
+    .sort((a, b) => a.pct - b.pct)
+    .slice(0, 10);
+
+  const el = document.getElementById('rent-list');
+  if (!watchList.length) {
+    el.innerHTML = withCost.length
+      ? '<p class="no-data" style="padding:10px 0">Todos los productos con costo tienen margen ≥30% ✓</p>'
+      : '';
+    return;
+  }
+  el.innerHTML =
+    `<p style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Margen más bajo — revisar precio o costo</p>` +
+    watchList.map(p => `
+<div class="inv-list-item">
+  <span class="inv-name">${p.name}</span>
+  <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+    <span style="font-size:.74rem;color:var(--muted)">$${p.price.toLocaleString('es-MX')}</span>
+    <span class="badge-sm ${p.pct < 10 ? 'badge-red' : 'badge-amber'}">${p.pct}%</span>
+  </div>
+</div>`).join('');
 }
 
 /* ── PERIOD SWITCH ── */

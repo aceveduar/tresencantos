@@ -783,7 +783,7 @@ button,a{touch-action:manipulation}
       <!-- Campos del apartado -->
       <div id="apartado-fields" style="display:none">
         <div class="apartado-fields">
-          <input type="text" id="pos-customer" placeholder="👤 Nombre del cliente" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%">
+          <input type="text" id="pos-customer" placeholder="👤 Nombre del cliente" oninput="updateAnticipoInfo()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%">
           <input type="tel" id="pos-phone" placeholder="📱 Teléfono (opcional)" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%">
           <div class="apartado-field-row">
             <div class="cash-field">
@@ -799,6 +799,7 @@ button,a{touch-action:manipulation}
       </div>
 
       <button id="cobrar-btn" class="btn btn-green" onclick="cobrar()" disabled>✓ Cobrar</button>
+      <p id="cobrar-hint" style="display:none;text-align:center;font-size:.74rem;color:#9B8B78;margin-top:5px;line-height:1.4"></p>
     </div>
   </div>
 
@@ -1605,6 +1606,12 @@ function toggleApartadoMode() {
     if (cashEl) cashEl.value = '';
     const changeEl = document.getElementById('pos-change-input');
     if (changeEl) changeEl.value = '';
+    // Auto-focus en el primer campo requerido
+    setTimeout(() => document.getElementById('pos-customer')?.focus(), 80);
+  } else {
+    // Al desactivar apartado, ocultar hint
+    const hint = document.getElementById('cobrar-hint');
+    if (hint) hint.style.display = 'none';
   }
   updateAnticipoInfo();
 }
@@ -1633,8 +1640,25 @@ function updateAnticipoInfo() {
     el.placeholder = pendiente === 0 && anticipo > 0 ? 'Cubierto ✓' : '—';
     el.style.color = pendiente > 0 ? 'var(--red)' : 'var(--green)';
   }
+  const hint = document.getElementById('cobrar-hint');
   if (btn && document.getElementById('pos-is-apartado')?.checked) {
-    btn.disabled = anticipo <= 0;
+    const customer = document.getElementById('pos-customer')?.value.trim() || '';
+    const needsCustomer = !customer;
+    const needsAnticipo = anticipo <= 0;
+    btn.disabled = needsCustomer || needsAnticipo;
+    if (hint) {
+      if (needsCustomer) {
+        hint.textContent = '👤 Ingresa el nombre del cliente';
+        hint.style.display = '';
+      } else if (needsAnticipo) {
+        hint.textContent = '💵 Ingresa el anticipo recibido';
+        hint.style.display = '';
+      } else {
+        hint.style.display = 'none';
+      }
+    }
+  } else if (hint) {
+    hint.style.display = 'none';
   }
 }
 
@@ -1885,7 +1909,8 @@ async function cobrar() {
     const cash = parseFloat(document.getElementById('pos-cash').value) || 0;
     if (cash > 0 && cash < total) {
       toast(`El efectivo ($${cash.toLocaleString('es-MX')}) no cubre el total ($${total.toLocaleString('es-MX')})`, 'error');
-      document.getElementById('pos-cash').focus(); document.getElementById('pos-cash').select(); return;
+      document.getElementById('pos-cash').focus(); document.getElementById('pos-cash').select();
+      _cobrandoAhora = false; return;
     }
     paidAmount = cash || total;
     change = Math.max(0, paidAmount - total);
