@@ -29,6 +29,15 @@ a{text-decoration:none}
 .btn-names{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:50px;font-size:.78rem;font-weight:600;border:1.5px solid rgba(255,255,255,.25);background:transparent;color:rgba(255,255,255,.75);cursor:pointer;transition:.15s;white-space:nowrap}
 .btn-names:hover{background:rgba(255,255,255,.1);color:#fff}
 
+/* NAV MOBILE */
+.topbar-nav-mobile{display:none;align-items:center;gap:2px}
+.tbn-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;text-decoration:none;background:transparent;color:rgba(255,255,255,.55);transition:all .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.tbn-icon svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
+.tbn-icon.tbn-active{color:#C9A462}
+.tbn-icon.tbn-active svg{stroke-width:2.5}
+.tbn-icon:active{opacity:.55;transform:scale(.88)}
+@media(max-width:640px){.topbar-nav-mobile{display:flex}.btn-back{display:none}}
+
 /* MAIN */
 .main{flex:1;max-width:800px;width:100%;margin:0 auto;padding:20px 16px 48px}
 
@@ -120,6 +129,23 @@ a{text-decoration:none}
     <button class="btn-names" onclick="openNamesModal()">👤 Nombres</button>
     <a href="stats.html" class="btn-back">📊 <span>Reportes</span></a>
     <a href="admin.html" class="btn-back">← <span>Inventario</span></a>
+    <nav class="topbar-nav-mobile" aria-label="Módulos">
+      <a href="admin.html" class="tbn-icon" title="Inventario">
+        <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+      </a>
+      <a href="pos.html" class="tbn-icon" title="Caja">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      </a>
+      <a href="stats.html" class="tbn-icon" title="Reportes">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </a>
+      <a href="staging.html" class="tbn-icon" title="Staging">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </a>
+      <a href="activity.html" class="tbn-icon tbn-active" title="Actividad" aria-current="page">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </a>
+    </nav>
   </div>
 </div>
 
