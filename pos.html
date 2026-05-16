@@ -788,12 +788,19 @@ button,a{touch-action:manipulation}
           <div class="apartado-field-row">
             <div class="cash-field">
               <label>Anticipo recibido</label>
-              <input type="number" id="pos-anticipo" min="0" step="1" placeholder="0" oninput="updateAnticipoInfo()">
+              <input type="number" id="pos-anticipo" min="1" step="1" placeholder="" oninput="updateAnticipoInfo()">
             </div>
             <div class="cash-field">
               <label>Pendiente</label>
               <input type="number" id="pos-pendiente" readonly style="background:#F9F4EE;color:var(--red);font-weight:700">
             </div>
+          </div>
+          <!-- Botones rápidos de anticipo -->
+          <div class="cash-quick anticipo-quick" style="margin-top:6px">
+            <button onclick="setAnticipo(.25)">25%</button>
+            <button onclick="setAnticipo(.50)">50%</button>
+            <button onclick="setAnticipo(.75)">75%</button>
+            <button onclick="setAnticipo(1)" class="exact-btn">Exacto</button>
           </div>
         </div>
       </div>
@@ -1609,10 +1616,24 @@ function toggleApartadoMode() {
     // Auto-focus en el primer campo requerido
     setTimeout(() => document.getElementById('pos-customer')?.focus(), 80);
   } else {
-    // Al desactivar apartado, ocultar hint
+    // Al desactivar apartado: limpiar campos y hint
+    ['pos-customer','pos-phone','pos-anticipo','pos-pendiente'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    document.querySelectorAll('.anticipo-quick button').forEach(b => b.classList.remove('active-cash'));
     const hint = document.getElementById('cobrar-hint');
     if (hint) hint.style.display = 'none';
   }
+  updateAnticipoInfo();
+}
+
+function setAnticipo(pct) {
+  const total = getDiscountedTotal();
+  const amount = pct === 1 ? total : Math.floor(total * pct);
+  const el = document.getElementById('pos-anticipo');
+  if (el) el.value = amount > 0 ? amount : '';
+  document.querySelectorAll('.anticipo-quick button').forEach(b => b.classList.remove('active-cash'));
+  event?.currentTarget?.classList.add('active-cash');
   updateAnticipoInfo();
 }
 
@@ -1648,10 +1669,10 @@ function updateAnticipoInfo() {
     btn.disabled = needsCustomer || needsAnticipo;
     if (hint) {
       if (needsCustomer) {
-        hint.textContent = '👤 Ingresa el nombre del cliente';
+        hint.textContent = 'Ingresa el nombre del cliente para continuar';
         hint.style.display = '';
       } else if (needsAnticipo) {
-        hint.textContent = '💵 Ingresa el anticipo recibido';
+        hint.textContent = 'Ingresa el monto del anticipo para continuar';
         hint.style.display = '';
       } else {
         hint.style.display = 'none';
