@@ -693,6 +693,8 @@ button,a{touch-action:manipulation}
     </div>
     <!-- Chips de categoría -->
     <div class="cat-chip-bar" id="cat-chip-bar"></div>
+    <!-- Resumen de caja diario — solo mobile -->
+    <div id="daily-summary-mobile" style="display:none;align-items:center;gap:8px;padding:5px 14px;background:#FFFBF4;border-bottom:1px solid var(--border);font-size:.73rem;color:var(--charcoal);flex-shrink:0"></div>
     <div class="pos-results" id="pos-results">
       <div class="pos-empty"><div class="em">🛍️</div>Cargando productos…</div>
     </div>
@@ -862,13 +864,15 @@ button,a{touch-action:manipulation}
 <!-- SALE DONE OVERLAY -->
 <div class="overlay" id="sale-done-overlay">
   <div class="sale-done-modal">
-    <div class="sd-icon">✓</div>
-    <h2>Venta completada</h2>
-    <div class="sd-row"><span>Total cobrado</span><strong id="sd-total"></strong></div>
+    <div class="sd-icon" id="sd-icon">✓</div>
+    <h2 id="sd-title">Venta completada</h2>
+    <div class="sd-row"><span id="sd-total-label">Total cobrado</span><strong id="sd-total"></strong></div>
     <div class="sd-row" id="sd-discount-row" style="display:none"><span>Descuento aplicado</span><strong id="sd-discount" style="color:var(--red)"></strong></div>
     <div class="sd-row"><span>Método de pago</span><strong id="sd-method"></strong></div>
-    <div class="sd-row"><span>Recibido</span><strong id="sd-cash"></strong></div>
-    <div class="sd-row sd-change"><span>Cambio</span><strong id="sd-change"></strong></div>
+    <div class="sd-row" id="sd-cash-row"><span id="sd-cash-label">Recibido</span><strong id="sd-cash"></strong></div>
+    <div class="sd-row sd-change" id="sd-change-row"><span>Cambio</span><strong id="sd-change"></strong></div>
+    <div class="sd-row" id="sd-pending-row" style="display:none"><span>Pendiente</span><strong id="sd-pending" style="color:var(--red)"></strong></div>
+    <div class="sd-row" id="sd-customer-row" style="display:none"><span>Cliente</span><strong id="sd-customer" style="font-size:.85rem"></strong></div>
     <div class="sd-row" id="sd-note-row" style="display:none"><span>Nota</span><strong id="sd-note" style="font-size:.85rem"></strong></div>
     <div id="sd-transfer-alert" style="display:none;margin-top:10px;padding:10px 14px;background:#FEF3C7;border-radius:10px;font-size:.82rem;color:#92400E;text-align:left">
       ⚠️ <strong>Transferencia pendiente:</strong> confirma el recibo antes de entregar el producto. El ticket de WhatsApp incluye este aviso.
@@ -878,6 +882,25 @@ button,a{touch-action:manipulation}
       Enviar ticket por WhatsApp
     </button>
     <button class="btn btn-green" onclick="closeSaleDone()" style="margin-top:8px">+ Nueva venta</button>
+  </div>
+</div>
+
+<!-- LIQUIDAR MODAL -->
+<div class="abonar-overlay" id="liquidar-overlay" style="display:none" onclick="if(event.target===this)closeLiqModal()">
+  <div class="abonar-modal">
+    <h3>Liquidar apartado</h3>
+    <p class="apt-info-lbl" id="liq-info"></p>
+    <label>Restante a cobrar</label>
+    <div style="font-family:'Playfair Display',serif;font-size:1.7rem;font-weight:700;color:var(--charcoal);margin-bottom:16px" id="liq-amount-display"></div>
+    <label>Método de pago</label>
+    <div class="abonar-pay-btns">
+      <button class="abonar-pay-btn active" id="liq-pay-efectivo" onclick="setLiqMethod('efectivo')">💵 Efectivo</button>
+      <button class="abonar-pay-btn" id="liq-pay-transf" onclick="setLiqMethod('transferencia')">📱 Transferencia</button>
+    </div>
+    <div class="abonar-footer">
+      <button class="btn-cancel" onclick="closeLiqModal()">Cancelar</button>
+      <button class="btn-confirm" id="liq-confirm-btn" onclick="confirmLiquidar()">✓ Liquidar</button>
+    </div>
   </div>
 </div>
 
@@ -1763,31 +1786,57 @@ async function confirmAbonar() {
   loadApartados();
 }
 
-async function completarApartado(id) {
-  const useTranf = confirm('¿Cómo pagó el cliente el restante?\n\nOK = Transferencia\nCancelar = Efectivo');
-  const method   = useTranf ? 'transferencia' : 'efectivo';
-  const sale     = _apartadosData[id];
-  const total    = parseFloat(sale?.total || 0);
-  const pagado   = parseFloat(sale?.paid_amount || 0);
+function completarApartado(id) { openLiqModal(id); }
+
+let _liqCtx = null, _liqMethod = 'efectivo';
+
+function openLiqModal(id) {
+  const sale = _apartadosData[id];
+  if (!sale) return;
+  const total    = parseFloat(sale.total || 0);
+  const pagado   = parseFloat(sale.paid_amount || 0);
   const restante = Math.max(0, total - pagado);
-  // Registrar el pago final en el historial de abonos
-  const abonos   = Array.isArray(sale?.abonos) ? sale.abonos : [];
+  const nombre   = (sale.customer || '').split(' · 📱 ')[0] || 'Cliente';
+  _liqCtx    = { id, total, pagado, restante, sale };
+  _liqMethod = 'efectivo';
+  document.getElementById('liq-info').textContent          = `${nombre} · Total $${total.toLocaleString('es-MX')} MXN`;
+  document.getElementById('liq-amount-display').textContent = `$${restante.toLocaleString('es-MX')} MXN`;
+  document.getElementById('liq-pay-efectivo').classList.add('active');
+  document.getElementById('liq-pay-transf').classList.remove('active');
+  document.getElementById('liq-confirm-btn').disabled = false;
+  document.getElementById('liq-confirm-btn').textContent = '✓ Liquidar';
+  document.getElementById('liquidar-overlay').style.display = 'flex';
+}
+
+function setLiqMethod(m) {
+  _liqMethod = m;
+  document.getElementById('liq-pay-efectivo').classList.toggle('active', m === 'efectivo');
+  document.getElementById('liq-pay-transf').classList.toggle('active', m === 'transferencia');
+}
+
+function closeLiqModal() {
+  document.getElementById('liquidar-overlay').style.display = 'none';
+  _liqCtx = null;
+}
+
+async function confirmLiquidar() {
+  if (!_liqCtx) return;
+  const { id, total, restante, sale } = _liqCtx;
+  const method = _liqMethod;
+  const btn    = document.getElementById('liq-confirm-btn');
+  btn.disabled = true; btn.textContent = 'Liquidando…';
+  const abonos     = Array.isArray(sale?.abonos) ? sale.abonos : [];
   const abonoFinal = { amount: restante, method, date: new Date().toISOString() };
   const r = await api(`sales?id=eq.${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({
-      type: 'venta',
-      payment_method: method,
-      paid_amount: total,
-      abonos: [...abonos, abonoFinal]
-    })
+    body: JSON.stringify({ type:'venta', payment_method:method, paid_amount:total, abonos:[...abonos, abonoFinal] })
   });
+  btn.disabled = false; btn.textContent = '✓ Liquidar';
   if (!r.ok) { toast('Error al completar apartado', 'error'); return; }
   logActivity('apartado_liquidado', `Liquidó apartado — ${method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo'}`, { method, restante });
+  closeLiqModal();
   toast(`Apartado liquidado ✓ — $${restante.toLocaleString('es-MX')} recibido`, 'success');
-  loadApartados();
-  loadHistory();
-  loadTodayStats();
+  loadApartados(); loadHistory(); loadTodayStats();
 }
 
 /* ── CHANGE & COBRAR ── */
@@ -1914,37 +1963,50 @@ async function cobrar() {
 function showSaleDone() {
   const s = _lastSale;
   const fmt = n => `$${parseFloat(n||0).toLocaleString('es-MX')} MXN`;
-  document.getElementById('sd-total').textContent  = fmt(s.total);
-  document.getElementById('sd-cash').textContent   = s.paidAmount > 0 ? fmt(s.paidAmount) : '—';
-  document.getElementById('sd-change').textContent = s.change > 0 ? fmt(s.change) : '—';
-  document.getElementById('sd-method').textContent = s.payMethod === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo';
-  // Para transferencia: mostrar aviso de confirmación pendiente
+  const isApt = s.isApartado;
+
+  document.getElementById('sd-icon').textContent         = isApt ? '📌' : '✓';
+  document.getElementById('sd-title').textContent        = isApt ? 'Apartado registrado' : 'Venta completada';
+  document.getElementById('sd-total-label').textContent  = isApt ? 'Total del pedido' : 'Total cobrado';
+  document.getElementById('sd-cash-label').textContent   = isApt ? 'Anticipo recibido' : 'Recibido';
+  document.getElementById('sd-total').textContent        = fmt(s.total);
+  document.getElementById('sd-cash').textContent         = s.paidAmount > 0 ? fmt(s.paidAmount) : '—';
+  document.getElementById('sd-change').textContent       = s.change > 0 ? fmt(s.change) : '—';
+  document.getElementById('sd-method').textContent       = s.payMethod === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo';
+
+  const pendiente = Math.max(0, (s.total || 0) - (s.paidAmount || 0));
+  document.getElementById('sd-pending-row').style.display  = isApt ? '' : 'none';
+  document.getElementById('sd-pending').textContent         = fmt(pendiente);
+  document.getElementById('sd-change-row').style.display   = isApt ? 'none' : '';
+  document.getElementById('sd-customer-row').style.display = isApt && s.customer ? '' : 'none';
+  document.getElementById('sd-customer').textContent       = (s.customer||'').split(' · 📱 ')[0];
+
   const transAlert = document.getElementById('sd-transfer-alert');
-  if (transAlert) transAlert.style.display = s.payMethod === 'transferencia' ? '' : 'none';
-  const discRow = document.getElementById('sd-discount-row');
-  if (discRow) { discRow.style.display = s.disc > 0 ? '' : 'none'; }
-  const discEl = document.getElementById('sd-discount');
-  if (discEl) discEl.textContent = `−${fmt(s.disc)}`;
-  const noteRow = document.getElementById('sd-note-row');
-  if (noteRow) noteRow.style.display = s.note ? '' : 'none';
-  const noteEl = document.getElementById('sd-note');
-  if (noteEl) noteEl.textContent = s.note || '';
+  if (transAlert) transAlert.style.display = (!isApt && s.payMethod === 'transferencia') ? '' : 'none';
+  document.getElementById('sd-discount-row').style.display = s.disc > 0 ? '' : 'none';
+  document.getElementById('sd-discount').textContent       = `−${fmt(s.disc)}`;
+  document.getElementById('sd-note-row').style.display     = s.note ? '' : 'none';
+  document.getElementById('sd-note').textContent           = s.note || '';
   document.getElementById('sale-done-overlay').classList.add('open');
 }
 
 function sendWhatsAppTicket() {
   const s = _lastSale;
   if (!s?.items?.length) return;
-  const lines = s.items.map(i => `• ${i.name} x${i.qty} — $${(i.subtotal||0).toLocaleString('es-MX')}`).join('\n');
-  const disc    = s.disc > 0 ? `\n🏷 Descuento: −$${s.disc.toLocaleString('es-MX')}` : '';
-  const note    = s.note ? `\n📝 ${s.note}` : '';
-  const chng    = s.change > 0 ? `\n💵 Cambio: $${s.change.toLocaleString('es-MX')}` : '';
-  const metodo  = s.payMethod === 'transferencia'
-    ? `\n📱 Pago: Transferencia bancaria`
-    : `\n💵 Pago: Efectivo`;
-  const pendiente = s.payMethod === 'transferencia'
-    ? `\n\n⚠️ _Pendiente confirmar recibo de transferencia_` : '';
-  const msg = `🛍 *Tres Encantos*\n━━━━━━━━━━━━━━\n${lines}${disc}\n━━━━━━━━━━━━━━\n*Total: $${(s.total||0).toLocaleString('es-MX')} MXN*${metodo}${chng}${note}${pendiente}\n\n¡Gracias por tu compra! 💛`;
+  const lines    = s.items.map(i => `• ${i.name} x${i.qty} — $${(i.subtotal||0).toLocaleString('es-MX')}`).join('\n');
+  const disc     = s.disc > 0 ? `\n🏷 Descuento: −$${s.disc.toLocaleString('es-MX')}` : '';
+  const note     = s.note ? `\n📝 ${s.note}` : '';
+  const metodo   = s.payMethod === 'transferencia' ? '📱 Transferencia bancaria' : '💵 Efectivo';
+  let msg;
+  if (s.isApartado) {
+    const nombre    = (s.customer||'').split(' · 📱 ')[0] || 'Cliente';
+    const pendiente = Math.max(0, (s.total||0) - (s.paidAmount||0));
+    msg = `📌 *Apartado — Tres Encantos*\n━━━━━━━━━━━━━━\n👤 ${nombre}\n${lines}${disc}\n━━━━━━━━━━━━━━\n*Total pedido: $${(s.total||0).toLocaleString('es-MX')} MXN*\n✅ Anticipo recibido: $${(s.paidAmount||0).toLocaleString('es-MX')} (${metodo})\n⏳ *Pendiente: $${pendiente.toLocaleString('es-MX')} MXN*${note}\n\nTe avisamos cuando esté listo. ¡Gracias! 💛`;
+  } else {
+    const chng     = s.change > 0 ? `\n💵 Cambio: $${s.change.toLocaleString('es-MX')}` : '';
+    const transAviso = s.payMethod === 'transferencia' ? `\n\n⚠️ _Pendiente confirmar recibo de transferencia_` : '';
+    msg = `🛍 *Tres Encantos*\n━━━━━━━━━━━━━━\n${lines}${disc}\n━━━━━━━━━━━━━━\n*Total: $${(s.total||0).toLocaleString('es-MX')} MXN*\n${metodo}${chng}${note}${transAviso}\n\n¡Gracias por tu compra! 💛`;
+  }
   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
@@ -2001,15 +2063,45 @@ function toast(msg, type = '') {
 
 /* ── TODAY'S STATS ── */
 async function loadTodayStats() {
-  const hoy = new Date().toISOString().split('T')[0];
-  const result = await api(`sales?created_at=gte.${hoy}T00:00:00&select=total`);
-  const el = document.getElementById('today-stats');
-  if (!el) return;
-  if (result.ok && Array.isArray(result.data) && result.data.length > 0) {
-    const count = result.data.length;
-    const total = result.data.reduce((s, x) => s + (parseFloat(x.total) || 0), 0);
-    el.textContent = `${count} venta${count !== 1 ? 's' : ''} hoy · $${total.toLocaleString('es-MX')}`;
-    el.style.display = '';
+  const TZ = 'America/Mexico_City';
+  const mxDateKey = iso => new Intl.DateTimeFormat('en-CA', { timeZone:TZ, year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date(iso));
+  const hoyMX  = mxDateKey(new Date().toISOString());
+  // Fetch últimos 8 días para capturar abonos de apartados viejos
+  const desde  = new Date(Date.now() - 8*24*3600*1000).toISOString();
+  const result = await api(`sales?created_at=gte.${desde}&select=total,paid_amount,payment_method,type,abonos,created_at`);
+  const el     = document.getElementById('today-stats');
+  const mob    = document.getElementById('daily-summary-mobile');
+  if (!el || !result.ok || !result.data?.length) return;
+
+  let efectivo = 0, transferencia = 0;
+  result.data.forEach(s => {
+    const abonos = Array.isArray(s.abonos) ? s.abonos : [];
+    if (abonos.length) {
+      // Contar solo abonos de hoy (pueden ser de apartados de días anteriores)
+      abonos.forEach(a => {
+        if (mxDateKey(a.date) === hoyMX) {
+          const amt = parseFloat(a.amount) || 0;
+          if (a.method === 'transferencia') transferencia += amt;
+          else efectivo += amt;
+        }
+      });
+    } else if (mxDateKey(s.created_at) === hoyMX && s.type !== 'apartado') {
+      // Venta simple de hoy sin historial de abonos
+      const amt = parseFloat(s.paid_amount || s.total) || 0;
+      if (s.payment_method === 'transferencia') transferencia += amt;
+      else efectivo += amt;
+    }
+  });
+
+  const total = efectivo + transferencia;
+  if (total === 0) return;
+
+  const fmt = n => `$${n.toLocaleString('es-MX')}`;
+  el.innerHTML = `💵 ${fmt(efectivo)} &nbsp;·&nbsp; 📱 ${fmt(transferencia)} &nbsp;·&nbsp; <strong>${fmt(total)}</strong>`;
+  el.style.display = '';
+  if (mob) {
+    mob.innerHTML = `<span style="color:var(--gold-dark);font-weight:700">Hoy</span> &nbsp;💵 ${fmt(efectivo)} &nbsp;📱 ${fmt(transferencia)} &nbsp;<strong>${fmt(total)}</strong>`;
+    mob.style.display = 'flex';
   }
 }
 

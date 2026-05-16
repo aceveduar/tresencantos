@@ -108,7 +108,7 @@ function renderCategorySelects() {
   const tSel = document.getElementById('cat-filter');
   if (tSel) {
     const roots = rootCats();
-    tSel.innerHTML = `<option value="all">Todas las categorías</option>` +
+    tSel.innerHTML = `<option value="all">Categoría</option>` +
       roots.map(r => {
         const subs = subCats(r.code);
         if (subs.length) {
@@ -851,6 +851,10 @@ function mobileCard(p) {
           </div>
           <div class="mpc-price-row">${priceHTML}${stockInfo}</div>
         </div>
+        <div class="mpc-top-actions">
+          <button class="mpc-icon-btn" onclick="openForm(${p.id})" title="Editar">${ICON_EDIT}</button>
+          <button class="mpc-icon-btn del-btn" onclick="askDelete(${p.id})" title="Eliminar">✕</button>
+        </div>
       </div>
       <div class="mpc-bar">
         <button onclick="toggleOutOfStock(${p.id})"
@@ -858,10 +862,6 @@ function mobileCard(p) {
           ${oos ? 'Agotado' : 'Disponible'}
         </button>
         ${publishedToggle(p)}
-        <div class="mpc-icon-group">
-          <button class="mpc-icon-btn" onclick="openForm(${p.id})" title="Editar">${ICON_EDIT}</button>
-          <button class="mpc-icon-btn del-btn" onclick="askDelete(${p.id})" title="Eliminar">✕</button>
-        </div>
       </div>
     </div>
   </td>
