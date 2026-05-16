@@ -91,18 +91,38 @@ button,a{touch-action:manipulation}
 .cart-items{flex:1;overflow-y:auto;padding:6px}
 .cart-empty{text-align:center;padding:20px 12px;color:#9B8B78;font-size:.82rem}
 .cart-empty .em{font-size:1.6rem;margin-bottom:4px}
-.cart-item{display:flex;align-items:center;gap:7px;padding:6px 5px;border-radius:8px;border:1px solid var(--border);margin-bottom:5px;background:var(--cream)}
-.ci-img{width:36px;height:36px;object-fit:cover;border-radius:5px;flex-shrink:0}
-.ci-info{flex:1;min-width:0}
-.ci-name{font-size:.78rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ci-price{font-size:.72rem;color:#6B5C48}
-.ci-qty{display:flex;align-items:center;gap:3px;flex-shrink:0}
-.ci-qty button{width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:#fff;font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700}
-.ci-qty button:hover{background:var(--gold);color:#fff;border-color:var(--gold)}
-.ci-qty .qty-num{font-size:.8rem;font-weight:700;min-width:18px;text-align:center}
-.ci-remove{background:none;border:none;color:#ccc;cursor:pointer;padding:3px;font-size:.85rem}
-.ci-remove:hover{color:var(--red)}
-.ci-subtotal{font-size:.8rem;font-weight:700;font-family:'Playfair Display',serif;min-width:48px;text-align:right;flex-shrink:0}
+/* Cart item — flexbox limpio: imagen | info+controles | acción */
+.cart-item{
+  display:flex;gap:10px;align-items:flex-start;
+  padding:10px 8px;border-radius:12px;
+  border:1px solid var(--border);margin-bottom:7px;background:var(--cream);
+}
+.ci-img{
+  width:48px;height:48px;object-fit:cover;border-radius:8px;
+  flex-shrink:0;background:#F0EBE3;
+}
+.ci-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ci-name{font-size:.86rem;font-weight:600;line-height:1.3;color:var(--charcoal);
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.ci-price{font-size:.72rem;color:#8A7564;font-weight:500}
+.ci-row2{display:flex;align-items:center;gap:6px;margin-top:4px}
+.ci-qty{display:flex;align-items:center;gap:4px}
+.ci-qty button{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border);
+  background:#fff;font-size:.85rem;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-weight:700;transition:.15s;touch-action:manipulation}
+.ci-qty button:hover,.ci-qty button:active{background:var(--gold);color:#fff;border-color:var(--gold)}
+.ci-qty .qty-num{font-size:.88rem;font-weight:700;min-width:22px;text-align:center}
+/* Columna derecha: subtotal arriba, × abajo */
+.ci-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
+.ci-subtotal{font-size:.92rem;font-weight:700;font-family:'Playfair Display',serif;
+  color:var(--charcoal);white-space:nowrap}
+.ci-remove{
+  background:none;border:1.5px solid #FECACA;color:#EF4444;cursor:pointer;
+  width:30px;height:30px;border-radius:8px;font-size:.82rem;
+  display:flex;align-items:center;justify-content:center;
+  transition:.15s;touch-action:manipulation;
+}
+.ci-remove:hover,.ci-remove:active{background:var(--red);color:#fff;border-color:var(--red)}
 
 /* COBRO */
 .pos-checkout{padding:8px 12px 10px;border-top:1px solid var(--border);flex-shrink:0}
@@ -326,8 +346,52 @@ button,a{touch-action:manipulation}
 .apartado-field-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .apartado-pending-lbl{font-size:.8rem;font-weight:700;text-align:center;padding:1px 0}
 
-/* APARTADOS PANEL */
+/* APARTADOS PANEL — inline (desktop) */
 .apartados-panel{border-top:2px solid var(--gold);flex-shrink:0;max-height:160px;overflow-y:auto;background:#FFFBF4}
+/* APARTADO CARD — rediseñada */
+.apartado-item{display:flex;flex-direction:column;gap:10px;padding:14px 12px;border-radius:12px;margin:8px;background:#fff;border:1px solid #F0E8DC;box-shadow:0 1px 4px rgba(28,24,23,.06)}
+.apt-customer{font-size:.86rem;font-weight:700;color:var(--charcoal);display:flex;align-items:center;gap:6px}
+.apt-meta{font-size:.72rem;color:#9B8B78;margin-top:2px}
+.apt-progress-section{display:flex;flex-direction:column;gap:5px}
+.apt-progress-track{height:6px;background:#EDE6DC;border-radius:50px;overflow:hidden}
+.apt-progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-dark));border-radius:50px;transition:width .4s ease}
+.apt-amounts-row{display:flex;justify-content:space-between;font-size:.75rem}
+.apt-paid-lbl{color:#6B9E78;font-weight:600}
+.apt-pending-lbl{color:var(--red);font-weight:600}
+.apt-btns{display:flex;gap:8px}
+.btn-abonar{flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--gold);background:#fff;color:var(--gold-dark);font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+.btn-abonar:hover{background:var(--gold-light)}
+.btn-liquidar{flex:1;padding:9px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+.btn-liquidar:hover{background:#1B4332}
+/* ABONAR MODAL */
+.abonar-overlay{position:fixed;inset:0;background:rgba(20,15,12,.5);backdrop-filter:blur(4px);z-index:300;display:flex;align-items:flex-end;padding:0}
+.abonar-modal{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-height:85vh;overflow-y:auto}
+.abonar-modal h3{font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:4px}
+.abonar-modal .apt-info-lbl{font-size:.8rem;color:#9B8B78;margin-bottom:16px}
+.abonar-modal label{display:block;font-size:.75rem;font-weight:600;color:var(--muted);margin-bottom:6px;letter-spacing:.01em}
+.abonar-modal input[type=number]{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:1.1rem;outline:none;font-family:inherit;color:var(--charcoal);margin-bottom:14px}
+.abonar-modal input[type=number]:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,164,98,.12)}
+.abonar-pay-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.abonar-pay-btn{padding:10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s;color:var(--muted)}
+.abonar-pay-btn.active{border-color:var(--charcoal);background:var(--charcoal);color:#fff}
+.abonar-footer{display:flex;gap:10px}
+.abonar-footer .btn-cancel{flex:1;padding:13px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-size:.88rem;font-weight:600;cursor:pointer;font-family:inherit;color:var(--muted)}
+.abonar-footer .btn-confirm{flex:2;padding:13px;border-radius:10px;border:none;background:var(--gold);color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+.abonar-footer .btn-confirm:hover{background:var(--gold-dark)}
+/* APARTADOS VIEW — tab dedicado (mobile) */
+.pos-apartados-view{
+  display:none;flex-direction:column;flex:1;overflow-y:auto;
+  background:#FFFBF4;
+}
+.pos-apartados-view.tab-active{display:flex!important}
+.apt-view-header{
+  padding:14px 16px 10px;font-size:.8rem;font-weight:700;
+  color:var(--gold-dark);text-transform:uppercase;letter-spacing:.05em;
+  border-bottom:1px solid #F5EBDA;background:#FFF8EE;flex-shrink:0;
+  display:flex;align-items:center;gap:6px;
+}
+.apt-view-empty{text-align:center;padding:48px 20px;color:#9B8B78;font-size:.86rem}
+.apt-view-empty .em{font-size:2rem;margin-bottom:8px}
 .apartados-header{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;font-size:.72rem;font-weight:700;color:var(--gold-dark);text-transform:uppercase;letter-spacing:.05em;cursor:pointer;user-select:none;background:#FFF8EE;position:sticky;top:0;z-index:1}
 .apartados-header:hover{color:var(--charcoal)}
 .apartados-list{padding:0 8px 8px}
@@ -392,7 +456,8 @@ button,a{touch-action:manipulation}
   .cat-chip{padding:5px 12px;font-size:.72rem}
   .cart-header{padding:8px 12px}
   .ci-qty button{min-height:38px;min-width:38px;width:38px;height:38px}
-  .apartados-panel{max-height:120px}
+  /* En mobile el panel inline se reemplaza por el tab dedicado */
+  #apartados-panel{display:none!important}
 
   /* ── CHECKOUT TOUCH-FRIENDLY ─────────────────────────────── */
   .pos-checkout{padding:8px 12px 12px}
@@ -466,8 +531,13 @@ button,a{touch-action:manipulation}
   .pos-right.tab-active .cart-items{
     flex:1;max-height:none!important;overflow-y:auto;
   }
-  .pos-right.tab-active .pos-checkout{flex-shrink:0}
+  /* Checkout scrollable cuando el contenido crece (modo apartado) */
+  .pos-right.tab-active .pos-checkout{
+    flex-shrink:0;overflow-y:auto;max-height:70vh;
+  }
   .pos-right.tab-active .cart-header{flex-shrink:0}
+  /* Cobrar siempre accesible — sticky en su contenedor */
+  #cobrar-btn{position:sticky;bottom:0;z-index:5;margin-top:6px}
   .pos-right.tab-active .apartados-panel{flex-shrink:0}
 
   /* 🛒 del topbar oculto en móvil: la pestaña lo reemplaza */
@@ -671,7 +741,7 @@ button,a{touch-action:manipulation}
           </div>
           <div class="cash-field">
             <label>Cambio</label>
-            <input type="number" id="pos-change-input" readonly style="background:#F9F4EE;color:var(--green);font-weight:700">
+            <input type="number" id="pos-change-input" readonly placeholder="—" style="background:#F9F4EE;color:var(--green);font-weight:700">
           </div>
         </div>
       </div>
@@ -707,6 +777,12 @@ button,a{touch-action:manipulation}
     </div>
   </div>
 
+  <!-- APARTADOS VIEW — tab dedicado mobile -->
+  <div class="pos-apartados-view tab-hidden" id="pos-apartados-view">
+    <div class="apt-view-header">📌 Apartados pendientes</div>
+    <div id="apt-view-list" style="padding:8px 8px 16px"></div>
+  </div>
+
   <!-- TAB BAR — solo teléfonos (≤640px) -->
   <div class="pos-tab-bar" id="pos-tab-bar">
     <button class="pos-tab active" id="tab-catalog" onclick="switchPosTab('catalog')">
@@ -717,6 +793,11 @@ button,a{touch-action:manipulation}
       <span class="pos-tab-icon">🛒</span>
       <span>Cobrar</span>
       <span class="pos-tab-badge" id="tab-cart-badge" style="display:none"></span>
+    </button>
+    <button class="pos-tab" id="tab-apartados" onclick="switchPosTab('apartados')">
+      <span class="pos-tab-icon">📌</span>
+      <span>Apartados</span>
+      <span class="pos-tab-badge" id="tab-apt-badge" style="display:none"></span>
     </button>
   </div>
 </div>
@@ -732,6 +813,26 @@ button,a{touch-action:manipulation}
   <div class="cp-foot">
     <span class="cp-total" id="cp-total">$0</span>
     <button class="cp-cobrar" onclick="closeCartPreview();document.getElementById('cobrar-btn').scrollIntoView({behavior:'smooth',block:'center'})" id="cp-cobrar-btn" disabled>Ir a cobrar →</button>
+  </div>
+</div>
+
+<!-- ABONAR MODAL -->
+<div class="abonar-overlay" id="abonar-overlay" style="display:none" onclick="if(event.target===this)closeAbonarModal()">
+  <div class="abonar-modal">
+    <h3>Registrar abono</h3>
+    <p class="apt-info-lbl" id="abonar-info"></p>
+    <label>Monto del abono</label>
+    <input type="number" id="abonar-amount" min="1" step="1" placeholder="0" inputmode="numeric"
+           oninput="validateAbonarAmount()">
+    <label>Método de pago</label>
+    <div class="abonar-pay-btns">
+      <button class="abonar-pay-btn active" id="abpay-efectivo" onclick="setAbonarMethod('efectivo')">💵 Efectivo</button>
+      <button class="abonar-pay-btn" id="abpay-transferencia" onclick="setAbonarMethod('transferencia')">📱 Transferencia</button>
+    </div>
+    <div class="abonar-footer">
+      <button class="btn-cancel" onclick="closeAbonarModal()">Cancelar</button>
+      <button class="btn-confirm" id="abonar-confirm-btn" onclick="confirmAbonar()">Confirmar abono</button>
+    </div>
   </div>
 </div>
 
@@ -1031,16 +1132,26 @@ const isTabMode = () => window.innerWidth <= 640;
 function switchPosTab(tab) {
   _currentTab = tab;
   if (!isTabMode()) return;
-  const left  = document.getElementById('pos-left');
-  const right = document.getElementById('pos-right');
+  const left    = document.getElementById('pos-left');
+  const right   = document.getElementById('pos-right');
+  const aptView = document.getElementById('pos-apartados-view');
   if (!left || !right) return;
-  const isCatalog = tab === 'catalog';
-  left.classList.toggle('tab-active',  isCatalog);
-  left.classList.toggle('tab-hidden',  !isCatalog);
-  right.classList.toggle('tab-active', !isCatalog);
-  right.classList.toggle('tab-hidden', isCatalog);
-  document.getElementById('tab-catalog')?.classList.toggle('active', isCatalog);
-  document.getElementById('tab-cart')?.classList.toggle('active',    !isCatalog);
+
+  const isCatalog   = tab === 'catalog';
+  const isCart      = tab === 'cart';
+  const isApartados = tab === 'apartados';
+
+  left.classList.toggle('tab-active',   isCatalog);
+  left.classList.toggle('tab-hidden',   !isCatalog);
+  right.classList.toggle('tab-active',  isCart);
+  right.classList.toggle('tab-hidden',  !isCart);
+  if (aptView) {
+    aptView.classList.toggle('tab-active', isApartados);
+    aptView.classList.toggle('tab-hidden', !isApartados);
+  }
+  document.getElementById('tab-catalog')?.classList.toggle('active',    isCatalog);
+  document.getElementById('tab-cart')?.classList.toggle('active',       isCart);
+  document.getElementById('tab-apartados')?.classList.toggle('active',  isApartados);
   if (!isCatalog) updateChange(); // recalcular cambio al abrir cobro
 }
 
@@ -1126,14 +1237,18 @@ function renderCart() {
   <div class="ci-info">
     <div class="ci-name">${p.name}</div>
     <div class="ci-price">$${p.price.toLocaleString('es-MX')} c/u</div>
+    <div class="ci-row2">
+      <div class="ci-qty">
+        <button onclick="changeQty(${p.id}, -1)">−</button>
+        <span class="qty-num">${qty}</span>
+        <button onclick="changeQty(${p.id}, +1)">+</button>
+      </div>
+    </div>
   </div>
-  <div class="ci-qty">
-    <button onclick="changeQty(${p.id}, -1)">−</button>
-    <span class="qty-num">${qty}</span>
-    <button onclick="changeQty(${p.id}, +1)">+</button>
+  <div class="ci-right">
+    <div class="ci-subtotal">$${(p.price * qty).toLocaleString('es-MX')}</div>
+    <button class="ci-remove" onclick="removeFromCart(${p.id})" title="Quitar">✕</button>
   </div>
-  <div class="ci-subtotal">$${(p.price * qty).toLocaleString('es-MX')}</div>
-  <button class="ci-remove" onclick="removeFromCart(${p.id})" title="Quitar">✕</button>
 </div>`).join('');
 }
 
@@ -1309,15 +1424,42 @@ function toggleApartadoMode() {
   const isApt = document.getElementById('pos-is-apartado').checked;
   document.getElementById('apartado-fields').style.display = isApt ? '' : 'none';
   document.getElementById('cobrar-btn').textContent = isApt ? '📌 Registrar apartado' : '✓ Cobrar';
+  // Al activar apartado: limpiar efectivo para evitar estado mixto confuso
+  if (isApt) {
+    const cashEl = document.getElementById('pos-cash');
+    if (cashEl) cashEl.value = '';
+    updateChange();
+  }
   updateAnticipoInfo();
 }
 
 function updateAnticipoInfo() {
   const anticipo = parseFloat(document.getElementById('pos-anticipo')?.value) || 0;
-  const total = getDiscountedTotal();
+  const total    = getDiscountedTotal();
+  const el       = document.getElementById('pos-pendiente');
+  const antiEl   = document.getElementById('pos-anticipo');
+  const btn      = document.getElementById('cobrar-btn');
+
+  if (anticipo > total && anticipo > 0) {
+    // Anticipo mayor al total — no tiene sentido para un apartado
+    if (el)      { el.value = ''; el.style.color = 'var(--red)'; el.placeholder = 'Anticipo > total'; }
+    if (antiEl)  antiEl.style.borderColor = 'var(--red)';
+    if (btn)     btn.disabled = true;
+    return;
+  }
+
+  // Restaurar estilos normales
+  if (antiEl) antiEl.style.borderColor = '';
+
   const pendiente = Math.max(0, total - anticipo);
-  const el = document.getElementById('pos-pendiente');
-  if (el) { el.value = pendiente.toFixed(2); el.style.color = pendiente > 0 ? 'var(--red)' : 'var(--green)'; }
+  if (el) {
+    el.value = pendiente > 0 ? pendiente.toFixed(2) : '';
+    el.placeholder = pendiente === 0 && anticipo > 0 ? 'Cubierto ✓' : '—';
+    el.style.color = pendiente > 0 ? 'var(--red)' : 'var(--green)';
+  }
+  if (btn && document.getElementById('pos-is-apartado')?.checked) {
+    btn.disabled = anticipo <= 0;
+  }
 }
 
 function toggleApartadosPanel() {
@@ -1330,37 +1472,119 @@ function toggleApartadosPanel() {
 
 async function loadApartados() {
   const result = await api(`sales?type=eq.apartado&select=id,total,paid_amount,customer,created_at,items&order=created_at.desc&limit=20`);
-  const list = document.getElementById('apartados-list');
-  const countEl = document.getElementById('apartados-count');
-  const panel = document.getElementById('apartados-panel');
-  if (!list) return;
+  const list      = document.getElementById('apartados-list');
+  const aptView   = document.getElementById('apt-view-list');
+  const countEl   = document.getElementById('apartados-count');
+  const panel     = document.getElementById('apartados-panel');
+  const tabBadge  = document.getElementById('tab-apt-badge');
 
-  if (!result.ok || !result.data?.length) {
-    list.innerHTML = '<div class="history-empty">Sin apartados activos</div>';
+  const empty = !result.ok || !result.data?.length;
+
+  // Badge del tab Apartados
+  if (tabBadge) {
+    tabBadge.textContent = empty ? '' : result.data.length;
+    tabBadge.style.display = empty ? 'none' : 'flex';
+  }
+
+  if (empty) {
+    if (list)    list.innerHTML = '<div class="history-empty">Sin apartados activos</div>';
+    if (aptView) aptView.innerHTML = '<div class="apt-view-empty"><div class="em">📌</div>Sin apartados pendientes</div>';
     if (countEl) countEl.textContent = '';
-    if (panel) panel.style.display = 'none';
+    if (panel)   panel.style.display = 'none';
     return;
   }
-  if (panel) panel.style.display = '';
+
+  if (panel)   panel.style.display = '';
   if (countEl) countEl.textContent = `(${result.data.length})`;
 
-  list.innerHTML = result.data.map(s => {
-    const pendiente = parseFloat(s.total) - parseFloat(s.paid_amount || 0);
-    const t = new Date(s.created_at).toLocaleDateString('es-MX', {day:'numeric',month:'short'});
-    const summary = Array.isArray(s.items) ? s.items.map(i=>i.name).join(', ') : '';
+  const itemsHTML = result.data.map(s => {
+    const total    = parseFloat(s.total) || 0;
+    const pagado   = parseFloat(s.paid_amount || 0);
+    const pendiente = Math.max(0, total - pagado);
+    const pct      = total > 0 ? Math.min(100, Math.round(pagado / total * 100)) : 0;
+    const t        = new Date(s.created_at).toLocaleDateString('es-MX', {day:'numeric',month:'short'});
+    const summary  = Array.isArray(s.items) ? s.items.map(i=>i.name).join(', ') : '';
+    const custParts = (s.customer || '').split(' · 📱 ');
+    const nombre   = custParts[0] || 'Sin nombre';
+    const telefono = custParts[1] ? `· 📱 ${custParts[1]}` : '';
     return `
 <div class="apartado-item">
-  <div class="apartado-info">
-    <div class="apartado-customer">👤 ${s.customer || 'Sin nombre'}</div>
-    <div class="apartado-detail">${t} · ${summary.substring(0,35)}${summary.length>35?'…':''}</div>
-    <div class="apartado-detail" style="margin-top:2px">
-      Anticipo <strong>$${parseFloat(s.paid_amount||0).toLocaleString('es-MX')}</strong> ·
-      Pendiente <strong style="color:var(--red)">$${pendiente.toLocaleString('es-MX')}</strong>
+  <div class="apt-customer">👤 ${nombre} <span style="font-weight:400;color:#9B8B78;font-size:.76rem">${telefono}</span></div>
+  <div class="apt-meta">${t} · ${summary.substring(0,45)}${summary.length>45?'…':''}</div>
+  <div class="apt-progress-section">
+    <div class="apt-progress-track">
+      <div class="apt-progress-fill" style="width:${pct}%"></div>
+    </div>
+    <div class="apt-amounts-row">
+      <span class="apt-paid-lbl">✓ Pagado $${pagado.toLocaleString('es-MX')} (${pct}%)</span>
+      <span class="apt-pending-lbl">Pendiente $${pendiente.toLocaleString('es-MX')}</span>
     </div>
   </div>
-  <button class="btn-completar" onclick="completarApartado(${s.id})">Completar</button>
+  <div class="apt-btns">
+    <button class="btn-abonar" onclick="abonarApartado(${s.id},${total},${pagado},'${nombre}')">+ Abonar</button>
+    <button class="btn-liquidar" onclick="completarApartado(${s.id})">✓ Liquidar</button>
+  </div>
 </div>`;
   }).join('');
+
+  if (list)    list.innerHTML = itemsHTML;
+  if (aptView) aptView.innerHTML = itemsHTML;
+}
+
+/* ── ABONAR ─────────────────────────────────────────────────────────── */
+let _abonarCtx = null;
+let _abonarMethod = 'efectivo';
+
+function abonarApartado(id, total, pagado, nombre) {
+  _abonarCtx = { id, total, pagado, pendiente: total - pagado };
+  _abonarMethod = 'efectivo';
+  document.getElementById('abonar-info').textContent =
+    `${nombre} · Pendiente $${(total - pagado).toLocaleString('es-MX')}`;
+  document.getElementById('abonar-amount').value = '';
+  document.getElementById('abpay-efectivo').classList.add('active');
+  document.getElementById('abpay-transferencia').classList.remove('active');
+  document.getElementById('abonar-confirm-btn').disabled = true;
+  document.getElementById('abonar-overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('abonar-amount').focus(), 100);
+}
+
+function setAbonarMethod(m) {
+  _abonarMethod = m;
+  document.getElementById('abpay-efectivo').classList.toggle('active', m === 'efectivo');
+  document.getElementById('abpay-transferencia').classList.toggle('active', m === 'transferencia');
+}
+
+function validateAbonarAmount() {
+  const val = parseFloat(document.getElementById('abonar-amount').value) || 0;
+  const btn = document.getElementById('abonar-confirm-btn');
+  const valid = val > 0 && _abonarCtx && val <= _abonarCtx.pendiente;
+  btn.disabled = !valid;
+  document.getElementById('abonar-amount').style.borderColor =
+    val > 0 && !valid ? 'var(--red)' : '';
+}
+
+function closeAbonarModal() {
+  document.getElementById('abonar-overlay').style.display = 'none';
+  _abonarCtx = null;
+}
+
+async function confirmAbonar() {
+  if (!_abonarCtx) return;
+  const monto   = parseFloat(document.getElementById('abonar-amount').value) || 0;
+  if (monto <= 0 || monto > _abonarCtx.pendiente) return;
+  const nuevoPagado = _abonarCtx.pagado + monto;
+  const fecha = new Date().toLocaleDateString('es-MX', {day:'numeric',month:'short'});
+  const btn = document.getElementById('abonar-confirm-btn');
+  btn.disabled = true; btn.textContent = 'Registrando…';
+  // Actualizar paid_amount y agregar nota de abono
+  const r = await api(`sales?id=eq.${_abonarCtx.id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ paid_amount: nuevoPagado })
+  });
+  if (!r.ok) { toast('Error al registrar abono', 'error'); btn.disabled = false; btn.textContent = 'Confirmar abono'; return; }
+  closeAbonarModal();
+  toast(`Abono de $${monto.toLocaleString('es-MX')} registrado ✓`, 'success');
+  loadApartados();
 }
 
 async function completarApartado(id) {
@@ -1384,7 +1608,8 @@ function updateChange() {
   const cash  = parseFloat(document.getElementById('pos-cash')?.value) || 0;
   const change = cash - total;
 
-  document.getElementById('pos-change-input').value = change >= 0 ? change.toFixed(2) : '';
+  const showChange = cash > 0 && change >= 0;
+  document.getElementById('pos-change-input').value = showChange ? change.toFixed(2) : '';
   document.getElementById('pos-change-input').style.color = change >= 0 ? 'var(--green)' : 'var(--red)';
 
   // Mostrar monto del descuento
@@ -1412,6 +1637,7 @@ async function cobrar() {
     if (!customer) { toast('Ingresa el nombre del cliente', 'error'); document.getElementById('pos-customer').focus(); _cobrandoAhora = false; return; }
     paidAmount = parseFloat(document.getElementById('pos-anticipo')?.value) || 0;
     if (paidAmount <= 0) { toast('Ingresa el anticipo recibido', 'error'); document.getElementById('pos-anticipo').focus(); _cobrandoAhora = false; return; }
+    if (paidAmount > total) { toast('El anticipo no puede ser mayor al total del pedido', 'error'); document.getElementById('pos-anticipo').focus(); _cobrandoAhora = false; return; }
     change = 0;
   } else if (payMethod === 'efectivo') {
     const cash = parseFloat(document.getElementById('pos-cash').value) || 0;
