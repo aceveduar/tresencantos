@@ -109,6 +109,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initNav();
   initReveal();
   initModal();
+  initWaFloat();
 });
 
 /* ── SEARCH ── */
@@ -455,6 +456,17 @@ function closeModal() {
   document.getElementById('modal-overlay')?.classList.remove('open');
   document.body.style.overflow = '';
   activeProduct = null;
+}
+
+/* ── WHATSAPP FLOTANTE ── */
+function initWaFloat() {
+  const btn = document.getElementById('wa-float');
+  if (!btn) return;
+  const hero = document.querySelector('.hero');
+  const threshold = hero ? hero.offsetHeight * 0.7 : 400;
+  window.addEventListener('scroll', () => {
+    btn.classList.toggle('visible', window.scrollY > threshold);
+  }, { passive: true });
 }
 
 /* ── NAV ── */
