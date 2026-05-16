@@ -94,9 +94,10 @@ button,a{touch-action:manipulation}
 .cart-empty .em{font-size:1.6rem;margin-bottom:4px}
 /* Cart item — flexbox limpio: imagen | info+controles | acción */
 .cart-item{
-  display:flex;gap:10px;align-items:flex-start;
+  display:flex;gap:10px;align-items:center;
   padding:10px 8px;border-radius:12px;
-  border:1px solid var(--border);margin-bottom:7px;background:var(--cream);
+  border:1px solid #E8DDD2;margin-bottom:8px;background:#fff;
+  box-shadow:0 1px 4px rgba(28,24,23,.06);
 }
 .ci-img{
   width:48px;height:48px;object-fit:cover;border-radius:8px;
@@ -115,8 +116,8 @@ button,a{touch-action:manipulation}
 .ci-qty .qty-num{font-size:.88rem;font-weight:700;min-width:22px;text-align:center}
 /* Columna derecha: subtotal arriba, × abajo */
 .ci-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
-.ci-subtotal{font-size:.92rem;font-weight:700;font-family:'Playfair Display',serif;
-  color:var(--charcoal);white-space:nowrap}
+.ci-subtotal{font-size:1rem;font-weight:700;font-family:'Playfair Display',serif;
+  color:var(--gold-dark);white-space:nowrap}
 .ci-remove{
   background:none;border:1.5px solid #FECACA;color:#EF4444;cursor:pointer;
   width:30px;height:30px;border-radius:8px;font-size:.82rem;
@@ -124,6 +125,9 @@ button,a{touch-action:manipulation}
   transition:.15s;touch-action:manipulation;
 }
 .ci-remove:hover,.ci-remove:active{background:var(--red);color:#fff;border-color:var(--red)}
+/* Botón − cuando qty=1 actúa como eliminar */
+.ci-qty button.ci-qty-del{border-color:#FECACA;color:#EF4444}
+.ci-qty button.ci-qty-del:hover,.ci-qty button.ci-qty-del:active{background:var(--red)!important;color:#fff!important;border-color:var(--red)!important}
 
 /* COBRO */
 .pos-checkout{padding:8px 12px 10px;border-top:1px solid var(--border);flex-shrink:0}
@@ -159,6 +163,9 @@ button,a{touch-action:manipulation}
 .badge-pop{animation:badge-pop .35s cubic-bezier(.36,.07,.19,.97)}
 @keyframes cart-pill-up{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-36px) scale(.88)}}
 .cart-pill{position:fixed;pointer-events:none;z-index:600;background:var(--charcoal);color:#fff;padding:5px 13px;border-radius:50px;font-size:.73rem;font-weight:600;white-space:nowrap;animation:cart-pill-up .65s ease forwards}
+/* STOCK LIMIT FEEDBACK — shake + rojo */
+@keyframes btn-shake{0%,100%{transform:translateX(0)}15%{transform:translateX(-5px)}35%{transform:translateX(5px)}55%{transform:translateX(-4px)}75%{transform:translateX(3px)}}
+.pos-prod-add.btn-stock,.pos-card-add-icon.btn-stock{background:var(--red)!important;color:#fff!important;animation:btn-shake .4s ease}
 
 /* CASH QUICK BUTTONS */
 .cash-quick{display:flex;gap:4px;margin-bottom:6px;flex-wrap:nowrap}
@@ -342,7 +349,7 @@ button,a{touch-action:manipulation}
 #pos-discount{width:60px;padding:4px 7px;border:1.5px solid var(--border);border-radius:7px;font-size:.84rem;outline:none;text-align:right;font-family:inherit}
 #pos-discount:focus{border-color:var(--gold)}
 .discount-amount{margin-left:auto;color:var(--red);font-weight:700;font-family:'Playfair Display',serif;font-size:.82rem;white-space:nowrap}
-.pay-method-row{display:flex;gap:5px;margin-bottom:5px}
+.pay-method-row{display:flex;gap:5px;margin-bottom:5px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
 .pay-btn{flex:1;padding:6px 4px;border-radius:7px;border:1.5px solid var(--border);background:#fff;font-size:.76rem;font-weight:600;cursor:pointer;color:#9B8B78;transition:.15s;text-align:center}
 .pay-btn.active{background:var(--charcoal);color:#fff;border-color:var(--charcoal)}
 .pay-btn:hover:not(.active){border-color:var(--gold);color:var(--gold-dark)}
@@ -357,7 +364,7 @@ button,a{touch-action:manipulation}
 #pos-note{width:100%;padding:6px 32px 6px 10px;border:1.5px solid var(--gold);border-radius:7px;font-size:.82rem;outline:none;font-family:inherit;color:var(--charcoal)}
 #pos-note:focus{border-color:var(--gold-dark)}
 .note-clear-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#B5A696;font-size:.9rem;padding:2px 4px;line-height:1;touch-action:manipulation}
-.apartado-toggle-label{display:flex;align-items:center;gap:7px;font-size:.8rem;cursor:pointer;padding:3px 0;color:var(--charcoal);font-weight:500}
+.apartado-toggle-label{display:flex;align-items:center;gap:7px;font-size:.8rem;cursor:pointer;padding:2px 0;color:var(--charcoal);font-weight:500}
 .apartado-toggle-label input{width:15px;height:15px;accent-color:var(--gold);cursor:pointer;flex-shrink:0}
 .apartado-fields{background:var(--cream);border-radius:8px;padding:8px 10px;margin-bottom:5px;display:flex;flex-direction:column;gap:6px;border:1px solid var(--border)}
 .apartado-field-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -547,7 +554,7 @@ button,a{touch-action:manipulation}
     overflow-y:visible;max-height:none;
   }
   /* Cobrar siempre accesible — sticky al fondo del scroll */
-  #cobrar-btn{position:sticky;bottom:0;z-index:5;margin-top:6px}
+  #cobrar-btn{position:sticky;bottom:0;z-index:5;margin-top:4px}
 
   /* 🛒 del topbar oculto en móvil: la pestaña lo reemplaza */
   #cart-topbar-btn{display:none}
@@ -761,7 +768,7 @@ button,a{touch-action:manipulation}
       <!-- Nota -->
       <button type="button" class="note-toggle-btn" id="note-toggle-btn" onclick="toggleNoteField()">📝 Agregar nota</button>
       <div class="note-input-wrap" id="note-input-wrap" style="display:none">
-        <input type="text" id="pos-note" placeholder="Escribe una nota…">
+        <input type="text" id="pos-note" placeholder="Escribe una nota…" onblur="autoCollapseNote()">
         <button type="button" class="note-clear-btn" onclick="clearNoteField()" title="Quitar nota">✕</button>
       </div>
 
@@ -1145,7 +1152,7 @@ function addToCart(id, btn, e) {
   const existing = cart.find(x => x.product.id === id);
   if (existing) {
     if (existing.qty >= p.stock) {
-      toast(`Solo hay ${p.stock} unidades disponibles`, 'error');
+      _cartStockFeedback(btn, e);
       return;
     }
     existing.qty++;
@@ -1182,6 +1189,21 @@ function _cartAddFeedback(btn, e) {
   pill.style.top  = (y - 8)  + 'px';
   document.body.appendChild(pill);
   setTimeout(() => pill.remove(), 700);
+}
+
+function _cartStockFeedback(btn, e) {
+  const el = btn || (() => {
+    if (!e) return null;
+    const el2 = document.elementFromPoint(e.clientX, e.clientY);
+    return el2?.closest('.pos-prod-add, .pos-card-add-icon');
+  })();
+  if (el) {
+    el.classList.remove('btn-added', 'btn-stock');
+    el.offsetWidth; // reflow para reiniciar animación
+    el.classList.add('btn-stock');
+    clearTimeout(el._rt);
+    el._rt = setTimeout(() => el.classList.remove('btn-stock'), 500);
+  }
 }
 
 function removeFromCart(id) {
@@ -1321,7 +1343,9 @@ function renderCart() {
     <div class="ci-price">$${p.price.toLocaleString('es-MX')} c/u</div>
     <div class="ci-row2">
       <div class="ci-qty">
-        <button onclick="changeQty(${p.id}, -1)">−</button>
+        <button class="${qty === 1 ? 'ci-qty-del' : ''}" onclick="${qty === 1 ? `removeFromCart(${p.id})` : `changeQty(${p.id}, -1)`}" title="${qty === 1 ? 'Quitar' : 'Reducir'}">
+          ${qty === 1 ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>` : '−'}
+        </button>
         <span class="qty-num">${qty}</span>
         <button onclick="changeQty(${p.id}, +1)">+</button>
       </div>
@@ -1329,7 +1353,6 @@ function renderCart() {
   </div>
   <div class="ci-right">
     <div class="ci-subtotal">$${(p.price * qty).toLocaleString('es-MX')}</div>
-    <button class="ci-remove" onclick="removeFromCart(${p.id})" title="Quitar">✕</button>
   </div>
 </div>`).join('');
 }
@@ -1530,6 +1553,10 @@ function clearNoteField() {
   document.getElementById('pos-note').value = '';
   document.getElementById('note-input-wrap').style.display = 'none';
   document.getElementById('note-toggle-btn').style.display = '';
+}
+function autoCollapseNote() {
+  const val = document.getElementById('pos-note')?.value.trim();
+  if (!val) clearNoteField();
 }
 
 /* ── APARTADO ── */
@@ -1763,6 +1790,8 @@ function updateChange() {
     const cash   = parseFloat(document.getElementById('pos-cash')?.value) || 0;
     const change = cash - total;
     const showChange = cash > 0 && change >= 0;
+    const cashEl = document.getElementById('pos-cash');
+    if (cashEl) cashEl.placeholder = total > 0 ? `Mín. $${total.toLocaleString('es-MX')}` : '';
     document.getElementById('pos-change-input').value = showChange ? change.toFixed(2) : '';
     document.getElementById('pos-change-input').style.color = change >= 0 ? 'var(--green)' : 'var(--red)';
   }
