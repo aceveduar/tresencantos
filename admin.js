@@ -1436,7 +1436,7 @@ Formato de respuesta:
     const parsed = JSON.parse(jsonMatch[0]);
     const flash = el => { el.classList.add('ai-filled'); setTimeout(() => el.classList.remove('ai-filled'), 1600); };
     if (parsed.name)        { const el = document.getElementById('f-name');        el.value = toTitleCase(parsed.name);  flash(el); }
-    if (parsed.description) { const el = document.getElementById('f-description'); el.value = parsed.description; flash(el); }
+    if (parsed.description) { const el = document.getElementById('f-description'); el.value = formatDescription(parsed.description); flash(el); }
     if (parsed.category) {
       const match = categories.find(c =>
         c.code === parsed.category ||
@@ -1661,6 +1661,21 @@ function applyTitleCase(fieldId) {
   if (el && el.value.trim()) el.value = toTitleCase(el.value);
 }
 
+/* Formatea descripción: primera letra mayúscula + punto al final */
+function formatDescription(str) {
+  if (!str) return str;
+  let s = str.trim().replace(/\s+/g, ' ');
+  if (!s) return s;
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+  if (!/[.!?…]$/.test(s)) s += '.';
+  return s;
+}
+
+function applyDescriptionFormat(fieldId) {
+  const el = document.getElementById(fieldId);
+  if (el && el.value.trim()) el.value = formatDescription(el.value);
+}
+
 function clearField(id) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -1682,7 +1697,8 @@ function previewImg() {
 
 /* ── SAVE PRODUCT — targeted PATCH or single POST ── */
 async function saveProduct() {
-  applyTitleCase('f-name'); // aplicar NomPropio antes de leer el valor
+  applyTitleCase('f-name');
+  applyDescriptionFormat('f-description');
   const name = document.getElementById('f-name').value.trim();
   const price = parseFloat(document.getElementById('f-price').value);
   const image = document.getElementById('f-image').value.trim();

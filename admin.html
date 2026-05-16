@@ -1152,7 +1152,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
             <button type="button" class="dictate-btn btn-clear-field" onclick="clearField('f-description')" title="Limpiar descripción" aria-label="Limpiar descripción">⌫</button>
           </div>
         </div>
-        <textarea id="f-description" placeholder="Describe el producto: materiales, uso, características…"></textarea>
+        <textarea id="f-description" placeholder="Describe el producto: materiales, uso, características…" onblur="applyDescriptionFormat('f-description')"></textarea>
       </div>
       <!-- f-out-of-stock: oculto — el estado lo maneja el POS automáticamente -->
       <input type="checkbox" id="f-out-of-stock" style="display:none">
