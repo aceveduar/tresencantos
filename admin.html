@@ -509,9 +509,13 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .undo-bar button:hover{background:var(--gold-dark)}
 
 /* ══ SCROLL TO TOP ══════════════════════════════════════════════════════ */
-#scroll-top-btn{position:fixed;bottom:28px;right:24px;width:44px;height:44px;border-radius:50%;background:var(--charcoal);color:#fff;border:none;font-size:1.1rem;cursor:pointer;box-shadow:0 4px 18px rgba(28,24,23,.25);z-index:400;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s}
+#scroll-top-btn{position:fixed;bottom:28px;right:24px;width:40px;height:40px;border-radius:50%;background:var(--charcoal);color:#fff;border:none;font-size:1rem;cursor:pointer;box-shadow:0 4px 18px rgba(28,24,23,.25);z-index:400;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s}
 #scroll-top-btn.show{opacity:1;pointer-events:all;transform:translateY(0)}
 #scroll-top-btn:hover{background:var(--charcoal-soft);transform:translateY(-2px)!important}
+@media(max-width:640px){
+  /* En mobile: scroll-top va encima del FAB para no superponerse */
+  #scroll-top-btn{bottom:calc(94px + env(safe-area-inset-bottom));right:16px;width:38px;height:38px;font-size:.9rem}
+}
 
 /* ══ TOAST ══════════════════════════════════════════════════════════════ */
 .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--charcoal);color:#fff;padding:13px 26px;border-radius:50px;font-size:.85rem;font-weight:500;z-index:500;transition:.3s ease;opacity:0;max-width:90vw;text-align:center;box-shadow:0 4px 20px rgba(28,24,23,.25)}
