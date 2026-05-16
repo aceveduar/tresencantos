@@ -243,7 +243,7 @@ function cardHTML(p) {
   // "Últimas unidades" solo cuando hay 2–3 piezas y no hay descuento
   const urgencyTag = (!oos && p.stock >= 2 && p.stock <= 3 && pct === 0)
     ? `<span class="product-badge" style="background:#92400E;left:auto;right:10px">Últimas ${p.stock}</span>` : '';
-  const fallback = `https://picsum.photos/seed/${p.id+10}/500/500`;
+  const fallback = 'tresencantos_default.png';
   const priceHTML = pct > 0
     ? `<div class="product-price"><s class="price-before">$${p.originalPrice.toLocaleString('es-MX')}</s> $${p.price.toLocaleString('es-MX')}</div>`
     : `<div class="product-price">$${p.price.toLocaleString('es-MX')}</div>`;
@@ -274,7 +274,7 @@ function renderHeroMobileStrip() {
   if (!container) return;
   const items = products.filter(p => p.featured);
   if (!items.length) return;
-  const fallback = id => `https://picsum.photos/seed/${id+10}/200/200`;
+  const fallback = () => 'tresencantos_default.png';
   const cardHTML = p => `
 <div class="hms-card" onclick="openModal(${p.id})">
   <img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.onerror=null;this.src='${fallback(p.id)}'">
@@ -296,7 +296,7 @@ function renderHeroVisual() {
   if (!container) return;
   const items = products.filter(p => p.featured).slice(0, 3);
   if (!items.length) return;
-  const fallback = id => `https://picsum.photos/seed/${id+10}/300/300`;
+  const fallback = () => 'tresencantos_default.png';
   container.innerHTML = items.map(p => `
 <div class="hc" onclick="openModal(${p.id})">
   <img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.onerror=null;this.src='${fallback(p.id)}'">
@@ -326,7 +326,7 @@ function renderNatura() {
     document.querySelector('.natura-carousel')?.style.setProperty('display','none');
     return;
   }
-  const fb = id => `https://picsum.photos/seed/${id+20}/500/500`;
+  const fb = () => 'tresencantos_default.png';
   wrap.innerHTML = list.map(p => `
 <div class="nc-card" onclick="openModal(${p.id})">
   <div class="nc-img-wrap">
@@ -460,7 +460,7 @@ function openModal(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   activeProduct = p;
-  const fallback = `https://picsum.photos/seed/${p.id+10}/500/500`;
+  const fallback = 'tresencantos_default.png';
   const oos = p.outOfStock || p.stock === 0;
   const pct = discountPct(p);
 

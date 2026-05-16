@@ -1056,7 +1056,7 @@ function posCard(p) {
   const oos = p.stock === 0 || p.outOfStock;
   const stockCls = p.stock === 0 ? 'stock-sold' : p.stock === 1 ? 'stock-one' : 'stock-ok';
   const stockTxt = p.stock === 0 ? 'Sin stock' : `${p.stock} ud${p.stock!==1?'s':''}`;
-  const fallback  = `https://picsum.photos/seed/${p.id+10}/200/200`;
+  const fallback  = 'tresencantos_default.png';
   return `
 <div class="pos-card${oos?' card-sold':''}" onclick="${oos?'':` addToCart(${p.id},this.querySelector('.pos-card-add-icon'),event)`}">
   <div class="pos-card-img-wrap">
@@ -1162,7 +1162,7 @@ function searchProducts(q) {
   renderPosProducts(matches, false);
 }
 
-const PROD_PLACEHOLDER = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='52' viewBox='0 0 52 52'%3E%3Crect width='52' height='52' fill='%23F0EBE3'/%3E%3Cpath d='M18 20h16v14H18z' fill='none' stroke='%23C4B5A4' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M22 20v-2a4 4 0 0 1 8 0v2' fill='none' stroke='%23C4B5A4' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E`;
+const PROD_PLACEHOLDER = 'tresencantos_default.png';
 
 function productCard(p) {
   const oos      = p.stock === 0 || p.outOfStock;
@@ -1329,7 +1329,7 @@ function renderCartPreview() {
     if (cobrarBtn) cobrarBtn.disabled = true;
     return;
   }
-  const fallback = id => `https://picsum.photos/seed/${id+10}/80/80`;
+  const fallback = () => 'tresencantos_default.png';
   el.innerHTML = cart.map(({ product: p, qty }) => `
 <div class="cp-item">
   <img class="cp-item-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback(p.id)}'">
@@ -1375,7 +1375,7 @@ function renderCart() {
     return;
   }
 
-  const fallback = id => `https://picsum.photos/seed/${id+10}/80/80`;
+  const fallback = () => 'tresencantos_default.png';
   el.innerHTML = cart.map(({ product: p, qty }) => `
 <div class="cart-item">
   <img class="ci-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback(p.id)}'">

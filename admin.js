@@ -1,5 +1,6 @@
 const SESSION_KEY  = "te_admin_session";
 const LOCKOUT_KEY  = "te_admin_lock";
+const DEFAULT_IMG  = 'tresencantos_default.png';
 
 // SVG icons — renderizado fiable en iOS y Android (emoji ✏⧉ fallan en muchas fuentes)
 const ICON_EDIT = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
@@ -542,7 +543,7 @@ function setAdminView(view) {
 }
 
 function adminCard(p) {
-  const fallback = `https://picsum.photos/seed/${p.id+10}/300/300`;
+  const fallback = DEFAULT_IMG;
   const oos = p.outOfStock || p.stock === 0;
   const sel = selectedIds.has(p.id);
   const catColor = getCatColor(p.category);
@@ -775,7 +776,7 @@ function editCategoryInline(e, id) {
 }
 
 function desktopRow(p) {
-  const fallback = `https://picsum.photos/seed/${p.id+10}/80/80`;
+  const fallback = DEFAULT_IMG;
   const oos = p.outOfStock || p.stock === 0;
   const badgeHTML = p.badge ? `<span class="badge badge-${p.badgeType||'none'} badge-xs">${p.badge}</span>` : '';
   const featStar = `<span onclick="toggleFeatured(${p.id})" class="toggle-featured" title="${p.featured ? 'Quitar destacado' : 'Destacar'}">${p.featured ? '⭐' : '☆'}</span>`;
@@ -825,7 +826,7 @@ function desktopRow(p) {
 }
 
 function mobileCard(p) {
-  const fallback = `https://picsum.photos/seed/${p.id+10}/80/80`;
+  const fallback = DEFAULT_IMG;
   const sel = selectedIds.has(p.id);
   const oos = p.outOfStock || p.stock === 0;
   const catColor = getCatColor(p.category);
@@ -1050,7 +1051,7 @@ async function duplicateProduct(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   const maxId = products.reduce((m, x) => Math.max(m, x.id), 0);
-  const copy = { ...p, id: maxId + 1, name: 'Copia de ' + p.name, outOfStock: false, position: products.length };
+  const copy = { ...p, id: maxId + 1, name: 'Copia de ' + p.name, image: DEFAULT_IMG, outOfStock: false, position: products.length };
   products.push(copy);
 
   if (getSupabaseUrl()) {
@@ -1806,7 +1807,7 @@ async function saveProduct() {
     price,
     originalPrice: (origPrice && origPrice > price) ? origPrice : null,
     description,
-    image: image || `https://picsum.photos/seed/${Date.now()}/500/500`,
+    image: image || DEFAULT_IMG,
     badge: badge || null,
     badgeType: document.getElementById('f-badge-type').value || null,
     featured: document.getElementById('f-featured').checked,
