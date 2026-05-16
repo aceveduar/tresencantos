@@ -1323,7 +1323,7 @@ function closeHistory() {
 }
 
 async function loadHistory() {
-  const result = await api(`sales?select=id,total,created_at,items,payment_method,type,customer,discount,note,paid_amount&order=created_at.desc&limit=50`);
+  const result = await api(`sales?select=id,total,created_at,items,payment_method,type,customer,discount,note,paid_amount,abonos&order=created_at.desc&limit=50`);
   const el = document.getElementById('history-list');
   if (!result.ok || !result.data?.length) {
     salesCache = {};
@@ -1373,13 +1373,22 @@ async function loadHistory() {
   <span class="hi-item-sub">$${((i.subtotal ?? i.price * (i.qty || 1))).toLocaleString('es-MX')}</span>
 </div>`).join('');
 
+      // Historial de abonos para apartados (activos o liquidados)
+      const abonos = Array.isArray(s.abonos) ? s.abonos : [];
+      const abonosHiHTML = abonos.length ? `
+<div style="margin:5px 0 2px;display:flex;flex-direction:column;gap:3px;border-top:1px dashed #EDE5DC;padding-top:5px">
+  ${abonos.map(a => {
+    const fd  = new Date(a.date).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+    const ico = a.method === 'transferencia' ? '📱' : '💵';
+    return `<div style="display:flex;justify-content:space-between;font-size:.72rem;color:#9B8B78"><span>${fd} · ${ico} ${a.method}</span><span style="font-weight:700;color:var(--charcoal)">$${parseFloat(a.amount).toLocaleString('es-MX')}</span></div>`;
+  }).join('')}
+</div>` : '';
+
       const tags = [];
-      if (disc > 0)    tags.push(`<span class="hi-tag discount">🏷 −$${disc.toLocaleString('es-MX')}</span>`);
-      if (s.note)      tags.push(`<span class="hi-tag note">📝 ${s.note}</span>`);
-      if (s.customer)  tags.push(`<span class="hi-tag customer">👤 ${(s.customer||'').split(' · 📱 ')[0]}</span>`);
-      if (isApt)       tags.push(`<span class="hi-tag" style="color:#6B9E78;font-weight:600">✓ Anticipo $${pagado.toLocaleString('es-MX')} / $${total.toLocaleString('es-MX')}</span>`);
-      const footerHTML = tags.length
-        ? `<div class="hi-footer">${tags.join('')}</div>` : '';
+      if (disc > 0)   tags.push(`<span class="hi-tag discount">🏷 −$${disc.toLocaleString('es-MX')}</span>`);
+      if (s.note)     tags.push(`<span class="hi-tag note">📝 ${s.note}</span>`);
+      if (s.customer) tags.push(`<span class="hi-tag customer">👤 ${(s.customer||'').split(' · 📱 ')[0]}</span>`);
+      const footerHTML = tags.length ? `<div class="hi-footer">${tags.join('')}</div>` : '';
 
       return `
 <div class="hi-card${isApt ? ' hi-card-apt' : ''}">
@@ -1391,6 +1400,7 @@ async function loadHistory() {
     <button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar">✕</button>
   </div>
   <div class="hi-items">${itemsHTML || '<div style="color:#9B8B78;font-size:.78rem;padding:4px 0">Sin detalle</div>'}</div>
+  ${abonosHiHTML}
   ${footerHTML}
 </div>`;
     }).join('');
@@ -1681,14 +1691,26 @@ async function confirmAbonar() {
 
 async function completarApartado(id) {
   const useTranf = confirm('¿Cómo pagó el cliente el restante?\n\nOK = Transferencia\nCancelar = Efectivo');
-  const method = useTranf ? 'transferencia' : 'efectivo';
+  const method   = useTranf ? 'transferencia' : 'efectivo';
+  const sale     = _apartadosData[id];
+  const total    = parseFloat(sale?.total || 0);
+  const pagado   = parseFloat(sale?.paid_amount || 0);
+  const restante = Math.max(0, total - pagado);
+  // Registrar el pago final en el historial de abonos
+  const abonos   = Array.isArray(sale?.abonos) ? sale.abonos : [];
+  const abonoFinal = { amount: restante, method, date: new Date().toISOString() };
   const r = await api(`sales?id=eq.${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ type: 'venta', payment_method: method })
+    body: JSON.stringify({
+      type: 'venta',
+      payment_method: method,
+      paid_amount: total,
+      abonos: [...abonos, abonoFinal]
+    })
   });
   if (!r.ok) { toast('Error al completar apartado', 'error'); return; }
-  logActivity('apartado_liquidado', `Liquidó apartado — ${method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo'}`, { method });
-  toast('Apartado completado ✓', 'success');
+  logActivity('apartado_liquidado', `Liquidó apartado — ${method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo'}`, { method, restante });
+  toast(`Apartado liquidado ✓ — $${restante.toLocaleString('es-MX')} recibido`, 'success');
   loadApartados();
   loadHistory();
   loadTodayStats();
