@@ -1435,7 +1435,7 @@ Formato de respuesta:
     if (!jsonMatch) throw new Error('La IA no devolvió un formato reconocible');
     const parsed = JSON.parse(jsonMatch[0]);
     const flash = el => { el.classList.add('ai-filled'); setTimeout(() => el.classList.remove('ai-filled'), 1600); };
-    if (parsed.name)        { const el = document.getElementById('f-name');        el.value = parsed.name;        flash(el); }
+    if (parsed.name)        { const el = document.getElementById('f-name');        el.value = toTitleCase(parsed.name);  flash(el); }
     if (parsed.description) { const el = document.getElementById('f-description'); el.value = parsed.description; flash(el); }
     if (parsed.category) {
       const match = categories.find(c =>
@@ -1632,9 +1632,28 @@ function suggestCategoryFromName() {
   }
 }
 
-/* Capitaliza la primera letra de cada palabra (NomPropio) */
+/* Title Case para nombres de productos en español (estilo retail mexicano).
+   Primera palabra siempre en mayúscula; preposiciones/artículos/conjunciones
+   cortas en minúscula cuando van en el medio. */
 function toTitleCase(str) {
-  return str.trim().replace(/\S+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  const SMALL = new Set([
+    'a','al','con','de','del','e','el','en','es','la','las',
+    'lo','los','ni','o','para','por','sin','u','un','una','unos','unas','y'
+  ]);
+  return str
+    .trim()
+    .replace(/\s+/g, ' ')          // colapsar espacios múltiples
+    .split(' ')
+    .map((word, i) => {
+      if (!word) return word;
+      const low = word.toLowerCase();
+      // Primera palabra siempre en mayúscula; SMALL solo en posición intermedia
+      if (i === 0 || !SMALL.has(low)) {
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      }
+      return low;
+    })
+    .join(' ');
 }
 
 function applyTitleCase(fieldId) {
