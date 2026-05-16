@@ -94,13 +94,8 @@
       <input type="search" id="products-search-input" placeholder="Buscar producto..." oninput="onSearchInput(this.value)" autocomplete="off">
     </div>
     <div class="products-filters-row">
-      <div class="products-filters">
-        <button class="filter-btn active" data-filter="all">Todo</button>
-        <button class="filter-btn" data-filter="bolsos">Bolsos</button>
-        <button class="filter-btn" data-filter="mochilas">Mochilas</button>
-        <button class="filter-btn" data-filter="accesorios">Accesorios</button>
-        <button class="filter-btn" data-filter="belleza">Belleza</button>
-        <button class="filter-btn" data-filter="natura">Natura</button>
+      <div class="products-filters" id="products-filters">
+        <!-- generado dinámicamente por initFilters() -->
       </div>
       <select class="sort-select" id="sort-select" onchange="setSortOption(this.value)" aria-label="Ordenar por">
         <option value="default">Relevancia</option>

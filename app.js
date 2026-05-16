@@ -391,24 +391,25 @@ function _initNaturaCarousel(total) {
 
 /* ── FILTERS ── */
 function initFilters() {
-  // Contar productos por categoría
-  const counts = { all: products.length };
-  products.forEach(p => {
-    counts[p.category] = (counts[p.category] || 0) + 1;
-    // Acumular en la raíz padre (ej: 'bolsos_dama' suma en 'bolsos')
-    const root = p.category.split('_')[0];
-    if (root !== p.category) counts[root] = (counts[root] || 0) + 1;
-  });
+  const container = document.getElementById('products-filters');
+  if (!container) return;
 
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    const f = btn.dataset.filter;
-    if (counts[f]) {
-      btn.innerHTML = `${btn.textContent} <span class="filter-count">${counts[f]}</span>`;
-    }
+  const roots = publicCategories.filter(c => !c.parent);
+  const activeCats = roots.length
+    ? roots.filter(r => products.some(p => catMatchesFilter(p.category, r.code)))
+    : [...new Map(products.map(p => [p.category, { code: p.category, label: p.categoryLabel }])).values()];
+
+  container.innerHTML = `<button class="filter-btn active" data-filter="all">Todo</button>` +
+    activeCats.map(r => {
+      const n = products.filter(p => catMatchesFilter(p.category, r.code)).length;
+      return `<button class="filter-btn" data-filter="${r.code}">${r.label} <span class="filter-count">${n}</span></button>`;
+    }).join('');
+
+  container.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      container.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      currentFilter = f;
+      currentFilter = btn.dataset.filter;
       _catalogShowAll = false;
       render();
     });

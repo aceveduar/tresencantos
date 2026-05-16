@@ -98,7 +98,7 @@ function renderCategorySelects() {
     fSel.innerHTML = `<option value="" disabled selected>Selecciona una categoría</option>` + roots.map(r => {
       const subs = subCats(r.code);
       if (subs.length) {
-        return `<optgroup label="${r.label}">${subs.map(s => `<option value="${s.code}">${s.label}</option>`).join('')}</optgroup>`;
+        return `<optgroup label="${r.label}"><option value="${r.code}">${r.label} — General</option>${subs.map(s => `<option value="${s.code}">${s.label}</option>`).join('')}</optgroup>`;
       }
       return `<option value="${r.code}">${r.label}</option>`;
     }).join('');
@@ -112,7 +112,7 @@ function renderCategorySelects() {
       roots.map(r => {
         const subs = subCats(r.code);
         if (subs.length) {
-          return `<optgroup label="${r.label}">${subs.map(s => `<option value="${s.code}">${s.label}</option>`).join('')}</optgroup>`;
+          return `<optgroup label="${r.label}"><option value="${r.code}">${r.label} — Todos</option>${subs.map(s => `<option value="${s.code}">${s.label}</option>`).join('')}</optgroup>`;
         }
         return `<option value="${r.code}">${r.label}</option>`;
       }).join('');

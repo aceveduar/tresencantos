@@ -908,7 +908,8 @@ if (!isAuthenticated()) {
 }
 
 /* ── STATE ── */
-let products    = [];
+let products      = [];
+let posCategories = [];
 let cart        = [];
 let salesCache  = {};
 let currentCat  = 'all';
@@ -953,6 +954,26 @@ async function loadProducts() {
       badgeType: p.badge_type
     }));
   }
+}
+
+/* ── LOAD CATEGORIES ── */
+async function loadPosCategories() {
+  try {
+    const r = await api('config?id=eq.categories&select=value');
+    if (r.ok && r.data?.length && r.data[0].value) posCategories = JSON.parse(r.data[0].value);
+  } catch {}
+}
+
+function catMatchesFilter(productCat, filterCat) {
+  if (filterCat === 'all') return true;
+  if (productCat === filterCat) return true;
+  if (productCat.startsWith(filterCat + '_')) return true;
+  let cat = posCategories.find(c => c.code === productCat);
+  while (cat?.parent) {
+    if (cat.parent === filterCat) return true;
+    cat = posCategories.find(c => c.code === cat.parent);
+  }
+  return false;
 }
 
 /* ── ACTIVITY LOG ── */
@@ -1005,12 +1026,12 @@ function posCard(p) {
 function renderCategoryChips() {
   const bar = document.getElementById('cat-chip-bar');
   if (!bar) return;
-  const cats = {};
-  products.forEach(p => { cats[p.category] = p.categoryLabel; });
+  const roots = posCategories.filter(c => !c.parent && products.some(p => catMatchesFilter(p.category, c.code)));
+  const chips = roots.length
+    ? roots
+    : [...new Map(products.map(p => [p.category, { code: p.category, label: p.categoryLabel }])).values()];
   bar.innerHTML = `<button class="cat-chip active" data-cat="all" onclick="setCategory('all')">Todos</button>` +
-    Object.entries(cats).map(([k, v]) =>
-      `<button class="cat-chip" data-cat="${k}" onclick="setCategory('${k}')">${v}</button>`
-    ).join('');
+    chips.map(c => `<button class="cat-chip" data-cat="${c.code}" onclick="setCategory('${c.code}')">${c.label}</button>`).join('');
 }
 
 function setCategory(cat) {
@@ -1024,7 +1045,7 @@ function setCategory(cat) {
 function getFilteredProducts(q = '') {
   const term = q.trim().toLowerCase();
   return products.filter(p => {
-    const matchCat = currentCat === 'all' || p.category === currentCat;
+    const matchCat = catMatchesFilter(p.category, currentCat);
     const matchQ   = !term || p.name.toLowerCase().includes(term) ||
                      (p.barcode && p.barcode.includes(term)) ||
                      p.categoryLabel.toLowerCase().includes(term);
@@ -1897,7 +1918,7 @@ function initDivider() {
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
   initDivider();
-  await loadProducts();
+  await Promise.all([loadProducts(), loadPosCategories()]);
   renderCategoryChips();
   setPosView(posView); // aplica vista guardada
   renderCart();
