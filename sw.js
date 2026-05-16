@@ -1,49 +1,65 @@
-const CACHE = 'tres-encantos-v1';
+// ⚠️ Incrementar CACHE_VERSION en cada deploy para invalidar caché anterior
+const CACHE_VERSION = 'v2';
+const CACHE = `tres-encantos-${CACHE_VERSION}`;
+
 const STATIC = [
   '/index.html',
   '/app.js',
   '/style.css',
+  '/manifest.json',
   '/logo.png',
   '/ofelia.jpeg'
 ];
 
-// Instalar: cachear archivos estáticos
+// Instalar: precachear archivos estáticos
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(STATIC)).then(() => self.skipWaiting())
+    caches.open(CACHE)
+      .then(c => c.addAll(STATIC))
+      .then(() => self.skipWaiting())
   );
 });
 
-// Activar: limpiar caches viejos
+// Activar: limpiar versiones anteriores del caché
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(
+        keys.filter(k => k !== CACHE).map(k => caches.delete(k))
+      ))
+      .then(() => self.clients.claim())
   );
 });
 
-// Fetch: cache-first para estáticos, network-first para API
+// Fetch: solo interceptar GET
 self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+
   const url = new URL(e.request.url);
 
-  // Supabase API — siempre red (datos en tiempo real)
-  if (url.hostname.includes('supabase.co')) {
-    e.respondWith(fetch(e.request).catch(() => new Response('{}', { headers: { 'Content-Type': 'application/json' } })));
+  // Supabase, Google Fonts y APIs externas — siempre red, sin cachear
+  if (
+    url.hostname.includes('supabase.co') ||
+    url.hostname.includes('googleapis.com') ||
+    url.hostname.includes('gstatic.com') ||
+    url.hostname.includes('groq.com') ||
+    url.hostname.includes('googleapis.com')
+  ) {
+    e.respondWith(fetch(e.request).catch(() => new Response('', { status: 503 })));
     return;
   }
 
-  // Archivos estáticos — cache first
+  // Archivos propios — cache first, actualiza en background (stale-while-revalidate)
   e.respondWith(
     caches.match(e.request).then(cached => {
-      const network = fetch(e.request).then(res => {
+      const networkFetch = fetch(e.request).then(res => {
         if (res.ok) {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
+          caches.open(CACHE).then(c => c.put(e.request, res.clone()));
         }
         return res;
-      });
-      return cached || network;
+      }).catch(() => cached || new Response('', { status: 503 }));
+
+      return cached || networkFetch;
     })
   );
 });

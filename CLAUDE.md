@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-05-15.
+Documentación técnica del proyecto. Última actualización: 2026-05-15 (rev 2).
 
 ## Rol de Claude en este proyecto
 
@@ -9,6 +9,7 @@ Actuar siempre como **experto en diseño UX/UI para e-commerce, redactor y estra
 - Mencionar proactivamente oportunidades de mejora en diseño, copy o usabilidad
 - Priorizar la experiencia de la usuaria final (Ofelia y sus clientes) sobre preferencias técnicas
 - Ser honesto: dar la mejor recomendación aunque difiera de lo que el usuario sugiere
+- **Estándar e-commerce** — cada decisión de UX/UI debe estar a la altura de cualquier app de e-commerce seria (ZARA, Amazon, Shopify, H&M): CTA siempre visible sin scroll, imágenes sin recorte, jerarquía de información clara, navegación predecible. Si algo no cumpliría ese estándar, señalarlo y corregirlo aunque no se haya pedido explícitamente.
 
 ---
 
@@ -30,16 +31,27 @@ Panel de administración + POS + estadísticas + staging + sitio e-commerce para
 
 ## Módulos y Archivos
 
+### Nombres oficiales de los módulos
+| Archivo | Nombre en UI | Uso |
+|---|---|---|
+| `index.html` + `app.js` | **Tienda** (o Website) | Sitio público |
+| `admin.html` + `admin.js` | **Inventario** | CRUD productos |
+| `pos.html` | **Caja** | Punto de venta |
+| `stats.html` | **Reportes** | Estadísticas |
+| `staging.html` | **Staging** | Preparación de productos |
+
+Usar siempre estos nombres en UI, botones, tickets y conversación. Nunca "Admin", "POS", "Stats".
+
 ```
 tresencantos/
-├── index.html    # Sitio público: catálogo, filtros, modal, hero, Natura, about
-├── app.js        # Lógica del sitio público
-├── style.css     # Estilos del sitio público
-├── admin.html    # Admin: CRUD productos, estilos inline
-├── admin.js      # Lógica del admin (~2100 líneas)
-├── pos.html      # Punto de Venta: carrito, cobro, apartados, historial offcanvas
-├── stats.html    # Dashboard de estadísticas (Chart.js CDN)
-├── staging.html  # Zona de preparación: subida masiva + IA Groq
+├── index.html    # Tienda: catálogo, filtros, modal, hero, Natura, about
+├── app.js        # Lógica de la Tienda
+├── style.css     # Estilos de la Tienda
+├── admin.html    # Inventario: CRUD productos, estilos inline
+├── admin.js      # Lógica del Inventario (~2100 líneas)
+├── pos.html      # Caja: carrito, cobro, apartados, historial offcanvas
+├── stats.html    # Reportes: dashboard estadísticas (Chart.js CDN)
+├── staging.html  # Staging: subida masiva + IA Groq
 ├── logo.png
 ├── ofelia.jpeg
 └── CLAUDE.md
@@ -47,14 +59,14 @@ tresencantos/
 
 ### Navegación entre módulos
 ```
-admin.html ──[🗂 Staging]─► staging.html
-admin.html ──[📊 Stats]──► stats.html
-admin.html ──[🖥 POS]───► pos.html
-pos.html   ──[← Admin]──► admin.html
-pos.html   ──[📊]───────► stats.html  (solo desktop)
-stats.html ──[← Admin]──► admin.html
+Inventario ──[🗂 Staging]─► staging.html
+Inventario ──[📊 Reportes]► stats.html
+Inventario ──[🖥 Caja]───► pos.html
+Caja       ──[← Inventario]► admin.html
+Caja       ──[📊]───────► stats.html  (solo desktop)
+Reportes   ──[← Inventario]► admin.html
 ```
-En mobile admin oculta Staging y Stats; muestra solo POS.
+En mobile Inventario oculta Staging y Reportes; muestra solo Caja.
 
 ---
 
@@ -311,14 +323,48 @@ Zona de preparación de productos antes de publicar al inventario.
 
 ---
 
-## Sitio Público (`app.js` + `index.html`)
+## Tienda — Sitio Público (`app.js` + `index.html`)
 
 - Anon key — solo SELECT
 - Carga: `GET /products?is_published=eq.true&out_of_stock=eq.false&order=position.asc`
   - Solo productos publicados y con stock
-- **Hero mobile:** auto-scroll 0.5px/frame, loop seamless (items duplicados), pausa 3s al tocar
+- **Hero mobile:** strip horizontal de productos destacados con scroll touch
 - **Filtros** por categoría, búsqueda, ordenamiento; modal de detalle con botón WhatsApp
-- Sin botón flotante de WhatsApp (eliminado)
+- **Barra admin:** si hay sesión activa (`te_admin_session` válida en localStorage), aparece barra fija en top con accesos a Inventario / Caja / Reportes. Invisible para clientes.
+
+### Catálogo — límite y "Ver más"
+- Vista "Todo" sin búsqueda: muestra **12 productos** con botón "Ver X más"
+- Al filtrar por categoría o buscar: **sin límite**, todos los resultados
+- Al cambiar filtro/búsqueda/orden: resetea a los 12 iniciales
+
+### Filtro por categoría — matching jerárquico
+`catMatchesFilter(productCat, filterCat)` en `app.js` — tres niveles:
+1. Exacto: `cabello === cabello`
+2. Prefijo: `accesorios_cabello`.startsWith(`accesorios_`)
+3. **Parentesco real** (via `publicCategories`): `cabello.parent === 'accesorios'` ✓
+
+`publicCategories` se carga desde `config?id=eq.categories` con anon key al iniciar (en paralelo con productos). Si falla, los niveles 1 y 2 siguen funcionando.
+
+### Modal de producto — arquitectura 3 zonas
+```
+┌──────────────────────┐
+│  [badge]         [✕] │  ← Zona 1: imagen (flex-shrink:0, no scroll)
+│      imagen          │
+├──────────────────────┤
+│ CATEGORÍA · PADRE    │  ← Zona 2: info (flex:1, overflow-y:auto)
+│ Nombre del producto  │
+│ Descripción...       │
+│ ⚡ Últimas X unidades│
+├──────────────────────┤
+│ $1,349 MXN    [⬡]   │  ← Zona 3: CTA (flex-shrink:0, siempre visible)
+│ [  Pedir por WA   ]  │
+└──────────────────────┘
+```
+- En mobile: **bottom sheet** (slide desde abajo, pill de arrastre, border-radius top)
+- Imagen: `object-fit:contain` + fondo `#fff` — sin recorte
+- Categoría con contexto del padre si es subcategoría (ej: "Bolsos · Cuerpo")
+- Descripción null/vacía: no renderiza `<p>` vacío
+- Urgencia de stock como texto en Zona 2, no solo badge en imagen
 
 ### Lógica de badges en cards
 Regla: descuento % y badge "OFERTA/promo" son redundantes — el % gana siempre.
