@@ -1154,6 +1154,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         </div>
         <textarea id="f-description" placeholder="Describe el producto: materiales, uso, características…"></textarea>
       </div>
+      <!-- f-out-of-stock: oculto — el estado lo maneja el POS automáticamente -->
+      <input type="checkbox" id="f-out-of-stock" style="display:none">
       <p class="form-section">📦 Inventario</p>
       <div class="form-row">
         <div class="field">
@@ -1183,14 +1185,6 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           <label class="checkbox-row">
             <input type="checkbox" id="f-featured">
             Mostrar en sección destacada
-          </label>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="field">
-          <label class="checkbox-row">
-            <input type="checkbox" id="f-out-of-stock">
-            Marcar como agotado
           </label>
         </div>
       </div>
