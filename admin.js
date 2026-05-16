@@ -2321,50 +2321,70 @@ function dictate(fieldId) {
   const btn   = document.getElementById(`dictate-${fieldId}`);
   const field = document.getElementById(fieldId);
 
-  // Si ya hay grabación activa → detener
+  // Detener grabación activa: nullear ANTES de stop() para que onend sepa que fue el usuario
   if (_activeRec) {
-    _activeRec.stop();
+    const rec = _activeRec;
+    _activeRec = null;
+    rec.stop();
     return;
   }
 
+  // Android no mantiene continuous confiablemente — usamos false y reiniciamos en onend
+  const isAndroid = /Android/i.test(navigator.userAgent);
   const sr = new SR();
-  sr.lang            = 'es-MX';
-  sr.continuous      = true;   // no para en silencios cortos
-  sr.interimResults  = true;   // muestra texto mientras se habla
+  sr.lang           = 'es-MX';
+  sr.interimResults = true;
+  sr.continuous     = !isAndroid;
 
   _activeRec = sr;
 
-  const startValue = field.value.trimEnd();
-  let spoken = '';             // texto final acumulado, reconstruido en cada evento
+  const startValue  = field.value.trimEnd();
+  let committedText = '';  // texto final acumulado — persiste entre sub-sesiones Android
+  let nextFinalIdx  = 0;  // próximo índice final a procesar en la sub-sesión actual
 
   btn.textContent = '⏹ Detener';
   btn.classList.add('recording');
 
+  // FIX Android: blur cierra el teclado del sistema → su micrófono deja de escuchar
+  field.blur();
+
   sr.onresult = e => {
-    // Recorrer TODOS los resultados desde 0 (no desde e.resultIndex)
-    // para evitar duplicados cuando el browser re-entrega el mismo índice
-    const finals = [];
-    let interim  = '';
-    for (let i = 0; i < e.results.length; i++) {
-      if (e.results[i].isFinal) finals.push(e.results[i][0].transcript.trim());
-      else interim += e.results[i][0].transcript;
+    // Solo agregar finales NUEVOS desde nextFinalIdx — nunca releer los ya procesados
+    for (let i = nextFinalIdx; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        const t = e.results[i][0].transcript.trim();
+        if (t) committedText += (committedText ? ' ' : '') + t;
+        nextFinalIdx = i + 1;
+      }
     }
-    spoken = finals.join(' ');                              // reconstrucción limpia
-    const sep = startValue && (spoken || interim) ? ' ' : '';
-    field.value = startValue + sep + spoken + (interim ? ' ' + interim.trim() : '');
+    // Interim del resultado actual (solo si no es final)
+    const cur     = e.results[e.resultIndex];
+    const interim = cur.isFinal ? '' : cur[0].transcript.trim();
+    const all     = committedText + (interim ? (committedText ? ' ' : '') + interim : '');
+    const sep     = startValue && all ? ' ' : '';
+    field.value   = startValue + sep + all;
   };
 
-  const finish = () => {
+  sr.onend = () => {
+    if (_activeRec === sr) {
+      // Android cerró la sub-sesión pero el usuario no detuvo — reiniciar
+      nextFinalIdx = 0;  // nueva sub-sesión: e.results empieza desde 0
+      try { sr.start(); } catch (_) { /* race condition inofensiva */ }
+    } else {
+      // Usuario detuvo (_activeRec ya fue nulleado) — confirmar texto final
+      const sep   = startValue && committedText ? ' ' : '';
+      field.value = (startValue + sep + committedText).trim();
+      btn.textContent = '🎤 Dictar';
+      btn.classList.remove('recording');
+    }
+  };
+
+  sr.onerror = e => {
     _activeRec = null;
     btn.textContent = '🎤 Dictar';
     btn.classList.remove('recording');
-    const sep = startValue && spoken ? ' ' : '';
-    field.value = (startValue + sep + spoken).trim();
-  };
-
-  sr.onend   = finish;
-  sr.onerror = e => {
-    finish();
+    const sep   = startValue && committedText ? ' ' : '';
+    field.value = (startValue + sep + committedText).trim();
     if (e.error === 'not-allowed')
       toast('Permiso de micrófono denegado. Actívalo en los ajustes del navegador.', 'error');
     else if (e.error !== 'aborted')
