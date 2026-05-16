@@ -865,20 +865,25 @@ function mobileCard(p) {
             <span class="cat-dot" style="background:${catColor}"></span>
             <span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría">${p.categoryLabel}</span>
             ${badgeHTML}
+            <button class="ac-pub-dot"
+                    onclick="togglePublished(${p.id})"
+                    ontouchstart="event.stopPropagation()"
+                    title="${p.isPublished===false?'Oculto — toca para publicar':'Web — toca para ocultar'}">
+              ${p.isPublished===false?'🙈':'🌐'}
+            </button>
           </div>
-          <div class="mpc-price-row">${priceHTML}${stockInfo}</div>
+          <div class="mpc-price-row">
+            ${priceHTML}${stockInfo}
+            <button class="ac-status-dot ${oos?'ac-dot-sold':'ac-dot-avail'}"
+                    onclick="toggleOutOfStock(${p.id})"
+                    ontouchstart="event.stopPropagation()"
+                    title="${oos?'Agotado — toca para disponible':'Disponible — toca para agotar'}"></button>
+          </div>
         </div>
         <div class="mpc-top-actions">
           <button class="mpc-icon-btn" onclick="openForm(${p.id})" title="Editar">${ICON_EDIT}</button>
           <button class="mpc-icon-btn del-btn" onclick="askDelete(${p.id})" title="Eliminar">✕</button>
         </div>
-      </div>
-      <div class="mpc-bar">
-        <button onclick="toggleOutOfStock(${p.id})"
-                class="oos-cell ${oos ? 'soldout' : 'available'} mpc-oos-btn">
-          ${oos ? 'Agotado' : 'Disponible'}
-        </button>
-        ${publishedToggle(p)}
       </div>
     </div>
   </td>
