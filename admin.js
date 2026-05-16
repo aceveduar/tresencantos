@@ -805,7 +805,7 @@ function mobileCard(p) {
   const stockInfo = `<span class="mpc-stock-inline">${stockChip(p)}</span>`;
 
   const badgeHTML = p.badge
-    ? `<span class="badge badge-${p.badgeType||'none'}" style="font-size:.62rem;padding:3px 8px">${p.badge}</span>`
+    ? `<span class="badge badge-${p.badgeType||'none'} mpc-badge-inline" style="font-size:.6rem;padding:2px 7px">${p.badge}</span>`
     : '';
 
   return `
@@ -819,12 +819,19 @@ function mobileCard(p) {
                ${oos ? 'style="opacity:.5;filter:grayscale(.4)"' : ''}>
           <input type="checkbox" class="row-check mpc-check-over"
                  ${sel ? 'checked' : ''} onchange="toggleRowSelect(${p.id}, this.checked)">
+          <button class="mpc-star${p.featured ? ' feat-active' : ''}"
+                  onclick="event.stopPropagation();toggleFeatured(${p.id})"
+                  ontouchstart="event.stopPropagation()"
+                  title="${p.featured ? 'Quitar destacado' : 'Destacar'}">
+            ${p.featured ? '⭐' : '☆'}
+          </button>
         </div>
         <div class="mpc-info">
           <div class="mpc-name">${p.name}</div>
           <div class="mpc-cat-tag">
             <span class="cat-dot" style="background:${catColor}"></span>
-            <span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría">${p.categoryLabel}</span>${p.barcode ? ` · 🔲 ${p.barcode}` : ''}
+            <span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría">${p.categoryLabel}</span>
+            ${badgeHTML}
           </div>
           <div class="mpc-price-row">${priceHTML}${stockInfo}</div>
         </div>
@@ -834,15 +841,9 @@ function mobileCard(p) {
                 class="oos-cell ${oos ? 'soldout' : 'available'} mpc-oos-btn">
           ${oos ? 'Agotado' : 'Disponible'}
         </button>
-        ${badgeHTML}${publishedToggle(p)}
+        ${publishedToggle(p)}
         <div class="mpc-icon-group">
-          <button class="mpc-icon-btn${p.featured ? ' feat-active' : ''}"
-                  onclick="toggleFeatured(${p.id})"
-                  title="${p.featured ? 'Quitar destacado' : 'Destacar'}">
-            ${p.featured ? '⭐' : '☆'}
-          </button>
           <button class="mpc-icon-btn" onclick="openForm(${p.id})" title="Editar">${ICON_EDIT}</button>
-          <button class="mpc-icon-btn" onclick="duplicateProduct(${p.id})" title="Duplicar">${ICON_COPY}</button>
           <button class="mpc-icon-btn del-btn" onclick="askDelete(${p.id})" title="Eliminar">✕</button>
         </div>
       </div>
