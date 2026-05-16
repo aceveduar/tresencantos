@@ -430,6 +430,7 @@ async function showApp() {
 
   await loadCategories();
   await loadAppConfig();
+  _loadNameMap();
   await loadProductsFromSupabase();
   renderStats();
   setAdminView(currentAdminView);
@@ -2656,4 +2657,50 @@ async function saveRevista() {
 
   closeRevista();
   toast('Revista guardada correctamente ✓', 'success');
+}
+
+/* ── NOMBRES DE USUARIOS ──────────────────────────────────────────────── */
+let nameMap = {};
+
+async function _loadNameMap() {
+  const { ok, data } = await supabaseApi('config?id=eq.user_names&select=value');
+  if (ok && data?.[0]?.value) {
+    try { nameMap = JSON.parse(data[0].value); } catch {}
+  }
+}
+
+async function openNamesModal() {
+  const { ok, data } = await supabaseApi('activity_log?select=user_email&limit=500');
+  const emails = ok && data ? [...new Set(data.map(d => d.user_email))].filter(Boolean).sort() : [];
+  if (!emails.length) { toast('Sin usuarios registrados en el historial de Actividad aún'); return; }
+  document.getElementById('names-list-admin').innerHTML = emails.map(e => `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;margin-bottom:10px">
+      <div style="font-size:.78rem;color:var(--muted);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e}">${e}</div>
+      <input style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;width:100%;font-family:inherit;transition:border-color .15s"
+             data-email="${e}" placeholder="Nombre visible" value="${nameMap[e] || ''}"
+             onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+    </div>`).join('');
+  document.getElementById('names-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeNamesModal() {
+  document.getElementById('names-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+async function saveNamesAdmin() {
+  document.querySelectorAll('#names-list-admin [data-email]').forEach(inp => {
+    const val = inp.value.trim();
+    if (val) nameMap[inp.dataset.email] = val;
+    else delete nameMap[inp.dataset.email];
+  });
+  const { ok } = await supabaseApi('config', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: 'user_names', value: JSON.stringify(nameMap) })
+  });
+  if (!ok) { toast('Error al guardar', 'error'); return; }
+  closeNamesModal();
+  toast('Nombres guardados ✓', 'success');
 }

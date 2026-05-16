@@ -398,8 +398,9 @@ tr.drop-below td{box-shadow:inset 0 -2px 0 var(--gold)}
 .tools-arrow{font-size:1.1rem;transition:transform .22s;display:inline-block;margin-left:auto}
 .tools-panel[open] .tools-arrow{transform:rotate(90deg)}
 .tools-panel summary:hover{background:#FDFAF6}
-.tools-body .io-bar:not(:last-child){border-bottom:1px solid var(--border)}
-.tools-body .io-bar:first-child{border-top:1px solid var(--border)}
+.tools-body{border-top:1px solid var(--border)}
+.tools-body .io-bar + .io-bar{border-top:1px solid var(--border)}
+.tools-group-label{font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-light);padding:14px 22px 8px;background:#FAFAF8;border-top:1px solid var(--border)}
 
 /* ══ LOW STOCK ALERT ════════════════════════════════════════════════════ */
 .low-stock-alert{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 18px;background:#FEF3C7;border:1px solid #F59E0B;border-radius:var(--r);margin-bottom:16px;font-size:.82rem;color:#92400E}
@@ -580,13 +581,11 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .topbar{
     padding-left:12px;padding-right:12px;
     display:grid;
-    grid-template-columns:auto 1fr auto;
+    grid-template-columns:1fr auto;
     align-items:center;gap:0;
   }
-  /* "Aplanar" topbar-left para que logo e h2 sean hijos del grid */
+  /* "Aplanar" topbar-left para que h2 sea hijo del grid */
   .topbar-left{display:contents}
-  .topbar-left img{height:30px}
-  .topbar-divider{display:none}
   .topbar-left h2{
     text-align:center;
     font-size:1.05rem;
@@ -864,15 +863,13 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 <div id="app-screen">
   <div class="topbar">
     <div class="topbar-left">
-      <a href="index.html"><img src="logo.png" alt="Tres Encantos"></a>
-      <div class="topbar-divider"></div>
       <h2><span class="th-long">Inventario</span><span class="th-short" style="display:none">Inventario</span></h2>
     </div>
     <div class="topbar-right">
       <span id="session-user" class="session-user"></span>
-      <a href="staging.html" class="btn btn-outline btn-sm btn-stats-admin">🗂 Staging</a>
       <a href="stats.html" class="btn btn-outline btn-sm btn-stats-admin">📊 Reportes</a>
       <a href="activity.html" class="btn btn-outline btn-sm btn-stats-admin">📋 Actividad</a>
+      <a href="settings.html" class="btn btn-outline btn-sm btn-stats-admin">⚙️ Config</a>
       <a href="pos.html" class="btn btn-gold btn-sm">🖥 Caja</a>
       <a href="index.html" class="btn btn-outline btn-sm btn-versite">← Ver sitio</a>
       <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
@@ -887,11 +884,11 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         <a href="stats.html" class="tbn-icon" title="Reportes">
           <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         </a>
-        <a href="staging.html" class="tbn-icon" title="Staging">
-          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        </a>
         <a href="activity.html" class="tbn-icon" title="Actividad">
           <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </a>
+        <a href="settings.html" class="tbn-icon" title="Configuración">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </a>
       </nav>
     </div>
@@ -962,66 +959,95 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       <div id="products-card-grid" class="admin-cards-grid" style="display:none"></div>
     </div>
 
-    <!-- HERRAMIENTAS (colapsable — uso ocasional) -->
-    <details class="tools-panel" style="margin-top:24px">
-      <summary class="tools-summary">
-        🛠 Herramientas
-        <span class="tools-arrow">›</span>
-      </summary>
+    <!-- (Herramientas movidas a settings.html) -->
+    <div style="display:none">
       <div class="tools-body">
-        <div class="io-bar" style="border-top:none;justify-content:space-between">
+
+        <!-- ── CATÁLOGO ─────────────────────────────────── -->
+        <div class="tools-group-label">Catálogo</div>
+        <div class="io-bar">
           <div>
-            <div style="font-size:.84rem;color:var(--muted);font-weight:600">💬 WhatsApp flotante en Tienda</div>
-            <div style="font-size:.72rem;color:var(--muted-light);margin-top:2px">Botón verde visible para clientes al hacer scroll</div>
+            <div style="font-size:.84rem;color:var(--charcoal);font-weight:600">💬 WhatsApp flotante en Tienda</div>
+            <div style="font-size:.73rem;color:var(--muted);margin-top:2px">Botón verde visible para clientes al hacer scroll</div>
           </div>
           <label class="te-switch" title="Activar/desactivar botón flotante de WhatsApp">
             <input type="checkbox" id="wa-float-toggle" checked onchange="toggleWaFloat(this.checked)">
             <span class="te-switch-slider"></span>
           </label>
         </div>
-        <div class="io-bar" style="border-top:none">
-          <span>🏷 Categorías del catálogo</span>
-          <button class="btn btn-outline btn-sm" onclick="openCatManager()">Gestionar categorías</button>
+        <div class="io-bar">
+          <div>
+            <div style="font-size:.84rem;color:var(--charcoal);font-weight:600">🏷 Categorías del catálogo</div>
+            <div style="font-size:.73rem;color:var(--muted);margin-top:2px">Agregar, editar o eliminar categorías y subcategorías</div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="openCatManager()">Gestionar</button>
         </div>
-        <div class="io-bar" style="margin-bottom:0;border-radius:0 0 0 0;border-top:none">
-          <span>💾 Respaldo de productos (JSON)</span>
-          <button class="btn btn-outline btn-sm" onclick="exportProducts()">Exportar JSON</button>
-          <label class="btn btn-outline btn-sm" style="cursor:pointer">
-            Importar JSON
-            <input type="file" accept=".json" style="display:none" onchange="importProducts(this)">
-          </label>
+        <div class="io-bar">
+          <div>
+            <div style="font-size:.84rem;color:var(--charcoal);font-weight:600">📄 Revista Digital Natura</div>
+            <div style="font-size:.73rem;color:var(--muted);margin-top:2px">URL o PDF de la revista para clientes</div>
+          </div>
+          <button class="btn btn-gold btn-sm" onclick="openRevista()">Editar</button>
         </div>
-        <div class="io-bar" style="background:#EDE8DF;margin-bottom:0;border-radius:0;border-top:none">
-          <span>📄 Revista Digital Natura</span>
-          <button class="btn btn-gold btn-sm" onclick="openRevista()">Editar revista</button>
+
+        <!-- ── DATOS ──────────────────────────────────────── -->
+        <div class="tools-group-label">Datos</div>
+        <div class="io-bar">
+          <div>
+            <div style="font-size:.84rem;color:var(--charcoal);font-weight:600">💾 Respaldo de productos</div>
+            <div style="font-size:.73rem;color:var(--muted);margin-top:2px">Exportar o importar catálogo en formato JSON</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-shrink:0">
+            <button class="btn btn-outline btn-sm" onclick="exportProducts()">Exportar</button>
+            <label class="btn btn-outline btn-sm" style="cursor:pointer">
+              Importar
+              <input type="file" accept=".json" style="display:none" onchange="importProducts(this)">
+            </label>
+          </div>
         </div>
-        <div class="io-bar" style="border-top:none;flex-wrap:wrap;gap:10px">
-          <div style="width:100%;display:flex;align-items:center;gap:8px">
-            <span style="font-size:.84rem;color:var(--muted)">🤖 Inteligencia Artificial (Groq)</span>
-            <span style="font-size:.72rem" id="groq-key-status">(no configurado)</span>
+        <div class="io-bar">
+          <div>
+            <div style="font-size:.84rem;color:var(--charcoal);font-weight:600">👤 Nombres de usuarios</div>
+            <div style="font-size:.73rem;color:var(--muted);margin-top:2px">Asigna nombres visibles a cada cuenta en el historial de Actividad</div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="openNamesModal()">Gestionar</button>
+        </div>
+
+        <!-- ── INTEGRACIONES ──────────────────────────────── -->
+        <div class="tools-group-label">Integraciones</div>
+        <div class="io-bar" style="flex-wrap:wrap;gap:10px">
+          <div style="width:100%;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div style="flex:1">
+              <div style="font-size:.84rem;color:var(--charcoal);font-weight:600">🤖 Inteligencia Artificial (Groq)</div>
+              <div style="font-size:.73rem;color:var(--muted);margin-top:2px">Para análisis automático de imágenes al agregar productos</div>
+            </div>
+            <span style="font-size:.72rem;color:var(--muted-light);white-space:nowrap" id="groq-key-status">(no configurado)</span>
           </div>
           <div style="width:100%;display:flex;gap:8px;flex-wrap:wrap">
             <input type="password" id="groq-key-input" placeholder="gsk_..." autocomplete="off"
-                   style="flex:2;min-width:200px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;outline:none;font-family:inherit">
+                   style="flex:2;min-width:180px;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;outline:none;font-family:inherit">
             <button class="btn btn-gold btn-sm" onclick="saveGroqKey()">Guardar</button>
           </div>
-          <p style="width:100%;font-size:.73rem;color:var(--muted-light);line-height:1.5;margin-top:-4px">
-            Key gratis en <strong>console.groq.com</strong> → API Keys → Create API key. Se guarda en la nube y funciona en todos los dispositivos automáticamente.
+          <p style="width:100%;font-size:.73rem;color:var(--muted-light);line-height:1.5;margin-top:-2px">
+            Key gratis en <strong>console.groq.com</strong> → API Keys → Create. Se guarda en la nube y funciona en todos los dispositivos.
           </p>
         </div>
-        <div class="io-bar" style="border-top:none;flex-wrap:wrap;gap:10px">
-          <div style="width:100%;display:flex;align-items:center;gap:8px">
-            <span style="font-size:.84rem;color:var(--muted)">🖼 Google Drive</span>
-            <span style="font-size:.72rem" id="drive-status-txt">(no configurado)</span>
+        <div class="io-bar" style="flex-wrap:wrap;gap:10px">
+          <div style="width:100%;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div style="flex:1">
+              <div style="font-size:.84rem;color:var(--charcoal);font-weight:600">🖼 Google Drive</div>
+              <div style="font-size:.73rem;color:var(--muted);margin-top:2px">Almacenamiento de imágenes vía Apps Script proxy</div>
+            </div>
+            <span style="font-size:.72rem;color:var(--muted-light);white-space:nowrap" id="drive-status-txt">(no configurado)</span>
           </div>
           <div style="width:100%;display:flex;gap:8px;flex-wrap:wrap">
             <input type="url" id="drive-endpoint-input"
                    placeholder="URL del Apps Script (exec)"
-                   style="flex:2;min-width:200px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;outline:none;font-family:inherit">
-            <div style="flex:1;min-width:160px;position:relative">
+                   style="flex:2;min-width:180px;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;outline:none;font-family:inherit">
+            <div style="flex:1;min-width:140px;position:relative">
               <input type="text" id="drive-secret-input" readonly
                      placeholder="Secreto (se genera al guardar)"
-                     style="width:100%;padding:8px 36px 8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;outline:none;font-family:inherit;background:#FAFAF8;cursor:pointer"
+                     style="width:100%;padding:9px 36px 9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;outline:none;font-family:inherit;background:#FAFAF8;cursor:pointer"
                      onclick="copyDriveSecret()" title="Toca para copiar">
               <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.75rem;color:var(--muted-light);pointer-events:none">📋</span>
             </div>
@@ -1031,12 +1057,13 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
             <button class="btn btn-outline btn-sm" onclick="testDriveEndpoint()" id="drive-test-btn" style="display:none">Probar conexión</button>
             <button class="btn btn-outline btn-sm" onclick="clearDrive()" id="drive-clear-btn" style="display:none;color:var(--red)">Desconectar</button>
           </div>
-          <p style="width:100%;font-size:.73rem;color:var(--muted-light);line-height:1.5;margin-top:-4px">
+          <p style="width:100%;font-size:.73rem;color:var(--muted-light);line-height:1.5;margin-top:-2px">
             Pega el secreto en tu Apps Script donde dice <code style="background:#F0E8E0;padding:1px 5px;border-radius:4px">const SECRET = '...'</code>
           </p>
         </div>
+
       </div>
-    </details>
+    </div>
 
   </main>
 </div>
@@ -1316,6 +1343,24 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     </div>
     <div class="modal-foot">
       <button class="btn btn-outline" onclick="closeCatManager()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOMBRES MODAL -->
+<div class="overlay" id="names-overlay">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-head">
+      <h3>Nombres de usuarios</h3>
+      <button class="modal-close-btn" onclick="closeNamesModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:20px;line-height:1.5">Asigna un nombre visible a cada cuenta para identificarlas en el historial de Actividad.</p>
+      <div id="names-list-admin"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeNamesModal()">Cancelar</button>
+      <button class="btn btn-gold" onclick="saveNamesAdmin()">Guardar nombres</button>
     </div>
   </div>
 </div>

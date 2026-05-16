@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Configuración — Tres Encantos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cream:#FAF5EE;--gold:#C9A462;--gold-dark:#A67C3A;--gold-light:#FFF8EE;
+  --charcoal:#1C1817;--red:#E85D5D;--green:#2D6A4F;
+  --border:#EAE0D4;--muted:#8A7564;--muted-light:#B5A696;--r:12px;
+}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal);min-height:100dvh;display:flex;flex-direction:column}
+button,input,select,textarea{font-family:inherit}
+a{text-decoration:none}
+*{-webkit-tap-highlight-color:transparent}
+button,a,[onclick]{touch-action:manipulation}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--charcoal);color:#fff;padding:0 20px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:100}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.topbar-title{font-family:'Playfair Display',serif;font-size:1rem;color:#fff}
+.topbar-right{display:flex;gap:8px;align-items:center}
+.btn-back{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:50px;font-size:.8rem;font-weight:600;border:1.5px solid rgba(255,255,255,.3);color:#fff;transition:.15s;white-space:nowrap}
+.btn-back:hover{background:rgba(255,255,255,.1)}
+
+/* ── MOBILE NAV ── */
+.topbar-nav-mobile{display:none;align-items:center;gap:2px}
+.tbn-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:transparent;color:rgba(255,255,255,.55);transition:all .15s}
+.tbn-icon svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
+.tbn-icon.tbn-active{color:var(--gold)}
+.tbn-icon.tbn-active svg{stroke-width:2.5}
+.tbn-icon:active{opacity:.55;transform:scale(.88)}
+@media(max-width:640px){.topbar-nav-mobile{display:flex}.btn-back{display:none}.topbar{padding:0 12px}}
+
+/* ── MAIN ── */
+.main{flex:1;max-width:680px;width:100%;margin:0 auto;padding:24px 16px 56px}
+
+/* ── SECTION ── */
+.section-label{font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-light);padding:0 2px;margin:28px 0 10px}
+.section-label:first-child{margin-top:0}
+.settings-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:8px}
+.scard-row{display:flex;align-items:center;gap:14px;padding:16px 18px}
+.scard-icon{font-size:1.3rem;flex-shrink:0;width:32px;text-align:center}
+.scard-body{flex:1;min-width:0}
+.scard-title{font-size:.88rem;font-weight:600;color:var(--charcoal)}
+.scard-desc{font-size:.74rem;color:var(--muted);margin-top:2px;line-height:1.4}
+.scard-action{flex-shrink:0}
+.scard-row + .scard-row{border-top:1px solid var(--border)}
+
+/* Expandable section within card */
+.scard-expand{padding:16px 18px;border-top:1px solid var(--border);background:#FDFAF8}
+.field-label{font-size:.74rem;font-weight:700;color:var(--muted);margin-bottom:6px;display:block}
+.field-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;transition:border-color .15s;font-family:inherit}
+.field-input:focus{border-color:var(--gold)}
+.field-hint{font-size:.72rem;color:var(--muted-light);margin-top:5px;line-height:1.5}
+.field-hint code{background:#F0E8E0;padding:1px 5px;border-radius:4px}
+.status-tag{font-size:.72rem;font-weight:600;color:var(--muted-light)}
+.status-tag.ok{color:var(--green)}
+
+/* ── TOGGLE SWITCH ── */
+.te-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
+.te-switch input{opacity:0;width:0;height:0}
+.te-switch-slider{position:absolute;inset:0;background:#D1C4B8;border-radius:50px;cursor:pointer;transition:.2s}
+.te-switch-slider::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.te-switch input:checked + .te-switch-slider{background:var(--green)}
+.te-switch input:checked + .te-switch-slider::before{transform:translateX(20px)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:50px;font-size:.8rem;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff}
+.btn-gold:hover{opacity:.9}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--charcoal)}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold-dark)}
+.btn-sm{padding:7px 14px;font-size:.78rem}
+.btn-red-outline{background:transparent;border:1.5px solid var(--border);color:var(--red)}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+/* ── OVERLAY / MODAL ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(20,15,12,.5);backdrop-filter:blur(4px);z-index:400;align-items:center;justify-content:center;padding:16px}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:20px;width:100%;max-width:480px;max-height:90dvh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal-head{padding:20px 22px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.modal-head h3{font-family:'Playfair Display',serif;font-size:1.05rem;flex:1}
+.modal-close{background:none;border:none;font-size:1.2rem;color:var(--muted);cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:.15s}
+.modal-close:hover{background:var(--cream)}
+.modal-body{padding:20px 22px;overflow-y:auto;flex:1}
+.modal-foot{padding:16px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0}
+
+/* ── CATEGORY MANAGER ── */
+.cat-mgr-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)}
+.cat-mgr-row:last-child{border-bottom:none}
+.cat-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.cat-code{font-size:.72rem;font-weight:700;color:var(--muted);background:var(--cream);padding:3px 8px;border-radius:50px;white-space:nowrap;flex-shrink:0;min-width:70px;text-align:center}
+.cat-label-inp{flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;outline:none;font-family:inherit}
+.cat-label-inp:focus{border-color:var(--gold)}
+.cat-del{background:none;border:none;color:var(--muted-light);cursor:pointer;font-size:.9rem;padding:4px 6px;border-radius:6px;transition:.15s;flex-shrink:0}
+.cat-del:hover{color:var(--red);background:#FEF2F2}
+.add-cat-grid{display:grid;grid-template-columns:1fr 1.5fr;gap:8px;margin-bottom:8px}
+.add-cat-grid input,.cat-parent-sel{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;outline:none;font-family:inherit;width:100%}
+.add-cat-grid input:focus,.cat-parent-sel:focus{border-color:var(--gold)}
+
+/* ── UPLOAD ZONE ── */
+.upload-zone{border:2px dashed var(--border);border-radius:var(--r);padding:28px 20px;text-align:center;cursor:pointer;transition:.15s;background:#FDFAF8}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--gold);background:var(--gold-light)}
+.upload-zone .uz-icon{font-size:1.8rem;margin-bottom:8px}
+.upload-zone .uz-text{font-size:.82rem;color:var(--muted);margin-bottom:12px}
+
+/* ── NAMES LIST ── */
+.name-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;margin-bottom:10px}
+.name-email{font-size:.76rem;color:var(--muted);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:440px){.name-pair{grid-template-columns:1fr}}
+
+/* ── SPINNER / EMPTY ── */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:20px;height:20px;border:2.5px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .6s linear infinite;margin:0 auto}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--charcoal);color:#fff;padding:10px 22px;border-radius:50px;font-size:.82rem;font-weight:500;z-index:600;transition:.25s ease;opacity:0;white-space:nowrap;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.ok{background:var(--green)}
+.toast.err{background:var(--red)}
+
+@media(max-width:640px){
+  .main{padding:16px 12px 48px}
+  .scard-row{padding:14px 14px}
+  .modal{border-radius:20px 20px 0 0;max-width:100%;position:fixed;bottom:0;left:0;right:0;border-radius:20px 20px 0 0}
+  .overlay{align-items:flex-end;padding:0}
+  .add-cat-grid{grid-template-columns:1fr}
+  .btn-row{gap:6px}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="topbar-title">⚙️ Configuración</span>
+  </div>
+  <div class="topbar-right">
+    <a href="admin.html" class="btn-back">← Inventario</a>
+    <nav class="topbar-nav-mobile" aria-label="Módulos">
+      <a href="admin.html" class="tbn-icon" title="Inventario">
+        <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+      </a>
+      <a href="pos.html" class="tbn-icon" title="Caja">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      </a>
+      <a href="stats.html" class="tbn-icon" title="Reportes">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </a>
+      <a href="activity.html" class="tbn-icon" title="Actividad">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </a>
+      <a href="settings.html" class="tbn-icon tbn-active" title="Configuración" aria-current="page">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </a>
+    </nav>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ─── CATÁLOGO ─────────────────────────────────────────── -->
+  <div class="section-label">Catálogo</div>
+
+  <div class="settings-card">
+    <div class="scard-row">
+      <div class="scard-icon">💬</div>
+      <div class="scard-body">
+        <div class="scard-title">WhatsApp flotante en Tienda</div>
+        <div class="scard-desc">Botón verde visible para clientes al hacer scroll</div>
+      </div>
+      <div class="scard-action">
+        <label class="te-switch" title="Activar/desactivar botón flotante de WhatsApp">
+          <input type="checkbox" id="wa-float-toggle" checked onchange="toggleWaFloat(this.checked)">
+          <span class="te-switch-slider"></span>
+        </label>
+      </div>
+    </div>
+    <div class="scard-row">
+      <div class="scard-icon">🏷</div>
+      <div class="scard-body">
+        <div class="scard-title">Categorías del catálogo</div>
+        <div class="scard-desc">Agregar, editar o eliminar categorías y subcategorías</div>
+      </div>
+      <div class="scard-action">
+        <button class="btn btn-outline btn-sm" onclick="openCatManager()">Gestionar</button>
+      </div>
+    </div>
+    <div class="scard-row">
+      <div class="scard-icon">📄</div>
+      <div class="scard-body">
+        <div class="scard-title">Revista Digital Natura</div>
+        <div class="scard-desc">URL o PDF de la revista para clientes en el sitio web</div>
+      </div>
+      <div class="scard-action">
+        <button class="btn btn-gold btn-sm" onclick="openRevista()">Editar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── DATOS ─────────────────────────────────────────────── -->
+  <div class="section-label">Datos</div>
+
+  <div class="settings-card">
+    <div class="scard-row">
+      <div class="scard-icon">💾</div>
+      <div class="scard-body">
+        <div class="scard-title">Respaldo de productos</div>
+        <div class="scard-desc">Exportar o importar el catálogo completo en formato JSON</div>
+      </div>
+      <div class="scard-action">
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-outline btn-sm" onclick="exportProducts()">Exportar</button>
+          <label class="btn btn-outline btn-sm" style="cursor:pointer">
+            Importar
+            <input type="file" accept=".json" style="display:none" onchange="importProducts(this)">
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="scard-row">
+      <div class="scard-icon">👤</div>
+      <div class="scard-body">
+        <div class="scard-title">Nombres de usuarios</div>
+        <div class="scard-desc">Asigna nombres visibles a cada cuenta en el historial de Actividad</div>
+      </div>
+      <div class="scard-action">
+        <button class="btn btn-outline btn-sm" onclick="openNamesModal()">Gestionar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── INTEGRACIONES ─────────────────────────────────────── -->
+  <div class="section-label">Integraciones</div>
+
+  <div class="settings-card">
+    <!-- Groq -->
+    <div class="scard-row" style="flex-wrap:wrap;gap:10px;align-items:flex-start">
+      <div class="scard-icon" style="margin-top:2px">🤖</div>
+      <div class="scard-body">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div class="scard-title">Inteligencia Artificial (Groq)</div>
+          <span class="status-tag" id="groq-key-status">(no configurado)</span>
+        </div>
+        <div class="scard-desc">Para análisis automático de imágenes al agregar productos en Inventario</div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <input type="password" class="field-input" id="groq-key-input" placeholder="gsk_..." autocomplete="off" style="flex:2;min-width:160px">
+          <button class="btn btn-gold btn-sm" onclick="saveGroqKey()">Guardar</button>
+        </div>
+        <p class="field-hint" style="margin-top:8px">Key gratis en <strong>console.groq.com</strong> → API Keys → Create. Se guarda en la nube y funciona en todos los dispositivos.</p>
+      </div>
+    </div>
+
+    <!-- Google Drive -->
+    <div class="scard-row" style="flex-wrap:wrap;gap:10px;align-items:flex-start;border-top:1px solid var(--border)">
+      <div class="scard-icon" style="margin-top:2px">🖼</div>
+      <div class="scard-body">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div class="scard-title">Google Drive</div>
+          <span class="status-tag" id="drive-status-txt">(no configurado)</span>
+        </div>
+        <div class="scard-desc">Almacenamiento de imágenes vía Apps Script proxy</div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <input type="url" class="field-input" id="drive-endpoint-input" placeholder="URL del Apps Script (exec)" style="flex:2;min-width:160px">
+          <div style="flex:1;min-width:140px;position:relative">
+            <input type="text" class="field-input" id="drive-secret-input" readonly
+                   placeholder="Secreto (se genera al guardar)"
+                   style="padding-right:36px;background:#FAFAF8;cursor:pointer"
+                   onclick="copyDriveSecret()" title="Toca para copiar">
+            <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.75rem;color:var(--muted-light);pointer-events:none">📋</span>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-outline btn-sm" onclick="saveDriveEndpoint()">Guardar</button>
+          <button class="btn btn-outline btn-sm" onclick="testDriveEndpoint()" id="drive-test-btn" style="display:none">Probar conexión</button>
+          <button class="btn btn-red-outline btn-sm" onclick="clearDrive()" id="drive-clear-btn" style="display:none">Desconectar</button>
+        </div>
+        <p class="field-hint" style="margin-top:8px">Pega el secreto en tu Apps Script donde dice <code>const SECRET = '...'</code></p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- ── MODAL: CATEGORÍAS ── -->
+<div class="overlay" id="cat-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>🏷 Gestionar categorías</h3>
+      <button class="modal-close" onclick="closeCatManager()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:14px;line-height:1.5">Edita el nombre directamente. El código (en gris) identifica los productos internamente.</p>
+      <div id="cat-list"></div>
+      <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border)">
+        <span class="field-label">Nueva categoría / subcategoría</span>
+        <div class="add-cat-grid">
+          <input type="text" id="new-cat-code" placeholder="código (ej: perfumes)" onkeydown="if(event.key==='Enter')addCategory()">
+          <input type="text" id="new-cat-label" placeholder="Nombre visible (ej: Perfumes)" onkeydown="if(event.key==='Enter')addCategory()">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <label style="font-size:.74rem;color:var(--muted);font-weight:600;white-space:nowrap">Categoría padre:</label>
+          <select id="new-cat-parent" class="cat-parent-sel">
+            <option value="">— Es categoría raíz —</option>
+          </select>
+        </div>
+        <p class="field-hint">Solo letras, números y guión bajo. No se puede cambiar después.</p>
+        <button class="btn btn-gold btn-sm" onclick="addCategory()" style="margin-top:10px">+ Agregar</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeCatManager()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: REVISTA ── -->
+<div class="overlay" id="revista-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Revista Digital Natura</h3>
+      <button class="modal-close" onclick="closeRevista()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Actualiza el enlace o PDF que se muestra en el sitio.</p>
+      <span class="field-label">URL de la revista (PDF externo, Google Drive, etc.)</span>
+      <input type="url" class="field-input" id="revista-url-input" placeholder="https://...pdf">
+      <p class="field-hint" style="margin-top:6px">Puedes usar Google Drive con enlace público.</p>
+      <div style="text-align:center;font-size:.75rem;color:var(--muted-light);margin:14px 0;font-weight:600">— o sube un archivo PDF —</div>
+      <div class="upload-zone" id="revista-upload-zone">
+        <input type="file" id="revista-file" accept="application/pdf" style="display:none" onchange="handleRevistaFile(this)">
+        <div class="uz-icon">📄</div>
+        <div class="uz-text">Arrastra un PDF aquí o toca para elegir</div>
+        <button type="button" class="btn btn-outline btn-sm">Elegir archivo</button>
+      </div>
+      <div id="revista-preview" style="display:none;margin-top:12px;padding:12px;background:#FDFAF6;border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:8px">
+          <span>📄</span>
+          <span id="revista-filename">PDF cargado</span>
+          <button onclick="clearRevistaFile()" style="margin-left:auto;background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem">✕</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeRevista()">Cancelar</button>
+      <button class="btn btn-gold" id="revista-save-btn" onclick="saveRevista()">Guardar revista</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: NOMBRES ── -->
+<div class="overlay" id="names-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Nombres de usuarios</h3>
+      <button class="modal-close" onclick="closeNamesModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:18px;line-height:1.5">Asigna un nombre visible a cada cuenta para identificarlas en el historial de Actividad.</p>
+      <div id="names-list"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeNamesModal()">Cancelar</button>
+      <button class="btn btn-gold" onclick="saveNamesAdmin()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL         = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUyNjIyNiwiZXhwIjoyMDk0MTAyMjI2fQ.B9nZ1KENDQsUtn9PFwiMTrXuMZuWWIphGnH8XPfeJjQ';
+const SESSION_KEY          = 'te_admin_session';
+const CAT_PALETTE          = ['#C9A462','#60a5fa','#f472b6','#34d399','#a78bfa','#fb923c','#fbbf24','#a3e635','#2dd4bf','#f87171'];
+
+/* ── AUTH ── */
+(function(){
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY));
+    if (!s?.access_token || s.expires_at <= Date.now()/1000 + 60) window.location.href = 'admin.html';
+  } catch { window.location.href = 'admin.html'; }
+})();
+
+/* ── API ── */
+function api(path, opts = {}) {
+  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...opts,
+    headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, 'Content-Type': 'application/json', ...opts.headers }
+  }).then(async r => {
+    const text = await r.text();
+    let data; try { data = JSON.parse(text); } catch { data = text || null; }
+    return { ok: r.ok, status: r.status, data };
+  });
+}
+
+/* ── STATE ── */
+let categories = [];
+let groqApiKey = null;
+let driveEp    = null;
+let driveSecret= null;
+let nameMap    = {};
+
+/* ── INIT ── */
+async function init() {
+  const [cfgR, catR, namesR] = await Promise.all([
+    api('config?id=in.(groq_key,drive_ep,drive_secret,wa_float)&select=id,value'),
+    api('config?id=eq.categories&select=value'),
+    api('config?id=eq.user_names&select=value')
+  ]);
+
+  if (cfgR.ok && cfgR.data) {
+    cfgR.data.forEach(row => {
+      if (row.id === 'groq_key')     groqApiKey  = row.value || null;
+      if (row.id === 'drive_ep')     driveEp     = row.value || null;
+      if (row.id === 'drive_secret') driveSecret = row.value || null;
+      if (row.id === 'wa_float') {
+        const toggle = document.getElementById('wa-float-toggle');
+        if (toggle) toggle.checked = row.value !== 'false';
+      }
+    });
+  }
+
+  if (catR.ok && catR.data?.[0]?.value) {
+    try { categories = JSON.parse(catR.data[0].value); } catch { categories = []; }
+  }
+
+  if (namesR.ok && namesR.data?.[0]?.value) {
+    try { nameMap = JSON.parse(namesR.data[0].value); } catch {}
+  }
+
+  loadGroqKeyStatus();
+  loadDriveConfig();
+}
+
+/* ── GROQ ── */
+function loadGroqKeyStatus() {
+  const el = document.getElementById('groq-key-status');
+  if (!el) return;
+  if (groqApiKey) {
+    el.textContent = '✓ Configurado'; el.classList.add('ok');
+  }
+}
+
+async function saveGroqKey() {
+  const val = document.getElementById('groq-key-input').value.trim();
+  if (!val || !val.startsWith('gsk_')) { toast('Ingresa una key válida (empieza con gsk_)', 'err'); return; }
+  const r = await api('config', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: 'groq_key', value: val })
+  });
+  if (r.ok) {
+    groqApiKey = val;
+    document.getElementById('groq-key-input').value = '';
+    loadGroqKeyStatus();
+    toast('🤖 Groq key guardada — IA activa en todos los dispositivos ✓', 'ok');
+  } else { toast('Error al guardar la key', 'err'); }
+}
+
+/* ── DRIVE ── */
+function loadDriveConfig() {
+  if (!driveEp || !driveSecret) return;
+  document.getElementById('drive-endpoint-input').value = driveEp;
+  document.getElementById('drive-secret-input').value   = driveSecret;
+  const st = document.getElementById('drive-status-txt');
+  st.textContent = '✓ Conectado'; st.classList.add('ok');
+  document.getElementById('drive-test-btn').style.display = '';
+  document.getElementById('drive-clear-btn').style.display = '';
+}
+
+async function saveDriveEndpoint() {
+  const ep = document.getElementById('drive-endpoint-input').value.trim();
+  if (!ep) { toast('Pega primero la URL del Apps Script', 'err'); return; }
+  if (!driveSecret) driveSecret = 'te_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  driveEp = ep;
+  await Promise.all([
+    api('config', { method:'POST', headers:{ Prefer:'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id:'drive_ep',     value: ep }) }),
+    api('config', { method:'POST', headers:{ Prefer:'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id:'drive_secret', value: driveSecret }) })
+  ]);
+  document.getElementById('drive-secret-input').value = driveSecret;
+  const st = document.getElementById('drive-status-txt');
+  st.textContent = '✓ Conectado'; st.classList.add('ok');
+  document.getElementById('drive-test-btn').style.display = '';
+  document.getElementById('drive-clear-btn').style.display = '';
+  toast('Drive guardado — copia el secreto del campo gris y pégalo en tu Apps Script ✓', 'ok');
+}
+
+function copyDriveSecret() {
+  const val = document.getElementById('drive-secret-input').value;
+  if (!val) return;
+  navigator.clipboard.writeText(val)
+    .then(() => toast('Secreto copiado al portapapeles ✓', 'ok'))
+    .catch(() => toast('Selecciona el texto y copia con Ctrl+C / ⌘C', ''));
+}
+
+async function clearDrive() {
+  if (!confirm('¿Desconectar Google Drive? Las imágenes futuras se guardarán como base64.')) return;
+  await Promise.all([
+    api('config?id=eq.drive_ep',     { method:'DELETE' }),
+    api('config?id=eq.drive_secret', { method:'DELETE' })
+  ]);
+  driveEp = null; driveSecret = null;
+  document.getElementById('drive-endpoint-input').value = '';
+  document.getElementById('drive-secret-input').value   = '';
+  const st = document.getElementById('drive-status-txt');
+  st.textContent = '(no configurado)'; st.classList.remove('ok');
+  document.getElementById('drive-test-btn').style.display  = 'none';
+  document.getElementById('drive-clear-btn').style.display = 'none';
+  toast('Drive desconectado', '');
+}
+
+async function testDriveEndpoint() {
+  if (!driveEp) return;
+  const btn = document.getElementById('drive-test-btn');
+  btn.textContent = 'Probando…'; btn.disabled = true;
+  try {
+    const r = await fetch(driveEp);
+    const txt = await r.text();
+    toast(txt === 'OK' ? 'Conexión con Drive OK ✓' : 'Respuesta inesperada: ' + txt, txt === 'OK' ? 'ok' : 'err');
+  } catch(e) { toast('Error al conectar: ' + e.message, 'err'); }
+  btn.textContent = 'Probar conexión'; btn.disabled = false;
+}
+
+/* ── WA FLOAT ── */
+async function toggleWaFloat(enabled) {
+  const r = await api('config', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: 'wa_float', value: String(enabled) })
+  });
+  if (r.ok) {
+    toast(enabled ? '💬 Botón WhatsApp activado en Tienda' : '💬 Botón WhatsApp desactivado', 'ok');
+  } else {
+    toast('Error al guardar', 'err');
+    document.getElementById('wa-float-toggle').checked = !enabled;
+  }
+}
+
+/* ── CATEGORIES ── */
+function rootCats()    { return categories.filter(c => !c.parent); }
+function subCats(code) { return categories.filter(c => c.parent === code); }
+
+async function _saveCats() {
+  return api('config', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: 'categories', value: JSON.stringify(categories) })
+  });
+}
+
+function openCatManager() {
+  renderCatList();
+  populateCatParent();
+  document.getElementById('cat-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCatManager() {
+  document.getElementById('cat-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function renderCatList() {
+  const el = document.getElementById('cat-list');
+  if (!categories.length) {
+    el.innerHTML = '<p style="color:var(--muted);font-size:.84rem;text-align:center;padding:12px">Sin categorías</p>';
+    return;
+  }
+  const rows = [];
+  rootCats().forEach(r => {
+    rows.push({ c:r, i:categories.indexOf(r), indent:false });
+    subCats(r.code).forEach(s => rows.push({ c:s, i:categories.indexOf(s), indent:true }));
+  });
+  el.innerHTML = rows.map(({ c, i, indent }) => `
+    <div class="cat-mgr-row" style="${indent ? `padding-left:18px;border-left:3px solid ${c.color||'#ccc'};margin-left:8px` : ''}">
+      <span class="cat-dot" style="background:${c.color||'#9B8B78'}"></span>
+      <span class="cat-code">${c.code}</span>
+      <input type="text" class="cat-label-inp" value="${c.label}"
+             onblur="updateCatLabel(${i},this.value)"
+             onkeydown="if(event.key==='Enter')this.blur()">
+      <button class="cat-del" onclick="deleteCategoryAt(${i})" title="Eliminar">✕</button>
+    </div>`).join('');
+}
+
+function populateCatParent() {
+  const sel = document.getElementById('new-cat-parent');
+  sel.innerHTML = '<option value="">— Es categoría raíz —</option>';
+  rootCats().forEach(r => {
+    const o = document.createElement('option');
+    o.value = r.code; o.textContent = r.label;
+    sel.appendChild(o);
+  });
+}
+
+async function updateCatLabel(idx, newLabel) {
+  const label = newLabel.trim();
+  if (!label || label === categories[idx]?.label) return;
+  const code = categories[idx].code;
+  categories[idx].label = label;
+  await _saveCats();
+  await api(`products?category=eq.${code}`, { method:'PATCH', body: JSON.stringify({ category_label: label }) });
+  toast(`"${label}" actualizado ✓`, 'ok');
+}
+
+async function deleteCategoryAt(idx) {
+  const c = categories[idx];
+  const r = await api(`products?category=eq.${c.code}&select=id`);
+  const count = r.ok && Array.isArray(r.data) ? r.data.length : 0;
+  const msg = count > 0
+    ? `¿Eliminar "${c.label}"? ${count} producto(s) quedarán sin categoría. ¿Continuar?`
+    : `¿Eliminar la categoría "${c.label}"?`;
+  if (!confirm(msg)) return;
+  categories.splice(idx, 1);
+  await _saveCats();
+  renderCatList();
+  populateCatParent();
+  toast('Categoría eliminada', '');
+}
+
+async function addCategory() {
+  const codeInput  = document.getElementById('new-cat-code');
+  const labelInput = document.getElementById('new-cat-label');
+  const parentSel  = document.getElementById('new-cat-parent');
+  const code  = codeInput.value.trim().toLowerCase().replace(/\s+/g,'_');
+  const label = labelInput.value.trim();
+  const parent= parentSel.value;
+  if (!code || !label) { toast('Completa el código y el nombre', 'err'); return; }
+  if (!/^[a-z0-9_]+$/.test(code)) { toast('El código solo puede tener letras, números y guión bajo', 'err'); return; }
+  if (categories.find(c => c.code === code)) { toast('Ya existe una categoría con ese código', 'err'); return; }
+  const color = CAT_PALETTE[categories.length % CAT_PALETTE.length];
+  const newCat = { code, label, color };
+  if (parent && categories.find(c => c.code === parent)) newCat.parent = parent;
+  categories.push(newCat);
+  await _saveCats();
+  renderCatList();
+  populateCatParent();
+  codeInput.value = ''; labelInput.value = '';
+  toast(`${parent ? 'Subcategoría' : 'Categoría'} "${label}" creada ✓`, 'ok');
+}
+
+/* ── REVISTA ── */
+function openRevista() {
+  document.getElementById('revista-url-input').value = '';
+  document.getElementById('revista-preview').style.display = 'none';
+  document.getElementById('revista-file')._pendingFile = null;
+  document.getElementById('revista-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  initRevistaZone();
+}
+
+function closeRevista() {
+  document.getElementById('revista-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function initRevistaZone() {
+  const zone = document.getElementById('revista-upload-zone');
+  const clone = zone.cloneNode(true);
+  zone.parentNode.replaceChild(clone, zone);
+  clone.addEventListener('click', () => document.getElementById('revista-file').click());
+  clone.addEventListener('dragover', e => { e.preventDefault(); clone.classList.add('drag-over'); });
+  clone.addEventListener('dragleave', () => clone.classList.remove('drag-over'));
+  clone.addEventListener('drop', e => {
+    e.preventDefault(); clone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type === 'application/pdf') processRevistaFile(file);
+  });
+}
+
+function handleRevistaFile(input) {
+  if (input.files[0]) processRevistaFile(input.files[0]);
+}
+
+function processRevistaFile(file) {
+  if (file.type !== 'application/pdf') { toast('Solo se permiten archivos PDF', 'err'); return; }
+  if (file.size > 50 * 1024 * 1024) { toast('El PDF es muy grande. Máx 50MB.', 'err'); return; }
+  document.getElementById('revista-url-input').value = '';
+  document.getElementById('revista-preview').style.display = 'block';
+  document.getElementById('revista-filename').textContent = `${file.name} · ${(file.size/1024/1024).toFixed(1)} MB`;
+  document.getElementById('revista-file')._pendingFile = file;
+}
+
+function clearRevistaFile() {
+  document.getElementById('revista-file').value = '';
+  document.getElementById('revista-file')._pendingFile = null;
+  document.getElementById('revista-preview').style.display = 'none';
+}
+
+async function saveRevista() {
+  const fileInput   = document.getElementById('revista-file');
+  const pendingFile = fileInput._pendingFile;
+  const urlVal      = document.getElementById('revista-url-input').value.trim();
+  if (!pendingFile && !urlVal) { toast('Ingresa una URL o sube un PDF', 'err'); return; }
+
+  const saveBtn = document.getElementById('revista-save-btn');
+  let finalUrl  = urlVal;
+
+  if (pendingFile) {
+    saveBtn.textContent = 'Subiendo PDF…'; saveBtn.disabled = true;
+    try {
+      await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id:'revistas', name:'revistas', public: true })
+      });
+    } catch {}
+    try {
+      const filename = `revista-${Date.now()}.pdf`;
+      const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/revistas/${filename}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, 'Content-Type': 'application/pdf', 'x-upsert': 'true' },
+        body: pendingFile
+      });
+      saveBtn.textContent = 'Guardar revista'; saveBtn.disabled = false;
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json().catch(() => ({}));
+        toast(`Error al subir: ${err.message || err.error || uploadRes.status}`, 'err');
+        return;
+      }
+      finalUrl = `${SUPABASE_URL}/storage/v1/object/public/revistas/${filename}`;
+    } catch(e) {
+      saveBtn.textContent = 'Guardar revista'; saveBtn.disabled = false;
+      toast('Error de conexión: ' + e.message, 'err');
+      return;
+    }
+  }
+
+  const r = await api('config', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates' },
+    body: JSON.stringify({ id: 'revista_url', value: finalUrl })
+  });
+  if (!r.ok) { toast('Error al guardar el enlace', 'err'); return; }
+  closeRevista();
+  toast('Revista guardada ✓', 'ok');
+}
+
+/* ── NOMBRES ── */
+async function openNamesModal() {
+  const r = await api('activity_log?select=user_email&limit=500');
+  const emails = r.ok && r.data ? [...new Set(r.data.map(d => d.user_email))].filter(Boolean).sort() : [];
+  if (!emails.length) { toast('Sin usuarios registrados en Actividad aún'); return; }
+  document.getElementById('names-list').innerHTML = emails.map(e => `
+    <div class="name-pair">
+      <div class="name-email" title="${e}">${e}</div>
+      <input class="field-input" data-email="${e}" placeholder="Nombre visible" value="${nameMap[e]||''}"
+             style="padding:8px 12px">
+    </div>`).join('');
+  document.getElementById('names-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeNamesModal() {
+  document.getElementById('names-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+async function saveNamesAdmin() {
+  document.querySelectorAll('#names-list [data-email]').forEach(inp => {
+    const val = inp.value.trim();
+    if (val) nameMap[inp.dataset.email] = val;
+    else delete nameMap[inp.dataset.email];
+  });
+  const r = await api('config', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: 'user_names', value: JSON.stringify(nameMap) })
+  });
+  if (!r.ok) { toast('Error al guardar', 'err'); return; }
+  closeNamesModal();
+  toast('Nombres guardados ✓', 'ok');
+}
+
+/* ── EXPORT / IMPORT ── */
+async function exportProducts() {
+  const r = await api('products?select=*&order=position.asc');
+  if (!r.ok || !r.data?.length) { toast('Sin productos para exportar', ''); return; }
+  const blob = new Blob([JSON.stringify(r.data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `tres-encantos-productos-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  toast(`${r.data.length} productos exportados ✓`, 'ok');
+}
+
+function importProducts(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const raw = JSON.parse(e.target.result);
+      if (!Array.isArray(raw) || !raw.length) { toast('Archivo inválido', 'err'); return; }
+      if (!confirm(`¿Importar ${raw.length} productos? Los existentes con el mismo ID se actualizarán.`)) return;
+      toast('Importando…', '');
+      const r = await api('products', {
+        method: 'POST',
+        headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify(raw)
+      });
+      if (r.ok) toast(`${raw.length} productos importados ✓`, 'ok');
+      else toast('Error al importar', 'err');
+    } catch { toast('Archivo JSON inválido', 'err'); }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+/* ── TOAST ── */
+let _toastT;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `toast${type ? ' '+type : ''} show`;
+  clearTimeout(_toastT);
+  _toastT = setTimeout(() => el.classList.remove('show'), type === 'err' ? 5000 : 3000);
+}
+
+/* ── CLOSE ON BACKDROP ── */
+document.querySelectorAll('.overlay').forEach(ov => {
+  ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('open'), document.body.style.overflow = ''; });
+});
+
+/* ── ESCAPE KEY ── */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.overlay.open').forEach(ov => { ov.classList.remove('open'); document.body.style.overflow = ''; });
+});
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
