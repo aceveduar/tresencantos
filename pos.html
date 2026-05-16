@@ -216,6 +216,7 @@ button,a{touch-action:manipulation}
   transition:box-shadow .15s;
 }
 .hi-card:hover{box-shadow:0 2px 10px rgba(28,24,23,.08)}
+.hi-card-apt{border-left:3px solid var(--gold)}
 
 /* Cabecera: hora · badge · total · ✕ */
 .hi-head{
@@ -373,6 +374,12 @@ button,a{touch-action:manipulation}
 .btn-abonar:hover{background:var(--gold-light)}
 .btn-liquidar{flex:1;padding:9px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
 .btn-liquidar:hover{background:#1B4332}
+/* HISTORIAL DE ABONOS */
+.apt-abonos{margin:0 0 4px;border-top:1px solid #F0E8DC;padding-top:7px}
+.apt-abonos-title{font-size:.68rem;font-weight:700;color:#9B8B78;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.apt-abono-row{display:flex;justify-content:space-between;align-items:center;font-size:.74rem;color:#9B8B78;padding:3px 0;border-bottom:1px dashed #F0E8DC}
+.apt-abono-row:last-child{border-bottom:none}
+.apt-abono-amount{font-weight:700;color:var(--charcoal);flex-shrink:0;margin-left:8px}
 /* ABONAR MODAL */
 .abonar-overlay{position:fixed;inset:0;background:rgba(20,15,12,.5);backdrop-filter:blur(4px);z-index:300;display:flex;align-items:flex-end;padding:0}
 .abonar-modal{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-height:85vh;overflow-y:auto}
@@ -522,21 +529,19 @@ button,a{touch-action:manipulation}
   /* Paneles en pantalla completa según pestaña activa */
   .pos-left.tab-active{display:flex!important;flex-direction:column;flex:1;max-height:none!important;overflow:hidden}
   .pos-left.tab-hidden{display:none!important}
-  .pos-right.tab-active{display:flex!important;flex-direction:column;flex:1;overflow:hidden}
+  /* Panel cobro: scroll único — evita pelea flex entre carrito y checkout */
+  .pos-right.tab-active{display:block!important;flex:1;overflow-y:auto;overflow-x:hidden}
   .pos-right.tab-hidden{display:none!important}
 
-  /* Cuando el panel derecho es pantalla completa, el carrito crece */
+  /* En scroll único los items del carrito no necesitan scroll propio */
   .pos-right.tab-active .cart-items{
-    flex:1;max-height:none!important;min-height:90px;overflow-y:auto;
+    max-height:none!important;overflow-y:visible;
   }
-  /* Checkout scrollable cuando el contenido crece (modo apartado) */
   .pos-right.tab-active .pos-checkout{
-    flex-shrink:0;overflow-y:auto;max-height:70vh;
+    overflow-y:visible;max-height:none;
   }
-  .pos-right.tab-active .cart-header{flex-shrink:0}
-  /* Cobrar siempre accesible — sticky en su contenedor */
+  /* Cobrar siempre accesible — sticky al fondo del scroll */
   #cobrar-btn{position:sticky;bottom:0;z-index:5;margin-top:6px}
-  .pos-right.tab-active .apartados-panel{flex-shrink:0}
 
   /* 🛒 del topbar oculto en móvil: la pestaña lo reemplaza */
   #cart-topbar-btn{display:none}
@@ -652,6 +657,9 @@ button,a{touch-action:manipulation}
       </a>
       <a href="settings.html" class="tbn-icon" title="Configuración">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </a>
+      <a href="index.html" class="tbn-icon" title="Tienda">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       </a>
     </nav>
   </div>
@@ -1323,11 +1331,11 @@ async function loadHistory() {
     return;
   }
   salesCache = {};
-  result.data.filter(s => s.type !== 'apartado').forEach(s => { salesCache[s.id] = s; });
+  result.data.forEach(s => { salesCache[s.id] = s; });
 
   const hoy    = new Date().toISOString().split('T')[0];
   const ayer   = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-  const ventas = result.data.filter(s => s.type !== 'apartado');
+  const ventas = result.data;
 
   // Agrupar por día
   const grupos = {};
@@ -1350,9 +1358,13 @@ async function loadHistory() {
       const items    = Array.isArray(s.items) ? s.items : [];
       const totalQty = items.reduce((n, i) => n + (i.qty || 1), 0);
 
-      const payBadge = s.payment_method === 'transferencia'
-        ? '<span class="pay-badge pay-transferencia" style="font-size:.62rem">📱</span>'
-        : '<span class="pay-badge pay-efectivo" style="font-size:.62rem">💵</span>';
+      const isApt  = s.type === 'apartado';
+      const pagado = parseFloat(s.paid_amount || 0);
+      const payBadge = isApt
+        ? '<span class="pay-badge" style="font-size:.62rem;background:#FFF8EE;color:#C9A462;border:1px solid #C9A462;padding:2px 6px;border-radius:50px;font-weight:700">📌 Apartado</span>'
+        : s.payment_method === 'transferencia'
+          ? '<span class="pay-badge pay-transferencia" style="font-size:.62rem">📱</span>'
+          : '<span class="pay-badge pay-efectivo" style="font-size:.62rem">💵</span>';
 
       const itemsHTML = items.map(i => `
 <div class="hi-item">
@@ -1364,18 +1376,19 @@ async function loadHistory() {
       const tags = [];
       if (disc > 0)    tags.push(`<span class="hi-tag discount">🏷 −$${disc.toLocaleString('es-MX')}</span>`);
       if (s.note)      tags.push(`<span class="hi-tag note">📝 ${s.note}</span>`);
-      if (s.customer)  tags.push(`<span class="hi-tag customer">👤 ${s.customer}</span>`);
+      if (s.customer)  tags.push(`<span class="hi-tag customer">👤 ${(s.customer||'').split(' · 📱 ')[0]}</span>`);
+      if (isApt)       tags.push(`<span class="hi-tag" style="color:#6B9E78;font-weight:600">✓ Anticipo $${pagado.toLocaleString('es-MX')} / $${total.toLocaleString('es-MX')}</span>`);
       const footerHTML = tags.length
         ? `<div class="hi-footer">${tags.join('')}</div>` : '';
 
       return `
-<div class="hi-card">
+<div class="hi-card${isApt ? ' hi-card-apt' : ''}">
   <div class="hi-head">
     <span class="hi-time">${hora} · ${totalQty} art.</span>
     <span class="hi-spacer"></span>
     ${payBadge}
     <span class="hi-total">$${total.toLocaleString('es-MX')}</span>
-    <button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar venta">✕</button>
+    <button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar">✕</button>
   </div>
   <div class="hi-items">${itemsHTML || '<div style="color:#9B8B78;font-size:.78rem;padding:4px 0">Sin detalle</div>'}</div>
   ${footerHTML}
@@ -1390,20 +1403,19 @@ async function loadHistory() {
 
 async function deleteSale(id) {
   const sale = salesCache[id];
-  if (!sale) { toast('Venta no encontrada', 'error'); return; }
+  if (!sale) { toast('Registro no encontrado', 'error'); return; }
 
-  const total = parseFloat(sale.total).toLocaleString('es-MX');
+  const isApt     = sale.type === 'apartado';
+  const total     = parseFloat(sale.total).toLocaleString('es-MX');
   const itemCount = Array.isArray(sale.items) ? sale.items.length : 0;
-  if (!confirm(`¿Cancelar la venta de $${total} (${itemCount} artículo${itemCount !== 1 ? 's' : ''})?\n\nSe restaurará el stock de los productos vendidos.`)) return;
+  const label     = isApt ? 'apartado' : 'venta';
+  if (!confirm(`¿Cancelar el ${label} de $${total} (${itemCount} artículo${itemCount !== 1 ? 's' : ''})?\n\nSe restaurará el stock de los productos.`)) return;
 
-  // 1. Eliminar el registro de venta
+  // 1. Eliminar el registro
   const delResult = await api(`sales?id=eq.${id}`, { method: 'DELETE' });
-  if (!delResult.ok) {
-    toast('Error al eliminar la venta', 'error');
-    return;
-  }
+  if (!delResult.ok) { toast(`Error al cancelar el ${label}`, 'error'); return; }
 
-  // 2. Restaurar stock de cada producto vendido
+  // 2. Restaurar stock de cada producto
   if (Array.isArray(sale.items)) {
     for (const item of sale.items) {
       const p = products.find(x => x.id === item.id);
@@ -1420,8 +1432,9 @@ async function deleteSale(id) {
   delete salesCache[id];
   await loadHistory();
   await loadTodayStats();
+  if (isApt) await loadApartados();
   showAllProducts();
-  toast('Venta eliminada y stock restaurado ✓', 'success');
+  toast(`${isApt ? 'Apartado cancelado' : 'Venta eliminada'} y stock restaurado ✓`, 'success');
 }
 
 /* ── DESCUENTO ── */
@@ -1455,7 +1468,8 @@ function setPayMethod(method) {
   payMethod = method;
   document.getElementById('pay-efectivo').classList.toggle('active', method === 'efectivo');
   document.getElementById('pay-transferencia').classList.toggle('active', method === 'transferencia');
-  document.getElementById('cash-section').style.display = method === 'efectivo' ? '' : 'none';
+  const isApt = document.getElementById('pos-is-apartado')?.checked;
+  document.getElementById('cash-section').style.display = (!isApt && method === 'efectivo') ? '' : 'none';
   updateChange();
 }
 
@@ -1476,11 +1490,14 @@ function toggleApartadoMode() {
   const isApt = document.getElementById('pos-is-apartado').checked;
   document.getElementById('apartado-fields').style.display = isApt ? '' : 'none';
   document.getElementById('cobrar-btn').textContent = isApt ? '📌 Registrar apartado' : '✓ Cobrar';
-  // Al activar apartado: limpiar efectivo para evitar estado mixto confuso
+  // Ocultar efectivo/cambio en apartado — esos campos se ignoran en cobrar()
+  const cashSection = document.getElementById('cash-section');
+  if (cashSection) cashSection.style.display = isApt ? 'none' : (payMethod === 'efectivo' ? '' : 'none');
   if (isApt) {
     const cashEl = document.getElementById('pos-cash');
     if (cashEl) cashEl.value = '';
-    updateChange();
+    const changeEl = document.getElementById('pos-change-input');
+    if (changeEl) changeEl.value = '';
   }
   updateAnticipoInfo();
 }
@@ -1523,7 +1540,7 @@ function toggleApartadosPanel() {
 }
 
 async function loadApartados() {
-  const result = await api(`sales?type=eq.apartado&select=id,total,paid_amount,customer,created_at,items&order=created_at.desc&limit=20`);
+  const result = await api(`sales?type=eq.apartado&select=id,total,paid_amount,customer,created_at,items,abonos&order=created_at.desc&limit=20`);
   const list      = document.getElementById('apartados-list');
   const aptView   = document.getElementById('apt-view-list');
   const countEl   = document.getElementById('apartados-count');
@@ -1549,6 +1566,10 @@ async function loadApartados() {
   if (panel)   panel.style.display = '';
   if (countEl) countEl.textContent = `(${result.data.length})`;
 
+  // Guardar datos para acceso en abonarApartado
+  _apartadosData = {};
+  result.data.forEach(s => { _apartadosData[s.id] = s; });
+
   const itemsHTML = result.data.map(s => {
     const total    = parseFloat(s.total) || 0;
     const pagado   = parseFloat(s.paid_amount || 0);
@@ -1562,10 +1583,21 @@ async function loadApartados() {
     const telefonoHTML = telNum
       ? `· <a href="tel:${telNum.replace(/\D/g,'')}" style="color:#9B8B78;text-decoration:none;font-weight:400;font-size:.76rem">📱 ${telNum}</a>`
       : '';
+    const abonos   = Array.isArray(s.abonos) ? s.abonos : [];
+    const abonosHTML = abonos.length ? `
+<div class="apt-abonos">
+  <div class="apt-abonos-title">Historial de pagos</div>
+  ${abonos.map(a => {
+    const fecha = new Date(a.date).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+    const ico   = a.method === 'transferencia' ? '📱' : '💵';
+    return `<div class="apt-abono-row"><span>${fecha} · ${ico} ${a.method}</span><span class="apt-abono-amount">$${parseFloat(a.amount).toLocaleString('es-MX')}</span></div>`;
+  }).join('')}
+</div>` : '';
     return `
 <div class="apartado-item">
   <div class="apt-customer">👤 ${nombre} <span style="font-weight:400;font-size:.76rem">${telefonoHTML}</span></div>
   <div class="apt-meta">${t} · ${summary.substring(0,45)}${summary.length>45?'…':''}</div>
+  ${abonosHTML}
   <div class="apt-progress-section">
     <div class="apt-progress-track">
       <div class="apt-progress-fill" style="width:${pct}%"></div>
@@ -1587,11 +1619,13 @@ async function loadApartados() {
 }
 
 /* ── ABONAR ─────────────────────────────────────────────────────────── */
-let _abonarCtx = null;
+let _abonarCtx    = null;
 let _abonarMethod = 'efectivo';
+let _apartadosData = {}; // id → sale data (para acceder a abonos al abonar)
 
 function abonarApartado(id, total, pagado, nombre) {
-  _abonarCtx = { id, total, pagado, pendiente: total - pagado };
+  const abonos = Array.isArray(_apartadosData[id]?.abonos) ? _apartadosData[id].abonos : [];
+  _abonarCtx = { id, total, pagado, pendiente: total - pagado, nombre, abonos };
   _abonarMethod = 'efectivo';
   document.getElementById('abonar-info').textContent =
     `${nombre} · Pendiente $${(total - pagado).toLocaleString('es-MX')}`;
@@ -1628,13 +1662,13 @@ async function confirmAbonar() {
   const monto   = parseFloat(document.getElementById('abonar-amount').value) || 0;
   if (monto <= 0 || monto > _abonarCtx.pendiente) return;
   const nuevoPagado = _abonarCtx.pagado + monto;
-  const fecha = new Date().toLocaleDateString('es-MX', {day:'numeric',month:'short'});
   const btn = document.getElementById('abonar-confirm-btn');
   btn.disabled = true; btn.textContent = 'Registrando…';
-  // Actualizar paid_amount y agregar nota de abono
+  const nuevoAbono = { amount: monto, method: _abonarMethod, date: new Date().toISOString() };
+  const abonosActualizados = [...(_abonarCtx.abonos || []), nuevoAbono];
   const r = await api(`sales?id=eq.${_abonarCtx.id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ paid_amount: nuevoPagado })
+    body: JSON.stringify({ paid_amount: nuevoPagado, abonos: abonosActualizados })
   });
   if (!r.ok) { toast('Error al registrar abono', 'error'); btn.disabled = false; btn.textContent = 'Confirmar abono'; return; }
   logActivity('apartado_abono',
@@ -1662,16 +1696,18 @@ async function completarApartado(id) {
 
 /* ── CHANGE & COBRAR ── */
 function updateChange() {
-  const total = getDiscountedTotal();
+  const isApt = document.getElementById('pos-is-apartado')?.checked;
   const disc  = getDiscount();
-  const cash  = parseFloat(document.getElementById('pos-cash')?.value) || 0;
-  const change = cash - total;
 
-  const showChange = cash > 0 && change >= 0;
-  document.getElementById('pos-change-input').value = showChange ? change.toFixed(2) : '';
-  document.getElementById('pos-change-input').style.color = change >= 0 ? 'var(--green)' : 'var(--red)';
+  if (!isApt) {
+    const total  = getDiscountedTotal();
+    const cash   = parseFloat(document.getElementById('pos-cash')?.value) || 0;
+    const change = cash - total;
+    const showChange = cash > 0 && change >= 0;
+    document.getElementById('pos-change-input').value = showChange ? change.toFixed(2) : '';
+    document.getElementById('pos-change-input').style.color = change >= 0 ? 'var(--green)' : 'var(--red)';
+  }
 
-  // Mostrar monto del descuento
   const discEl = document.getElementById('pos-discount-amount');
   if (discEl) discEl.textContent = disc > 0 ? `−$${disc.toLocaleString('es-MX', {maximumFractionDigits:0})}` : '';
 
@@ -1722,7 +1758,10 @@ async function cobrar() {
     note:            note || null,
     type:            isApartado ? 'apartado' : 'venta',
     paid_amount:     paidAmount,
-    customer:        customer || null
+    customer:        customer || null,
+    abonos:          isApartado && paidAmount > 0
+                       ? [{ amount: paidAmount, method: payMethod, date: new Date().toISOString() }]
+                       : null
   };
 
   const saleResult = await api('sales', { method:'POST', headers:{'Prefer':'return=minimal'}, body:JSON.stringify(saleData) });
