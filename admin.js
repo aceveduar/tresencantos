@@ -95,7 +95,7 @@ function renderCategorySelects() {
   if (fSel) {
     const cur = fSel.value;
     const roots = rootCats();
-    fSel.innerHTML = roots.map(r => {
+    fSel.innerHTML = `<option value="" disabled selected>Selecciona una categoría</option>` + roots.map(r => {
       const subs = subCats(r.code);
       if (subs.length) {
         return `<optgroup label="${r.label}">${subs.map(s => `<option value="${s.code}">${s.label}</option>`).join('')}</optgroup>`;
