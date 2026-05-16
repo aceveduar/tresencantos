@@ -65,6 +65,7 @@ button,a{touch-action:manipulation}
 .pos-prod-info{flex:1;min-width:0}
 .pos-prod-name{font-weight:600;font-size:.84rem;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.3}
 .pos-prod-sub{font-size:.7rem;color:#9B8B78;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pos-prod-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
 .pos-prod-price{font-family:'Playfair Display',serif;font-weight:700;font-size:.92rem;flex-shrink:0}
 .pos-prod-stock{font-size:.68rem;font-weight:600;padding:2px 6px;border-radius:50px;flex-shrink:0}
 /* Botón + — affordance de agregar al carrito */
@@ -338,8 +339,17 @@ button,a{touch-action:manipulation}
 .pay-btn{flex:1;padding:6px 4px;border-radius:7px;border:1.5px solid var(--border);background:#fff;font-size:.76rem;font-weight:600;cursor:pointer;color:#9B8B78;transition:.15s;text-align:center}
 .pay-btn.active{background:var(--charcoal);color:#fff;border-color:var(--charcoal)}
 .pay-btn:hover:not(.active){border-color:var(--gold);color:var(--gold-dark)}
-#pos-note{width:100%;padding:6px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:.82rem;outline:none;margin-bottom:5px;font-family:inherit;color:var(--charcoal)}
-#pos-note:focus{border-color:var(--gold)}
+.note-toggle-btn{
+  width:100%;padding:7px 10px;border:1.5px dashed var(--border);border-radius:7px;
+  background:transparent;color:#9B8B78;font-size:.8rem;font-weight:500;cursor:pointer;
+  text-align:left;font-family:inherit;margin-bottom:5px;transition:.15s;
+  display:flex;align-items:center;gap:6px;
+}
+.note-toggle-btn:hover{border-color:var(--gold);color:var(--gold-dark)}
+.note-input-wrap{position:relative;margin-bottom:5px}
+#pos-note{width:100%;padding:6px 32px 6px 10px;border:1.5px solid var(--gold);border-radius:7px;font-size:.82rem;outline:none;font-family:inherit;color:var(--charcoal)}
+#pos-note:focus{border-color:var(--gold-dark)}
+.note-clear-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#B5A696;font-size:.9rem;padding:2px 4px;line-height:1;touch-action:manipulation}
 .apartado-toggle-label{display:flex;align-items:center;gap:7px;font-size:.8rem;cursor:pointer;padding:3px 0;color:var(--charcoal);font-weight:500}
 .apartado-toggle-label input{width:15px;height:15px;accent-color:var(--gold);cursor:pointer;flex-shrink:0}
 .apartado-fields{background:var(--cream);border-radius:8px;padding:8px 10px;margin-bottom:5px;display:flex;flex-direction:column;gap:6px;border:1px solid var(--border)}
@@ -395,18 +405,6 @@ button,a{touch-action:manipulation}
 .apartados-header{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;font-size:.72rem;font-weight:700;color:var(--gold-dark);text-transform:uppercase;letter-spacing:.05em;cursor:pointer;user-select:none;background:#FFF8EE;position:sticky;top:0;z-index:1}
 .apartados-header:hover{color:var(--charcoal)}
 .apartados-list{padding:0 8px 8px}
-.apartado-item{display:flex;align-items:center;gap:8px;padding:8px 6px;border-radius:6px;font-size:.78rem;border-bottom:1px solid #F5EBDA}
-.apartado-item:last-child{border-bottom:none}
-.apartado-info{flex:1;min-width:0}
-.apartado-customer{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--charcoal)}
-.apartado-detail{font-size:.7rem;color:#9B8B78;margin-top:2px}
-.apartado-amounts{font-size:.72rem;margin-top:3px}
-.btn-completar{padding:5px 12px;border-radius:50px;border:none;background:var(--green);color:#fff;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:.15s;font-family:inherit;flex-shrink:0}
-.btn-completar:hover{background:#1B4332}
-.pay-badge{font-size:.63rem;font-weight:700;padding:2px 6px;border-radius:50px;flex-shrink:0}
-.pay-efectivo{background:#D1FAE5;color:#065F46}
-.pay-transferencia{background:#DBEAFE;color:#1e40af}
-.badge-apartado{background:#FEF3C7;color:#92400E;font-size:.63rem;font-weight:700;padding:2px 6px;border-radius:50px;flex-shrink:0}
 
 /* SALE DONE WA BUTTON */
 .btn-wa-ticket{width:100%;margin-top:8px;padding:11px;border-radius:12px;border:none;background:#25D366;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
@@ -450,7 +448,7 @@ button,a{touch-action:manipulation}
   .pos-left{flex-shrink:0;max-height:40vh;border-right:none;border-bottom:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column}
   .pos-divider{display:none}
   .pos-right{flex:1;overflow-y:auto;overflow-x:hidden;display:block;min-height:0}
-  .cart-items{max-height:120px;overflow-y:auto;flex:none}
+  .cart-items{max-height:120px;min-height:90px;overflow-y:auto;flex:none}
 
   /* ── CHIPS Y CARRITO ─────────────────────────────────────── */
   .cat-chip{padding:5px 12px;font-size:.72rem}
@@ -465,7 +463,8 @@ button,a{touch-action:manipulation}
   .pay-btn{min-height:44px;font-size:.82rem}
   .discount-type-btn{min-height:38px;padding:8px 12px;font-size:.78rem}
   #pos-discount{height:38px;font-size:16px!important}
-  #pos-note{height:40px;font-size:16px!important;padding:10px 12px}
+  #pos-note{height:40px;font-size:16px!important;padding:10px 36px 10px 12px}
+  .note-toggle-btn{height:40px;font-size:.84rem}
   #pos-customer,#pos-phone{font-size:16px!important}
   #pos-anticipo,#pos-pendiente{font-size:16px!important;padding:9px 10px}
   .apartado-field-row{grid-template-columns:1fr}
@@ -529,7 +528,7 @@ button,a{touch-action:manipulation}
 
   /* Cuando el panel derecho es pantalla completa, el carrito crece */
   .pos-right.tab-active .cart-items{
-    flex:1;max-height:none!important;overflow-y:auto;
+    flex:1;max-height:none!important;min-height:90px;overflow-y:auto;
   }
   /* Checkout scrollable cuando el contenido crece (modo apartado) */
   .pos-right.tab-active .pos-checkout{
@@ -599,8 +598,7 @@ button,a{touch-action:manipulation}
 @media(max-width:380px){
   .pos-grid{grid-template-columns:1fr 1fr;gap:6px;padding:6px}
   .cat-chip{padding:5px 9px;font-size:.68rem}
-  .cash-quick{flex-wrap:wrap}
-  .cash-quick button{flex:1 1 calc(33% - 4px);min-width:0}
+  .cash-quick button{font-size:.72rem;padding:6px 1px}
 }
 
 /* ══ TOPBAR NAV ICONS — módulos (mobile) ════════════════════════════ */
@@ -653,6 +651,9 @@ button,a{touch-action:manipulation}
       </a>
       <a href="staging.html" class="tbn-icon" title="Staging">
         <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </a>
+      <a href="activity.html" class="tbn-icon" title="Actividad">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       </a>
     </nav>
   </div>
@@ -728,7 +729,6 @@ button,a{touch-action:manipulation}
       <!-- Efectivo (solo si pago en efectivo) -->
       <div id="cash-section">
         <div class="cash-quick" id="cash-quick">
-          <button onclick="setCash(50)">$50</button>
           <button onclick="setCash(100)">$100</button>
           <button onclick="setCash(200)">$200</button>
           <button onclick="setCash(500)">$500</button>
@@ -737,7 +737,7 @@ button,a{touch-action:manipulation}
         <div class="cash-row">
           <div class="cash-field">
             <label>Efectivo recibido</label>
-            <input type="number" id="pos-cash" min="0" step="1" placeholder="0" oninput="updateChange()">
+            <input type="text" inputmode="numeric" id="pos-cash" placeholder="" oninput="updateChange()">
           </div>
           <div class="cash-field">
             <label>Cambio</label>
@@ -747,7 +747,11 @@ button,a{touch-action:manipulation}
       </div>
 
       <!-- Nota -->
-      <input type="text" id="pos-note" placeholder="📝 Nota (opcional)…">
+      <button type="button" class="note-toggle-btn" id="note-toggle-btn" onclick="toggleNoteField()">📝 Agregar nota</button>
+      <div class="note-input-wrap" id="note-input-wrap" style="display:none">
+        <input type="text" id="pos-note" placeholder="Escribe una nota…">
+        <button type="button" class="note-clear-btn" onclick="clearNoteField()" title="Quitar nota">✕</button>
+      </div>
 
       <!-- Apartado toggle -->
       <label class="apartado-toggle-label">
@@ -953,6 +957,21 @@ async function loadProducts() {
   }
 }
 
+/* ── ACTIVITY LOG ── */
+function getCurrentUserEmail() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY));
+    if (!s?.access_token) return 'desconocido';
+    return JSON.parse(atob(s.access_token.split('.')[1])).email || 'desconocido';
+  } catch { return 'desconocido'; }
+}
+function logActivity(action, summary, meta = null) {
+  api('activity_log', {
+    method: 'POST',
+    body: JSON.stringify({ user_email: getCurrentUserEmail(), action, summary, meta })
+  }).catch(() => {});
+}
+
 /* ── VIEW TOGGLE ── */
 function setPosView(view) {
   posView = view;
@@ -1062,21 +1081,23 @@ function searchProducts(q) {
   renderPosProducts(matches, false);
 }
 
+const PROD_PLACEHOLDER = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='52' viewBox='0 0 52 52'%3E%3Crect width='52' height='52' fill='%23F0EBE3'/%3E%3Cpath d='M18 20h16v14H18z' fill='none' stroke='%23C4B5A4' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M22 20v-2a4 4 0 0 1 8 0v2' fill='none' stroke='%23C4B5A4' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E`;
+
 function productCard(p) {
   const oos      = p.stock === 0 || p.outOfStock;
   const disabled = oos ? 'style="opacity:.5;cursor:not-allowed"' : '';
-  const fallback = `https://picsum.photos/seed/${p.id+10}/80/80`;
+  const isLast   = p.stock === 1;
+  const stockSub = isLast
+    ? ' · <span style="color:#C9A462;font-weight:700">Última</span>'
+    : (p.stock > 1 && p.stock < 10 ? ` · <span style="color:#6B9E78;font-weight:600">${p.stock} uds</span>` : '');
   return `
 <div class="pos-prod" onclick="${oos ? '' : `addToCart(${p.id})`}" ${disabled}>
-  <img class="pos-prod-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'">
+  <img class="pos-prod-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
   <div class="pos-prod-info">
     <div class="pos-prod-name">${p.name}</div>
-    <div class="pos-prod-sub">${p.categoryLabel}${
-      p.stock === 1 ? ' · <span style="color:#C9A462;font-weight:700">Última</span>' :
-      p.stock > 1 && p.stock < 10 ? ` · <span style="color:#6B9E78;font-weight:600">${p.stock} uds</span>` : ''
-    }</div>
+    <div class="pos-prod-sub">${p.categoryLabel}${stockSub}</div>
   </div>
-  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+  <div class="pos-prod-right">
     <div class="pos-prod-price">$${p.price.toLocaleString('es-MX')}</div>
     <button class="pos-prod-add" onclick="event.stopPropagation();${oos ? '' : `addToCart(${p.id})`}" title="Agregar" ${oos ? 'disabled' : ''}>+</button>
   </div>
@@ -1419,6 +1440,18 @@ function setPayMethod(method) {
   updateChange();
 }
 
+/* ── NOTA ── */
+function toggleNoteField() {
+  document.getElementById('note-toggle-btn').style.display = 'none';
+  document.getElementById('note-input-wrap').style.display = '';
+  setTimeout(() => document.getElementById('pos-note').focus(), 50);
+}
+function clearNoteField() {
+  document.getElementById('pos-note').value = '';
+  document.getElementById('note-input-wrap').style.display = 'none';
+  document.getElementById('note-toggle-btn').style.display = '';
+}
+
 /* ── APARTADO ── */
 function toggleApartadoMode() {
   const isApt = document.getElementById('pos-is-apartado').checked;
@@ -1506,10 +1539,13 @@ async function loadApartados() {
     const summary  = Array.isArray(s.items) ? s.items.map(i=>i.name).join(', ') : '';
     const custParts = (s.customer || '').split(' · 📱 ');
     const nombre   = custParts[0] || 'Sin nombre';
-    const telefono = custParts[1] ? `· 📱 ${custParts[1]}` : '';
+    const telNum   = custParts[1] || '';
+    const telefonoHTML = telNum
+      ? `· <a href="tel:${telNum.replace(/\D/g,'')}" style="color:#9B8B78;text-decoration:none;font-weight:400;font-size:.76rem">📱 ${telNum}</a>`
+      : '';
     return `
 <div class="apartado-item">
-  <div class="apt-customer">👤 ${nombre} <span style="font-weight:400;color:#9B8B78;font-size:.76rem">${telefono}</span></div>
+  <div class="apt-customer">👤 ${nombre} <span style="font-weight:400;font-size:.76rem">${telefonoHTML}</span></div>
   <div class="apt-meta">${t} · ${summary.substring(0,45)}${summary.length>45?'…':''}</div>
   <div class="apt-progress-section">
     <div class="apt-progress-track">
@@ -1582,6 +1618,9 @@ async function confirmAbonar() {
     body: JSON.stringify({ paid_amount: nuevoPagado })
   });
   if (!r.ok) { toast('Error al registrar abono', 'error'); btn.disabled = false; btn.textContent = 'Confirmar abono'; return; }
+  logActivity('apartado_abono',
+    `Abono de $${monto.toLocaleString('es-MX')} a ${_abonarCtx.nombre || 'cliente'}`,
+    { amount: monto, method: _abonarMethod });
   closeAbonarModal();
   toast(`Abono de $${monto.toLocaleString('es-MX')} registrado ✓`, 'success');
   loadApartados();
@@ -1595,6 +1634,7 @@ async function completarApartado(id) {
     body: JSON.stringify({ type: 'venta', payment_method: method })
   });
   if (!r.ok) { toast('Error al completar apartado', 'error'); return; }
+  logActivity('apartado_liquidado', `Liquidó apartado — ${method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo'}`, { method });
   toast('Apartado completado ✓', 'success');
   loadApartados();
   loadHistory();
@@ -1681,6 +1721,17 @@ async function cobrar() {
 
   btn.removeAttribute('data-loading');
 
+  // Registrar actividad
+  if (isApartado) {
+    logActivity('apartado_nuevo',
+      `Apartado de ${customerName} — $${total.toLocaleString('es-MX')}`,
+      { customer: customerName, total, anticipo: paidAmount, pendiente: total - paidAmount });
+  } else {
+    logActivity('venta',
+      `Cobró $${total.toLocaleString('es-MX')} — ${items.length} producto${items.length !== 1 ? 's' : ''}`,
+      { total, items: items.length, method: payMethod, discount: disc || 0 });
+  }
+
   // Guardar para el ticket WA
   _lastSale = { total, paidAmount, change, disc, note, items, payMethod, isApartado, customer };
 
@@ -1689,6 +1740,7 @@ async function cobrar() {
   ['pos-cash','pos-discount','pos-note','pos-customer','pos-phone','pos-anticipo'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   document.getElementById('pos-is-apartado').checked = false;
   document.getElementById('apartado-fields').style.display = 'none';
+  clearNoteField();
   document.getElementById('cobrar-btn').textContent = '✓ Cobrar';
   renderCart(); updateChange();
   document.getElementById('pos-search').value = '';

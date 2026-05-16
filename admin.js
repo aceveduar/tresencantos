@@ -122,6 +122,21 @@ function renderCategorySelects() {
 const getSupabaseUrl = () => SUPABASE_URL;
 const getSupabaseKey = () => SUPABASE_SERVICE_KEY;
 
+/* ── ACTIVITY LOG ── */
+function getCurrentUserEmail() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY));
+    if (!s?.access_token) return 'desconocido';
+    return JSON.parse(atob(s.access_token.split('.')[1])).email || 'desconocido';
+  } catch { return 'desconocido'; }
+}
+function logActivity(action, summary, meta = null) {
+  supabaseApi('activity_log', {
+    method: 'POST',
+    body: JSON.stringify({ user_email: getCurrentUserEmail(), action, summary, meta })
+  }).catch(() => {});
+}
+
 function getFilteredProducts() {
   const q   = document.getElementById('search-input')?.value.toLowerCase() || '';
   const cat = document.getElementById('cat-filter')?.value || 'all';
@@ -1834,6 +1849,12 @@ async function saveProduct() {
     }
   }
 
+  if (idVal) {
+    logActivity('producto_editado', `Editó "${name}"`, { id: parseInt(idVal), name, price });
+  } else {
+    const newId = products[products.length - 1]?.id;
+    logActivity('producto_creado', `Creó "${name}" — $${price.toLocaleString('es-MX')}`, { id: newId, name, price });
+  }
   closeForm();
   renderTable();
   renderStats();
@@ -1873,6 +1894,7 @@ async function confirmDelete() {
 
   const deleted = products.find(p => p.id === id);
   const deletedIdx = products.findIndex(p => p.id === id);
+  if (deleted) logActivity('producto_eliminado', `Eliminó "${deleted.name}"`, { id, name: deleted.name, price: deleted.price });
 
   products = products.filter(p => p.id !== id);
   selectedIds.delete(id);

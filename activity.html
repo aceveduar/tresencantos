@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Actividad — Tres Encantos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cream:#FAF5EE;--gold:#C9A462;--gold-dark:#A67C3A;
+  --charcoal:#1C1817;--red:#E85D5D;--green:#2D6A4F;
+  --border:#EAE0D4;--muted:#8A7564;--r:10px;
+}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal);min-height:100dvh;display:flex;flex-direction:column}
+button,input,select{font-family:inherit}
+a{text-decoration:none}
+
+/* TOPBAR */
+.topbar{background:var(--charcoal);color:#fff;padding:0 20px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:100}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.topbar-left img{height:30px;border-radius:5px}
+.topbar-title{font-family:'Playfair Display',serif;font-size:1rem;color:#fff}
+.topbar-right{display:flex;gap:8px;align-items:center}
+.btn-back{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:50px;font-size:.8rem;font-weight:600;border:1.5px solid rgba(255,255,255,.3);color:#fff;transition:.15s;white-space:nowrap}
+.btn-back:hover{background:rgba(255,255,255,.1)}
+.btn-names{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:50px;font-size:.78rem;font-weight:600;border:1.5px solid rgba(255,255,255,.25);background:transparent;color:rgba(255,255,255,.75);cursor:pointer;transition:.15s;white-space:nowrap}
+.btn-names:hover{background:rgba(255,255,255,.1);color:#fff}
+
+/* MAIN */
+.main{flex:1;max-width:800px;width:100%;margin:0 auto;padding:20px 16px 48px}
+
+/* FILTERS */
+.filters-bar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.filter-select{
+  padding:7px 28px 7px 12px;border:1.5px solid var(--border);border-radius:50px;
+  font-size:.8rem;font-weight:600;background:#fff;color:var(--charcoal);outline:none;cursor:pointer;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A7564' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+}
+.filter-select:focus{border-color:var(--gold)}
+.chip-group{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;flex-shrink:0}
+.chip-group::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;padding:6px 14px;border-radius:50px;border:1.5px solid var(--border);background:#fff;font-size:.76rem;font-weight:600;cursor:pointer;color:#9B8B78;transition:.15s;white-space:nowrap}
+.chip.active{background:var(--charcoal);color:#fff;border-color:var(--charcoal)}
+.chip:hover:not(.active){border-color:var(--gold);color:var(--gold-dark)}
+
+/* SUMMARY */
+.summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.sum-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 12px;text-align:center}
+.sum-val{font-family:'Playfair Display',serif;font-size:1.25rem;font-weight:700}
+.sum-lbl{font-size:.67rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:3px}
+
+/* FEED */
+.date-sep{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:16px 2px 6px}
+.date-sep:first-child{padding-top:2px}
+.act-card{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:7px;transition:.15s}
+.act-card:hover{box-shadow:0 2px 10px rgba(28,24,23,.07)}
+.act-avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:800;color:#fff;margin-top:1px}
+.act-body{flex:1;min-width:0}
+.act-top{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
+.act-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:50px;font-size:.63rem;font-weight:800;letter-spacing:.03em;text-transform:uppercase;flex-shrink:0}
+.badge-venta{background:#D1FAE5;color:#065F46}
+.badge-inventario{background:#E0E7FF;color:#3730A3}
+.badge-apartado{background:#FEF3C7;color:#92400E}
+.act-user{font-size:.73rem;color:var(--muted);font-weight:600;white-space:nowrap}
+.act-time{font-size:.68rem;color:#B5A696;margin-left:auto;white-space:nowrap;flex-shrink:0}
+.act-summary{font-size:.84rem;font-weight:600;color:var(--charcoal);line-height:1.4}
+.act-detail{font-size:.74rem;color:var(--muted);margin-top:3px}
+
+/* MODAL NOMBRES */
+.modal-backdrop{position:fixed;inset:0;background:rgba(20,15,12,.45);backdrop-filter:blur(3px);z-index:400;display:flex;align-items:flex-end}
+.names-modal{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-height:85vh;overflow-y:auto}
+.names-modal h3{font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:4px}
+.names-modal .sub{font-size:.78rem;color:var(--muted);margin-bottom:20px}
+.name-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;margin-bottom:12px}
+.name-email{font-size:.75rem;color:var(--muted);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.name-input{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;width:100%}
+.name-input:focus{border-color:var(--gold)}
+.modal-footer{display:flex;gap:10px;margin-top:20px}
+.btn-cancel-modal{flex:1;padding:13px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-size:.88rem;font-weight:600;cursor:pointer;color:var(--muted)}
+.btn-save-modal{flex:2;padding:13px;border-radius:10px;border:none;background:var(--gold);color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;transition:.15s}
+.btn-save-modal:hover{background:var(--gold-dark)}
+
+/* EMPTY / LOADING */
+.empty-state{text-align:center;padding:56px 20px;color:var(--muted)}
+.empty-state .em{font-size:2.5rem;margin-bottom:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:22px;height:22px;border:2.5px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .6s linear infinite;margin:48px auto}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--charcoal);color:#fff;padding:10px 22px;border-radius:50px;font-size:.82rem;font-weight:500;z-index:600;transition:.25s ease;opacity:0;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.success{background:var(--green)}
+
+@media(max-width:640px){
+  .topbar{padding:0 12px}
+  .btn-back span{display:none}
+  .main{padding:14px 12px 40px}
+  .summary-row{gap:8px}
+  .sum-card{padding:12px 8px}
+  .sum-val{font-size:1.1rem}
+  .act-card{padding:10px 12px;gap:10px}
+  .act-avatar{width:32px;height:32px;font-size:.75rem}
+  .name-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <a href="index.html"><img src="logo.png" alt="Tres Encantos"></a>
+    <span class="topbar-title">Actividad</span>
+  </div>
+  <div class="topbar-right">
+    <button class="btn-names" onclick="openNamesModal()">👤 Nombres</button>
+    <a href="stats.html" class="btn-back">📊 <span>Reportes</span></a>
+    <a href="admin.html" class="btn-back">← <span>Inventario</span></a>
+  </div>
+</div>
+
+<div class="main">
+  <div class="filters-bar">
+    <select class="filter-select" id="filter-period" onchange="load()">
+      <option value="1">Hoy</option>
+      <option value="7" selected>7 días</option>
+      <option value="30">30 días</option>
+      <option value="0">Todo</option>
+    </select>
+    <select class="filter-select" id="filter-user" onchange="load()">
+      <option value="">Todos</option>
+    </select>
+    <div class="chip-group">
+      <button class="chip active" data-type="" onclick="setType(this,'')">Todos</button>
+      <button class="chip" data-type="venta" onclick="setType(this,'venta')">💰 Ventas</button>
+      <button class="chip" data-type="inventario" onclick="setType(this,'inventario')">📦 Inventario</button>
+      <button class="chip" data-type="apartado" onclick="setType(this,'apartado')">📌 Apartados</button>
+    </div>
+  </div>
+
+  <div class="summary-row" id="summary-row" style="display:none">
+    <div class="sum-card"><div class="sum-val" id="sum-ventas">—</div><div class="sum-lbl">Ventas</div></div>
+    <div class="sum-card"><div class="sum-val" id="sum-inv">—</div><div class="sum-lbl">Cambios inv.</div></div>
+    <div class="sum-card"><div class="sum-val" id="sum-apt">—</div><div class="sum-lbl">Apartados</div></div>
+  </div>
+
+  <div id="feed"><div class="spinner"></div></div>
+</div>
+
+<!-- MODAL NOMBRES -->
+<div class="modal-backdrop" id="names-modal" style="display:none" onclick="if(event.target===this)closeNamesModal()">
+  <div class="names-modal">
+    <h3>Nombres de usuarios</h3>
+    <p class="sub">Asigna un nombre visible a cada cuenta para identificarlas fácilmente.</p>
+    <div id="names-list"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel-modal" onclick="closeNamesModal()">Cancelar</button>
+      <button class="btn-save-modal" onclick="saveNames()">Guardar nombres</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL         = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUyNjIyNiwiZXhwIjoyMDk0MTAyMjI2fQ.B9nZ1KENDQsUtn9PFwiMTrXuMZuWWIphGnH8XPfeJjQ';
+const SESSION_KEY          = 'te_admin_session';
+
+/* ── AUTH ── */
+(function(){
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY));
+    if (!s?.access_token || s.expires_at <= Date.now()/1000 + 60) window.location.href = 'admin.html';
+  } catch { window.location.href = 'admin.html'; }
+})();
+
+/* ── API ── */
+async function api(path, opts = {}) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...opts,
+    headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, 'Content-Type': 'application/json', ...opts.headers }
+  });
+  return { ok: r.ok, data: r.status !== 204 ? await r.json().catch(()=>null) : null };
+}
+
+/* ── STATE ── */
+let allData     = [];
+let currentType = '';
+let nameMap     = {}; // { email: displayName }
+
+/* ── NOMBRE HELPERS ── */
+function displayName(email) {
+  return nameMap[email] || (email ? email.split('@')[0] : 'desconocido');
+}
+function avatarInitial(email) {
+  const name = nameMap[email];
+  return name ? name[0].toUpperCase() : (email || '?')[0].toUpperCase();
+}
+function avatarColor(email) {
+  const palette = ['#C9A462','#2D6A4F','#6366F1','#0891B2','#D97706','#7C3AED','#E85D5D','#059669'];
+  let h = 0;
+  for (const c of (email || '')) h = c.charCodeAt(0) + ((h << 5) - h);
+  return palette[Math.abs(h) % palette.length];
+}
+
+/* ── LOAD NAME MAP ── */
+async function loadNameMap() {
+  const { ok, data } = await api('config?id=eq.user_names&select=value');
+  if (ok && data?.[0]?.value) {
+    try { nameMap = JSON.parse(data[0].value); } catch {}
+  }
+}
+
+/* ── NAMES MODAL ── */
+function openNamesModal() {
+  const emails = [...new Set(allData.map(d => d.user_email))].filter(Boolean).sort();
+  if (!emails.length) { toast('Sin usuarios registrados aún'); return; }
+  const list = document.getElementById('names-list');
+  list.innerHTML = emails.map(e => `
+    <div class="name-row">
+      <div class="name-email" title="${e}">${e}</div>
+      <input class="name-input" data-email="${e}" placeholder="Nombre visible" value="${nameMap[e] || ''}">
+    </div>`).join('');
+  document.getElementById('names-modal').style.display = 'flex';
+}
+
+function closeNamesModal() {
+  document.getElementById('names-modal').style.display = 'none';
+}
+
+async function saveNames() {
+  const inputs = document.querySelectorAll('.name-input');
+  inputs.forEach(inp => {
+    const val = inp.value.trim();
+    if (val) nameMap[inp.dataset.email] = val;
+    else delete nameMap[inp.dataset.email];
+  });
+  const { ok } = await api('config', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: 'user_names', value: JSON.stringify(nameMap) })
+  });
+  if (!ok) { toast('Error al guardar', 'error'); return; }
+  closeNamesModal();
+  populateUsers(allData);
+  render(allData);
+  toast('Nombres guardados ✓', 'success');
+}
+
+/* ── FILTERS ── */
+function setType(btn, type) {
+  currentType = type;
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.type === type));
+  render(allData);
+}
+
+/* ── ACTION CONFIG ── */
+const ACTION_CFG = {
+  venta:              { badge:'venta',      icon:'💰', label:'Venta'     },
+  apartado_nuevo:     { badge:'apartado',   icon:'📌', label:'Apartado'  },
+  apartado_abono:     { badge:'apartado',   icon:'💳', label:'Abono'     },
+  apartado_liquidado: { badge:'apartado',   icon:'✅', label:'Liquidado' },
+  producto_creado:    { badge:'inventario', icon:'➕', label:'Creado'    },
+  producto_editado:   { badge:'inventario', icon:'✏️', label:'Editado'   },
+  producto_eliminado: { badge:'inventario', icon:'🗑', label:'Eliminado' },
+};
+
+/* ── LOAD ── */
+async function load() {
+  document.getElementById('feed').innerHTML = '<div class="spinner"></div>';
+  document.getElementById('summary-row').style.display = 'none';
+
+  const days = parseInt(document.getElementById('filter-period').value);
+  const user = document.getElementById('filter-user').value;
+
+  let q = `activity_log?select=*&order=created_at.desc&limit=300`;
+  if (days > 0) {
+    const from = new Date(Date.now() - days * 86400000).toISOString();
+    q += `&created_at=gte.${encodeURIComponent(from)}`;
+  }
+  if (user) q += `&user_email=eq.${encodeURIComponent(user)}`;
+
+  const { ok, data } = await api(q);
+  if (!ok) {
+    document.getElementById('feed').innerHTML = '<div class="empty-state"><div class="em">⚠️</div>Error al cargar actividad</div>';
+    return;
+  }
+
+  allData = data || [];
+  populateUsers(allData);
+  updateSummary(allData);
+  render(allData);
+}
+
+function populateUsers(data) {
+  const emails  = [...new Set(data.map(d => d.user_email))].filter(Boolean).sort();
+  const sel     = document.getElementById('filter-user');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Todos</option>';
+  emails.forEach(e => {
+    const o = document.createElement('option');
+    o.value = e; o.textContent = displayName(e);
+    if (e === current) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+function updateSummary(data) {
+  const v = data.filter(d => d.action === 'venta').length;
+  const i = data.filter(d => d.action.startsWith('producto_')).length;
+  const a = data.filter(d => d.action.startsWith('apartado_')).length;
+  document.getElementById('sum-ventas').textContent = v;
+  document.getElementById('sum-inv').textContent = i;
+  document.getElementById('sum-apt').textContent = a;
+  if (v + i + a > 0) document.getElementById('summary-row').style.display = '';
+}
+
+function render(data) {
+  const filtered = currentType
+    ? data.filter(d => (ACTION_CFG[d.action]?.badge || 'inventario') === currentType)
+    : data;
+
+  const feed = document.getElementById('feed');
+  if (!filtered.length) {
+    feed.innerHTML = '<div class="empty-state"><div class="em">📋</div>Sin actividad en este período</div>';
+    return;
+  }
+
+  const groups = {};
+  const today     = new Date(); today.setHours(0,0,0,0);
+  const yesterday = new Date(today - 86400000);
+
+  filtered.forEach(item => {
+    const d = new Date(item.created_at); d.setHours(0,0,0,0);
+    let key;
+    if (d.getTime() === today.getTime())     key = 'HOY';
+    else if (d.getTime() === yesterday.getTime()) key = 'AYER';
+    else key = new Date(item.created_at).toLocaleDateString('es-MX', {weekday:'short', day:'numeric', month:'short'});
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(item);
+  });
+
+  let html = '';
+  for (const [date, items] of Object.entries(groups)) {
+    html += `<div class="date-sep">${date}</div>`;
+    items.forEach(item => {
+      const cfg   = ACTION_CFG[item.action] || { badge:'inventario', icon:'•', label: item.action };
+      const time  = new Date(item.created_at).toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+      const meta  = item.meta || {};
+      const color = avatarColor(item.user_email);
+      const name  = displayName(item.user_email);
+      const ini   = avatarInitial(item.user_email);
+
+      let detail = '';
+      if (item.action === 'venta')
+        detail = [
+          meta.items != null ? `${meta.items} producto${meta.items !== 1 ? 's' : ''}` : '',
+          meta.method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo',
+          meta.discount > 0 ? `Desc. $${(meta.discount).toLocaleString('es-MX')}` : ''
+        ].filter(Boolean).join(' · ');
+      else if (item.action === 'apartado_nuevo' && meta.anticipo != null)
+        detail = `Anticipo $${meta.anticipo.toLocaleString('es-MX')} · Pendiente $${meta.pendiente.toLocaleString('es-MX')}`;
+      else if (item.action === 'apartado_abono' && meta.amount != null)
+        detail = `$${meta.amount.toLocaleString('es-MX')} · ${meta.method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo'}`;
+
+      html += `<div class="act-card">
+  <div class="act-avatar" style="background:${color}">${ini}</div>
+  <div class="act-body">
+    <div class="act-top">
+      <span class="act-badge badge-${cfg.badge}">${cfg.icon} ${cfg.label}</span>
+      <span class="act-user">${name}</span>
+      <span class="act-time">${time}</span>
+    </div>
+    <div class="act-summary">${item.summary}</div>
+    ${detail ? `<div class="act-detail">${detail}</div>` : ''}
+  </div>
+</div>`;
+    });
+  }
+
+  feed.innerHTML = html;
+}
+
+/* ── TOAST ── */
+let _toastT;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `toast${type ? ' '+type : ''} show`;
+  clearTimeout(_toastT);
+  _toastT = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadNameMap();
+  load();
+});
+</script>
+</body>
+</html>
