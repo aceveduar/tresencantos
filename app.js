@@ -5,6 +5,7 @@ const SUPABASE_URL = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjYyMjYsImV4cCI6MjA5NDEwMjIyNn0.irCFwOR5HL_ZOVjFGVw9LqmzYicDZTNEmxcknu_j6cI';
 
 let products = [];
+let publicCategories = [];
 let revistaUrl = "";
 let currentFilter = 'all';
 let searchQuery   = '';
@@ -95,6 +96,28 @@ function updateRevistaLink() {
   if (link) link.href = revistaUrl;
 }
 
+async function loadCategories() {
+  try {
+    const result = await supabaseApi('config?id=eq.categories&select=value');
+    if (result.ok && result.data?.[0]?.value) {
+      publicCategories = JSON.parse(result.data[0].value);
+    }
+  } catch {}
+}
+
+function catMatchesFilter(productCat, filterCat) {
+  if (filterCat === 'all') return true;
+  if (productCat === filterCat) return true;
+  if (productCat.startsWith(filterCat + '_')) return true;
+  // Matching por parentesco: sube la cadena de padres hasta encontrar filterCat
+  let cat = publicCategories.find(c => c.code === productCat);
+  while (cat?.parent) {
+    if (cat.parent === filterCat) return true;
+    cat = publicCategories.find(c => c.code === cat.parent);
+  }
+  return false;
+}
+
 const observer = new IntersectionObserver(entries => {
   entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('visible'); observer.unobserve(e.target); } });
 }, { threshold: 0.1 });
@@ -112,8 +135,7 @@ function initAdminBar() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   initAdminBar();
-  await loadProducts();
-  await loadRevista();
+  await Promise.all([loadProducts(), loadRevista(), loadCategories()]);
   render();
   renderNatura();
   updateRevistaLink();
@@ -146,9 +168,7 @@ function render() {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
   let list = products.filter(p => {
-    const matchCat = currentFilter === 'all'
-      || p.category === currentFilter
-      || p.category.startsWith(currentFilter + '_');
+    const matchCat = catMatchesFilter(p.category, currentFilter);
     const matchQ   = !searchQuery ||
       p.name.toLowerCase().includes(searchQuery) ||
       (p.description || '').toLowerCase().includes(searchQuery) ||
@@ -438,6 +458,17 @@ function openModal(id) {
   const fallback = `https://picsum.photos/seed/${p.id+10}/500/500`;
   const oos = p.outOfStock || p.stock === 0;
   const pct = discountPct(p);
+
+  // Categoría con contexto de padre si es subcategoría
+  let catDisplay = p.categoryLabel;
+  if (publicCategories.length) {
+    const cat = publicCategories.find(c => c.code === p.category);
+    if (cat?.parent) {
+      const parent = publicCategories.find(c => c.code === cat.parent);
+      if (parent) catDisplay = `${parent.label} · ${p.categoryLabel}`;
+    }
+  }
+
   let modalBadgeArea = '';
   const modalBadgeIsPromo = !p.badgeType || p.badgeType === 'promo';
   if (pct > 0 && p.badge && !modalBadgeIsPromo) {
@@ -448,7 +479,6 @@ function openModal(id) {
   } else if (p.badge) {
     modalBadgeArea = `<span class="product-badge badge-${p.badgeType||'best'}" style="position:absolute;top:10px;left:10px">${p.badge}</span>`;
   }
-  const modalDiscount = '';
   const modalUrgency = (!oos && p.stock >= 2 && p.stock <= 3 && pct === 0)
     ? `<span class="product-badge" style="position:absolute;top:10px;right:10px;left:auto;background:#92400E">Últimas ${p.stock}</span>` : '';
   const modalPriceHTML = pct > 0
@@ -464,22 +494,25 @@ function openModal(id) {
   const modalBtn = oos
     ? `<button class="btn" style="background:#ccc;cursor:default;opacity:.8" disabled>Agotado por el momento</button>`
     : `<button class="btn btn-wa" onclick="whatsapp(${p.id})">${WA_SVG} Pedir por WhatsApp</button>`;
+  const descHTML = p.description
+    ? `<p class="modal-desc">${p.description}</p>`
+    : '';
   const overlay = document.getElementById('modal-overlay');
   overlay.innerHTML = `
-<div class="modal" role="dialog" aria-modal="true">
+<div class="modal" role="dialog" aria-modal="true" aria-label="${p.name}">
   <div class="modal-img-wrap">
     <img class="modal-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'"${oos ? ' style="filter:grayscale(.4)"' : ''}>
-    <button class="modal-close" onclick="closeModal()">✕</button>
+    <button class="modal-close" onclick="closeModal()" aria-label="Cerrar">✕</button>
     ${oos ? `<span class="product-badge badge-oos" style="position:absolute;top:10px;left:10px;background:#9B8B78">Agotado</span>` : ''}
     ${modalBadgeArea}${modalUrgency}
   </div>
   <div class="modal-body">
-    <p class="modal-cat">${p.categoryLabel}</p>
+    <p class="modal-cat">${catDisplay}</p>
     <h2 class="modal-title">${p.name}</h2>
-    <p class="modal-desc">${p.description}</p>
+    ${descHTML}
     <div class="modal-foot">
       ${modalPriceHTML}
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;width:100%">
         ${modalBtn}
         ${shareBtn}
       </div>
