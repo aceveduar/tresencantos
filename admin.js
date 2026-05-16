@@ -137,11 +137,23 @@ function logActivity(action, summary, meta = null) {
   }).catch(() => {});
 }
 
+function adminCatMatches(productCat, filterCat) {
+  if (filterCat === 'all') return true;
+  if (productCat === filterCat) return true;
+  if (productCat.startsWith(filterCat + '_')) return true;
+  let cat = categories.find(c => c.code === productCat);
+  while (cat?.parent) {
+    if (cat.parent === filterCat) return true;
+    cat = categories.find(c => c.code === cat.parent);
+  }
+  return false;
+}
+
 function getFilteredProducts() {
   const q   = document.getElementById('search-input')?.value.toLowerCase() || '';
   const cat = document.getElementById('cat-filter')?.value || 'all';
   const filtered = products.filter(p => {
-    const matchCat = cat === 'all' || p.category === cat;
+    const matchCat = adminCatMatches(p.category, cat);
     const matchQ   = !q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
     return matchCat && matchQ;
   });
