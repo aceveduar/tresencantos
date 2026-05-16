@@ -143,9 +143,19 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 /* ── MOBILE ── */
 @media(max-width:768px){
   main{padding:16px 12px 48px}
-  .topbar{padding:0 14px;height:56px}
+  /* Topbar: grid 3 col — [logo] [título centrado] [iconos] */
+  .topbar{
+    display:grid;grid-template-columns:auto 1fr auto;
+    align-items:center;padding:0 12px;height:56px;gap:0;
+  }
+  .topbar-left{display:contents}
   .topbar-left img{height:28px}
-  .topbar-title{font-size:.9rem}
+  .topbar-title{
+    text-align:center;font-style:italic;
+    font-size:1rem;padding:0 8px;white-space:nowrap;
+  }
+  /* Ocultar botón "← Inventario" — el nav de iconos lo reemplaza */
+  .btn-back{display:none}
 
   /* Period bar: touch targets mínimos 44px */
   .period-bar{width:100%;border-radius:12px;justify-content:space-between;padding:4px}
@@ -182,45 +192,49 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 @media(max-width:360px){
   .kpi-grid{grid-template-columns:1fr 1fr;gap:8px}
   .period-btn{font-size:.7rem;padding:10px 4px}
-  main{padding-bottom:calc(72px + env(safe-area-inset-bottom))!important}
 }
 
-/* ══ BOTTOM NAV — navegación entre módulos (mobile) ══════════════════ */
-.bottom-nav{
-  display:none;
-  position:fixed;bottom:0;left:0;right:0;z-index:90;
-  background:#fff;
-  border-top:1.5px solid rgba(201,164,98,.2);
-  box-shadow:0 -2px 18px rgba(28,24,23,.08);
-  padding-bottom:env(safe-area-inset-bottom);
+/* ══ TOPBAR NAV ICONS — navegación entre módulos (mobile) ════════════ */
+.topbar-nav-mobile{display:none;align-items:center;gap:2px}
+.tbn-icon{
+  width:36px;height:36px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  text-decoration:none;background:transparent;color:rgba(255,255,255,.6);
+  transition:all .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
 }
-.bn-tab{
-  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:3px;color:#8A7564;text-decoration:none;
-  font-size:.57rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
-  padding:10px 4px;
-  transition:color .15s;-webkit-tap-highlight-color:transparent;touch-action:manipulation;
+.tbn-icon svg{
+  width:19px;height:19px;stroke:currentColor;fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block;
 }
-.bn-tab svg{
-  width:22px;height:22px;stroke:currentColor;fill:none;
-  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
-  display:block;transition:stroke .15s;
-}
-.bn-tab.bn-active{color:#A67C3A}
-.bn-tab.bn-active svg{stroke:#C9A462}
-.bn-tab:active{opacity:.6}
-@media(max-width:640px){.bottom-nav{display:flex}}
+.tbn-icon.tbn-active{color:#C9A462;background:transparent}
+.tbn-icon.tbn-active svg{stroke-width:2.5}
+.tbn-icon:active{opacity:.55;transform:scale(.88)}
+@media(max-width:640px){.topbar-nav-mobile{display:flex}}
 </style>
 </head>
 <body>
 
 <div class="topbar">
   <div class="topbar-left">
-    <img src="logo.png" alt="Tres Encantos">
+    <a href="index.html"><img src="logo.png" alt="Tres Encantos"></a>
     <span class="topbar-title">Reportes</span>
   </div>
   <div class="topbar-right">
     <a href="admin.html" class="btn-back">← <span>Inventario</span></a>
+    <nav class="topbar-nav-mobile" aria-label="Módulos">
+      <a href="admin.html" class="tbn-icon" title="Inventario">
+        <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+      </a>
+      <a href="pos.html" class="tbn-icon" title="Caja">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      </a>
+      <a href="stats.html" class="tbn-icon tbn-active" title="Reportes" aria-current="page">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </a>
+      <a href="staging.html" class="tbn-icon" title="Staging">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </a>
+    </nav>
   </div>
 </div>
 
@@ -715,24 +729,5 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 
-<!-- BOTTOM NAV: módulos (mobile) — Reportes activo -->
-<nav class="bottom-nav" aria-label="Módulos">
-  <a href="admin.html" class="bn-tab">
-    <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
-    <span>Inventario</span>
-  </a>
-  <a href="pos.html" class="bn-tab">
-    <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-    <span>Caja</span>
-  </a>
-  <a href="stats.html" class="bn-tab bn-active" aria-current="page">
-    <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-    <span>Reportes</span>
-  </a>
-  <a href="staging.html" class="bn-tab">
-    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-    <span>Staging</span>
-  </a>
-</nav>
 </body>
 </html>

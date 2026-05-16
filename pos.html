@@ -339,21 +339,27 @@ button,a{touch-action:manipulation}
 
 /* ── MOBILE ── */
 @media(max-width:760px){
-  /* ── TOPBAR COMPACTO ─────────────────────────────────────── */
-  .topbar{padding:0 10px;gap:0}          /* regla única — sin duplicados */
-  .topbar-right{gap:4px}                 /* menos espacio entre botones  */
-  .btn-label{display:none}               /* ocultar "Historial" y "Admin" */
-  .title-long{display:none}              /* ocultar "Punto de Venta"     */
-  .title-short{display:inline!important} /* mostrar "POS"                */
-  .today-stats{display:none!important}   /* chip demasiado ancho en móvil */
-  /* Botones solo-ícono: padding mínimo */
+  /* ── TOPBAR: grid 3 col — [logo] [Caja centrado] [acciones+nav] ── */
+  .topbar{
+    display:grid;grid-template-columns:auto 1fr auto;
+    align-items:center;padding:0 10px;gap:0;
+  }
+  .topbar-left{display:contents}
+  .topbar-left img{height:26px}
+  .topbar-title{
+    text-align:center;font-style:italic;
+    font-size:1rem;padding:0 8px;white-space:nowrap;
+  }
+  .topbar-right{gap:2px}
+  .btn-label{display:none}
+  .title-long{display:none}
+  .title-short{display:inline!important}
+  .today-stats{display:none!important}
   .cart-topbar-btn{padding:5px 8px!important}
   .history-oc-btn{padding:5px 8px!important}
-  .topbar-right .btn-outline-white{padding:5px 8px!important}
-  /* Imagen de logo más pequeña */
-  .topbar-left img{height:26px}
-  .topbar-left{gap:7px}
-  .topbar-title{font-size:.9rem}
+  /* Ocultar "← Inventario" — el nav de iconos lo reemplaza */
+  #btn-stats-pos{display:none!important}
+  .topbar-right > .btn-outline-white:last-of-type{display:none}
 
   /* ── LAYOUT VERTICAL ─────────────────────────────────────── */
   .pos-body{display:flex;flex-direction:column;overflow:hidden}
@@ -506,6 +512,23 @@ button,a{touch-action:manipulation}
   .cash-quick{flex-wrap:wrap}
   .cash-quick button{flex:1 1 calc(33% - 4px);min-width:0}
 }
+
+/* ══ TOPBAR NAV ICONS — módulos (mobile) ════════════════════════════ */
+.topbar-nav-mobile{display:none;align-items:center;gap:2px}
+.tbn-icon{
+  width:34px;height:34px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  text-decoration:none;background:transparent;color:rgba(255,255,255,.55);
+  transition:all .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.tbn-icon svg{
+  width:18px;height:18px;stroke:currentColor;fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block;
+}
+.tbn-icon.tbn-active{color:#C9A462}
+.tbn-icon.tbn-active svg{stroke-width:2.5}
+.tbn-icon:active{opacity:.55;transform:scale(.88)}
+@media(max-width:760px){.topbar-nav-mobile{display:flex}}
 </style>
 </head>
 <body>
@@ -513,7 +536,7 @@ button,a{touch-action:manipulation}
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-left">
-    <img src="logo.png" alt="Tres Encantos">
+    <a href="index.html"><img src="logo.png" alt="Tres Encantos"></a>
     <span class="topbar-title"><span class="title-long">Caja</span><span class="title-short" style="display:none">Caja</span></span>
   </div>
   <div class="topbar-right">
@@ -524,7 +547,21 @@ button,a{touch-action:manipulation}
     </button>
     <button class="history-oc-btn" onclick="openHistory()" id="btn-history-pos">🕐 <span class="btn-label">Historial</span></button>
     <a href="stats.html" class="btn btn-outline-white" style="display:none" id="btn-stats-pos">📊</a>
-    <a href="admin.html" class="btn btn-outline-white">← <span class="btn-label">Inventario</span></a>
+    <!-- Nav de módulos — solo mobile; reemplaza "← Inventario" -->
+    <nav class="topbar-nav-mobile" aria-label="Módulos">
+      <a href="admin.html" class="tbn-icon" title="Inventario">
+        <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+      </a>
+      <a href="pos.html" class="tbn-icon tbn-active" title="Caja" aria-current="page">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      </a>
+      <a href="stats.html" class="tbn-icon" title="Reportes">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </a>
+      <a href="staging.html" class="tbn-icon" title="Staging">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </a>
+    </nav>
   </div>
 </div>
 
