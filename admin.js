@@ -1371,21 +1371,24 @@ async function analyzeFormImage() {
   icon.innerHTML = '<span class="ai-spinner"></span>';
   lbl.textContent = 'Analizando imagen…';
   try {
-    const cats = categories.map(c => c.label).join(', ');
-    const prompt = `Eres un experto en e-commerce de moda y accesorios para boutiques mexicanas.
-Analiza esta imagen de producto y responde SOLO con un JSON válido, sin markdown, con esta estructura exacta:
-{"name":"<nombre corto del producto, máximo 60 chars>","description":"<descripción atractiva de 1-2 oraciones, máximo 200 chars>","category":"<una de estas categorías exactas: ${cats}>"}
-Si no reconoces el producto, usa valores razonables. El idioma debe ser español.`;
+    const catList = categories.map(c => `"${c.code}" (${c.label})`).join(', ');
+    const systemPrompt = `Eres el asistente de catálogo de Tres Encantos, una boutique mexicana en Maquixco, San Juan Teotihuacán. Vendemos bolsos, mochilas, accesorios, maquillaje y productos Natura.
+Tu voz es cálida, femenina y aspiracional — como una amiga con buen gusto que dice "esto te va a quedar perfecto". Evita tecnicismos y códigos de inventario. Escribe siempre en español de México.`;
+    const userPrompt = `Analiza la imagen y responde ÚNICAMENTE con JSON válido sin markdown ni texto extra:
+{"name":"nombre atractivo máximo 55 chars, incluye marca si es visible (ej: Bolso David Jones Negro), sin códigos ni SKUs","description":"1-2 oraciones con tono emocional y comercial — qué hace sentir o para qué ocasión sirve, máximo 180 chars","category":"código exacto de una de estas opciones: ${catList}"}`;
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
       body: JSON.stringify({
         model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-        messages: [{ role: 'user', content: [
-          { type: 'text', text: prompt },
-          { type: 'image_url', image_url: { url: currentFormImageDataUrl } }
-        ]}],
-        temperature: 0.3, max_tokens: 256
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: [
+            { type: 'text', text: userPrompt },
+            { type: 'image_url', image_url: { url: currentFormImageDataUrl } }
+          ]}
+        ],
+        temperature: 0.7, max_tokens: 300
       })
     });
     if (!response.ok) {
@@ -1401,11 +1404,14 @@ Si no reconoces el producto, usa valores razonables. El idioma debe ser español
     if (parsed.name) { const el = document.getElementById('f-name'); el.value = parsed.name; flash(el); }
     if (parsed.description) { const el = document.getElementById('f-description'); el.value = parsed.description; flash(el); }
     if (parsed.category) {
-      const match = categories.find(c => c.label.toLowerCase() === (parsed.category || '').toLowerCase());
+      const match = categories.find(c =>
+        c.code === parsed.category ||
+        c.label.toLowerCase() === (parsed.category || '').toLowerCase()
+      );
       if (match) {
         const el = document.getElementById('f-category');
         el.value = match.code;
-        el.dispatchEvent(new Event('change')); // actualiza la etiqueta visible
+        el.dispatchEvent(new Event('change'));
         flash(el);
       }
     }
