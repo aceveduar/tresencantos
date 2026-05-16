@@ -513,8 +513,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 #scroll-top-btn.show{opacity:1;pointer-events:all;transform:translateY(0)}
 #scroll-top-btn:hover{background:var(--charcoal-soft);transform:translateY(-2px)!important}
 @media(max-width:640px){
-  /* En mobile: scroll-top va encima del FAB para no superponerse */
-  #scroll-top-btn{bottom:calc(94px + env(safe-area-inset-bottom));right:16px;width:38px;height:38px;font-size:.9rem}
+  /* scroll-top: encima del FAB, encima del bottom nav */
+  #scroll-top-btn{bottom:calc(148px + env(safe-area-inset-bottom));right:16px;width:38px;height:38px;font-size:.9rem}
 }
 
 /* ══ TOAST ══════════════════════════════════════════════════════════════ */
@@ -589,8 +589,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   /* Iconos de acción: SVG bien centrado */
   .mpc-icon-btn svg{display:block}
 
-  /* FAB — mostrar en mobile */
-  .fab-add{display:flex;align-items:center;justify-content:center;bottom:calc(24px + env(safe-area-inset-bottom))}
+  /* FAB — mostrar en mobile, encima del bottom nav */
+  .fab-add{display:flex;align-items:center;justify-content:center;bottom:calc(76px + env(safe-area-inset-bottom))}
   /* Toolbar — ocultar btn Agregar (reemplazado por FAB) */
   .toolbar > .btn-gold{display:none}
   /* Toolbar: búsqueda en fila propia, categoría+sort comparten fila */
@@ -791,6 +791,35 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .ac-actions     {opacity:1!important}
   .drag-handle    {display:none!important}  /* drag & drop no funciona en touch */
 }
+
+/* ══ BOTTOM NAV — navegación entre módulos (mobile) ══════════════════ */
+.bottom-nav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:90;
+  background:#fff;
+  border-top:1.5px solid rgba(201,164,98,.2);
+  box-shadow:0 -2px 18px rgba(28,24,23,.08);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.bn-tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;color:var(--muted);text-decoration:none;
+  font-size:.57rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  padding:10px 4px;
+  transition:color .15s;-webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.bn-tab svg{
+  width:22px;height:22px;stroke:currentColor;fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+  display:block;transition:stroke .15s;
+}
+.bn-tab.bn-active{color:var(--gold-dark)}
+.bn-tab.bn-active svg{stroke:var(--gold)}
+.bn-tab:active{opacity:.6}
+@media(max-width:640px){
+  .bottom-nav{display:flex}
+  main{padding-bottom:calc(72px + env(safe-area-inset-bottom))!important}
+}
 </style>
 </head>
 <body>
@@ -828,6 +857,26 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 
   <!-- FAB: + Agregar (mobile) -->
   <button class="fab-add" onclick="openForm()" aria-label="Agregar producto">+</button>
+
+  <!-- BOTTOM NAV: módulos (mobile) -->
+  <nav class="bottom-nav" aria-label="Módulos">
+    <a href="admin.html" class="bn-tab bn-active" aria-current="page">
+      <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+      <span>Inventario</span>
+    </a>
+    <a href="pos.html" class="bn-tab">
+      <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      <span>Caja</span>
+    </a>
+    <a href="stats.html" class="bn-tab">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <span>Reportes</span>
+    </a>
+    <a href="staging.html" class="bn-tab">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <span>Staging</span>
+    </a>
+  </nav>
 
   <main>
     <!-- STATS -->
