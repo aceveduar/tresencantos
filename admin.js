@@ -1097,12 +1097,16 @@ let driveEp     = null;
 let driveSecret = null;
 
 async function loadAppConfig() {
-  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret)&select=id,value');
+  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret,wa_float)&select=id,value');
   if (r.ok && r.data) {
     r.data.forEach(row => {
       if (row.id === 'groq_key')     groqApiKey  = row.value || null;
       if (row.id === 'drive_ep')     driveEp     = row.value || null;
       if (row.id === 'drive_secret') driveSecret = row.value || null;
+      if (row.id === 'wa_float') {
+        const toggle = document.getElementById('wa-float-toggle');
+        if (toggle) toggle.checked = row.value !== 'false';
+      }
     });
   }
   // Migración automática: si había config en localStorage la subimos a Supabase una sola vez
@@ -1153,6 +1157,21 @@ function loadGroqKeyStatus() {
   if (groqApiKey) {
     el.textContent = '✓ Configurado — IA activa en todos los dispositivos';
     el.style.color = 'var(--green)';
+  }
+}
+
+async function toggleWaFloat(enabled) {
+  const r = await supabaseApi('config', {
+    method: 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: 'wa_float', value: String(enabled) })
+  });
+  if (r.ok) {
+    toast(enabled ? '💬 Botón WhatsApp activado en Tienda' : '💬 Botón WhatsApp desactivado en Tienda', 'success');
+  } else {
+    toast('Error al guardar configuración', 'error');
+    const toggle = document.getElementById('wa-float-toggle');
+    if (toggle) toggle.checked = !enabled;
   }
 }
 

@@ -6,6 +6,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 let products = [];
 let publicCategories = [];
+let waFloatEnabled = true;
 let revistaUrl = "";
 let currentFilter = 'all';
 let searchQuery   = '';
@@ -98,9 +99,12 @@ function updateRevistaLink() {
 
 async function loadCategories() {
   try {
-    const result = await supabaseApi('config?id=eq.categories&select=value');
-    if (result.ok && result.data?.[0]?.value) {
-      publicCategories = JSON.parse(result.data[0].value);
+    const result = await supabaseApi('config?id=in.(categories,wa_float)&select=id,value');
+    if (result.ok && result.data) {
+      result.data.forEach(row => {
+        if (row.id === 'categories' && row.value) publicCategories = JSON.parse(row.value);
+        if (row.id === 'wa_float') waFloatEnabled = row.value !== 'false';
+      });
     }
   } catch {}
 }
@@ -534,6 +538,7 @@ function closeModal() {
 function initWaFloat() {
   const btn = document.getElementById('wa-float');
   if (!btn) return;
+  if (!waFloatEnabled) { btn.style.display = 'none'; return; }
   const hero = document.querySelector('.hero');
   const threshold = hero ? hero.offsetHeight * 0.7 : 400;
   window.addEventListener('scroll', () => {
