@@ -479,21 +479,21 @@ function openModal(id) {
   } else if (p.badge) {
     modalBadgeArea = `<span class="product-badge badge-${p.badgeType||'best'}" style="position:absolute;top:10px;left:10px">${p.badge}</span>`;
   }
-  const modalUrgency = (!oos && p.stock >= 2 && p.stock <= 3 && pct === 0)
-    ? `<span class="product-badge" style="position:absolute;top:10px;right:10px;left:auto;background:#92400E">Últimas ${p.stock}</span>` : '';
-  const modalPriceHTML = pct > 0
-    ? `<div class="modal-price">
-         <span class="modal-price-old">$${p.originalPrice.toLocaleString('es-MX')} MXN</span>
-         $${p.price.toLocaleString('es-MX')} <small>MXN</small>
+  const urgencyText = (!oos && p.stock >= 2 && p.stock <= 3)
+    ? `<p class="modal-urgency">⚡ Últimas ${p.stock} unidades disponibles</p>` : '';
+  const ctaPriceHTML = pct > 0
+    ? `<div class="modal-cta-price">
+         <span class="modal-price-old">$${p.originalPrice.toLocaleString('es-MX')}</span>
+         <span class="modal-cta-amount">$${p.price.toLocaleString('es-MX')} <small>MXN</small></span>
          <span class="modal-discount">-${pct}% OFF</span>
        </div>`
-    : `<div class="modal-price">$${p.price.toLocaleString('es-MX')} <small>MXN</small></div>`;
+    : `<div class="modal-cta-price"><span class="modal-cta-amount">$${p.price.toLocaleString('es-MX')} <small>MXN</small></span></div>`;
   const shareBtn = navigator.share
-    ? `<button class="btn btn-share" onclick="shareProduct(${p.id})"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Compartir</button>`
+    ? `<button class="btn btn-share modal-share-btn" onclick="shareProduct(${p.id})" aria-label="Compartir"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>`
     : '';
   const modalBtn = oos
-    ? `<button class="btn" style="background:#ccc;cursor:default;opacity:.8" disabled>Agotado por el momento</button>`
-    : `<button class="btn btn-wa" onclick="whatsapp(${p.id})">${WA_SVG} Pedir por WhatsApp</button>`;
+    ? `<button class="btn modal-btn-oos" disabled>Agotado por el momento</button>`
+    : `<button class="btn btn-wa modal-btn-wa" onclick="whatsapp(${p.id})">${WA_SVG} Pedir por WhatsApp</button>`;
   const descHTML = p.description
     ? `<p class="modal-desc">${p.description}</p>`
     : '';
@@ -504,19 +504,20 @@ function openModal(id) {
     <img class="modal-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'"${oos ? ' style="filter:grayscale(.4)"' : ''}>
     <button class="modal-close" onclick="closeModal()" aria-label="Cerrar">✕</button>
     ${oos ? `<span class="product-badge badge-oos" style="position:absolute;top:10px;left:10px;background:#9B8B78">Agotado</span>` : ''}
-    ${modalBadgeArea}${modalUrgency}
+    ${modalBadgeArea}
   </div>
   <div class="modal-body">
     <p class="modal-cat">${catDisplay}</p>
     <h2 class="modal-title">${p.name}</h2>
     ${descHTML}
-    <div class="modal-foot">
-      ${modalPriceHTML}
-      <div style="display:flex;gap:8px;flex-wrap:wrap;width:100%">
-        ${modalBtn}
-        ${shareBtn}
-      </div>
+    ${urgencyText}
+  </div>
+  <div class="modal-cta">
+    <div class="modal-cta-row">
+      ${ctaPriceHTML}
+      ${shareBtn}
     </div>
+    ${modalBtn}
   </div>
 </div>`;
   requestAnimationFrame(() => overlay.classList.add('open'));
