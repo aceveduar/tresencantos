@@ -575,7 +575,6 @@ function adminCard(p) {
     <div class="ac-meta">
       <span class="cat-dot" style="background:${catColor}"></span>
       <span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" title="Toca para cambiar categoría" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.categoryLabel}</span>
-      <span style="flex-shrink:0">· #${p.id}</span>
       ${publishedToggle(p)}
     </div>
     <div class="ac-price-row">${priceHTML}</div>
@@ -588,7 +587,7 @@ function adminCard(p) {
       </div>
       <div class="ac-actions">
         <button class="action-btn" onclick="openForm(${p.id})" title="Editar">${ICON_EDIT}</button>
-        <button class="action-btn" onclick="duplicateProduct(${p.id})" title="Duplicar">${ICON_COPY}</button>
+        <button class="action-btn btn-duplicate" onclick="duplicateProduct(${p.id})" title="Duplicar">${ICON_COPY}</button>
         <button class="action-btn del" onclick="askDelete(${p.id})" title="Eliminar">✕</button>
       </div>
     </div>
