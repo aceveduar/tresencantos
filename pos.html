@@ -356,7 +356,16 @@ button,a{touch-action:manipulation}
   .title-short{display:inline!important}
   .today-stats{display:none!important}
   .cart-topbar-btn{padding:5px 8px!important}
-  .history-oc-btn{padding:5px 8px!important}
+  /* Historial: mismo estilo que íconos de módulo + separador que los distingue */
+  #btn-history-pos{
+    border:none!important;background:transparent!important;
+    color:rgba(255,255,255,.6)!important;
+    width:34px;height:34px;padding:0!important;
+    border-right:1px solid rgba(255,255,255,.18)!important;
+    padding-right:4px!important;margin-right:2px;
+    border-radius:0!important;font-size:1rem;
+  }
+  #btn-history-pos:active{opacity:.55}
   /* Ocultar "← Inventario" — el nav de iconos lo reemplaza */
   #btn-stats-pos{display:none!important}
   .topbar-right > .btn-outline-white:last-of-type{display:none}
@@ -545,7 +554,10 @@ button,a{touch-action:manipulation}
       🛒
       <span id="cart-topbar-badge" class="cart-badge" style="display:none"></span>
     </button>
-    <button class="history-oc-btn" onclick="openHistory()" id="btn-history-pos">🕐 <span class="btn-label">Historial</span></button>
+    <button class="history-oc-btn" onclick="openHistory()" id="btn-history-pos" title="Historial">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span class="btn-label">Historial</span>
+    </button>
     <a href="stats.html" class="btn btn-outline-white" style="display:none" id="btn-stats-pos">📊</a>
     <!-- Nav de módulos — solo mobile; reemplaza "← Inventario" -->
     <nav class="topbar-nav-mobile" aria-label="Módulos">
