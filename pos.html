@@ -75,7 +75,7 @@ button,a{touch-action:manipulation}
   font-size:1.2rem;font-weight:300;line-height:1;
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 2px 8px rgba(201,164,98,.35);
-  transition:transform .15s,box-shadow .15s;touch-action:manipulation;
+  transition:transform .15s,box-shadow .15s,background .15s,color .15s;touch-action:manipulation;
 }
 .pos-prod-add:active{transform:scale(.88);box-shadow:0 1px 4px rgba(201,164,98,.3)}
 .pos-prod.card-sold .pos-prod-add{background:#D1C4B8;box-shadow:none;cursor:not-allowed}
@@ -153,6 +153,12 @@ button,a{touch-action:manipulation}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 .toast.success{background:var(--green)}
 .toast.error{background:var(--red)}
+/* CART ADD FEEDBACK */
+.pos-prod-add.btn-added,.pos-card-add-icon.btn-added{background:var(--green)!important;color:#fff!important;border-color:var(--green)!important;transform:scale(1.15)}
+@keyframes badge-pop{0%{transform:scale(1)}40%{transform:scale(1.6)}70%{transform:scale(.9)}100%{transform:scale(1)}}
+.badge-pop{animation:badge-pop .35s cubic-bezier(.36,.07,.19,.97)}
+@keyframes cart-pill-up{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-36px) scale(.88)}}
+.cart-pill{position:fixed;pointer-events:none;z-index:600;background:var(--charcoal);color:#fff;padding:5px 13px;border-radius:50px;font-size:.73rem;font-weight:600;white-space:nowrap;animation:cart-pill-up .65s ease forwards}
 
 /* CASH QUICK BUTTONS */
 .cash-quick{display:flex;gap:4px;margin-bottom:6px;flex-wrap:nowrap}
@@ -311,7 +317,7 @@ button,a{touch-action:manipulation}
   background:var(--gold);color:#fff;
   display:flex;align-items:center;justify-content:center;
   font-size:1.2rem;font-weight:700;
-  opacity:0;transform:scale(.7);transition:.2s;
+  opacity:0;transform:scale(.7);transition:background .15s,color .15s,transform .2s,opacity .2s;
   box-shadow:0 3px 10px rgba(201,164,98,.5);
 }
 .pos-card:hover:not(.card-sold) .pos-card-add-icon{opacity:1;transform:scale(1)}
@@ -1014,7 +1020,7 @@ function posCard(p) {
   const stockTxt = p.stock === 0 ? 'Sin stock' : `${p.stock} ud${p.stock!==1?'s':''}`;
   const fallback  = `https://picsum.photos/seed/${p.id+10}/200/200`;
   return `
-<div class="pos-card${oos?' card-sold':''}" onclick="${oos?'':` addToCart(${p.id})`}">
+<div class="pos-card${oos?' card-sold':''}" onclick="${oos?'':` addToCart(${p.id},this.querySelector('.pos-card-add-icon'),event)`}">
   <div class="pos-card-img-wrap">
     <img class="pos-card-img" src="${p.image}" alt="${p.name}"
          onerror="this.onerror=null;this.src='${fallback}'">
@@ -1126,13 +1132,13 @@ function productCard(p) {
   </div>
   <div class="pos-prod-right">
     <div class="pos-prod-price">$${p.price.toLocaleString('es-MX')}</div>
-    <button class="pos-prod-add" onclick="event.stopPropagation();${oos ? '' : `addToCart(${p.id})`}" title="Agregar" ${oos ? 'disabled' : ''}>+</button>
+    <button class="pos-prod-add" onclick="event.stopPropagation();${oos ? '' : `addToCart(${p.id},this,event)`}" title="Agregar" ${oos ? 'disabled' : ''}>+</button>
   </div>
 </div>`;
 }
 
 /* ── CART ── */
-function addToCart(id) {
+function addToCart(id, btn, e) {
   const p = products.find(x => x.id === id);
   if (!p || p.stock === 0 || p.outOfStock) return;
 
@@ -1147,7 +1153,35 @@ function addToCart(id) {
     cart.push({ product: p, qty: 1 });
   }
   renderCart();
-  toast(`${p.name} agregado`, 'success');
+  _cartAddFeedback(btn, e);
+}
+
+function _cartAddFeedback(btn, e) {
+  // 1. Botón → ✓ por 600ms
+  if (btn) {
+    btn.textContent = '✓';
+    btn.classList.add('btn-added');
+    clearTimeout(btn._rt);
+    btn._rt = setTimeout(() => { btn.textContent = '+'; btn.classList.remove('btn-added'); }, 600);
+  }
+  // 2. Badge del tab carrito → pop
+  const badge = document.getElementById('tab-cart-badge');
+  if (badge) {
+    badge.classList.remove('badge-pop');
+    requestAnimationFrame(() => { badge.offsetWidth; badge.classList.add('badge-pop'); });
+  }
+  // 3. Pill flotante que sube y desaparece
+  const x = btn ? btn.getBoundingClientRect().left + btn.getBoundingClientRect().width / 2
+                : (e?.clientX ?? window.innerWidth / 2);
+  const y = btn ? btn.getBoundingClientRect().top
+                : (e?.clientY ?? window.innerHeight / 2);
+  const pill = document.createElement('div');
+  pill.className = 'cart-pill';
+  pill.textContent = '+ al carrito';
+  pill.style.left = (x - 52) + 'px';
+  pill.style.top  = (y - 8)  + 'px';
+  document.body.appendChild(pill);
+  setTimeout(() => pill.remove(), 700);
 }
 
 function removeFromCart(id) {
