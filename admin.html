@@ -577,20 +577,21 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .mpc-feat-btn{min-height:40px}
 
   /* ── TOPBAR ─────────────────────────────────────────────────── */
-  /* Topbar: grid 3 col — [logo] [título centrado] [iconos] */
   .topbar{
     padding-left:12px;padding-right:12px;
     display:grid;
     grid-template-columns:1fr auto;
     align-items:center;gap:0;
+    background:var(--charcoal);
+    border-bottom:none;
+    box-shadow:none;
   }
-  /* "Aplanar" topbar-left para que h2 sea hijo del grid */
   .topbar-left{display:contents}
   .topbar-left h2{
     text-align:center;
     font-size:1.05rem;
     font-style:italic;
-    color:var(--charcoal);
+    color:#fff;
     letter-spacing:.01em;
     white-space:nowrap;
     padding:0 8px;
