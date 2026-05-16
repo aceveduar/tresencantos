@@ -123,7 +123,13 @@ main{max-width:1080px;margin:0 auto;padding:28px 32px}
 }
 .search-wrap input:focus{border-color:var(--gold);background:#fff;box-shadow:0 0 0 3px rgba(201,164,98,.12)}
 .search-wrap input::placeholder{color:var(--muted-light)}
-.search-wrap .s-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted-light);font-size:.88rem;pointer-events:none}
+.search-wrap .s-icon{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  pointer-events:none;font-size:0;line-height:0;
+  width:16px;height:16px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23B5A696' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat center;
+  background-size:contain;
+}
 .filter-select{
   padding:10px 16px;border:1.5px solid var(--border);border-radius:50px;
   font-size:.84rem;outline:none;background:#F8F4EF;cursor:pointer;
@@ -152,9 +158,9 @@ tr:hover td{background:#FDFAF6;transition:background .12s}
 
 .prod-thumb{
   width:52px;height:52px;border-radius:10px;
-  object-fit:contain;border:1.5px solid var(--border);
+  object-fit:cover;border:1.5px solid var(--border);
   flex-shrink:0;box-shadow:var(--shadow-sm);
-  background:var(--cream);padding:2px;
+  background:#F0EBE3;
 }
 .prod-name{font-weight:600;font-size:.9rem;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;color:var(--charcoal);line-height:1.35;white-space:normal}
 .prod-cat{font-size:.73rem;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -583,15 +589,11 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .fab-add{display:flex;align-items:center;justify-content:center;bottom:calc(24px + env(safe-area-inset-bottom))}
   /* Toolbar — ocultar btn Agregar (reemplazado por FAB) */
   .toolbar > .btn-gold{display:none}
-  /* Toolbar */
+  /* Toolbar: búsqueda en fila propia, categoría+sort comparten fila */
   .toolbar{flex-wrap:wrap;gap:8px;margin-bottom:14px;padding:12px 12px;border-radius:var(--r)}
-  /* Búsqueda + escáner en la misma fila */
-  .search-wrap{flex:1}
-  /* ── TOOLBAR ────────────────────────────────────────────────── */
-  /* Categoría: fila propia a ancho completo */
-  #cat-filter{flex:1 1 100%;min-width:0}
-  /* Orden + view-toggle: última fila */
-  #sort-select{flex:1;min-width:0}
+  .search-wrap{flex:1;min-width:200px}
+  #cat-filter{flex:1;min-width:100px}
+  #sort-select{flex:1;min-width:80px}
   .prod-count{display:none}
   /* Escáner: compacto, cuadrado, mismo alto que la búsqueda */
   .toolbar > .btn-outline.btn-sm{
@@ -649,7 +651,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .mpc-top{display:flex;gap:14px;padding:14px 14px 11px;align-items:flex-start}
   /* Imagen con checkbox overlay */
   .mpc-img-wrap{position:relative;flex-shrink:0}
-  .mpc-img{width:80px;height:80px;object-fit:contain;border-radius:13px;border:1px solid var(--border-light);display:block;background:var(--cream);padding:3px;}
+  .mpc-img{width:80px;height:80px;object-fit:cover;border-radius:13px;border:1px solid var(--border-light);display:block;background:#F0EBE3;}
   .mpc-check-over{
     position:absolute;top:5px;left:5px;
     width:19px;height:19px;
@@ -750,8 +752,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .checkbox-row input[type=checkbox]::after{width:22px;height:22px}
   .checkbox-row input[type=checkbox]:checked::after{transform:translateX(20px)}
 
-  /* Search wrap sin min-width en mobile */
-  .search-wrap{min-width:0}
+  /* Search wrap: mantiene min-width para ocupar su propia fila */
 
   /* Modal de confirmación centrado */
   #del-overlay{align-items:center;padding:20px}
