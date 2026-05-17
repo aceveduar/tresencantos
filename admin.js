@@ -9,16 +9,14 @@ const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS   = 60 * 1000; // 1 minuto de bloqueo por cada 5 intentos fallidos
 
 /* ── ROLES Y PERMISOS ── */
-// El rol se almacena en user_metadata.role del JWT de Supabase Auth.
-// Valores válidos: 'superadmin' | 'operador' | 'duena'
-// Si no está definido se asume 'operador' (nunca da más permisos de los esperados).
+// Roles válidos: 'superadmin' | 'encargado' | 'operador' | 'duena'
+// encargado = operador + eliminar productos + cancelar ventas + ver reportes
+// Sin rol definido → 'operador' (nunca escala permisos)
 function _parseRole() {
   try {
     const s = JSON.parse(localStorage.getItem(SESSION_KEY));
-    // 1. user object almacenado al hacer login
     const fromUser = s?.user?.user_metadata?.role;
     if (fromUser) return fromUser;
-    // 2. fallback: decodificar payload del JWT access_token
     const token = s?.access_token;
     if (token) {
       const payload = JSON.parse(atob(token.split('.')[1]));
@@ -29,9 +27,10 @@ function _parseRole() {
   } catch { return 'operador'; }
 }
 const ROLE = _parseRole();
+const _isSuperOrEncargado = ROLE === 'superadmin' || ROLE === 'encargado';
 const can = {
-  deleteProduct:   ROLE === 'superadmin',
-  bulkDelete:      ROLE === 'superadmin',
+  deleteProduct:   _isSuperOrEncargado,
+  bulkDelete:      _isSuperOrEncargado,
   importJSON:      ROLE === 'superadmin',
   manageSettings:  ROLE === 'superadmin',
   publishProduct:  ROLE === 'superadmin',
@@ -462,13 +461,25 @@ function _applyRoleUI() {
   if (!can.importJSON) {
     document.getElementById('tools-json-section')?.style.setProperty('display', 'none');
   }
-  // Operador: ocultar nav hacia módulos restringidos
+  // Chips de rol en topbar
+  const roleLabels = { operador: 'Operador', encargado: 'Encargada', duena: 'Propietaria' };
+  if (roleLabels[ROLE]) {
+    const chip = document.createElement('span');
+    chip.className = 'role-chip';
+    chip.textContent = roleLabels[ROLE];
+    document.getElementById('session-user')?.after(chip);
+  }
+  // Operador: ocultar Reportes, Actividad y Settings
   if (ROLE === 'operador') {
     ['stats.html','activity.html','settings.html'].forEach(href => {
-      document.querySelectorAll(`a.tbn-icon[href="${href}"]`).forEach(a => a.style.setProperty('display','none'));
+      document.querySelectorAll(`a[href="${href}"]`).forEach(a => a.style.setProperty('display','none'));
     });
   }
-  // Enlace a settings — solo superadmin
+  // Encargado: ver Reportes y Actividad, NO Settings
+  if (ROLE === 'encargado') {
+    document.querySelectorAll('a[href="settings.html"]').forEach(a => a.style.setProperty('display','none'));
+  }
+  // Settings — solo superadmin
   if (!can.manageSettings) {
     document.querySelectorAll('a[href="settings.html"]').forEach(a => a.style.setProperty('display', 'none'));
   }
@@ -2952,6 +2963,8 @@ function resetCaptureForm(keepCount) {
   priceEl.value = '';
   nameEl.classList.remove('cap-err');
   priceEl.classList.remove('cap-err');
+  const stockEl = document.getElementById('cap-stock');
+  if (stockEl) stockEl.value = '1';
   document.getElementById('cap-category').value = '';
   const saveBtn = document.getElementById('cap-save-btn');
   if (saveBtn) saveBtn.textContent = 'Guardar y siguiente →';
@@ -3090,6 +3103,7 @@ function updateCapSaveBtn() {
 async function saveCaptureProduct() {
   const name  = document.getElementById('cap-name').value.trim();
   const price = parseFloat(document.getElementById('cap-price').value);
+  const stock = Math.max(1, parseInt(document.getElementById('cap-stock')?.value) || 1);
   if (!name || !price || price <= 0) return;
   const btn = document.getElementById('cap-save-btn');
   btn.disabled = true; btn.textContent = 'Guardando...';
@@ -3106,7 +3120,7 @@ async function saveCaptureProduct() {
       category_label: catObj?.label || '',
       image: captureImageDataUrl || '',
       is_published: false, out_of_stock: false,
-      stock: 1, featured: false, position: newId
+      stock, featured: false, position: newId
     };
     const { ok, data: saveData } = await supabaseApi('products', {
       method: 'POST',

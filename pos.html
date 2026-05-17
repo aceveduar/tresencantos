@@ -1145,7 +1145,7 @@ const _posRole = (() => {
   if (r) return r;
   try { return JSON.parse(atob(_posSession?.access_token?.split('.')[1]))?.user_metadata?.role || 'operador'; } catch { return 'operador'; }
 })();
-const CAN_CANCEL_SALE = _posRole === 'superadmin';
+const CAN_CANCEL_SALE = _posRole === 'superadmin' || _posRole === 'encargado';
 
 /* ── AUTH CHECK ── */
 function getSession() {
