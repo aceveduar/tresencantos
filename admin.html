@@ -848,14 +848,19 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .col-price  {width:80px}
   .col-state  {width:138px}
   .col-actions{width:120px}
-  /* Stats: auto-fit para adaptarse a cualquier ancho sin filas huérfanas */
-  .stats{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  /* Stats: 3 columnas → layout 3+2 en lugar de 4+1 con tarjeta huérfana */
+  .stats{grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+  /* Stat cards más compactas en tablet — reduce la altura total de la sección */
+  .stat-card{padding:14px 16px 13px}
+  .stat-icon{width:32px;height:32px;border-radius:9px;font-size:.9rem;margin-bottom:10px}
+  .stat-card .num{font-size:1.65rem}
+  .stat-card .lbl{margin-top:4px;font-size:.6rem}
+  .col-actions{width:132px}
   .admin-cards-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;padding:16px}
 
   /* ── Topbar compacto: cabe en portrait sin desbordar ── */
   .topbar{padding:0 16px}
   .session-user{display:none}
-  /* Botones más compactos para que quepan todos */
   .btn-sm{padding:6px 10px;font-size:.76rem}
   .btn-logout{font-size:.76rem;padding:5px 10px}
 }
