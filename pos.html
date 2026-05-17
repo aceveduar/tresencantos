@@ -766,6 +766,7 @@ button,a{touch-action:manipulation}
   </div>
   <div class="topbar-right">
     <span id="today-stats" class="today-stats" style="display:none"></span>
+    <button id="apt-vencidos-alert" style="display:none;background:#FEE2E2;color:#E85D5D;border:1.5px solid #FECACA;border-radius:50px;padding:4px 12px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s" onclick="switchPosTab('apartados')" title="Ver apartados vencidos">⚠️ <span id="apt-vencidos-count"></span></button>
     <button class="cart-topbar-btn" id="cart-topbar-btn" onclick="toggleCartPreview()" title="Ver carrito">
       🛒
       <span id="cart-topbar-badge" class="cart-badge" style="display:none"></span>
@@ -1974,11 +1975,27 @@ async function loadApartados() {
   const tabBadge  = document.getElementById('tab-apt-badge');
 
   const empty = !result.ok || !result.data?.length;
+  const hoyMs = new Date().setHours(0,0,0,0);
 
-  // Badge del tab Apartados
+  // Detectar apartados vencidos
+  const vencidos = empty ? 0 : result.data.filter(s => {
+    if (!s.due_date) return false;
+    return new Date(s.due_date + 'T00:00:00') < hoyMs;
+  }).length;
+
+  // Badge del tab Apartados — rojo si hay vencidos
   if (tabBadge) {
     tabBadge.textContent = empty ? '' : result.data.length;
     tabBadge.style.display = empty ? 'none' : 'flex';
+    tabBadge.style.background = vencidos > 0 ? '#E85D5D' : '';
+  }
+
+  // Alerta en topbar — solo si hay vencidos
+  const alertBtn = document.getElementById('apt-vencidos-alert');
+  const alertCount = document.getElementById('apt-vencidos-count');
+  if (alertBtn && alertCount) {
+    alertBtn.style.display = vencidos > 0 ? '' : 'none';
+    alertCount.textContent = vencidos === 1 ? '1 vencido' : `${vencidos} vencidos`;
   }
 
   if (empty) {
