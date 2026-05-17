@@ -209,6 +209,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .tbn-icon.tbn-active{color:#C9A462;background:transparent}
 .tbn-icon.tbn-active svg{stroke-width:2.5}
 .tbn-icon:active{opacity:.55;transform:scale(.88)}
+.tbn-icon.tbn-logout:hover{color:#E85D5D;background:rgba(232,93,93,.1)}
 /* topbar-nav-mobile global — visible en todos los dispositivos */
 </style>
 </head>
@@ -219,8 +220,6 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
     <span class="topbar-title">Reportes</span>
   </div>
   <div class="topbar-right">
-    <a href="activity.html" class="btn-back">📋 <span>Actividad</span></a>
-    <a href="admin.html" class="btn-back">← <span>Inventario</span></a>
     <nav class="topbar-nav-mobile" aria-label="Módulos">
       <a href="admin.html" class="tbn-icon" title="Inventario">
         <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
@@ -240,6 +239,9 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
       <a href="index.html" class="tbn-icon" title="Tienda">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       </a>
+      <button class="tbn-icon tbn-logout" onclick="doLogout()" title="Cerrar sesión" aria-label="Cerrar sesión">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
     </nav>
   </div>
 </div>
@@ -439,6 +441,11 @@ const SESSION_KEY = 'te_admin_session';
       window.location.href = 'admin.html';
   } catch { window.location.href = 'admin.html'; }
 })();
+
+function doLogout() {
+  localStorage.removeItem(SESSION_KEY);
+  window.location.href = 'admin.html';
+}
 
 /* ── API ── */
 function api(path, opts={}) {
