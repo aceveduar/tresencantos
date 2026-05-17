@@ -13,8 +13,20 @@ const LOCKOUT_MS   = 60 * 1000; // 1 minuto de bloqueo por cada 5 intentos falli
 // Valores válidos: 'superadmin' | 'operador' | 'duena'
 // Si no está definido se asume 'operador' (nunca da más permisos de los esperados).
 function _parseRole() {
-  try { return JSON.parse(localStorage.getItem(SESSION_KEY))?.user?.user_metadata?.role || 'operador'; }
-  catch { return 'operador'; }
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY));
+    // 1. user object almacenado al hacer login
+    const fromUser = s?.user?.user_metadata?.role;
+    if (fromUser) return fromUser;
+    // 2. fallback: decodificar payload del JWT access_token
+    const token = s?.access_token;
+    if (token) {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const r = payload?.user_metadata?.role;
+      if (r) return r;
+    }
+    return 'operador';
+  } catch { return 'operador'; }
 }
 const ROLE = _parseRole();
 const can = {
@@ -248,7 +260,8 @@ async function refreshSessionIfNeeded() {
       access_token:  result.data.access_token,
       refresh_token: result.data.refresh_token,
       expires_at:    Math.floor(Date.now() / 1000) + (result.data.expires_in || 3600),
-      email:         s.email
+      email:         result.data.user?.email || s.email,
+      user:          result.data.user || s.user
     }));
     return true;
   } catch { return false; }
@@ -423,7 +436,8 @@ async function doLoginEmail() {
     access_token:  result.data.access_token,
     refresh_token: result.data.refresh_token,
     expires_at:    Math.floor(Date.now() / 1000) + (result.data.expires_in || 3600),
-    email:         result.data.user.email
+    email:         result.data.user.email,
+    user:          result.data.user
   }));
   await showApp();
 }
