@@ -3031,8 +3031,14 @@ async function runCaptureAI() {
     if (p.name)  { document.getElementById('cap-name').value = toTitleCase(p.name); flash('cap-name'); }
     if (p.price) { const n = Number(p.price); if (!isNaN(n) && n > 0 && n < 100000) { document.getElementById('cap-price').value = Math.round(n); flash('cap-price'); } }
     const catMatch = _capMatchCategory(p.category);
-    if (catMatch) { document.getElementById('cap-category').value = catMatch.code; flash('cap-category'); }
-    const filled = [p.name ? 'nombre' : null, (p.price && Number(p.price) > 0) ? 'precio' : null, catMatch ? 'categoría' : null].filter(Boolean);
+    let catSet = false;
+    if (catMatch) {
+      const sel = document.getElementById('cap-category');
+      sel.value = catMatch.code;
+      catSet = sel.value === catMatch.code; // false si el código no existe como opción
+      if (catSet) flash('cap-category');
+    }
+    const filled = [p.name ? 'nombre' : null, (p.price && Number(p.price) > 0) ? 'precio' : null, catSet ? 'categoría' : null].filter(Boolean);
     _capSetAIStatus(true, '✓', filled.length ? ('Detecté: ' + filled.join(', ')) : 'Analizado — revisa los campos');
     updateCapSaveBtn();
   } catch (err) {
