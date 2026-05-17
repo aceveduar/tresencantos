@@ -2934,6 +2934,8 @@ function resetCaptureForm(keepCount) {
   document.getElementById('cap-name').value = '';
   document.getElementById('cap-price').value = '';
   document.getElementById('cap-category').value = '';
+  const saveBtn = document.getElementById('cap-save-btn');
+  if (saveBtn) saveBtn.textContent = 'Guardar y siguiente →';
   updateCapSaveBtn();
 }
 
