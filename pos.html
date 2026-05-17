@@ -194,6 +194,12 @@ button,a{touch-action:manipulation}
   transform:translateX(100%);
   transition:transform .28s cubic-bezier(.4,0,.2,1);
 }
+.history-offcanvas::before{
+  content:'';position:absolute;left:-10px;top:50%;transform:translateY(-50%);
+  width:4px;height:48px;background:rgba(28,24,23,.18);border-radius:2px;
+  pointer-events:none;
+}
+@media(min-width:641px){.history-offcanvas::before{display:none}}
 .history-offcanvas.open{transform:translateX(0)}
 .history-backdrop{
   position:fixed;inset:0;background:rgba(0,0,0,.35);
@@ -1887,6 +1893,59 @@ function compartirCorteWA() {
   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
+/* ── SWIPE TO CLOSE (offcanvas desde la derecha) ── */
+function initSwipeToClose(panelId, backdropId, closeFn, backdropBaseOpacity = 0.35) {
+  const panel    = document.getElementById(panelId);
+  const backdrop = document.getElementById(backdropId);
+  if (!panel) return;
+
+  let startX = 0, startY = 0, curX = 0, dragging = false;
+
+  panel.addEventListener('touchstart', e => {
+    startX  = e.touches[0].clientX;
+    startY  = e.touches[0].clientY;
+    dragging = false; curX = 0;
+  }, { passive: true });
+
+  panel.addEventListener('touchmove', e => {
+    const dx = e.touches[0].clientX - startX;
+    const dy = Math.abs(e.touches[0].clientY - startY);
+    if (!dragging) {
+      if (Math.abs(dx) > dy && dx > 10) dragging = true;
+      else if (dy > 10) return;
+    }
+    if (!dragging) return;
+    curX = Math.max(0, dx);
+    panel.style.transition = 'none';
+    panel.style.transform  = `translateX(${curX}px)`;
+    if (backdrop) {
+      backdrop.style.opacity = String(Math.max(0, backdropBaseOpacity * (1 - curX / panel.offsetWidth)));
+    }
+  }, { passive: true });
+
+  panel.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    const threshold = Math.min(110, panel.offsetWidth * 0.32);
+    if (curX > threshold) {
+      panel.style.transition = 'transform .22s ease-in';
+      panel.style.transform  = `translateX(${panel.offsetWidth}px)`;
+      if (backdrop) backdrop.style.opacity = '0';
+      setTimeout(() => {
+        closeFn();
+        panel.style.transform = panel.style.transition = '';
+        if (backdrop) backdrop.style.opacity = '';
+      }, 230);
+    } else {
+      panel.style.transition = 'transform .28s cubic-bezier(.4,0,.2,1)';
+      panel.style.transform  = 'translateX(0)';
+      if (backdrop) backdrop.style.opacity = '';
+      setTimeout(() => { panel.style.transform = panel.style.transition = ''; }, 280);
+    }
+    curX = 0;
+  });
+}
+
 function openHistory() {
   document.getElementById('history-offcanvas').classList.add('open');
   document.getElementById('history-backdrop').classList.add('open');
@@ -2838,6 +2897,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadHistory();
   loadApartados();
   showAllProducts();
+
+  // Swipe para cerrar offcanvas en mobile
+  initSwipeToClose('corte-offcanvas',   'corte-backdrop',   closeCorte,   0.35);
+  initSwipeToClose('history-offcanvas', 'history-backdrop', closeHistory, 0.35);
 
   // Inicializar pestañas en teléfonos
   if (isTabMode()) switchPosTab('catalog');
