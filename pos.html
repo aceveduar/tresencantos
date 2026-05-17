@@ -407,6 +407,8 @@ button,a{touch-action:manipulation}
 .btn-abonar:hover{background:var(--gold-light)}
 .btn-liquidar{flex:1;padding:9px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
 .btn-liquidar:hover{background:#1B4332}
+.btn-wa-reminder{flex-shrink:0;width:36px;padding:0;border-radius:8px;border:none;background:#25D366;color:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;line-height:1}
+.btn-wa-reminder:hover{background:#1da851;transform:scale(1.05)}
 /* HISTORIAL DE ABONOS */
 .apt-abonos{margin:0 0 4px;border-top:1px solid #F0E8DC;padding-top:7px}
 .apt-abonos-title{font-size:.68rem;font-weight:700;color:#9B8B78;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
@@ -2044,6 +2046,7 @@ async function loadApartados() {
     </div>
   </div>
   <div class="apt-btns">
+    <button class="btn-wa-reminder" onclick="sendApartadoReminder(${s.id})" title="Enviar recordatorio por WhatsApp">💬</button>
     <button class="btn-abonar" onclick="abonarApartado(${s.id},${total},${pagado},'${nombre}')">+ Abonar</button>
     <button class="btn-liquidar" onclick="completarApartado(${s.id})">✓ Liquidar</button>
   </div>
@@ -2052,6 +2055,37 @@ async function loadApartados() {
 
   if (list)    list.innerHTML = itemsHTML;
   if (aptView) aptView.innerHTML = itemsHTML;
+}
+
+/* ── RECORDATORIO WA APARTADO ───────────────────────────────────────── */
+function sendApartadoReminder(id) {
+  const s = _apartadosData[id];
+  if (!s) return;
+  const custParts = (s.customer || '').split(' · 📱 ');
+  const nombre    = custParts[0] || 'clienta';
+  const telRaw    = custParts[1] || '';
+  const total     = parseFloat(s.total) || 0;
+  const pagado    = parseFloat(s.paid_amount || 0);
+  const pendiente = Math.max(0, total - pagado);
+  const productos = Array.isArray(s.items) ? s.items.map(i => `• ${i.name}`).join('\n') : '';
+  let fechaTexto  = '';
+  if (s.due_date) {
+    const due = new Date(s.due_date + 'T00:00:00');
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    const dias = Math.round((due - hoy) / 86400000);
+    const label = due.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
+    fechaTexto = dias < 0
+      ? `⚠️ Tu apartado venció hace ${Math.abs(dias)} día${Math.abs(dias)>1?'s':''}. Por favor contáctanos para arreglar tu pedido.`
+      : dias === 0
+        ? `📅 Tu apartado *vence hoy*. ¡Pasa a recogerlo cuando puedas!`
+        : `📅 Tu apartado vence el *${label}* (en ${dias} día${dias>1?'s':''}).`;
+  }
+  const msg = `Hola *${nombre}* 👋\n\nTe escribimos de *Tres Encantos* con un recordatorio de tu apartado 📌\n\n*Productos:*\n${productos}\n\n💰 Anticipo pagado: *$${pagado.toLocaleString('es-MX')}*\n⏳ Pendiente: *$${pendiente.toLocaleString('es-MX')}*\n${fechaTexto}\n\n¡Te esperamos! 🛍`;
+  const telLimpio = telRaw.replace(/\D/g, '');
+  const url = telLimpio
+    ? `https://wa.me/52${telLimpio}?text=${encodeURIComponent(msg)}`
+    : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
 }
 
 /* ── ABONAR ─────────────────────────────────────────────────────────── */
