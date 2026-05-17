@@ -678,19 +678,28 @@ button,a{touch-action:manipulation}
 .cp-cobrar:hover{background:#1B4332}
 .cp-cobrar:disabled{background:#ccc;cursor:not-allowed}
 
-/* ── Tablet (768–1024px): mostrar etiquetas Corte e Historial ── */
+/* ── Tablet (768–1024px): Corte e Historial estilo ícono+texto como el nav ── */
 @media(min-width:768px) and (max-width:1024px){
   .btn-label{display:inline}
-  /* Restaurar estilo pill — el override de 1024px los volvió íconos */
+  /* Mismo estilo visual que los tbn-icon: columna, sin borde */
   #btn-corte-pos,#btn-history-pos{
-    border:1.5px solid rgba(255,255,255,.3)!important;
-    background:transparent!important;
-    color:#fff!important;
+    display:flex!important;flex-direction:column!important;
+    align-items:center!important;gap:2px!important;
+    padding:5px 9px!important;border-radius:9px!important;
+    border:none!important;background:transparent!important;
+    color:rgba(255,255,255,.55)!important;
     width:auto!important;height:auto!important;
-    padding:5px 12px!important;
-    border-right:1.5px solid rgba(255,255,255,.3)!important;
-    padding-right:12px!important;margin-right:0!important;
-    border-radius:50px!important;font-size:.75rem!important;
+    border-right:none!important;padding-right:9px!important;margin-right:0!important;
+    font-size:.57rem!important;font-weight:600!important;letter-spacing:.02em!important;
+  }
+  #btn-corte-pos:hover,#btn-history-pos:hover{
+    color:rgba(255,255,255,.9)!important;background:rgba(255,255,255,.09)!important;
+  }
+  #btn-corte-pos svg,#btn-history-pos svg{width:15px!important;height:15px!important}
+  /* Separador visual entre acciones y nav de módulos */
+  .topbar-nav-mobile{
+    border-left:1px solid rgba(255,255,255,.18);
+    padding-left:4px;margin-left:2px;
   }
 }
 
