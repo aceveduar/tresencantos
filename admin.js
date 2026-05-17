@@ -8,6 +8,24 @@ const ICON_COPY = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" s
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS   = 60 * 1000; // 1 minuto de bloqueo por cada 5 intentos fallidos
 
+/* ── ROLES Y PERMISOS ── */
+// El rol se almacena en user_metadata.role del JWT de Supabase Auth.
+// Valores válidos: 'superadmin' | 'operador' | 'duena'
+// Si no está definido se asume 'operador' (nunca da más permisos de los esperados).
+function _parseRole() {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY))?.user?.user_metadata?.role || 'operador'; }
+  catch { return 'operador'; }
+}
+const ROLE = _parseRole();
+const can = {
+  deleteProduct:  ROLE === 'superadmin',
+  bulkDelete:     ROLE === 'superadmin',
+  importJSON:     ROLE === 'superadmin',
+  manageSettings: ROLE === 'superadmin',
+  editProduct:    ROLE !== 'duena',
+  addProduct:     ROLE !== 'duena',
+};
+
 const SUPABASE_URL = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
 
 // Anon key — para operaciones de autenticación (login/logout/refresh)
@@ -424,6 +442,33 @@ async function doLogout() {
 }
 
 /* ── APP ── */
+function _applyRoleUI() {
+  // Chip de rol junto al email en topbar
+  const el = document.getElementById('session-user');
+  if (el) {
+    const labels = { operador: 'Operador', duena: 'Propietaria' };
+    const label = labels[ROLE];
+    if (label) el.insertAdjacentHTML('afterend', `<span class="role-chip">${label}</span>`);
+  }
+  // Sección JSON (importar/exportar catálogo) — solo superadmin
+  if (!can.importJSON) {
+    document.getElementById('tools-json-section')?.style.setProperty('display', 'none');
+  }
+  // Enlace a settings — solo superadmin
+  if (!can.manageSettings) {
+    document.querySelectorAll('a[href="settings.html"]').forEach(a => a.style.setProperty('display', 'none'));
+  }
+  // Botones de agregar producto — solo si puede editar
+  if (!can.addProduct) {
+    document.querySelectorAll('[onclick="openForm()"]').forEach(b => b.style.setProperty('display', 'none'));
+    document.querySelector('.fab-add')?.style.setProperty('display', 'none');
+  }
+  // Botón "Eliminar ✕" en bulk bar — solo superadmin
+  if (!can.bulkDelete) {
+    document.querySelector('.bulk-bar .btn-red')?.style.setProperty('display', 'none');
+  }
+}
+
 async function showApp() {
   if (!await requireAuth()) return;
   try {
@@ -433,6 +478,7 @@ async function showApp() {
   } catch {}
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
+  _applyRoleUI();
 
   // Mostrar skeleton mientras cargan datos
   const tbody = document.getElementById('products-table');
@@ -595,7 +641,7 @@ function adminCard(p) {
       <div class="ac-actions">
         <button class="action-btn" onclick="openForm(${p.id})" title="Editar">${ICON_EDIT}</button>
         <button class="action-btn btn-duplicate" onclick="duplicateProduct(${p.id})" title="Duplicar">${ICON_COPY}</button>
-        <button class="action-btn del" onclick="askDelete(${p.id})" title="Eliminar">✕</button>
+        ${can.deleteProduct ? `<button class="action-btn del" onclick="askDelete(${p.id})" title="Eliminar">✕</button>` : ''}
       </div>
     </div>
   </div>
@@ -823,7 +869,7 @@ function desktopRow(p) {
     <div class="actions">
       <button class="action-btn" onclick="openForm(${p.id})" title="Editar">${ICON_EDIT}</button>
       <button class="action-btn" onclick="duplicateProduct(${p.id})" title="Duplicar">${ICON_COPY}</button>
-      <button class="action-btn del" onclick="askDelete(${p.id})" title="Eliminar">✕</button>
+      ${can.deleteProduct ? `<button class="action-btn del" onclick="askDelete(${p.id})" title="Eliminar">✕</button>` : ''}
     </div>
   </td>
 </tr>`;
@@ -888,7 +934,7 @@ function mobileCard(p) {
         <div class="mpc-top-actions">
           <button class="mpc-icon-btn" onclick="openForm(${p.id})" title="Editar">${ICON_EDIT}</button>
           <button class="mpc-icon-btn" onclick="duplicateProduct(${p.id})" title="Duplicar">${ICON_COPY}</button>
-          <button class="mpc-icon-btn del-btn" onclick="askDelete(${p.id})" title="Eliminar">✕</button>
+          ${can.deleteProduct ? `<button class="mpc-icon-btn del-btn" onclick="askDelete(${p.id})" title="Eliminar">✕</button>` : ''}
         </div>
       </div>
     </div>
@@ -1080,7 +1126,20 @@ async function duplicateProduct(id) {
 
   renderTable();
   renderStats();
-  toastAction('Producto duplicado', 'Editar →', () => openForm(copy.id));
+  if (!can.deleteProduct) {
+    // Operador: undo para deshacer el duplicado accidental (7 segundos)
+    toastUndo(`"${truncName(copy.name)}" duplicado`, async () => {
+      const r = await supabaseApi(`products?id=eq.${copy.id}`, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
+      if (r.ok) {
+        products = products.filter(p => p.id !== copy.id);
+        renderTable();
+        renderStats();
+        toast('Duplicado deshecho ✓', 'success');
+      }
+    });
+  } else {
+    toastAction('Producto duplicado', 'Editar →', () => openForm(copy.id));
+  }
 }
 
 /* ── DRAG & DROP REORDER ── */
@@ -1542,6 +1601,8 @@ async function saveInlineAiKey() {
 
 /* ── FORM ── */
 function openForm(id) {
+  if (id && !can.editProduct) { toast('Vista de solo lectura', ''); return; }
+  if (!id && !can.addProduct) { toast('Sin permiso para agregar productos', 'error'); return; }
   populateBadgeList();
   const overlay = document.getElementById('form-overlay');
   document.getElementById('form-title').textContent = id ? 'Editar producto' : 'Agregar producto';
@@ -1892,6 +1953,7 @@ async function saveProduct() {
 
 /* ── DELETE ── */
 function askDelete(id) {
+  if (!can.deleteProduct) { toast('Solo el administrador puede eliminar productos', 'error'); return; }
   deleteTargetId = id;
   document.getElementById('del-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';

@@ -74,6 +74,7 @@ button,a,[onclick]{touch-action:manipulation}
 .btn-logout{background:transparent;border:none;color:var(--muted);font-size:.82rem;cursor:pointer;padding:7px 12px;border-radius:50px;transition:.18s}
 .btn-logout:hover{color:var(--red);background:#FEF2F2}
 .session-user{font-size:.75rem;color:var(--muted-light);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.role-chip{display:inline-block;font-size:.68rem;padding:2px 9px;border-radius:50px;background:rgba(201,164,98,.15);color:var(--gold);border:1px solid rgba(201,164,98,.35);font-weight:600;flex-shrink:0}
 
 main{max-width:1080px;margin:0 auto;padding:28px 32px}
 
@@ -1119,7 +1120,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 
         <!-- ── DATOS ──────────────────────────────────────── -->
         <div class="tools-group-label">Datos</div>
-        <div class="io-bar">
+        <div id="tools-json-section" class="io-bar">
           <div>
             <div style="font-size:.84rem;color:var(--charcoal);font-weight:600">💾 Respaldo de productos</div>
             <div style="font-size:.73rem;color:var(--muted);margin-top:2px">Exportar o importar catálogo en formato JSON</div>
