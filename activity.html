@@ -261,7 +261,13 @@ function avatarInitial(email) {
   return name ? name[0].toUpperCase() : (email || '?')[0].toUpperCase();
 }
 function avatarColor(email) {
-  const palette = ['#C9A462','#2D6A4F','#6366F1','#0891B2','#D97706','#7C3AED','#E85D5D','#059669'];
+  const fixed = {
+    'eacevedo@sunname.com.mx':       '#2D6A4F',
+    'ma.dolores.mtz.mtz@gmail.com':  '#6366F1',
+    'areli@tresencantos.com':        '#be185d',
+  };
+  if (fixed[email]) return fixed[email];
+  const palette = ['#C9A462','#0891B2','#D97706','#7C3AED','#E85D5D','#059669'];
   let h = 0;
   for (const c of (email || '')) h = c.charCodeAt(0) + ((h << 5) - h);
   return palette[Math.abs(h) % palette.length];
