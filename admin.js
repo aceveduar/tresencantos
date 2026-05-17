@@ -1892,9 +1892,9 @@ function validateForm() {
   const price = parseFloat(document.getElementById('f-price')?.value);
   const cat   = document.getElementById('f-category')?.value;
 
-  if (!name)                                     markError('f-name',     'El nombre es obligatorio');
-  if (cat !== 'por_revisar' && (!price || price <= 0)) markError('f-price', 'Ingresa un precio de venta válido');
-  if (!cat)                                      markError('f-category', 'Selecciona una categoría');
+  if (!name)                markError('f-name',     'El nombre es obligatorio');
+  if (!price || price <= 0) markError('f-price',    'Ingresa un precio de venta válido');
+  if (!cat)                 markError('f-category', 'Selecciona una categoría');
 
   if (firstInvalid) {
     firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -3071,13 +3071,15 @@ async function runCaptureAI() {
 }
 
 function updateCapSaveBtn() {
-  const name = document.getElementById('cap-name')?.value.trim();
-  document.getElementById('cap-save-btn').disabled = !name;
+  const name  = document.getElementById('cap-name')?.value.trim();
+  const price = parseFloat(document.getElementById('cap-price')?.value);
+  document.getElementById('cap-save-btn').disabled = !name || !price || price <= 0;
 }
 
 async function saveCaptureProduct() {
-  const name = document.getElementById('cap-name').value.trim();
-  if (!name) return;
+  const name  = document.getElementById('cap-name').value.trim();
+  const price = parseFloat(document.getElementById('cap-price').value);
+  if (!name || !price || price <= 0) return;
   const btn = document.getElementById('cap-save-btn');
   btn.disabled = true; btn.textContent = 'Guardando...';
   try {
