@@ -1661,6 +1661,12 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js"></script>
+<script>
+  if (!('BarcodeDetector' in window) && window.barcodeDetectorPolyfill) {
+    window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+  }
+</script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="admin.js"></script>
 </body>

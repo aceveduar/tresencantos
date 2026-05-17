@@ -2469,10 +2469,10 @@ function _launchScanner() {
     Html5QrcodeSupportedFormats.UPC_E,
     Html5QrcodeSupportedFormats.QR_CODE,
   ];
-  _scanInst = new Html5Qrcode('scanner-reader', { formatsToSupport: barcodeFormats, verbose: false });
+  _scanInst = new Html5Qrcode('scanner-reader', { formatsToSupport: barcodeFormats, verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
   const scanConfig = isIOS
     // iOS: no qrbox so ZXing processes the full frame — critical for iOS detection
-    ? { fps: 15, videoConstraints: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } }
+    ? { fps: 20, videoConstraints: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } }
     : { fps: 10, qrbox: { width: 260, height: 100 } };
   _scanInst.start(
     { facingMode: 'environment' },

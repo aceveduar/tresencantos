@@ -1132,6 +1132,12 @@ button,a{touch-action:manipulation}
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js"></script>
+<script>
+  if (!('BarcodeDetector' in window) && window.barcodeDetectorPolyfill) {
+    window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+  }
+</script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 /* ── CONFIG ── */
@@ -2608,9 +2614,9 @@ function openPosScanner() {
     Html5QrcodeSupportedFormats.UPC_E,
     Html5QrcodeSupportedFormats.QR_CODE,
   ];
-  _posScanner = new Html5Qrcode('pos-reader', { formatsToSupport: barcodeFormats, verbose: false });
+  _posScanner = new Html5Qrcode('pos-reader', { formatsToSupport: barcodeFormats, verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
   const scanConfig = isIOS
-    ? { fps: 15, videoConstraints: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } }
+    ? { fps: 20, videoConstraints: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } }
     : { fps: 10, qrbox: { width: 260, height: 100 } };
   _posScanner.start(
     { facingMode: 'environment' },
