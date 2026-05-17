@@ -31,7 +31,7 @@ button,a{touch-action:manipulation}
 }
 
 /* TOPBAR */
-.topbar{background:var(--charcoal);color:#fff;padding:0 16px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px}
+.topbar{background:var(--charcoal);color:#fff;padding:0 16px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;position:relative}
 .topbar-left{display:flex;align-items:center;gap:10px}
 .topbar-left img{height:30px;border-radius:5px}
 .topbar-title{font-family:'Playfair Display',serif;font-size:1rem;color:#fff}
@@ -710,14 +710,20 @@ button,a{touch-action:manipulation}
 .tbn-icon.tbn-logout:hover{color:#E85D5D;background:rgba(232,93,93,.12)}
 .tbn-sep{display:none}
 @media(min-width:1025px){
-  .tbn-sep{display:block;width:1px;height:20px;background:rgba(255,255,255,.2);align-self:center;flex-shrink:0;margin:0 4px}
-}
-@media(min-width:1025px){
-  .topbar{background:var(--charcoal)}
+  /* ── Topbar: 3 zonas — [Caja] [nav centrado] [botones acción] ── */
+  .topbar{background:var(--charcoal);justify-content:space-between}
+  .topbar-left{flex:1;display:flex;align-items:center}
+  .topbar-right{flex:1;justify-content:flex-end}
+  /* Nav centrado absolutamente dentro del topbar */
+  .topbar-nav-mobile{
+    position:absolute;left:50%;top:50%;
+    transform:translate(-50%,-50%);
+    gap:2px;z-index:5;
+  }
   .tbn-label{display:block}
   .tbn-icon{padding:5px 9px;gap:2px}
   .tbn-icon svg{width:15px;height:15px}
-  .topbar-nav-mobile{gap:2px}
+  .tbn-sep{display:block;width:1px;height:20px;background:rgba(255,255,255,.2);align-self:center;flex-shrink:0;margin:0 4px}
 }
 </style>
 </head>
