@@ -1256,7 +1256,7 @@ let driveEp     = null;
 let driveSecret = null;
 
 async function loadAppConfig() {
-  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret,wa_float)&select=id,value');
+  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret,wa_float,captura_rapida)&select=id,value');
   if (r.ok && r.data) {
     r.data.forEach(row => {
       if (row.id === 'groq_key')     groqApiKey  = row.value || null;
@@ -1265,6 +1265,12 @@ async function loadAppConfig() {
       if (row.id === 'wa_float') {
         const toggle = document.getElementById('wa-float-toggle');
         if (toggle) toggle.checked = row.value !== 'false';
+      }
+      if (row.id === 'captura_rapida') {
+        // false solo si está explícitamente desactivado; por defecto activo
+        if (row.value === 'false') {
+          document.getElementById('btn-capture-mode')?.style.setProperty('display', 'none');
+        }
       }
     });
   }

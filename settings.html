@@ -238,6 +238,19 @@ button,a,[onclick]{touch-action:manipulation}
       </div>
     </div>
     <div class="scard-row">
+      <div class="scard-icon">📸</div>
+      <div class="scard-body">
+        <div class="scard-title">Captura rápida en Inventario</div>
+        <div class="scard-desc">Botón para cargar productos con foto e IA</div>
+      </div>
+      <div class="scard-action">
+        <label class="te-switch" title="Activar/desactivar Captura rápida">
+          <input type="checkbox" id="captura-rapida-toggle" checked onchange="toggleCapturaRapida(this.checked)">
+          <span class="te-switch-slider"></span>
+        </label>
+      </div>
+    </div>
+    <div class="scard-row">
       <div class="scard-icon">🏷</div>
       <div class="scard-body">
         <div class="scard-title">Categorías del catálogo</div>
@@ -474,7 +487,7 @@ let nameMap    = {};
 /* ── INIT ── */
 async function init() {
   const [cfgR, catR, namesR] = await Promise.all([
-    api('config?id=in.(groq_key,drive_ep,drive_secret,wa_float)&select=id,value'),
+    api('config?id=in.(groq_key,drive_ep,drive_secret,wa_float,captura_rapida)&select=id,value'),
     api('config?id=eq.categories&select=value'),
     api('config?id=eq.user_names&select=value')
   ]);
@@ -486,6 +499,10 @@ async function init() {
       if (row.id === 'drive_secret') driveSecret = row.value || null;
       if (row.id === 'wa_float') {
         const toggle = document.getElementById('wa-float-toggle');
+        if (toggle) toggle.checked = row.value !== 'false';
+      }
+      if (row.id === 'captura_rapida') {
+        const toggle = document.getElementById('captura-rapida-toggle');
         if (toggle) toggle.checked = row.value !== 'false';
       }
     });
@@ -593,6 +610,20 @@ async function testDriveEndpoint() {
 }
 
 /* ── WA FLOAT ── */
+async function toggleCapturaRapida(enabled) {
+  const r = await api('config', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: 'captura_rapida', value: String(enabled) })
+  });
+  if (r.ok) {
+    toast(enabled ? '📸 Captura rápida activada' : '📸 Captura rápida desactivada', 'ok');
+  } else {
+    toast('Error al guardar', 'err');
+    document.getElementById('captura-rapida-toggle').checked = !enabled;
+  }
+}
+
 async function toggleWaFloat(enabled) {
   const r = await api('config', {
     method: 'POST',
