@@ -25,6 +25,8 @@ button,a,[onclick]{touch-action:manipulation}
 .topbar-left{display:flex;align-items:center;gap:10px}
 .topbar-title{font-family:'Playfair Display',serif;font-size:1rem;color:#fff}
 .topbar-right{display:flex;gap:8px;align-items:center}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:rgba(201,164,98,.25);color:var(--gold);font-size:.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1.5px solid rgba(201,164,98,.5);user-select:none}
+.user-name-lbl{font-size:.75rem;color:rgba(255,255,255,.6);white-space:nowrap}
 .btn-back{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:50px;font-size:.8rem;font-weight:600;border:1.5px solid rgba(255,255,255,.3);color:#fff;transition:.15s;white-space:nowrap}
 .btn-back:hover{background:rgba(255,255,255,.1)}
 
@@ -72,6 +74,8 @@ button,a,[onclick]{touch-action:manipulation}
   .scard-row{padding:14px 16px}
 }
 @media(max-width:640px){
+  .user-name-lbl{display:none}
+  .user-avatar{width:24px;height:24px;font-size:.68rem}
   .modal{border-radius:20px 20px 0 0;max-width:100%;position:fixed;bottom:0;left:0;right:0}
   .overlay{align-items:flex-end;padding:0}
   .add-cat-grid{grid-template-columns:1fr}
@@ -182,6 +186,8 @@ button,a,[onclick]{touch-action:manipulation}
 <div class="topbar">
   <div class="topbar-left">
     <span class="topbar-title">Configuración</span>
+    <span class="user-avatar" id="user-avatar">?</span>
+    <span class="user-name-lbl" id="user-name-lbl"></span>
   </div>
   <div class="topbar-right">
     <nav class="topbar-nav-mobile" aria-label="Módulos">
@@ -927,7 +933,18 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') document.querySelectorAll('.overlay.open').forEach(ov => { ov.classList.remove('open'); document.body.style.overflow = ''; });
 });
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    const _s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
+    const _m = _s?.user?.user_metadata || {};
+    const _n = _m.full_name || _m.name || _s?.user?.email?.split('@')[0] || '';
+    const _av = document.getElementById('user-avatar');
+    const _nl = document.getElementById('user-name-lbl');
+    if (_av) _av.textContent = _n ? _n[0].toUpperCase() : '?';
+    if (_nl) _nl.textContent = _n;
+  } catch {}
+  init();
+});
 </script>
 </body>
 </html>
