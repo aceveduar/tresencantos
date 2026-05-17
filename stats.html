@@ -298,8 +298,8 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 
   <!-- PERÍODO -->
   <div class="period-bar">
-    <button class="period-btn" data-period="today" onclick="setPeriod('today')">Hoy</button>
-    <button class="period-btn active" data-period="week" onclick="setPeriod('week')">7 días</button>
+    <button class="period-btn active" data-period="today" onclick="setPeriod('today')">Hoy</button>
+    <button class="period-btn" data-period="week" onclick="setPeriod('week')">7 días</button>
     <button class="period-btn" data-period="month" onclick="setPeriod('month')">30 días</button>
     <button class="period-btn" data-period="all" onclick="setPeriod('all')">Todo</button>
   </div>
@@ -527,7 +527,7 @@ function api(path, opts={}) {
 }
 
 /* ── STATE ── */
-let currentPeriod = 'week';
+let currentPeriod = 'today';
 let sales = [];
 let prevSales = [];   // período anterior para comparación
 let products = [];

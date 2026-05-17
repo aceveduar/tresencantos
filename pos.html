@@ -1663,7 +1663,7 @@ function renderCart() {
 
   const fallback = () => 'tresencantos_default.png';
   el.innerHTML = cart.map(({ product: p, qty }) => `
-<div class="cart-item">
+<div class="cart-item" data-pid="${p.id}">
   <img class="ci-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback(p.id)}'">
   <div class="ci-info">
     <div class="ci-name">${p.name}</div>
@@ -1682,6 +1682,7 @@ function renderCart() {
     <div class="ci-subtotal">$${(p.price * qty).toLocaleString('es-MX')}</div>
   </div>
 </div>`).join('');
+  applySwipeRemove();
 }
 
 function setCash(amount) {
@@ -1943,6 +1944,97 @@ function initSwipeToClose(panelId, backdropId, closeFn, backdropBaseOpacity = 0.
       setTimeout(() => { panel.style.transform = panel.style.transition = ''; }, 280);
     }
     curX = 0;
+  });
+}
+
+/* ── SWIPE DOWN TO CLOSE (bottom sheets / modales) ── */
+function initSwipeDown(sheetEl, closeFn, overlayEl) {
+  if (!sheetEl) return;
+  let startY = 0, curY = 0, tracking = false;
+
+  sheetEl.addEventListener('touchstart', e => {
+    startY   = e.touches[0].clientY;
+    tracking = false; curY = 0;
+  }, { passive: true });
+
+  sheetEl.addEventListener('touchmove', e => {
+    const dy = e.touches[0].clientY - startY;
+    if (!tracking) {
+      if (dy < 10) return;
+      // Solo activar si el contenido scrollable está en el tope
+      const sc = sheetEl.querySelector('.abonar-modal,.modal-body,.oc-body,[style*="overflow-y"]');
+      if (sc && sc.scrollTop > 4) return;
+      tracking = true;
+    }
+    curY = Math.max(0, dy);
+    sheetEl.style.transition = 'none';
+    sheetEl.style.transform  = `translateY(${curY}px)`;
+    if (overlayEl) overlayEl.style.opacity = String(Math.max(0, 1 - curY / 180));
+  }, { passive: true });
+
+  sheetEl.addEventListener('touchend', () => {
+    if (!tracking) return;
+    tracking = false;
+    if (curY > 90) {
+      sheetEl.style.transition = 'transform .22s ease-in';
+      sheetEl.style.transform  = 'translateY(110%)';
+      if (overlayEl) overlayEl.style.opacity = '0';
+      setTimeout(() => {
+        closeFn();
+        sheetEl.style.transform = sheetEl.style.transition = '';
+        if (overlayEl) overlayEl.style.opacity = '';
+      }, 230);
+    } else {
+      sheetEl.style.transition = 'transform .28s cubic-bezier(.4,0,.2,1)';
+      sheetEl.style.transform  = 'translateY(0)';
+      if (overlayEl) overlayEl.style.opacity = '';
+      setTimeout(() => { sheetEl.style.transform = sheetEl.style.transition = ''; }, 280);
+    }
+    curY = 0;
+  });
+}
+
+/* ── SWIPE LEFT TO REMOVE (cart items) ── */
+function applySwipeRemove() {
+  document.querySelectorAll('.cart-item[data-pid]').forEach(el => {
+    const pid = parseInt(el.dataset.pid);
+    let startX = 0, startY = 0, curX = 0, dragging = false;
+
+    el.addEventListener('touchstart', e => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      dragging = false; curX = 0;
+    }, { passive: true });
+
+    el.addEventListener('touchmove', e => {
+      const dx = e.touches[0].clientX - startX;
+      const dy = Math.abs(e.touches[0].clientY - startY);
+      if (!dragging) {
+        if (Math.abs(dx) < 14 || dy > Math.abs(dx)) return;
+        if (dx < 0) dragging = true; else return;
+      }
+      curX = Math.min(0, dx);
+      el.style.transition = 'none';
+      el.style.transform  = `translateX(${curX}px)`;
+      el.style.opacity    = String(Math.max(0.25, 1 + curX / (el.offsetWidth * 0.6)));
+    }, { passive: true });
+
+    el.addEventListener('touchend', () => {
+      if (!dragging) return;
+      dragging = false;
+      if (curX < -68) {
+        el.style.transition = 'transform .18s ease-in, opacity .18s';
+        el.style.transform  = 'translateX(-110%)';
+        el.style.opacity    = '0';
+        setTimeout(() => removeFromCart(pid), 185);
+      } else {
+        el.style.transition = 'transform .25s cubic-bezier(.4,0,.2,1), opacity .2s';
+        el.style.transform  = 'translateX(0)';
+        el.style.opacity    = '';
+        setTimeout(() => { el.style.transform = el.style.transition = ''; el.style.opacity = ''; }, 250);
+      }
+      curX = 0;
+    });
   });
 }
 
@@ -2898,9 +2990,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadApartados();
   showAllProducts();
 
-  // Swipe para cerrar offcanvas en mobile
+  // Swipe para cerrar offcanvas (derecha)
   initSwipeToClose('corte-offcanvas',   'corte-backdrop',   closeCorte,   0.35);
   initSwipeToClose('history-offcanvas', 'history-backdrop', closeHistory, 0.35);
+
+  // Swipe down para cerrar modales / bottom sheets
+  const saleDoneOv = document.getElementById('sale-done-overlay');
+  initSwipeDown(document.querySelector('.sale-done-modal'), closeSaleDone, saleDoneOv);
+  initSwipeDown(document.querySelector('#abonar-overlay .abonar-modal'), closeAbonarModal,
+    document.getElementById('abonar-overlay'));
+  initSwipeDown(document.querySelector('#liq-overlay .abonar-modal'), closeLiqModal,
+    document.getElementById('liq-overlay'));
 
   // Inicializar pestañas en teléfonos
   if (isTabMode()) switchPosTab('catalog');

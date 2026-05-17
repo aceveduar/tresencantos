@@ -558,10 +558,62 @@ function whatsapp(id, btn) {
 }
 
 /* ── MODAL ── */
+function _swipeDown(getSheet, closeFn, getOverlay) {
+  let startY = 0, curY = 0, on = false;
+  const area = () => getSheet();
+  document.addEventListener('touchstart', e => {
+    const sh = area(); if (!sh) return;
+    if (!sh.closest('#modal-overlay.open, #cart-overlay.open')) return;
+    startY = e.touches[0].clientY; on = false; curY = 0;
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    const sh = area(); if (!sh || !sh.closest('#modal-overlay.open, #cart-overlay.open')) return;
+    const dy = e.touches[0].clientY - startY;
+    if (!on) {
+      if (dy < 12) return;
+      const sc = sh.querySelector('.modal-body,.cart-sheet-body');
+      if (sc && sc.scrollTop > 4) return;
+      on = true;
+    }
+    curY = Math.max(0, dy);
+    sh.style.transition = 'none';
+    sh.style.transform  = `translateY(${curY}px)`;
+    const ov = getOverlay?.();
+    if (ov) ov.style.opacity = String(Math.max(0, 1 - curY / 200));
+  }, { passive: true });
+  document.addEventListener('touchend', () => {
+    const sh = area(); if (!sh || !on) return; on = false;
+    const ov = getOverlay?.();
+    if (curY > 100) {
+      sh.style.transition = 'transform .22s ease-in';
+      sh.style.transform  = 'translateY(110%)';
+      if (ov) ov.style.opacity = '0';
+      setTimeout(() => { closeFn(); sh.style.transform = sh.style.transition = ''; if (ov) ov.style.opacity = ''; }, 230);
+    } else {
+      sh.style.transition = 'transform .28s cubic-bezier(.4,0,.2,1)';
+      sh.style.transform  = 'translateY(0)';
+      if (ov) ov.style.opacity = '';
+      setTimeout(() => { sh.style.transform = sh.style.transition = ''; }, 280);
+    }
+    curY = 0;
+  });
+}
+
 function initModal() {
   const overlay = document.getElementById('modal-overlay');
   overlay?.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  // Swipe down para cerrar en mobile
+  _swipeDown(
+    () => document.querySelector('#modal-overlay .modal'),
+    closeModal,
+    () => document.getElementById('modal-overlay')
+  );
+  _swipeDown(
+    () => document.querySelector('#cart-overlay .cart-sheet'),
+    closeCart,
+    () => document.getElementById('cart-overlay')
+  );
 }
 
 function openModal(id) {
