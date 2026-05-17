@@ -588,32 +588,38 @@ function renderVendedores() {
   // Agrupar por seller_email
   const map = {};
   sales.forEach(s => {
-    const key = s.seller_email || 'Sin asignar';
+    const key = s.seller_email || '__sin_sesion__';
     if (!map[key]) map[key] = { ventas: 0, total: 0 };
     map[key].ventas++;
     map[key].total += parseFloat(s.total) || 0;
   });
 
   const entries = Object.entries(map).sort((a,b) => b[1].total - a[1].total);
-  if (entries.length < 2) { card.style.display = 'none'; return; }
+  // Solo mostrar si hay 2+ vendedores identificados (sin contar ventas sin sesión)
+  const identificados = entries.filter(([k]) => k !== '__sin_sesion__').length;
+  if (identificados < 2) { card.style.display = 'none'; return; }
 
   card.style.display = '';
   const maxTotal = entries[0][1].total;
   label.textContent = PERIOD_LABELS[currentPeriod];
 
   body.innerHTML = entries.map(([email, d]) => {
-    const pct   = maxTotal > 0 ? Math.round(d.total / maxTotal * 100) : 0;
-    const name  = email === 'Sin asignar' ? '⚪ Sin asignar' : email.split('@')[0];
-    const fmt   = n => `$${n.toLocaleString('es-MX')}`;
+    const pct  = maxTotal > 0 ? Math.round(d.total / maxTotal * 100) : 0;
+    const fmt  = n => `$${n.toLocaleString('es-MX')}`;
+    const isSinSesion = email === '__sin_sesion__';
+    const name = isSinSesion ? 'Ventas sin sesión activa' : email.split('@')[0];
+    const icon = isSinSesion ? '🕐' : '👤';
+    const barColor = isSinSesion ? '#B5A696' : 'var(--gold)';
+    const nameStyle = isSinSesion ? 'color:var(--muted);font-weight:500' : 'font-weight:600';
     return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-weight:600;font-size:.84rem">👤 ${name}</span>
-        <span style="font-weight:700;font-size:.88rem">${fmt(d.total)}</span>
+        <span style="font-size:.84rem;${nameStyle}">${icon} ${name}</span>
+        <span style="font-weight:700;font-size:.88rem;${isSinSesion?'color:var(--muted)':''}">${fmt(d.total)}</span>
       </div>
       <div style="background:var(--border);border-radius:50px;height:5px;overflow:hidden;margin-bottom:4px">
-        <div style="width:${pct}%;height:100%;background:var(--gold);border-radius:50px"></div>
+        <div style="width:${pct}%;height:100%;background:${barColor};border-radius:50px"></div>
       </div>
-      <div style="font-size:.7rem;color:var(--muted)">${d.ventas} venta${d.ventas!==1?'s':''}</div>
+      <div style="font-size:.7rem;color:var(--muted)">${d.ventas} venta${d.ventas!==1?'s':''}${isSinSesion?' · registradas antes del sistema de sesiones':''}</div>
     </div>`;
   }).join('');
 }
