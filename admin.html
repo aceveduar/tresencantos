@@ -74,7 +74,9 @@ button,a,[onclick]{touch-action:manipulation}
 .btn-green:hover{background:#1B4332}
 .btn-logout{background:transparent;border:none;color:rgba(255,255,255,.55);font-size:.82rem;cursor:pointer;padding:7px 12px;border-radius:50px;transition:.18s}
 .btn-logout:hover{color:#E85D5D;background:rgba(232,93,93,.1)}
-.session-user{font-size:.75rem;color:rgba(255,255,255,.45);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-display{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:rgba(201,164,98,.25);color:var(--gold);font-size:.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1.5px solid rgba(201,164,98,.45);letter-spacing:0;user-select:none}
+.user-name{font-size:.75rem;color:rgba(255,255,255,.65);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .role-chip{display:inline-block;font-size:.68rem;padding:2px 9px;border-radius:50px;background:rgba(201,164,98,.2);color:var(--gold);border:1px solid rgba(201,164,98,.4);font-weight:600;flex-shrink:0}
 
 main{max-width:1080px;margin:0 auto;padding:28px 32px}
@@ -340,6 +342,12 @@ tr:hover .drag-handle{opacity:1}
   transition:transform .22s cubic-bezier(.34,1.56,.64,1);
 }
 .checkbox-row input[type=checkbox]:checked::after{transform:translateX(18px)}
+
+/* ── AVISOS DE DUPLICADOS ── */
+.dup-warn{margin-top:7px;padding:8px 11px;border-radius:7px;font-size:.78rem;line-height:1.45;background:var(--gold-light);border:1px solid var(--gold);color:var(--charcoal)}
+.dup-warn.error{background:#FFF0F0;border-color:var(--red);color:var(--red)}
+.dup-warn .dup-link{background:none;border:none;padding:0;font-size:.78rem;color:var(--gold-dark);cursor:pointer;text-decoration:underline;font-weight:600}
+.dup-warn.error .dup-link{color:var(--red)}
 
 /* ── VALIDACIÓN DE CAMPOS ── */
 .field-invalid > input,
@@ -666,7 +674,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     white-space:nowrap;
     padding:0 8px;
   }
-  .session-user{display:none}
+  .user-name{display:none}
+  .user-avatar{width:26px;height:26px;font-size:.7rem}
   .btn-versite{display:none}
   .btn-stats-admin{display:none}
   .btn-logout{display:none}
@@ -1057,7 +1066,10 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       <h2><span class="th-long">Inventario</span><span class="th-short" style="display:none">Inventario</span></h2>
     </div>
     <div class="topbar-right">
-      <span id="session-user" class="session-user"></span>
+      <div class="user-display" id="user-display">
+        <span class="user-avatar" id="user-avatar">?</span>
+        <span class="user-name" id="user-name"></span>
+      </div>
       <a href="stats.html" class="btn btn-outline btn-sm btn-stats-admin">📊 Reportes</a>
       <a href="activity.html" class="btn btn-outline btn-sm btn-stats-admin">📋 Actividad</a>
       <a href="settings.html" class="btn btn-outline btn-sm btn-stats-admin">⚙️ Config</a>
@@ -1399,7 +1411,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
               <button type="button" class="dictate-btn btn-clear-field" onclick="clearField('f-name')" title="Limpiar campo" aria-label="Limpiar nombre">⌫</button>
             </div>
           </div>
-          <input type="text" id="f-name" placeholder="Ej: Bolso Glamour Camel" onblur="applyTitleCase('f-name');suggestCategoryFromName()" oninput="suggestCategoryFromName()">
+          <input type="text" id="f-name" placeholder="Ej: Bolso Glamour Camel" onblur="applyTitleCase('f-name');suggestCategoryFromName();checkNameSimilarity()" oninput="suggestCategoryFromName()">
+          <div id="f-name-warn" class="dup-warn" style="display:none"></div>
         </div>
       </div>
       <div class="form-row">
@@ -1481,10 +1494,11 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         <div class="field">
           <label>Código de barras</label>
           <div style="display:flex;gap:8px">
-            <input type="text" id="f-barcode" placeholder="Escanea o escribe el código..." style="flex:1">
+            <input type="text" id="f-barcode" placeholder="Escanea o escribe el código..." style="flex:1" onblur="checkBarcodeConflict()">
             <button type="button" class="btn btn-outline btn-sm" onclick="openFormScanner()" title="Usar cámara">📷</button>
           </div>
           <p class="hint">EAN-13, QR, Code-128 — opcional</p>
+          <div id="f-barcode-warn" class="dup-warn" style="display:none"></div>
         </div>
         <div class="field">
           <label>Stock (unidades)</label>

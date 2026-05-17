@@ -467,7 +467,7 @@ function _applyRoleUI() {
     const chip = document.createElement('span');
     chip.className = 'role-chip';
     chip.textContent = roleLabels[ROLE];
-    document.getElementById('session-user')?.after(chip);
+    document.getElementById('user-display')?.after(chip);
   }
   // Operador: ocultar Reportes, Actividad y Settings
   if (ROLE === 'operador') {
@@ -507,12 +507,30 @@ function _applyRoleUI() {
   }
 }
 
+function _getUserDisplay() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
+    const meta = s?.user?.user_metadata || {};
+    const fullName = meta.full_name || meta.name || '';
+    if (fullName) {
+      const first = fullName.split(' ')[0];
+      return { name: first, initial: first[0].toUpperCase() };
+    }
+    const email = s?.user?.email || s?.email || '';
+    const local = email.split('@')[0];
+    const name = local.charAt(0).toUpperCase() + local.slice(1);
+    return { name, initial: name[0].toUpperCase() };
+  } catch { return { name: '', initial: '?' }; }
+}
+
 async function showApp() {
   if (!await requireAuth()) return;
   try {
-    const s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
-    const el = document.getElementById('session-user');
-    if (el && s.email) el.textContent = s.email;
+    const { name, initial } = _getUserDisplay();
+    const avatarEl = document.getElementById('user-avatar');
+    const nameEl   = document.getElementById('user-name');
+    if (avatarEl) avatarEl.textContent = initial;
+    if (nameEl)   nameEl.textContent   = name;
   } catch {}
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
@@ -1723,6 +1741,7 @@ function openForm(id) {
     hideAiFormBtn();
   }
 
+  _clearDupWarnings();
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
   initImageUpload();
@@ -1735,6 +1754,7 @@ function closeForm() {
   document.getElementById('form-overlay').classList.remove('open');
   document.body.style.overflow = '';
   setBtn(document.getElementById('save-btn'), false);
+  _clearDupWarnings();
 }
 
 function updateMarginDisplay() {
@@ -2494,10 +2514,69 @@ function closeAdminScanner() {
   document.body.style.overflow = '';
 }
 
+/* ── DETECCIÓN DE DUPLICADOS ── */
+function _normStr(s) {
+  return (s || '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s]/g, '').trim().replace(/\s+/g, ' ');
+}
+
+function _wordSim(a, b) {
+  const stop = new Set(['de','la','el','los','las','un','una','y','con','para','en','del','al']);
+  const words = s => new Set(_normStr(s).split(' ').filter(w => w.length > 1 && !stop.has(w)));
+  const wa = words(a), wb = words(b);
+  if (!wa.size || !wb.size) return 0;
+  return [...wa].filter(w => wb.has(w)).length / Math.max(wa.size, wb.size);
+}
+
+function checkBarcodeConflict() {
+  const warn = document.getElementById('f-barcode-warn');
+  const code = document.getElementById('f-barcode').value.trim();
+  const editingId = parseInt(document.getElementById('f-id').value) || null;
+  warn.style.display = 'none';
+  if (!code) return;
+  const conflict = products.find(p => p.barcode === code && p.id !== editingId);
+  if (!conflict) return;
+  warn.className = 'dup-warn error';
+  warn.innerHTML = `⛔ Este código ya está en <strong>${conflict.name}</strong> — <button type="button" class="dup-link" onclick="closeForm();openForm(${conflict.id})">Ver producto →</button>`;
+  warn.style.display = 'block';
+}
+
+function checkNameSimilarity() {
+  const warn = document.getElementById('f-name-warn');
+  const name = document.getElementById('f-name').value.trim();
+  const editingId = parseInt(document.getElementById('f-id').value) || null;
+  warn.style.display = 'none';
+  if (name.length < 4) return;
+  const normName = _normStr(name);
+  const similar = products.filter(p => {
+    if (p.id === editingId) return false;
+    return _normStr(p.name) === normName || _wordSim(name, p.name) >= 0.75;
+  });
+  if (!similar.length) return;
+  const isExact = similar.some(p => _normStr(p.name) === normName);
+  const links = similar.map(p =>
+    `<button type="button" class="dup-link" onclick="closeForm();openForm(${p.id})">${p.name} →</button>`
+  ).join('  ');
+  warn.className = 'dup-warn' + (isExact ? ' error' : '');
+  warn.innerHTML = isExact
+    ? `⛔ Ya existe un producto con ese nombre: ${links}`
+    : `⚠️ Nombre similar a: ${links}`;
+  warn.style.display = 'block';
+}
+
+function _clearDupWarnings() {
+  ['f-name-warn', 'f-barcode-warn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+  });
+}
+
 function _onAdminScan(code) {
   if (_scanCtx === 'form') {
     document.getElementById('f-barcode').value = code;
     closeAdminScanner();
+    checkBarcodeConflict();
     toast(`Código asignado: ${code}`, 'success');
   } else if (_scanCtx === 'search') {
     closeAdminScanner();
