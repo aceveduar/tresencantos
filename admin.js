@@ -2460,9 +2460,10 @@ function _launchScanner() {
   if (_scanInst) { _scanInst.clear().catch(() => {}); _scanInst = null; }
 
   _scanInst = new Html5Qrcode('scanner-reader');
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   _scanInst.start(
-    { facingMode: 'environment' },
-    { fps: 10, qrbox: { width: 260, height: 100 } },
+    { facingMode: { ideal: 'environment' } },
+    { fps: isIOS ? 15 : 10, qrbox: { width: 260, height: isIOS ? 160 : 100 } },
     (code) => {
       _onAdminScan(code);
     },

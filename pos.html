@@ -1684,59 +1684,80 @@ async function loadCorte() {
 
   const TZ = 'America/Mexico_City';
   const ahoraMX   = new Intl.DateTimeFormat('es-MX', { timeZone:TZ, dateStyle:'full', timeStyle:'short' }).format(new Date());
+  // Siempre desde medianoche del día (todas las ventas de hoy, sin importar cuándo se abrió el POS)
   const hoyInicio = new Date();
-  hoyInicio.setHours(0,0,0,0);
-  // Shift start: guardado en localStorage cuando el usuario abre el POS, o inicio del día
-  const shiftStart = localStorage.getItem('te_shift_start') || hoyInicio.toISOString();
+  hoyInicio.setHours(0, 0, 0, 0);
+  const queryFrom  = hoyInicio.toISOString();
+  // shiftStart es solo para mostrar a qué hora abrió Areli
+  const shiftStart = localStorage.getItem('te_shift_start') || queryFrom;
 
   periodoEl.textContent = `Turno desde ${new Intl.DateTimeFormat('es-MX',{timeZone:TZ,hour:'2-digit',minute:'2-digit'}).format(new Date(shiftStart))} · ${ahoraMX}`;
 
-  const result = await api(`sales?created_at=gte.${shiftStart}&select=id,total,paid_amount,payment_method,type,discount,items,abonos,created_at,customer`);
+  const result = await api(`sales?created_at=gte.${queryFrom}&select=id,total,paid_amount,payment_method,type,discount,items,abonos,created_at,customer`);
   if (!result.ok) { content.innerHTML = '<div style="color:var(--red);text-align:center">Error al cargar datos</div>'; return; }
 
   const sales = result.data || [];
-  let efectivo = 0, transferencia = 0, numVentas = 0, numApartados = 0, anticipos = 0;
+  let efectivo = 0, transferencia = 0, numVentas = 0, numApartados = 0, numLiquidados = 0, anticipos = 0;
 
   sales.forEach(s => {
     const abonos = Array.isArray(s.abonos) ? s.abonos : [];
+
     if (abonos.length) {
+      // Venta con historial de pagos: apartado activo o apartado liquidado
+      let abonosDelTurno = 0;
+      let hayAbonosDelTurno = false;
       abonos.forEach(a => {
-        if (new Date(a.date) >= new Date(shiftStart)) {
+        if (new Date(a.date) >= hoyInicio) {
           const amt = parseFloat(a.amount) || 0;
           if (a.method === 'transferencia') transferencia += amt; else efectivo += amt;
-          if (s.type === 'apartado') { numApartados++; anticipos += amt; }
+          abonosDelTurno += amt;
+          hayAbonosDelTurno = true;
         }
       });
+      // Contar una vez por venta, no por abono
+      if (hayAbonosDelTurno) {
+        if (s.type === 'apartado') {
+          numApartados++;
+          anticipos += abonosDelTurno;
+        } else {
+          // Apartado que se liquidó en este turno (type cambió a 'venta')
+          numLiquidados++;
+          numVentas++;
+        }
+      }
     } else if (s.type !== 'apartado') {
-      const amt = parseFloat(s.paid_amount || s.total) || 0;
+      // Venta directa: usar total (lo que quedó en caja, ya descontado el cambio)
+      const amt = parseFloat(s.total) || 0;
       if (s.payment_method === 'transferencia') transferencia += amt; else efectivo += amt;
       numVentas++;
     } else {
+      // Apartado sin anticipo todavía (paid_amount=0, abonos=null)
       numApartados++;
-      anticipos += parseFloat(s.paid_amount) || 0;
     }
   });
 
   const total = efectivo + transferencia;
   const fmt = n => `$${n.toLocaleString('es-MX')}`;
-  _corteData = { efectivo, transferencia, total, numVentas, numApartados, anticipos, shiftStart, ahoraMX };
+  _corteData = { efectivo, transferencia, total, numVentas, numApartados, numLiquidados, anticipos, shiftStart, ahoraMX };
+
+  const ventasDirectas = numVentas - numLiquidados;
+  const row = (label, value, sub='') => `
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:.8rem;color:var(--muted);font-weight:600">${label}${sub ? `<span style="font-weight:400;margin-left:6px;color:#B5A696">${sub}</span>` : ''}</span>
+      <span style="font-weight:700;font-size:.9rem">${value}</span>
+    </div>`;
 
   content.innerHTML = `
     <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      ${row('🛍 Ventas directas', ventasDirectas)}
+      ${numLiquidados ? row('✅ Apartados liquidados', numLiquidados) : ''}
+      ${numApartados  ? row('📌 Apartados activos', numApartados, anticipos > 0 ? `anticipo ${fmt(anticipos)}` : '') : ''}
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:.8rem;color:var(--muted);font-weight:600">Ventas completadas</span>
-        <span style="font-weight:700;font-size:.9rem">${numVentas}</span>
-      </div>
-      <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:.8rem;color:var(--muted);font-weight:600">Apartados / anticipos</span>
-        <span style="font-weight:700;font-size:.9rem">${numApartados}</span>
-      </div>
-      <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:.8rem;color:var(--muted);font-weight:600">💵 Efectivo</span>
+        <span style="font-size:.8rem;color:var(--muted);font-weight:600">💵 Efectivo recibido</span>
         <span style="font-weight:700;font-size:.9rem;color:var(--charcoal)">${fmt(efectivo)}</span>
       </div>
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:.8rem;color:var(--muted);font-weight:600">📱 Transferencia</span>
+        <span style="font-size:.8rem;color:var(--muted);font-weight:600">📱 Transferencia recibida</span>
         <span style="font-weight:700;font-size:.9rem;color:var(--charcoal)">${fmt(transferencia)}</span>
       </div>
       <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;background:#F7F2EB">
@@ -1744,7 +1765,7 @@ async function loadCorte() {
         <span style="font-size:1.15rem;font-weight:800;color:var(--green)">${fmt(total)}</span>
       </div>
     </div>
-    ${anticipos > 0 ? `<div style="background:#FFF8EE;border:1px solid var(--gold);border-radius:10px;padding:10px 14px;font-size:.78rem;color:var(--gold-dark)">⚠️ Incluye <strong>${fmt(anticipos)}</strong> en anticipos de apartados — pendiente completar cobro</div>` : ''}
+    ${anticipos > 0 ? `<div style="background:#FFF8EE;border:1px solid var(--gold);border-radius:10px;padding:10px 14px;font-size:.78rem;color:var(--gold-dark)">📌 <strong>${fmt(anticipos)}</strong> en anticipos de apartados abiertos — pendiente completar cobro</div>` : ''}
     <div style="text-align:center;font-size:.72rem;color:var(--muted);padding:4px 0">Generado ${ahoraMX}</div>
   `;
 }
@@ -1819,15 +1840,17 @@ function renderGastos() {
 
 function compartirCorteWA() {
   if (!_corteData) return;
-  const { efectivo, transferencia, total, numVentas, numApartados, anticipos, ahoraMX } = _corteData;
+  const { efectivo, transferencia, total, numVentas, numApartados, numLiquidados, anticipos, ahoraMX } = _corteData;
   const fmt = n => `$${n.toLocaleString('es-MX')}`;
   const gastos = _getGastos();
   const totalGastos = gastos.reduce((s, g) => s + g.amount, 0);
+  const ventasDirectas = numVentas - (numLiquidados || 0);
   let msg = `🧾 *Corte de caja — Tres Encantos*\n${ahoraMX}\n\n`;
-  msg += `Ventas: ${numVentas}\n`;
-  if (numApartados) msg += `Apartados: ${numApartados}\n`;
-  msg += `\n💵 Efectivo: ${fmt(efectivo)}\n📱 Transferencia: ${fmt(transferencia)}\n*Total ingresos: ${fmt(total)}*`;
-  if (anticipos > 0) msg += `\n⚠️ Anticipos incluidos: ${fmt(anticipos)}`;
+  if (ventasDirectas > 0) msg += `🛍 Ventas directas: ${ventasDirectas}\n`;
+  if (numLiquidados)      msg += `✅ Apartados liquidados: ${numLiquidados}\n`;
+  if (numApartados)       msg += `📌 Apartados activos: ${numApartados}${anticipos > 0 ? ` (anticipo ${fmt(anticipos)})` : ''}\n`;
+  msg += `\n💵 Efectivo: ${fmt(efectivo)}\n📱 Transferencia: ${fmt(transferencia)}\n*Total recibido: ${fmt(total)}*`;
+  if (anticipos > 0) msg += `\n⚠️ Incluye ${fmt(anticipos)} en anticipos — pendiente completar cobro`;
   if (gastos.length) {
     msg += `\n\n💸 *Gastos del turno:*\n` + gastos.map(g => `• ${g.desc}: ${fmt(g.amount)}`).join('\n');
     msg += `\nTotal gastos: ${fmt(totalGastos)}`;
@@ -1888,12 +1911,16 @@ async function loadHistory() {
       const totalQty = items.reduce((n, i) => n + (i.qty || 1), 0);
 
       const isApt  = s.type === 'apartado';
+      const abonos = Array.isArray(s.abonos) ? s.abonos : [];
+      const isLiquidado = !isApt && abonos.length > 0; // Apartado que se completó
       const pagado = parseFloat(s.paid_amount || 0);
       const payBadge = isApt
         ? '<span class="pay-badge" style="font-size:.62rem;background:#FFF8EE;color:#C9A462;border:1px solid #C9A462;padding:2px 6px;border-radius:50px;font-weight:700">📌 Apartado</span>'
-        : s.payment_method === 'transferencia'
-          ? '<span class="pay-badge pay-transferencia" style="font-size:.62rem">📱</span>'
-          : '<span class="pay-badge pay-efectivo" style="font-size:.62rem">💵</span>';
+        : isLiquidado
+          ? '<span class="pay-badge" style="font-size:.62rem;background:#ECFDF5;color:#2D6A4F;border:1px solid #2D6A4F;padding:2px 6px;border-radius:50px;font-weight:700">✅ Completado</span>'
+          : s.payment_method === 'transferencia'
+            ? '<span class="pay-badge pay-transferencia" style="font-size:.62rem">📱</span>'
+            : '<span class="pay-badge pay-efectivo" style="font-size:.62rem">💵</span>';
 
       const itemsHTML = items.map(i => `
 <div class="hi-item">
@@ -1902,8 +1929,7 @@ async function loadHistory() {
   <span class="hi-item-sub">$${((i.subtotal ?? i.price * (i.qty || 1))).toLocaleString('es-MX')}</span>
 </div>`).join('');
 
-      // Historial de abonos para apartados (activos o liquidados)
-      const abonos = Array.isArray(s.abonos) ? s.abonos : [];
+      // Historial de pagos (abonos ya declarado arriba)
       const abonosHiHTML = abonos.length ? `
 <div style="margin:5px 0 2px;display:flex;flex-direction:column;gap:3px;border-top:1px dashed #EDE5DC;padding-top:5px">
   ${abonos.map(a => {
@@ -2574,9 +2600,10 @@ function openPosScanner() {
   if (_posScanner) { _posScanner.clear().catch(() => {}); _posScanner = null; }
 
   _posScanner = new Html5Qrcode('pos-reader');
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   _posScanner.start(
-    { facingMode: 'environment' },
-    { fps: 10, qrbox: { width: 260, height: 100 } },
+    { facingMode: { ideal: 'environment' } },
+    { fps: isIOS ? 15 : 10, qrbox: { width: 260, height: isIOS ? 160 : 100 } },
     (code) => {
       closePosScanner();
       const p = products.find(x => x.barcode === code);
@@ -2635,8 +2662,8 @@ async function loadTodayStats() {
         }
       });
     } else if (mxDateKey(s.created_at) === hoyMX && s.type !== 'apartado') {
-      // Venta simple de hoy sin historial de abonos
-      const amt = parseFloat(s.paid_amount || s.total) || 0;
+      // Venta simple de hoy: usar total (no paid_amount que incluye efectivo tendered con cambio)
+      const amt = parseFloat(s.total) || 0;
       if (s.payment_method === 'transferencia') transferencia += amt;
       else efectivo += amt;
     }
