@@ -146,7 +146,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   /* Topbar: grid 3 col — [logo] [título centrado] [iconos] */
   .topbar{
     display:grid;grid-template-columns:1fr auto;
-    align-items:center;padding:0 12px;height:56px;gap:0;
+    align-items:center;padding:0 12px;height:56px;gap:0;background:var(--charcoal);
   }
   .topbar-left{display:contents}
   .topbar-title{
@@ -193,24 +193,39 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   .period-btn{font-size:.7rem;padding:10px 4px}
 }
 
-/* ══ TOPBAR NAV ICONS — navegación entre módulos ════════════ */
-.topbar-nav-mobile{display:flex;align-items:center;gap:2px}
+/* ══ TOPBAR NAV ══════════════════════════════════════════════════════ */
+.topbar-nav-mobile{display:flex;align-items:center;gap:1px}
 .btn-back{display:none}
 .tbn-icon{
-  width:36px;height:36px;border-radius:9px;
-  display:flex;align-items:center;justify-content:center;
-  text-decoration:none;background:transparent;color:rgba(255,255,255,.6);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;padding:5px 7px;border-radius:9px;min-width:34px;
+  text-decoration:none;background:transparent;color:rgba(255,255,255,.55);
   transition:all .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  border:none;cursor:pointer;font-family:inherit;
 }
 .tbn-icon svg{
-  width:19px;height:19px;stroke:currentColor;fill:none;
-  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block;
+  width:18px;height:18px;stroke:currentColor;fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block;flex-shrink:0;
 }
-.tbn-icon.tbn-active{color:#C9A462;background:transparent}
+.tbn-label{
+  display:none;font-size:.57rem;font-weight:600;
+  letter-spacing:.02em;line-height:1;white-space:nowrap;
+}
+.tbn-icon.tbn-active{color:#C9A462}
 .tbn-icon.tbn-active svg{stroke-width:2.5}
 .tbn-icon:active{opacity:.55;transform:scale(.88)}
 .tbn-icon.tbn-logout:hover{color:#E85D5D;background:rgba(232,93,93,.1)}
-/* topbar-nav-mobile global — visible en todos los dispositivos */
+@media(min-width:641px){
+  .tbn-label{display:block}
+  .tbn-icon{padding:5px 9px;gap:2px}
+  .tbn-icon svg{width:15px;height:15px}
+}
+@media(min-width:1025px){
+  .topbar{background:var(--charcoal)}
+  .tbn-icon{padding:6px 11px}
+  .tbn-icon svg{width:16px;height:16px}
+  .topbar-nav-mobile{gap:2px}
+}
 </style>
 </head>
 <body>
@@ -223,24 +238,31 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
     <nav class="topbar-nav-mobile" aria-label="Módulos">
       <a href="admin.html" class="tbn-icon" title="Inventario">
         <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+        <span class="tbn-label">Inventario</span>
       </a>
       <a href="pos.html" class="tbn-icon" title="Caja">
         <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        <span class="tbn-label">Caja</span>
       </a>
       <a href="stats.html" class="tbn-icon tbn-active" title="Reportes" aria-current="page">
         <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span class="tbn-label">Reportes</span>
       </a>
       <a href="activity.html" class="tbn-icon" title="Actividad">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span class="tbn-label">Actividad</span>
       </a>
       <a href="settings.html" class="tbn-icon" title="Configuración">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="tbn-label">Config</span>
       </a>
       <a href="index.html" class="tbn-icon" title="Tienda">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <span class="tbn-label">Tienda</span>
       </a>
       <button class="tbn-icon tbn-logout" onclick="doLogout()" title="Cerrar sesión" aria-label="Cerrar sesión">
         <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span class="tbn-label">Salir</span>
       </button>
     </nav>
   </div>
