@@ -553,6 +553,12 @@ button,a{touch-action:manipulation}
 @media(min-width:641px) and (max-width:1024px){
   .pos-tab{padding:12px 4px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));font-size:.72rem}
   .pos-tab-icon{font-size:1.5rem}
+  /* Vista tarjetas: 3 columnas (~255px c/u) — mejor que 2 a 820px */
+  .pos-grid{grid-template-columns:repeat(3,1fr);gap:12px;padding:12px}
+  .pos-card-body{padding:8px 10px 10px}
+  .pos-card-name{font-size:.76rem}
+  .pos-card-price{font-size:.9rem}
+  .pos-vbtn{width:38px;height:38px}
 }
 
 @media(max-width:640px){
