@@ -549,16 +549,59 @@ button,a{touch-action:manipulation}
   #cart-topbar-btn{display:none}
 }
 
-/* Tab bar más grande en tablet */
+/* ── TABLET (641–1024px) — tarjetas y tab bar ───────────────────────── */
 @media(min-width:641px) and (max-width:1024px){
+  /* Tab bar */
   .pos-tab{padding:12px 4px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));font-size:.72rem}
   .pos-tab-icon{font-size:1.5rem}
-  /* Vista tarjetas: 3 columnas (~255px c/u) — mejor que 2 a 820px */
+
+  /* Vista tarjetas: 3 columnas (~255px c/u) */
   .pos-grid{grid-template-columns:repeat(3,1fr);gap:12px;padding:12px}
-  .pos-card-body{padding:8px 10px 10px}
-  .pos-card-name{font-size:.76rem}
-  .pos-card-price{font-size:.9rem}
+
+  /* Card — mejor apariencia para tablet */
+  .pos-card{
+    border-radius:18px;
+    box-shadow:0 3px 16px rgba(0,0,0,.10);
+    border:1.5px solid var(--border-light,#F0E8DF);
+  }
+  .pos-card:active:not(.card-sold){
+    transform:scale(.95);
+    box-shadow:0 1px 6px rgba(0,0,0,.07);
+    border-color:var(--gold);
+  }
+
+  /* Imagen: ligeramente más alta */
+  .pos-card-img{aspect-ratio:4/3}
+
+  /* Cuerpo de la tarjeta */
+  .pos-card-body{padding:10px 12px 12px;gap:4px}
+  .pos-card-name{font-size:.82rem;-webkit-line-clamp:2}
+  .pos-card-price{font-size:1rem;margin-top:2px}
+  .pos-card-stock{font-size:.7rem;font-weight:600;margin-top:1px}
+
+  /* View toggle buttons */
   .pos-vbtn{width:38px;height:38px}
+
+  /* ── Botón + siempre visible en tablet (sin hover) ── */
+  /* Quitar el overlay gold centrado — no tiene sentido sin hover */
+  .pos-card-add{display:block;background:transparent!important}
+  /* Posicionar + en esquina inferior-derecha de la imagen */
+  .pos-card:not(.card-sold) .pos-card-add-icon{
+    opacity:1;
+    transform:scale(1);
+    position:absolute;
+    bottom:10px;right:10px;
+    width:36px;height:36px;
+    font-size:1.15rem;
+    box-shadow:0 3px 12px rgba(201,164,98,.65);
+  }
+  /* Feedback al tap */
+  .pos-card:active:not(.card-sold) .pos-card-add-icon{
+    transform:scale(.85);
+    background:var(--gold-dark,#A67C3A);
+  }
+  /* Sin stock: ocultar + */
+  .pos-card.card-sold .pos-card-add-icon{display:none}
 }
 
 @media(max-width:640px){
