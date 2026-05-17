@@ -978,6 +978,52 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .tbn-icon svg{width:16px;height:16px}
   .topbar-nav-mobile{gap:2px}
 }
+
+/* ══ MODO CAPTURA ════════════════════════════════════════════════════ */
+.cap-overlay{position:fixed;inset:0;background:rgba(20,15,12,.6);backdrop-filter:blur(4px);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px}
+.cap-modal{background:#fff;border-radius:20px;width:100%;max-width:420px;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;max-height:90dvh}
+.cap-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px;border-bottom:1px solid var(--border)}
+.cap-title{font-family:'Playfair Display',serif;font-size:1rem;color:var(--charcoal)}
+.cap-counter{font-size:.75rem;color:var(--green);font-weight:700;background:#D1FAE5;padding:2px 10px;border-radius:50px;display:none}
+.cap-close{background:none;border:none;font-size:1.2rem;color:var(--muted);cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:.15s}
+.cap-close:hover{background:var(--cream)}
+.cap-body{padding:16px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px}
+.cap-photo-area{
+  border:2px dashed var(--border);border-radius:14px;
+  min-height:180px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:8px;
+  cursor:pointer;transition:.18s;position:relative;overflow:hidden;
+  background:#FDFAF8;
+}
+.cap-photo-area:hover{border-color:var(--gold);background:var(--gold-light)}
+.cap-photo-area.has-photo{border-style:solid;border-color:var(--border)}
+.cap-photo-ph{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--muted);font-size:.82rem}
+.cap-photo-ph span:first-child{font-size:2.2rem}
+.cap-preview{width:100%;height:100%;object-fit:contain;position:absolute;inset:0;border-radius:12px}
+.cap-retake{position:absolute;bottom:8px;right:8px;background:rgba(255,255,255,.9);border:1px solid var(--border);border-radius:50px;padding:4px 12px;font-size:.72rem;font-weight:600;color:var(--charcoal);cursor:pointer;transition:.15s}
+.cap-retake:hover{border-color:var(--gold);color:var(--gold-dark)}
+.cap-ai-status{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--muted);background:var(--cream);border-radius:10px;padding:10px 14px}
+.cap-ai-spin{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
+.cap-fields{display:flex;flex-direction:column;gap:10px}
+.cap-field label{font-size:.72rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;letter-spacing:.02em;text-transform:uppercase}
+.cap-field input,.cap-field select{
+  width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;
+  font-size:.92rem;font-family:inherit;outline:none;transition:border-color .15s;background:#fff;
+}
+.cap-field input:focus,.cap-field select:focus{border-color:var(--gold)}
+.cap-field input.ai-filled,.cap-field select.ai-filled{animation:aiPulse .6s ease}
+.cap-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cap-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px}
+.cap-btn-skip{flex:1;padding:11px;border-radius:50px;border:1.5px solid var(--border);background:#fff;font-size:.82rem;font-weight:600;color:var(--muted);cursor:pointer;transition:.15s;font-family:inherit}
+.cap-btn-skip:hover{border-color:var(--charcoal);color:var(--charcoal)}
+.cap-btn-save{flex:2;padding:11px;border-radius:50px;border:none;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;transition:.15s;font-family:inherit}
+.cap-btn-save:disabled{background:#D1C4B8;cursor:not-allowed}
+.cap-btn-save:not(:disabled):hover{opacity:.9;transform:translateY(-1px)}
+@keyframes aiPulse{0%{box-shadow:0 0 0 0 rgba(201,164,98,.5)}70%{box-shadow:0 0 0 8px rgba(201,164,98,0)}100%{box-shadow:0 0 0 0 rgba(201,164,98,0)}}
+@media(max-width:480px){
+  .cap-overlay{padding:0;align-items:flex-end}
+  .cap-modal{border-radius:20px 20px 0 0;max-width:100%;max-height:95dvh}
+}
 </style>
 </head>
 <body>
@@ -1047,6 +1093,55 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   <!-- FAB: + Agregar (mobile) -->
   <button class="fab-add" onclick="openForm()" aria-label="Agregar producto">+</button>
 
+  <!-- MODO CAPTURA RÁPIDA -->
+  <div id="cap-overlay" class="cap-overlay" style="display:none" onclick="if(event.target===this)closeCaptureMode()">
+    <div class="cap-modal">
+      <div class="cap-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="cap-title">📸 Captura rápida</span>
+          <span class="cap-counter" id="cap-counter"></span>
+        </div>
+        <button class="cap-close" onclick="closeCaptureMode()">✕</button>
+      </div>
+      <div class="cap-body">
+        <div class="cap-photo-area" id="cap-photo-area" onclick="document.getElementById('cap-file').click()">
+          <div class="cap-photo-ph" id="cap-photo-ph">
+            <span>📷</span>
+            <span>Toca para fotografiar</span>
+            <span>Etiqueta de precio visible = precio automático</span>
+          </div>
+          <img id="cap-preview-img" class="cap-preview" style="display:none">
+          <button class="cap-retake" id="cap-retake-btn" style="display:none" onclick="event.stopPropagation();document.getElementById('cap-file').click()">🔄 Otra foto</button>
+          <input type="file" id="cap-file" accept="image/*" capture="environment" style="display:none" onchange="handleCapturePhoto(this)">
+        </div>
+        <div class="cap-ai-status" id="cap-ai-status" style="display:none">
+          <span class="cap-ai-spin"></span>
+          <span id="cap-ai-msg">Analizando imagen con IA...</span>
+        </div>
+        <div class="cap-fields" id="cap-fields">
+          <div class="cap-field">
+            <label>Nombre del producto</label>
+            <input type="text" id="cap-name" placeholder="Ej: Bolso David Jones Negro" oninput="updateCapSaveBtn()">
+          </div>
+          <div class="cap-row">
+            <div class="cap-field">
+              <label>Precio MXN</label>
+              <input type="number" id="cap-price" placeholder="0" min="0" oninput="updateCapSaveBtn()">
+            </div>
+            <div class="cap-field">
+              <label>Categoría</label>
+              <select id="cap-category"><option value="">Sin categoría</option></select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cap-footer">
+        <button class="cap-btn-skip" onclick="resetCaptureForm()">Siguiente sin guardar</button>
+        <button class="cap-btn-save" id="cap-save-btn" onclick="saveCaptureProduct()" disabled>Guardar y siguiente →</button>
+      </div>
+    </div>
+  </div>
+
   <main>
     <!-- STATS -->
     <div class="stats" id="stats"></div>
@@ -1059,6 +1154,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     <!-- TOOLBAR -->
     <div class="toolbar">
       <button class="btn btn-gold" onclick="openForm()">+ Agregar</button>
+      <button class="btn btn-outline btn-sm" id="btn-capture-mode" onclick="openCaptureMode()" title="Captura rápida con IA" style="display:none">📸 Captura rápida</button>
       <div class="search-wrap">
         <span class="s-icon">🔍</span>
         <input type="text" id="search-input" placeholder="Buscar producto..." oninput="renderTable()">

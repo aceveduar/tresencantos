@@ -491,6 +491,10 @@ function _applyRoleUI() {
       pubRow.style.pointerEvents = 'none';
     }
   }
+  // Botón Captura rápida — visible si puede agregar
+  if (can.addProduct) {
+    document.getElementById('btn-capture-mode')?.style.removeProperty('display');
+  }
 }
 
 async function showApp() {
@@ -2874,4 +2878,156 @@ async function saveNamesAdmin() {
   if (!ok) { toast('Error al guardar', 'error'); return; }
   closeNamesModal();
   toast('Nombres guardados ✓', 'success');
+}
+
+/* ══ MODO CAPTURA RÁPIDA ═════════════════════════════════════════════ */
+let captureCount = 0;
+let captureImageDataUrl = null;
+
+function openCaptureMode() {
+  const sel = document.getElementById('cap-category');
+  if (sel) {
+    sel.innerHTML = '<option value="">Sin categoría</option>';
+    const roots = categories.filter(c => !c.parent);
+    roots.forEach(r => {
+      const subs = categories.filter(c => c.parent === r.code);
+      if (subs.length) {
+        const grp = document.createElement('optgroup');
+        grp.label = r.label;
+        subs.forEach(s => { const o = document.createElement('option'); o.value = s.code; o.textContent = s.label; grp.appendChild(o); });
+        sel.appendChild(grp);
+      } else {
+        const o = document.createElement('option'); o.value = r.code; o.textContent = r.label; sel.appendChild(o);
+      }
+    });
+  }
+  resetCaptureForm(true);
+  document.getElementById('cap-overlay').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCaptureMode() {
+  document.getElementById('cap-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+  if (captureCount > 0) renderTable();
+  captureCount = 0;
+}
+
+function resetCaptureForm(keepCount) {
+  captureImageDataUrl = null;
+  document.getElementById('cap-file').value = '';
+  const prev = document.getElementById('cap-preview-img');
+  prev.style.display = 'none'; prev.src = '';
+  document.getElementById('cap-photo-ph').style.display = 'flex';
+  document.getElementById('cap-retake-btn').style.display = 'none';
+  document.getElementById('cap-photo-area').classList.remove('has-photo');
+  document.getElementById('cap-ai-status').style.display = 'none';
+  document.getElementById('cap-name').value = '';
+  document.getElementById('cap-price').value = '';
+  document.getElementById('cap-category').value = '';
+  updateCapSaveBtn();
+}
+
+async function handleCapturePhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    captureImageDataUrl = e.target.result;
+    const img = document.getElementById('cap-preview-img');
+    img.src = captureImageDataUrl;
+    img.style.display = 'block';
+    document.getElementById('cap-photo-ph').style.display = 'none';
+    document.getElementById('cap-retake-btn').style.display = 'block';
+    document.getElementById('cap-photo-area').classList.add('has-photo');
+    updateCapSaveBtn();
+    await runCaptureAI();
+  };
+  reader.readAsDataURL(file);
+}
+
+async function runCaptureAI() {
+  if (!captureImageDataUrl || !groqApiKey) {
+    if (!groqApiKey) toast('Configura la IA en Configuración', 'error');
+    return;
+  }
+  const status = document.getElementById('cap-ai-status');
+  const msg    = document.getElementById('cap-ai-msg');
+  status.style.display = 'flex';
+  msg.textContent = 'Analizando imagen con IA...';
+  try {
+    const catList = categories.map(c => '"' + c.code + '" (' + c.label + ')').join(', ');
+    const sysP = 'Eres el asistente de catálogo de Tres Encantos, boutique mexicana de bolsos, accesorios, maquillaje y Natura. Español de México. Preciso con texto y números visibles.';
+    const usrP = 'Analiza esta imagen y responde SOLO con JSON válido sin markdown.\n\nOBLIGATORIOS:\n- "name": nombre comercial atractivo, max 55 chars, incluye marca si visible, sin códigos.\n- "description": 1-2 oraciones emocionales, max 180 chars.\n\nOPCIONALES (null o "" si no estás seguro):\n- "category": código exacto de: ' + catList + '\n- "price": precio en etiqueta/plumón/empaque, solo número (ej: 350). NO confundas con ml, oz, g, tallas, %, códigos. null si dudas.\n\n{"name":"...","description":"...","category":"","price":null}';
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + groqApiKey },
+      body: JSON.stringify({
+        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+        messages: [
+          { role: 'system', content: sysP },
+          { role: 'user', content: [{ type: 'text', text: usrP }, { type: 'image_url', image_url: { url: captureImageDataUrl } }] }
+        ],
+        temperature: 0.3, max_tokens: 400
+      })
+    });
+    if (!res.ok) throw new Error('Error ' + res.status);
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content || '';
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('Sin JSON');
+    const p = JSON.parse(match[0]);
+    const flash = id => { const el = document.getElementById(id); if (!el) return; el.classList.add('ai-filled'); setTimeout(() => el.classList.remove('ai-filled'), 1200); };
+    if (p.name)  { document.getElementById('cap-name').value = toTitleCase(p.name); flash('cap-name'); }
+    if (p.price) { const n = Number(p.price); if (!isNaN(n) && n > 0 && n < 100000) { document.getElementById('cap-price').value = Math.round(n); flash('cap-price'); } }
+    if (p.category) { const m = categories.find(c => c.code === p.category); if (m) { document.getElementById('cap-category').value = m.code; flash('cap-category'); } }
+    const filled = [p.name ? 'nombre' : null, (p.price && Number(p.price) > 0) ? 'precio' : null, p.category ? 'categoría' : null].filter(Boolean);
+    msg.textContent = filled.length ? ('✓ IA detectó: ' + filled.join(', ')) : '✓ Analizado — revisa los campos';
+    updateCapSaveBtn();
+  } catch (err) {
+    msg.textContent = 'IA no disponible — completa manualmente';
+  }
+}
+
+function updateCapSaveBtn() {
+  const name = document.getElementById('cap-name')?.value.trim();
+  document.getElementById('cap-save-btn').disabled = !name;
+}
+
+async function saveCaptureProduct() {
+  const name = document.getElementById('cap-name').value.trim();
+  if (!name) return;
+  const btn = document.getElementById('cap-save-btn');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    const price   = parseFloat(document.getElementById('cap-price').value) || 0;
+    const catCode = document.getElementById('cap-category').value;
+    const catObj  = categories.find(c => c.code === catCode);
+    const maxId   = products.length ? Math.max(...products.map(p => p.id)) : 0;
+    const newId   = maxId + 1;
+    const payload = {
+      id: newId, name, price,
+      category: catCode || null,
+      category_label: catObj?.label || null,
+      image: captureImageDataUrl || '',
+      is_published: false, out_of_stock: false,
+      stock: 1, featured: false, position: newId
+    };
+    const { ok } = await supabaseApi('products', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify(payload)
+    });
+    if (!ok) throw new Error('Error Supabase');
+    products.unshift({ ...payload, originalPrice: null, badge: null, badgeType: null, barcode: null, cost: null, description: null });
+    captureCount++;
+    const counter = document.getElementById('cap-counter');
+    counter.textContent = '✓ ' + captureCount + ' capturado' + (captureCount > 1 ? 's' : '');
+    counter.style.display = 'inline-block';
+    toast('"' + name + '" guardado ✓', 'success');
+    resetCaptureForm(true);
+  } catch (e) {
+    toast('Error al guardar — intenta de nuevo', 'error');
+    btn.disabled = false; btn.textContent = 'Guardar y siguiente →';
+  }
 }
