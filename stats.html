@@ -276,6 +276,14 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 
 <main>
 
+  <!-- RESUMEN WA -->
+  <div style="text-align:right;margin-bottom:10px">
+    <button onclick="sendDailySummaryWA()" style="background:#25D366;color:#fff;border:none;border-radius:50px;padding:8px 18px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px">
+      <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.374 0 0 5.373 0 12c0 2.124.553 4.118 1.522 5.85L.057 23.499l5.772-1.513A11.94 11.94 0 0012 24c6.626 0 12-5.373 12-12S18.626 0 12 0z"/></svg>
+      Enviar resumen por WA
+    </button>
+  </div>
+
   <!-- PERÍODO -->
   <div class="period-bar">
     <button class="period-btn" data-period="today" onclick="setPeriod('today')">Hoy</button>
@@ -702,6 +710,26 @@ function renderRevenueChart() {
   const ctx = document.getElementById('revenue-chart').getContext('2d');
   if (revenueChart) { revenueChart.destroy(); revenueChart = null; }
 
+  const barLabelPlugin = {
+    id: 'barLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      ctx.save();
+      ctx.font = '600 9px Inter, sans-serif';
+      ctx.fillStyle = '#6B5C48';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      chart.getDatasetMeta(0).data.forEach((bar, i) => {
+        const val = chart.data.datasets[0].data[i];
+        if (val > 0) {
+          const label = val >= 1000 ? '$' + (val/1000).toFixed(1) + 'k' : '$' + Math.round(val);
+          ctx.fillText(label, bar.x, bar.y - 3);
+        }
+      });
+      ctx.restore();
+    }
+  };
+
   revenueChart = new Chart(ctx, {
     type: 'bar',
     data: {
@@ -720,6 +748,7 @@ function renderRevenueChart() {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 18 } },
       plugins: {
         legend: { display: false },
         tooltip: { callbacks: { label: c => `$${c.parsed.y.toLocaleString('es-MX')}` } }
@@ -732,7 +761,8 @@ function renderRevenueChart() {
         },
         x: { grid:{display:false}, ticks:{font:{size:11}} }
       }
-    }
+    },
+    plugins: [barLabelPlugin]
   });
 }
 
@@ -767,7 +797,24 @@ function renderCatChart() {
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { position:'bottom', labels:{ font:{family:'Inter',size:11}, padding:10, boxWidth:12 } },
+        legend: {
+          position:'bottom',
+          labels:{
+            font:{family:'Inter',size:11}, padding:10, boxWidth:12,
+            generateLabels(chart) {
+              const data = chart.data.datasets[0].data;
+              const total = data.reduce((s,v)=>s+v,0);
+              return chart.data.labels.map((label, i) => ({
+                text: `${label}  $${data[i].toLocaleString('es-MX',{maximumFractionDigits:0})} (${Math.round(data[i]/total*100)}%)`,
+                fillStyle: COLORS[i % COLORS.length],
+                strokeStyle: '#fff',
+                lineWidth: 2,
+                index: i,
+                hidden: false
+              }));
+            }
+          }
+        },
         tooltip: {
           callbacks: {
             label: c => {
@@ -1022,6 +1069,32 @@ async function loadClientas() {
 }
 
 /* ── INIT ── */
+function sendDailySummaryWA() {
+  const fmt = n => '$' + parseFloat(n||0).toLocaleString('es-MX', {maximumFractionDigits:0});
+  const today = sales.filter(s => {
+    const d = new Date(s.created_at);
+    const now = new Date();
+    return d.toDateString() === now.toDateString();
+  });
+  const ventas  = today.filter(s => s.type !== 'apartado');
+  const aptos   = today.filter(s => s.type === 'apartado');
+  const ingresos = ventas.reduce((s,x) => s + parseFloat(x.total||0), 0);
+  const efectivo = ventas.filter(s=>s.payment_method==='efectivo').reduce((s,x)=>s+parseFloat(x.total||0),0);
+  const transf   = ventas.filter(s=>s.payment_method==='transferencia').reduce((s,x)=>s+parseFloat(x.total||0),0);
+  const now = new Date();
+  const fecha = now.toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  let msg = `📊 *Resumen del día — Tres Encantos*\n${fecha}\n\n`;
+  msg += `💰 *Ingresos del día:* ${fmt(ingresos)}\n`;
+  msg += `🔢 *Ventas completadas:* ${ventas.length}\n`;
+  if (efectivo > 0) msg += `💵 Efectivo: ${fmt(efectivo)}\n`;
+  if (transf > 0)   msg += `📱 Transferencia: ${fmt(transf)}\n`;
+  if (aptos.length > 0) msg += `\n📌 *Apartados nuevos:* ${aptos.length} (anticipo ${fmt(aptos.reduce((s,x)=>s+parseFloat(x.paid_amount||0),0))})\n`;
+  if (!ventas.length && !aptos.length) msg += `_Sin ventas registradas hoy._\n`;
+  msg += `\n¡Hasta mañana! 🌟`;
+  const WA = '5215534548417';
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   await Promise.all([loadProducts(), loadSales(), loadPreviousSales(), loadApartadosPendientes(), loadClientas()]);
   renderAll();

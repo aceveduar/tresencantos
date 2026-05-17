@@ -835,6 +835,7 @@ button,a{touch-action:manipulation}
         <button class="pos-vbtn"        id="pos-vbtn-cards" onclick="setPosView('cards')" title="Tarjetas">⊞</button>
       </div>
       <button class="btn btn-gold" onclick="openPosScanner()" title="Escanear código de barras">📷</button>
+      <button class="pos-vbtn" id="pos-refresh-btn" onclick="refreshPosProducts()" title="Actualizar inventario">↻</button>
     </div>
     <!-- Chips de categoría -->
     <div class="cat-chip-bar" id="cat-chip-bar"></div>
@@ -1215,6 +1216,16 @@ async function loadProducts() {
 }
 
 /* ── LOAD CATEGORIES ── */
+async function refreshPosProducts() {
+  const btn = document.getElementById('pos-refresh-btn');
+  if (btn) { btn.style.opacity = '.4'; btn.style.pointerEvents = 'none'; }
+  await loadProducts();
+  renderCategoryChips();
+  showAllProducts();
+  if (btn) { btn.style.opacity = ''; btn.style.pointerEvents = ''; }
+  toast('Inventario actualizado', 'success');
+}
+
 async function loadPosCategories() {
   try {
     const r = await api('config?id=eq.categories&select=value');
@@ -2527,7 +2538,11 @@ function showSaleDone() {
 function sendWhatsAppTicket() {
   const s = _lastSale;
   if (!s?.items?.length) return;
-  const lines    = s.items.map(i => `• ${i.name} x${i.qty} — $${(i.subtotal||0).toLocaleString('es-MX')}`).join('\n');
+  const lines    = s.items.map(i => {
+    const prod = products.find(p => p.id === i.id);
+    const imgUrl = prod?.image && !prod.image.startsWith('data:') ? `\n  🖼 ${prod.image}` : '';
+    return `• ${i.name} x${i.qty} — $${(i.subtotal||0).toLocaleString('es-MX')}${imgUrl}`;
+  }).join('\n');
   const disc     = s.disc > 0 ? `\n🏷 Descuento: −$${s.disc.toLocaleString('es-MX')}` : '';
   const note     = s.note ? `\n📝 ${s.note}` : '';
   const metodo   = s.payMethod === 'transferencia' ? '📱 Transferencia bancaria' : '💵 Efectivo';
