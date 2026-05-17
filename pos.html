@@ -157,7 +157,7 @@ button,a{touch-action:manipulation}
 .scan-head h3{color:#fff;font-size:1rem;font-family:'Playfair Display',serif}
 .scan-close{background:none;border:none;color:#aaa;font-size:1.2rem;cursor:pointer;padding:4px 8px}
 #pos-reader{width:100%}
-#pos-reader video{display:block}
+#pos-reader video,#pos-reader canvas{display:block;width:100%!important;max-width:100%!important;height:auto!important}
 .scan-status{padding:10px 18px 16px;color:#aaa;font-size:.82rem;text-align:center}
 
 /* TOAST */
@@ -490,16 +490,19 @@ button,a{touch-action:manipulation}
   .title-short{display:inline!important}
   .today-stats{display:none!important}
   .cart-topbar-btn{padding:5px 8px!important}
-  /* Historial: mismo estilo que íconos de módulo + separador que los distingue */
-  #btn-history-pos{
+  /* Corte e Historial: mismo estilo que íconos de módulo en mobile */
+  #btn-corte-pos,#btn-history-pos{
     border:none!important;background:transparent!important;
     color:rgba(255,255,255,.6)!important;
     width:34px;height:34px;padding:0!important;
+    border-radius:9px!important;font-size:1rem;
+  }
+  #btn-history-pos{
     border-right:1px solid rgba(255,255,255,.18)!important;
     padding-right:4px!important;margin-right:2px;
-    border-radius:0!important;font-size:1rem;
+    border-radius:0!important;
   }
-  #btn-history-pos:active{opacity:.55}
+  #btn-corte-pos:active,#btn-history-pos:active{opacity:.55}
   #btn-stats-pos{display:none!important}
   .topbar-right > .btn-outline-white:last-of-type{display:none}
 
@@ -749,7 +752,7 @@ button,a{touch-action:manipulation}
   display:none;font-size:.57rem;font-weight:600;
   letter-spacing:.02em;line-height:1;white-space:nowrap;
 }
-.tbn-icon.tbn-active{color:#C9A462;background:rgba(201,164,98,.15);border-radius:10px}
+.tbn-icon.tbn-active{color:#C9A462;background:rgba(201,164,98,.22);border-radius:10px;outline:1.5px solid rgba(201,164,98,.35)}
 .tbn-icon.tbn-active svg{stroke-width:2.5}
 .tbn-icon:not(.tbn-active):hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.09)}
 .tbn-icon:active{opacity:.6;transform:scale(.88)}
@@ -1441,10 +1444,13 @@ const PROD_PLACEHOLDER = 'tresencantos_default.png';
 function productCard(p) {
   const oos      = p.stock === 0 || p.outOfStock;
   const disabled = oos ? 'style="opacity:.5;cursor:not-allowed"' : '';
-  const isLast   = p.stock === 1;
-  const stockSub = isLast
+  const stockSub = p.stock === 1
     ? ' · <span style="color:#C9A462;font-weight:700">Última</span>'
-    : (p.stock > 1 && p.stock < 10 ? ` · <span style="color:#6B9E78;font-weight:600">${p.stock} uds</span>` : '');
+    : p.stock >= 2 && p.stock <= 5
+      ? ` · <span style="color:#6B9E78;font-weight:600">${p.stock} uds</span>`
+      : p.stock > 5
+        ? ` · <span style="color:#9B8B78">${p.stock} uds</span>`
+        : '';
   return `
 <div class="pos-prod" onclick="${oos ? '' : `addToCart(${p.id})`}" ${disabled}>
   <img class="pos-prod-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
@@ -2644,7 +2650,7 @@ async function openPosScanner() {
     Quagga.init({
       inputStream: { name: 'Live', type: 'LiveStream',
         target: document.getElementById('pos-reader'),
-        constraints: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+        constraints: { facingMode: { ideal: 'environment' } }
       },
       locator: { patchSize: 'medium', halfSample: true },
       numOfWorkers: 0, frequency: 15,

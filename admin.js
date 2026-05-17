@@ -2496,7 +2496,7 @@ async function _launchScanner() {
     Quagga.init({
       inputStream: { name: 'Live', type: 'LiveStream',
         target: document.getElementById('scanner-reader'),
-        constraints: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+        constraints: { facingMode: { ideal: 'environment' } }
       },
       locator: { patchSize: 'medium', halfSample: true },
       numOfWorkers: 0, frequency: 15,

@@ -291,9 +291,10 @@ section{padding:80px 20px}
   display:none;font-size:.55rem;font-weight:600;letter-spacing:.02em;line-height:1;white-space:nowrap;
 }
 #admin-bar .tbn-icon:not(.tbn-logout):hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.09)}
-#admin-bar .tbn-icon.tbn-logout{color:#E85D5D;border:1px solid rgba(232,93,93,.35);border-radius:9px}
-#admin-bar .tbn-icon.tbn-logout .tbn-label{display:block;color:#E85D5D}
-#admin-bar .tbn-icon.tbn-logout:hover{color:#fff;background:#E85D5D;border-color:#E85D5D}
+#admin-bar .tbn-icon.tbn-logout{color:rgba(255,255,255,.55)}
+#admin-bar .tbn-icon.tbn-logout .tbn-label{display:block;color:rgba(255,255,255,.55)}
+#admin-bar .tbn-icon.tbn-logout:hover{color:#E85D5D;background:rgba(232,93,93,.12)}
+#admin-bar .tbn-icon.tbn-logout:hover .tbn-label{color:#E85D5D}
 #admin-bar .tbn-sep{
   width:1px;height:18px;background:rgba(255,255,255,.2);
   align-self:center;flex-shrink:0;margin:0 3px;

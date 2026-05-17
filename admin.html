@@ -54,6 +54,7 @@ button,a,[onclick]{touch-action:manipulation}
 .topbar-left img{height:40px;border-radius:6px}
 .topbar-divider{width:1px;height:24px;background:rgba(255,255,255,.2)}
 .topbar-left h2{font-family:'Playfair Display',serif;font-size:1.1rem;color:rgba(255,255,255,.9)}
+.topbar-title-group{display:flex;align-items:center;gap:8px}
 .topbar-right{display:flex;align-items:center;gap:10px}
 
 .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 20px;border-radius:50px;font-size:.83rem;font-weight:600;cursor:pointer;border:none;transition:all .18s;white-space:nowrap;letter-spacing:.01em}
@@ -538,7 +539,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .scanner-wrap{position:relative;background:#111;border-radius:var(--r);overflow:hidden;min-height:260px;display:flex;align-items:center;justify-content:center}
 .scanner-hint{color:#fff;font-size:.85rem;opacity:.7;text-align:center;padding:20px}
 #scanner-reader{width:100%}
-#scanner-reader video{border-radius:var(--r)}
+#scanner-reader video,#scanner-reader canvas{width:100%!important;max-width:100%!important;height:auto!important;border-radius:var(--r)}
 
 /* ══ EMPTY STATE ════════════════════════════════════════════════════════ */
 .empty-state{text-align:center;padding:80px 20px}
@@ -665,6 +666,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     align-items:center;gap:0;
   }
   .topbar-left{display:contents}
+  .topbar-title-group{justify-content:center}
   .topbar-left h2{
     text-align:center;
     font-size:1.05rem;
@@ -973,7 +975,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   display:none;font-size:.57rem;font-weight:600;
   letter-spacing:.02em;line-height:1;white-space:nowrap;
 }
-.tbn-icon.tbn-active{color:#C9A462;background:rgba(201,164,98,.15);border-radius:10px}
+.tbn-icon.tbn-active{color:#C9A462;background:rgba(201,164,98,.22);border-radius:10px;outline:1.5px solid rgba(201,164,98,.35)}
 .tbn-icon.tbn-active svg{stroke-width:2.5}
 .tbn-icon:not(.tbn-active):hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.09)}
 .tbn-icon:active{opacity:.6;transform:scale(.88)}
@@ -1063,13 +1065,15 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 <div id="app-screen">
   <div class="topbar">
     <div class="topbar-left">
-      <h2><span class="th-long">Inventario</span><span class="th-short" style="display:none">Inventario</span></h2>
+      <div class="topbar-title-group">
+        <h2><span class="th-long">Inventario</span><span class="th-short" style="display:none">Inventario</span></h2>
+        <div class="user-display" id="user-display">
+          <span class="user-avatar" id="user-avatar">?</span>
+          <span class="user-name" id="user-name"></span>
+        </div>
+      </div>
     </div>
     <div class="topbar-right">
-      <div class="user-display" id="user-display">
-        <span class="user-avatar" id="user-avatar">?</span>
-        <span class="user-name" id="user-name"></span>
-      </div>
       <a href="stats.html" class="btn btn-outline btn-sm btn-stats-admin">📊 Reportes</a>
       <a href="activity.html" class="btn btn-outline btn-sm btn-stats-admin">📋 Actividad</a>
       <a href="settings.html" class="btn btn-outline btn-sm btn-stats-admin">⚙️ Config</a>
