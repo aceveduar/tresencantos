@@ -3066,23 +3066,24 @@ async function saveCaptureProduct() {
     const price   = parseFloat(document.getElementById('cap-price').value) || 0;
     const catCode = document.getElementById('cap-category').value;
     const catObj  = categories.find(c => c.code === catCode);
-    const maxId   = products.length ? Math.max(...products.map(p => p.id)) : 0;
+    const maxId   = products.reduce((m, p) => Math.max(m, p.id), 0);
     const newId   = maxId + 1;
     const payload = {
       id: newId, name, price,
-      category: catCode || null,
-      category_label: catObj?.label || null,
+      description: '',
+      category: catCode || '',
+      category_label: catObj?.label || '',
       image: captureImageDataUrl || '',
       is_published: false, out_of_stock: false,
       stock: 1, featured: false, position: newId
     };
-    const { ok } = await supabaseApi('products', {
+    const { ok, data: saveData } = await supabaseApi('products', {
       method: 'POST',
       headers: { Prefer: 'return=minimal' },
       body: JSON.stringify(payload)
     });
-    if (!ok) throw new Error('Error Supabase');
-    products.unshift({ ...payload, originalPrice: null, badge: null, badgeType: null, barcode: null, cost: null, description: null });
+    if (!ok) { console.error('Supabase error al guardar captura:', saveData); throw new Error('Error Supabase'); }
+    products.unshift({ ...payload, originalPrice: null, badge: null, badgeType: null, barcode: null, cost: null });
     captureCount++;
     const counter = document.getElementById('cap-counter');
     counter.textContent = '✓ ' + captureCount + ' capturado' + (captureCount > 1 ? 's' : '');
