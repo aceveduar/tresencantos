@@ -1062,7 +1062,34 @@ button,a{touch-action:manipulation}
   <div style="padding:16px;overflow-y:auto;flex:1">
     <div id="corte-periodo" style="font-size:.72rem;color:var(--muted);margin-bottom:14px;font-weight:600;text-transform:uppercase;letter-spacing:.04em"></div>
     <div id="corte-content" style="display:flex;flex-direction:column;gap:10px"></div>
-    <button id="corte-wa-btn" onclick="compartirCorteWA()" style="margin-top:18px;width:100%;padding:12px;border-radius:50px;border:none;background:#25D366;color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit">
+
+    <!-- GASTOS DEL TURNO -->
+    <div style="margin-top:14px;background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:.82rem;font-weight:700;color:var(--charcoal)">💸 Gastos del turno</span>
+        <button onclick="showGastoForm()" style="font-size:.72rem;font-weight:700;color:var(--gold-dark);background:var(--gold-light);border:1px solid rgba(201,164,98,.3);border-radius:50px;padding:3px 12px;cursor:pointer;font-family:inherit">+ Agregar</button>
+      </div>
+      <div id="gastos-form" style="display:none;padding:10px 16px;border-bottom:1px solid var(--border);display:none;gap:8px;flex-direction:column">
+        <input id="gasto-desc" type="text" placeholder="Descripción (ej: Refresco, Taxi…)" style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;font-family:inherit;outline:none">
+        <div style="display:flex;gap:8px">
+          <input id="gasto-monto" type="number" placeholder="Monto $" min="0" style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;font-family:inherit;outline:none">
+          <button onclick="agregarGasto()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--charcoal);color:#fff;font-weight:700;font-size:.82rem;cursor:pointer;font-family:inherit">✓</button>
+          <button onclick="hideGastoForm()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:#fff;font-size:.82rem;cursor:pointer;font-family:inherit">✕</button>
+        </div>
+      </div>
+      <div id="gastos-list" style="padding:0 16px"></div>
+      <div id="gastos-total-row" style="display:none;padding:10px 16px;border-top:1px solid var(--border);display:none;justify-content:space-between;align-items:center;background:#FEF2F2">
+        <span style="font-size:.82rem;font-weight:600;color:var(--red)">Total gastos</span>
+        <span id="gastos-total" style="font-weight:800;color:var(--red);font-size:.92rem"></span>
+      </div>
+    </div>
+    <!-- UTILIDAD -->
+    <div id="utilidad-row" style="display:none;background:var(--gold-light);border:1px solid rgba(201,164,98,.4);border-radius:12px;padding:12px 16px;display:none;justify-content:space-between;align-items:center;margin-top:4px">
+      <span style="font-weight:700;font-size:.88rem">🏆 Utilidad del turno</span>
+      <span id="utilidad-val" style="font-size:1.1rem;font-weight:800;color:var(--gold-dark)"></span>
+    </div>
+
+    <button id="corte-wa-btn" onclick="compartirCorteWA()" style="margin-top:14px;width:100%;padding:12px;border-radius:50px;border:none;background:#25D366;color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit">
       📲 Compartir por WhatsApp
     </button>
   </div>
@@ -1584,6 +1611,7 @@ async function openCorte() {
   document.getElementById('corte-backdrop').style.display = 'block';
   document.body.style.overflow = 'hidden';
   await loadCorte();
+  renderGastos();
 }
 
 function closeCorte() {
@@ -1664,15 +1692,90 @@ async function loadCorte() {
   `;
 }
 
+/* ── GASTOS DEL TURNO ────────────────────────────────────────────── */
+function _gastosKey() { return 'te_gastos_' + (localStorage.getItem('te_shift_date') || new Date().toISOString().split('T')[0]); }
+function _getGastos() { try { return JSON.parse(localStorage.getItem(_gastosKey())) || []; } catch { return []; } }
+function _saveGastos(g) { localStorage.setItem(_gastosKey(), JSON.stringify(g)); }
+
+function showGastoForm() {
+  const f = document.getElementById('gastos-form');
+  f.style.display = 'flex'; document.getElementById('gasto-desc').focus();
+}
+function hideGastoForm() {
+  document.getElementById('gastos-form').style.display = 'none';
+  document.getElementById('gasto-desc').value = '';
+  document.getElementById('gasto-monto').value = '';
+}
+
+function agregarGasto() {
+  const desc  = document.getElementById('gasto-desc').value.trim();
+  const monto = parseFloat(document.getElementById('gasto-monto').value) || 0;
+  if (!desc || monto <= 0) return;
+  const gastos = _getGastos();
+  gastos.push({ desc, amount: monto, time: new Date().toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' }) });
+  _saveGastos(gastos);
+  hideGastoForm();
+  renderGastos();
+}
+
+function eliminarGasto(idx) {
+  const gastos = _getGastos();
+  gastos.splice(idx, 1);
+  _saveGastos(gastos);
+  renderGastos();
+}
+
+function renderGastos() {
+  const gastos = _getGastos();
+  const list   = document.getElementById('gastos-list');
+  const totRow = document.getElementById('gastos-total-row');
+  const totEl  = document.getElementById('gastos-total');
+  const utilRow= document.getElementById('utilidad-row');
+  const utilEl = document.getElementById('utilidad-val');
+  if (!gastos.length) {
+    list.innerHTML = '<div style="padding:10px 0;font-size:.78rem;color:var(--muted);text-align:center">Sin gastos registrados</div>';
+    totRow.style.display = 'none';
+    utilRow.style.display = 'none';
+    return;
+  }
+  const totalGastos = gastos.reduce((s, g) => s + g.amount, 0);
+  list.innerHTML = gastos.map((g, i) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <span style="font-size:.82rem;font-weight:600">${g.desc}</span>
+        <span style="font-size:.68rem;color:var(--muted);margin-left:6px">${g.time}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-weight:700;color:var(--red);font-size:.84rem">-$${g.amount.toLocaleString('es-MX')}</span>
+        <button onclick="eliminarGasto(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;padding:2px 4px">✕</button>
+      </div>
+    </div>`).join('');
+  totRow.style.display = 'flex';
+  totEl.textContent = '-$' + totalGastos.toLocaleString('es-MX');
+  if (_corteData) {
+    const utilidad = _corteData.total - totalGastos;
+    utilRow.style.display = 'flex';
+    utilEl.textContent = '$' + utilidad.toLocaleString('es-MX');
+    utilEl.style.color = utilidad >= 0 ? 'var(--gold-dark)' : 'var(--red)';
+  }
+}
+
 function compartirCorteWA() {
   if (!_corteData) return;
   const { efectivo, transferencia, total, numVentas, numApartados, anticipos, ahoraMX } = _corteData;
   const fmt = n => `$${n.toLocaleString('es-MX')}`;
+  const gastos = _getGastos();
+  const totalGastos = gastos.reduce((s, g) => s + g.amount, 0);
   let msg = `🧾 *Corte de caja — Tres Encantos*\n${ahoraMX}\n\n`;
   msg += `Ventas: ${numVentas}\n`;
   if (numApartados) msg += `Apartados: ${numApartados}\n`;
-  msg += `\n💵 Efectivo: ${fmt(efectivo)}\n📱 Transferencia: ${fmt(transferencia)}\n*Total: ${fmt(total)}*`;
-  if (anticipos > 0) msg += `\n\n⚠️ Anticipos incluidos: ${fmt(anticipos)}`;
+  msg += `\n💵 Efectivo: ${fmt(efectivo)}\n📱 Transferencia: ${fmt(transferencia)}\n*Total ingresos: ${fmt(total)}*`;
+  if (anticipos > 0) msg += `\n⚠️ Anticipos incluidos: ${fmt(anticipos)}`;
+  if (gastos.length) {
+    msg += `\n\n💸 *Gastos del turno:*\n` + gastos.map(g => `• ${g.desc}: ${fmt(g.amount)}`).join('\n');
+    msg += `\nTotal gastos: ${fmt(totalGastos)}`;
+    msg += `\n\n🏆 *Utilidad: ${fmt(total - totalGastos)}*`;
+  }
   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
 }
 

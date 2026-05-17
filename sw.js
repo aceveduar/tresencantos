@@ -1,5 +1,5 @@
 // ⚠️ Incrementar CACHE_VERSION en cada deploy para invalidar caché anterior
-const CACHE_VERSION = 'v19';
+const CACHE_VERSION = 'v20';
 const CACHE = `tres-encantos-${CACHE_VERSION}`;
 
 const STATIC = [
