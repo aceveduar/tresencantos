@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-05-15 (rev 2).
+Documentación técnica del proyecto. Última actualización: 2026-05-16 (rev 3).
 
 ## Rol de Claude en este proyecto
 
@@ -72,23 +72,7 @@ En mobile Inventario oculta Staging y Reportes; muestra solo Caja.
 
 ## SQL — Migraciones Pendientes
 
-Ejecutar en **Supabase → SQL Editor** si no se han aplicado aún:
-
-```sql
--- T7: Control de visibilidad en sitio web
-ALTER TABLE products ADD COLUMN IF NOT EXISTS is_published boolean DEFAULT true;
-
--- T10: Precio de costo para margen interno
-ALTER TABLE products ADD COLUMN IF NOT EXISTS cost numeric;
-
--- T9: Datos extendidos de ventas (POS mejorado)
-ALTER TABLE sales ADD COLUMN IF NOT EXISTS discount      numeric   DEFAULT 0;
-ALTER TABLE sales ADD COLUMN IF NOT EXISTS payment_method text     DEFAULT 'efectivo';
-ALTER TABLE sales ADD COLUMN IF NOT EXISTS note          text;
-ALTER TABLE sales ADD COLUMN IF NOT EXISTS type          text      DEFAULT 'venta';
-ALTER TABLE sales ADD COLUMN IF NOT EXISTS paid_amount   numeric;
-ALTER TABLE sales ADD COLUMN IF NOT EXISTS customer      text;
-```
+Todas las migraciones anteriores ya están aplicadas. No hay pendientes.
 
 ---
 
@@ -143,6 +127,8 @@ ALTER TABLE sales ADD COLUMN IF NOT EXISTS customer      text;
 | `type` | text | `'venta'` o `'apartado'` |
 | `paid_amount` | numeric nullable | Monto recibido (anticipo para apartados) |
 | `customer` | text nullable | Nombre del cliente (obligatorio en apartados) |
+| `due_date` | date nullable | Fecha límite de pago (solo apartados) |
+| `seller_email` | text nullable | Email del usuario que registró la venta |
 
 #### `config`
 | `id` | Contenido |
@@ -164,6 +150,42 @@ Email + password plano. Ya no se usa para auth real (Supabase Auth JWT).
 { access_token, refresh_token, expires_at }
 // Válida si: access_token existe Y expires_at > now/1000 + 60s
 ```
+
+### Roles y permisos (implementado 2026-05-16)
+
+El rol se lee de `user_metadata.role` en el JWT. Sin rol definido → `'operador'` (nunca escala permisos).
+
+**Asignar o cambiar rol — SQL Editor en Supabase:**
+```sql
+UPDATE auth.users
+SET raw_user_meta_data = raw_user_meta_data || '{"role":"superadmin"}'
+WHERE email = 'email@ejemplo.com';
+```
+El cambio aplica en el **próximo login** — la sesión activa usa el JWT viejo.
+
+**Usuarios actuales:**
+| Email | Rol |
+|---|---|
+| eacevedo@sunname.com.mx | superadmin |
+| ma.dolores.mtz.mtz@gmail.com | superadmin |
+| areli@tresencantos.com | operador |
+| (por crear) ofelia | duena |
+
+**Permisos por rol:**
+| Acción | superadmin | operador | duena |
+|---|---|---|---|
+| Ver productos | ✓ | ✓ | ✓ |
+| Editar producto / precio | ✓ | ✓ | ✗ |
+| Agregar producto | ✓ | ✓ | ✗ |
+| Publicar en sitio web | ✓ | ✗ | ✗ |
+| Eliminar producto | ✓ | ✗ | ✗ |
+| Importar/Exportar JSON | ✓ | ✗ | ✗ |
+| Cancelar venta (Caja) | ✓ | ✗ | ✗ |
+| Bulk delete | ✓ | ✗ | ✗ |
+
+**Comportamiento operador al crear productos:** `is_published` se fuerza a `false` — requiere que un superadmin revise y publique. El campo precio sí puede editarlo (transcribe de etiqueta física).
+
+**Chip de rol:** visible en topbar para `operador` ("Operador") y `duena` ("Propietaria"). Superadmin no muestra chip.
 
 ### Categorías dinámicas
 Guardadas en `config.id='categories'` como JSON. Estructura con soporte de subcategorías:
@@ -195,6 +217,13 @@ Se ejecuta en `showApp()` antes de cargar productos. Hace una sola query:
 GET config?id=in.(groq_key,drive_ep,drive_secret)&select=id,value
 ```
 Incluye **migración automática**: si los valores no están en Supabase pero sí en `localStorage` (instalaciones antiguas), los copia a Supabase silenciosamente en el primer arranque.
+
+### Roles en Inventario
+- `ROLE` + objeto `can{}` se calculan al cargar desde `user_metadata.role` del JWT
+- `_applyRoleUI()` oculta botones según rol (eliminar, publicar, importar JSON, agregar)
+- Alerta amarilla visible solo para superadmin cuando hay productos con `price=0` — clic ordena tabla por precio asc
+- Toggle `🌐 Web` / `🙈 Oculto` bloqueado para no-superadmin (toast de error si intenta)
+- Operador que duplica: toast "Deshacer" 7 segundos en lugar del toast normal (única forma de borrar)
 
 ### Funcionalidades
 - **CRUD** con modal — doble clic/tap en fila para editar
@@ -275,9 +304,12 @@ Si no se hace esto, el Apps Script sigue ejecutando la versión antigua con el s
 - **Nota de venta** — texto libre que aparece en ticket WA
 - **Apartados/anticipos** — checkbox "Es apartado", requiere nombre de cliente + anticipo. Panel "📌 Apartados" muestra pendientes con botón "Completar"
 - **Ticket por WhatsApp** — botón en modal post-venta. Incluye productos, total, método, cambio, nota y aviso de transferencia pendiente si aplica
-- **Historial** — últimas 30 ventas (sin filtro fecha) en **offcanvas lateral** (botón 🕐 Historial en topbar). Cancelar venta → borra `sales` → restaura stock
+- **Historial** — últimas 50 ventas en **offcanvas lateral** (botón Historial en topbar). Cancelar venta → borra `sales` → restaura stock. Solo superadmin puede cancelar (`CAN_CANCEL_SALE`)
+- **Corte de caja** — botón 🧾 Corte en topbar. Muestra totales del turno (efectivo, transferencia, ventas, apartados) con opción de compartir por WhatsApp. Turno se registra en `localStorage` keys `te_shift_start` / `te_shift_date` al abrir el POS cada día
+- **Apartados con fecha límite** — campo `📅 Fecha límite de pago` en el formulario de apartado (default 30 días). En la lista de apartados muestra el estado con color: rojo=vencido, ámbar=≤7 días, verde=ok
 - **Validación:** efectivo debe cubrir total; doble submit bloqueado con flag `_cobrandoAhora`
 - **Mobile:** `pos-right` scrollable, cart-items con `max-height:120px` para que checkout siempre sea visible
+- **seller_email** — se guarda en cada venta con el email del usuario autenticado
 
 ### Flujo de transferencia
 1. Seleccionar 📱 Transferencia → campos de efectivo/cambio se ocultan
@@ -296,6 +328,9 @@ Si no se hace esto, el Apps Script sigue ejecutando la versión antigua con el s
 - **Gráficas (Chart.js CDN):** ingresos por día (barra), ventas por categoría (donut), hora pico por hora del día (barra, dorado = hora más rentable)
 - **Top productos** por ingresos con barra de progreso relativa
 - **Ventas recientes** — últimas 10 del período
+- **Apartados pendientes** — sección siempre visible (no filtrada por período): lista todos los apartados activos con barra de progreso, monto pendiente y estado de vencimiento
+- **Por vendedor** — sección visible solo cuando hay 2+ vendedores distintos en el período; agrupa por `seller_email` con barra de progreso relativa
+- **Rentabilidad** — productos con margen alto/medio/bajo según `cost`
 - **Inventario:** agotados/última unidad/con existencias
 
 ---
