@@ -432,7 +432,7 @@ button,a{touch-action:manipulation}
 .btn-wa-ticket:hover{background:#1da851}
 
 /* ── MOBILE ── */
-@media(max-width:760px){
+@media(max-width:1024px){
   /* ── TOPBAR: grid 2 col — [Caja centrado] [acciones+nav] ── */
   .topbar{
     display:grid;grid-template-columns:1fr auto;
@@ -534,31 +534,30 @@ button,a{touch-action:manipulation}
   border:1.5px solid #fff;
 }
 
-@media(max-width:640px){
-  /* Activar tab bar */
+@media(max-width:1024px){
+  /* Activar tab bar en mobile + tablet */
   .pos-tab-bar{display:flex}
-  /* Ocultar toggle de vista — solo lista */
-  .pos-view-toggle{display:none}
 
   /* Paneles en pantalla completa según pestaña activa */
   .pos-left.tab-active{display:flex!important;flex-direction:column;flex:1;max-height:none!important;overflow:hidden}
   .pos-left.tab-hidden{display:none!important}
-  /* Panel cobro: scroll único — evita pelea flex entre carrito y checkout */
   .pos-right.tab-active{display:block!important;flex:1;overflow-y:auto;overflow-x:hidden}
   .pos-right.tab-hidden{display:none!important}
-
-  /* En scroll único los items del carrito no necesitan scroll propio */
-  .pos-right.tab-active .cart-items{
-    max-height:none!important;overflow-y:visible;
-  }
-  .pos-right.tab-active .pos-checkout{
-    overflow-y:visible;max-height:none;
-  }
-  /* Cobrar siempre accesible — sticky al fondo del scroll */
+  .pos-right.tab-active .cart-items{max-height:none!important;overflow-y:visible}
+  .pos-right.tab-active .pos-checkout{overflow-y:visible;max-height:none}
   #cobrar-btn{position:sticky;bottom:0;z-index:5;margin-top:4px}
-
-  /* 🛒 del topbar oculto en móvil: la pestaña lo reemplaza */
   #cart-topbar-btn{display:none}
+}
+
+/* Tab bar más grande en tablet */
+@media(min-width:641px) and (max-width:1024px){
+  .pos-tab{padding:12px 4px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));font-size:.72rem}
+  .pos-tab-icon{font-size:1.5rem}
+}
+
+@media(max-width:640px){
+  /* Solo mobile: ocultar toggle de vista (espacio limitado) */
+  .pos-view-toggle{display:none}
 }
 
 /* CART TOPBAR BUTTON */
@@ -634,7 +633,7 @@ button,a{touch-action:manipulation}
 .tbn-icon.tbn-active{color:#C9A462}
 .tbn-icon.tbn-active svg{stroke-width:2.5}
 .tbn-icon:active{opacity:.55;transform:scale(.88)}
-@media(max-width:760px){.topbar-nav-mobile{display:flex}}
+@media(max-width:1024px){.topbar-nav-mobile{display:flex}}
 </style>
 </head>
 <body>
@@ -969,7 +968,7 @@ let currentCat  = 'all';
 let payMethod   = 'efectivo';
 let discType    = 'pct';
 let _lastSale   = {};
-let posView     = (window.innerWidth <= 640) ? 'list' : (localStorage.getItem('te_pos_view') || 'list');
+let posView     = (window.innerWidth <= 1024) ? 'list' : (localStorage.getItem('te_pos_view') || 'list');
 
 /* ── API ── */
 function api(path, opts = {}) {
@@ -1273,7 +1272,7 @@ function getTotal() {
 
 /* ── TAB NAVIGATION (mobile) ── */
 let _currentTab = 'catalog';
-const isTabMode = () => window.innerWidth <= 640;
+const isTabMode = () => window.innerWidth <= 1024;
 
 function switchPosTab(tab) {
   _currentTab = tab;
@@ -2203,7 +2202,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadApartados();
   showAllProducts();
   // Stats solo en desktop
-  if (window.innerWidth > 760) {
+  if (window.innerWidth > 1024) {
     document.getElementById('btn-stats-pos').style.display = '';
   }
 
