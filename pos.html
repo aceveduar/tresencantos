@@ -478,7 +478,6 @@ button,a{touch-action:manipulation}
     border-radius:0!important;font-size:1rem;
   }
   #btn-history-pos:active{opacity:.55}
-  /* Ocultar "← Inventario" — el nav de iconos lo reemplaza */
   #btn-stats-pos{display:none!important}
   .topbar-right > .btn-outline-white:last-of-type{display:none}
 
@@ -678,6 +677,22 @@ button,a{touch-action:manipulation}
 .cp-cobrar{flex-shrink:0;padding:8px 16px;border-radius:50px;border:none;background:var(--green);color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit}
 .cp-cobrar:hover{background:#1B4332}
 .cp-cobrar:disabled{background:#ccc;cursor:not-allowed}
+
+/* ── Tablet (768–1024px): mostrar etiquetas Corte e Historial ── */
+@media(min-width:768px) and (max-width:1024px){
+  .btn-label{display:inline}
+  /* Restaurar estilo pill — el override de 1024px los volvió íconos */
+  #btn-corte-pos,#btn-history-pos{
+    border:1.5px solid rgba(255,255,255,.3)!important;
+    background:transparent!important;
+    color:#fff!important;
+    width:auto!important;height:auto!important;
+    padding:5px 12px!important;
+    border-right:1.5px solid rgba(255,255,255,.3)!important;
+    padding-right:12px!important;margin-right:0!important;
+    border-radius:50px!important;font-size:.75rem!important;
+  }
+}
 
 /* Pantallas muy pequeñas */
 @media(max-width:380px){
