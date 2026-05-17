@@ -34,6 +34,7 @@ button,a{touch-action:manipulation}
 .topbar{background:var(--charcoal);color:#fff;padding:0 16px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;position:relative}
 .topbar-left{display:flex;align-items:center;gap:10px}
 .topbar-left img{height:30px;border-radius:5px}
+.topbar-title-group{display:flex;align-items:center;gap:8px}
 .topbar-title{font-family:'Playfair Display',serif;font-size:1rem;color:#fff}
 .topbar-right{display:flex;gap:8px;align-items:center}
 .user-display{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:4px}
@@ -467,14 +468,24 @@ button,a{touch-action:manipulation}
     align-items:center;padding:0 10px;gap:0;background:var(--charcoal);
   }
   .topbar-left{display:contents}
+  .topbar-title-group{
+    display:flex;align-items:center;justify-content:center;gap:6px;
+    text-align:center;
+  }
   .topbar-title{
-    text-align:center;font-style:italic;
-    font-size:1rem;padding:0 8px;white-space:nowrap;
+    font-style:italic;font-size:1rem;white-space:nowrap;
   }
   .topbar-right{gap:2px}
   .user-name-label{display:none}
   .user-avatar{width:24px;height:24px;font-size:.68rem}
   .btn-label{display:none}
+  /* En mobile el bottom-nav ya cubre la navegación — ocultar íconos redundantes del topbar */
+  .topbar-nav-mobile a[href="activity.html"],
+  .topbar-nav-mobile a[href="settings.html"],
+  .topbar-nav-mobile a[href="index.html"],
+  .topbar-nav-mobile a[href="pos.html"] { display:none }
+  /* Ocultar refresh (↻) en mobile — poco espacio */
+  #pos-refresh-btn { display:none }
   .title-long{display:none}
   .title-short{display:inline!important}
   .today-stats{display:none!important}
@@ -771,7 +782,13 @@ button,a{touch-action:manipulation}
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-left">
-    <span class="topbar-title"><span class="title-long">Caja</span><span class="title-short" style="display:none">Caja</span></span>
+    <div class="topbar-title-group">
+      <span class="topbar-title"><span class="title-long">Caja</span><span class="title-short" style="display:none">Caja</span></span>
+      <div class="user-display" id="user-display">
+        <span class="user-avatar" id="user-avatar">?</span>
+        <span class="user-name-label" id="user-name-label"></span>
+      </div>
+    </div>
   </div>
   <div class="topbar-right">
     <span id="today-stats" class="today-stats" style="display:none"></span>
@@ -820,10 +837,6 @@ button,a{touch-action:manipulation}
         <span class="tbn-label">Salir</span>
       </button>
     </nav>
-    <div class="user-display" id="user-display">
-      <span class="user-avatar" id="user-avatar">?</span>
-      <span class="user-name-label" id="user-name-label"></span>
-    </div>
   </div>
 </div>
 
@@ -1141,12 +1154,6 @@ button,a{touch-action:manipulation}
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js"></script>
-<script>
-  if (!('BarcodeDetector' in window) && window.barcodeDetectorPolyfill) {
-    window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-  }
-</script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 /* ── CONFIG ── */
@@ -2607,49 +2614,93 @@ function closeSaleDone() {
 
 /* ── SCANNER ── */
 let _posScanner = null;
+let _posQuaggaActive = false;
+let _posQuaggaDetected = false;
 
-function openPosScanner() {
-  document.getElementById('pos-scan-status').textContent = 'Iniciando cámara...';
-  document.getElementById('pos-scanner-overlay').classList.add('open');
-
-  if (_posScanner) { _posScanner.clear().catch(() => {}); _posScanner = null; }
-
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const barcodeFormats = [
-    Html5QrcodeSupportedFormats.EAN_13,
-    Html5QrcodeSupportedFormats.EAN_8,
-    Html5QrcodeSupportedFormats.CODE_128,
-    Html5QrcodeSupportedFormats.UPC_A,
-    Html5QrcodeSupportedFormats.UPC_E,
-    Html5QrcodeSupportedFormats.QR_CODE,
-  ];
-  _posScanner = new Html5Qrcode('pos-reader', { formatsToSupport: barcodeFormats, verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
-  const scanConfig = isIOS
-    ? { fps: 20, videoConstraints: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } }
-    : { fps: 10, qrbox: { width: 260, height: 100 } };
-  _posScanner.start(
-    { facingMode: 'environment' },
-    scanConfig,
-    (code) => {
-      closePosScanner();
-      const p = products.find(x => x.barcode === code);
-      if (p) {
-        addToCart(p.id);
-        document.getElementById('pos-search').value = '';
-        searchProducts('');
-      } else {
-        toast(`Código "${code}" — no está registrado en el catálogo`, 'error');
-      }
-    },
-    () => {}
-  ).then(() => {
-    document.getElementById('pos-scan-status').textContent = 'Apunta al código de barras del producto';
-  }).catch(() => {
-    document.getElementById('pos-scan-status').textContent = 'No se pudo acceder a la cámara. Verifica los permisos.';
+function _loadQuaggaPos() {
+  return new Promise((resolve, reject) => {
+    if (window.Quagga) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/@ericblade/quagga2/dist/quagga.min.js';
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
   });
 }
 
+async function openPosScanner() {
+  document.getElementById('pos-scan-status').textContent = 'Iniciando cámara...';
+  document.getElementById('pos-scanner-overlay').classList.add('open');
+
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  if (isIOS) {
+    if (_posScanner) { _posScanner.stop().catch(() => {}); _posScanner = null; }
+    try { await _loadQuaggaPos(); } catch(e) {
+      document.getElementById('pos-scan-status').textContent = 'No se pudo cargar el escáner.';
+      return;
+    }
+    _posQuaggaDetected = false;
+    _posQuaggaActive = true;
+    Quagga.init({
+      inputStream: { name: 'Live', type: 'LiveStream',
+        target: document.getElementById('pos-reader'),
+        constraints: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      },
+      locator: { patchSize: 'medium', halfSample: true },
+      numOfWorkers: 0, frequency: 15,
+      decoder: { readers: ['ean_reader','ean_8_reader','code_128_reader','upc_reader','upc_e_reader'] },
+      locate: true
+    }, (err) => {
+      if (err) {
+        document.getElementById('pos-scan-status').textContent = 'No se pudo acceder a la cámara. Verifica los permisos.';
+        _posQuaggaActive = false; return;
+      }
+      Quagga.start();
+      document.getElementById('pos-scan-status').textContent = 'Apunta al código de barras del producto';
+      Quagga.onDetected((result) => {
+        if (_posQuaggaDetected) return;
+        const code = result.codeResult?.code;
+        if (code) {
+          _posQuaggaDetected = true;
+          closePosScanner();
+          const p = products.find(x => x.barcode === code);
+          if (p) { addToCart(p.id); document.getElementById('pos-search').value = ''; searchProducts(''); }
+          else { toast(`Código "${code}" — no está registrado en el catálogo`, 'error'); }
+        }
+      });
+    });
+  } else {
+    if (_posScanner) { _posScanner.clear().catch(() => {}); _posScanner = null; }
+    const barcodeFormats = [
+      Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,   Html5QrcodeSupportedFormats.QR_CODE,
+    ];
+    _posScanner = new Html5Qrcode('pos-reader', { formatsToSupport: barcodeFormats, verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
+    _posScanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 260, height: 100 } },
+      (code) => {
+        closePosScanner();
+        const p = products.find(x => x.barcode === code);
+        if (p) { addToCart(p.id); document.getElementById('pos-search').value = ''; searchProducts(''); }
+        else { toast(`Código "${code}" — no está registrado en el catálogo`, 'error'); }
+      },
+      () => {}
+    ).then(() => {
+      document.getElementById('pos-scan-status').textContent = 'Apunta al código de barras del producto';
+    }).catch(() => {
+      document.getElementById('pos-scan-status').textContent = 'No se pudo acceder a la cámara. Verifica los permisos.';
+    });
+  }
+}
+
 function closePosScanner() {
+  if (_posQuaggaActive && window.Quagga) {
+    Quagga.offDetected();
+    Promise.resolve(Quagga.stop()).catch(() => {});
+    _posQuaggaActive = false;
+  }
   if (_posScanner) { _posScanner.stop().catch(() => {}); _posScanner = null; }
   document.getElementById('pos-scanner-overlay').classList.remove('open');
 }
