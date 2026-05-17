@@ -417,6 +417,17 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
     </div>
   </div>
 
+  <!-- CLIENTAS -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <h2>👤 Clientas frecuentes</h2>
+      <span id="clientas-label" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body" id="clientas-body">
+      <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
+    </div>
+  </div>
+
   <!-- VENDEDORES -->
   <div class="card" style="margin-bottom:16px" id="vendedores-card" style="display:none">
     <div class="card-head">
@@ -960,9 +971,59 @@ async function loadApartadosPendientes() {
   }).join('');
 }
 
+/* ── CLIENTAS ── */
+async function loadClientas() {
+  const body  = document.getElementById('clientas-body');
+  const label = document.getElementById('clientas-label');
+  const result = await api('sales?type=eq.apartado&select=customer,total,paid_amount,created_at,due_date,items&order=created_at.desc');
+  if (!result.ok || !result.data?.length) {
+    body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:.84rem">Sin registros de clientas</div>';
+    return;
+  }
+  // Agrupar por nombre de clienta
+  const map = {};
+  result.data.forEach(s => {
+    const parts   = (s.customer || '').split(' · 📱 ');
+    const nombre  = parts[0]?.trim() || 'Sin nombre';
+    const tel     = parts[1]?.trim() || '';
+    if (!map[nombre]) map[nombre] = { nombre, tel, compras: 0, totalGasto: 0, totalPendiente: 0, ultimaFecha: s.created_at, abiertos: 0 };
+    const c = map[nombre];
+    c.compras++;
+    c.totalGasto += parseFloat(s.total) || 0;
+    const pendiente = Math.max(0, (parseFloat(s.total)||0) - (parseFloat(s.paid_amount)||0));
+    c.totalPendiente += pendiente;
+    if (pendiente > 0) c.abiertos++;
+    if (s.created_at > c.ultimaFecha) c.ultimaFecha = s.created_at;
+  });
+  const clientas = Object.values(map).sort((a, b) => b.totalGasto - a.totalGasto);
+  label.textContent = `${clientas.length} clientas registradas`;
+  body.innerHTML = clientas.map(c => {
+    const fecha = new Date(c.ultimaFecha).toLocaleDateString('es-MX', { day:'numeric', month:'short', year:'numeric' });
+    const waUrl = c.tel
+      ? `https://wa.me/52${c.tel.replace(/\D/g,'')}?text=${encodeURIComponent('Hola ' + c.nombre + ' 👋, te escribimos de Tres Encantos 🛍')}`
+      : null;
+    const pendHTML = c.totalPendiente > 0
+      ? `<span style="font-size:.68rem;font-weight:700;color:#E85D5D">⏳ $${c.totalPendiente.toLocaleString('es-MX')} pendiente</span>`
+      : `<span style="font-size:.68rem;color:var(--green);font-weight:600">✓ Sin deuda</span>`;
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="width:36px;height:36px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.9rem;flex-shrink:0">${c.nombre.charAt(0).toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:.86rem">${c.nombre}</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:1px">${c.compras} apartado${c.compras>1?'s':''} · última visita ${fecha}</div>
+        <div style="margin-top:3px">${pendHTML}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-weight:700;font-size:.88rem">$${c.totalGasto.toLocaleString('es-MX')}</div>
+        <div style="font-size:.65rem;color:var(--muted)">total histórico</div>
+        ${waUrl ? `<a href="${waUrl}" target="_blank" style="display:inline-block;margin-top:4px;background:#25D366;color:#fff;border-radius:50px;padding:2px 10px;font-size:.65rem;font-weight:700;text-decoration:none">💬 WA</a>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
-  await Promise.all([loadProducts(), loadSales(), loadPreviousSales(), loadApartadosPendientes()]);
+  await Promise.all([loadProducts(), loadSales(), loadPreviousSales(), loadApartadosPendientes(), loadClientas()]);
   renderAll();
 });
 </script>
