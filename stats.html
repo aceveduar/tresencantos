@@ -141,7 +141,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .no-data{text-align:center;padding:32px;color:var(--muted-light);font-size:.84rem}
 
 /* ── MOBILE ── */
-@media(max-width:768px){
+@media(max-width:1024px){
   main{padding:16px 12px 48px}
   /* Topbar: grid 3 col — [logo] [título centrado] [iconos] */
   .topbar{
@@ -193,8 +193,9 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   .period-btn{font-size:.7rem;padding:10px 4px}
 }
 
-/* ══ TOPBAR NAV ICONS — navegación entre módulos (mobile) ════════════ */
-.topbar-nav-mobile{display:none;align-items:center;gap:2px}
+/* ══ TOPBAR NAV ICONS — navegación entre módulos ════════════ */
+.topbar-nav-mobile{display:flex;align-items:center;gap:2px}
+.btn-back{display:none}
 .tbn-icon{
   width:36px;height:36px;border-radius:9px;
   display:flex;align-items:center;justify-content:center;
@@ -208,7 +209,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .tbn-icon.tbn-active{color:#C9A462;background:transparent}
 .tbn-icon.tbn-active svg{stroke-width:2.5}
 .tbn-icon:active{opacity:.55;transform:scale(.88)}
-@media(max-width:640px){.topbar-nav-mobile{display:flex}}
+/* topbar-nav-mobile global — visible en todos los dispositivos */
 </style>
 </head>
 <body>
@@ -235,6 +236,9 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
       </a>
       <a href="settings.html" class="tbn-icon" title="Configuración">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </a>
+      <a href="index.html" class="tbn-icon" title="Tienda">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       </a>
     </nav>
   </div>
