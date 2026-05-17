@@ -332,7 +332,26 @@ button,a{touch-action:manipulation}
 .pos-card-body{padding:8px 10px 10px;flex:1;display:flex;flex-direction:column;gap:3px}
 .pos-card-name{font-size:.76rem;font-weight:600;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;color:var(--charcoal);flex:1}
 .pos-card-price{font-family:'Playfair Display',serif;font-weight:700;font-size:.9rem;color:var(--charcoal)}
-.pos-card-stock{font-size:.64rem;display:inline-block}
+/* Stock chip — coloreado según disponibilidad */
+.pos-card-stock{
+  display:inline-flex;align-items:center;
+  font-size:.64rem;font-weight:700;letter-spacing:.02em;
+  padding:3px 9px;border-radius:50px;
+  border:1.5px solid transparent;white-space:nowrap;
+}
+.pos-card-stock.stock-ok  {background:#ECFDF5;color:#065F46;border-color:#6EE7B7}
+.pos-card-stock.stock-one {background:#FFFBEB;color:#92400E;border-color:#FCD34D}
+.pos-card-stock.stock-sold{background:#FEF2F2;color:#991B1B;border-color:#FECACA}
+
+/* Badge AGOTADO sobre la imagen — solo en tarjetas sin stock */
+.pos-card.card-sold .pos-card-img-wrap::after{
+  content:'AGOTADO';
+  position:absolute;top:10px;left:10px;
+  background:rgba(239,68,68,.88);
+  color:#fff;font-size:.58rem;font-weight:800;letter-spacing:.1em;
+  padding:4px 10px;border-radius:50px;
+  pointer-events:none;
+}
 
 /* CATEGORY CHIPS */
 .cat-chip-bar{display:flex;gap:6px;padding:8px 14px;background:#fff;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;flex-shrink:0;-webkit-overflow-scrolling:touch}
@@ -577,7 +596,7 @@ button,a{touch-action:manipulation}
   .pos-card-body{padding:10px 12px 12px;gap:4px}
   .pos-card-name{font-size:.82rem;-webkit-line-clamp:2}
   .pos-card-price{font-size:1rem;margin-top:2px}
-  .pos-card-stock{font-size:.7rem;font-weight:600;margin-top:1px}
+  .pos-card-stock{font-size:.7rem;padding:4px 11px;margin-top:2px}
 
   /* View toggle buttons */
   .pos-vbtn{width:38px;height:38px}
