@@ -58,8 +58,10 @@ button,a{touch-action:manipulation}
 .pos-search-bar{padding:10px 12px;background:#fff;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-shrink:0}
 .pos-search-bar input{flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--r);font-size:.88rem;outline:none}
 .pos-search-bar input:focus{border-color:var(--gold)}
-.pos-sort-select{height:34px;border:1.5px solid var(--border);border-radius:var(--r);padding:0 6px;font-size:.78rem;font-family:inherit;background:#fff;color:var(--charcoal);cursor:pointer;outline:none;flex-shrink:0;max-width:110px}
-.pos-sort-select:focus{border-color:var(--gold)}
+.pos-sort-toggle{display:flex;gap:2px;background:var(--cream);border-radius:8px;padding:2px;border:1.5px solid var(--border);flex-shrink:0}
+.pos-sort-btn{width:28px;height:28px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;transition:.15s;color:#9B8B78;font-family:inherit;line-height:1}
+.pos-sort-btn.active{background:var(--gold);color:#fff;box-shadow:0 1px 4px rgba(201,164,98,.35)}
+.pos-sort-btn:hover:not(.active){background:rgba(201,164,98,.12);color:var(--gold-dark)}
 .pos-results{flex:1;overflow-y:auto;padding:6px 8px}
 .pos-prod{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;cursor:pointer;border:1px solid transparent;transition:.15s;background:#fff;margin-bottom:4px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
 .pos-prod:hover{border-color:var(--gold);background:#FFFBF4}
@@ -823,11 +825,11 @@ button,a{touch-action:manipulation}
   <div class="pos-left" id="pos-left">
     <div class="pos-search-bar">
       <input type="search" id="pos-search" placeholder="Buscar producto..." oninput="searchProducts(this.value)" autocomplete="off">
-      <select id="pos-sort-select" class="pos-sort-select" onchange="setPosSort(this.value)" title="Ordenar productos">
-        <option value="recientes">🕐 Recientes</option>
-        <option value="populares">🔥 Top</option>
-        <option value="az">A→Z</option>
-      </select>
+      <div class="pos-sort-toggle" id="pos-sort-toggle">
+        <button class="pos-sort-btn" data-sort="recientes" onclick="setPosSort('recientes')" title="Más recientes">🕐</button>
+        <button class="pos-sort-btn" data-sort="populares" onclick="setPosSort('populares')" title="Más vendidos">🔥</button>
+        <button class="pos-sort-btn" data-sort="az"        onclick="setPosSort('az')"        title="A → Z">AZ</button>
+      </div>
       <div class="pos-view-toggle">
         <button class="pos-vbtn active" id="pos-vbtn-list"  onclick="setPosView('list')"  title="Lista">☰</button>
         <button class="pos-vbtn"        id="pos-vbtn-cards" onclick="setPosView('cards')" title="Tarjetas">⊞</button>
@@ -1246,6 +1248,9 @@ function applySort(list) {
 function setPosSort(sort) {
   posSort = sort;
   localStorage.setItem('te_pos_sort', sort);
+  document.querySelectorAll('.pos-sort-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.sort === sort)
+  );
   const q = document.getElementById('pos-search')?.value || '';
   searchProducts(q);
 }
@@ -2691,8 +2696,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await Promise.all([loadProducts(), loadPosCategories(), loadSalesStats()]);
   renderCategoryChips();
   setPosView(posView);
-  const sortSel = document.getElementById('pos-sort-select');
-  if (sortSel) sortSel.value = posSort;
+  setPosSort(posSort);
   renderCart();
   loadTodayStats();
   loadHistory();
