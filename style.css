@@ -273,17 +273,39 @@ section{padding:80px 20px}
 /* ── BARRA ADMIN (solo con sesión activa) ── */
 #admin-bar{
   display:none;position:fixed;top:0;left:0;right:0;z-index:9999;
-  height:36px;background:rgba(28,24,23,.97);backdrop-filter:blur(6px);
-  align-items:center;justify-content:center;gap:8px;
+  height:44px;background:#1C1817;
+  align-items:center;justify-content:center;gap:1px;
 }
-#admin-bar a{
-  color:#C9A462;text-decoration:none;font-size:.72rem;font-weight:600;
-  letter-spacing:.05em;text-transform:uppercase;padding:4px 14px;border-radius:50px;
-  transition:background .15s,color .15s;white-space:nowrap;
+#admin-bar .tbn-icon{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;padding:4px 7px;border-radius:9px;min-width:32px;
+  text-decoration:none;background:transparent;color:rgba(255,255,255,.55);
+  transition:all .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  border:none;cursor:pointer;font-family:inherit;
 }
-#admin-bar a:hover{background:rgba(201,164,98,.18);color:#FFF8EE}
+#admin-bar .tbn-icon svg{
+  width:15px;height:15px;stroke:currentColor;fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block;flex-shrink:0;
+}
+#admin-bar .tbn-label{
+  display:none;font-size:.55rem;font-weight:600;letter-spacing:.02em;line-height:1;white-space:nowrap;
+}
+#admin-bar .tbn-icon:not(.tbn-logout):hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.09)}
+#admin-bar .tbn-icon.tbn-logout:hover{color:#E85D5D;background:rgba(232,93,93,.12)}
+#admin-bar .tbn-sep{
+  width:1px;height:18px;background:rgba(255,255,255,.2);
+  align-self:center;flex-shrink:0;margin:0 3px;
+}
+@media(min-width:641px){
+  #admin-bar{height:54px}
+  #admin-bar .tbn-label{display:block}
+  #admin-bar .tbn-icon{padding:5px 9px}
+}
 body.admin-bar-shown #admin-bar{display:flex}
-body.admin-bar-shown .header{top:36px}
+body.admin-bar-shown .header{top:44px}
+@media(min-width:641px){
+  body.admin-bar-shown .header{top:54px}
+}
 
 /* ── BOTÓN FLOTANTE WHATSAPP ── */
 #wa-float{
