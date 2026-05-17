@@ -3122,11 +3122,12 @@ async function saveCaptureProduct() {
   const btn = document.getElementById('cap-save-btn');
   btn.disabled = true; btn.textContent = 'Guardando...';
   try {
-    const price   = parseFloat(document.getElementById('cap-price').value) || 0;
     const catCode = document.getElementById('cap-category').value;
     const catObj  = categories.find(c => c.code === catCode);
-    const maxId   = products.reduce((m, p) => Math.max(m, p.id), 0);
-    const newId   = maxId + 1;
+    // Consultar el ID máximo real en Supabase para evitar conflictos de primary key
+    const maxResult = await supabaseApi('products?select=id&order=id.desc&limit=1');
+    const maxId = (maxResult.ok && maxResult.data?.length) ? maxResult.data[0].id : 0;
+    const newId = maxId + 1;
     const payload = {
       id: newId, name, price,
       description: '',
@@ -3141,7 +3142,11 @@ async function saveCaptureProduct() {
       headers: { Prefer: 'return=minimal' },
       body: JSON.stringify(payload)
     });
-    if (!ok) { console.error('Supabase error al guardar captura:', saveData); throw new Error('Error Supabase'); }
+    if (!ok) {
+      const msg = saveData?.message || saveData?.error || JSON.stringify(saveData);
+      console.error('Supabase error captura rápida:', msg);
+      throw new Error(msg);
+    }
     products.unshift({ ...payload, originalPrice: null, badge: null, badgeType: null, barcode: null, cost: null });
     captureCount++;
     const counter = document.getElementById('cap-counter');
@@ -3150,7 +3155,9 @@ async function saveCaptureProduct() {
     toast('"' + name + '" guardado ✓', 'success');
     resetCaptureForm(true);
   } catch (e) {
-    toast('Error al guardar — intenta de nuevo', 'error');
+    const msg = e?.message && e.message !== 'Error Supabase' ? e.message : 'Error al guardar — intenta de nuevo';
+    toast(msg.length > 80 ? 'Error al guardar — intenta de nuevo' : msg, 'error');
+    console.error('saveCaptureProduct error:', e);
     btn.disabled = false; btn.textContent = 'Guardar y siguiente →';
   }
 }
