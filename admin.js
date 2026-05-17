@@ -1601,17 +1601,17 @@ Formato de respuesta:
     const flash = el => { el.classList.add('ai-filled'); setTimeout(() => el.classList.remove('ai-filled'), 1600); };
     if (parsed.name)        { const el = document.getElementById('f-name');        el.value = toTitleCase(parsed.name);  flash(el); }
     if (parsed.description) { const el = document.getElementById('f-description'); el.value = formatDescription(parsed.description); flash(el); }
-    if (parsed.category) {
-      const match = categories.find(c =>
-        c.code === parsed.category ||
-        c.label.toLowerCase() === (parsed.category || '').toLowerCase()
-      );
-      if (match) {
-        const el = document.getElementById('f-category');
-        el.value = match.code;
-        el.dispatchEvent(new Event('change'));
-        flash(el);
-      }
+    {
+      const match = parsed.category
+        ? categories.find(c =>
+            c.code === parsed.category ||
+            c.label.toLowerCase() === (parsed.category || '').toLowerCase()
+          )
+        : null;
+      const el = document.getElementById('f-category');
+      el.value = match ? match.code : 'por_revisar';
+      el.dispatchEvent(new Event('change'));
+      if (match) flash(el);
     }
     // Precio detectado en imagen (plumón, etiqueta, impreso)
     const rawPrice = parsed.price;
@@ -1716,6 +1716,7 @@ function openForm(id) {
   document.body.style.overflow = 'hidden';
   initImageUpload();
   document.getElementById('save-btn').disabled = false;
+  _applyPriceLock();
   setTimeout(() => document.getElementById('f-name').focus(), 100);
 }
 
@@ -1748,6 +1749,20 @@ function clearAdminFilters() {
 function syncCategoryLabel() {
   const cat = document.getElementById('f-category').value;
   document.getElementById('f-category-label').value = getCatLabel(cat);
+  _applyPriceLock();
+}
+
+function _applyPriceLock() {
+  const cat      = document.getElementById('f-category')?.value;
+  const priceEl  = document.getElementById('f-price');
+  const hintEl   = document.getElementById('price-lock-hint');
+  if (!priceEl || !hintEl) return;
+  const shouldLock = cat === 'por_revisar' && parseFloat(priceEl.value) > 0;
+  priceEl.readOnly = shouldLock;
+  priceEl.style.background  = shouldLock ? 'var(--cream)' : '';
+  priceEl.style.color        = shouldLock ? 'var(--muted)'  : '';
+  priceEl.style.cursor       = shouldLock ? 'not-allowed'  : '';
+  hintEl.style.display       = shouldLock ? 'block'        : 'none';
 }
 
 /* Sugiere categoría automáticamente al escribir el nombre del producto */
@@ -1877,9 +1892,9 @@ function validateForm() {
   const price = parseFloat(document.getElementById('f-price')?.value);
   const cat   = document.getElementById('f-category')?.value;
 
-  if (!name)           markError('f-name',     'El nombre es obligatorio');
-  if (!price || price <= 0) markError('f-price', 'Ingresa un precio de venta válido');
-  if (!cat)            markError('f-category', 'Selecciona una categoría');
+  if (!name)                                     markError('f-name',     'El nombre es obligatorio');
+  if (cat !== 'por_revisar' && (!price || price <= 0)) markError('f-price', 'Ingresa un precio de venta válido');
+  if (!cat)                                      markError('f-category', 'Selecciona una categoría');
 
   if (firstInvalid) {
     firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -3039,15 +3054,16 @@ async function runCaptureAI() {
     if (p.name)  { document.getElementById('cap-name').value = toTitleCase(p.name); flash('cap-name'); }
     if (p.price) { const n = Number(p.price); if (!isNaN(n) && n > 0 && n < 100000) { document.getElementById('cap-price').value = Math.round(n); flash('cap-price'); } }
     const catMatch = _capMatchCategory(p.category);
-    let catSet = false;
+    const sel = document.getElementById('cap-category');
     if (catMatch) {
-      const sel = document.getElementById('cap-category');
       sel.value = catMatch.code;
-      catSet = sel.value === catMatch.code; // false si el código no existe como opción
-      if (catSet) flash('cap-category');
+      if (sel.value === catMatch.code) flash('cap-category');
+    } else {
+      sel.value = 'por_revisar';
     }
-    const filled = [p.name ? 'nombre' : null, (p.price && Number(p.price) > 0) ? 'precio' : null, catSet ? 'categoría' : null].filter(Boolean);
-    _capSetAIStatus(true, '✓', filled.length ? ('Detecté: ' + filled.join(', ')) : 'Analizado — revisa los campos');
+    const catSet = !!catMatch;
+    const filled = [p.name ? 'nombre' : null, (p.price && Number(p.price) > 0) ? 'precio' : null, catSet ? 'categoría' : '⚠️ sin categoría — quedó en "Por revisar"'].filter(Boolean);
+    _capSetAIStatus(true, catSet ? '✓' : '⚠️', filled.join(', '));
     updateCapSaveBtn();
   } catch (err) {
     _capSetAIStatus(true, '⚠️', 'IA no disponible — completa manualmente');
