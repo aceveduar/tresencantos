@@ -530,7 +530,7 @@ document.addEventListener('visibilitychange', () => {
 
 
 /* ── TABLE ── */
-const isMobile = () => window.matchMedia('(max-width:640px)').matches;
+const isMobile = () => window.matchMedia('(max-width:1024px)').matches;
 
 let currentAdminView = localStorage.getItem('te_admin_view') || 'list';
 
