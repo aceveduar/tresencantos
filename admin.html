@@ -704,11 +704,16 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   #cat-filter{flex:1;min-width:110px}
   #sort-select{flex:1;min-width:90px}
   .prod-count{display:none}
-  /* Escáner: compacto, cuadrado, mismo alto que la búsqueda */
-  .toolbar > .btn-outline.btn-sm{
+  /* Escáner: compacto, cuadrado */
+  .toolbar > .btn-outline.btn-sm:not(#btn-capture-mode){
     width:42px;height:42px;padding:0;
     border-radius:10px;justify-content:center;
     font-size:1.05rem;flex-shrink:0;min-height:0;
+  }
+  /* Captura rápida: pill compacto con ícono + texto corto */
+  #btn-capture-mode{
+    height:42px;padding:0 14px;border-radius:10px;
+    font-size:.78rem;gap:5px;flex-shrink:0;min-height:0;
   }
   /* View toggle: alinear al final de la fila de orden */
   .view-toggle{flex-shrink:0}
@@ -1115,7 +1120,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           <input type="file" id="cap-file" accept="image/*" capture="environment" style="display:none" onchange="handleCapturePhoto(this)">
         </div>
         <div class="cap-ai-status" id="cap-ai-status" style="display:none">
-          <span class="cap-ai-spin"></span>
+          <span class="cap-ai-spin" id="cap-ai-spin"></span>
+          <span id="cap-ai-icon" style="display:none;font-size:1rem"></span>
           <span id="cap-ai-msg">Analizando imagen con IA...</span>
         </div>
         <div class="cap-fields" id="cap-fields">

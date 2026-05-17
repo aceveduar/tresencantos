@@ -2922,6 +2922,10 @@ function resetCaptureForm(keepCount) {
   document.getElementById('cap-retake-btn').style.display = 'none';
   document.getElementById('cap-photo-area').classList.remove('has-photo');
   document.getElementById('cap-ai-status').style.display = 'none';
+  const spin = document.getElementById('cap-ai-spin');
+  const ico  = document.getElementById('cap-ai-icon');
+  if (spin) { spin.style.display = 'block'; }
+  if (ico)  { ico.style.display  = 'none'; }
   document.getElementById('cap-name').value = '';
   document.getElementById('cap-price').value = '';
   document.getElementById('cap-category').value = '';
@@ -2946,15 +2950,49 @@ async function handleCapturePhoto(input) {
   reader.readAsDataURL(file);
 }
 
+function _capSetAIStatus(done, icon, text) {
+  const spin = document.getElementById('cap-ai-spin');
+  const ico  = document.getElementById('cap-ai-icon');
+  const msg  = document.getElementById('cap-ai-msg');
+  if (done) {
+    spin.style.display = 'none';
+    ico.style.display  = 'inline';
+    ico.textContent    = icon;
+  } else {
+    spin.style.display = 'block';
+    ico.style.display  = 'none';
+  }
+  msg.textContent = text;
+}
+
+function _capMatchCategory(code) {
+  if (!code) return null;
+  const norm = code.toLowerCase().trim();
+  // 1. Exacto
+  let m = categories.find(c => c.code === norm);
+  if (m) return m;
+  // 2. Label exacto (case insensitive)
+  m = categories.find(c => c.label.toLowerCase() === norm);
+  if (m) return m;
+  // 3. Código empieza con lo que devolvió la IA (ej: "natura" → "natura_perfumes")
+  m = categories.find(c => c.code.startsWith(norm + '_'));
+  if (m) return m;
+  // 4. Lo que devolvió la IA empieza con el código de categoría (ej: IA dijo "natura_algo" pero solo existe "natura")
+  m = categories.find(c => norm.startsWith(c.code));
+  if (m) return m;
+  // 5. Label contiene la palabra (ej: IA dijo "bolsas" → label "Bolsos & Mochilas")
+  m = categories.find(c => c.label.toLowerCase().includes(norm) || norm.includes(c.label.toLowerCase()));
+  if (m) return m;
+  return null;
+}
+
 async function runCaptureAI() {
   if (!captureImageDataUrl || !groqApiKey) {
     if (!groqApiKey) toast('Configura la IA en Configuración', 'error');
     return;
   }
-  const status = document.getElementById('cap-ai-status');
-  const msg    = document.getElementById('cap-ai-msg');
-  status.style.display = 'flex';
-  msg.textContent = 'Analizando imagen con IA...';
+  document.getElementById('cap-ai-status').style.display = 'flex';
+  _capSetAIStatus(false, '', 'Analizando imagen con IA...');
   try {
     const catList = categories.map(c => '"' + c.code + '" (' + c.label + ')').join(', ');
     const sysP = 'Eres el asistente de catálogo de Tres Encantos, boutique mexicana de bolsos, accesorios, maquillaje y Natura. Español de México. Preciso con texto y números visibles.';
@@ -2974,18 +3012,19 @@ async function runCaptureAI() {
     if (!res.ok) throw new Error('Error ' + res.status);
     const data = await res.json();
     const text = data.choices?.[0]?.message?.content || '';
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error('Sin JSON');
-    const p = JSON.parse(match[0]);
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('Sin JSON');
+    const p = JSON.parse(jsonMatch[0]);
     const flash = id => { const el = document.getElementById(id); if (!el) return; el.classList.add('ai-filled'); setTimeout(() => el.classList.remove('ai-filled'), 1200); };
     if (p.name)  { document.getElementById('cap-name').value = toTitleCase(p.name); flash('cap-name'); }
     if (p.price) { const n = Number(p.price); if (!isNaN(n) && n > 0 && n < 100000) { document.getElementById('cap-price').value = Math.round(n); flash('cap-price'); } }
-    if (p.category) { const m = categories.find(c => c.code === p.category); if (m) { document.getElementById('cap-category').value = m.code; flash('cap-category'); } }
-    const filled = [p.name ? 'nombre' : null, (p.price && Number(p.price) > 0) ? 'precio' : null, p.category ? 'categoría' : null].filter(Boolean);
-    msg.textContent = filled.length ? ('✓ IA detectó: ' + filled.join(', ')) : '✓ Analizado — revisa los campos';
+    const catMatch = _capMatchCategory(p.category);
+    if (catMatch) { document.getElementById('cap-category').value = catMatch.code; flash('cap-category'); }
+    const filled = [p.name ? 'nombre' : null, (p.price && Number(p.price) > 0) ? 'precio' : null, catMatch ? 'categoría' : null].filter(Boolean);
+    _capSetAIStatus(true, '✓', filled.length ? ('Detecté: ' + filled.join(', ')) : 'Analizado — revisa los campos');
     updateCapSaveBtn();
   } catch (err) {
-    msg.textContent = 'IA no disponible — completa manualmente';
+    _capSetAIStatus(true, '⚠️', 'IA no disponible — completa manualmente');
   }
 }
 
