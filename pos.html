@@ -709,21 +709,25 @@ button,a{touch-action:manipulation}
 .tbn-icon:active{opacity:.6;transform:scale(.88)}
 .tbn-icon.tbn-logout:hover{color:#E85D5D;background:rgba(232,93,93,.12)}
 .tbn-sep{display:none}
+/* Tablet (≥641px): etiquetas visibles — igual que el resto de módulos */
+@media(min-width:641px){
+  .tbn-label{display:block}
+  .tbn-icon{padding:5px 9px;gap:2px}
+  .tbn-icon svg{width:15px;height:15px}
+  .tbn-sep{display:block;width:1px;height:20px;background:rgba(255,255,255,.2);align-self:center;flex-shrink:0;margin:0 4px}
+}
+/* Desktop (≥1025px): 3 zonas — [Caja] [nav centrado] [botones acción] */
 @media(min-width:1025px){
-  /* ── Topbar: 3 zonas — [Caja] [nav centrado] [botones acción] ── */
   .topbar{background:var(--charcoal);justify-content:space-between}
   .topbar-left{flex:1;display:flex;align-items:center}
   .topbar-right{flex:1;justify-content:flex-end}
-  /* Nav centrado absolutamente dentro del topbar */
   .topbar-nav-mobile{
     position:absolute;left:50%;top:50%;
     transform:translate(-50%,-50%);
     gap:2px;z-index:5;
   }
-  .tbn-label{display:block}
-  .tbn-icon{padding:5px 9px;gap:2px}
-  .tbn-icon svg{width:15px;height:15px}
-  .tbn-sep{display:block;width:1px;height:20px;background:rgba(255,255,255,.2);align-self:center;flex-shrink:0;margin:0 4px}
+  .tbn-icon{padding:6px 11px}
+  .tbn-icon svg{width:16px;height:16px}
 }
 </style>
 </head>
@@ -748,7 +752,6 @@ button,a{touch-action:manipulation}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       <span class="btn-label">Historial</span>
     </button>
-    <a href="stats.html" class="btn btn-outline-white" style="display:none" id="btn-stats-pos">📊</a>
     <!-- Nav de módulos — solo mobile; reemplaza "← Inventario" -->
     <nav class="topbar-nav-mobile" aria-label="Módulos">
       <a href="admin.html" class="tbn-icon" title="Inventario">
@@ -2465,10 +2468,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadHistory();
   loadApartados();
   showAllProducts();
-  // Stats solo en desktop
-  if (window.innerWidth > 1024) {
-    document.getElementById('btn-stats-pos').style.display = '';
-  }
 
   // Inicializar pestañas en teléfonos
   if (isTabMode()) switchPosTab('catalog');
