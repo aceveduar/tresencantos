@@ -2935,16 +2935,29 @@ async function handleCapturePhoto(input) {
   const file = input.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = async e => {
-    captureImageDataUrl = e.target.result;
-    const img = document.getElementById('cap-preview-img');
-    img.src = captureImageDataUrl;
-    img.style.display = 'block';
-    document.getElementById('cap-photo-ph').style.display = 'none';
-    document.getElementById('cap-retake-btn').style.display = 'block';
-    document.getElementById('cap-photo-area').classList.add('has-photo');
-    updateCapSaveBtn();
-    await runCaptureAI();
+  reader.onload = e => {
+    const raw = new Image();
+    raw.onload = async () => {
+      // Comprimir igual que el formulario: max 900px, JPEG 0.82
+      const canvas = document.createElement('canvas');
+      const MAX = 900;
+      let w = raw.width, h = raw.height;
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(raw, 0, 0, w, h);
+      captureImageDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+
+      const img = document.getElementById('cap-preview-img');
+      img.src = captureImageDataUrl;
+      img.style.display = 'block';
+      document.getElementById('cap-photo-ph').style.display = 'none';
+      document.getElementById('cap-retake-btn').style.display = 'block';
+      document.getElementById('cap-photo-area').classList.add('has-photo');
+      updateCapSaveBtn();
+      await runCaptureAI();
+    };
+    raw.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
