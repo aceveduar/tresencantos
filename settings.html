@@ -435,11 +435,15 @@ const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd
 const SESSION_KEY          = 'te_admin_session';
 const CAT_PALETTE          = ['#C9A462','#60a5fa','#f472b6','#34d399','#a78bfa','#fb923c','#fbbf24','#a3e635','#2dd4bf','#f87171'];
 
-/* ── AUTH ── */
+/* ── AUTH + ROL ── */
 (function(){
   try {
     const s = JSON.parse(localStorage.getItem(SESSION_KEY));
-    if (!s?.access_token || s.expires_at <= Date.now()/1000 + 60) window.location.href = 'admin.html';
+    if (!s?.access_token || s.expires_at <= Date.now()/1000 + 60) return window.location.href = 'admin.html';
+    const role = s?.user?.user_metadata?.role ||
+      (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.user_metadata?.role; } catch{} })() ||
+      'operador';
+    if (role === 'operador') window.location.href = 'admin.html';
   } catch { window.location.href = 'admin.html'; }
 })();
 

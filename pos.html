@@ -1099,10 +1099,13 @@ const SUPABASE_URL      = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjYyMjYsImV4cCI6MjA5NDEwMjIyNn0.irCFwOR5HL_ZOVjFGVw9LqmzYicDZTNEmxcknu_j6cI';
 const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUyNjIyNiwiZXhwIjoyMDk0MTAyMjI2fQ.B9nZ1KENDQsUtn9PFwiMTrXuMZuWWIphGnH8XPfeJjQ';
 const SESSION_KEY = 'te_admin_session';
-const CAN_CANCEL_SALE = (() => {
-  try { return JSON.parse(localStorage.getItem(SESSION_KEY))?.user?.user_metadata?.role === 'superadmin'; }
-  catch { return false; }
+const _posSession = (() => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; } })();
+const _posRole = (() => {
+  const r = _posSession?.user?.user_metadata?.role;
+  if (r) return r;
+  try { return JSON.parse(atob(_posSession?.access_token?.split('.')[1]))?.user_metadata?.role || 'operador'; } catch { return 'operador'; }
 })();
+const CAN_CANCEL_SALE = _posRole === 'superadmin';
 
 /* ── AUTH CHECK ── */
 function getSession() {
@@ -2477,6 +2480,12 @@ function initDivider() {
 
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
+  // Ocultar nav hacia módulos restringidos para operador
+  if (_posRole === 'operador') {
+    ['stats.html','activity.html','settings.html'].forEach(href => {
+      document.querySelectorAll(`a.tbn-icon[href="${href}"]`).forEach(a => a.style.display = 'none');
+    });
+  }
   // Registrar inicio de turno (se resetea cada día)
   const hoyKey = new Date().toISOString().split('T')[0];
   if (localStorage.getItem('te_shift_date') !== hoyKey) {

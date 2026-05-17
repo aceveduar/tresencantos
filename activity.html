@@ -215,11 +215,15 @@ const SUPABASE_URL         = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
 const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUyNjIyNiwiZXhwIjoyMDk0MTAyMjI2fQ.B9nZ1KENDQsUtn9PFwiMTrXuMZuWWIphGnH8XPfeJjQ';
 const SESSION_KEY          = 'te_admin_session';
 
-/* ── AUTH ── */
+/* ── AUTH + ROL ── */
 (function(){
   try {
     const s = JSON.parse(localStorage.getItem(SESSION_KEY));
-    if (!s?.access_token || s.expires_at <= Date.now()/1000 + 60) window.location.href = 'admin.html';
+    if (!s?.access_token || s.expires_at <= Date.now()/1000 + 60) return window.location.href = 'admin.html';
+    const role = s?.user?.user_metadata?.role ||
+      (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.user_metadata?.role; } catch{} })() ||
+      'operador';
+    if (role === 'operador') window.location.href = 'admin.html';
   } catch { window.location.href = 'admin.html'; }
 })();
 

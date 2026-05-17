@@ -458,22 +458,21 @@ async function doLogout() {
 
 /* ── APP ── */
 function _applyRoleUI() {
-  // Chip de rol junto al email en topbar
-  const el = document.getElementById('session-user');
-  if (el) {
-    const labels = { operador: 'Operador', duena: 'Propietaria' };
-    const label = labels[ROLE];
-    if (label) el.insertAdjacentHTML('afterend', `<span class="role-chip">${label}</span>`);
-  }
   // Sección JSON (importar/exportar catálogo) — solo superadmin
   if (!can.importJSON) {
     document.getElementById('tools-json-section')?.style.setProperty('display', 'none');
+  }
+  // Operador: ocultar nav hacia módulos restringidos
+  if (ROLE === 'operador') {
+    ['stats.html','activity.html','settings.html'].forEach(href => {
+      document.querySelectorAll(`a.tbn-icon[href="${href}"]`).forEach(a => a.style.setProperty('display','none'));
+    });
   }
   // Enlace a settings — solo superadmin
   if (!can.manageSettings) {
     document.querySelectorAll('a[href="settings.html"]').forEach(a => a.style.setProperty('display', 'none'));
   }
-  // Botones de agregar producto — solo si puede editar
+  // Botones de agregar producto — solo si puede
   if (!can.addProduct) {
     document.querySelectorAll('[onclick="openForm()"]').forEach(b => b.style.setProperty('display', 'none'));
     document.querySelector('.fab-add')?.style.setProperty('display', 'none');
@@ -482,7 +481,7 @@ function _applyRoleUI() {
   if (!can.bulkDelete) {
     document.querySelector('.bulk-bar .btn-red')?.style.setProperty('display', 'none');
   }
-  // Checkbox de publicar en formulario — solo superadmin puede publicar
+  // Checkbox de publicar — solo superadmin
   if (!can.publishProduct) {
     const pubRow = document.getElementById('f-published')?.closest('label') || document.getElementById('f-published')?.parentElement;
     if (pubRow) {
