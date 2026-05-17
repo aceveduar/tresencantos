@@ -2599,10 +2599,18 @@ function openPosScanner() {
 
   if (_posScanner) { _posScanner.clear().catch(() => {}); _posScanner = null; }
 
-  _posScanner = new Html5Qrcode('pos-reader');
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const barcodeFormats = [
+    Html5QrcodeSupportedFormats.EAN_13,
+    Html5QrcodeSupportedFormats.EAN_8,
+    Html5QrcodeSupportedFormats.CODE_128,
+    Html5QrcodeSupportedFormats.UPC_A,
+    Html5QrcodeSupportedFormats.UPC_E,
+    Html5QrcodeSupportedFormats.QR_CODE,
+  ];
+  _posScanner = new Html5Qrcode('pos-reader', { formatsToSupport: barcodeFormats, verbose: false });
   const scanConfig = isIOS
-    ? { fps: 15, qrbox: { width: 260, height: 160 }, videoConstraints: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } }
+    ? { fps: 15, videoConstraints: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } }
     : { fps: 10, qrbox: { width: 260, height: 100 } };
   _posScanner.start(
     { facingMode: 'environment' },

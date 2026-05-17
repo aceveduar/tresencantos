@@ -2459,10 +2459,20 @@ function _launchScanner() {
 
   if (_scanInst) { _scanInst.clear().catch(() => {}); _scanInst = null; }
 
-  _scanInst = new Html5Qrcode('scanner-reader');
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  // Limit formats to retail barcodes only — ZXing detects faster when not scanning all formats
+  const barcodeFormats = [
+    Html5QrcodeSupportedFormats.EAN_13,
+    Html5QrcodeSupportedFormats.EAN_8,
+    Html5QrcodeSupportedFormats.CODE_128,
+    Html5QrcodeSupportedFormats.UPC_A,
+    Html5QrcodeSupportedFormats.UPC_E,
+    Html5QrcodeSupportedFormats.QR_CODE,
+  ];
+  _scanInst = new Html5Qrcode('scanner-reader', { formatsToSupport: barcodeFormats, verbose: false });
   const scanConfig = isIOS
-    ? { fps: 15, qrbox: { width: 260, height: 160 }, videoConstraints: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } }
+    // iOS: no qrbox so ZXing processes the full frame — critical for iOS detection
+    ? { fps: 15, videoConstraints: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } }
     : { fps: 10, qrbox: { width: 260, height: 100 } };
   _scanInst.start(
     { facingMode: 'environment' },
