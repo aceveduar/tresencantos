@@ -2946,8 +2946,12 @@ function resetCaptureForm(keepCount) {
   const ico  = document.getElementById('cap-ai-icon');
   if (spin) { spin.style.display = 'block'; }
   if (ico)  { ico.style.display  = 'none'; }
-  document.getElementById('cap-name').value = '';
-  document.getElementById('cap-price').value = '';
+  const nameEl  = document.getElementById('cap-name');
+  const priceEl = document.getElementById('cap-price');
+  nameEl.value  = '';
+  priceEl.value = '';
+  nameEl.classList.remove('cap-err');
+  priceEl.classList.remove('cap-err');
   document.getElementById('cap-category').value = '';
   const saveBtn = document.getElementById('cap-save-btn');
   if (saveBtn) saveBtn.textContent = 'Guardar y siguiente →';
@@ -3073,7 +3077,14 @@ async function runCaptureAI() {
 function updateCapSaveBtn() {
   const name  = document.getElementById('cap-name')?.value.trim();
   const price = parseFloat(document.getElementById('cap-price')?.value);
-  document.getElementById('cap-save-btn').disabled = !name || !price || price <= 0;
+  const ok    = !!(name && price > 0);
+  document.getElementById('cap-save-btn').disabled = !ok;
+  const hint = document.getElementById('cap-require-hint');
+  if (!hint) return;
+  if (ok) { hint.textContent = ''; return; }
+  if (!name && !(price > 0)) hint.textContent = '⚠️ Nombre y precio son obligatorios';
+  else if (!name)             hint.textContent = '⚠️ Falta el nombre del producto';
+  else                        hint.textContent = '⚠️ Falta el precio de venta';
 }
 
 async function saveCaptureProduct() {
