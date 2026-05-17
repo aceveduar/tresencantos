@@ -737,6 +737,10 @@ function editCategoryInline(e, id) {
     if (subs.length) {
       const og = document.createElement('optgroup');
       og.label = r.label;
+      const rootOpt = document.createElement('option');
+      rootOpt.value = r.code; rootOpt.textContent = `${r.label} — General`;
+      if (r.code === p.category) rootOpt.selected = true;
+      og.appendChild(rootOpt);
       subs.forEach(s => {
         const opt = document.createElement('option');
         opt.value = s.code; opt.textContent = s.label;
