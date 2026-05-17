@@ -717,6 +717,10 @@ button,a{touch-action:manipulation}
       🛒
       <span id="cart-topbar-badge" class="cart-badge" style="display:none"></span>
     </button>
+    <button class="history-oc-btn" onclick="openCorte()" id="btn-corte-pos" title="Corte de caja">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      <span class="btn-label">Corte</span>
+    </button>
     <button class="history-oc-btn" onclick="openHistory()" id="btn-history-pos" title="Historial">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       <span class="btn-label">Historial</span>
@@ -870,6 +874,10 @@ button,a{touch-action:manipulation}
             <button onclick="setAnticipo(.75)">75%</button>
             <button onclick="setAnticipo(1)" class="exact-btn">Exacto</button>
           </div>
+          <div class="cash-field" style="margin-top:6px">
+            <label>📅 Fecha límite de pago</label>
+            <input type="date" id="pos-due-date" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%;background:#fff">
+          </div>
         </div>
       </div>
 
@@ -977,6 +985,22 @@ button,a{touch-action:manipulation}
       <button class="btn-cancel" onclick="closeLiqModal()">Cancelar</button>
       <button class="btn-confirm" id="liq-confirm-btn" onclick="confirmLiquidar()">✓ Liquidar</button>
     </div>
+  </div>
+</div>
+
+<!-- CORTE DE CAJA MODAL -->
+<div class="history-backdrop" id="corte-backdrop" onclick="closeCorte()" style="display:none"></div>
+<div class="history-offcanvas" id="corte-offcanvas" style="max-width:420px">
+  <div class="history-oc-head">
+    <span class="history-oc-title">🧾 Corte de caja</span>
+    <button class="history-oc-close" onclick="closeCorte()">✕</button>
+  </div>
+  <div style="padding:16px;overflow-y:auto;flex:1">
+    <div id="corte-periodo" style="font-size:.72rem;color:var(--muted);margin-bottom:14px;font-weight:600;text-transform:uppercase;letter-spacing:.04em"></div>
+    <div id="corte-content" style="display:flex;flex-direction:column;gap:10px"></div>
+    <button id="corte-wa-btn" onclick="compartirCorteWA()" style="margin-top:18px;width:100%;padding:12px;border-radius:50px;border:none;background:#25D366;color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit">
+      📲 Compartir por WhatsApp
+    </button>
   </div>
 </div>
 
@@ -1480,6 +1504,106 @@ function setCash(amount) {
   event?.currentTarget?.classList.add('active-cash');
 }
 
+/* ── CORTE DE CAJA ── */
+let _corteData = null;
+
+async function openCorte() {
+  document.getElementById('corte-offcanvas').classList.add('open');
+  document.getElementById('corte-backdrop').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  await loadCorte();
+}
+
+function closeCorte() {
+  document.getElementById('corte-offcanvas').classList.remove('open');
+  document.getElementById('corte-backdrop').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+async function loadCorte() {
+  const content = document.getElementById('corte-content');
+  const periodoEl = document.getElementById('corte-periodo');
+  content.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Calculando...</div>';
+
+  const TZ = 'America/Mexico_City';
+  const ahoraMX   = new Intl.DateTimeFormat('es-MX', { timeZone:TZ, dateStyle:'full', timeStyle:'short' }).format(new Date());
+  const hoyInicio = new Date();
+  hoyInicio.setHours(0,0,0,0);
+  // Shift start: guardado en localStorage cuando el usuario abre el POS, o inicio del día
+  const shiftStart = localStorage.getItem('te_shift_start') || hoyInicio.toISOString();
+
+  periodoEl.textContent = `Turno desde ${new Intl.DateTimeFormat('es-MX',{timeZone:TZ,hour:'2-digit',minute:'2-digit'}).format(new Date(shiftStart))} · ${ahoraMX}`;
+
+  const result = await api(`sales?created_at=gte.${shiftStart}&select=id,total,paid_amount,payment_method,type,discount,items,abonos,created_at,customer`);
+  if (!result.ok) { content.innerHTML = '<div style="color:var(--red);text-align:center">Error al cargar datos</div>'; return; }
+
+  const sales = result.data || [];
+  let efectivo = 0, transferencia = 0, numVentas = 0, numApartados = 0, anticipos = 0;
+
+  sales.forEach(s => {
+    const abonos = Array.isArray(s.abonos) ? s.abonos : [];
+    if (abonos.length) {
+      abonos.forEach(a => {
+        if (new Date(a.date) >= new Date(shiftStart)) {
+          const amt = parseFloat(a.amount) || 0;
+          if (a.method === 'transferencia') transferencia += amt; else efectivo += amt;
+          if (s.type === 'apartado') { numApartados++; anticipos += amt; }
+        }
+      });
+    } else if (s.type !== 'apartado') {
+      const amt = parseFloat(s.paid_amount || s.total) || 0;
+      if (s.payment_method === 'transferencia') transferencia += amt; else efectivo += amt;
+      numVentas++;
+    } else {
+      numApartados++;
+      anticipos += parseFloat(s.paid_amount) || 0;
+    }
+  });
+
+  const total = efectivo + transferencia;
+  const fmt = n => `$${n.toLocaleString('es-MX')}`;
+  _corteData = { efectivo, transferencia, total, numVentas, numApartados, anticipos, shiftStart, ahoraMX };
+
+  content.innerHTML = `
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:.8rem;color:var(--muted);font-weight:600">Ventas completadas</span>
+        <span style="font-weight:700;font-size:.9rem">${numVentas}</span>
+      </div>
+      <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:.8rem;color:var(--muted);font-weight:600">Apartados / anticipos</span>
+        <span style="font-weight:700;font-size:.9rem">${numApartados}</span>
+      </div>
+      <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:.8rem;color:var(--muted);font-weight:600">💵 Efectivo</span>
+        <span style="font-weight:700;font-size:.9rem;color:var(--charcoal)">${fmt(efectivo)}</span>
+      </div>
+      <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:.8rem;color:var(--muted);font-weight:600">📱 Transferencia</span>
+        <span style="font-weight:700;font-size:.9rem;color:var(--charcoal)">${fmt(transferencia)}</span>
+      </div>
+      <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;background:#F7F2EB">
+        <span style="font-size:.88rem;font-weight:700">Total del turno</span>
+        <span style="font-size:1.15rem;font-weight:800;color:var(--green)">${fmt(total)}</span>
+      </div>
+    </div>
+    ${anticipos > 0 ? `<div style="background:#FFF8EE;border:1px solid var(--gold);border-radius:10px;padding:10px 14px;font-size:.78rem;color:var(--gold-dark)">⚠️ Incluye <strong>${fmt(anticipos)}</strong> en anticipos de apartados — pendiente completar cobro</div>` : ''}
+    <div style="text-align:center;font-size:.72rem;color:var(--muted);padding:4px 0">Generado ${ahoraMX}</div>
+  `;
+}
+
+function compartirCorteWA() {
+  if (!_corteData) return;
+  const { efectivo, transferencia, total, numVentas, numApartados, anticipos, ahoraMX } = _corteData;
+  const fmt = n => `$${n.toLocaleString('es-MX')}`;
+  let msg = `🧾 *Corte de caja — Tres Encantos*\n${ahoraMX}\n\n`;
+  msg += `Ventas: ${numVentas}\n`;
+  if (numApartados) msg += `Apartados: ${numApartados}\n`;
+  msg += `\n💵 Efectivo: ${fmt(efectivo)}\n📱 Transferencia: ${fmt(transferencia)}\n*Total: ${fmt(total)}*`;
+  if (anticipos > 0) msg += `\n\n⚠️ Anticipos incluidos: ${fmt(anticipos)}`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
 function openHistory() {
   document.getElementById('history-offcanvas').classList.add('open');
   document.getElementById('history-backdrop').classList.add('open');
@@ -1686,11 +1810,17 @@ function toggleApartadoMode() {
     if (cashEl) cashEl.value = '';
     const changeEl = document.getElementById('pos-change-input');
     if (changeEl) changeEl.value = '';
+    // Fecha límite por defecto: 30 días
+    const dueEl = document.getElementById('pos-due-date');
+    if (dueEl && !dueEl.value) {
+      const d = new Date(); d.setDate(d.getDate() + 30);
+      dueEl.value = d.toISOString().split('T')[0];
+    }
     // Auto-focus en el primer campo requerido
     setTimeout(() => document.getElementById('pos-customer')?.focus(), 80);
   } else {
     // Al desactivar apartado: limpiar campos y hint
-    ['pos-customer','pos-phone','pos-anticipo','pos-pendiente'].forEach(id => {
+    ['pos-customer','pos-phone','pos-anticipo','pos-pendiente','pos-due-date'].forEach(id => {
       const el = document.getElementById(id); if (el) el.value = '';
     });
     document.querySelectorAll('.anticipo-quick button').forEach(b => b.classList.remove('active-cash'));
@@ -1765,7 +1895,7 @@ function toggleApartadosPanel() {
 }
 
 async function loadApartados() {
-  const result = await api(`sales?type=eq.apartado&select=id,total,paid_amount,customer,created_at,items,abonos&order=created_at.desc&limit=20`);
+  const result = await api(`sales?type=eq.apartado&select=id,total,paid_amount,customer,created_at,due_date,items,abonos&order=created_at.desc&limit=20`);
   const list      = document.getElementById('apartados-list');
   const aptView   = document.getElementById('apt-view-list');
   const countEl   = document.getElementById('apartados-count');
@@ -1808,6 +1938,17 @@ async function loadApartados() {
     const telefonoHTML = telNum
       ? `· <a href="tel:${telNum.replace(/\D/g,'')}" style="color:#9B8B78;text-decoration:none;font-weight:400;font-size:.76rem">📱 ${telNum}</a>`
       : '';
+    // Fecha de vencimiento con color según urgencia
+    let dueDateHTML = '';
+    if (s.due_date) {
+      const hoy      = new Date(); hoy.setHours(0,0,0,0);
+      const due      = new Date(s.due_date + 'T00:00:00');
+      const diffDays = Math.round((due - hoy) / 86400000);
+      const dueLabel = due.toLocaleDateString('es-MX', { day:'numeric', month:'short' });
+      const dueColor = diffDays < 0 ? '#E85D5D' : diffDays <= 7 ? '#D97706' : '#2D6A4F';
+      const dueText  = diffDays < 0 ? `Venció hace ${Math.abs(diffDays)} día${Math.abs(diffDays)>1?'s':''}` : diffDays === 0 ? 'Vence hoy' : `Vence ${dueLabel}`;
+      dueDateHTML = `<div style="font-size:.72rem;font-weight:700;color:${dueColor};margin-top:2px">📅 ${dueText}</div>`;
+    }
     const abonos   = Array.isArray(s.abonos) ? s.abonos : [];
     const abonosHTML = abonos.length ? `
 <div class="apt-abonos">
@@ -1822,6 +1963,7 @@ async function loadApartados() {
 <div class="apartado-item">
   <div class="apt-customer">👤 ${nombre} <span style="font-weight:400;font-size:.76rem">${telefonoHTML}</span></div>
   <div class="apt-meta">${t} · ${summary.substring(0,45)}${summary.length>45?'…':''}</div>
+  ${dueDateHTML}
   ${abonosHTML}
   <div class="apt-progress-section">
     <div class="apt-progress-track">
@@ -2017,6 +2159,8 @@ async function cobrar() {
 
   const items = cart.map(({ product: p, qty }) => ({ id:p.id, name:p.name, price:p.price, qty, subtotal:p.price*qty }));
 
+  const dueDateEl = document.getElementById('pos-due-date');
+  const sellerEmail = getSession()?.user?.email || null;
   const saleData = {
     total, items,
     discount:        disc || null,
@@ -2025,6 +2169,8 @@ async function cobrar() {
     type:            isApartado ? 'apartado' : 'venta',
     paid_amount:     paidAmount,
     customer:        customer || null,
+    due_date:        isApartado && dueDateEl?.value ? dueDateEl.value : null,
+    seller_email:    sellerEmail,
     abonos:          isApartado && paidAmount > 0
                        ? [{ amount: paidAmount, method: payMethod, date: new Date().toISOString() }]
                        : null
@@ -2265,6 +2411,12 @@ function initDivider() {
 
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
+  // Registrar inicio de turno (se resetea cada día)
+  const hoyKey = new Date().toISOString().split('T')[0];
+  if (localStorage.getItem('te_shift_date') !== hoyKey) {
+    localStorage.setItem('te_shift_start', new Date().toISOString());
+    localStorage.setItem('te_shift_date', hoyKey);
+  }
   initDivider();
   await Promise.all([loadProducts(), loadPosCategories()]);
   renderCategoryChips();

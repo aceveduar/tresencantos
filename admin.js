@@ -18,12 +18,13 @@ function _parseRole() {
 }
 const ROLE = _parseRole();
 const can = {
-  deleteProduct:  ROLE === 'superadmin',
-  bulkDelete:     ROLE === 'superadmin',
-  importJSON:     ROLE === 'superadmin',
-  manageSettings: ROLE === 'superadmin',
-  editProduct:    ROLE !== 'duena',
-  addProduct:     ROLE !== 'duena',
+  deleteProduct:   ROLE === 'superadmin',
+  bulkDelete:      ROLE === 'superadmin',
+  importJSON:      ROLE === 'superadmin',
+  manageSettings:  ROLE === 'superadmin',
+  publishProduct:  ROLE === 'superadmin',
+  editProduct:     ROLE !== 'duena',
+  addProduct:      ROLE !== 'duena',
 };
 
 const SUPABASE_URL = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
@@ -467,6 +468,15 @@ function _applyRoleUI() {
   if (!can.bulkDelete) {
     document.querySelector('.bulk-bar .btn-red')?.style.setProperty('display', 'none');
   }
+  // Checkbox de publicar en formulario — solo superadmin puede publicar
+  if (!can.publishProduct) {
+    const pubRow = document.getElementById('f-published')?.closest('label') || document.getElementById('f-published')?.parentElement;
+    if (pubRow) {
+      pubRow.title = 'Solo el administrador puede publicar en el sitio web';
+      pubRow.style.opacity = '0.45';
+      pubRow.style.pointerEvents = 'none';
+    }
+  }
 }
 
 async function showApp() {
@@ -566,6 +576,33 @@ async function renderStats() {
       <div class="lbl">Ingresos hoy</div>
     </div>
   `;
+
+  // Alerta de productos sin precio — solo visible para superadmin
+  if (can.publishProduct) {
+    const sinPrecio = products.filter(p => !p.price || p.price === 0);
+    const alertEl   = document.getElementById('no-price-alert');
+    const alertTxt  = document.getElementById('no-price-alert-text');
+    if (alertEl && alertTxt) {
+      if (sinPrecio.length > 0) {
+        alertTxt.textContent = `${sinPrecio.length} producto${sinPrecio.length > 1 ? 's' : ''} sin precio — pendiente de revisión antes de publicar`;
+        alertEl.style.display = 'flex';
+      } else {
+        alertEl.style.display = 'none';
+      }
+    }
+  }
+}
+
+function filterNoPriceProducts() {
+  // Resetea filtros y ordena por precio ascendente → productos con $0 quedan arriba
+  const catFilter = document.getElementById('cat-filter');
+  const searchInput = document.getElementById('search-input');
+  const sortSel = document.getElementById('sort-select');
+  if (catFilter) catFilter.value = 'all';
+  if (searchInput) searchInput.value = '';
+  if (sortSel) { sortSel.value = 'price-asc'; currentSort = 'price-asc'; }
+  renderTable();
+  document.getElementById('no-price-alert')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 // Refrescar ingresos/ventas del día cuando el usuario vuelve a esta pestaña
@@ -757,6 +794,7 @@ function publishedToggle(p) {
 }
 
 async function togglePublished(id) {
+  if (!can.publishProduct) { toast('Solo el administrador puede publicar o ocultar productos', 'error'); return; }
   const p = products.find(x => x.id === id);
   if (!p) return;
   const newVal = p.isPublished === false ? true : false;
@@ -1865,6 +1903,8 @@ async function saveProduct() {
   const idVal = document.getElementById('f-id').value;
   const badge = document.getElementById('f-badge').value.trim();
   const origPrice = parseFloat(document.getElementById('f-original-price').value) || null;
+  // Operador: productos nuevos siempre inician como no publicados (requieren revisión de precio)
+  const publishedVal = !idVal && !can.publishProduct ? false : document.getElementById('f-published').checked;
   const data = {
     name,
     category: document.getElementById('f-category').value,
@@ -1880,7 +1920,7 @@ async function saveProduct() {
     barcode: document.getElementById('f-barcode').value.trim() || null,
     stock: parseInt(document.getElementById('f-stock').value) || 0,
     cost: parseFloat(document.getElementById('f-cost').value) || null,
-    isPublished: document.getElementById('f-published').checked
+    isPublished: publishedVal
   };
 
   const dbPayload = {

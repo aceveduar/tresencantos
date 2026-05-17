@@ -1028,6 +1028,11 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   <main>
     <!-- STATS -->
     <div class="stats" id="stats"></div>
+    <div id="no-price-alert" style="display:none;background:#FFF8EE;border:1.5px solid var(--gold);border-radius:10px;padding:10px 16px;margin-bottom:14px;display:none;align-items:center;gap:10px;font-size:.82rem;cursor:pointer" onclick="filterNoPriceProducts()">
+      <span style="font-size:1.1rem">⚠️</span>
+      <span id="no-price-alert-text" style="flex:1;color:var(--charcoal);font-weight:500"></span>
+      <span style="color:var(--gold-dark);font-weight:700;font-size:.78rem;white-space:nowrap">Ver →</span>
+    </div>
 
     <!-- TOOLBAR -->
     <div class="toolbar">
