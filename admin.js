@@ -511,14 +511,7 @@ function _getUserDisplay() {
   try {
     const s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
     const meta = s?.user?.user_metadata || {};
-    const fullName = meta.full_name || meta.name || '';
-    if (fullName) {
-      const first = fullName.split(' ')[0];
-      return { name: first, initial: first[0].toUpperCase() };
-    }
-    const email = s?.user?.email || s?.email || '';
-    const local = email.split('@')[0];
-    const name = local.charAt(0).toUpperCase() + local.slice(1);
+    const name = meta.full_name || meta.name || s?.user?.email?.split('@')[0] || 'Usuario';
     return { name, initial: name[0].toUpperCase() };
   } catch { return { name: '', initial: '?' }; }
 }

@@ -32,6 +32,9 @@ button,select{font-family:inherit}
 .topbar-left img{height:34px;border-radius:5px}
 .topbar-title{font-family:'Playfair Display',serif;font-size:1rem;color:rgba(255,255,255,.9)}
 .topbar-right{display:flex;gap:10px;align-items:center}
+.user-display{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:rgba(201,164,98,.25);color:var(--gold);font-size:.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1.5px solid rgba(201,164,98,.45);user-select:none}
+.user-name-label{font-size:.75rem;color:rgba(255,255,255,.65);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .btn-back{
   display:inline-flex;align-items:center;gap:6px;
   padding:7px 16px;border-radius:50px;font-size:.8rem;font-weight:600;
@@ -153,6 +156,8 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
     text-align:center;font-style:italic;
     font-size:1rem;padding:0 8px;white-space:nowrap;
   }
+  .user-name-label{display:none}
+  .user-avatar{width:24px;height:24px;font-size:.68rem}
   /* Ocultar botón "← Inventario" — el nav de iconos lo reemplaza */
   .btn-back{display:none}
 
@@ -240,6 +245,10 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
     <span class="topbar-title">Reportes</span>
   </div>
   <div class="topbar-right">
+    <div class="user-display" id="user-display">
+      <span class="user-avatar" id="user-avatar">?</span>
+      <span class="user-name-label" id="user-name-label"></span>
+    </div>
     <nav class="topbar-nav-mobile" aria-label="Módulos">
       <a href="pos.html" class="tbn-icon" title="Caja">
         <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
@@ -1102,6 +1111,15 @@ function sendDailySummaryWA() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const _s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
+    const _meta = _s?.user?.user_metadata || {};
+    const _name = _meta.full_name || _meta.name || _s?.user?.email?.split('@')[0] || '';
+    const _av = document.getElementById('user-avatar');
+    const _nl = document.getElementById('user-name-label');
+    if (_av) _av.textContent = _name ? _name[0].toUpperCase() : '?';
+    if (_nl) _nl.textContent = _name;
+  } catch {}
   await Promise.all([loadProducts(), loadSales(), loadPreviousSales(), loadApartadosPendientes(), loadClientas()]);
   renderAll();
 });

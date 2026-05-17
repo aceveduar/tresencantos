@@ -36,6 +36,9 @@ button,a{touch-action:manipulation}
 .topbar-left img{height:30px;border-radius:5px}
 .topbar-title{font-family:'Playfair Display',serif;font-size:1rem;color:#fff}
 .topbar-right{display:flex;gap:8px;align-items:center}
+.user-display{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:4px}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:rgba(201,164,98,.25);color:var(--gold);font-size:.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1.5px solid rgba(201,164,98,.45);user-select:none}
+.user-name-label{font-size:.75rem;color:rgba(255,255,255,.65);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .today-stats{font-size:.75rem;color:rgba(255,255,255,.65);background:rgba(255,255,255,.1);padding:4px 12px;border-radius:50px;white-space:nowrap}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:50px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;transition:.15s;white-space:nowrap}
 .btn-outline-white{background:transparent;border:1.5px solid rgba(255,255,255,.35);color:#fff}
@@ -469,6 +472,8 @@ button,a{touch-action:manipulation}
     font-size:1rem;padding:0 8px;white-space:nowrap;
   }
   .topbar-right{gap:2px}
+  .user-name-label{display:none}
+  .user-avatar{width:24px;height:24px;font-size:.68rem}
   .btn-label{display:none}
   .title-long{display:none}
   .title-short{display:inline!important}
@@ -815,6 +820,10 @@ button,a{touch-action:manipulation}
         <span class="tbn-label">Salir</span>
       </button>
     </nav>
+    <div class="user-display" id="user-display">
+      <span class="user-avatar" id="user-avatar">?</span>
+      <span class="user-name-label" id="user-name-label"></span>
+    </div>
   </div>
 </div>
 
@@ -2751,6 +2760,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     localStorage.setItem('te_shift_start', new Date().toISOString());
     localStorage.setItem('te_shift_date', hoyKey);
   }
+  // Nombre del usuario en topbar
+  try {
+    const _s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
+    const _meta = _s?.user?.user_metadata || {};
+    const _name = _meta.full_name || _meta.name || _s?.user?.email?.split('@')[0] || '';
+    const _initial = _name ? _name[0].toUpperCase() : '?';
+    const _av = document.getElementById('user-avatar');
+    const _nl = document.getElementById('user-name-label');
+    if (_av) _av.textContent = _initial;
+    if (_nl) _nl.textContent = _name;
+  } catch {}
   initDivider();
   await Promise.all([loadProducts(), loadPosCategories(), loadSalesStats()]);
   renderCategoryChips();
