@@ -210,7 +210,11 @@ td,th{overflow:hidden}
   position:absolute;top:10px;left:10px;width:18px;height:18px;
   accent-color:var(--gold);cursor:pointer;
   filter:drop-shadow(0 1px 3px rgba(0,0,0,.4));
+  opacity:0;transition:opacity .18s;
 }
+/* Visible cuando la card está seleccionada o hay modo selección activo */
+.card-selected .ac-check,
+.selection-active .ac-check{opacity:1}
 .ac-badge-pos{position:absolute;top:10px;right:10px}
 .ac-star{
   position:absolute;bottom:8px;right:10px;

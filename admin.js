@@ -659,6 +659,37 @@ document.addEventListener('visibilitychange', () => {
 /* ── TABLE ── */
 const isMobile = () => window.matchMedia('(max-width:1024px)').matches;
 
+/* ── LONG PRESS — modo selección múltiple ── */
+// El usuario toca y sostiene 520ms sin moverse → entra en modo selección
+const _LP_DELAY  = 520;
+const _lpTimers  = {};
+let   _lpFired   = false; // evita que el click posterior abra QV tras un long press
+
+function _lpStart(e, id) {
+  if (e.target.closest('button,input,a,.stock-chip,.cat-label-inline,.drag-handle')) return;
+  _lpFired = false;
+  _lpTimers[id] = setTimeout(() => {
+    delete _lpTimers[id];
+    _lpFired = true;
+    if (navigator.vibrate) navigator.vibrate(30);
+    // Seleccionar esta card y entrar en modo selección
+    const cb = document.querySelector(`[data-id="${id}"] .row-check`);
+    if (cb) cb.checked = true;
+    toggleRowSelect(id, true);
+  }, _LP_DELAY);
+}
+
+function _lpEnd(id) {
+  clearTimeout(_lpTimers[id]);
+  delete _lpTimers[id];
+}
+
+function _lpMove(id) {
+  // Movimiento = no era intención de long press
+  clearTimeout(_lpTimers[id]);
+  delete _lpTimers[id];
+}
+
 let currentAdminView = localStorage.getItem('te_admin_view') || 'list';
 
 function setAdminView(view) {
@@ -686,17 +717,20 @@ function adminCard(p) {
   return `
 <div class="admin-card${sel?' card-selected':''}${oos?' card-oos':''}"
      data-id="${p.id}"
-     ondblclick="openForm(${p.id})"
-     ondragstart="void 0">
-  <div class="ac-img-wrap" onclick="event.stopPropagation();openQV(${p.id})" style="cursor:pointer">
+     onclick="if(!_lpFired&&!event.target.closest('button,input,a,.stock-chip,.cat-label-inline'))openQV(${p.id})"
+     ontouchstart="_lpStart(event,${p.id})"
+     ontouchend="_lpEnd(${p.id})"
+     ontouchmove="_lpMove(${p.id})"
+     ondragstart="void 0"
+     style="cursor:pointer">
+  <div class="ac-img-wrap">
     <img class="ac-img" src="${p.image}" alt="${p.name}"
          onerror="this.onerror=null;this.src='${fallback}'">
     <input type="checkbox" class="ac-check row-check"
-           ${sel?'checked':''} onchange="toggleRowSelect(${p.id},this.checked)"
-           onclick="event.stopPropagation()">
+           ${sel?'checked':''} onchange="toggleRowSelect(${p.id},this.checked)">
     ${badgeHTML}
     <div class="ac-oos-label"></div>
-    <button class="ac-star toggle-featured" onclick="event.stopPropagation();toggleFeatured(${p.id})"
+    <button class="ac-star toggle-featured" onclick="toggleFeatured(${p.id})"
             title="${p.featured?'Quitar destacado':'Destacar'}">
       ${p.featured?'⭐':'☆'}
     </button>
@@ -979,12 +1013,16 @@ function mobileCard(p) {
 <tr class="mpc-row${sel ? ' row-selected' : ''}" data-id="${p.id}">
   <td>
     <div class="mpc${oos ? ' mpc-oos' : ''}">
-      <div class="mpc-top" ontouchstart="handleMpcDoubleTap(event,${p.id})">
+      <div class="mpc-top"
+           onclick="if(!_lpFired&&!event.target.closest('button,input,a,.stock-chip,.cat-label-inline'))openQV(${p.id})"
+           ontouchstart="_lpStart(event,${p.id})"
+           ontouchend="_lpEnd(${p.id})"
+           ontouchmove="_lpMove(${p.id})"
+           style="cursor:pointer">
         <div class="mpc-img-wrap">
           <img class="mpc-img" src="${p.image}" alt="${p.name}"
                onerror="this.onerror=null;this.src='${fallback}'"
-               onclick="event.stopPropagation();openQV(${p.id})"
-               style="cursor:pointer${oos ? ';opacity:.5;filter:grayscale(.4)' : ''}">
+               ${oos ? 'style="opacity:.5;filter:grayscale(.4)"' : ''}>
           <input type="checkbox" class="row-check mpc-check-over"
                  ${sel ? 'checked' : ''} onchange="toggleRowSelect(${p.id}, this.checked)">
           <button class="mpc-star${p.featured ? ' feat-active' : ''}"
@@ -1087,6 +1125,9 @@ function toggleRowSelect(id, checked) {
   else selectedIds.delete(id);
   const row = document.querySelector(`#products-table tr[data-id="${id}"]`);
   if (row) row.classList.toggle('row-selected', checked);
+  // Clase selection-active en el grid de cards — revela los checkboxes
+  document.getElementById('products-card-grid')
+    ?.classList.toggle('selection-active', selectedIds.size > 0);
   updateBulkBar();
   updateSelectAllCheckbox();
 }
@@ -3650,6 +3691,7 @@ function _renderSimilarModal() {
 let _qvCurrentId = null;
 
 function openQV(id) {
+  _lpFired = false; // reset para que el siguiente tap funcione correctamente
   const p = products.find(x => x.id === id);
   if (!p) return;
   _qvCurrentId = id;
