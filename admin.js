@@ -2620,8 +2620,9 @@ function checkNameSimilarity() {
   const signals = [];
   if (priceMatch) signals.push(`mismo precio ($${top.price.toLocaleString('es-MX')})`);
   if (stockMatch) signals.push(`mismo stock (${top.stock})`);
-  const links = scored.map(({p}) =>
-    `<button type="button" class="dup-link" onclick="closeForm();openForm(${p.id})">${p.name} →</button>`
+  window._simIds = scored.map(({p}) => p.id);
+  const links = scored.map(({p}, i) =>
+    `<button type="button" class="dup-link" onclick="openSimilarModal(${i})">${p.name} →</button>`
   ).join('  ');
   const signalText = signals.length
     ? ` <span style="opacity:.75;font-size:.85em">(${signals.join(', ')})</span>` : '';
@@ -3532,3 +3533,45 @@ async function saveCaptureProduct() {
     swipeDown(document.querySelector('.cap-modal'), closeCaptureMode, document.getElementById('cap-overlay'));
   });
 })();
+
+/* ── MODAL COMPARAR SIMILAR ─────────────────────────────────────────── */
+let _simCurrent = 0;
+
+function openSimilarModal(index) {
+  _simCurrent = index;
+  _renderSimilarModal();
+  document.getElementById('sim-overlay').classList.add('open');
+}
+
+function closeSimilarModal() {
+  document.getElementById('sim-overlay').classList.remove('open');
+}
+
+function simGoEdit() {
+  const id = window._simIds?.[_simCurrent];
+  if (!id) return;
+  closeSimilarModal();
+  closeForm();
+  openForm(id);
+}
+
+function _renderSimilarModal() {
+  const id = window._simIds?.[_simCurrent];
+  const p  = products.find(x => x.id === id);
+  if (!p) return;
+
+  document.getElementById('sim-img').src    = p.image || '';
+  document.getElementById('sim-img').alt    = p.name;
+  document.getElementById('sim-cat').textContent   = p.category_label || p.categoryLabel || '';
+  document.getElementById('sim-name').textContent  = p.name;
+  document.getElementById('sim-price').textContent = `$${(p.price||0).toLocaleString('es-MX')} MXN`;
+  document.getElementById('sim-stock').textContent = p.stock ?? '—';
+
+  const nav = document.getElementById('sim-nav');
+  const total = window._simIds?.length || 1;
+  if (total <= 1) { nav.style.display = 'none'; return; }
+  nav.style.display = 'flex';
+  nav.innerHTML = window._simIds.map((_, i) =>
+    `<button class="sim-dot${i === _simCurrent ? ' active' : ''}" onclick="openSimilarModal(${i})"></button>`
+  ).join('');
+}
