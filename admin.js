@@ -1813,31 +1813,59 @@ function suggestCategoryFromName() {
   if (!name || name.length < 4) return;
 
   const rules = [
-    // Natura primero — muy específico
-    [/natura|ekos|chronos|kaiak|mamae|nuxe/,                                  'natura'],
-    // Perfumería Natura
-    [/perfum|colonia|desodoran/,                                               'natura_perfumes'],
-    // Mochilas y derivados
-    [/mochila/,                                                                'mochilas_dama'],
-    [/mochila.*(personaj|niñ|infantil|kawaii|escolar)/,                        'mochilas_personaje'],
-    [/mochila.*(deport|gym|sport)/,                                            'mochilas_deportivas'],
-    [/lonchera/,                                                               'loncheras'],
-    [/cangurera|riñonera|fanny/,                                               'cangureras'],
-    [/lapicera|estuche.*(lapiz|pluma)/,                                        'lapiceras'],
-    // Bolsos
-    [/bolso|bolsa.*(dama|mujer|elegante|cuero|piel)/,                          'bolsos_dama'],
-    [/bolso.*(casual|tela|lona)|tote|shopper/,                                 'bolsos_casual'],
-    [/cosmetiquera|neceser|organizador.*(maquilla|cosmet)/,                    'cosmetiqueras'],
-    // Accesorios cabello
-    [/diadema|dona|liga|pasador|pinza|broche|valerin|cofia|cepillo|cabello/,   'cabello'],
-    // Bisutería
-    [/arete|collar|cadena|pulsera|bisuter|joya|anillo|cristal/,               'bisuteria'],
-    // Moda
-    [/gorra|sombrero|chalina|sombrilla|bufanda/,                               'moda'],
-    // Belleza - uñas
-    [/uña|esmalte|lima|manicure|postiza|poligel|gel uv|brillo de uña/,         'unas'],
-    // Belleza - maquillaje
-    [/maquilla|labial|base|corrector|rubor|sombra.*(ojo)|cejas|pestañ|rimmel/, 'maquillaje'],
+    // ── NATURA subcategorías (específicas primero) ───────────────────────
+    [/perfum|colonia|desodoran|fragancia|eau de|toilette|body splash|deo col/,
+     'natura_perfumes'],
+    [/shampoo|champu|acondicionad|mascarilla.*(cabello|pelo|capilar)|tratamiento.*(capilar|cabello)|ampolla.*(capilar|cabello)|brillo.*cabello/,
+     'natura_cabello'],
+    [/crema.*(facial|cara|rostro)|serum|tonificad|toner|micelar|limpiador.*(facial|cara)|antiedad|protector.*solar|antisolar|\bspf\b|bb cream|cc cream|prebase/,
+     'natura_facial'],
+    [/crema.*(cuerpo|corpor|body)|locion|hidratante|exfolian|aceite.*(cuerpo|corpor)|mantequilla.*(cuerpo|corpor)|jabon.*(corp|bano)|sabonete|gel.*baño/,
+     'natura_cuerpo'],
+    [/labial.*natura|base.*natura|rubor.*natura|sombra.*natura|paleta.*natura|brocha.*natura|pincel.*natura/,
+     'natura_maquillaje'],
+    // ── NATURA general (brand names) ────────────────────────────────────
+    [/\bnatura\b|ekos|chronos|kaiak|mamae|nuxe|lumina|todo dia|essencial|faces\b|bioserum|ativance|fotoequil|savagina|una\b.*nat|homem.*nat/,
+     'natura'],
+    // ── MOCHILAS (específicas antes que general) ─────────────────────────
+    [/mochila.*(personaj|niñ|infantil|kawaii|unicornio|caricatur|disney|kitty|stitch|pokemon|minion|superheroe|anima|escolar.*niñ)/,
+     'mochilas_personaje'],
+    [/mochila.*(deport|gym|sport|fitness|entrena|tactico|senderis)|gym.*bag|sport.*bag/,
+     'mochilas_deportivas'],
+    [/mochila/,
+     'mochilas_dama'],
+    // ── LONCHERAS ────────────────────────────────────────────────────────
+    [/lonchera|fiambrera|porta.*almuerzo|porta.*lunch|lunch.*bag/,
+     'loncheras'],
+    // ── CANGURERAS ───────────────────────────────────────────────────────
+    [/cangurera|riñonera|fanny|cinturon.*bolso|belt.*bag/,
+     'cangureras'],
+    // ── LAPICERAS ────────────────────────────────────────────────────────
+    [/lapicera|estuche.*(lapiz|pluma|lapices)|porta.*(lapiz|pluma)|cartuchera/,
+     'lapiceras'],
+    // ── COSMETIQUERAS ────────────────────────────────────────────────────
+    [/cosmetiquera|neceser|organizador.*(maquilla|cosmet|belleza)|porta.*cosmet|estuche.*(maquilla|cosmet|belleza)|bolsa.*(maquilla|cosmet)/,
+     'cosmetiqueras'],
+    // ── BOLSOS (casual antes que dama) ───────────────────────────────────
+    [/bolso.*(casual|tela|lona|canvas|estampado|juvenil|playa)|bolsa.*(casual|tela|lona|canvas)|tote|shopper/,
+     'bolsos_casual'],
+    [/bolso|bolsa.*(dama|mujer|elegante|cuero|piel|clasico|lujo|fino|vintage|mano|hombro)|cartera|clutch|\bsobre\b.*bolso|pochette|minibag|mini.*bag|handbag|satchel|hobo|bucket|crossbody|bandolera/,
+     'bolsos_dama'],
+    // ── CABELLO ──────────────────────────────────────────────────────────
+    [/diadema|donas?(?!.*joya)|liga.*cabello|liga.*pelo|ligas.*cabello|pasador|pinza|broche.*cabello|broche.*pelo|valerin|cofia|cepillo.*(cabello|pelo)|peine|turbante|moño|scrunchie|bun\b|clip.*cabello|cintillo|gancho.*cabello|horquilla|hebilla|quita.*greña|argolla.*cabello|arco.*cabello|accesorio.*cabello|accesorio.*pelo|para.*cabello|para.*pelo/,
+     'cabello'],
+    // ── BISUTERÍA ────────────────────────────────────────────────────────
+    [/arete|aretes|collar(?!.*perro)|cadena(?!.*llave)|pulsera|bisuter|joya|anillo|brazalete|gargantilla|tobillera|piercing|medallon|dije|charm\b|argolla(?!.*cabello)|set.*joya|juego.*joya|accesorio.*plata|accesorio.*dorado/,
+     'bisuteria'],
+    // ── MODA ─────────────────────────────────────────────────────────────
+    [/gorra|sombrero|chalina|sombrilla|bufanda|pañuelo|mascada|cinturon(?!.*bolso)|gorrita|cachucha|beanie|boina|visera|gorro|cintillo.*moda/,
+     'moda'],
+    // ── UÑAS ─────────────────────────────────────────────────────────────
+    [/uña|esmalte|lima.*uña|manicure|postiza|poligel|gel.*uv|gel.*uña|brillo.*uña|charol.*uña|\bnail\b|press.*on|kit.*uña|acrilica|top.*coat|base.*coat/,
+     'unas'],
+    // ── MAQUILLAJE ───────────────────────────────────────────────────────
+    [/maquilla|labial\b|corrector\b|rubor|sombra.*(ojo|parpado)|pestañ|rimmel|mascara.*(ojo|pesta)|blush|bronzer|iluminador|contorno.*rostro|delineador|eyeliner|polvo.*compacto|sellador|fijador.*maquilla|primer\b|brocha.*maquilla|pincel.*maquilla|esponja.*maquilla|paleta.*color|pigmento|cejas/,
+     'maquillaje'],
   ];
 
   for (const [regex, code] of rules) {

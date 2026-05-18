@@ -544,8 +544,8 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .hero-mobile-strip{display:block}
 }
 
-/* Tablet — 3 columnas para productos */
-@media(max-width:1000px) and (min-width:601px){
+/* Tablet — 3 columnas para productos (769–1000px) */
+@media(max-width:1000px) and (min-width:769px){
   .products-grid{grid-template-columns:repeat(3,1fr);gap:16px}
   .product-desc{-webkit-line-clamp:2}
 }
@@ -560,6 +560,8 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .nc-wrap{display:grid;grid-template-columns:1fr 1fr;overflow:visible;scroll-snap-type:none;gap:12px}
   .nc-card{flex:none}
   .nc-nav{display:none!important}
+  /* Foto de Ofelia — evitar que sea gigante en tablet */
+  .about-img-main{max-height:460px;object-fit:cover}
 }
 
 /* Mobile — hamburger nav (≤640px) */
@@ -595,6 +597,10 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .nav-cart-btn{width:40px;height:40px;padding:0;border-radius:50%;font-size:1rem;justify-content:center;gap:0}
   .nav-cart-btn .nav-cart-badge{position:absolute;top:-4px;right:-4px;width:18px;height:18px;font-size:.6rem}
 
+  /* PRODUCTS — 2 columnas en 481–640px */
+  .products-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+  .product-desc{-webkit-line-clamp:2}
+
   /* FILTERS — scroll horizontal en teléfono */
   .products-filters{
     flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;
@@ -621,18 +627,49 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .pillar-card:last-child{grid-column:auto;max-width:100%;margin:0}
 }
 
-/* Tablet portrait (641–1000px) — nav completa visible */
+/* Tablet portrait (641–1000px) */
 @media(min-width:641px) and (max-width:1000px){
   section{padding:64px 32px}
   .pillars-grid{grid-template-columns:repeat(2,1fr);gap:20px}
+  /* 3er pillar solo en row 2 — centrarlo */
+  .pillars-grid .pillar-card:last-child{grid-column:1/-1;max-width:calc(50% - 10px);margin:0 auto}
   .products-section .section-header{margin-bottom:32px}
   .products-grid{gap:18px}
+  /* Delivery 3 col en tablet — evita card huérfana en row 2 */
+  .delivery-grid{grid-template-columns:repeat(3,1fr)}
   .about-content{text-align:center}
   .about-content p{text-align:left}
   .about-features{justify-items:start;margin-top:20px}
   .af{justify-content:flex-start}
   .social-links{flex-direction:column;align-items:center}
   .soc-link{width:min(300px,100%);justify-content:center}
+}
+
+/* Tablet pequeño (641–768px) — hamburger nav + layout compacto */
+@media(min-width:641px) and (max-width:768px){
+  /* NAV — hamburger también en tablet pequeño */
+  .nav-links{display:none}
+  .nav-toggle{display:flex}
+  .nav-cart-btn{width:40px;height:40px;padding:0;border-radius:50%;justify-content:center;gap:0}
+  .nav-links.open{
+    display:flex;flex-direction:column;gap:4px;
+    position:absolute;top:70px;left:0;right:0;
+    background:rgba(250,245,238,.97);backdrop-filter:blur(14px);
+    padding:12px 16px 20px;
+    border-bottom:1px solid var(--border);
+    box-shadow:0 12px 40px rgba(28,24,23,.12);
+    animation:nav-drop .22s ease;
+  }
+  .nav-links.open li a{display:block;padding:13px 16px;border-radius:10px;font-size:.95rem;font-weight:500}
+  .nav-links.open li a:hover{background:var(--gold-light)}
+  .nav-toggle.open span:nth-child(1){transform:rotate(45deg) translate(5px,5px)}
+  .nav-toggle.open span:nth-child(2){opacity:0;transform:translateX(-6px)}
+  .nav-toggle.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
+  /* PRODUCTS — 2 columnas (3 serían ~181px c/u = muy angosto) */
+  .products-grid{grid-template-columns:repeat(2,1fr);gap:16px}
+  .product-desc{-webkit-line-clamp:2}
+  /* DELIVERY — 1 columna evita orphan card */
+  .delivery-grid{grid-template-columns:1fr}
 }
 
 /* Móvil pequeño */
