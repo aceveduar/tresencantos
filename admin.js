@@ -690,6 +690,23 @@ function _lpMove(id) {
   delete _lpTimers[id];
 }
 
+// Decide qué hace un tap en una card según el contexto
+function _cardTap(e, id) {
+  if (_lpFired) return; // ya fue un long press, ignorar el click sintético
+  if (e.target.closest('button,input,a,.stock-chip,.cat-label-inline,.drag-handle')) return;
+
+  if (selectedIds.size > 0) {
+    // Modo selección activo → tap alterna selección de esta card
+    const newVal = !selectedIds.has(id);
+    const cb = document.querySelector(`[data-id="${id}"] .row-check`);
+    if (cb) cb.checked = newVal;
+    toggleRowSelect(id, newVal);
+  } else {
+    // Modo normal → abrir Quick View
+    openQV(id);
+  }
+}
+
 let currentAdminView = localStorage.getItem('te_admin_view') || 'list';
 
 function setAdminView(view) {
@@ -717,7 +734,7 @@ function adminCard(p) {
   return `
 <div class="admin-card${sel?' card-selected':''}${oos?' card-oos':''}"
      data-id="${p.id}"
-     onclick="if(!_lpFired&&!event.target.closest('button,input,a,.stock-chip,.cat-label-inline'))openQV(${p.id})"
+     onclick="_cardTap(event,${p.id})"
      ontouchstart="_lpStart(event,${p.id})"
      ontouchend="_lpEnd(${p.id})"
      ontouchmove="_lpMove(${p.id})"
@@ -1014,7 +1031,7 @@ function mobileCard(p) {
   <td>
     <div class="mpc${oos ? ' mpc-oos' : ''}">
       <div class="mpc-top"
-           onclick="if(!_lpFired&&!event.target.closest('button,input,a,.stock-chip,.cat-label-inline'))openQV(${p.id})"
+           onclick="_cardTap(event,${p.id})"
            ontouchstart="_lpStart(event,${p.id})"
            ontouchend="_lpEnd(${p.id})"
            ontouchmove="_lpMove(${p.id})"
@@ -3691,7 +3708,6 @@ function _renderSimilarModal() {
 let _qvCurrentId = null;
 
 function openQV(id) {
-  _lpFired = false; // reset para que el siguiente tap funcione correctamente
   const p = products.find(x => x.id === id);
   if (!p) return;
   _qvCurrentId = id;
