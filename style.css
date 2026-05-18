@@ -12,6 +12,7 @@
   --charcoal-soft:#3D3530;
   --text-mid:#6B5C48;
   --text-light:#9B8B78;
+  --muted:#9B8B78;
   --white:#FFFFFF;
   --wa:#2E9E6A;
   --wa-dark:#128C7E;
@@ -109,6 +110,7 @@ section{padding:80px 20px}
 .container{max-width:1200px;margin:0 auto}
 .section-header{text-align:center;margin-bottom:52px}
 .section-tag{display:inline-block;background:var(--gold-light);color:var(--gold-dark);font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 14px;border-radius:50px;margin-bottom:14px}
+.section-tag-dark{background:rgba(255,255,255,.15);color:#fff;margin-bottom:20px}
 .section-header h2{font-size:clamp(1.8rem,4vw,2.8rem);margin-bottom:14px}
 .section-header p{font-size:1.02rem;color:var(--text-mid);max-width:500px;margin:0 auto}
 
@@ -387,7 +389,7 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .modal-discount{display:inline-block;background:#E85D5D;color:#fff;font-size:.7rem;font-weight:800;padding:3px 9px;border-radius:50px;font-family:'Inter',sans-serif;letter-spacing:.03em;margin-top:3px;align-self:flex-start}
 .modal-share-btn{width:40px;height:40px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .modal-btn-wa{width:100%;justify-content:center}
-.modal-btn-oos{width:100%;justify-content:center;background:#F7F2EB;color:#6B5C48;border:1.5px solid #C9A462;cursor:pointer;transition:var(--ease)}
+.modal-btn-oos{width:100%;justify-content:center;background:var(--cream);color:var(--text-mid);border:1.5px solid var(--gold);cursor:pointer;transition:var(--ease)}
 .modal-btn-oos:hover{background:#C9A462;color:#fff}
 .modal-qty-row{display:flex;align-items:center;justify-content:center;gap:16px;padding:8px 0 12px}
 .modal-qty-btn{width:32px;height:32px;border-radius:50%;border:2px solid var(--gold);background:transparent;color:var(--gold-dark);font-size:1.1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--ease);font-family:inherit}
@@ -396,10 +398,15 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .btn-modal-addcart{width:100%;justify-content:center;background:var(--gold);color:#fff}
 .btn-modal-addcart:hover{background:var(--gold-dark)}
 .btn-modal-addcart.added{background:#2D6A4F}
+.modal-wa-direct{width:100%;margin-top:8px;background:transparent;border:none;color:var(--wa);font-size:.82rem;font-weight:600;padding:8px 0;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;transition:color .2s}
+.modal-wa-direct:hover{color:var(--wa-dark)}
+.modal-wa-direct svg{flex-shrink:0}
 
 /* ── CARRITO ── */
+@keyframes cart-pop{0%{transform:scale(1)}45%{transform:scale(1.2)}75%{transform:scale(.94)}100%{transform:scale(1)}}
 .nav-cart-btn{position:relative;display:flex;align-items:center;gap:6px;background:var(--gold);color:#fff;border:none;border-radius:50px;padding:8px 16px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;transition:var(--ease);text-decoration:none;white-space:nowrap}
 .nav-cart-btn:hover{background:var(--gold-dark)}
+.nav-cart-btn.cart-pulse{animation:cart-pop .4s cubic-bezier(.36,.07,.19,.97) both}
 .nav-cart-badge{background:#E85D5D;color:#fff;border-radius:50%;width:18px;height:18px;font-size:.6rem;font-weight:800;display:none;align-items:center;justify-content:center;margin-left:2px}
 .nav-cart-badge.visible{display:inline-flex}
 #cart-overlay{position:fixed;inset:0;z-index:8500;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .25s}
@@ -505,6 +512,15 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .nob-body p{color:rgba(255,255,255,.78);font-size:.88rem;margin:0;line-height:1.6}
 .nob-body strong{color:#fff;opacity:1}
 .nob-actions{display:flex;gap:10px;flex-wrap:wrap;flex-shrink:0}
+
+/* ── TOUCH ACTIVE STATES (solo dispositivos sin hover real) ── */
+@media(hover:none){
+  .product-card:active{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--gold)}
+  .filter-btn:active{background:var(--gold);color:#fff;border-color:var(--gold)}
+  .pillar-card:active{transform:translateY(-2px);box-shadow:var(--shadow)}
+  .nc-card:active{transform:translateY(-3px)}
+  .hms-card:active{transform:scale(.96);box-shadow:0 2px 10px rgba(28,24,23,.08)}
+}
 
 /* ── RESPONSIVE ── */
 

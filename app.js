@@ -60,9 +60,14 @@ function cartTotal() { return cart.reduce((s, x) => s + x.price * x.qty, 0); }
 function renderCartBadge() {
   const total = cart.reduce((s, x) => s + x.qty, 0);
   const badge = document.getElementById('nav-cart-badge');
+  const cartBtn = document.getElementById('nav-cart-btn');
   if (!badge) return;
   badge.textContent = total;
   badge.classList.toggle('visible', total > 0);
+  if (total > 0 && cartBtn) {
+    cartBtn.classList.remove('cart-pulse');
+    requestAnimationFrame(() => requestAnimationFrame(() => cartBtn.classList.add('cart-pulse')));
+  }
 }
 
 function renderCartBody() {
@@ -168,7 +173,8 @@ async function loadProducts() {
         badgeType: p.badge_type,
         featured: p.featured,
         outOfStock: p.out_of_stock,
-        originalPrice: p.original_price
+        originalPrice: p.original_price,
+        stock: p.stock
       }));
       return;
     }
@@ -361,7 +367,7 @@ function cardHTML(p) {
   <div class="product-body">
     <p class="product-cat">${p.categoryLabel}</p>
     <h3>${p.name}</h3>
-    <p class="product-desc">${p.description}</p>
+    <p class="product-desc">${p.description || ''}</p>
     <div class="product-footer">
       ${priceHTML}
       ${buyBtn}
@@ -666,7 +672,8 @@ function openModal(id) {
       </div>
       <button class="btn btn-modal-addcart" id="modal-addcart-btn" onclick="modalAddToCart(${p.id})">
         🛒 Agregar al carrito
-      </button>`;
+      </button>
+      <button class="modal-wa-direct" onclick="whatsapp(${p.id})">${WA_SVG} Pedir solo este por WhatsApp</button>`;
   const descHTML = p.description
     ? `<p class="modal-desc">${p.description}</p>`
     : '';
@@ -718,9 +725,14 @@ function modalAddToCart(id) {
   addToCart(id, _modalQty);
   const btn = document.getElementById('modal-addcart-btn');
   if (btn) {
-    btn.textContent = `✓ ${_modalQty > 1 ? _modalQty + ' agregados' : 'Agregado'}`;
+    btn.innerHTML = `✓ ${_modalQty > 1 ? _modalQty + ' agregados' : 'Agregado'} &nbsp;·&nbsp; <u style="font-weight:400;font-size:.88em">Ver carrito →</u>`;
     btn.classList.add('added');
-    setTimeout(() => { btn.textContent = '🛒 Agregar al carrito'; btn.classList.remove('added'); }, 1800);
+    btn.onclick = () => { closeModal(); openCart(); };
+    setTimeout(() => {
+      btn.innerHTML = '🛒 Agregar al carrito';
+      btn.classList.remove('added');
+      btn.onclick = () => modalAddToCart(id);
+    }, 3000);
   }
 }
 

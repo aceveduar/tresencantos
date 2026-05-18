@@ -542,6 +542,7 @@ async function showApp() {
   await loadProductsFromSupabase();
   renderStats();
   setAdminView(currentAdminView);
+  setTimeout(_updateDupBadge, 0);
 }
 
 /* ── LOAD PRODUCTS ── */
@@ -1952,6 +1953,17 @@ async function saveProduct() {
   applyTitleCase('f-name');
   applyDescriptionFormat('f-description');
   if (!validateForm()) return;
+
+  // Re-corre checks de duplicado por si el usuario no pasó por blur
+  checkBarcodeConflict();
+  checkNameSimilarity();
+  const barcodeWarn = document.getElementById('f-barcode-warn');
+  const nameWarn    = document.getElementById('f-name-warn');
+  if (barcodeWarn?.style.display !== 'none' && barcodeWarn?.classList.contains('error')) return;
+  if (nameWarn?.style.display !== 'none') {
+    if (!confirm('El sistema detectó un producto similar en el catálogo.\n¿Confirmas que es un producto diferente?')) return;
+  }
+
   const name = document.getElementById('f-name').value.trim();
   const price = parseFloat(document.getElementById('f-price').value);
   const image = document.getElementById('f-image').value.trim();
@@ -2050,6 +2062,7 @@ async function saveProduct() {
   closeForm();
   renderTable();
   renderStats();
+  _updateDupBadge();
   toast(idVal ? 'Guardado ✓' : 'Producto agregado ✓');
 }
 
@@ -2098,6 +2111,7 @@ async function confirmDelete() {
   renderTable();
   renderStats();
   updateBulkBar();
+  _updateDupBadge();
 
   // Toast con opción de deshacer (7 segundos)
   toastUndo(`"${truncName(deleted?.name || 'Producto')}" eliminado`, async () => {
@@ -2556,7 +2570,9 @@ function _normStr(s) {
 
 function _wordSim(a, b) {
   const stop = new Set(['de','la','el','los','las','un','una','y','con','para','en','del','al']);
-  const words = s => new Set(_normStr(s).split(' ').filter(w => w.length > 1 && !stop.has(w)));
+  // simple plural stemming: pinzas→pinza, bolsos→bolso, collares→collar
+  const stem = w => w.endsWith('es') && w.length > 4 ? w.slice(0,-2) : w.endsWith('s') && w.length > 3 ? w.slice(0,-1) : w;
+  const words = s => new Set(_normStr(s).split(' ').filter(w => w.length > 1 && !stop.has(w)).map(stem));
   const wa = words(a), wb = words(b);
   if (!wa.size || !wb.size) return 0;
   return [...wa].filter(w => wb.has(w)).length / Math.max(wa.size, wb.size);
@@ -2582,19 +2598,33 @@ function checkNameSimilarity() {
   warn.style.display = 'none';
   if (name.length < 4) return;
   const normName = _normStr(name);
-  const similar = products.filter(p => {
-    if (p.id === editingId) return false;
-    return _normStr(p.name) === normName || _wordSim(name, p.name) >= 0.75;
-  });
-  if (!similar.length) return;
-  const isExact = similar.some(p => _normStr(p.name) === normName);
-  const links = similar.map(p =>
+  const price = parseFloat(document.getElementById('f-price').value) || null;
+  const stock = parseInt(document.getElementById('f-stock').value);
+
+  const scored = products.filter(p => p.id !== editingId).map(p => {
+    const exact = _normStr(p.name) === normName;
+    const sim = exact ? 1 : _wordSim(name, p.name);
+    const priceMatch = price && p.price === price;
+    const stockMatch = !isNaN(stock) && stock >= 2 && p.stock === stock;
+    const score = sim + (priceMatch ? 0.25 : 0) + (stockMatch ? 0.15 : 0);
+    return { p, sim, score, exact, priceMatch, stockMatch };
+  }).filter(({sim, score}) => sim >= 0.55 && score >= 0.55)
+    .sort((a, b) => b.score - a.score);
+
+  if (!scored.length) return;
+  const { p: top, exact: isExact, priceMatch, stockMatch } = scored[0];
+  const signals = [];
+  if (priceMatch) signals.push(`mismo precio ($${top.price.toLocaleString('es-MX')})`);
+  if (stockMatch) signals.push(`mismo stock (${top.stock})`);
+  const links = scored.map(({p}) =>
     `<button type="button" class="dup-link" onclick="closeForm();openForm(${p.id})">${p.name} →</button>`
   ).join('  ');
+  const signalText = signals.length
+    ? ` <span style="opacity:.75;font-size:.85em">(${signals.join(', ')})</span>` : '';
   warn.className = 'dup-warn' + (isExact ? ' error' : '');
   warn.innerHTML = isExact
     ? `⛔ Ya existe un producto con ese nombre: ${links}`
-    : `⚠️ Nombre similar a: ${links}`;
+    : `⚠️ Nombre similar${signalText}: ${links}`;
   warn.style.display = 'block';
 }
 
@@ -2602,6 +2632,152 @@ function _clearDupWarnings() {
   ['f-name-warn', 'f-barcode-warn'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+  });
+}
+
+/* ── REVISIÓN DE DUPLICADOS (escaneo automático al cargar) ─────────────── */
+const _DUP_DISMISS_KEY = 'te_dismissed_dups';
+
+function _getDismissedDups() {
+  try { return new Set(JSON.parse(localStorage.getItem(_DUP_DISMISS_KEY) || '[]')); }
+  catch { return new Set(); }
+}
+function _saveDismissedDups(set) {
+  localStorage.setItem(_DUP_DISMISS_KEY, JSON.stringify([...set]));
+}
+
+function _findDuplicatePairs() {
+  const dismissed = _getDismissedDups();
+  const pairs = [];
+  for (let i = 0; i < products.length; i++) {
+    for (let j = i + 1; j < products.length; j++) {
+      const a = products[i], b = products[j];
+      const pairKey = `${Math.min(a.id, b.id)}_${Math.max(a.id, b.id)}`;
+      if (dismissed.has(pairKey)) continue;
+
+      const barcodeMatch = !!(a.barcode && b.barcode && a.barcode === b.barcode);
+      const exact = _normStr(a.name) === _normStr(b.name);
+      const nameSim = exact ? 1 : _wordSim(a.name, b.name);
+      const priceMatch = a.price > 0 && a.price === b.price;
+      // stock 1 es el default en boutique — solo cuenta como señal con 2+ unidades
+      const stockMatch = a.stock >= 2 && a.stock === b.stock;
+      const score = (barcodeMatch ? 1 : 0) + nameSim + (priceMatch ? 0.25 : 0) + (stockMatch ? 0.15 : 0);
+
+      // nameSim mínimo 0.55 para ignorar coincidencias solo por marca compartida
+      if (!barcodeMatch && !(nameSim >= 0.55 && score >= 0.55)) continue;
+
+      const signals = [];
+      if (barcodeMatch) signals.push('mismo código de barras');
+      if (exact) signals.push('nombre idéntico');
+      else if (nameSim >= 0.55) signals.push('nombre similar');
+      if (priceMatch) signals.push(`precio $${a.price.toLocaleString('es-MX')}`);
+      if (stockMatch) signals.push(`stock ${a.stock}`);
+      pairs.push({ a, b, score, signals, pairKey });
+    }
+  }
+  return pairs.sort((x, y) => y.score - x.score);
+}
+
+function _updateDupBadge() {
+  const btn = document.getElementById('dup-badge-btn');
+  if (!btn) return;
+  if (ROLE !== 'superadmin' && ROLE !== 'encargado') { btn.style.display = 'none'; return; }
+  const pairs = _findDuplicatePairs();
+  if (!pairs.length) { btn.style.display = 'none'; return; }
+  document.getElementById('dup-badge-count').textContent = pairs.length;
+  btn.style.display = 'flex';
+}
+
+function openDupReview() {
+  _renderDupReview();
+  document.getElementById('dup-review-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDupReview() {
+  document.getElementById('dup-review-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function _renderDupReview() {
+  const body = document.getElementById('dup-review-body');
+  const pairs = _findDuplicatePairs();
+  if (!pairs.length) {
+    body.innerHTML = `<p style="text-align:center;padding:40px;color:var(--muted)">✓ Sin duplicados pendientes de revisión.</p>`;
+    _updateDupBadge();
+    return;
+  }
+  const thumb = (img, name) => img
+    ? `<img src="${img}" alt="${name}" loading="lazy">`
+    : `<div class="dup-prod-ph">📦</div>`;
+  const card = (p, pairKey) => `
+    <div class="dup-prod">
+      ${thumb(p.image, p.name)}
+      <div class="dup-prod-name">${p.name}</div>
+      <div class="dup-prod-meta">${p.categoryLabel || '—'} · $${(p.price||0).toLocaleString('es-MX')} · Stock ${p.stock}</div>
+      <div class="dup-prod-actions">
+        <button class="btn btn-outline btn-sm" onclick="closeDupReview();openForm(${p.id})">Editar →</button>
+        ${can.deleteProduct ? `<button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="_deleteDupProduct(${p.id},'${pairKey}')">Eliminar</button>` : ''}
+      </div>
+    </div>`;
+  body.innerHTML = pairs.map(({ a, b, signals, pairKey }) => `
+    <div class="dup-pair" id="dup-pair-${pairKey}">
+      <div class="dup-signals">⚠️ ${signals.join(' · ')}</div>
+      <div class="dup-pair-cols">${card(a, pairKey)}${card(b, pairKey)}</div>
+      <button class="dup-dismiss" onclick="_dismissDupPair('${pairKey}')">✓ Son productos distintos — no volver a avisar</button>
+    </div>`).join('');
+}
+
+function _dismissDupPair(pairKey) {
+  const set = _getDismissedDups();
+  set.add(pairKey);
+  _saveDismissedDups(set);
+  document.getElementById(`dup-pair-${pairKey}`)?.remove();
+  if (!document.querySelector('#dup-review-body .dup-pair')) {
+    document.getElementById('dup-review-body').innerHTML =
+      `<p style="text-align:center;padding:40px;color:var(--muted)">✓ Sin duplicados pendientes de revisión.</p>`;
+  }
+  _updateDupBadge();
+  toast('Par descartado', 'success');
+}
+
+async function _deleteDupProduct(id, pairKey) {
+  if (!can.deleteProduct) return;
+  if (!confirm('¿Eliminar este producto? Tendrás 7 segundos para deshacer.')) return;
+  const deleted = products.find(p => p.id === id);
+  const deletedIdx = products.findIndex(p => p.id === id);
+  const result = await supabaseApi(`products?id=eq.${id}`, {
+    method: 'DELETE', headers: { 'Prefer': 'return=minimal' }
+  });
+  if (!result.ok) { toast('Error al eliminar', 'error'); return; }
+  if (deleted) logActivity('producto_eliminado', `Eliminó "${deleted.name}" (duplicado)`, { id, name: deleted.name, price: deleted.price });
+  products = products.filter(p => p.id !== id);
+  selectedIds.delete(id);
+  closeDupReview();
+  renderTable();
+  renderStats();
+  _dismissDupPair(pairKey);
+  toastUndo(`"${truncName(deleted?.name || 'Producto')}" eliminado`, async () => {
+    if (!deleted) return;
+    const r = await supabaseApi('products', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        id: deleted.id, name: deleted.name, category: deleted.category,
+        category_label: deleted.categoryLabel, price: deleted.price,
+        description: deleted.description, image: deleted.image,
+        badge: deleted.badge, badge_type: deleted.badgeType,
+        featured: deleted.featured, out_of_stock: deleted.outOfStock,
+        original_price: deleted.originalPrice, barcode: deleted.barcode,
+        stock: deleted.stock, position: deletedIdx, cost: deleted.cost,
+        is_published: deleted.isPublished
+      })
+    });
+    if (!r.ok) { toast('No se pudo restaurar', 'error'); return; }
+    products.splice(deletedIdx, 0, deleted);
+    const set = _getDismissedDups(); set.delete(pairKey); _saveDismissedDups(set);
+    renderTable(); _updateDupBadge();
+    toast(`"${truncName(deleted.name)}" restaurado ✓`, 'success');
   });
 }
 
