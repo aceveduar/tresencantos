@@ -191,6 +191,16 @@ function getFilteredProducts() {
 
   switch (currentSort) {
     case 'recent':     return [...filtered].sort((a, b) => b.id - a.id);
+    case 'edited': {
+      const order = _editedOrder();
+      return [...filtered].sort((a, b) => {
+        const ia = order.indexOf(a.id), ib = order.indexOf(b.id);
+        if (ia === -1 && ib === -1) return b.id - a.id;
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+      });
+    }
     case 'name-az':    return [...filtered].sort((a, b) => a.name.localeCompare(b.name, 'es'));
     case 'name-za':    return [...filtered].sort((a, b) => b.name.localeCompare(a.name, 'es'));
     case 'price-asc':  return [...filtered].sort((a, b) => a.price - b.price);
@@ -655,6 +665,19 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden && isAuthenticated()) renderStats();
 });
 
+
+/* ── RECENTLY EDITED — compartido con POS vía localStorage ── */
+const _EDITED_KEY = 'te_recently_edited';
+
+function _trackEdit(id) {
+  let list = JSON.parse(localStorage.getItem(_EDITED_KEY) || '[]');
+  list = [id, ...list.filter(x => x !== id)].slice(0, 60);
+  localStorage.setItem(_EDITED_KEY, JSON.stringify(list));
+}
+
+function _editedOrder() {
+  return JSON.parse(localStorage.getItem(_EDITED_KEY) || '[]');
+}
 
 /* ── TABLE ── */
 const isMobile = () => window.matchMedia('(max-width:1024px)').matches;
@@ -1516,6 +1539,24 @@ async function testDriveEndpoint() {
   btn.textContent = 'Probar'; btn.disabled = false;
 }
 
+/* Extrae el file ID de una URL de Drive thumbnail */
+function _driveFileId(url) {
+  if (!url || !url.includes('drive.google.com')) return null;
+  const m = url.match(/[?&]id=([^&]+)/);
+  return m ? m[1] : null;
+}
+
+/* Manda el archivo a la papelera de Drive (fire-and-forget, nunca bloquea) */
+async function _deleteDriveFile(fileId) {
+  if (!driveEp || !driveSecret || !fileId) return;
+  try {
+    await fetch(driveEp, {
+      method: 'POST',
+      body: JSON.stringify({ secret: driveSecret, action: 'delete', fileId })
+    });
+  } catch { /* silencioso — el borrado nunca bloquea el flujo principal */ }
+}
+
 async function uploadToDrive(b64) {
   if (!driveEp || !driveSecret) return null;
   try {
@@ -2140,6 +2181,10 @@ async function saveProduct() {
   const saveBtn = document.getElementById('save-btn');
   setBtn(saveBtn, true, idVal ? 'Actualizando...' : 'Guardando...');
 
+  // Capturar imagen anterior ANTES de actualizar el array local
+  // (para borrarla de Drive solo si el guardado tiene éxito)
+  const _prevImage = idVal ? products.find(p => p.id === parseInt(idVal))?.image : null;
+
   if (idVal) {
     const idx = products.findIndex(p => p.id === parseInt(idVal));
     if (idx > -1) products[idx] = { ...products[idx], ...data };
@@ -2155,6 +2200,9 @@ async function saveProduct() {
         toast(`Error al actualizar: ${errMsg}`, 'error');
         return;
       }
+      // Guardado OK → borrar imagen anterior de Drive si fue reemplazada
+      const oldId = _driveFileId(_prevImage);
+      if (oldId && _prevImage !== data.image) _deleteDriveFile(oldId);
     }
   } else {
     const maxId = products.reduce((m, p) => Math.max(m, p.id), 0);
@@ -2176,6 +2224,7 @@ async function saveProduct() {
   }
 
   if (idVal) {
+    _trackEdit(parseInt(idVal));
     logActivity('producto_editado', `Editó "${name}"`, { id: parseInt(idVal), name, price });
   } else {
     const newId = products[products.length - 1]?.id;

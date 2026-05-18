@@ -860,6 +860,7 @@ button,a{touch-action:manipulation}
       <input type="search" id="pos-search" placeholder="Buscar producto..." oninput="searchProducts(this.value)" autocomplete="off">
       <div class="pos-sort-toggle" id="pos-sort-toggle">
         <button class="pos-sort-btn" data-sort="recientes" onclick="setPosSort('recientes')" title="Más recientes">🕐</button>
+        <button class="pos-sort-btn" data-sort="editados"  onclick="setPosSort('editados')"  title="Editados recientemente">✏️</button>
         <button class="pos-sort-btn" data-sort="populares" onclick="setPosSort('populares')" title="Más vendidos">🔥</button>
         <button class="pos-sort-btn" data-sort="az"        onclick="setPosSort('az')"        title="A → Z">AZ</button>
       </div>
@@ -1284,6 +1285,16 @@ async function loadSalesStats() {
 function applySort(list) {
   switch (posSort) {
     case 'recientes': return [...list].sort((a, b) => b.id - a.id);
+    case 'editados': {
+      const order = JSON.parse(localStorage.getItem('te_recently_edited') || '[]');
+      return [...list].sort((a, b) => {
+        const ia = order.indexOf(a.id), ib = order.indexOf(b.id);
+        if (ia === -1 && ib === -1) return b.id - a.id;
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+      });
+    }
     case 'populares': return [...list].sort((a, b) => (salesStats[b.id] || 0) - (salesStats[a.id] || 0));
     case 'az':        return [...list].sort((a, b) => a.name.localeCompare(b.name, 'es'));
     default: return list;
