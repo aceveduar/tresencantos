@@ -185,14 +185,15 @@ function getFilteredProducts() {
   const cat = document.getElementById('cat-filter')?.value || 'all';
   const filtered = products.filter(p => {
     const matchCat = adminCatMatches(p.category, cat);
-    const matchQ   = !q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
+    const terms    = q ? q.split(',').map(t => t.trim()).filter(Boolean) : [];
+    const matchQ   = !terms.length || terms.some(t => p.name.toLowerCase().includes(t) || (p.description || '').toLowerCase().includes(t));
     return matchCat && matchQ;
   });
 
   switch (currentSort) {
-    case 'recent':     return [...filtered].sort((a, b) => b.id - a.id);
-    case 'edited': {
+    case 'recent': {
       const order = _editedOrder();
+      if (!order.length) return [...filtered].sort((a, b) => b.id - a.id);
       return [...filtered].sort((a, b) => {
         const ia = order.indexOf(a.id), ib = order.indexOf(b.id);
         if (ia === -1 && ib === -1) return b.id - a.id;
@@ -2228,6 +2229,7 @@ async function saveProduct() {
     logActivity('producto_editado', `Editó "${name}"`, { id: parseInt(idVal), name, price });
   } else {
     const newId = products[products.length - 1]?.id;
+    if (newId) _trackEdit(newId); // también registrar creaciones en el historial
     logActivity('producto_creado', `Creó "${name}" — $${price.toLocaleString('es-MX')}`, { id: newId, name, price });
   }
   closeForm();
