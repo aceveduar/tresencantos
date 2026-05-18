@@ -409,8 +409,9 @@ tr:hover .drag-handle{opacity:1}
 .sim-meta{display:flex;gap:14px;font-size:.8rem;color:var(--muted)}
 .sim-meta strong{color:var(--charcoal);font-weight:700}
 .sim-nav{display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 0 4px}
-.sim-dot{width:7px;height:7px;border-radius:50%;background:var(--border);border:none;cursor:pointer;padding:0;transition:.2s}
-.sim-dot.active{background:var(--gold);width:18px;border-radius:4px}
+.sim-dot{width:28px;height:28px;border-radius:50%;background:transparent;border:none;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;transition:.2s}
+.sim-dot::after{content:'';display:block;width:7px;height:7px;border-radius:50%;background:var(--border);transition:.2s}
+.sim-dot.active::after{background:var(--gold);width:18px;border-radius:4px}
 .sim-foot{padding:12px 18px 18px;display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--border)}
 .sim-btn-ok{width:100%;padding:11px;border-radius:50px;border:none;background:var(--gold);color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
 .sim-btn-ok:hover{background:var(--gold-dark)}
@@ -577,6 +578,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 /* ══ VOICE DICTATION ════════════════════════════════════════════════════ */
 .field-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .field-label-row label{margin-bottom:0;flex:1}
+.btn-oferta-toggle{width:100%;padding:9px 14px;border:1.5px dashed var(--gold);border-radius:var(--r);background:var(--gold-light);color:var(--gold-dark);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;transition:.15s}
+.btn-oferta-toggle:hover{background:var(--cream-dark);border-color:var(--gold-dark)}
 .dictate-btn{
   font-size:.68rem;font-weight:600;padding:3px 10px;border-radius:50px;
   border:1.5px solid var(--border);background:#fff;cursor:pointer;
@@ -1479,7 +1482,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         </div>
         <div class="upload-or">o pega una URL</div>
         <input type="url" id="f-image" placeholder="https://…" oninput="previewImg()">
-        <p class="hint">Google Drive, Unsplash — o captura directo con la cámara del dispositivo.</p>
+        <p class="hint">Google Drive, Unsplash u otro enlace de imagen</p>
         <img id="f-img-preview" class="img-preview" alt="Vista previa">
         <!-- Botón IA — aparece tras subir imagen -->
         <div id="ai-form-wrap" style="display:none">
@@ -1530,16 +1533,19 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           <p id="price-lock-hint" class="hint" style="display:none;color:#b45309">🔒 Precio bloqueado — cambia la categoría para editarlo</p>
         </div>
         <div class="field">
-          <label>Precio de costo (MXN)</label>
-          <input type="number" id="f-cost" min="0" step="1" placeholder="200" oninput="updateMarginDisplay()">
-          <p class="hint">Solo interno — calcula tu margen</p>
+          <label>Precio de costo (MXN) <span style="font-size:.68rem;background:#FEF3C7;color:#92400E;padding:1px 6px;border-radius:4px;font-weight:600">Solo interno</span></label>
+          <input type="number" id="f-cost" min="0" step="1" placeholder="200" oninput="updateMarginDisplay()" style="background:#FFFBEB;border-color:#FCD34D">
+          <p class="hint">Calcula tu margen — no aparece en el catálogo</p>
         </div>
       </div>
       <div class="form-row">
         <div class="field">
-          <label>Precio anterior <span style="font-weight:400;color:var(--muted-light)">(oferta)</span></label>
-          <input type="number" id="f-original-price" min="0" step="1" placeholder="500">
-          <p class="hint">Se muestra tachado cuando hay descuento</p>
+          <button type="button" id="toggle-oferta-btn" class="btn-oferta-toggle" onclick="toggleOfertaField()">+ Agregar precio de oferta</button>
+          <div id="oferta-wrap" style="display:none">
+            <label style="margin-top:10px;display:block">Precio anterior <span style="font-weight:400;color:var(--muted-light)">(oferta)</span></label>
+            <input type="number" id="f-original-price" min="0" step="1" placeholder="500">
+            <p class="hint">Se muestra tachado cuando hay descuento</p>
+          </div>
         </div>
         <div class="field" style="display:flex;flex-direction:column;gap:6px;justify-content:flex-end">
           <label style="font-size:.78rem;font-weight:600;color:var(--muted)">
@@ -1572,6 +1578,25 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           </select>
         </div>
       </div>
+      <!-- f-out-of-stock: oculto — el estado lo maneja el POS automáticamente -->
+      <input type="checkbox" id="f-out-of-stock" style="display:none">
+      <p class="form-section">📦 Inventario</p>
+      <div class="form-row">
+        <div class="field">
+          <label>Stock (unidades)</label>
+          <input type="number" id="f-stock" min="0" step="1" placeholder="0">
+          <p class="hint">Cantidad disponible en inventario</p>
+        </div>
+        <div class="field">
+          <label>Código de barras <span style="font-weight:400;color:var(--muted-light)">(opcional)</span></label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="f-barcode" placeholder="Escanea o escribe el código..." style="flex:1" onblur="checkBarcodeConflict()">
+            <button type="button" class="btn btn-outline btn-sm" onclick="openFormScanner()" title="Usar cámara">📷</button>
+          </div>
+          <p class="hint">EAN-13, QR, Code-128</p>
+          <div id="f-barcode-warn" class="dup-warn" style="display:none"></div>
+        </div>
+      </div>
       <div class="field">
         <div class="field-label-row">
           <label>Descripción <span style="font-weight:400;color:var(--muted-light)">(opcional)</span></label>
@@ -1581,25 +1606,6 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           </div>
         </div>
         <textarea id="f-description" placeholder="Describe el producto: materiales, uso, características…" onblur="applyDescriptionFormat('f-description')"></textarea>
-      </div>
-      <!-- f-out-of-stock: oculto — el estado lo maneja el POS automáticamente -->
-      <input type="checkbox" id="f-out-of-stock" style="display:none">
-      <p class="form-section">📦 Inventario</p>
-      <div class="form-row">
-        <div class="field">
-          <label>Código de barras</label>
-          <div style="display:flex;gap:8px">
-            <input type="text" id="f-barcode" placeholder="Escanea o escribe el código..." style="flex:1" onblur="checkBarcodeConflict()">
-            <button type="button" class="btn btn-outline btn-sm" onclick="openFormScanner()" title="Usar cámara">📷</button>
-          </div>
-          <p class="hint">EAN-13, QR, Code-128 — opcional</p>
-          <div id="f-barcode-warn" class="dup-warn" style="display:none"></div>
-        </div>
-        <div class="field">
-          <label>Stock (unidades)</label>
-          <input type="number" id="f-stock" min="0" step="1" placeholder="0">
-          <p class="hint">Cantidad disponible en inventario</p>
-        </div>
       </div>
       <p class="form-section">⚙️ Visibilidad</p>
       <div class="form-row">
@@ -1784,9 +1790,12 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="admin.js"></script>
 <!-- MODAL: comparar producto similar -->
-<div id="sim-overlay">
+<div id="sim-overlay" onclick="if(event.target===this)closeSimilarModal()">
   <div id="sim-modal">
-    <img id="sim-img" class="sim-img" src="" alt="">
+    <div style="position:relative">
+      <img id="sim-img" class="sim-img" src="" alt="">
+      <button onclick="closeSimilarModal()" style="position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,.92);color:var(--charcoal);font-size:.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.18)">✕</button>
+    </div>
     <div class="sim-body">
       <div class="sim-tag" id="sim-cat"></div>
       <div class="sim-name" id="sim-name"></div>

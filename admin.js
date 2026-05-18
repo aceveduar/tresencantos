@@ -1704,6 +1704,7 @@ function openForm(id) {
     document.getElementById('f-category-label').value = p.categoryLabel;
     document.getElementById('f-price').value = p.price;
     document.getElementById('f-original-price').value = p.originalPrice || '';
+    toggleOfertaField(!!p.originalPrice);
     document.getElementById('f-badge').value = p.badge || '';
     document.getElementById('f-badge-type').value = p.badgeType || '';
     document.getElementById('f-description').value = p.description;
@@ -1723,6 +1724,7 @@ function openForm(id) {
     document.getElementById('f-category-label').value = categories[0]?.label || '';
     document.getElementById('f-price').value = '';
     document.getElementById('f-original-price').value = '';
+    toggleOfertaField(false);
     document.getElementById('f-badge').value = '';
     document.getElementById('f-badge-type').value = '';
     document.getElementById('f-description').value = '';
@@ -1753,6 +1755,16 @@ function closeForm() {
   document.body.style.overflow = '';
   setBtn(document.getElementById('save-btn'), false);
   _clearDupWarnings();
+}
+
+function toggleOfertaField(forceShow) {
+  const wrap = document.getElementById('oferta-wrap');
+  const btn  = document.getElementById('toggle-oferta-btn');
+  if (!wrap || !btn) return;
+  const show = forceShow !== undefined ? forceShow : wrap.style.display === 'none';
+  wrap.style.display = show ? 'block' : 'none';
+  btn.style.display  = show ? 'none'  : 'block';
+  if (!show) document.getElementById('f-original-price').value = '';
 }
 
 function updateMarginDisplay() {
