@@ -306,10 +306,22 @@ tr:hover .drag-handle{opacity:1}
 .empty-row td{text-align:center;padding:64px;color:var(--muted)}
 
 /* ══ DUPLICADOS ════════════════════════════════════════════════════════ */
-#dup-badge-btn{display:none;align-items:center;gap:5px;background:var(--red);color:#fff;border:none;border-radius:20px;padding:5px 11px;font-size:.77rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:opacity .2s;flex-shrink:0}
+/* Badge topbar */
+#dup-badge-btn{display:none;align-items:center;gap:5px;color:#fff;border:none;border-radius:20px;padding:5px 12px;font-size:.77rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:opacity .2s;flex-shrink:0;line-height:1}
 #dup-badge-btn:hover{opacity:.85}
-.dup-pair{padding:16px 0;border-bottom:1px solid var(--border)}
-.dup-pair:last-child{border-bottom:none}
+.dup-badge-label{font-weight:600}
+/* Modal de revisión */
+.dup-sheet-pill{width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 4px;flex-shrink:0;display:none}
+.dup-signals{font-size:.75rem;font-weight:700;border-radius:6px;padding:6px 10px 6px 8px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.dup-signals.dup-high{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca}
+.dup-signals.dup-med{color:#92400e;background:#fffbeb;border:1px solid #fde68a}
+.dup-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dup-dot.red{background:var(--red)}
+.dup-dot.amber{background:#d97706}
+.dup-section-title{font-size:.69rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:16px 0 6px;display:flex;align-items:center;gap:6px}
+.dup-section-title:first-child{padding-top:8px}
+.dup-pair{padding:14px 0;border-bottom:1px solid var(--border)}
+.dup-pair:last-child{border-bottom:none;padding-bottom:4px}
 .dup-pair-cols{display:flex;gap:12px}
 .dup-prod{flex:1;background:var(--cream);border-radius:12px;padding:12px;min-width:0}
 .dup-prod img{width:100%;aspect-ratio:1/1;object-fit:contain;background:#fff;border-radius:8px;margin-bottom:8px;display:block}
@@ -317,10 +329,17 @@ tr:hover .drag-handle{opacity:1}
 .dup-prod-name{font-weight:700;font-size:.88rem;margin-bottom:3px;line-height:1.3}
 .dup-prod-meta{font-size:.77rem;color:var(--muted);margin-bottom:8px}
 .dup-prod-actions{display:flex;gap:6px;flex-wrap:wrap}
-.dup-signals{font-size:.75rem;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:5px 10px;margin-bottom:12px;font-weight:600}
 .dup-dismiss{width:100%;background:var(--gold-light);border:1px solid var(--gold);color:var(--gold-dark);border-radius:8px;padding:9px;font-size:.82rem;font-weight:600;cursor:pointer;margin-top:12px;transition:.15s}
 .dup-dismiss:hover{background:var(--cream)}
-@media(max-width:500px){.dup-pair-cols{flex-direction:column}}
+@media(max-width:640px){
+  #dup-badge-btn .dup-badge-label{display:none}
+  #dup-badge-btn{padding:4px 9px;gap:3px}
+  .dup-sheet-pill{display:block}
+  /* Dos cards en fila pero con imagen 4/3 para no quedar muy alta */
+  .dup-prod img,.dup-prod-ph{aspect-ratio:4/3}
+  .dup-prod-name{font-size:.82rem}
+  .dup-prod-meta{font-size:.72rem}
+}
 
 /* ══ MODAL ═════════════════════════════════════════════════════════════ */
 .overlay{position:fixed;inset:0;background:rgba(20,15,12,.5);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s}
@@ -1091,7 +1110,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       </div>
     </div>
     <div class="topbar-right">
-      <button id="dup-badge-btn" onclick="openDupReview()" title="Revisar posibles duplicados">⚠️ <span id="dup-badge-count">0</span> duplicados</button>
+      <button id="dup-badge-btn" onclick="openDupReview()" title="Revisar posibles duplicados"><span id="dup-badge-count">0</span><span class="dup-badge-label" id="dup-badge-label"> duplicados</span></button>
       <a href="stats.html" class="btn btn-outline btn-sm btn-stats-admin">📊 Reportes</a>
       <a href="activity.html" class="btn btn-outline btn-sm btn-stats-admin">📋 Actividad</a>
       <a href="settings.html" class="btn btn-outline btn-sm btn-stats-admin">⚙️ Config</a>
@@ -1683,11 +1702,12 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 <!-- SCANNER MODAL -->
 <div class="overlay" id="dup-review-overlay">
   <div class="modal" style="max-width:680px;width:100%">
-    <div class="modal-head">
-      <h3>Posibles duplicados</h3>
+    <div class="dup-sheet-pill"></div>
+    <div class="modal-head" style="padding:16px 20px 14px">
+      <h3 style="font-size:1.05rem">Posibles duplicados</h3>
       <button class="modal-close-btn" onclick="closeDupReview()">✕</button>
     </div>
-    <div class="modal-body" id="dup-review-body" style="padding:8px 20px 20px"></div>
+    <div class="modal-body" id="dup-review-body" style="padding:0 20px 24px"></div>
   </div>
 </div>
 

@@ -2684,7 +2684,16 @@ function _updateDupBadge() {
   if (ROLE !== 'superadmin' && ROLE !== 'encargado') { btn.style.display = 'none'; return; }
   const pairs = _findDuplicatePairs();
   if (!pairs.length) { btn.style.display = 'none'; return; }
+  const highCount = pairs.filter(p => p.score >= 0.75).length;
+  const medCount  = pairs.length - highCount;
+  btn.style.background = highCount ? 'var(--red)' : '#d97706';
   document.getElementById('dup-badge-count').textContent = pairs.length;
+  const labelEl = document.getElementById('dup-badge-label');
+  if (labelEl) labelEl.textContent = highCount && medCount
+    ? ` dup (${highCount}🔴 ${medCount}🟡)`
+    : highCount
+      ? ` duplicado${highCount > 1 ? 's' : ''}`
+      : ` nombre${medCount > 1 ? 's' : ''} ambiguo${medCount > 1 ? 's' : ''}`;
   btn.style.display = 'flex';
 }
 
@@ -2707,31 +2716,61 @@ function _renderDupReview() {
     _updateDupBadge();
     return;
   }
+
+  // Umbral: score >= 0.75 → probable duplicado; menor → nombres ambiguos
+  const high = pairs.filter(p => p.score >= 0.75);
+  const med  = pairs.filter(p => p.score < 0.75);
+
   const thumb = (img, name) => img
     ? `<img src="${img}" alt="${name}" loading="lazy">`
     : `<div class="dup-prod-ph">📦</div>`;
-  const card = (p, pairKey) => `
+
+  const card = (p, pairKey, isMed) => `
     <div class="dup-prod">
       ${thumb(p.image, p.name)}
       <div class="dup-prod-name">${p.name}</div>
       <div class="dup-prod-meta">${p.categoryLabel || '—'} · $${(p.price||0).toLocaleString('es-MX')} · Stock ${p.stock}</div>
       <div class="dup-prod-actions">
-        <button class="btn btn-outline btn-sm" onclick="closeDupReview();openForm(${p.id})">Editar →</button>
-        ${can.deleteProduct ? `<button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="_deleteDupProduct(${p.id},'${pairKey}')">Eliminar</button>` : ''}
+        <button class="btn btn-outline btn-sm" onclick="closeDupReview();openForm(${p.id})">${isMed ? 'Renombrar →' : 'Editar →'}</button>
+        ${(!isMed && can.deleteProduct) ? `<button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="_deleteDupProduct(${p.id},'${pairKey}')">Eliminar</button>` : ''}
       </div>
     </div>`;
-  body.innerHTML = pairs.map(({ a, b, signals, pairKey }) => `
-    <div class="dup-pair" id="dup-pair-${pairKey}">
-      <div class="dup-signals">⚠️ ${signals.join(' · ')}</div>
-      <div class="dup-pair-cols">${card(a, pairKey)}${card(b, pairKey)}</div>
-      <button class="dup-dismiss" onclick="_dismissDupPair('${pairKey}')">✓ Son productos distintos — no volver a avisar</button>
-    </div>`).join('');
+
+  const renderPair = ({ a, b, signals, pairKey, score }) => {
+    const isMed = score < 0.75;
+    const cls = isMed ? 'dup-med' : 'dup-high';
+    return `
+      <div class="dup-pair" id="dup-pair-${pairKey}">
+        <div class="dup-signals ${cls}"><span class="dup-dot ${isMed?'amber':'red'}"></span>${signals.join(' · ')}</div>
+        <div class="dup-pair-cols">${card(a, pairKey, isMed)}${card(b, pairKey, isMed)}</div>
+        <button class="dup-dismiss" onclick="_dismissDupPair('${pairKey}')">
+          ${isMed ? '✓ Los nombres ya son distintos — no volver a avisar' : '✓ Son productos distintos — no volver a avisar'}
+        </button>
+      </div>`;
+  };
+
+  let html = '';
+  if (high.length) {
+    html += `<div class="dup-section-title"><span class="dup-dot red"></span>Probables duplicados — considera eliminar uno</div>`;
+    html += high.map(renderPair).join('');
+  }
+  if (med.length) {
+    html += `<div class="dup-section-title"><span class="dup-dot amber"></span>Nombres ambiguos — mejora el nombre para diferenciarlos</div>`;
+    html += med.map(renderPair).join('');
+  }
+  body.innerHTML = html;
 }
 
 function _dismissDupPair(pairKey) {
   const set = _getDismissedDups();
   set.add(pairKey);
   _saveDismissedDups(set);
+  // Buscar los nombres del par para el registro
+  const [idA, idB] = pairKey.split('_').map(Number);
+  const pa = products.find(p => p.id === idA), pb = products.find(p => p.id === idB);
+  if (pa && pb) logActivity('duplicado_descartado',
+    `Revisó y descartó par como distintos: "${pa.name}" / "${pb.name}"`,
+    { id_a: idA, id_b: idB, name_a: pa.name, name_b: pb.name });
   document.getElementById(`dup-pair-${pairKey}`)?.remove();
   if (!document.querySelector('#dup-review-body .dup-pair')) {
     document.getElementById('dup-review-body').innerHTML =

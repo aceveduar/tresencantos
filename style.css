@@ -367,8 +367,8 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .modal-overlay.open .modal{transform:scale(1)}
 
 /* Zona 1 — Imagen */
-.modal-img-wrap{position:relative;flex-shrink:0}
-.modal-img{width:100%;aspect-ratio:1;object-fit:contain;background:#fff;display:block}
+.modal-img-wrap{position:relative;flex-shrink:0;padding-top:12px}
+.modal-img{width:100%;aspect-ratio:4/3;object-fit:contain;background:#fff;display:block}
 .modal-close{position:absolute;top:10px;right:10px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.92);color:var(--charcoal);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;transition:var(--ease);z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.18)}
 .modal-close:hover{background:#fff;box-shadow:0 3px 14px rgba(0,0,0,.24)}
 
@@ -398,12 +398,18 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .btn-modal-addcart{width:100%;justify-content:center;background:var(--gold);color:#fff}
 .btn-modal-addcart:hover{background:var(--gold-dark)}
 .btn-modal-addcart.added{background:#2D6A4F}
-.modal-wa-direct{width:100%;margin-top:8px;background:transparent;border:none;color:var(--wa);font-size:.82rem;font-weight:600;padding:8px 0;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;transition:color .2s}
-.modal-wa-direct:hover{color:var(--wa-dark)}
-.modal-wa-direct svg{flex-shrink:0}
+.modal-wa-direct{background:transparent;border:none;color:var(--wa);padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;transition:background .2s,color .2s;flex-shrink:0}
+.modal-wa-direct:hover{background:rgba(37,211,102,.12);color:var(--wa-dark)}
+.modal-wa-direct svg{width:20px;height:20px;flex-shrink:0}
+.modal-wa-mobile{display:none}
+@media(max-width:600px){
+  .modal-wa-mobile{display:flex;width:100%;justify-content:center;align-items:center;gap:7px;padding:10px 0 2px;background:transparent;border:none;color:var(--wa);font-size:.85rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
+}
 
 /* ── CARRITO ── */
 @keyframes cart-pop{0%{transform:scale(1)}45%{transform:scale(1.2)}75%{transform:scale(.94)}100%{transform:scale(1)}}
+@keyframes btn-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+.btn-at-max{background:#E85D5D!important;color:#fff!important;border-color:#E85D5D!important;animation:btn-shake .4s ease}
 .nav-cart-btn{position:relative;display:flex;align-items:center;gap:6px;background:var(--gold);color:#fff;border:none;border-radius:50px;padding:8px 16px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;transition:var(--ease);text-decoration:none;white-space:nowrap}
 .nav-cart-btn:hover{background:var(--gold-dark)}
 .nav-cart-btn.cart-pulse{animation:cart-pop .4s cubic-bezier(.36,.07,.19,.97) both}
@@ -449,6 +455,7 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .modal-cta{padding:12px 18px calc(18px + env(safe-area-inset-bottom))}
   .modal-cta-amount{font-size:1.5rem}
 }
+
 
 /* ── ANIMATIONS ── */
 .reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}

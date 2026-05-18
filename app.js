@@ -26,8 +26,12 @@ function addToCart(id, qty = 1) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   const existing = cart.find(x => x.id === id);
-  if (existing) existing.qty += qty;
-  else cart.push({ id: p.id, name: p.name, price: p.price, qty, image: p.image });
+  const currentQty = existing ? existing.qty : 0;
+  const available = (p.stock || 0) - currentQty;
+  const toAdd = Math.min(qty, available);
+  if (toAdd <= 0) return;
+  if (existing) existing.qty += toAdd;
+  else cart.push({ id: p.id, name: p.name, price: p.price, qty: toAdd, image: p.image });
   saveCart();
   renderCartBadge();
 }
@@ -39,10 +43,18 @@ function removeFromCart(id) {
   renderCartBody();
 }
 
-function updateCartQty(id, delta) {
+function updateCartQty(id, delta, btn) {
   const item = cart.find(x => x.id === id);
   if (!item) return;
-  item.qty = Math.max(1, item.qty + delta);
+  const p = products.find(x => x.id === id);
+  const maxQty = p ? (p.stock || 1) : 1;
+  const next = Math.max(1, Math.min(item.qty + delta, maxQty));
+  if (next === item.qty && delta > 0 && btn) {
+    btn.classList.remove('btn-at-max');
+    requestAnimationFrame(() => { btn.classList.add('btn-at-max'); setTimeout(() => btn.classList.remove('btn-at-max'), 500); });
+    return;
+  }
+  item.qty = next;
   saveCart();
   renderCartBadge();
   renderCartBody();
@@ -90,7 +102,7 @@ function renderCartBody() {
   <div class="cart-item-controls">
     <button class="cqty-btn" onclick="updateCartQty(${item.id},-1)">−</button>
     <span class="cqty-num">${item.qty}</span>
-    <button class="cqty-btn" onclick="updateCartQty(${item.id},1)">+</button>
+    <button class="cqty-btn" onclick="updateCartQty(${item.id},1,this)">+</button>
     <button class="cqty-btn" onclick="removeFromCart(${item.id})" style="border-color:#FECACA;color:#EF4444;margin-left:4px">✕</button>
   </div>
 </div>`).join('');
@@ -663,17 +675,18 @@ function openModal(id) {
   const shareBtn = navigator.share
     ? `<button class="btn btn-share modal-share-btn" onclick="shareProduct(${p.id})" aria-label="Compartir"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>`
     : '';
+  const waDirectBtn = oos ? '' : `<button class="modal-wa-direct" onclick="whatsapp(${p.id})" title="Pedir por WhatsApp" aria-label="Pedir por WhatsApp">${WA_SVG}</button>`;
   const modalBtn = oos
     ? `<button class="btn modal-btn-oos" onclick="notifyRestock(${p.id},this)">🔔 Avisarme cuando haya stock</button>`
     : `<div class="modal-qty-row">
         <button class="modal-qty-btn" onclick="changeModalQty(-1)">−</button>
         <span class="modal-qty-num" id="modal-qty-num">1</span>
-        <button class="modal-qty-btn" onclick="changeModalQty(1)">+</button>
+        <button class="modal-qty-btn" id="modal-qty-plus" onclick="changeModalQty(1)">+</button>
       </div>
       <button class="btn btn-modal-addcart" id="modal-addcart-btn" onclick="modalAddToCart(${p.id})">
         🛒 Agregar al carrito
       </button>
-      <button class="modal-wa-direct" onclick="whatsapp(${p.id})">${WA_SVG} Pedir solo este por WhatsApp</button>`;
+      <button class="modal-wa-mobile" onclick="whatsapp(${p.id})">${WA_SVG} Pedir directo por WhatsApp</button>`;
   const descHTML = p.description
     ? `<p class="modal-desc">${p.description}</p>`
     : '';
@@ -695,7 +708,10 @@ function openModal(id) {
   <div class="modal-cta">
     <div class="modal-cta-row">
       ${ctaPriceHTML}
-      ${shareBtn}
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        ${waDirectBtn}
+        ${shareBtn}
+      </div>
     </div>
     ${modalBtn}
   </div>
@@ -716,7 +732,14 @@ function notifyRestock(id, btn) {
 }
 
 function changeModalQty(delta) {
-  _modalQty = Math.max(1, _modalQty + delta);
+  const maxQty = activeProduct ? (activeProduct.stock || 1) : 1;
+  const next = Math.max(1, Math.min(_modalQty + delta, maxQty));
+  if (next === _modalQty && delta > 0) {
+    const btn = document.getElementById('modal-qty-plus');
+    if (btn) { btn.classList.remove('btn-at-max'); requestAnimationFrame(() => { btn.classList.add('btn-at-max'); setTimeout(() => btn.classList.remove('btn-at-max'), 500); }); }
+    return;
+  }
+  _modalQty = next;
   const el = document.getElementById('modal-qty-num');
   if (el) el.textContent = _modalQty;
 }
