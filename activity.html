@@ -89,7 +89,7 @@ a{text-decoration:none}
   background-repeat:no-repeat;background-position:right 10px center;
 }
 .filter-select:focus{border-color:var(--gold)}
-.chip-group{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;flex-shrink:0}
+.chip-group{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;flex-shrink:0;-webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%);mask-image:linear-gradient(to right,#000 82%,transparent 100%)}
 .chip-group::-webkit-scrollbar{display:none}
 .chip{flex-shrink:0;padding:6px 14px;border-radius:50px;border:1.5px solid var(--border);background:#fff;font-size:.76rem;font-weight:600;cursor:pointer;color:#9B8B78;transition:.15s;white-space:nowrap}
 .chip.active{background:var(--charcoal);color:#fff;border-color:var(--charcoal)}
@@ -97,7 +97,7 @@ a{text-decoration:none}
 
 /* SUMMARY */
 .summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
-.sum-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 12px;text-align:center}
+.sum-card{background:#fff;border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:12px;padding:14px 12px;text-align:center}
 .sum-val{font-family:'Playfair Display',serif;font-size:1.25rem;font-weight:700}
 .sum-sub{font-size:.73rem;font-weight:600;color:var(--green);margin-top:2px;min-height:1.1em;line-height:1.2}
 .sum-sub.muted{color:var(--muted)}
@@ -112,12 +112,16 @@ a{text-decoration:none}
 .act-body{flex:1;min-width:0}
 .act-top{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
 .act-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:50px;font-size:.63rem;font-weight:800;letter-spacing:.03em;text-transform:uppercase;flex-shrink:0}
-.badge-venta{background:#D1FAE5;color:#065F46}
+.badge-venta    {background:#D1FAE5;color:#065F46}
 .badge-inventario{background:#E0E7FF;color:#3730A3}
-.badge-apartado{background:#FEF3C7;color:#92400E}
+.badge-apartado {background:#FEF3C7;color:#92400E}
+.badge-creado   {background:#D1FAE5;color:#065F46}
+.badge-editado  {background:#FFF8EE;color:#A67C3A}
+.badge-eliminado{background:#FEE2E2;color:#991B1B}
+.badge-revisado {background:#EDE9FE;color:#5B21B6}
 .act-user{font-size:.73rem;color:var(--muted);font-weight:600;white-space:nowrap}
 .act-time{font-size:.68rem;color:#B5A696;margin-left:auto;white-space:nowrap;flex-shrink:0}
-.act-summary{font-size:.84rem;font-weight:600;color:var(--charcoal);line-height:1.4}
+.act-summary{font-size:.84rem;font-weight:500;color:var(--charcoal);line-height:1.4}
 .act-detail{font-size:.74rem;color:var(--muted);margin-top:3px}
 
 /* EMPTY / LOADING */
@@ -304,14 +308,14 @@ function setType(btn, type) {
 
 /* ── ACTION CONFIG ── */
 const ACTION_CFG = {
-  venta:              { badge:'venta',      icon:'💰', label:'Venta'     },
-  apartado_nuevo:     { badge:'apartado',   icon:'📌', label:'Apartado'  },
-  apartado_abono:     { badge:'apartado',   icon:'💳', label:'Abono'     },
-  apartado_liquidado: { badge:'apartado',   icon:'✅', label:'Liquidado' },
-  producto_creado:       { badge:'inventario', icon:'➕', label:'Creado'    },
-  producto_editado:      { badge:'inventario', icon:'✏️', label:'Editado'   },
-  producto_eliminado:    { badge:'inventario', icon:'🗑', label:'Eliminado' },
-  duplicado_descartado:  { badge:'inventario', icon:'👁', label:'Revisado'  },
+  venta:              { type:'venta',      badge:'venta',     icon:'💰', label:'Venta'     },
+  apartado_nuevo:     { type:'apartado',   badge:'apartado',  icon:'📌', label:'Apartado'  },
+  apartado_abono:     { type:'apartado',   badge:'apartado',  icon:'💳', label:'Abono'     },
+  apartado_liquidado: { type:'apartado',   badge:'apartado',  icon:'✅', label:'Liquidado' },
+  producto_creado:       { type:'inventario', badge:'creado',    icon:'➕', label:'Creado'    },
+  producto_editado:      { type:'inventario', badge:'editado',   icon:'✏️', label:'Editado'   },
+  producto_eliminado:    { type:'inventario', badge:'eliminado', icon:'🗑', label:'Eliminado' },
+  duplicado_descartado:  { type:'inventario', badge:'revisado',  icon:'👁', label:'Revisado'  },
 };
 
 /* ── LOAD ── */
@@ -395,7 +399,7 @@ function updateSummary(logData, salesData, allApartados) {
 
 function render(data) {
   const filtered = currentType
-    ? data.filter(d => (ACTION_CFG[d.action]?.badge || 'inventario') === currentType)
+    ? data.filter(d => (ACTION_CFG[d.action]?.type || 'inventario') === currentType)
     : data;
 
   const feed = document.getElementById('feed');

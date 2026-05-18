@@ -273,7 +273,7 @@ button,a,[onclick]{touch-action:manipulation}
         <div class="scard-desc">URL o PDF de la revista para clientes en el sitio web</div>
       </div>
       <div class="scard-action">
-        <button class="btn btn-gold btn-sm" onclick="openRevista()">Editar</button>
+        <button class="btn btn-outline btn-sm" onclick="openRevista()">Editar</button>
       </div>
     </div>
   </div>
@@ -306,6 +306,16 @@ button,a,[onclick]{touch-action:manipulation}
       </div>
       <div class="scard-action">
         <button class="btn btn-outline btn-sm" onclick="openNamesModal()">Gestionar</button>
+      </div>
+    </div>
+    <div class="scard-row">
+      <div class="scard-icon">🔍</div>
+      <div class="scard-body">
+        <div class="scard-title">Revisión de duplicados</div>
+        <div class="scard-desc">Detecta productos con nombre, precio o stock similares<span id="dup-count-tag"></span></div>
+      </div>
+      <div class="scard-action">
+        <a href="admin.html#dup-review" class="btn btn-outline btn-sm">Revisar</a>
       </div>
     </div>
   </div>
@@ -944,6 +954,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (_nl) _nl.textContent = _n;
   } catch {}
   init();
+  // Mostrar conteo de duplicados desde última revisión en Inventario
+  const dupCount = parseInt(localStorage.getItem('te_dup_last_count') || '0');
+  const dupTag = document.getElementById('dup-count-tag');
+  if (dupTag && dupCount > 0) {
+    dupTag.innerHTML = ` — <strong style="color:#D97706">${dupCount} posibles</strong>`;
+  }
 });
 </script>
 </body>

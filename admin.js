@@ -543,6 +543,10 @@ async function showApp() {
   renderStats();
   setAdminView(currentAdminView);
   setTimeout(_updateDupBadge, 0);
+  if (location.hash === '#dup-review') {
+    history.replaceState(null, '', location.pathname);
+    setTimeout(openDupReview, 500);
+  }
 }
 
 /* ── LOAD PRODUCTS ── */
@@ -2679,22 +2683,27 @@ function _findDuplicatePairs() {
 }
 
 function _updateDupBadge() {
-  const btn = document.getElementById('dup-badge-btn');
-  if (!btn) return;
-  if (ROLE !== 'superadmin' && ROLE !== 'encargado') { btn.style.display = 'none'; return; }
+  const banner = document.getElementById('dup-banner');
+  if (!banner) return;
+  if (ROLE !== 'superadmin' && ROLE !== 'encargado') { banner.style.display = 'none'; return; }
   const pairs = _findDuplicatePairs();
-  if (!pairs.length) { btn.style.display = 'none'; return; }
+  if (!pairs.length) { banner.style.display = 'none'; return; }
+  const dismissedAt = parseInt(localStorage.getItem('te_dup_dismiss') || '0');
+  if (dismissedAt >= pairs.length) { banner.style.display = 'none'; return; }
   const highCount = pairs.filter(p => p.score >= 0.75).length;
-  const medCount  = pairs.length - highCount;
-  btn.style.background = highCount ? 'var(--red)' : '#d97706';
-  document.getElementById('dup-badge-count').textContent = pairs.length;
-  const labelEl = document.getElementById('dup-badge-label');
-  if (labelEl) labelEl.textContent = highCount && medCount
-    ? ` dup (${highCount}🔴 ${medCount}🟡)`
-    : highCount
-      ? ` duplicado${highCount > 1 ? 's' : ''}`
-      : ` nombre${medCount > 1 ? 's' : ''} ambiguo${medCount > 1 ? 's' : ''}`;
-  btn.style.display = 'flex';
+  const titleEl = document.getElementById('dup-banner-title');
+  if (titleEl) titleEl.textContent = highCount
+    ? `${pairs.length} posibles duplicados — ${highCount} con alta probabilidad`
+    : `${pairs.length} nombres similares detectados`;
+  localStorage.setItem('te_dup_last_count', pairs.length);
+  banner.style.display = 'flex';
+}
+
+function _dismissDupBanner() {
+  const pairs = _findDuplicatePairs();
+  localStorage.setItem('te_dup_dismiss', pairs.length);
+  const banner = document.getElementById('dup-banner');
+  if (banner) banner.style.display = 'none';
 }
 
 function openDupReview() {

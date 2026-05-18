@@ -306,10 +306,22 @@ tr:hover .drag-handle{opacity:1}
 .empty-row td{text-align:center;padding:64px;color:var(--muted)}
 
 /* ══ DUPLICADOS ════════════════════════════════════════════════════════ */
-/* Badge topbar */
-#dup-badge-btn{display:none;align-items:center;gap:5px;color:#fff;border:none;border-radius:20px;padding:5px 12px;font-size:.77rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:opacity .2s;flex-shrink:0;line-height:1}
-#dup-badge-btn:hover{opacity:.85}
-.dup-badge-label{font-weight:600}
+/* Badge topbar — oculto, reemplazado por banner inline */
+#dup-badge-btn{display:none!important}
+/* Banner duplicados */
+#dup-banner{background:#FFFBEB;border:1.5px solid #FCD34D;border-left:4px solid #D97706;border-radius:10px;padding:12px 14px;margin-bottom:14px;align-items:center;gap:12px;flex-wrap:wrap}
+.dup-ban-text{flex:1;min-width:160px}
+.dup-ban-title{font-weight:700;color:#92400E;font-size:.88rem;line-height:1.3}
+.dup-ban-sub{font-size:.76rem;color:#78350F;margin-top:3px}
+.dup-ban-actions{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.dup-ban-primary{background:#D97706;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s}
+.dup-ban-primary:hover{background:#B45309}
+.dup-ban-dismiss{background:transparent;color:#92400E;border:1.5px solid rgba(217,119,6,.4);border-radius:8px;padding:7px 12px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s}
+.dup-ban-dismiss:hover{background:rgba(217,119,6,.1)}
+@media(max-width:640px){
+  #dup-banner{gap:8px}
+  .dup-ban-actions{flex:1 0 100%;justify-content:flex-end}
+}
 /* Modal de revisión */
 .dup-sheet-pill{width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 4px;flex-shrink:0;display:none}
 .dup-signals{font-size:.75rem;font-weight:700;border-radius:6px;padding:6px 10px 6px 8px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
@@ -705,15 +717,21 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .topbar-title-group{justify-content:center}
   .topbar-left h2{
     text-align:center;
-    font-size:1.05rem;
+    font-size:.98rem;
     font-style:italic;
     color:#fff;
     letter-spacing:.01em;
     white-space:nowrap;
-    padding:0 8px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    padding:0 6px;
   }
   .user-name{display:none}
   .user-avatar{width:26px;height:26px;font-size:.7rem}
+  /* íconos más compactos en mobile para dar espacio al título */
+  .tbn-icon{padding:4px 5px;min-width:30px}
+  .tbn-icon svg{width:16px;height:16px}
+  .topbar-nav-mobile{gap:0}
   .btn-versite{display:none}
   .btn-stats-admin{display:none}
   .btn-logout{display:none}
@@ -938,6 +956,10 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .stats{grid-template-columns:1fr 1fr}
   .bulk-bar .btn{font-size:.68rem;padding:5px 8px}
   main{padding:14px 10px}
+  /* íconos aún más compactos en teléfonos muy chicos */
+  .tbn-icon{padding:4px 3px;min-width:26px}
+  .tbn-icon svg{width:15px;height:15px}
+  .topbar-nav-mobile{gap:0}
 }
 
 /* ── TABLETA (641px–1024px) ─────────────────────────────────────────────
@@ -1224,6 +1246,19 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       <span style="font-size:1.1rem">⚠️</span>
       <span id="no-price-alert-text" style="flex:1;color:var(--charcoal);font-weight:500"></span>
       <span style="color:var(--gold-dark);font-weight:700;font-size:.78rem;white-space:nowrap">Ver →</span>
+    </div>
+
+    <!-- BANNER DUPLICADOS -->
+    <div id="dup-banner" style="display:none">
+      <span style="font-size:1.3rem;flex-shrink:0">⚠️</span>
+      <div class="dup-ban-text">
+        <div class="dup-ban-title" id="dup-banner-title">Posibles duplicados detectados</div>
+        <div class="dup-ban-sub">Revisa antes de agregar más productos similares</div>
+      </div>
+      <div class="dup-ban-actions">
+        <button class="dup-ban-primary" onclick="openDupReview()">Revisar ahora</button>
+        <button class="dup-ban-dismiss" onclick="_dismissDupBanner()">Luego ×</button>
+      </div>
     </div>
 
     <!-- TOOLBAR -->

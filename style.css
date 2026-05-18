@@ -53,6 +53,7 @@ a{color:inherit}
 .nav-links a:hover{color:var(--gold-dark);background:var(--gold-light)}
 .nav-cta{background:var(--wa)!important;color:#fff!important;padding:9px 18px!important;border-radius:50px!important;font-weight:600!important;display:flex!important;align-items:center!important;gap:6px!important}
 .nav-cta:hover{background:var(--wa-dark)!important;transform:translateY(-1px);box-shadow:0 4px 14px rgba(37,211,102,.35)!important}
+.nav-actions{display:flex;align-items:center;gap:6px}
 .nav-toggle{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:8px;border:none;background:none}
 .nav-toggle span{width:24px;height:2px;background:var(--charcoal);border-radius:2px;transition:var(--ease)}
 
@@ -410,7 +411,7 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 @keyframes cart-pop{0%{transform:scale(1)}45%{transform:scale(1.2)}75%{transform:scale(.94)}100%{transform:scale(1)}}
 @keyframes btn-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
 .btn-at-max{background:#E85D5D!important;color:#fff!important;border-color:#E85D5D!important;animation:btn-shake .4s ease}
-.nav-cart-btn{position:relative;display:flex;align-items:center;gap:6px;background:var(--gold);color:#fff;border:none;border-radius:50px;padding:8px 16px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;transition:var(--ease);text-decoration:none;white-space:nowrap}
+.nav-cart-btn{position:relative;display:flex;align-items:center;gap:6px;background:var(--gold);color:#fff;border:none;border-radius:50px;padding:8px 16px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;transition:var(--ease);text-decoration:none;white-space:nowrap;flex-shrink:0}
 .nav-cart-btn:hover{background:var(--gold-dark)}
 .nav-cart-btn.cart-pulse{animation:cart-pop .4s cubic-bezier(.36,.07,.19,.97) both}
 .nav-cart-badge{background:#E85D5D;color:#fff;border-radius:50%;width:18px;height:18px;font-size:.6rem;font-weight:800;display:none;align-items:center;justify-content:center;margin-left:2px}
@@ -589,6 +590,10 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .nav-toggle.open span:nth-child(1){transform:rotate(45deg) translate(5px,5px)}
   .nav-toggle.open span:nth-child(2){opacity:0;transform:translateX(-6px)}
   .nav-toggle.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
+
+  /* Cart compacto en mobile — ícono solo, mismo peso que hamburger */
+  .nav-cart-btn{width:40px;height:40px;padding:0;border-radius:50%;font-size:1rem;justify-content:center;gap:0}
+  .nav-cart-btn .nav-cart-badge{position:absolute;top:-4px;right:-4px;width:18px;height:18px;font-size:.6rem}
 
   /* FILTERS — scroll horizontal en teléfono */
   .products-filters{
