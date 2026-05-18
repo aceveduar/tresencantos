@@ -688,14 +688,15 @@ function adminCard(p) {
      data-id="${p.id}"
      ondblclick="openForm(${p.id})"
      ondragstart="void 0">
-  <div class="ac-img-wrap">
+  <div class="ac-img-wrap" onclick="event.stopPropagation();openQV(${p.id})" style="cursor:pointer">
     <img class="ac-img" src="${p.image}" alt="${p.name}"
          onerror="this.onerror=null;this.src='${fallback}'">
     <input type="checkbox" class="ac-check row-check"
-           ${sel?'checked':''} onchange="toggleRowSelect(${p.id},this.checked)">
+           ${sel?'checked':''} onchange="toggleRowSelect(${p.id},this.checked)"
+           onclick="event.stopPropagation()">
     ${badgeHTML}
     <div class="ac-oos-label"></div>
-    <button class="ac-star toggle-featured" onclick="toggleFeatured(${p.id})"
+    <button class="ac-star toggle-featured" onclick="event.stopPropagation();toggleFeatured(${p.id})"
             title="${p.featured?'Quitar destacado':'Destacar'}">
       ${p.featured?'⭐':'☆'}
     </button>
@@ -924,7 +925,7 @@ function desktopRow(p) {
   <td class="col-product">
     <div style="display:flex;align-items:center;gap:10px;min-width:0">
       <span class="drag-handle" title="Arrastrar para reordenar">⠿</span>
-      <img class="prod-thumb" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'"${oos ? ' style="opacity:.5;filter:grayscale(.5)"' : ''}>
+      <img class="prod-thumb" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'" onclick="event.stopPropagation();openQV(${p.id})" style="cursor:pointer${oos ? ';opacity:.5;filter:grayscale(.5)' : ''}" title="Ver detalle rápido">
       <div style="min-width:0;flex:1">
         <div class="prod-name" title="${p.name}">${p.name}</div>
         <div class="prod-meta">
@@ -982,7 +983,8 @@ function mobileCard(p) {
         <div class="mpc-img-wrap">
           <img class="mpc-img" src="${p.image}" alt="${p.name}"
                onerror="this.onerror=null;this.src='${fallback}'"
-               ${oos ? 'style="opacity:.5;filter:grayscale(.4)"' : ''}>
+               onclick="event.stopPropagation();openQV(${p.id})"
+               style="cursor:pointer${oos ? ';opacity:.5;filter:grayscale(.4)' : ''}">
           <input type="checkbox" class="row-check mpc-check-over"
                  ${sel ? 'checked' : ''} onchange="toggleRowSelect(${p.id}, this.checked)">
           <button class="mpc-star${p.featured ? ' feat-active' : ''}"
@@ -1283,12 +1285,16 @@ let driveEp     = null;
 let driveSecret = null;
 
 async function loadAppConfig() {
-  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret,wa_float,captura_rapida)&select=id,value');
+  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret,wa_float,captura_rapida,dismissed_dups)&select=id,value');
   if (r.ok && r.data) {
     r.data.forEach(row => {
       if (row.id === 'groq_key')     groqApiKey  = row.value || null;
       if (row.id === 'drive_ep')     driveEp     = row.value || null;
       if (row.id === 'drive_secret') driveSecret = row.value || null;
+      if (row.id === 'dismissed_dups') {
+        try { _dismissedDupsCache = new Set(JSON.parse(row.value || '[]')); }
+        catch { _dismissedDupsCache = new Set(); }
+      }
       if (row.id === 'wa_float') {
         const toggle = document.getElementById('wa-float-toggle');
         if (toggle) toggle.checked = row.value !== 'false';
@@ -1303,6 +1309,20 @@ async function loadAppConfig() {
   }
   // Migración automática: si había config en localStorage la subimos a Supabase una sola vez
   const migrations = [];
+  if (_dismissedDupsCache === null) {
+    // dismissed_dups no existe en Supabase aún — migrar desde localStorage si hay datos
+    const localDups = localStorage.getItem(_DUP_DISMISS_KEY);
+    if (localDups && localDups !== '[]') {
+      try {
+        _dismissedDupsCache = new Set(JSON.parse(localDups));
+        migrations.push(
+          supabaseApi('config', { method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id: 'dismissed_dups', value: localDups }) })
+        );
+      } catch { _dismissedDupsCache = new Set(); }
+    } else {
+      _dismissedDupsCache = new Set();
+    }
+  }
   if (!driveEp) {
     const oldEp = localStorage.getItem('te_drive_ep');
     const oldSecret = localStorage.getItem('te_drive_secret');
@@ -2682,13 +2702,23 @@ function _clearDupWarnings() {
 
 /* ── REVISIÓN DE DUPLICADOS (escaneo automático al cargar) ─────────────── */
 const _DUP_DISMISS_KEY = 'te_dismissed_dups';
+let _dismissedDupsCache = null; // null = aún no cargado desde Supabase
 
 function _getDismissedDups() {
+  if (_dismissedDupsCache !== null) return _dismissedDupsCache;
+  // Fallback a localStorage mientras se carga (o si Supabase falló)
   try { return new Set(JSON.parse(localStorage.getItem(_DUP_DISMISS_KEY) || '[]')); }
   catch { return new Set(); }
 }
 function _saveDismissedDups(set) {
+  _dismissedDupsCache = set;
   localStorage.setItem(_DUP_DISMISS_KEY, JSON.stringify([...set]));
+  // Persiste en Supabase para sincronizar entre dispositivos
+  supabaseApi('config', {
+    method: 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: 'dismissed_dups', value: JSON.stringify([...set]) })
+  });
 }
 
 function _findDuplicatePairs() {
@@ -3615,3 +3645,114 @@ function _renderSimilarModal() {
     `<button class="sim-dot${i === _simCurrent ? ' active' : ''}" onclick="openSimilarModal(${i})"></button>`
   ).join('');
 }
+
+/* ── QUICK VIEW ── */
+let _qvCurrentId = null;
+
+function openQV(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  _qvCurrentId = id;
+  _renderQV(p);
+  document.getElementById('qv-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeQV() {
+  document.getElementById('qv-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  _qvCurrentId = null;
+}
+
+function _renderQV(p) {
+  const oos = p.outOfStock || p.stock === 0;
+  const catColor = getCatColor(p.category);
+  const fallback = DEFAULT_IMG;
+
+  // Imagen
+  const img = document.getElementById('qv-img');
+  img.src = p.image || fallback;
+  img.alt = p.name;
+  img.onerror = () => { img.onerror = null; img.src = fallback; };
+  if (oos) { img.style.opacity = '.5'; img.style.filter = 'grayscale(.4)'; }
+  else { img.style.opacity = ''; img.style.filter = ''; }
+
+  // Badge
+  document.getElementById('qv-badge-zone').innerHTML = p.badge
+    ? `<span class="badge badge-${p.badgeType || 'none'}">${p.badge}</span>`
+    : '';
+
+  // Categoría
+  document.getElementById('qv-cat-row').innerHTML =
+    `<span class="cat-dot" style="background:${catColor}"></span>
+     <span class="qv-cat-label">${p.categoryLabel || '—'}</span>`;
+
+  // Nombre
+  document.getElementById('qv-name').textContent = p.name;
+
+  // Precio
+  let priceHTML = `<span class="qv-price">$${p.price.toLocaleString('es-MX')} <small style="font-size:.42em;font-weight:400;color:var(--muted);font-family:inherit">MXN</small></span>`;
+  if (p.originalPrice && p.originalPrice > p.price) {
+    const pct = Math.round((1 - p.price / p.originalPrice) * 100);
+    priceHTML += `<span class="qv-price-orig">$${p.originalPrice.toLocaleString('es-MX')}</span>
+                  <span class="qv-disc-chip">-${pct}%</span>`;
+  }
+  document.getElementById('qv-price-row').innerHTML = priceHTML;
+
+  // Chips de estado
+  const pubChip  = p.isPublished === false
+    ? `<span class="qv-chip qv-chip-hidden">🙈 Oculto</span>`
+    : `<span class="qv-chip qv-chip-web">🌐 Web</span>`;
+  const oosChip  = oos
+    ? `<span class="qv-chip qv-chip-sold">⊘ Agotado</span>`
+    : `<span class="qv-chip qv-chip-ok">✓ Disponible</span>`;
+  const stockCls = p.stock === 0 ? 'qv-chip-sold' : p.stock === 1 ? '' : 'qv-chip-ok';
+  const featChip    = p.featured ? `<span class="qv-chip">⭐ Destacado</span>` : '';
+  const barcodeChip = p.barcode  ? `<span class="qv-chip">🔲 ${p.barcode}</span>` : '';
+  let marginChip = '';
+  if (p.cost && p.price > 0) {
+    const m = Math.round((1 - p.cost / p.price) * 100);
+    const mc = m >= 30 ? 'qv-chip-ok' : m >= 10 ? '' : 'qv-chip-sold';
+    marginChip = `<span class="qv-chip ${mc}">Margen ${m}%</span>`;
+  }
+  document.getElementById('qv-chips').innerHTML =
+    oosChip + pubChip +
+    `<span class="qv-chip ${stockCls}">📦 ${p.stock}</span>` +
+    featChip + barcodeChip + marginChip;
+
+  // Descripción
+  const descEl = document.getElementById('qv-desc');
+  descEl.textContent = p.description || '';
+  descEl.style.display = p.description ? '' : 'none';
+
+  // ID
+  document.getElementById('qv-id').textContent = `ID #${p.id}`;
+
+  // Botones de acción
+  const btnEdit = can.editProduct
+    ? `<button class="qv-btn qv-btn-edit" onclick="closeQV();openForm(${p.id})">${ICON_EDIT} Editar</button>`
+    : '';
+  const btnDup  = `<button class="qv-btn qv-btn-dup" onclick="closeQV();duplicateProduct(${p.id})">⧉ Duplicar</button>`;
+  const btnPub  = can.publishProduct
+    ? `<button class="qv-btn qv-btn-pub" onclick="_qvTogglePublished(${p.id})">${p.isPublished === false ? '🌐 Publicar' : '🙈 Ocultar'}</button>`
+    : '';
+  const btnDel  = can.deleteProduct
+    ? `<button class="qv-btn qv-btn-del" onclick="closeQV();askDelete(${p.id})">✕ Eliminar</button>`
+    : '';
+  document.getElementById('qv-actions').innerHTML = btnEdit + btnDup + btnPub + btnDel;
+}
+
+async function _qvTogglePublished(id) {
+  await togglePublished(id);
+  const p = products.find(x => x.id === id);
+  if (p && _qvCurrentId === id && document.getElementById('qv-overlay').classList.contains('open')) {
+    _renderQV(p);
+  }
+}
+
+// Cerrar QV con Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('qv-overlay')?.classList.contains('open')) {
+    closeQV();
+  }
+});
