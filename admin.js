@@ -1912,6 +1912,19 @@ function clearAdminFilters() {
   if (s) s.value = '';
   if (c) c.value = 'all';
   if (_showOnlyFlagged) { _showOnlyFlagged = false; _syncFlagFilter(); }
+  _toggleSearchClear();
+  renderTable();
+}
+
+function _toggleSearchClear() {
+  const btn = document.getElementById('search-clear-btn');
+  if (btn) btn.style.display = document.getElementById('search-input')?.value ? '' : 'none';
+}
+
+function clearSearchInput() {
+  const s = document.getElementById('search-input');
+  if (s) s.value = '';
+  _toggleSearchClear();
   renderTable();
 }
 
@@ -3184,6 +3197,7 @@ function dictate(fieldId) {
 
   const btn   = document.getElementById(`dictate-${fieldId}`);
   const field = document.getElementById(fieldId);
+  const origLabel = btn.textContent;
 
   // Detener grabación activa: nullear ANTES de stop() para que onend sepa que fue el usuario
   if (_activeRec) {
@@ -3227,6 +3241,7 @@ function dictate(fieldId) {
     const all     = committedText + (interim ? (committedText ? ' ' : '') + interim : '');
     const sep     = startValue && all ? ' ' : '';
     field.value   = startValue + sep + all;
+    field.dispatchEvent(new Event('input'));
   };
 
   sr.onend = () => {
@@ -3238,17 +3253,19 @@ function dictate(fieldId) {
       // Usuario detuvo (_activeRec ya fue nulleado) — confirmar texto final
       const sep   = startValue && committedText ? ' ' : '';
       field.value = (startValue + sep + committedText).trim();
-      btn.textContent = '🎤 Dictar';
+      field.dispatchEvent(new Event('input'));
+      btn.textContent = origLabel;
       btn.classList.remove('recording');
     }
   };
 
   sr.onerror = e => {
     _activeRec = null;
-    btn.textContent = '🎤 Dictar';
+    btn.textContent = origLabel;
     btn.classList.remove('recording');
     const sep   = startValue && committedText ? ' ' : '';
     field.value = (startValue + sep + committedText).trim();
+    field.dispatchEvent(new Event('input'));
     if (e.error === 'not-allowed')
       toast('Permiso de micrófono denegado. Actívalo en los ajustes del navegador.', 'error');
     else if (e.error !== 'aborted')

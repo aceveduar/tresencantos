@@ -481,6 +481,16 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
         </div>
       </div>
       <div id="inv-list"></div>
+      <div id="inv-valor-row" style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:130px;padding:10px 14px;background:#FFF8EE;border:1px solid #EAE0D4;border-radius:10px">
+          <div style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:3px">Valor en venta</div>
+          <div id="inv-valor-venta" style="font-size:1.05rem;font-weight:700;color:var(--charcoal);font-family:'Playfair Display',serif">$0</div>
+        </div>
+        <div id="inv-valor-costo-wrap" style="flex:1;min-width:130px;padding:10px 14px;background:#F0FDF4;border:1px solid #A7F3D0;border-radius:10px;display:none">
+          <div style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:3px">Capital invertido</div>
+          <div id="inv-valor-costo" style="font-size:1.05rem;font-weight:700;color:var(--charcoal);font-family:'Playfair Display',serif">$0</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -922,6 +932,17 @@ function renderInventory() {
   document.getElementById('inv-low').textContent = low.length;
   document.getElementById('inv-ok').textContent  = ok.length;
   document.getElementById('inv-total-label').textContent = `${products.length} productos`;
+
+  const valorVenta = products.reduce((s, p) => s + (p.stock > 0 ? p.price * p.stock : 0), 0);
+  document.getElementById('inv-valor-venta').textContent = '$' + Math.round(valorVenta).toLocaleString('es-MX');
+  const valorCosto = products.reduce((s, p) => s + (p.cost > 0 && p.stock > 0 ? p.cost * p.stock : 0), 0);
+  const costoWrap = document.getElementById('inv-valor-costo-wrap');
+  if (valorCosto > 0) {
+    document.getElementById('inv-valor-costo').textContent = '$' + Math.round(valorCosto).toLocaleString('es-MX');
+    costoWrap.style.display = '';
+  } else {
+    costoWrap.style.display = 'none';
+  }
 
   const el = document.getElementById('inv-list');
   const items = [
