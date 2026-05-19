@@ -577,10 +577,11 @@ async function saveDriveEndpoint() {
   if (!ep) { toast('Pega primero la URL del Apps Script', 'err'); return; }
   if (!driveSecret) driveSecret = 'te_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
   driveEp = ep;
-  await Promise.all([
+  const [r1, r2] = await Promise.all([
     api('config', { method:'POST', headers:{ Prefer:'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id:'drive_ep',     value: ep }) }),
     api('config', { method:'POST', headers:{ Prefer:'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id:'drive_secret', value: driveSecret }) })
   ]);
+  if (!r1.ok || !r2.ok) { toast('Error al guardar en Supabase — intenta de nuevo', 'err'); return; }
   document.getElementById('drive-secret-input').value = driveSecret;
   const st = document.getElementById('drive-status-txt');
   st.textContent = '✓ Conectado'; st.classList.add('ok');
@@ -801,6 +802,7 @@ function processRevistaFile(file) {
 function clearRevistaFile() {
   document.getElementById('revista-file').value = '';
   document.getElementById('revista-file')._pendingFile = null;
+  document.getElementById('revista-url-input').value = '';
   document.getElementById('revista-preview').style.display = 'none';
 }
 

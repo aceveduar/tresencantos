@@ -37,13 +37,13 @@ self.addEventListener('fetch', e => {
 
   const url = new URL(e.request.url);
 
-  // Supabase, Google Fonts y APIs externas — siempre red, sin cachear
+  // Supabase, Google Fonts, Drive y APIs externas — siempre red, sin cachear
   if (
     url.hostname.includes('supabase.co') ||
     url.hostname.includes('googleapis.com') ||
     url.hostname.includes('gstatic.com') ||
     url.hostname.includes('groq.com') ||
-    url.hostname.includes('googleapis.com')
+    url.hostname.includes('drive.google.com')
   ) {
     e.respondWith(fetch(e.request).catch(() => new Response('', { status: 503 })));
     return;

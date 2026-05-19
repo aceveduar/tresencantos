@@ -1902,6 +1902,7 @@ function clearAdminFilters() {
   const c = document.getElementById('cat-filter');
   if (s) s.value = '';
   if (c) c.value = 'all';
+  if (_showOnlyFlagged) { _showOnlyFlagged = false; _syncFlagFilter(); }
   renderTable();
 }
 
@@ -2277,6 +2278,7 @@ async function confirmDelete() {
 
   products = products.filter(p => p.id !== id);
   selectedIds.delete(id);
+  if (_qvCurrentId === id) closeQV();
   setBtn(btn, false);
   closeDel();
   renderTable();
@@ -2386,7 +2388,9 @@ async function bulkDelete() {
   }
 
   products = products.filter(p => !selectedIds.has(p.id));
+  if (_qvCurrentId && !products.find(p => p.id === _qvCurrentId)) closeQV();
   selectedIds.clear();
+  document.getElementById('products-card-grid')?.classList.remove('selection-active');
   renderTable();
   renderStats();
   updateBulkBar();

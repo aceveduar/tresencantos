@@ -382,7 +382,7 @@ function updateSummary(logData, salesData, allApartados) {
   const aptPendientes = allApartados.filter(s => (s.paid_amount || 0) < s.total).length;
   document.getElementById('sum-apt').textContent = aptNuevos;
   document.getElementById('sum-apt-sub').textContent =
-    aptPendientes > 0 ? `${aptPendientes} pendiente${aptPendientes !== 1 ? 's' : ''}` : 'sin pendientes';
+    aptPendientes > 0 ? `${aptPendientes} por cobrar (total)` : 'sin pendientes';
 
   // ── Inventario: desglosado desde activity_log
   const creados   = logData.filter(d => d.action === 'producto_creado').length;
