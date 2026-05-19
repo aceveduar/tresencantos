@@ -1,5 +1,5 @@
 // ⚠️ Incrementar CACHE_VERSION en cada deploy para invalidar caché anterior
-const CACHE_VERSION = 'v21';
+const CACHE_VERSION = 'v22';
 const CACHE = `tres-encantos-${CACHE_VERSION}`;
 
 // Base path dinámica — funciona en GitHub Pages (/tresencantos) y en dominio raíz ("")
@@ -57,7 +57,8 @@ self.addEventListener('fetch', e => {
     caches.match(e.request).then(cached => {
       const networkFetch = fetch(e.request).then(res => {
         if (res.ok) {
-          caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+          const resClone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, resClone));
         }
         return res;
       }).catch(() => cached || new Response('', { status: 503 }));
