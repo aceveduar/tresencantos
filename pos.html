@@ -181,7 +181,7 @@ button,a{touch-action:manipulation}
 .cash-quick{display:flex;gap:4px;margin-bottom:6px;flex-wrap:nowrap}
 .cash-quick button{flex:1;min-width:0;padding:6px 2px;border-radius:7px;border:1.5px solid var(--border);background:#fff;font-size:.76rem;font-weight:600;cursor:pointer;transition:.15s;color:var(--charcoal)}
 .cash-quick button:hover{border-color:var(--gold);background:var(--cream);color:var(--gold-dark)}
-.cash-quick .exact-btn{background:var(--cream);border-color:var(--gold);color:var(--gold-dark)}
+.cash-quick .exact-btn{background:#fff;border-color:var(--border);color:var(--charcoal)}
 .cash-quick button:active{transform:scale(.95)}
 
 /* HISTORY OFFCANVAS */
@@ -919,12 +919,14 @@ button,a{touch-action:manipulation}
       </div>
 
       <!-- Descuento -->
+      <div id="discount-row-wrap" style="display:none">
       <div class="discount-row">
         <span class="discount-label">Descuento</span>
         <button class="discount-type-btn active" id="disc-pct-btn" onclick="setDiscountType('pct')">%</button>
         <button class="discount-type-btn" id="disc-fixed-btn" onclick="setDiscountType('fixed')">$</button>
         <input type="number" id="pos-discount" min="0" placeholder="0" oninput="clampDiscount();updateChange()">
         <span class="discount-amount" id="pos-discount-amount"></span>
+      </div>
       </div>
 
       <!-- Método de pago -->
@@ -1683,6 +1685,10 @@ function renderCart() {
   cobrarBtn.disabled = cart.length === 0;
   syncCartTopbar();
   updateChange();
+  if (document.getElementById('pos-is-apartado')?.checked) updateAnticipoInfo();
+
+  const discountRow = document.getElementById('discount-row-wrap');
+  if (discountRow) discountRow.style.display = cart.length ? '' : 'none';
 
   if (!cart.length) {
     el.innerHTML = '<div class="cart-empty"><div class="em">🛒</div>El carrito está vacío</div>';
@@ -2746,7 +2752,7 @@ function showSaleDone() {
   document.getElementById('sd-cash-label').textContent   = isApt ? 'Anticipo recibido' : 'Recibido';
   document.getElementById('sd-total').textContent        = fmt(s.total);
   document.getElementById('sd-cash').textContent         = s.paidAmount > 0 ? fmt(s.paidAmount) : '—';
-  document.getElementById('sd-change').textContent       = s.change > 0 ? fmt(s.change) : '—';
+  document.getElementById('sd-change').textContent       = s.change > 0 ? fmt(s.change) : s.payMethod === 'transferencia' ? '—' : '$0';
   document.getElementById('sd-method').textContent       = s.payMethod === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo';
 
   const pendiente = Math.max(0, (s.total || 0) - (s.paidAmount || 0));
