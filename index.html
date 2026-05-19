@@ -402,6 +402,10 @@
 <script src="app.js"></script>
 <script>
   if ('serviceWorker' in navigator) {
+    // Desregistrar SWs viejos que quedaron registrados en scope raíz (antes de mover a subdirectorio)
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(r => { if (!r.scope.includes('/tresencantos/')) r.unregister(); });
+    });
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 </script>
