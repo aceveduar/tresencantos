@@ -28,14 +28,15 @@ function _parseRole() {
 }
 const ROLE = _parseRole();
 const _isSuperOrEncargado = ROLE === 'superadmin' || ROLE === 'encargado';
+const _isDuena = ROLE === 'duena';
 const can = {
-  deleteProduct:   _isSuperOrEncargado,
+  deleteProduct:   _isSuperOrEncargado || _isDuena,
   bulkDelete:      _isSuperOrEncargado,
   importJSON:      ROLE === 'superadmin',
   manageSettings:  ROLE === 'superadmin',
-  publishProduct:  ROLE === 'superadmin',
-  editProduct:     ROLE !== 'duena',
-  addProduct:      ROLE !== 'duena',
+  publishProduct:  ROLE === 'superadmin' || _isDuena,
+  editProduct:     true,
+  addProduct:      true,
 };
 
 const SUPABASE_URL = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
@@ -490,11 +491,9 @@ function _applyRoleUI() {
       document.querySelectorAll(`a[href="${href}"]`).forEach(a => a.style.setProperty('display','none'));
     });
   }
-  // Dueña: no ve Actividad ni Settings
+  // Dueña: no ve Settings (Actividad sí puede ver)
   if (ROLE === 'duena') {
-    ['activity.html','settings.html'].forEach(href => {
-      document.querySelectorAll(`a[href="${href}"]`).forEach(a => a.style.setProperty('display','none'));
-    });
+    document.querySelectorAll('a[href="settings.html"]').forEach(a => a.style.setProperty('display','none'));
   }
   // Settings — solo superadmin
   if (!can.manageSettings) {

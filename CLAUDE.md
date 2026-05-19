@@ -185,19 +185,22 @@ El cambio aplica en el **próximo login** — la sesión activa usa el JWT viejo
 | eacevedo@sunname.com.mx | superadmin |
 | ma.dolores.mtz.mtz@gmail.com | superadmin |
 | areli@tresencantos.com | operador |
-| (por crear) ofelia | duena |
+| ofe@tresencantos.com | duena |
 
 **Permisos por rol:**
 | Acción | superadmin | operador | duena |
 |---|---|---|---|
 | Ver productos | ✓ | ✓ | ✓ |
-| Editar producto / precio | ✓ | ✓ | ✗ |
-| Agregar producto | ✓ | ✓ | ✗ |
-| Publicar en sitio web | ✓ | ✗ | ✗ |
-| Eliminar producto | ✓ | ✗ | ✗ |
+| Editar producto / precio | ✓ | ✓ | ✓ |
+| Agregar producto | ✓ | ✓ | ✓ |
+| Publicar en sitio web | ✓ | ✗ | ✓ |
+| Eliminar producto | ✓ | ✗ | ✓ |
 | Importar/Exportar JSON | ✓ | ✗ | ✗ |
 | Cancelar venta (Caja) | ✓ | ✗ | ✗ |
 | Bulk delete | ✓ | ✗ | ✗ |
+| Ver Reportes | ✓ | ✗ | ✓ |
+| Ver Actividad | ✓ | ✗ | ✓ |
+| Configuración | ✓ | ✗ | ✗ |
 
 **Comportamiento operador al crear productos:** `is_published` se fuerza a `false` — requiere que un superadmin revise y publique. El campo precio sí puede editarlo (transcribe de etiqueta física).
 
