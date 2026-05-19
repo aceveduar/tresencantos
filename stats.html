@@ -539,6 +539,7 @@ let products = [];
 let revenueChart = null;
 let catChart = null;
 let hourChart = null;
+let nameMap = {}; // { email: nombreVisible } — cargado desde config.user_names
 
 /* ── PERIODS ── */
 const PERIODS = {
@@ -557,6 +558,13 @@ const PREV_PERIODS = {
 const PERIOD_LABELS = { today:'Hoy', week:'Últimos 7 días', month:'Últimos 30 días', all:'Todo el tiempo' };
 
 /* ── LOAD ── */
+async function loadNameMap() {
+  const r = await api('config?id=eq.user_names&select=value');
+  if (r.ok && r.data?.[0]?.value) {
+    try { nameMap = JSON.parse(r.data[0].value); } catch {}
+  }
+}
+
 async function loadSales() {
   const from = PERIODS[currentPeriod]();
   const filter = from ? `&created_at=gte.${from}` : '';
@@ -624,7 +632,7 @@ function renderVendedores() {
     const pct  = maxTotal > 0 ? Math.round(d.total / maxTotal * 100) : 0;
     const fmt  = n => `$${n.toLocaleString('es-MX')}`;
     const isSinSesion = email === '__sin_sesion__';
-    const name = isSinSesion ? 'Ventas sin sesión activa' : email.split('@')[0];
+    const name = isSinSesion ? 'Ventas sin sesión activa' : (nameMap[email] || email.split('@')[0]);
     const icon = isSinSesion ? '🕐' : '👤';
     const barColor = isSinSesion ? '#B5A696' : 'var(--gold)';
     const nameStyle = isSinSesion ? 'color:var(--muted);font-weight:500' : 'font-weight:600';
@@ -1133,7 +1141,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   );
   try {
     await Promise.race([
-      Promise.all([loadProducts(), loadSales(), loadPreviousSales(), loadApartadosPendientes(), loadClientas()]),
+      Promise.all([loadProducts(), loadSales(), loadPreviousSales(), loadApartadosPendientes(), loadClientas(), loadNameMap()]),
       timeout
     ]);
     renderAll();

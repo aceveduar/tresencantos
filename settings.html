@@ -875,9 +875,26 @@ async function saveRevista() {
 
 /* ── NOMBRES ── */
 async function openNamesModal() {
-  const r = await api('activity_log?select=user_email&limit=500');
-  const emails = r.ok && r.data ? [...new Set(r.data.map(d => d.user_email))].filter(Boolean).sort() : [];
-  if (!emails.length) { toast('Sin usuarios registrados en Actividad aún'); return; }
+  // Obtener usuarios reales desde Supabase Auth Admin API
+  let emails = [];
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?per_page=100`, {
+      headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` }
+    });
+    if (r.ok) {
+      const data = await r.json();
+      emails = (data.users || []).map(u => u.email).filter(Boolean);
+    }
+  } catch {}
+  // Fallback: emails del activity_log si la API falla
+  if (!emails.length) {
+    const r2 = await api('activity_log?select=user_email&limit=500');
+    if (r2.ok && r2.data) emails = [...new Set(r2.data.map(d => d.user_email))].filter(Boolean);
+  }
+  // Incluir también usuarios que ya tenían nombre guardado pero no están en las fuentes anteriores
+  Object.keys(nameMap).forEach(e => { if (!emails.includes(e)) emails.push(e); });
+  emails = emails.sort();
+  if (!emails.length) { toast('Sin usuarios registrados aún'); return; }
   document.getElementById('names-list').innerHTML = emails.map(e => `
     <div class="name-pair">
       <div class="name-email" title="${e}">${e}</div>

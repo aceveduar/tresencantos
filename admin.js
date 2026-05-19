@@ -504,9 +504,13 @@ function _applyRoleUI() {
     document.querySelectorAll('[onclick="openForm()"]').forEach(b => b.style.setProperty('display', 'none'));
     document.querySelector('.fab-add')?.style.setProperty('display', 'none');
   }
-  // Botón "Eliminar ✕" en bulk bar — solo superadmin
+  // Botón "Eliminar ✕" en bulk bar — solo superadmin/encargado
   if (!can.bulkDelete) {
     document.querySelector('.bulk-bar .btn-red')?.style.setProperty('display', 'none');
+  }
+  // Botón "Publicar / Ocultar" en bulk bar — superadmin y duena
+  if (!can.publishProduct) {
+    document.getElementById('bulk-publish-btn')?.style.setProperty('display', 'none');
   }
   // Checkbox de publicar — solo superadmin
   if (!can.publishProduct) {
@@ -759,7 +763,8 @@ function adminCard(p) {
     ? `<span class="ac-orig">$${p.originalPrice.toLocaleString('es-MX')}</span><span class="ac-price">$${p.price.toLocaleString('es-MX')}</span>`
     : `<span class="ac-price">$${p.price.toLocaleString('es-MX')}</span>`;
   const oosTitle  = oos ? 'Agotado — toca para marcar disponible' : 'Disponible — toca para agotar';
-  const pubTitle  = p.isPublished === false ? 'Oculto del sitio — toca para publicar' : 'Visible en sitio — toca para ocultar';
+  const pubTitle  = p.isPublished === false ? 'Oculto del sitio — toca para publicar' : p.outOfStock ? 'Publicado pero agotado — no aparece en el sitio' : 'Visible en sitio — toca para ocultar';
+  const pubEmoji  = p.isPublished === false ? '🙈' : p.outOfStock ? '⚠️' : '🌐';
   const flagDotAC = _flagItem(p.id) ? `<span class="flag-dot" title="Pendiente de revisión">🚩</span>` : '';
 
   return `
@@ -799,7 +804,7 @@ function adminCard(p) {
         <button class="ac-pub-dot" onclick="togglePublished(${p.id})"
                 ontouchstart="event.stopPropagation()"
                 title="${pubTitle}">
-          ${p.isPublished===false?'🙈':'🌐'}
+          ${pubEmoji}
         </button>
       </div>
       <div class="ac-actions">
@@ -903,6 +908,9 @@ async function editStockInline(e, id) {
 function publishedToggle(p) {
   if (p.isPublished === false) {
     return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-hidden" title="Tap para publicar en sitio web">🙈 Oculto</button>`;
+  }
+  if (p.outOfStock) {
+    return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-agotado" title="Publicado pero agotado — no aparece en el sitio web">⚠️ Agotado</button>`;
   }
   return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-visible" title="Tap para ocultar del sitio web">🌐 Web</button>`;
 }
@@ -1077,8 +1085,8 @@ function mobileCard(p) {
             <button class="ac-pub-dot"
                     onclick="togglePublished(${p.id})"
                     ontouchstart="event.stopPropagation()"
-                    title="${p.isPublished===false?'Oculto — toca para publicar':'Web — toca para ocultar'}">
-              ${p.isPublished===false?'🙈':'🌐'}
+                    title="${pubTitle}">
+              ${pubEmoji}
             </button>
           </div>
           <div class="mpc-price-row">
@@ -2527,6 +2535,32 @@ async function bulkSetBadge() {
     : `Insignias eliminadas de ${selectedIds.size} producto(s)`, 'success');
 }
 
+async function bulkTogglePublish() {
+  if (!selectedIds.size) return;
+  if (!can.publishProduct) { toast('Sin permiso para publicar productos', 'error'); return; }
+  const selected = products.filter(p => selectedIds.has(p.id));
+  // Si todos están publicados → ocultar; si alguno no lo está → publicar todos
+  const newVal = !selected.every(p => p.isPublished !== false);
+  if (newVal) {
+    const agotados = selected.filter(p => p.outOfStock).length;
+    if (agotados > 0 && !confirm(`${agotados} producto(s) están agotados y no aparecerán en el sitio web aunque se publiquen.\n\n¿Continuar?`)) return;
+  }
+  if (getSupabaseUrl()) {
+    const ids = [...selectedIds].join(',');
+    const result = await supabaseApi(`products?id=in.(${ids})`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_published: newVal })
+    });
+    if (!result.ok) { toast('Error al actualizar visibilidad', 'error'); return; }
+  }
+  selected.forEach(p => { p.isPublished = newVal; });
+  renderTable();
+  renderStats();
+  toast(newVal
+    ? `${selectedIds.size} producto(s) publicados en sitio web 🌐`
+    : `${selectedIds.size} producto(s) ocultados del sitio web 🙈`, 'success');
+}
+
 function bulkExport() {
   if (!selectedIds.size) return;
   const selected = products.filter(p => selectedIds.has(p.id));
@@ -3903,7 +3937,9 @@ function _renderQV(p) {
   // Chips de estado
   const pubChip  = p.isPublished === false
     ? `<span class="qv-chip qv-chip-hidden">🙈 Oculto</span>`
-    : `<span class="qv-chip qv-chip-web">🌐 Web</span>`;
+    : p.outOfStock
+      ? `<span class="qv-chip qv-chip-warn">⚠️ Agotado</span>`
+      : `<span class="qv-chip qv-chip-web">🌐 Web</span>`;
   const oosChip  = oos
     ? `<span class="qv-chip qv-chip-sold">⊘ Agotado</span>`
     : `<span class="qv-chip qv-chip-ok">✓ Disponible</span>`;

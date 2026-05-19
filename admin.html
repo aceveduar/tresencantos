@@ -481,6 +481,7 @@ tr:hover .drag-handle{opacity:1}
 .qv-chip-sold{background:#fce4ec;border-color:#e57373;color:#c62828}
 .qv-chip-web{background:#e8f5e9;border-color:#81c784;color:#2D6A4F}
 .qv-chip-hidden{background:#fff3e0;border-color:#ffb74d;color:#e65100}
+.qv-chip-warn{background:#FFFBEB;border-color:#FCD34D;color:#92400E}
 .qv-desc{font-size:.82rem;color:var(--muted);line-height:1.65;white-space:pre-wrap;margin-top:4px}
 .qv-id-hint{font-size:.68rem;color:var(--muted-light);margin-top:10px}
 .qv-actions{flex-shrink:0;padding:12px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--border);background:#fff;display:flex;flex-wrap:wrap;gap:8px}
@@ -657,6 +658,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .pub-hidden:hover{background:#E2E8F0;color:#475569;border-color:#94A3B8}
 .pub-visible{background:#ECFDF5;color:#047857;border-color:#6EE7B7}
 .pub-visible:hover{background:#D1FAE5;color:#065F46;border-color:#34D399}
+.pub-agotado{background:#FFFBEB;color:#92400E;border-color:#FCD34D}
+.pub-agotado:hover{background:#FEF3C7;color:#78350F;border-color:#F59E0B}
 
 /* ══ VOICE DICTATION ════════════════════════════════════════════════════ */
 .field-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
@@ -1405,6 +1408,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       <button class="btn btn-sm" onclick="bulkToggleFeatured()">⭐ Destacar / Quitar</button>
       <button class="btn btn-sm" onclick="bulkToggleOOS()">Agotado / Disponible</button>
       <button class="btn btn-sm" onclick="bulkSetBadge()">Etiqueta</button>
+      <button class="btn btn-sm" id="bulk-publish-btn" onclick="bulkTogglePublish()">🌐 Publicar / Ocultar</button>
       <button class="btn btn-sm" onclick="bulkExport()">Exportar</button>
       <button class="btn btn-sm" onclick="bulkRestock()">📦 Reabastecer</button>
       <button class="btn btn-red btn-sm" onclick="bulkDelete()">Eliminar ✕</button>

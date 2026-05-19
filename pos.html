@@ -32,11 +32,11 @@ button,a{touch-action:manipulation}
 
 /* TOPBAR */
 .topbar{background:var(--charcoal);color:#fff;padding:0 16px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;position:relative}
-.topbar-left{display:flex;align-items:center;gap:10px}
+.topbar-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
 .topbar-left img{height:30px;border-radius:5px}
-.topbar-title-group{display:flex;align-items:center;gap:8px}
-.topbar-title{font-family:'Playfair Display',serif;font-size:1rem;color:#fff}
+.topbar-title{font-family:'Playfair Display',serif;font-size:1rem;color:#fff;white-space:nowrap;padding-right:8px;border-right:1px solid rgba(255,255,255,.18);margin-right:2px}
 .topbar-right{display:flex;gap:8px;align-items:center}
+.topbar-sep-user{display:block!important;flex-shrink:0;margin:0 4px}
 .user-display{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:4px}
 .user-avatar{width:28px;height:28px;border-radius:50%;background:rgba(201,164,98,.25);color:var(--gold);font-size:.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1.5px solid rgba(201,164,98,.45);user-select:none}
 .user-name-label{font-size:.75rem;color:rgba(255,255,255,.65);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -474,27 +474,14 @@ button,a{touch-action:manipulation}
 /* ── MOBILE ── */
 @media(max-width:1024px){
   /* ── TOPBAR: grid 2 col — [Caja centrado] [acciones+nav] ── */
-  .topbar{
-    display:grid;grid-template-columns:1fr auto;
-    align-items:center;padding:0 10px;gap:0;background:var(--charcoal);
-  }
-  .topbar-left{display:contents}
-  .topbar-title-group{
-    display:flex;align-items:center;justify-content:center;gap:6px;
-    text-align:center;
-  }
-  .topbar-title{
-    font-style:italic;font-size:1rem;white-space:nowrap;
-  }
+  .topbar{padding:0 10px;gap:6px}
+  .topbar-left .topbar-nav-mobile{display:none}
+  .topbar-title{border-right:none;padding-right:0;margin-right:0;font-style:italic}
   .topbar-right{gap:2px}
   .user-name-label{display:none}
   .user-avatar{width:24px;height:24px;font-size:.68rem}
   .btn-label{display:none}
-  /* En mobile el bottom-nav ya cubre la navegación — ocultar íconos redundantes del topbar */
-  .topbar-nav-mobile a[href="activity.html"],
-  .topbar-nav-mobile a[href="settings.html"],
-  .topbar-nav-mobile a[href="index.html"],
-  .topbar-nav-mobile a[href="pos.html"] { display:none }
+  .topbar-sep-user{display:none!important}
   /* Ocultar refresh (↻) en mobile — poco espacio */
   #pos-refresh-btn { display:none }
   .title-long{display:none}
@@ -776,17 +763,15 @@ button,a{touch-action:manipulation}
   .tbn-icon{padding:5px 9px;gap:2px}
   .tbn-icon svg{width:15px;height:15px}
   .tbn-sep{display:block;width:1px;height:20px;background:rgba(255,255,255,.2);align-self:center;flex-shrink:0;margin:0 4px}
+  /* En tablet/desktop el carrito es el panel derecho — el botón en topbar es redundante */
+  #cart-topbar-btn{display:none}
 }
 /* Desktop (≥1025px): 3 zonas — [Caja] [nav centrado] [botones acción] */
 @media(min-width:1025px){
   .topbar{background:var(--charcoal);justify-content:space-between}
   .topbar-left{flex:1;display:flex;align-items:center}
   .topbar-right{flex:1;justify-content:flex-end}
-  .topbar-nav-mobile{
-    position:absolute;left:50%;top:50%;
-    transform:translate(-50%,-50%);
-    gap:2px;z-index:5;
-  }
+  .topbar-nav-mobile{gap:2px}
   .tbn-icon{padding:6px 11px}
   .tbn-icon svg{width:16px;height:16px}
 }
@@ -796,17 +781,34 @@ button,a{touch-action:manipulation}
 
 <!-- TOPBAR -->
 <div class="topbar">
+  <!-- IZQUIERDA: título + navegación de módulos -->
   <div class="topbar-left">
-    <div class="topbar-title-group">
-      <span class="topbar-title"><span class="title-long">Caja</span><span class="title-short" style="display:none">Caja</span></span>
-      <div class="user-display" id="user-display">
-        <span class="user-avatar" id="user-avatar">?</span>
-        <span class="user-name-label" id="user-name-label"></span>
-      </div>
-    </div>
+    <span class="topbar-title">Caja</span>
+    <nav class="topbar-nav-mobile" aria-label="Módulos">
+      <a href="admin.html" class="tbn-icon" title="Inventario">
+        <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+        <span class="tbn-label">Inventario</span>
+      </a>
+      <a href="stats.html" class="tbn-icon" title="Reportes">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span class="tbn-label">Reportes</span>
+      </a>
+      <a href="activity.html" class="tbn-icon" title="Actividad">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span class="tbn-label">Actividad</span>
+      </a>
+      <a href="settings.html" class="tbn-icon" title="Configuración">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="tbn-label">Config</span>
+      </a>
+      <a href="index.html" class="tbn-icon" title="Tienda">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <span class="tbn-label">Tienda</span>
+      </a>
+    </nav>
   </div>
+  <!-- DERECHA: acciones de Caja + usuario + salir -->
   <div class="topbar-right">
-    <span id="today-stats" class="today-stats" style="display:none"></span>
     <button id="apt-vencidos-alert" style="display:none;background:#FEE2E2;color:#E85D5D;border:1.5px solid #FECACA;border-radius:50px;padding:4px 12px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s" onclick="switchPosTab('apartados')" title="Ver apartados vencidos">⚠️ <span id="apt-vencidos-count"></span></button>
     <button class="cart-topbar-btn" id="cart-topbar-btn" onclick="toggleCartPreview()" title="Ver carrito">
       🛒
@@ -824,38 +826,15 @@ button,a{touch-action:manipulation}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       <span class="btn-label">Historial</span>
     </button>
-    <!-- Nav de módulos — solo mobile; reemplaza "← Inventario" -->
-    <nav class="topbar-nav-mobile" aria-label="Módulos">
-      <a href="pos.html" class="tbn-icon tbn-active" title="Caja" aria-current="page">
-        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-        <span class="tbn-label">Caja</span>
-      </a>
-      <a href="admin.html" class="tbn-icon" title="Inventario">
-        <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
-        <span class="tbn-label">Inventario</span>
-      </a>
-      <a href="stats.html" class="tbn-icon" title="Reportes">
-        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        <span class="tbn-label">Reportes</span>
-      </a>
-      <a href="activity.html" class="tbn-icon" title="Actividad">
-        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        <span class="tbn-label">Actividad</span>
-      </a>
-      <a href="settings.html" class="tbn-icon" title="Configuración">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        <span class="tbn-label">Config</span>
-      </a>
-      <span class="tbn-sep"></span>
-      <a href="index.html" class="tbn-icon" title="Tienda">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-        <span class="tbn-label">Tienda</span>
-      </a>
-      <button class="tbn-icon tbn-logout" onclick="doLogout()" title="Cerrar sesión" aria-label="Cerrar sesión">
-        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        <span class="tbn-label">Salir</span>
-      </button>
-    </nav>
+    <span class="tbn-sep topbar-sep-user"></span>
+    <div class="user-display" id="user-display">
+      <span class="user-avatar" id="user-avatar">?</span>
+      <span class="user-name-label" id="user-name-label"></span>
+    </div>
+    <button class="tbn-icon tbn-logout" onclick="doLogout()" title="Cerrar sesión" aria-label="Cerrar sesión">
+      <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <span class="tbn-label">Salir</span>
+    </button>
   </div>
 </div>
 
@@ -876,6 +855,7 @@ button,a{touch-action:manipulation}
         <button class="pos-vbtn active" id="pos-vbtn-list"  onclick="setPosView('list')"  title="Lista">☰</button>
         <button class="pos-vbtn"        id="pos-vbtn-cards" onclick="setPosView('cards')" title="Tarjetas">⊞</button>
       </div>
+      <span class="pos-sort-sep"></span>
       <button class="btn btn-gold" onclick="openPosScanner()" title="Escanear código de barras">📷</button>
       <button class="pos-vbtn" id="pos-refresh-btn" onclick="refreshPosProducts()" title="Actualizar inventario">↻</button>
     </div>

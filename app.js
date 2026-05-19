@@ -279,6 +279,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderHeroMobileStrip();
   initAutoScroll();
   initFilters();
+  initStickyFilters();
   initNav();
   initReveal();
   initModal();
@@ -520,6 +521,49 @@ function _initNaturaCarousel(total) {
     clearTimeout(_resizeT);
     _resizeT = setTimeout(() => { buildDots(); naturaGoTo(0); }, 150);
   });
+}
+
+/* ── STICKY FILTERS ── */
+function initStickyFilters() {
+  const row = document.querySelector('.products-filters-row');
+  if (!row) return;
+
+  const placeholder = document.createElement('div');
+  placeholder.style.display = 'none';
+  row.parentElement.insertBefore(placeholder, row);
+
+  let stuck = false;
+  let lastY = window.scrollY;
+  const naturalTop = row.getBoundingClientRect().top + window.scrollY;
+
+  function getOffset() {
+    return document.body.classList.contains('admin-bar-shown') ? 114 : 70;
+  }
+  function show(offset) {
+    if (stuck) return;
+    stuck = true;
+    placeholder.style.display = 'block';
+    placeholder.style.height = row.offsetHeight + 'px';
+    row.style.top = offset + 'px';
+    row.classList.add('is-stuck');
+  }
+  function hide() {
+    if (!stuck) return;
+    stuck = false;
+    placeholder.style.display = 'none';
+    row.style.top = '';
+    row.classList.remove('is-stuck');
+  }
+  window.addEventListener('scroll', () => {
+    const y = window.scrollY;
+    const offset = getOffset();
+    const pastFilter = y > naturalTop - offset;
+    const scrollingUp = y < lastY;
+    lastY = y;
+
+    if (!pastFilter) { hide(); return; }
+    if (scrollingUp) show(offset); else hide();
+  }, { passive: true });
 }
 
 /* ── FILTERS ── */
