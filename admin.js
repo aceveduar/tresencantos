@@ -1041,6 +1041,8 @@ function mobileCard(p) {
   const sel = selectedIds.has(p.id);
   const oos = p.outOfStock || p.stock === 0;
   const catColor = getCatColor(p.category);
+  const pubTitle  = p.isPublished === false ? 'Oculto del sitio — toca para publicar' : p.outOfStock ? 'Publicado pero agotado — no aparece en el sitio' : 'Visible en sitio — toca para ocultar';
+  const pubEmoji  = p.isPublished === false ? '🙈' : p.outOfStock ? '⚠️' : '🌐';
 
   const priceHTML = p.originalPrice
     ? `<span class="mpc-price-orig">$${p.originalPrice.toLocaleString('es-MX')}</span>
