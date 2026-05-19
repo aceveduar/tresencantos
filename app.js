@@ -123,8 +123,12 @@ function closeCart() {
 
 function cartWhatsApp() {
   if (!cart.length) return;
-  const lines = cart.map(x => `• ${x.name} x${x.qty} — $${(x.price * x.qty).toLocaleString('es-MX')} MXN`).join('\n');
-  const total = '$' + cartTotal().toLocaleString('es-MX') + ' MXN';
+  const btn = document.querySelector('.btn-cart-wa');
+  if (btn?.disabled) return;
+  if (btn) { btn.disabled = true; setTimeout(() => { btn.disabled = false; }, 2000); }
+  const snapshot = [...cart]; // captura el carrito en este momento
+  const lines = snapshot.map(x => `• ${x.name} x${x.qty} — $${(x.price * x.qty).toLocaleString('es-MX')} MXN`).join('\n');
+  const total = '$' + snapshot.reduce((s, x) => s + x.price * x.qty, 0).toLocaleString('es-MX') + ' MXN';
   const msg = `¡Hola! 😊 Me gustaría hacer el siguiente pedido de Tres Encantos:\n\n${lines}\n\n*Total: ${total}*\n\n¿Está todo disponible?`;
   window.open(`${WA_BASE}?text=${encodeURIComponent(msg)}`, '_blank');
 }

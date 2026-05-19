@@ -1128,8 +1128,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (_av) _av.textContent = _name ? _name[0].toUpperCase() : '?';
     if (_nl) _nl.textContent = _name;
   } catch {}
-  await Promise.all([loadProducts(), loadSales(), loadPreviousSales(), loadApartadosPendientes(), loadClientas()]);
-  renderAll();
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('timeout')), 12000)
+  );
+  try {
+    await Promise.race([
+      Promise.all([loadProducts(), loadSales(), loadPreviousSales(), loadApartadosPendientes(), loadClientas()]),
+      timeout
+    ]);
+    renderAll();
+  } catch {
+    document.querySelectorAll('.loading-state').forEach(el => {
+      el.innerHTML = '<span style="color:#E85D5D;font-size:.82rem">⚠️ Error al cargar — revisa tu conexión y recarga la página</span>';
+    });
+  }
 });
 </script>
 

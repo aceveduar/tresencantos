@@ -411,6 +411,8 @@ button,a{touch-action:manipulation}
 .apartados-panel{border-top:2px solid var(--gold);flex-shrink:0;max-height:160px;overflow-y:auto;background:#FFFBF4;overscroll-behavior-y:contain}
 /* APARTADO CARD — rediseñada */
 .apartado-item{display:flex;flex-direction:column;gap:10px;padding:14px 12px;border-radius:12px;margin:8px;background:#fff;border:1px solid #F0E8DC;box-shadow:0 1px 4px rgba(28,24,23,.06)}
+.apt-overdue{border-color:#FECACA;background:#FFF5F5}
+.apt-overdue-badge{display:inline-flex;align-items:center;gap:5px;background:#FEE2E2;color:#DC2626;font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:50px;align-self:flex-start}
 .apt-customer{font-size:.86rem;font-weight:700;color:var(--charcoal);display:flex;align-items:center;gap:6px}
 .apt-meta{font-size:.72rem;color:#9B8B78;margin-top:2px}
 .apt-progress-section{display:flex;flex-direction:column;gap:5px}
@@ -1046,7 +1048,10 @@ button,a{touch-action:manipulation}
   <div class="abonar-modal">
     <h3>Registrar abono</h3>
     <p class="apt-info-lbl" id="abonar-info"></p>
-    <label>Monto del abono</label>
+    <label style="display:flex;justify-content:space-between;align-items:center">
+      Monto del abono
+      <span id="abonar-max-hint" style="font-size:.75rem;font-weight:400;color:var(--muted)"></span>
+    </label>
     <input type="number" id="abonar-amount" min="1" step="1" placeholder="0" inputmode="numeric"
            oninput="validateAbonarAmount()">
     <label>Método de pago</label>
@@ -1183,18 +1188,23 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUyNjIyNiwiZXhwIjoyMDk0MTAyMjI2fQ.B9nZ1KENDQsUtn9PFwiMTrXuMZuWWIphGnH8XPfeJjQ';
 const SESSION_KEY = 'te_admin_session';
 const _posSession = (() => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; } })();
+const KNOWN_ROLES = ['superadmin', 'encargado', 'operador', 'duena'];
 const _posRole = (() => {
   const r = _posSession?.user?.user_metadata?.role;
-  if (r) return r;
-  try { return JSON.parse(atob(_posSession?.access_token?.split('.')[1]))?.user_metadata?.role || 'operador'; } catch { return 'operador'; }
+  if (r && KNOWN_ROLES.includes(r)) return r;
+  try {
+    const jr = JSON.parse(atob(_posSession?.access_token?.split('.')[1]))?.user_metadata?.role;
+    return (jr && KNOWN_ROLES.includes(jr)) ? jr : 'operador';
+  } catch { return 'operador'; }
 })();
 // Lee la sesión actual en cada llamada para evitar que quede cacheado si cambia la cuenta
 function getPosRole() {
   try {
     const s = JSON.parse(localStorage.getItem(SESSION_KEY));
     const r = s?.user?.user_metadata?.role;
-    if (r) return r;
-    return JSON.parse(atob(s?.access_token?.split('.')[1]))?.user_metadata?.role || 'operador';
+    if (r && KNOWN_ROLES.includes(r)) return r;
+    const jr = JSON.parse(atob(s?.access_token?.split('.')[1]))?.user_metadata?.role;
+    return (jr && KNOWN_ROLES.includes(jr)) ? jr : 'operador';
   } catch { return 'operador'; }
 }
 function canCancelSale() { const r = getPosRole(); return r === 'superadmin' || r === 'encargado'; }
@@ -2226,7 +2236,7 @@ function setDiscountType(type) {
   discType = type;
   document.getElementById('disc-pct-btn').classList.toggle('active', type === 'pct');
   document.getElementById('disc-fixed-btn').classList.toggle('active', type === 'fixed');
-  document.getElementById('pos-discount').placeholder = type === 'pct' ? '0' : '0';
+  document.getElementById('pos-discount').value = '';
   updateChange();
 }
 
@@ -2407,7 +2417,7 @@ async function loadApartados() {
 
   // Guardar datos para acceso en abonarApartado
   _apartadosData = {};
-  result.data.forEach(s => { _apartadosData[s.id] = s; });
+  (result.data || []).forEach(s => { _apartadosData[s.id] = s; });
 
   const itemsHTML = result.data.map(s => {
     const total    = parseFloat(s.total) || 0;
@@ -2443,8 +2453,10 @@ async function loadApartados() {
     return `<div class="apt-abono-row"><span>${fecha} · ${ico} ${a.method}</span><span class="apt-abono-amount">$${parseFloat(a.amount).toLocaleString('es-MX')}</span></div>`;
   }).join('')}
 </div>` : '';
+    const isOverdue  = s.due_date && (() => { const h=new Date();h.setHours(0,0,0,0);return new Date(s.due_date+'T00:00:00') < h; })();
     return `
-<div class="apartado-item">
+<div class="apartado-item${isOverdue ? ' apt-overdue' : ''}">
+  ${isOverdue ? '<div class="apt-overdue-badge">⚠️ Vencido</div>' : ''}
   <div class="apt-customer">👤 ${nombre} <span style="font-weight:400;font-size:.76rem">${telefonoHTML}</span></div>
   <div class="apt-meta">${t} · ${summary.substring(0,45)}${summary.length>45?'…':''}</div>
   ${dueDateHTML}
@@ -2460,8 +2472,8 @@ async function loadApartados() {
   </div>
   <div class="apt-btns">
     <button class="btn-wa-reminder" onclick="sendApartadoReminder(${s.id})" title="Enviar recordatorio por WhatsApp">💬</button>
-    <button class="btn-abonar" onclick="abonarApartado(${s.id},${total},${pagado},'${nombre}')">+ Abonar</button>
-    <button class="btn-liquidar" onclick="completarApartado(${s.id})">✓ Liquidar</button>
+    <button class="btn-abonar" data-id="${s.id}" data-total="${total}" data-pagado="${pagado}" data-nombre="${nombre.replace(/"/g,'&quot;')}" onclick="abonarApartado(this.dataset.id,this.dataset.total,this.dataset.pagado,this.dataset.nombre)">+ Abonar</button>
+    <button class="btn-liquidar" onclick="openLiqModal(${s.id})">✓ Liquidar</button>
   </div>
 </div>`;
   }).join('');
@@ -2513,6 +2525,9 @@ function abonarApartado(id, total, pagado, nombre) {
   document.getElementById('abonar-info').textContent =
     `${nombre} · Pendiente $${(total - pagado).toLocaleString('es-MX')}`;
   document.getElementById('abonar-amount').value = '';
+  const pendienteAmt = total - pagado;
+  const hint = document.getElementById('abonar-max-hint');
+  if (hint) hint.textContent = `Máx: $${pendienteAmt.toLocaleString('es-MX')}`;
   document.getElementById('abpay-efectivo').classList.add('active');
   document.getElementById('abpay-transferencia').classList.remove('active');
   document.getElementById('abonar-confirm-btn').disabled = true;
@@ -2527,12 +2542,14 @@ function setAbonarMethod(m) {
 }
 
 function validateAbonarAmount() {
-  const val = parseFloat(document.getElementById('abonar-amount').value) || 0;
-  const btn = document.getElementById('abonar-confirm-btn');
-  const valid = val > 0 && _abonarCtx && val <= _abonarCtx.pendiente;
+  const val  = parseFloat(document.getElementById('abonar-amount').value) || 0;
+  const btn  = document.getElementById('abonar-confirm-btn');
+  const hint = document.getElementById('abonar-max-hint');
+  const over = _abonarCtx && val > _abonarCtx.pendiente;
+  const valid = val > 0 && _abonarCtx && !over;
   btn.disabled = !valid;
-  document.getElementById('abonar-amount').style.borderColor =
-    val > 0 && !valid ? 'var(--red)' : '';
+  document.getElementById('abonar-amount').style.borderColor = val > 0 && !valid ? 'var(--red)' : '';
+  if (hint) hint.style.color = over ? 'var(--red)' : 'var(--muted)';
 }
 
 function closeAbonarModal() {
@@ -2562,7 +2579,6 @@ async function confirmAbonar() {
   loadApartados();
 }
 
-function completarApartado(id) { openLiqModal(id); }
 
 let _liqCtx = null, _liqMethod = 'efectivo';
 
@@ -2598,6 +2614,7 @@ function closeLiqModal() {
 async function confirmLiquidar() {
   if (!_liqCtx) return;
   const { id, total, restante, sale } = _liqCtx;
+  if (restante <= 0) { toast('Este apartado ya está pagado completo ✓', 'success'); closeLiqModal(); return; }
   const method = _liqMethod;
   const btn    = document.getElementById('liq-confirm-btn');
   btn.disabled = true; btn.textContent = 'Liquidando…';
