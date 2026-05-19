@@ -2308,6 +2308,9 @@ async function confirmDelete() {
       renderStats();
       toast(`"${truncName(deleted.name)}" restaurado ✓`, 'success');
     }
+  }, () => {
+    const fileId = _driveFileId(deleted?.image);
+    if (fileId) _deleteDriveFile(fileId);
   });
 }
 
@@ -2374,6 +2377,8 @@ async function bulkDelete() {
   if (!selectedIds.size) return;
   if (!confirm(`¿Eliminar ${selectedIds.size} producto(s) seleccionado(s)?\nEsta acción no se puede deshacer.`)) return;
 
+  const toDelete = products.filter(p => selectedIds.has(p.id));
+
   if (getSupabaseUrl()) {
     const ids = [...selectedIds].join(',');
     const result = await supabaseApi(`products?id=in.(${ids})`, {
@@ -2387,6 +2392,7 @@ async function bulkDelete() {
     }
   }
 
+  toDelete.forEach(p => { const fid = _driveFileId(p.image); if (fid) _deleteDriveFile(fid); });
   products = products.filter(p => !selectedIds.has(p.id));
   if (_qvCurrentId && !products.find(p => p.id === _qvCurrentId)) closeQV();
   selectedIds.clear();
@@ -3008,6 +3014,9 @@ async function _deleteDupProduct(id, pairKey) {
     const set = _getDismissedDups(); set.delete(pairKey); _saveDismissedDups(set);
     renderTable(); _updateDupBadge();
     toast(`"${truncName(deleted.name)}" restaurado ✓`, 'success');
+  }, () => {
+    const fileId = _driveFileId(deleted?.image);
+    if (fileId) _deleteDriveFile(fileId);
   });
 }
 
@@ -3226,15 +3235,20 @@ function toast(msg, type = '') {
 
 const truncName = (s, n = 28) => s && s.length > n ? s.slice(0, n) + '…' : (s || '');
 
-function toastUndo(msg, onUndo) {
+function toastUndo(msg, onUndo, onExpire) {
   const el = document.getElementById('undo-bar');
   const msgEl = document.getElementById('undo-msg');
   if (!el) return toast(msg, 'success');
-  if (el._t) { clearTimeout(el._t); el._undo = null; }
+  if (el._t) { clearTimeout(el._t); if (el._expire) el._expire(); el._undo = null; el._expire = null; }
   msgEl.textContent = msg;
   el.classList.add('show');
   el._undo = onUndo;
-  el._t = setTimeout(() => { el.classList.remove('show'); el._undo = null; }, 7000);
+  el._expire = onExpire || null;
+  el._t = setTimeout(() => {
+    el.classList.remove('show');
+    if (el._expire) el._expire();
+    el._undo = null; el._expire = null;
+  }, 7000);
 }
 
 function toastAction(msg, btnLabel, onAction, duration = 5000) {
@@ -3265,6 +3279,7 @@ function doUndo() {
   clearTimeout(el._t);
   const fn = el._undo;
   el._undo = null;
+  el._expire = null;
   el.classList.remove('show');
   fn();
 }
