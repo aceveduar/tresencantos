@@ -2,9 +2,9 @@
   "name": "Tres Encantos",
   "short_name": "Tres Encantos",
   "description": "Bolsos, accesorios, maquillaje y Natura en Maquixco, San Juan Teotihuacán",
-  "id": "/",
-  "start_url": "/index.html",
-  "scope": "/",
+  "id": "/tresencantos/",
+  "start_url": "/tresencantos/index.html",
+  "scope": "/tresencantos/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#FAF5EE",
@@ -19,12 +19,12 @@
   "shortcuts": [
     {
       "name": "Ver catálogo",
-      "url": "/index.html#productos",
+      "url": "/tresencantos/index.html#productos",
       "description": "Ir al catálogo de productos"
     },
     {
       "name": "Inventario",
-      "url": "/admin.html",
+      "url": "/tresencantos/admin.html",
       "description": "Gestión de productos"
     }
   ]

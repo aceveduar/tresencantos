@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-05-16 (rev 3).
+Documentación técnica del proyecto. Última actualización: 2026-05-19 (rev 4).
 
 ## Rol de Claude en este proyecto
 
@@ -39,34 +39,37 @@ Panel de administración + POS + estadísticas + staging + sitio e-commerce para
 | `pos.html` | **Caja** | Punto de venta |
 | `stats.html` | **Reportes** | Estadísticas |
 | `staging.html` | **Staging** | Preparación de productos |
+| `activity.html` | **Actividad** | Log de auditoría (ventas, inventario, apartados) |
+| `settings.html` | **Configuración** | Ajustes globales — solo superadmin |
 
 Usar siempre estos nombres en UI, botones, tickets y conversación. Nunca "Admin", "POS", "Stats".
 
 ```
 tresencantos/
-├── index.html    # Tienda: catálogo, filtros, modal, hero, Natura, about
-├── app.js        # Lógica de la Tienda
-├── style.css     # Estilos de la Tienda
-├── admin.html    # Inventario: CRUD productos, estilos inline
-├── admin.js      # Lógica del Inventario (~2100 líneas)
-├── pos.html      # Caja: carrito, cobro, apartados, historial offcanvas
-├── stats.html    # Reportes: dashboard estadísticas (Chart.js CDN)
-├── staging.html  # Staging: subida masiva + IA Groq
+├── index.html      # Tienda: catálogo, filtros, modal, hero, Natura, about
+├── app.js          # Lógica de la Tienda
+├── style.css       # Estilos de la Tienda
+├── admin.html      # Inventario: CRUD productos, estilos inline
+├── admin.js        # Lógica del Inventario (~2100 líneas)
+├── pos.html        # Caja: carrito, cobro, apartados, historial offcanvas
+├── stats.html      # Reportes: dashboard estadísticas (Chart.js CDN)
+├── staging.html    # Staging: subida masiva + IA Groq
+├── activity.html   # Actividad: feed de auditoría (tabla activity_log)
+├── settings.html   # Configuración: ajustes globales, solo superadmin
+├── manifest.json   # PWA manifest
+├── sw.js           # Service Worker (PWA offline)
+├── icono-192.png   # Icono PWA
+├── icono-512.png   # Icono PWA
 ├── logo.png
 ├── ofelia.jpeg
-└── CLAUDE.md
+├── CLAUDE.md
+└── MANUAL.md       # Manual de usuario para Ofelia, Areli y Eduardo
 ```
 
 ### Navegación entre módulos
-```
-Inventario ──[🗂 Staging]─► staging.html
-Inventario ──[📊 Reportes]► stats.html
-Inventario ──[🖥 Caja]───► pos.html
-Caja       ──[← Inventario]► admin.html
-Caja       ──[📊]───────► stats.html  (solo desktop)
-Reportes   ──[← Inventario]► admin.html
-```
-En mobile Inventario oculta Staging y Reportes; muestra solo Caja.
+Todos los módulos admin comparten una **topbar unificada** con íconos para: Caja, Inventario, Reportes, Actividad, Configuración, Tienda y Cerrar sesión. No hay botón "atrás" — la navegación es siempre desde la topbar.
+
+En mobile algunos módulos pueden ocultar ítems según rol. `settings.html` redirige a `admin.html` si el rol no es `superadmin`.
 
 ---
 
@@ -82,7 +85,7 @@ Todas las migraciones anteriores ya están aplicadas. No hay pendientes.
 | Archivo | Key | Razón |
 |---|---|---|
 | `app.js` | Anon key | Solo SELECT público — seguro |
-| `admin.js`, `pos.html`, `stats.html`, `staging.html` | Service role key | Bypasea RLS para escritura |
+| `admin.js`, `pos.html`, `stats.html`, `staging.html`, `activity.html`, `settings.html` | Service role key | Bypasea RLS para escritura |
 
 - **Project URL:** `https://qxvrggmpaqhslgdmbhqw.supabase.co`
 - **Regla de oro:** nunca poner service role key en `app.js`
@@ -138,8 +141,21 @@ Todas las migraciones anteriores ya están aplicadas. No hay pendientes.
 | `groq_key` | API key de Groq para IA (plain text) |
 | `drive_ep` | URL del Google Apps Script proxy de Drive |
 | `drive_secret` | Secreto de autenticación Drive ↔ Apps Script |
+| `user_names` | JSON `{"email": "Nombre visible"}` — mapeo para mostrar nombres en Actividad |
 
 **Importante:** `groq_key`, `drive_ep` y `drive_secret` ya no están en `localStorage` — viven en esta tabla para ser compartidos entre todos los dispositivos y usuarios admin.
+
+#### `activity_log`
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | serial PK | |
+| `action` | text | Tipo de evento (ver abajo) |
+| `user_email` | text | Email del usuario que realizó la acción |
+| `payload` | jsonb | Datos del evento (producto, venta, etc.) |
+| `created_at` | timestamptz | Auto |
+
+**Tipos de acción (`action`):**
+`venta`, `apartado_nuevo`, `apartado_abono`, `apartado_liquidado`, `producto_creado`, `producto_editado`, `producto_eliminado`, `duplicado_descartado`
 
 #### `users` (legacy)
 Email + password plano. Ya no se usa para auth real (Supabase Auth JWT).
@@ -420,6 +436,42 @@ Regla: descuento % y badge "OFERTA/promo" son redundantes — el % gana siempre.
 
 ---
 
+## Actividad (`activity.html`)
+
+Feed de auditoría de todo lo que pasa en el sistema. Accesible para todos los roles autenticados.
+
+- Lee de la tabla `activity_log` — ordenada por `created_at desc`, límite 300 registros
+- **Filtros:** período (Hoy / 7 días / 30 días / Todo) + usuario + tipo (Ventas / Inventario / Apartados)
+- **Resumen KPIs** en la parte superior: ventas, apartados, cambios de inventario en el período
+- Avatares con color fijo por usuario conocido; colores dinámicos para usuarios nuevos
+- Los nombres visibles se cargan desde `config.id='user_names'` — editable en Configuración
+- **Limpiar historial:** disponible en Configuración (solo superadmin)
+
+---
+
+## Configuración (`settings.html`)
+
+Panel de ajustes globales. **Solo superadmin** — redirige a `admin.html` para otros roles.
+
+### Secciones
+**Catálogo:**
+- Toggle **WhatsApp flotante** en Tienda (botón verde visible al hacer scroll)
+- Toggle **Captura rápida** en Inventario (botón de foto + IA)
+- **Categorías del catálogo** — modal para agregar/editar/eliminar (mismo que antes estaba en Inventario → Herramientas)
+- **Revista Digital Natura** — URL o PDF base64
+
+**Datos:**
+- **Respaldo de productos** — Exportar / Importar JSON (movido de Inventario a aquí)
+- **Nombres de usuarios** — asigna nombre visible a cada email (se guarda en `config.id='user_names'`)
+- **Revisión de duplicados** — detecta productos similares
+- **Limpiar historial de actividad** — borra todos los registros de `activity_log`
+
+**Integraciones:**
+- **Groq API key** — guardar/actualizar key para IA (guardada en `config.id='groq_key'`)
+- **Google Drive** — configurar/probar/desconectar el Apps Script proxy
+
+---
+
 ## Design System (admin)
 
 Variables en `admin.html` `<style>` inline:
@@ -456,4 +508,6 @@ Colores de categoría: **dinámicos desde `categories[]`**, campo `color` de cad
 - **IA:** Groq Llama 4 Scout Vision — key en `config` Supabase (`groq_key`), compartida entre admin y staging
 - **Google Drive:** Apps Script como proxy. Secreto en `config` Supabase (`drive_secret`), nunca en código fuente. Al cambiar el secreto → siempre desplegar nueva versión del Apps Script.
 - `position` lo gestiona el admin — sitio público y POS ordenan por él
+- **PWA:** `manifest.json` + `sw.js` + íconos `icono-192.png` / `icono-512.png`. El sitio se puede instalar como app en móvil.
 - **SQL pendiente** para sesiones nuevas: ver sección "SQL — Migraciones Pendientes" arriba
+- **Documentación de usuario:** `MANUAL.md` en la raíz — guía para Ofelia, Areli y Eduardo, sin tecnicismos

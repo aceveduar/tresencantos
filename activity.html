@@ -323,11 +323,19 @@ async function load() {
   document.getElementById('feed').innerHTML = '<div class="spinner"></div>';
   document.getElementById('summary-row').style.display = 'none';
 
-  const days = parseInt(document.getElementById('filter-period').value);
+  const periodVal = document.getElementById('filter-period').value;
+  const days = parseInt(periodVal);
   const user = document.getElementById('filter-user').value;
 
   // Fecha de inicio del período
-  const from = days > 0 ? new Date(Date.now() - days * 86400000).toISOString() : null;
+  // "Hoy" (days=1) usa medianoche del día actual, no "hace 24h"
+  let from;
+  if (days === 1) {
+    const t = new Date(); t.setHours(0, 0, 0, 0);
+    from = t.toISOString();
+  } else {
+    from = days > 0 ? new Date(Date.now() - days * 86400000).toISOString() : null;
+  }
 
   // Query activity_log (feed de auditoría)
   let logQ = `activity_log?select=*&order=created_at.desc&limit=300`;

@@ -1,14 +1,17 @@
 // ⚠️ Incrementar CACHE_VERSION en cada deploy para invalidar caché anterior
-const CACHE_VERSION = 'v20';
+const CACHE_VERSION = 'v21';
 const CACHE = `tres-encantos-${CACHE_VERSION}`;
 
+// Base path dinámica — funciona en GitHub Pages (/tresencantos) y en dominio raíz ("")
+const BASE = new URL('.', self.location.href).pathname.replace(/\/$/, '');
+
 const STATIC = [
-  '/index.html',
-  '/app.js',
-  '/style.css',
-  '/manifest.json',
-  '/logo.png',
-  '/ofelia.jpeg'
+  `${BASE}/index.html`,
+  `${BASE}/app.js`,
+  `${BASE}/style.css`,
+  `${BASE}/manifest.json`,
+  `${BASE}/logo.png`,
+  `${BASE}/ofelia.jpeg`,
 ];
 
 // Instalar: precachear archivos estáticos

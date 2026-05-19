@@ -318,6 +318,23 @@ button,a,[onclick]{touch-action:manipulation}
         <a href="admin.html#dup-review" class="btn btn-outline btn-sm">Revisar</a>
       </div>
     </div>
+    <div class="scard-row" id="clear-log-row" style="display:none;flex-wrap:wrap;gap:10px;align-items:flex-start">
+      <div class="scard-icon" style="margin-top:2px">🗑</div>
+      <div class="scard-body">
+        <div class="scard-title">Limpiar historial de actividad</div>
+        <div class="scard-desc">Elimina registros del log según antigüedad. No se puede deshacer.</div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <select class="field-input" id="log-range-select" style="flex:1;min-width:180px">
+            <option value="1w">Registros de más de 1 semana</option>
+            <option value="1m" selected>Registros de más de 1 mes</option>
+            <option value="3m">Registros de más de 3 meses</option>
+            <option value="6m">Registros de más de 6 meses</option>
+            <option value="all">Todo el historial</option>
+          </select>
+          <button class="btn btn-red-outline btn-sm" onclick="clearActivityLog()">Limpiar</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ─── INTEGRACIONES ─────────────────────────────────────── -->
@@ -465,14 +482,15 @@ const SESSION_KEY          = 'te_admin_session';
 const CAT_PALETTE          = ['#C9A462','#60a5fa','#f472b6','#34d399','#a78bfa','#fb923c','#fbbf24','#a3e635','#2dd4bf','#f87171'];
 
 /* ── AUTH + ROL ── */
+let ROLE = 'operador';
 (function(){
   try {
     const s = JSON.parse(localStorage.getItem(SESSION_KEY));
     if (!s?.access_token || s.expires_at <= Date.now()/1000 + 60) return window.location.href = 'admin.html';
-    const role = s?.user?.user_metadata?.role ||
+    ROLE = s?.user?.user_metadata?.role ||
       (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.user_metadata?.role; } catch{} })() ||
       'operador';
-    if (role === 'operador') window.location.href = 'admin.html';
+    if (ROLE === 'operador') window.location.href = 'admin.html';
   } catch { window.location.href = 'admin.html'; }
 })();
 
@@ -926,6 +944,26 @@ function importProducts(input) {
   input.value = '';
 }
 
+/* ── LOG DE ACTIVIDAD ── */
+async function clearActivityLog() {
+  const range = document.getElementById('log-range-select')?.value || 'all';
+  const labels = { '1w':'más de 1 semana', '1m':'más de 1 mes', '3m':'más de 3 meses', '6m':'más de 6 meses', 'all':'todo el historial' };
+  if (!confirm(`¿Borrar los registros de ${labels[range]}?\nEsta acción no se puede deshacer.`)) return;
+
+  let filter;
+  if (range === 'all') {
+    filter = 'activity_log?id=gt.0';
+  } else {
+    const days = { '1w': 7, '1m': 30, '3m': 90, '6m': 180 }[range];
+    const cutoff = new Date(Date.now() - days * 86400000).toISOString();
+    filter = `activity_log?created_at=lt.${encodeURIComponent(cutoff)}`;
+  }
+
+  const r = await api(filter, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+  if (r.ok) toast(`Registros de ${labels[range]} eliminados ✓`, 'ok');
+  else toast('Error al borrar el historial', 'err');
+}
+
 /* ── TOAST ── */
 let _toastT;
 function toast(msg, type = '') {
@@ -956,6 +994,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (_nl) _nl.textContent = _n;
   } catch {}
   init();
+  if (ROLE === 'superadmin') {
+    const row = document.getElementById('clear-log-row');
+    if (row) row.style.display = '';
+  }
   // Mostrar conteo de duplicados desde última revisión en Inventario
   const dupCount = parseInt(localStorage.getItem('te_dup_last_count') || '0');
   const dupTag = document.getElementById('dup-count-tag');
