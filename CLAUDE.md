@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-05-19 (rev 5).
+Documentación técnica del proyecto. Última actualización: 2026-05-19 (rev 6).
 
 ## Rol de Claude en este proyecto
 
@@ -10,6 +10,26 @@ Actuar siempre como **experto en diseño UX/UI para e-commerce, redactor y estra
 - Priorizar la experiencia de la usuaria final (Ofelia y sus clientes) sobre preferencias técnicas
 - Ser honesto: dar la mejor recomendación aunque difiera de lo que el usuario sugiere
 - **Estándar e-commerce** — cada decisión de UX/UI debe estar a la altura de cualquier app de e-commerce seria (ZARA, Amazon, Shopify, H&M): CTA siempre visible sin scroll, imágenes sin recorte, jerarquía de información clara, navegación predecible. Si algo no cumpliría ese estándar, señalarlo y corregirlo aunque no se haya pedido explícitamente.
+
+### Referencias de software profesional por módulo
+
+Antes de diseñar o modificar cualquier funcionalidad, tomar como referencia los patrones que usan estas apps en producción:
+
+| Módulo | Referencias |
+|---|---|
+| **Caja (POS)** | Shopify POS, Square POS, Clip — thumbnail inline en historial, carrito lateral, cobro en un paso |
+| **Inventario** | Shopify Admin, WooCommerce, Airtable — tabla/grid toggle, inline edit, bulk actions, drag & drop |
+| **Reportes** | Shopify Analytics, Square Dashboard — KPIs con delta %, gráficas de barras/donut, top productos |
+| **Tienda (sitio)** | ZARA, H&M, Amazon — bottom sheet en mobile, CTA siempre visible, object-fit:contain en imágenes |
+| **Staging / carga masiva** | Shopify Bulk Import, Canva — drag & drop, vista previa antes de confirmar |
+| **Navegación** | Shopify Admin mobile — topbar con íconos, sin texto en mobile, módulo activo resaltado |
+
+**Principios concretos extraídos de estas referencias:**
+- Información que ya es visible en una tarjeta **no se repite** en un modal — el modal revela lo que está oculto
+- Imágenes en listas de POS: **thumbnail inline** (24–32px), no modal aparte
+- Modales de análisis/reportes: **solo texto**, sin imágenes — velocidad de lectura primero
+- Botones de acción destructiva (cancelar, eliminar): `stopPropagation` — nunca activados por tap accidental
+- Búsqueda en mobile: siempre con botón ✕ para limpiar y soporte de voz
 
 ---
 

@@ -265,10 +265,11 @@ button,a{touch-action:manipulation}
 /* Lista de artículos */
 .hi-items{padding:6px 10px}
 .hi-item{
-  display:flex;align-items:baseline;gap:6px;
-  padding:3px 0;border-bottom:1px dashed #F0E8E0;font-size:.8rem;
+  display:flex;align-items:center;gap:8px;
+  padding:4px 0;border-bottom:1px dashed #F0E8E0;font-size:.8rem;
 }
 .hi-item:last-child{border-bottom:none}
+.hi-item-thumb{width:28px;height:28px;border-radius:5px;object-fit:cover;flex-shrink:0;background:#F5EDE4;border:1px solid #EDE5DC}
 .hi-item-name{flex:1;color:var(--charcoal);font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hi-item-qty{color:#9B8B78;white-space:nowrap;font-size:.75rem}
 .hi-item-sub{font-weight:700;font-family:'Playfair Display',serif;white-space:nowrap;font-size:.82rem}
@@ -2122,12 +2123,17 @@ async function loadHistory() {
             ? '<span class="pay-badge pay-transferencia" style="font-size:.62rem">📱</span>'
             : '<span class="pay-badge pay-efectivo" style="font-size:.62rem">💵</span>';
 
-      const itemsHTML = items.map(i => `
+      const THUMB_PH = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2228%22 height=%2228%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23D1C4B8%22 stroke-width=%221.5%22%3E%3Crect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/%3E%3Ccircle cx=%228.5%22 cy=%228.5%22 r=%221.5%22/%3E%3Cpath d=%22m21 15-5-5L5 21%22/%3E%3C/svg%3E';
+      const itemsHTML = items.map(i => {
+        const img = products.find(p => p.id === i.id)?.image || THUMB_PH;
+        return `
 <div class="hi-item">
+  <img class="hi-item-thumb" src="${img}" alt="${i.name}" onerror="this.src='${THUMB_PH}'">
   <span class="hi-item-name">${i.name}</span>
   <span class="hi-item-qty">×${i.qty || 1}</span>
   <span class="hi-item-sub">$${((i.subtotal ?? i.price * (i.qty || 1))).toLocaleString('es-MX')}</span>
-</div>`).join('');
+</div>`;
+      }).join('');
 
       // Historial de pagos (abonos ya declarado arriba)
       const abonosHiHTML = abonos.length ? `

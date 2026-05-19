@@ -3220,7 +3220,7 @@ function dictate(fieldId) {
   let committedText = '';  // texto final acumulado — persiste entre sub-sesiones Android
   let nextFinalIdx  = 0;  // próximo índice final a procesar en la sub-sesión actual
 
-  btn.textContent = '⏹ Detener';
+  if (!btn.dataset.iconOnly) btn.textContent = '⏹ Detener';
   btn.classList.add('recording');
 
   // FIX Android: blur cierra el teclado del sistema → su micrófono deja de escuchar
@@ -3241,6 +3241,7 @@ function dictate(fieldId) {
     const all     = committedText + (interim ? (committedText ? ' ' : '') + interim : '');
     const sep     = startValue && all ? ' ' : '';
     field.value   = startValue + sep + all;
+    if (!cur.isFinal && btn.dataset.iconOnly) return; // búsqueda: solo disparar en finales
     field.dispatchEvent(new Event('input'));
   };
 
@@ -3254,14 +3255,14 @@ function dictate(fieldId) {
       const sep   = startValue && committedText ? ' ' : '';
       field.value = (startValue + sep + committedText).trim();
       field.dispatchEvent(new Event('input'));
-      btn.textContent = origLabel;
+      if (!btn.dataset.iconOnly) btn.textContent = origLabel;
       btn.classList.remove('recording');
     }
   };
 
   sr.onerror = e => {
     _activeRec = null;
-    btn.textContent = origLabel;
+    if (!btn.dataset.iconOnly) btn.textContent = origLabel;
     btn.classList.remove('recording');
     const sep   = startValue && committedText ? ' ' : '';
     field.value = (startValue + sep + committedText).trim();

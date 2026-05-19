@@ -1385,7 +1385,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         <input type="text" id="search-input" placeholder="Buscar… varios términos separados por coma" oninput="renderTable();_toggleSearchClear()">
         <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearchInput()" title="Borrar búsqueda" style="display:none">✕</button>
       </div>
-      <button class="btn btn-outline btn-sm dictate-btn" id="dictate-search-input" onclick="dictate('search-input')" title="Buscar por voz">🎤</button>
+      <button class="btn btn-outline btn-sm dictate-btn" id="dictate-search-input" data-icon-only="true" onclick="dictate('search-input')" title="Buscar por voz">🎤</button>
       <button class="btn btn-outline btn-sm" onclick="openSearchScanner()" title="Buscar por código de barras">📷</button>
       <select class="filter-select" id="cat-filter" onchange="renderTable()">
         <option value="all">Todas las categorías</option>
