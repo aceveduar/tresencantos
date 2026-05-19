@@ -475,7 +475,6 @@ button,a{touch-action:manipulation}
 @media(max-width:1024px){
   /* ── TOPBAR: grid 2 col — [Caja centrado] [acciones+nav] ── */
   .topbar{padding:0 10px;gap:6px}
-  .topbar-left .topbar-nav-mobile{display:none}
   .topbar-title{border-right:none;padding-right:0;margin-right:0;font-style:italic}
   .topbar-right{gap:2px}
   .user-name-label{display:none}
@@ -483,7 +482,7 @@ button,a{touch-action:manipulation}
   .btn-label{display:none}
   .topbar-sep-user{display:none!important}
   /* Ocultar refresh (↻) en mobile — poco espacio */
-  #pos-refresh-btn { display:none }
+  #btn-refresh-pos { display:none }
   .title-long{display:none}
   .title-short{display:inline!important}
   .today-stats{display:none!important}
@@ -732,6 +731,7 @@ button,a{touch-action:manipulation}
   .pos-grid{grid-template-columns:1fr 1fr;gap:6px;padding:6px}
   .cat-chip{padding:5px 9px;font-size:.68rem}
   .cash-quick button{font-size:.72rem;padding:6px 1px}
+  .tbn-icon{min-width:28px;padding:4px 5px}
 }
 
 /* ══ TOPBAR NAV ══════════════════════════════════════════════════════ */
@@ -771,7 +771,7 @@ button,a{touch-action:manipulation}
   .topbar{background:var(--charcoal);justify-content:space-between}
   .topbar-left{flex:1;display:flex;align-items:center}
   .topbar-right{flex:1;justify-content:flex-end}
-  .topbar-nav-mobile{gap:2px}
+  .topbar-nav-mobile{position:absolute;left:50%;transform:translateX(-50%);gap:2px}
   .tbn-icon{padding:6px 11px}
   .tbn-icon svg{width:16px;height:16px}
 }
@@ -781,9 +781,29 @@ button,a{touch-action:manipulation}
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <!-- IZQUIERDA: título + navegación de módulos -->
+  <!-- IZQUIERDA: solo título -->
   <div class="topbar-left">
     <span class="topbar-title">Caja</span>
+  </div>
+  <!-- DERECHA: acciones de Caja + nav de módulos + usuario + salir -->
+  <div class="topbar-right">
+    <button id="apt-vencidos-alert" style="display:none;background:#FEE2E2;color:#E85D5D;border:1.5px solid #FECACA;border-radius:50px;padding:4px 12px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s" onclick="switchPosTab('apartados')" title="Ver apartados vencidos">⚠️ <span id="apt-vencidos-count"></span></button>
+    <button class="cart-topbar-btn" id="cart-topbar-btn" onclick="toggleCartPreview()" title="Ver carrito">
+      🛒
+      <span id="cart-topbar-badge" class="cart-badge" style="display:none"></span>
+    </button>
+    <button class="history-oc-btn" id="btn-refresh-pos" onclick="refreshPosProducts()" title="Actualizar catálogo">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      <span class="btn-label">Actualizar</span>
+    </button>
+    <button class="history-oc-btn" onclick="openCorte()" id="btn-corte-pos" title="Corte de caja">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      <span class="btn-label">Corte</span>
+    </button>
+    <button class="history-oc-btn" onclick="openHistory()" id="btn-history-pos" title="Historial">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span class="btn-label">Historial</span>
+    </button>
     <nav class="topbar-nav-mobile" aria-label="Módulos">
       <a href="admin.html" class="tbn-icon" title="Inventario">
         <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
@@ -806,26 +826,6 @@ button,a{touch-action:manipulation}
         <span class="tbn-label">Tienda</span>
       </a>
     </nav>
-  </div>
-  <!-- DERECHA: acciones de Caja + usuario + salir -->
-  <div class="topbar-right">
-    <button id="apt-vencidos-alert" style="display:none;background:#FEE2E2;color:#E85D5D;border:1.5px solid #FECACA;border-radius:50px;padding:4px 12px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s" onclick="switchPosTab('apartados')" title="Ver apartados vencidos">⚠️ <span id="apt-vencidos-count"></span></button>
-    <button class="cart-topbar-btn" id="cart-topbar-btn" onclick="toggleCartPreview()" title="Ver carrito">
-      🛒
-      <span id="cart-topbar-badge" class="cart-badge" style="display:none"></span>
-    </button>
-    <button class="history-oc-btn" id="btn-refresh-pos" onclick="refreshPosProducts()" title="Actualizar catálogo">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-      <span class="btn-label">Actualizar</span>
-    </button>
-    <button class="history-oc-btn" onclick="openCorte()" id="btn-corte-pos" title="Corte de caja">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-      <span class="btn-label">Corte</span>
-    </button>
-    <button class="history-oc-btn" onclick="openHistory()" id="btn-history-pos" title="Historial">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      <span class="btn-label">Historial</span>
-    </button>
     <span class="tbn-sep topbar-sep-user"></span>
     <div class="user-display" id="user-display">
       <span class="user-avatar" id="user-avatar">?</span>
