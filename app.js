@@ -248,6 +248,15 @@ function initAdminBar() {
     if (!s.access_token || !s.expires_at) return;
     if (s.expires_at <= Math.floor(Date.now() / 1000) + 60) return;
     document.body.classList.add('admin-bar-shown');
+    // Ocultar links restringidos según rol
+    const role = s.user?.user_metadata?.role ||
+      (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.user_metadata?.role; } catch { return null; } })() ||
+      'operador';
+    if (role === 'operador' || role === 'duena') {
+      ['activity.html', 'settings.html'].forEach(href => {
+        document.querySelector(`#admin-bar a[href="${href}"]`)?.remove();
+      });
+    }
   } catch {}
 }
 

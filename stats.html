@@ -502,6 +502,11 @@ const SESSION_KEY = 'te_admin_session';
       (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.user_metadata?.role; } catch{} })() ||
       'operador';
     if (role === 'operador') window.location.href = 'admin.html';
+    if (role !== 'superadmin') {
+      document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll(`a[href="activity.html"]`).forEach(a => a.style.display = 'none');
+      });
+    }
   } catch { window.location.href = 'admin.html'; }
 })();
 

@@ -113,13 +113,6 @@ async function _saveCategories() {
 /* Helpers para subcategorías */
 function rootCats()     { return categories.filter(c => !c.parent); }
 function subCats(code)  { return categories.filter(c => c.parent === code); }
-function allLeafCats()  { return categories.filter(c => !subCats(c.code).length); }
-function catDisplayName(c) {
-  if (!c.parent) return c.label;
-  const parent = categories.find(x => x.code === c.parent);
-  return parent ? `${parent.label} › ${c.label}` : c.label;
-}
-
 function renderCategorySelects() {
   // Select del formulario de producto — sólo hojas (sin hijos)
   const fSel = document.getElementById('f-category');
@@ -186,8 +179,13 @@ function getFilteredProducts() {
   const filtered = products.filter(p => {
     const matchCat = adminCatMatches(p.category, cat);
     const terms    = q ? q.split(',').map(t => t.trim()).filter(Boolean) : [];
-    const matchQ   = !terms.length || terms.some(t => p.name.toLowerCase().includes(t) || (p.description || '').toLowerCase().includes(t));
-    return matchCat && matchQ;
+    const matchQ   = !terms.length || terms.some(t =>
+      p.name.toLowerCase().includes(t) ||
+      (p.categoryLabel || '').toLowerCase().includes(t) ||
+      (p.barcode && p.barcode.includes(t))
+    );
+    const matchFlag = !_showOnlyFlagged || !!_flagItem(p.id);
+    return matchCat && matchQ && matchFlag;
   });
 
   switch (currentSort) {
@@ -486,9 +484,17 @@ function _applyRoleUI() {
       document.querySelectorAll(`a[href="${href}"]`).forEach(a => a.style.setProperty('display','none'));
     });
   }
-  // Encargado: ver Reportes y Actividad, NO Settings
+  // Encargado: ver Reportes, NO Actividad ni Settings
   if (ROLE === 'encargado') {
-    document.querySelectorAll('a[href="settings.html"]').forEach(a => a.style.setProperty('display','none'));
+    ['activity.html','settings.html'].forEach(href => {
+      document.querySelectorAll(`a[href="${href}"]`).forEach(a => a.style.setProperty('display','none'));
+    });
+  }
+  // Dueña: no ve Actividad ni Settings
+  if (ROLE === 'duena') {
+    ['activity.html','settings.html'].forEach(href => {
+      document.querySelectorAll(`a[href="${href}"]`).forEach(a => a.style.setProperty('display','none'));
+    });
   }
   // Settings — solo superadmin
   if (!can.manageSettings) {
@@ -548,9 +554,10 @@ async function showApp() {
   </td></tr>`;
 
   await loadCategories();
-  await loadAppConfig();
+  await Promise.all([loadAppConfig(), loadFlagged()]);
   _loadNameMap();
   await loadProductsFromSupabase();
+  _syncFlagFilter();
   renderStats();
   setAdminView(currentAdminView);
   setTimeout(_updateDupBadge, 0);
@@ -752,8 +759,9 @@ function adminCard(p) {
   const priceHTML = p.originalPrice
     ? `<span class="ac-orig">$${p.originalPrice.toLocaleString('es-MX')}</span><span class="ac-price">$${p.price.toLocaleString('es-MX')}</span>`
     : `<span class="ac-price">$${p.price.toLocaleString('es-MX')}</span>`;
-  const oosTitle = oos ? 'Agotado — toca para marcar disponible' : 'Disponible — toca para agotar';
-  const pubTitle = p.isPublished === false ? 'Oculto del sitio — toca para publicar' : 'Visible en sitio — toca para ocultar';
+  const oosTitle  = oos ? 'Agotado — toca para marcar disponible' : 'Disponible — toca para agotar';
+  const pubTitle  = p.isPublished === false ? 'Oculto del sitio — toca para publicar' : 'Visible en sitio — toca para ocultar';
+  const flagDotAC = _flagItem(p.id) ? `<span class="flag-dot" title="Pendiente de revisión">🚩</span>` : '';
 
   return `
 <div class="admin-card${sel?' card-selected':''}${oos?' card-oos':''}"
@@ -769,7 +777,7 @@ function adminCard(p) {
          onerror="this.onerror=null;this.src='${fallback}'">
     <input type="checkbox" class="ac-check row-check"
            ${sel?'checked':''} onchange="toggleRowSelect(${p.id},this.checked)">
-    ${badgeHTML}
+    ${badgeHTML}${flagDotAC}
     <div class="ac-oos-label"></div>
     <button class="ac-star toggle-featured" onclick="toggleFeatured(${p.id})"
             title="${p.featured?'Quitar destacado':'Destacar'}">
@@ -803,19 +811,6 @@ function adminCard(p) {
     </div>
   </div>
 </div>`;
-}
-
-// Detección de doble-tap en mobile (dblclick no es confiable en touch)
-const _dblTapTs = {};
-function handleMpcDoubleTap(e, id) {
-  if (e.target.closest('button,input,a')) return; // ignorar si toca un control
-  const now = Date.now();
-  if (now - (_dblTapTs[id] || 0) < 350) {
-    delete _dblTapTs[id];
-    openForm(id);
-  } else {
-    _dblTapTs[id] = now;
-  }
 }
 
 function stockChip(p) {
@@ -986,10 +981,11 @@ function editCategoryInline(e, id) {
 function desktopRow(p) {
   const fallback = DEFAULT_IMG;
   const oos = p.outOfStock || p.stock === 0;
-  const badgeHTML = p.badge ? `<span class="badge badge-${p.badgeType||'none'} badge-xs">${p.badge}</span>` : '';
-  const featStar = `<span onclick="toggleFeatured(${p.id})" class="toggle-featured" title="${p.featured ? 'Quitar destacado' : 'Destacar'}">${p.featured ? '⭐' : '☆'}</span>`;
-  const catColor = getCatColor(p.category);
-  const catDot = `<span class="cat-dot" style="background:${catColor}"></span>`;
+  const badgeHTML  = p.badge ? `<span class="badge badge-${p.badgeType||'none'} badge-xs">${p.badge}</span>` : '';
+  const featStar   = `<span onclick="toggleFeatured(${p.id})" class="toggle-featured" title="${p.featured ? 'Quitar destacado' : 'Destacar'}">${p.featured ? '⭐' : '☆'}</span>`;
+  const catColor   = getCatColor(p.category);
+  const catDot     = `<span class="cat-dot" style="background:${catColor}"></span>`;
+  const flagDotRow = _flagItem(p.id) ? `<span class="flag-dot-row" title="Pendiente de revisión">🚩</span>` : '';
   return `
 <tr draggable="true" data-id="${p.id}" class="${selectedIds.has(p.id) ? 'row-selected' : ''}"
     ondblclick="if(!event.target.closest('button,input,select,a,.drag-handle,.cat-label-inline'))openForm(${p.id})"
@@ -1006,7 +1002,7 @@ function desktopRow(p) {
         <div class="prod-meta">
           ${catDot}
           <span class="prod-meta-text"><span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${p.categoryLabel}</span> · #${p.id}${p.barcode ? ` · 🔲 ${p.barcode}` : ''}</span>
-          ${badgeHTML}${featStar}${publishedToggle(p)}
+          ${badgeHTML}${featStar}${publishedToggle(p)}${flagDotRow}
         </div>
       </div>
     </div>
@@ -1074,7 +1070,7 @@ function mobileCard(p) {
           </button>
         </div>
         <div class="mpc-info">
-          <div class="mpc-name">${p.name}</div>
+          <div class="mpc-name">${p.name}${_flagItem(p.id) ? ' <span class="flag-dot-row" title="Pendiente de revisión">🚩</span>' : ''}</div>
           <div class="mpc-cat-tag">
             <span class="cat-dot" style="background:${catColor}"></span>
             <span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría">${p.categoryLabel}</span>
@@ -1129,12 +1125,14 @@ function renderTable() {
   if (!filtered.length) {
     const isFiltered = (document.getElementById('search-input')?.value || '') ||
                        (document.getElementById('cat-filter')?.value !== 'all');
+    const isFlagOnly = _showOnlyFlagged;
     const emptyHTML = `<div class="empty-state">
-      <div class="es-icon">${isFiltered ? '🔍' : '📦'}</div>
-      <p>${isFiltered ? 'Ningún producto coincide con el filtro.' : 'El catálogo está vacío.'}</p>
+      <div class="es-icon">${isFlagOnly ? '🚩' : isFiltered ? '🔍' : '📦'}</div>
+      <p>${isFlagOnly ? '¡Todo revisado! No hay productos pendientes.' : isFiltered ? 'Ningún producto coincide con el filtro.' : 'El catálogo está vacío.'}</p>
       <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-        ${isFiltered ? `<button class="btn btn-outline btn-sm" onclick="clearAdminFilters()">✕ Limpiar filtros</button>` : ''}
-        ${!isFiltered ? `<button class="btn btn-gold btn-sm" onclick="openForm()">+ Agregar primer producto</button>` : ''}
+        ${isFlagOnly ? `<button class="btn btn-gold btn-sm" onclick="toggleFlagFilter()">Ver todos los productos</button>` : ''}
+        ${!isFlagOnly && isFiltered ? `<button class="btn btn-outline btn-sm" onclick="clearAdminFilters()">✕ Limpiar filtros</button>` : ''}
+        ${!isFlagOnly && !isFiltered ? `<button class="btn btn-gold btn-sm" onclick="openForm()">+ Agregar primer producto</button>` : ''}
       </div>
     </div>`;
     if (useCards && cardGrid) { cardGrid.innerHTML = emptyHTML; }
@@ -3755,6 +3753,82 @@ function _renderSimilarModal() {
   ).join('');
 }
 
+/* ── FLAG PARA REVISIÓN — guardado en config Supabase, compartido entre dispositivos ── */
+let _flagged = []; // [{id, note, ts}]
+let _showOnlyFlagged = localStorage.getItem('te_flag_filter') === '1';
+
+async function loadFlagged() {
+  const r = await supabaseApi('config?id=eq.flagged_products&select=value');
+  if (r.ok && r.data?.[0]?.value) {
+    try { _flagged = JSON.parse(r.data[0].value) || []; } catch { _flagged = []; }
+  }
+}
+
+async function _saveFlagged() {
+  await supabaseApi('config', {
+    method: 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates' },
+    body: JSON.stringify({ id: 'flagged_products', value: JSON.stringify(_flagged) })
+  });
+}
+
+function _flagItem(id) { return _flagged.find(x => x.id === id); }
+
+async function flagProduct(id, note) {
+  _flagged = _flagged.filter(x => x.id !== id);
+  _flagged.unshift({ id, note: (note || '').trim(), ts: new Date().toISOString() });
+  await _saveFlagged();
+  _syncFlagFilter();
+  renderTable();
+  const p = products.find(x => x.id === id);
+  if (p && _qvCurrentId === id) _renderQV(p);
+  toast('🚩 Marcado para revisar', 'success');
+}
+
+async function unflagProduct(id) {
+  _flagged = _flagged.filter(x => x.id !== id);
+  await _saveFlagged();
+  // Si ya no quedan pendientes, salir del filtro automáticamente
+  if (_flagged.length === 0) _showOnlyFlagged = false;
+  _syncFlagFilter();
+  renderTable();
+  const p = products.find(x => x.id === id);
+  if (p && _qvCurrentId === id) _renderQV(p);
+  toast('✓ Revisión completada');
+}
+
+function toggleFlagFilter() {
+  _showOnlyFlagged = !_showOnlyFlagged;
+  _syncFlagFilter();
+  renderTable();
+}
+
+function _syncFlagFilter() {
+  localStorage.setItem('te_flag_filter', _showOnlyFlagged ? '1' : '0');
+  const btn = document.getElementById('flag-filter-btn');
+  if (!btn) return;
+  const n = _flagged.length;
+  btn.style.display = n > 0 ? '' : 'none';
+  btn.textContent = `🚩 Revisar${n > 0 ? ` (${n})` : ''}`;
+  btn.classList.toggle('active', _showOnlyFlagged);
+}
+
+function _qvShowFlagForm(id) {
+  const zone = document.getElementById('qv-flag-zone');
+  if (!zone) return;
+  zone.innerHTML = `
+    <div class="qv-flag-form">
+      <label>Nota para recordar qué revisar:</label>
+      <textarea class="qv-flag-textarea" id="qv-flag-ta" rows="3"
+        placeholder="Ej: imagen dice 6 piezas, descripción dice 4…"></textarea>
+      <div class="qv-flag-btns">
+        <button class="qv-btn qv-btn-flag" onclick="flagProduct(${id},document.getElementById('qv-flag-ta').value)">🚩 Marcar</button>
+        <button class="qv-btn qv-btn-dup" onclick="(p=>p?_renderQV(p):closeQV())(products.find(x=>x.id===${id}))">Cancelar</button>
+      </div>
+    </div>`;
+  document.getElementById('qv-flag-ta')?.focus();
+}
+
 /* ── QUICK VIEW ── */
 let _qvCurrentId = null;
 
@@ -3834,6 +3908,25 @@ function _renderQV(p) {
   descEl.textContent = p.description || '';
   descEl.style.display = p.description ? '' : 'none';
 
+  // Zona de flag
+  const flagData = _flagItem(p.id);
+  const flagZone = document.getElementById('qv-flag-zone');
+  if (flagZone) {
+    if (flagData) {
+      const d = new Date(flagData.ts);
+      const dateStr = d.toLocaleDateString('es-MX', { day:'numeric', month:'short' }) +
+                      ' ' + d.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
+      flagZone.innerHTML = `
+        <div class="qv-flag-active">
+          <span class="qv-flag-title">🚩 Pendiente de revisión</span>
+          ${flagData.note ? `<p class="qv-flag-note-text">"${flagData.note}"</p>` : ''}
+          <span class="qv-flag-ts">Marcado el ${dateStr}</span>
+        </div>`;
+    } else {
+      flagZone.innerHTML = '';
+    }
+  }
+
   // ID
   document.getElementById('qv-id').textContent = `ID #${p.id}`;
 
@@ -3848,7 +3941,10 @@ function _renderQV(p) {
   const btnDel  = can.deleteProduct
     ? `<button class="qv-btn qv-btn-del" onclick="closeQV();askDelete(${p.id})">✕ Eliminar</button>`
     : '';
-  document.getElementById('qv-actions').innerHTML = btnEdit + btnDup + btnPub + btnDel;
+  const btnFlag = flagData
+    ? `<button class="qv-btn qv-btn-flagdone" onclick="unflagProduct(${p.id})">✓ Revisado</button>`
+    : `<button class="qv-btn qv-btn-flag"    onclick="_qvShowFlagForm(${p.id})">🚩 Revisar</button>`;
+  document.getElementById('qv-actions').innerHTML = btnEdit + btnDup + btnPub + btnDel + btnFlag;
 }
 
 async function _qvTogglePublished(id) {

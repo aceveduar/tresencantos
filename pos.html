@@ -293,7 +293,9 @@ button,a{touch-action:manipulation}
 [data-loading]::after{content:'';display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;margin-left:10px;vertical-align:middle}
 
 /* SALE DONE OVERLAY */
-.sale-done-modal{background:#fff;border-radius:18px;padding:32px 28px;max-width:320px;width:100%;text-align:center;box-shadow:0 12px 48px rgba(0,0,0,.22)}
+.sale-done-modal{background:#fff;border-radius:18px;padding:32px 28px;max-width:320px;width:100%;text-align:center;box-shadow:0 12px 48px rgba(0,0,0,.22);position:relative}
+.sd-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;border:none;background:#F0EBE3;color:#6B5C48;font-size:.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;touch-action:manipulation}
+.sd-close:hover{background:#E85D5D;color:#fff}
 @keyframes pop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
 .sale-done-modal{animation:pop .25s ease}
 .sd-icon{width:64px;height:64px;border-radius:50%;background:var(--green);color:#fff;font-size:1.8rem;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
@@ -808,6 +810,10 @@ button,a{touch-action:manipulation}
       🛒
       <span id="cart-topbar-badge" class="cart-badge" style="display:none"></span>
     </button>
+    <button class="history-oc-btn" id="btn-refresh-pos" onclick="refreshPosProducts()" title="Actualizar catálogo">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      <span class="btn-label">Actualizar</span>
+    </button>
     <button class="history-oc-btn" onclick="openCorte()" id="btn-corte-pos" title="Corte de caja">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       <span class="btn-label">Corte</span>
@@ -1056,6 +1062,7 @@ button,a{touch-action:manipulation}
 <!-- SALE DONE OVERLAY -->
 <div class="overlay" id="sale-done-overlay">
   <div class="sale-done-modal">
+    <button class="sd-close" onclick="closeSaleDone()" aria-label="Cerrar">✕</button>
     <div class="sd-icon" id="sd-icon">✓</div>
     <h2 id="sd-title">Venta completada</h2>
     <div class="sd-row"><span id="sd-total-label">Total cobrado</span><strong id="sd-total"></strong></div>
@@ -1179,7 +1186,16 @@ const _posRole = (() => {
   if (r) return r;
   try { return JSON.parse(atob(_posSession?.access_token?.split('.')[1]))?.user_metadata?.role || 'operador'; } catch { return 'operador'; }
 })();
-const CAN_CANCEL_SALE = _posRole === 'superadmin' || _posRole === 'encargado';
+// Lee la sesión actual en cada llamada para evitar que quede cacheado si cambia la cuenta
+function getPosRole() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY));
+    const r = s?.user?.user_metadata?.role;
+    if (r) return r;
+    return JSON.parse(atob(s?.access_token?.split('.')[1]))?.user_metadata?.role || 'operador';
+  } catch { return 'operador'; }
+}
+function canCancelSale() { const r = getPosRole(); return r === 'superadmin' || r === 'encargado'; }
 
 /* ── AUTH CHECK ── */
 function getSession() {
@@ -1251,13 +1267,12 @@ async function loadProducts() {
 
 /* ── LOAD CATEGORIES ── */
 async function refreshPosProducts() {
-  const btn = document.getElementById('pos-refresh-btn');
+  const btn = document.getElementById('btn-refresh-pos');
   if (btn) { btn.style.opacity = '.4'; btn.style.pointerEvents = 'none'; }
-  await loadProducts();
-  renderCategoryChips();
+  await Promise.all([loadProducts(), loadSalesStats()]);
   showAllProducts();
   if (btn) { btn.style.opacity = ''; btn.style.pointerEvents = ''; }
-  toast('Inventario actualizado', 'success');
+  toast('Catálogo actualizado ✓', 'success');
 }
 
 async function loadPosCategories() {
@@ -2141,7 +2156,7 @@ async function loadHistory() {
     <span class="hi-spacer"></span>
     ${payBadge}
     <span class="hi-total">$${total.toLocaleString('es-MX')}</span>
-    ${CAN_CANCEL_SALE ? `<button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar">✕</button>` : ''}
+    ${canCancelSale() ? `<button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar">✕</button>` : ''}
   </div>
   <div class="hi-items">${itemsHTML || '<div style="color:#9B8B78;font-size:.78rem;padding:4px 0">Sin detalle</div>'}</div>
   ${abonosHiHTML}
@@ -2156,7 +2171,7 @@ async function loadHistory() {
 }
 
 async function deleteSale(id) {
-  if (!CAN_CANCEL_SALE) { toast('Solo el administrador puede cancelar ventas', 'error'); return; }
+  if (!canCancelSale()) { toast('Solo el administrador puede cancelar ventas', 'error'); return; }
   const sale = salesCache[id];
   if (!sale) { toast('Registro no encontrado', 'error'); return; }
 
@@ -2966,11 +2981,17 @@ function initDivider() {
 
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
-  // Ocultar nav hacia módulos restringidos para operador
-  if (_posRole === 'operador') {
-    ['stats.html','activity.html','settings.html'].forEach(href => {
+  // Ocultar nav según rol
+  if (_posRole !== 'superadmin') {
+    document.querySelectorAll(`a.tbn-icon[href="activity.html"]`).forEach(a => a.style.display = 'none');
+  }
+  if (_posRole === 'operador' || _posRole === 'duena') {
+    ['stats.html','settings.html'].forEach(href => {
       document.querySelectorAll(`a.tbn-icon[href="${href}"]`).forEach(a => a.style.display = 'none');
     });
+  }
+  if (_posRole === 'encargado') {
+    document.querySelectorAll(`a.tbn-icon[href="settings.html"]`).forEach(a => a.style.display = 'none');
   }
   // Registrar inicio de turno (se resetea cada día)
   const hoyKey = new Date().toISOString().split('T')[0];

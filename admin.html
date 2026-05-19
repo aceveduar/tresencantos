@@ -216,6 +216,41 @@ td,th{overflow:hidden}
 .card-selected .ac-check,
 .selection-active .ac-check{opacity:1}
 .ac-badge-pos{position:absolute;top:10px;right:10px}
+/* ── FLAG DE REVISIÓN ── */
+.flag-dot{
+  position:absolute;top:8px;right:8px;width:24px;height:24px;
+  border-radius:50%;background:#E85D5D;color:#fff;
+  font-size:.72rem;display:flex;align-items:center;justify-content:center;
+  z-index:3;pointer-events:none;
+  box-shadow:0 2px 6px rgba(232,93,93,.5);
+  animation:flag-pop .25s ease;
+}
+@keyframes flag-pop{from{transform:scale(0)}to{transform:scale(1)}}
+.flag-dot-row{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:20px;height:20px;border-radius:50%;background:#E85D5D;
+  font-size:.6rem;color:#fff;flex-shrink:0;vertical-align:middle;
+}
+/* QV — zona de flag */
+.qv-flag-active{
+  background:#fff3f3;border:1px solid rgba(232,93,93,.25);
+  border-radius:10px;padding:11px 13px;margin:12px 0 2px;
+}
+.qv-flag-title{font-size:.73rem;font-weight:700;color:#c62828}
+.qv-flag-note-text{font-size:.82rem;color:#5D4037;margin-top:5px;font-style:italic;line-height:1.5}
+.qv-flag-ts{font-size:.65rem;color:var(--muted);margin-top:4px;display:block}
+.qv-flag-form{background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin:12px 0 2px}
+.qv-flag-form label{font-size:.72rem;font-weight:600;color:var(--charcoal);display:block;margin-bottom:6px}
+.qv-flag-textarea{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:.85rem;font-family:inherit;resize:none;outline:none;transition:border-color .15s;background:#fff;line-height:1.5}
+.qv-flag-textarea:focus{border-color:var(--red)}
+.qv-flag-btns{display:flex;gap:7px;margin-top:8px}
+.qv-btn-flag{background:#fff3f3;color:#c62828;border:1.5px solid rgba(232,93,93,.3)}
+.qv-btn-flag:hover{background:#E85D5D;color:#fff}
+.qv-btn-flagdone{background:#e8f5e9;color:#2D6A4F;border:1.5px solid rgba(45,106,79,.3)}
+.qv-btn-flagdone:hover{background:#2D6A4F;color:#fff}
+/* Chip de filtro "Revisar" en toolbar */
+.filter-btn-flag{border-color:rgba(232,93,93,.4);color:#c62828;background:#fff3f3}
+.filter-btn-flag.active{background:#E85D5D;color:#fff;border-color:#E85D5D}
 .ac-star{
   position:absolute;bottom:8px;right:10px;
   background:rgba(0,0,0,.35);backdrop-filter:blur(4px);
@@ -1354,6 +1389,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         <option value="stock-asc">Stock: sin existencia</option>
         <option value="stock-desc">Stock: con existencia</option>
       </select>
+      <button id="flag-filter-btn" class="filter-btn filter-btn-flag"
+              onclick="toggleFlagFilter()" style="display:none;flex-shrink:0">🚩</button>
       <span id="prod-count" class="prod-count" style="display:none"></span>
       <div class="view-toggle">
         <button class="view-btn active" id="vbtn-list"  onclick="setAdminView('list')"  title="Vista lista">☰</button>
@@ -1873,6 +1910,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       <div class="qv-price-row" id="qv-price-row"></div>
       <div class="qv-chips" id="qv-chips"></div>
       <div class="qv-desc" id="qv-desc"></div>
+      <div id="qv-flag-zone"></div>
       <div class="qv-id-hint" id="qv-id"></div>
     </div>
     <div class="qv-actions" id="qv-actions"></div>

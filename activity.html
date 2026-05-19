@@ -247,7 +247,7 @@ const SESSION_KEY          = 'te_admin_session';
     const role = s?.user?.user_metadata?.role ||
       (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.user_metadata?.role; } catch{} })() ||
       'operador';
-    if (role === 'operador') window.location.href = 'admin.html';
+    if (role !== 'superadmin') window.location.href = 'admin.html';
   } catch { window.location.href = 'admin.html'; }
 })();
 
