@@ -1285,7 +1285,7 @@ async function duplicateProduct(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   const maxId = products.reduce((m, x) => Math.max(m, x.id), 0);
-  const copy = { ...p, id: maxId + 1, name: 'Copia de ' + p.name, image: DEFAULT_IMG, outOfStock: false, position: products.length };
+  const copy = { ...p, id: maxId + 1, name: 'Copia de ' + p.name, outOfStock: false, isPublished: false, position: products.length };
   products.push(copy);
 
   if (getSupabaseUrl()) {
@@ -1297,8 +1297,12 @@ async function duplicateProduct(id) {
         category_label: copy.categoryLabel, price: copy.price,
         description: copy.description, image: copy.image,
         badge: copy.badge, badge_type: copy.badgeType,
-        featured: copy.featured, out_of_stock: copy.outOfStock,
-        original_price: copy.originalPrice, position: copy.position
+        featured: copy.featured, out_of_stock: false, is_published: false,
+        original_price: copy.originalPrice, position: copy.position,
+        barcode: null, stock: copy.stock ?? 0, cost: copy.cost ?? null,
+        notes: copy.notes ?? null,
+        kit_items: copy.kitItems ?? null,
+        images: copy.images ?? null
       })
     });
     if (!result.ok) {

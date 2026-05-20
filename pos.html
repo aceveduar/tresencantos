@@ -2378,24 +2378,29 @@ async function deleteSale(id) {
   const delResult = await api(`sales?id=eq.${id}`, { method: 'DELETE' });
   if (!delResult.ok) { toast(`Error al cancelar el ${label}`, 'error'); return; }
 
-  // 2. Restaurar stock de cada producto
+  // 2. Restaurar stock en paralelo
   if (Array.isArray(sale.items)) {
+    const restores = [];
     for (const item of sale.items) {
       const p = products.find(x => x.id === item.id);
       if (p?.kitItems?.length) {
-        // Kit: restaurar componentes
         for (const comp of p.kitItems) {
           const lc = products.find(x => x.id === comp.id);
-          const newCompStock = (lc ? lc.stock : 0) + (item.qty || 1) * comp.qty;
-          await api(`products?id=eq.${comp.id}`, { method:'PATCH', body:JSON.stringify({ stock: newCompStock, out_of_stock: false }) });
-          if (lc) { lc.stock = newCompStock; lc.outOfStock = false; }
+          const newStock = (lc ? lc.stock : 0) + (item.qty || 1) * comp.qty;
+          restores.push(
+            api(`products?id=eq.${comp.id}`, { method:'PATCH', body:JSON.stringify({ stock: newStock, out_of_stock: false }) })
+              .then(() => { if (lc) { lc.stock = newStock; lc.outOfStock = false; } })
+          );
         }
       } else {
         const newStock = (p ? p.stock : 0) + (item.qty || 1);
-        await api(`products?id=eq.${item.id}`, { method:'PATCH', body:JSON.stringify({ stock: newStock, out_of_stock: false }) });
-        if (p) { p.stock = newStock; p.outOfStock = false; }
+        restores.push(
+          api(`products?id=eq.${item.id}`, { method:'PATCH', body:JSON.stringify({ stock: newStock, out_of_stock: false }) })
+            .then(() => { if (p) { p.stock = newStock; p.outOfStock = false; } })
+        );
       }
     }
+    await Promise.all(restores);
   }
 
   // 3. Refrescar UI
@@ -2896,30 +2901,34 @@ async function cobrar() {
   const saleResult = await api('sales', { method:'POST', headers:{'Prefer':'return=minimal'}, body:JSON.stringify(saleData) });
   if (!saleResult.ok) { btn.removeAttribute('data-loading'); btn.disabled = false; _cobrandoAhora = false; toast('Error al registrar la venta', 'error'); return; }
 
-  // Reducir stock
+  // Reducir stock — todos los updates en paralelo
+  const stockUpdates = [];
   for (const { product: p, qty } of cart) {
-    if (p.kitItems?.length) continue; // kits: manejados abajo por componente
-    const newStock = Math.max(0, p.stock - qty);
-    const patch = { stock: newStock };
-    if (newStock === 0) patch.out_of_stock = true;
-    await api(`products?id=eq.${p.id}`, { method:'PATCH', body:JSON.stringify(patch) });
-    const lp = products.find(x => x.id === p.id);
-    if (lp) { lp.stock = newStock; if (newStock === 0) lp.outOfStock = true; }
-  }
-  // Reducir stock de componentes de kits
-  for (const { product: p, qty } of cart) {
-    if (!p.kitItems?.length) continue;
-    for (const comp of p.kitItems) {
-      const lc = products.find(x => x.id === comp.id);
-      if (!lc) continue;
-      const newCompStock = Math.max(0, lc.stock - qty * comp.qty);
-      const compPatch = { stock: newCompStock };
-      if (newCompStock === 0) compPatch.out_of_stock = true;
-      await api(`products?id=eq.${comp.id}`, { method:'PATCH', body:JSON.stringify(compPatch) });
-      lc.stock = newCompStock;
-      if (newCompStock === 0) lc.outOfStock = true;
+    if (p.kitItems?.length) {
+      // Kit: descontar componentes
+      for (const comp of p.kitItems) {
+        const lc = products.find(x => x.id === comp.id);
+        if (!lc) continue;
+        const newStock = Math.max(0, lc.stock - qty * comp.qty);
+        const patch = { stock: newStock };
+        if (newStock === 0) patch.out_of_stock = true;
+        stockUpdates.push(
+          api(`products?id=eq.${comp.id}`, { method:'PATCH', body:JSON.stringify(patch) })
+            .then(() => { lc.stock = newStock; if (newStock === 0) lc.outOfStock = true; })
+        );
+      }
+    } else {
+      const newStock = Math.max(0, p.stock - qty);
+      const patch = { stock: newStock };
+      if (newStock === 0) patch.out_of_stock = true;
+      const lp = products.find(x => x.id === p.id);
+      stockUpdates.push(
+        api(`products?id=eq.${p.id}`, { method:'PATCH', body:JSON.stringify(patch) })
+          .then(() => { if (lp) { lp.stock = newStock; if (newStock === 0) lp.outOfStock = true; } })
+      );
     }
   }
+  await Promise.all(stockUpdates);
 
   btn.removeAttribute('data-loading');
 
