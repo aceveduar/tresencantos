@@ -829,11 +829,14 @@ function adminCard(p) {
 </div>`;
 }
 
-function stockChip(p) {
+function stockChip(p, editable = false) {
   if (p.kitItems?.length) {
-    return `<span class="stock-chip stock-ok" title="Kit — stock calculado desde componentes" style="cursor:default">🎁 Kit</span>`;
+    return `<span class="stock-chip stock-ok" style="cursor:default">🎁 Kit</span>`;
   }
   const cls = p.stock === 0 ? 'sold' : p.stock === 1 ? 'one' : 'ok';
+  if (editable) {
+    return `<span class="stock-chip stock-${cls}" onclick="editStockInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Clic para editar stock" style="cursor:pointer">${p.stock}</span>`;
+  }
   return `<span class="stock-chip stock-${cls}" style="cursor:default">${p.stock}</span>`;
 }
 
@@ -1025,7 +1028,7 @@ function desktopRow(p) {
         <div class="prod-name" title="${p.name}">${p.name}</div>
         <div class="prod-meta">
           ${catDot}
-          <span class="prod-meta-text">${p.categoryLabel} · #${p.id}${p.barcode ? ` · 🔲 ${p.barcode}` : ''}</span>
+          <span class="prod-meta-text"><span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${p.categoryLabel}</span> · #${p.id}${p.barcode ? ` · 🔲 ${p.barcode}` : ''}</span>
           ${badgeHTML}${featStar}${publishedToggle(p)}${flagDotRow}
         </div>
       </div>
@@ -1040,7 +1043,7 @@ function desktopRow(p) {
       <button onclick="toggleOutOfStock(${p.id})" class="oos-cell ${oos ? 'soldout' : 'available'}">
         ${oos ? 'Agotado' : 'Disponible'}
       </button>
-      ${stockChip(p)}
+      ${stockChip(p, true)}
     </div>
   </td>
   <td class="col-actions">
