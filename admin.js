@@ -804,7 +804,7 @@ function adminCard(p) {
     <div class="ac-name" title="${p.name}">${p.name}${noteDotAC}</div>
     <div class="ac-meta">
       <span class="cat-dot" style="background:${catColor}"></span>
-      <span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.categoryLabel}</span>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.72rem;color:var(--muted)">${p.categoryLabel}</span>
     </div>
     <div class="ac-price-row">${priceHTML}</div>
     <div class="ac-footer">
@@ -834,7 +834,7 @@ function stockChip(p) {
     return `<span class="stock-chip stock-ok" title="Kit — stock calculado desde componentes" style="cursor:default">🎁 Kit</span>`;
   }
   const cls = p.stock === 0 ? 'sold' : p.stock === 1 ? 'one' : 'ok';
-  return `<span class="stock-chip stock-${cls}" onclick="editStockInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar stock" style="cursor:pointer">${p.stock}</span>`;
+  return `<span class="stock-chip stock-${cls}" style="cursor:default">${p.stock}</span>`;
 }
 
 async function editStockInline(e, id) {
@@ -877,7 +877,7 @@ async function editStockInline(e, id) {
     if (saved) return;
     saved = true;
     const newStock = Math.max(0, parseInt(input.value) || 0);
-    if (newStock === p.stock) { renderTable(); return; }
+    if (newStock === p.stock) { renderTable(); _qvRefresh(id); return; }
 
     const patch = { stock: newStock };
     if (newStock > 0 && p.outOfStock)  patch.out_of_stock = false;
@@ -895,12 +895,12 @@ async function editStockInline(e, id) {
     } else {
       toast('Error al actualizar stock', 'error');
     }
-    renderTable();
+    renderTable(); _qvRefresh(id);
   };
 
   input.addEventListener('keydown', ev => {
     if (ev.key === 'Enter')  { ev.preventDefault(); save(); }
-    if (ev.key === 'Escape') { saved = true; renderTable(); }
+    if (ev.key === 'Escape') { saved = true; renderTable(); _qvRefresh(id); }
   });
 
   // setTimeout más fiable que rAF en Android para que el teclado no se cierre
@@ -983,9 +983,9 @@ function editCategoryInline(e, id) {
     if (saved) return; saved = true;
     _catEditActive = false;
     const newCode = sel.value;
-    if (newCode === p.category) { renderTable(); return; }
+    if (newCode === p.category) { renderTable(); _qvRefresh(id); return; }
     const cat = categories.find(c => c.code === newCode);
-    if (!cat) { renderTable(); return; }
+    if (!cat) { renderTable(); _qvRefresh(id); return; }
     const result = await supabaseApi(`products?id=eq.${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ category: newCode, category_label: cat.label })
@@ -994,7 +994,7 @@ function editCategoryInline(e, id) {
       p.category = newCode; p.categoryLabel = cat.label;
       toast(`Categoría → ${cat.label}`);
     } else { toast('Error al actualizar categoría', 'error'); }
-    renderTable();
+    renderTable(); _qvRefresh(id);
   };
   sel.addEventListener('change', save);
   sel.addEventListener('blur', () => { _catEditActive = false; if (!saved) renderTable(); });
@@ -1025,7 +1025,7 @@ function desktopRow(p) {
         <div class="prod-name" title="${p.name}">${p.name}</div>
         <div class="prod-meta">
           ${catDot}
-          <span class="prod-meta-text"><span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${p.categoryLabel}</span> · #${p.id}${p.barcode ? ` · 🔲 ${p.barcode}` : ''}</span>
+          <span class="prod-meta-text">${p.categoryLabel} · #${p.id}${p.barcode ? ` · 🔲 ${p.barcode}` : ''}</span>
           ${badgeHTML}${featStar}${publishedToggle(p)}${flagDotRow}
         </div>
       </div>
@@ -1100,7 +1100,7 @@ function mobileCard(p) {
           <div class="mpc-name">${p.name}${_flagItem(p.id) ? ' <span class="flag-dot-row" title="Pendiente de revisión">🚩</span>' : ''}${noteDot}</div>
           <div class="mpc-cat-tag">
             <span class="cat-dot" style="background:${catColor}"></span>
-            <span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría">${p.categoryLabel}</span>
+            <span style="font-size:.72rem;color:var(--muted)">${p.categoryLabel}</span>
             ${badgeHTML}
             <button class="ac-pub-dot"
                     onclick="togglePublished(${p.id})"
@@ -4159,6 +4159,43 @@ function qvNavigate(dir) {
   panel.classList.add(animClass);
 }
 
+function _qvRefresh(id) {
+  if (_qvCurrentId !== id) return;
+  if (!document.getElementById('qv-overlay')?.classList.contains('open')) return;
+  const p = products.find(x => x.id === id);
+  if (p) _renderQV(p);
+}
+
+async function _qvEditPrice(e, id) {
+  e.stopPropagation();
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const el = e.currentTarget;
+  const input = document.createElement('input');
+  input.type = 'text'; input.inputMode = 'decimal';
+  input.value = p.price;
+  input.style.cssText = 'width:100px;padding:3px 8px;border:2px solid var(--gold);border-radius:6px;font-size:1.25rem;font-weight:800;font-family:inherit;outline:none;text-align:center;color:var(--charcoal)';
+  el.replaceWith(input);
+  input.focus(); input.select();
+  let saved = false;
+  const save = async () => {
+    if (saved) return; saved = true;
+    const newPrice = parseFloat(String(input.value).replace(/,/g, '')) || 0;
+    if (newPrice === p.price) { _qvRefresh(id); renderTable(); return; }
+    const result = await supabaseApi(`products?id=eq.${id}`, {
+      method: 'PATCH', body: JSON.stringify({ price: newPrice })
+    });
+    if (result.ok) { p.price = newPrice; toast(`Precio → $${newPrice.toLocaleString('es-MX')}`); }
+    else toast('Error al actualizar precio', 'error');
+    _qvRefresh(id); renderTable();
+  };
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter') input.blur();
+    if (ev.key === 'Escape') { saved = true; _qvRefresh(id); }
+  });
+}
+
 let _qvSwipeX = null, _qvSwipeY = null, _qvSwipeDir = null;
 
 function _initQVSwipe() {
@@ -4311,16 +4348,16 @@ function _renderQV(p) {
     ? `<span class="badge badge-${p.badgeType || 'none'}">${p.badge}</span>`
     : '';
 
-  // Categoría
+  // Categoría — editable inline
   document.getElementById('qv-cat-row').innerHTML =
     `<span class="cat-dot" style="background:${catColor}"></span>
-     <span class="qv-cat-label">${p.categoryLabel || '—'}</span>`;
+     <span class="qv-cat-label cat-label-inline qv-editable" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría">${p.categoryLabel || '—'}</span>`;
 
   // Nombre
   document.getElementById('qv-name').textContent = p.name;
 
   // Precio
-  let priceHTML = `<span class="qv-price">$${p.price.toLocaleString('es-MX')} <small style="font-size:.42em;font-weight:400;color:var(--muted);font-family:inherit">MXN</small></span>`;
+  let priceHTML = `<span class="qv-price qv-editable" onclick="_qvEditPrice(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar precio">$${p.price.toLocaleString('es-MX')} <small style="font-size:.42em;font-weight:400;color:var(--muted);font-family:inherit">MXN</small></span>`;
   if (p.originalPrice && p.originalPrice > p.price) {
     const pct = Math.round((1 - p.price / p.originalPrice) * 100);
     priceHTML += `<span class="qv-price-orig">$${p.originalPrice.toLocaleString('es-MX')}</span>
@@ -4346,10 +4383,11 @@ function _renderQV(p) {
     const mc = m >= 30 ? 'qv-chip-ok' : m >= 10 ? '' : 'qv-chip-sold';
     marginChip = `<span class="qv-chip ${mc}">Margen ${m}%</span>`;
   }
+  const stockChipQV = p.kitItems?.length
+    ? `<span class="qv-chip qv-chip-ok">🎁 Kit</span>`
+    : `<span class="qv-chip ${stockCls} qv-editable" onclick="editStockInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar stock" style="cursor:pointer">📦 ${p.stock}</span>`;
   document.getElementById('qv-chips').innerHTML =
-    oosChip + pubChip +
-    `<span class="qv-chip ${stockCls}">📦 ${p.stock}</span>` +
-    featChip + barcodeChip + marginChip;
+    oosChip + pubChip + stockChipQV + featChip + barcodeChip + marginChip;
 
   // Descripción
   const descEl = document.getElementById('qv-desc');
