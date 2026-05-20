@@ -4147,7 +4147,7 @@ function qvNavigate(dir) {
   panel.classList.add(animClass);
 }
 
-let _qvSwipeX = null, _qvSwipeY = null, _qvSwipeLocked = false;
+let _qvSwipeX = null, _qvSwipeY = null, _qvSwipeDir = null;
 
 function _initQVSwipe() {
   const overlay = document.getElementById('qv-overlay');
@@ -4155,37 +4155,92 @@ function _initQVSwipe() {
   overlay._swipeInited = true;
 
   overlay.addEventListener('touchstart', e => {
-    _qvSwipeX    = e.touches[0].clientX;
-    _qvSwipeY    = e.touches[0].clientY;
-    _qvSwipeLocked = false;
+    _qvSwipeX   = e.touches[0].clientX;
+    _qvSwipeY   = e.touches[0].clientY;
+    _qvSwipeDir = null; // 'h' | 'v' | null
   }, { passive: true });
 
   overlay.addEventListener('touchmove', e => {
-    if (_qvSwipeX === null || _qvSwipeLocked) return;
-    const dx = e.touches[0].clientX - _qvSwipeX;
-    const dy = e.touches[0].clientY - _qvSwipeY;
-    // Si el movimiento es claramente vertical, bloquear para no interferir
-    if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 8) { _qvSwipeLocked = true; }
+    if (_qvSwipeX === null || _qvSwipeDir) return;
+    const dx = Math.abs(e.touches[0].clientX - _qvSwipeX);
+    const dy = Math.abs(e.touches[0].clientY - _qvSwipeY);
+    if (dx > 8 || dy > 8) _qvSwipeDir = dx > dy ? 'h' : 'v';
   }, { passive: true });
 
   overlay.addEventListener('touchend', e => {
-    if (_qvSwipeX === null || _qvSwipeLocked) { _qvSwipeX = _qvSwipeY = null; return; }
+    if (_qvSwipeX === null) return;
     const dx = e.changedTouches[0].clientX - _qvSwipeX;
     const dy = e.changedTouches[0].clientY - _qvSwipeY;
-    _qvSwipeX = _qvSwipeY = null;
-    // Swipe horizontal: mínimo 40px, y más horizontal que vertical
-    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
-    // No navegar si el swipe fue sobre la galería de imágenes del producto
-    if (e.target.closest('.qv-gallery')) return;
-    qvNavigate(dx < 0 ? 1 : -1);
+    const dir = _qvSwipeDir;
+    _qvSwipeX = _qvSwipeY = _qvSwipeDir = null;
+
+    if (dir === 'h' && Math.abs(dx) >= 40) {
+      // ← → Navegar entre productos (no en galería de imágenes)
+      if (!e.target.closest('.qv-gallery')) qvNavigate(dx < 0 ? 1 : -1);
+
+    } else if (dir === 'v' && dy > 72) {
+      // ↓ Cerrar QV
+      _qvCloseWithAnim('down');
+
+    } else if (dir === 'v' && dy < -72) {
+      // ↑ Abrir formulario de edición
+      _qvCloseWithAnim('up');
+      setTimeout(() => openForm(_qvCurrentId || 0), 180);
+    }
   }, { passive: true });
 }
 
-// Teclado: ← → cuando el QV está abierto
+function _qvCloseWithAnim(dir) {
+  const panel = document.getElementById('qv-panel');
+  if (panel) {
+    panel.style.transition = 'transform .22s ease, opacity .22s ease';
+    panel.style.transform  = dir === 'down' ? 'translateY(100%)' : 'translateY(-60px) scale(.96)';
+    panel.style.opacity    = '0';
+  }
+  setTimeout(() => {
+    closeQV();
+    if (panel) { panel.style.transition = ''; panel.style.transform = ''; panel.style.opacity = ''; }
+  }, 200);
+}
+
+// Doble tap en imagen → zoom pantalla completa
+let _qvLastTap = 0;
+function _qvImgDoubleTap(e) {
+  const now = Date.now();
+  if (now - _qvLastTap < 320) {
+    e.preventDefault();
+    _qvOpenZoom();
+  }
+  _qvLastTap = now;
+}
+
+function _qvOpenZoom() {
+  const p = products.find(x => x.id === _qvCurrentId);
+  if (!p) return;
+  // Imagen activa en la galería (o la única imagen)
+  const gallery = document.getElementById('qv-gallery');
+  let src = p.image;
+  if (gallery) {
+    const idx = Math.round(gallery.scrollLeft / gallery.offsetWidth);
+    const allImgs = [p.image, ...(p.images || [])].filter(Boolean);
+    src = allImgs[idx] || p.image;
+  }
+  const fs = document.createElement('div');
+  fs.id = 'qv-zoom';
+  fs.innerHTML = `
+    <img src="${src}" alt="${p.name}" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
+    <button onclick="document.getElementById('qv-zoom').remove()" title="Cerrar">✕</button>`;
+  fs.onclick = e => { if (e.target === fs) fs.remove(); };
+  document.body.appendChild(fs);
+  requestAnimationFrame(() => fs.classList.add('open'));
+}
+
+// Teclado: ← → Esc cuando el QV está abierto
 document.addEventListener('keydown', e => {
   if (!_qvCurrentId) return;
   if (e.key === 'ArrowRight') qvNavigate(1);
   if (e.key === 'ArrowLeft')  qvNavigate(-1);
+  if (e.key === 'Escape' && !document.getElementById('form-overlay')?.classList.contains('open')) closeQV();
 });
 
 function _qvGalleryScroll(gallery) {
@@ -4219,14 +4274,14 @@ function _renderQV(p) {
   const oosStyle = oos ? 'opacity:.5;filter:grayscale(.4)' : '';
   if (allImgs.length > 1) {
     imgContainer.innerHTML =
-      `<div class="qv-gallery" id="qv-gallery" onscroll="_qvGalleryScroll(this)">
+      `<div class="qv-gallery" id="qv-gallery" onscroll="_qvGalleryScroll(this)" ontouchend="_qvImgDoubleTap(event)">
         ${allImgs.map((src, i) => `<img class="qv-gallery-img" src="${src}" alt="${p.name} ${i+1}" onerror="this.onerror=null;this.src='${fallback}'" style="${oosStyle}">`).join('')}
        </div>
        <div class="qv-gallery-dots" id="qv-gallery-dots">
          ${allImgs.map((_,i) => `<span class="qv-gd${i===0?' active':''}" onclick="_qvGoTo(${i})"></span>`).join('')}
        </div>`;
   } else {
-    imgContainer.innerHTML = `<img id="qv-img" src="${allImgs[0]}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'" style="width:100%;height:220px;object-fit:contain;display:block;${oosStyle}">`;
+    imgContainer.innerHTML = `<img id="qv-img" src="${allImgs[0]}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'" ontouchend="_qvImgDoubleTap(event)" onclick="_qvImgDoubleTap(event)" style="width:100%;height:260px;object-fit:contain;display:block;cursor:zoom-in;${oosStyle}">`;
   }
 
   // Badge

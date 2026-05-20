@@ -496,6 +496,13 @@ tr:hover .drag-handle{opacity:1}
 @keyframes qv-from-left {from{opacity:0;transform:translateX(-22px)}to{opacity:1;transform:translateX(0)}}
 .qv-anim-right .qv-img-zone,.qv-anim-right .qv-info{animation:qv-from-right .2s ease}
 .qv-anim-left  .qv-img-zone,.qv-anim-left  .qv-info{animation:qv-from-left  .2s ease}
+/* Zoom fullscreen */
+#qv-zoom{position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;transition:background .2s;cursor:zoom-out}
+#qv-zoom.open{background:rgba(0,0,0,.92)}
+#qv-zoom img{max-width:95%;max-height:90dvh;object-fit:contain;border-radius:8px;transform:scale(.88);opacity:0;transition:transform .22s cubic-bezier(.2,.8,.3,1),opacity .2s}
+#qv-zoom.open img{transform:scale(1);opacity:1}
+#qv-zoom button{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);transition:.15s}
+#qv-zoom button:hover{background:rgba(255,255,255,.28)}
 .qv-badge-zone{position:absolute;top:10px;left:10px;pointer-events:none}
 .qv-info{flex:1;overflow-y:visible;padding:16px 20px 14px;min-height:0}
 .qv-cat-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
