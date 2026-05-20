@@ -1865,8 +1865,7 @@ function openForm(id) {
     const isKit = !!(p.kitItems && p.kitItems.length);
     document.getElementById('f-is-kit').checked = isKit;
     _kitItemsEdit = isKit ? JSON.parse(JSON.stringify(p.kitItems)) : [];
-    document.getElementById('kit-editor').style.display = isKit ? 'block' : 'none';
-    if (isKit) renderKitEditor();
+    toggleKitMode();
   } else {
     document.getElementById('f-id').value = '';
     document.getElementById('f-name').value = '';
@@ -2295,6 +2294,21 @@ async function saveProduct() {
 function toggleKitMode() {
   const isKit = document.getElementById('f-is-kit').checked;
   document.getElementById('kit-editor').style.display = isKit ? 'block' : 'none';
+  const stockInput = document.getElementById('f-stock');
+  const stockHint  = document.getElementById('f-stock-hint');
+  const kitNote    = document.getElementById('kit-stock-note');
+  if (isKit) {
+    stockInput.disabled = true;
+    stockInput.value = '0';
+    stockInput.style.opacity = '.4';
+    if (stockHint) stockHint.style.display = 'none';
+    if (kitNote)   kitNote.style.display = '';
+  } else {
+    stockInput.disabled = false;
+    stockInput.style.opacity = '';
+    if (stockHint) stockHint.style.display = '';
+    if (kitNote)   kitNote.style.display = 'none';
+  }
   if (isKit) renderKitEditor();
 }
 

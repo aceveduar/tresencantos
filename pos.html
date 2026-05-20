@@ -1410,10 +1410,13 @@ function posCard(p) {
   const effStock = getKitStock(p);
   const oos = effStock === 0 || p.outOfStock;
   const isKit = !!(p.kitItems?.length);
-  const stockCls = isKit ? 'stock-ok' : (effStock === 0 ? 'stock-sold' : effStock === 1 ? 'stock-one' : 'stock-ok');
+  const stockCls = isKit ? (oos ? 'stock-sold' : 'stock-ok') : (effStock === 0 ? 'stock-sold' : effStock === 1 ? 'stock-one' : 'stock-ok');
   const stockTxt = isKit
     ? (oos ? 'Sin stock' : `🎁 ${effStock} kit${effStock!==1?'s':''}`)
     : (effStock === 0 ? 'Sin stock' : `${effStock} ud${effStock!==1?'s':''}`);
+  const kitComps = isKit && p.kitItems?.length
+    ? `<div style="font-size:.6rem;color:#9B8B78;line-height:1.3;margin-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${p.kitItems.map(c=>c.name).join(' · ')}</div>`
+    : '';
   const fallback  = 'tresencantos_default.png';
   return `
 <div class="pos-card${oos?' card-sold':''}" onclick="${oos?'':` addToCart(${p.id},this.querySelector('.pos-card-add-icon'),event)`}">
@@ -1426,6 +1429,7 @@ function posCard(p) {
   </div>
   <div class="pos-card-body">
     <div class="pos-card-name">${isKit ? '🎁 ' : ''}${p.name}</div>
+    ${kitComps}
     <div class="pos-card-price">$${p.price.toLocaleString('es-MX')}</div>
     <span class="pos-card-stock ${stockCls}">${stockTxt}</span>
   </div>
