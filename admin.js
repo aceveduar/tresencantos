@@ -709,7 +709,8 @@ const _lpTimers  = {};
 let   _lpFired   = false; // evita que el click posterior abra QV tras un long press
 
 function _lpStart(e, id) {
-  if (e.target.closest('button,input,a,.stock-chip,.cat-label-inline,.drag-handle')) return;
+  if (_catEditActive) return;
+  if (e.target.closest('button,input,select,a,.stock-chip,.cat-label-inline,.drag-handle')) return;
   _lpFired = false;
   _lpTimers[id] = setTimeout(() => {
     delete _lpTimers[id];
@@ -736,7 +737,8 @@ function _lpMove(id) {
 // Decide qué hace un tap en una card según el contexto
 function _cardTap(e, id) {
   if (_lpFired) return; // ya fue un long press, ignorar el click sintético
-  if (e.target.closest('button,input,a,.stock-chip,.cat-label-inline,.drag-handle')) return;
+  if (_catEditActive) return;
+  if (e.target.closest('button,input,select,a,.stock-chip,.cat-label-inline,.drag-handle')) return;
 
   if (selectedIds.size > 0) {
     // Modo selección activo → tap alterna selección de esta card
@@ -802,7 +804,7 @@ function adminCard(p) {
     <div class="ac-name" title="${p.name}">${p.name}${noteDotAC}</div>
     <div class="ac-meta">
       <span class="cat-dot" style="background:${catColor}"></span>
-      <span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" title="Toca para cambiar categoría" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.categoryLabel}</span>
+      <span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.categoryLabel}</span>
     </div>
     <div class="ac-price-row">${priceHTML}</div>
     <div class="ac-footer">
@@ -941,8 +943,12 @@ async function togglePublished(id) {
   toast(newVal ? '🌐 Publicado en sitio web' : '🙈 Oculto del sitio web', 'success');
 }
 
+let _catEditActive = false;
+
 function editCategoryInline(e, id) {
   e.stopPropagation();
+  e.stopImmediatePropagation();
+  _catEditActive = true;
   const p = products.find(x => x.id === id);
   if (!p) return;
   const span = e.currentTarget;
@@ -975,6 +981,7 @@ function editCategoryInline(e, id) {
   let saved = false;
   const save = async () => {
     if (saved) return; saved = true;
+    _catEditActive = false;
     const newCode = sel.value;
     if (newCode === p.category) { renderTable(); return; }
     const cat = categories.find(c => c.code === newCode);
@@ -990,8 +997,8 @@ function editCategoryInline(e, id) {
     renderTable();
   };
   sel.addEventListener('change', save);
-  sel.addEventListener('blur', () => { if (!saved) renderTable(); });
-  sel.addEventListener('keydown', ev => { if (ev.key === 'Escape') { saved = true; renderTable(); } });
+  sel.addEventListener('blur', () => { _catEditActive = false; if (!saved) renderTable(); });
+  sel.addEventListener('keydown', ev => { if (ev.key === 'Escape') { _catEditActive = false; saved = true; renderTable(); } });
   setTimeout(() => sel.focus(), 50);
 }
 
@@ -1902,7 +1909,6 @@ function openForm(id) {
   initImageUpload();
   document.getElementById('save-btn').disabled = false;
   _applyPriceLock();
-  _initFormSwipe();
   setTimeout(() => document.getElementById('f-name').focus(), 100);
 }
 
@@ -1913,38 +1919,6 @@ function closeForm() {
   _clearDupWarnings();
 }
 
-function _initFormSwipe() {
-  const overlay = document.getElementById('form-overlay');
-  if (!overlay || overlay._swipeInited) return;
-  overlay._swipeInited = true;
-  let sy = 0, cy = 0, on = false;
-  overlay.addEventListener('touchstart', e => {
-    if (!e.target.closest('.modal-head')) return;
-    sy = e.touches[0].clientY; cy = 0; on = false;
-  }, { passive: true });
-  overlay.addEventListener('touchmove', e => {
-    if (!on && e.touches[0].clientY - sy > 10) on = true;
-    if (!on) return;
-    cy = Math.max(0, e.touches[0].clientY - sy);
-    const modal = overlay.querySelector('.modal');
-    if (modal) { modal.style.transition = 'none'; modal.style.transform = `translateY(${cy * 0.4}px)`; }
-    overlay.style.background = `rgba(0,0,0,${Math.max(0, 0.6 - cy / 320)})`;
-  }, { passive: true });
-  overlay.addEventListener('touchend', () => {
-    if (!on) return; on = false;
-    const modal = overlay.querySelector('.modal');
-    if (cy > 90) {
-      if (modal) { modal.style.transition = 'transform .32s cubic-bezier(.4,0,1,1)'; modal.style.transform = 'translateY(90px)'; }
-      overlay.style.transition = 'opacity .28s ease';
-      overlay.style.opacity = '0';
-      setTimeout(() => { closeForm(); if (modal) { modal.style.transform = modal.style.transition = ''; } overlay.style.background = overlay.style.opacity = overlay.style.transition = ''; }, 300);
-    } else {
-      if (modal) { modal.style.transition = 'transform .32s cubic-bezier(.34,1.26,.64,1)'; modal.style.transform = ''; setTimeout(() => modal.style.transition = '', 320); }
-      overlay.style.background = '';
-    }
-    cy = 0;
-  });
-}
 
 function toggleOfertaField(forceShow) {
   const wrap = document.getElementById('oferta-wrap');
@@ -4291,6 +4265,14 @@ function _qvGoTo(idx) {
   if (g) g.scrollTo({ left: idx * g.offsetWidth, behavior: 'smooth' });
 }
 
+function _qvImgNav(dir) {
+  const g = document.getElementById('qv-gallery');
+  if (!g) return;
+  const total = g.querySelectorAll('.qv-gallery-img').length;
+  const idx = Math.round(g.scrollLeft / g.offsetWidth);
+  _qvGoTo(Math.max(0, Math.min(total - 1, idx + dir)));
+}
+
 function _renderQV(p) {
   const oos = p.kitItems?.length ? false : (p.outOfStock || p.stock === 0);
   const catColor = getCatColor(p.category);
@@ -4317,7 +4299,9 @@ function _renderQV(p) {
        </div>
        <div class="qv-gallery-dots" id="qv-gallery-dots">
          ${allImgs.map((_,i) => `<span class="qv-gd${i===0?' active':''}" onclick="_qvGoTo(${i})"></span>`).join('')}
-       </div>`;
+       </div>
+       <button class="qv-img-nav qv-img-nav-prev" onclick="_qvImgNav(-1)" title="Imagen anterior">&#8249;</button>
+       <button class="qv-img-nav qv-img-nav-next" onclick="_qvImgNav(1)"  title="Imagen siguiente">&#8250;</button>`;
   } else {
     imgContainer.innerHTML = `<img id="qv-img" src="${allImgs[0]}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'" ontouchend="_qvImgDoubleTap(event)" onclick="_qvImgDoubleTap(event)" style="width:100%;height:260px;object-fit:contain;display:block;cursor:zoom-in;${oosStyle}">`;
   }

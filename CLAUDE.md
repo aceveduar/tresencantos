@@ -618,7 +618,7 @@ Mapa completo de gestos implementados en todos los módulos:
 | **Inventario QV** | Doble tap imagen | Zoom a pantalla completa (`#qv-zoom`) | `_qvImgDoubleTap()`, `_qvOpenZoom()` |
 | **Inventario QV** | ← → teclado | Navegar productos | `keydown` listener |
 | **Inventario QV** | Esc teclado | Cerrar QV | `keydown` listener |
-| **Formulario admin** | ↓ swipe desde header | Cerrar formulario | `_initFormSwipe()` — solo desde `.modal-head` |
+| **Formulario admin** | ↓ swipe desde header | ~~Cerrar formulario~~ — **eliminado**, interfería con el scroll del formulario |
 | **Modal Tienda** | ← → swipe | Producto anterior / siguiente | `_initModalSwipeNav()`, `_modalNavigate()` |
 | **Modal Tienda** | ↓ swipe | Cerrar (sigue el dedo) | `_swipeDown()` — ya existía |
 | **Modal Tienda** | ← → teclado | Navegar productos | `keydown` en `initModal()` |
