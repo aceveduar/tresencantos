@@ -371,29 +371,6 @@ button,a{touch-action:manipulation}
   pointer-events:none;
 }
 
-/* BÚSQUEDA POR FOTO */
-.photo-result-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:800;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
-.photo-result-overlay.open{opacity:1;pointer-events:auto}
-.photo-result-panel{background:#fff;width:100%;max-width:400px;border-radius:20px 20px 0 0;padding:0 0 env(safe-area-inset-bottom);transform:translateY(30px);transition:transform .25s cubic-bezier(.32,1,.4,1)}
-.photo-result-overlay.open .photo-result-panel{transform:translateY(0)}
-@media(min-width:600px){.photo-result-overlay{align-items:center}.photo-result-panel{border-radius:16px}}
-.photo-result-pill{width:36px;height:4px;background:#DDD;border-radius:4px;margin:10px auto 0}
-.photo-result-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px}
-.photo-result-head span{font-size:.72rem;color:#9B8B78}
-.photo-result-close{background:none;border:none;font-size:1.1rem;color:#9B8B78;cursor:pointer;padding:4px 8px;border-radius:8px}
-.photo-result-close:hover{background:#F0E8E0}
-.photo-result-body{padding:0 16px 16px;display:flex;gap:14px;align-items:center}
-.photo-result-img{width:90px;height:90px;border-radius:12px;object-fit:cover;flex-shrink:0;border:1px solid var(--border);background:#F5EDE4}
-.photo-result-info{flex:1;min-width:0}
-.photo-result-name{font-size:.92rem;font-weight:700;color:var(--charcoal);margin-bottom:4px;line-height:1.3}
-.photo-result-price{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--charcoal);margin-bottom:6px}
-.photo-result-conf{font-size:.7rem;font-weight:600}
-.photo-result-foot{padding:0 16px 18px;display:flex;gap:8px}
-.photo-result-add{flex:2;padding:11px;border-radius:50px;border:none;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit}
-.photo-result-add:disabled{background:#D1C4B8;cursor:not-allowed}
-.photo-result-cancel{flex:1;padding:11px;border-radius:50px;border:1.5px solid var(--border);background:#fff;font-size:.84rem;font-weight:600;cursor:pointer;font-family:inherit;color:var(--muted)}
-#btn-photo-search.scanning{animation:pulse-rec 1s ease-in-out infinite;border-color:var(--gold)!important}
-
 /* FRECUENTES */
 .pos-freq-bar{display:none;overflow-x:auto;padding:8px 12px 10px;gap:8px;border-bottom:1px solid var(--border);background:#FDFAF6;flex-shrink:0;scrollbar-width:none;-webkit-overflow-scrolling:touch;align-items:flex-start}
 .pos-freq-bar::-webkit-scrollbar{display:none}
@@ -892,8 +869,6 @@ button,a{touch-action:manipulation}
       </div>
       <span class="pos-sort-sep"></span>
       <button class="btn btn-gold" onclick="openPosScanner()" title="Escanear código de barras">📷</button>
-      <button class="btn btn-outline" id="btn-photo-search" onclick="searchByPhoto()" title="Identificar producto con IA">✨</button>
-      <input type="file" id="pos-photo-input" accept="image/*" capture="environment" style="display:none" onchange="_processPhotoSearch(this.files[0])">
       <button class="pos-vbtn" id="pos-refresh-btn" onclick="refreshPosProducts()" title="Actualizar inventario">↻</button>
     </div>
     <!-- Chips de categoría -->
@@ -1535,122 +1510,34 @@ function productCard(p) {
 }
 
 /* ── CART ── */
-/* ── BÚSQUEDA POR FOTO ── */
-let groqKeyPos = null;
-
-async function loadPosGroqKey() {
-  const r = await api("config?id=eq.groq_key&select=id,value");
-  if (r.ok && r.data?.[0]?.value) groqKeyPos = r.data[0].value;
-}
-
-function searchByPhoto() {
-  if (!groqKeyPos) {
-    toast('IA no configurada — agrega el API key de Groq en Configuración', 'error');
-    return;
-  }
-  const inp = document.getElementById('pos-photo-input');
-  inp.value = '';
-  inp.click();
-}
-
-function _compressPosImage(file) {
-  return new Promise(resolve => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const MAX = 800;
-      let w = img.width, h = img.height;
-      if (w > MAX || h > MAX) {
-        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-        else { w = Math.round(w * MAX / h); h = MAX; }
-      }
-      const c = document.createElement('canvas');
-      c.width = w; c.height = h;
-      c.getContext('2d').drawImage(img, 0, 0, w, h);
-      URL.revokeObjectURL(url);
-      resolve(c.toDataURL('image/jpeg', 0.82).split(',')[1]);
-    };
-    img.src = url;
-  });
-}
-
-async function _processPhotoSearch(file) {
-  if (!file) return;
-  const btn = document.getElementById('btn-photo-search');
-  btn.classList.add('scanning');
-  btn.disabled = true;
-  try {
-    const base64 = await _compressPosImage(file);
-    const avail  = products.filter(p => !p.outOfStock && p.stock > 0);
-    const list   = avail.map(p => `${p.id}: ${p.name}`).join('\n');
-    const prompt = `Which product from this catalog matches the image?\n${list}\n\nReply ONLY with JSON: {"id":<number or null>,"confidence":"high","medium","low","none"}`;
-
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKeyPos}` },
-      body: JSON.stringify({
-        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-        messages: [{ role: 'user', content: [
-          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64}` } },
-          { type: 'text', text: prompt }
-        ]}],
-        max_tokens: 80, temperature: 0
-      })
-    });
-    if (!res.ok) throw new Error('groq');
-    const data = await res.json();
-    const raw  = data.choices[0].message.content;
-    const m    = raw.match(/\{[\s\S]*?\}/);
-    if (!m) throw new Error('parse');
-    const { id, confidence } = JSON.parse(m[0]);
-
-    if (!id || confidence === 'none') {
-      toast('No encontré el producto. Prueba con mejor iluminación.', 'error'); return;
-    }
-    const p = products.find(x => x.id === parseInt(id));
-    if (!p) { toast('Producto no disponible en catálogo.', 'error'); return; }
-    _showPhotoResult(p, confidence);
-  } catch {
-    toast('Error al identificar. Verifica tu conexión.', 'error');
-  } finally {
-    btn.classList.remove('scanning');
-    btn.disabled = false;
-  }
-}
-
-function _showPhotoResult(p, confidence) {
-  const confMap = { high: ['✓ Coincidencia alta', 'var(--green)'], medium: ['~ Coincidencia media', '#B45309'], low: ['? Coincidencia baja', 'var(--red)'] };
-  const [label, color] = confMap[confidence] || confMap.low;
-  const oos = p.outOfStock || p.stock === 0;
-  document.getElementById('photo-result-img').src   = p.image;
-  document.getElementById('photo-result-img').alt   = p.name;
-  document.getElementById('photo-result-name').textContent  = p.name;
-  document.getElementById('photo-result-price').textContent = `$${p.price.toLocaleString('es-MX')} MXN`;
-  const confEl = document.getElementById('photo-result-conf');
-  confEl.textContent = label; confEl.style.color = color;
-  const addBtn = document.getElementById('photo-result-add');
-  addBtn.disabled = oos;
-  addBtn.textContent = oos ? 'Sin stock' : '+ Agregar al carrito';
-  if (!oos) addBtn.onclick = () => { addToCart(p.id); closePhotoResult(); };
-  document.getElementById('photo-result-overlay').classList.add('open');
-}
-
-function closePhotoResult() {
-  document.getElementById('photo-result-overlay').classList.remove('open');
-}
-
 /* ── FRECUENTES ── */
-const FREQ_KEY = 'te_pos_freq';
-function _freqGet() { try { return JSON.parse(localStorage.getItem(FREQ_KEY) || '{}'); } catch { return {}; } }
-function _freqIncrement(id) {
-  const f = _freqGet(); f[id] = (f[id] || 0) + 1;
-  localStorage.setItem(FREQ_KEY, JSON.stringify(f));
+let _freqData = {};
+let _freqTimer = null;
+
+async function loadFreqFromSupabase() {
+  const r = await api('config?id=eq.pos_freq&select=id,value');
+  if (r.ok && r.data?.[0]?.value) {
+    try { _freqData = JSON.parse(r.data[0].value); } catch { _freqData = {}; }
+  }
 }
+
+function _freqIncrement(id) {
+  _freqData[id] = (_freqData[id] || 0) + 1;
+  clearTimeout(_freqTimer);
+  _freqTimer = setTimeout(() => {
+    api('config', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({ id: 'pos_freq', value: JSON.stringify(_freqData) })
+    });
+  }, 4000);
+}
+
 function renderFrecuentes(hide) {
   const el = document.getElementById('pos-frecuentes');
   if (!el) return;
   if (hide) { el.classList.remove('visible'); return; }
-  const freq = _freqGet();
+  const freq = _freqData;
   const top = Object.entries(freq)
     .sort((a, b) => b[1] - a[1]).slice(0, 8)
     .map(([id]) => products.find(p => p.id === parseInt(id)))
@@ -3195,7 +3082,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (_nl) _nl.textContent = _name;
   } catch {}
   initDivider();
-  await Promise.all([loadProducts(), loadPosCategories(), loadSalesStats(), loadPosGroqKey()]);
+  await Promise.all([loadProducts(), loadPosCategories(), loadSalesStats(), loadFreqFromSupabase()]);
   renderCategoryChips();
   setPosView(posView);
   setPosSort(posSort);
@@ -3261,25 +3148,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 });
 </script>
-<div class="photo-result-overlay" id="photo-result-overlay" onclick="if(event.target===this)closePhotoResult()">
-  <div class="photo-result-panel">
-    <div class="photo-result-pill"></div>
-    <div class="photo-result-head">
-      <span id="photo-result-conf"></span>
-      <button class="photo-result-close" onclick="closePhotoResult()">✕</button>
-    </div>
-    <div class="photo-result-body">
-      <img class="photo-result-img" id="photo-result-img" src="" alt="">
-      <div class="photo-result-info">
-        <div class="photo-result-name" id="photo-result-name"></div>
-        <div class="photo-result-price" id="photo-result-price"></div>
-      </div>
-    </div>
-    <div class="photo-result-foot">
-      <button class="photo-result-add" id="photo-result-add">+ Agregar al carrito</button>
-      <button class="photo-result-cancel" onclick="closePhotoResult()">Cerrar</button>
-    </div>
-  </div>
-</div>
 </body>
 </html>
