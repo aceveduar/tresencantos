@@ -4123,6 +4123,7 @@ function openQV(id) {
   _renderQV(p);
   document.getElementById('qv-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
+  _initQVSwipe();
 }
 
 function closeQV() {
@@ -4130,6 +4131,49 @@ function closeQV() {
   document.body.style.overflow = '';
   _qvCurrentId = null;
 }
+
+function qvNavigate(dir) {
+  const list = getFilteredProducts();
+  const idx  = list.findIndex(p => p.id === _qvCurrentId);
+  if (idx === -1) return;
+  const next = list[idx + dir];
+  if (!next) return;
+  const panel = document.getElementById('qv-panel');
+  const animClass = dir > 0 ? 'qv-anim-right' : 'qv-anim-left';
+  panel.classList.remove('qv-anim-right', 'qv-anim-left');
+  void panel.offsetWidth; // reflow
+  _qvCurrentId = next.id;
+  _renderQV(next);
+  panel.classList.add(animClass);
+}
+
+let _qvSwipeX = null, _qvSwipeY = null;
+function _initQVSwipe() {
+  const panel = document.getElementById('qv-panel');
+  if (!panel || panel._swipeInited) return;
+  panel._swipeInited = true;
+  panel.addEventListener('touchstart', e => {
+    _qvSwipeX = e.touches[0].clientX;
+    _qvSwipeY = e.touches[0].clientY;
+  }, { passive: true });
+  panel.addEventListener('touchend', e => {
+    if (_qvSwipeX === null) return;
+    const dx = e.changedTouches[0].clientX - _qvSwipeX;
+    const dy = e.changedTouches[0].clientY - _qvSwipeY;
+    _qvSwipeX = _qvSwipeY = null;
+    // Solo navegar si es swipe claramente horizontal (no en la galería de imágenes)
+    if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    if (e.target.closest('.qv-gallery')) return;
+    qvNavigate(dx < 0 ? 1 : -1);
+  }, { passive: true });
+}
+
+// Teclado: ← → cuando el QV está abierto
+document.addEventListener('keydown', e => {
+  if (!_qvCurrentId) return;
+  if (e.key === 'ArrowRight') qvNavigate(1);
+  if (e.key === 'ArrowLeft')  qvNavigate(-1);
+});
 
 function _qvGalleryScroll(gallery) {
   const idx = Math.round(gallery.scrollLeft / gallery.offsetWidth);
@@ -4142,9 +4186,19 @@ function _qvGoTo(idx) {
 }
 
 function _renderQV(p) {
-  const oos = p.outOfStock || p.stock === 0;
+  const oos = p.kitItems?.length ? false : (p.outOfStock || p.stock === 0);
   const catColor = getCatColor(p.category);
   const fallback = DEFAULT_IMG;
+
+  // Contador y flechas de navegación
+  const list = getFilteredProducts();
+  const idx  = list.findIndex(x => x.id === p.id);
+  const counterEl = document.getElementById('qv-counter');
+  if (counterEl) counterEl.textContent = list.length > 1 ? `${idx + 1} / ${list.length}` : '';
+  const prevBtn = document.getElementById('qv-prev');
+  const nextBtn = document.getElementById('qv-next');
+  if (prevBtn) prevBtn.disabled = idx <= 0;
+  if (nextBtn) nextBtn.disabled = idx >= list.length - 1;
 
   // Imagen (galería si hay imágenes adicionales)
   const imgContainer = document.getElementById('qv-img-container');

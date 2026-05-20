@@ -485,6 +485,17 @@ tr:hover .drag-handle{opacity:1}
 .qv-gd.active{background:var(--gold);transform:scale(1.3)}
 .qv-close{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,.92);color:var(--charcoal);font-size:.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.18);z-index:2;transition:background .2s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .qv-close:hover{background:#fff}
+.qv-nav-btn{position:absolute;top:50%;transform:translateY(-50%);width:28px;height:52px;border:none;background:rgba(255,255,255,.82);color:var(--charcoal);cursor:pointer;font-size:1.4rem;display:flex;align-items:center;justify-content:center;z-index:3;opacity:0;transition:opacity .2s,background .15s;backdrop-filter:blur(4px);touch-action:manipulation;-webkit-tap-highlight-color:transparent;line-height:1}
+.qv-nav-prev{left:0;border-radius:0 8px 8px 0}
+.qv-nav-next{right:0;border-radius:8px 0 0 8px}
+.qv-img-zone:hover .qv-nav-btn:not(:disabled){opacity:1}
+.qv-nav-btn:disabled{display:none}
+.qv-nav-btn:hover{background:rgba(255,255,255,.97)}
+.qv-counter{font-size:.68rem;color:var(--muted-light);font-weight:500;flex-shrink:0;padding-left:8px;white-space:nowrap}
+@keyframes qv-from-right{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:translateX(0)}}
+@keyframes qv-from-left {from{opacity:0;transform:translateX(-22px)}to{opacity:1;transform:translateX(0)}}
+.qv-anim-right .qv-img-zone,.qv-anim-right .qv-info{animation:qv-from-right .2s ease}
+.qv-anim-left  .qv-img-zone,.qv-anim-left  .qv-info{animation:qv-from-left  .2s ease}
 .qv-badge-zone{position:absolute;top:10px;left:10px;pointer-events:none}
 .qv-info{flex:1;overflow-y:visible;padding:16px 20px 14px;min-height:0}
 .qv-cat-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
@@ -1970,14 +1981,19 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 </div>
 <!-- QUICK VIEW POPUP -->
 <div id="qv-overlay" onclick="if(event.target===this)closeQV()">
-  <div class="qv-panel">
+  <div class="qv-panel" id="qv-panel">
     <div class="qv-img-zone">
       <div id="qv-img-container"></div>
       <button class="qv-close" onclick="closeQV()">✕</button>
+      <button class="qv-nav-btn qv-nav-prev" id="qv-prev" onclick="qvNavigate(-1)" title="Producto anterior">&#8249;</button>
+      <button class="qv-nav-btn qv-nav-next" id="qv-next" onclick="qvNavigate(1)"  title="Producto siguiente">&#8250;</button>
       <div class="qv-badge-zone" id="qv-badge-zone"></div>
     </div>
     <div class="qv-info">
-      <div class="qv-cat-row" id="qv-cat-row"></div>
+      <div style="display:flex;align-items:center;gap:0">
+        <div class="qv-cat-row" id="qv-cat-row" style="flex:1"></div>
+        <span class="qv-counter" id="qv-counter"></span>
+      </div>
       <div class="qv-name" id="qv-name"></div>
       <div class="qv-price-row" id="qv-price-row"></div>
       <div class="qv-chips" id="qv-chips"></div>
