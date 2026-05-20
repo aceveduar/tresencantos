@@ -477,6 +477,12 @@ tr:hover .drag-handle{opacity:1}
 #qv-overlay.open .qv-panel{transform:scale(1)}
 .qv-img-zone{position:relative;flex-shrink:0;background:var(--cream)}
 .qv-img-zone img{width:100%;height:220px;object-fit:contain;display:block}
+.qv-gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:none;height:220px}
+.qv-gallery::-webkit-scrollbar{display:none}
+.qv-gallery-img{flex:0 0 100%;width:100%;height:220px;object-fit:contain;scroll-snap-align:start;background:var(--cream);display:block}
+.qv-gallery-dots{display:flex;justify-content:center;gap:5px;padding:6px 0 4px;background:var(--cream)}
+.qv-gd{width:6px;height:6px;border-radius:50%;background:#D1C4B8;cursor:pointer;transition:.2s;flex-shrink:0}
+.qv-gd.active{background:var(--gold);transform:scale(1.3)}
 .qv-close{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,.92);color:var(--charcoal);font-size:.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.18);z-index:2;transition:background .2s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .qv-close:hover{background:#fff}
 .qv-badge-zone{position:absolute;top:10px;left:10px;pointer-events:none}
@@ -1966,7 +1972,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 <div id="qv-overlay" onclick="if(event.target===this)closeQV()">
   <div class="qv-panel">
     <div class="qv-img-zone">
-      <img id="qv-img" src="" alt="">
+      <div id="qv-img-container"></div>
       <button class="qv-close" onclick="closeQV()">✕</button>
       <div class="qv-badge-zone" id="qv-badge-zone"></div>
     </div>

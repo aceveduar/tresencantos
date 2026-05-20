@@ -4131,18 +4131,36 @@ function closeQV() {
   _qvCurrentId = null;
 }
 
+function _qvGalleryScroll(gallery) {
+  const idx = Math.round(gallery.scrollLeft / gallery.offsetWidth);
+  document.querySelectorAll('#qv-gallery-dots .qv-gd').forEach((d, i) => d.classList.toggle('active', i === idx));
+}
+
+function _qvGoTo(idx) {
+  const g = document.getElementById('qv-gallery');
+  if (g) g.scrollTo({ left: idx * g.offsetWidth, behavior: 'smooth' });
+}
+
 function _renderQV(p) {
   const oos = p.outOfStock || p.stock === 0;
   const catColor = getCatColor(p.category);
   const fallback = DEFAULT_IMG;
 
-  // Imagen
-  const img = document.getElementById('qv-img');
-  img.src = p.image || fallback;
-  img.alt = p.name;
-  img.onerror = () => { img.onerror = null; img.src = fallback; };
-  if (oos) { img.style.opacity = '.5'; img.style.filter = 'grayscale(.4)'; }
-  else { img.style.opacity = ''; img.style.filter = ''; }
+  // Imagen (galería si hay imágenes adicionales)
+  const imgContainer = document.getElementById('qv-img-container');
+  const allImgs = [p.image || fallback, ...(p.images || [])].filter(Boolean);
+  const oosStyle = oos ? 'opacity:.5;filter:grayscale(.4)' : '';
+  if (allImgs.length > 1) {
+    imgContainer.innerHTML =
+      `<div class="qv-gallery" id="qv-gallery" onscroll="_qvGalleryScroll(this)">
+        ${allImgs.map((src, i) => `<img class="qv-gallery-img" src="${src}" alt="${p.name} ${i+1}" onerror="this.onerror=null;this.src='${fallback}'" style="${oosStyle}">`).join('')}
+       </div>
+       <div class="qv-gallery-dots" id="qv-gallery-dots">
+         ${allImgs.map((_,i) => `<span class="qv-gd${i===0?' active':''}" onclick="_qvGoTo(${i})"></span>`).join('')}
+       </div>`;
+  } else {
+    imgContainer.innerHTML = `<img id="qv-img" src="${allImgs[0]}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'" style="width:100%;height:220px;object-fit:contain;display:block;${oosStyle}">`;
+  }
 
   // Badge
   document.getElementById('qv-badge-zone').innerHTML = p.badge
