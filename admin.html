@@ -1658,25 +1658,6 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           <p class="hint">Ingresa el costo para calcular el margen.</p>
         </div>
       </div>
-      <p class="form-section">🏷 Detalles</p>
-      <div class="form-row">
-        <div class="field">
-          <label>Insignia (opcional)</label>
-          <input type="text" id="f-badge" placeholder="Ej: Más vendido, Nuevo…"
-                 list="badge-options" autocomplete="off">
-          <datalist id="badge-options"></datalist>
-        </div>
-        <div class="field">
-          <label>Tipo de insignia</label>
-          <select id="f-badge-type">
-            <option value="">Sin insignia</option>
-            <option value="best">⭐ Dorada — Más vendido</option>
-            <option value="new">🖤 Negra — Nuevo</option>
-            <option value="promo">🔴 Roja — Oferta / Promo</option>
-            <option value="natura">🟢 Verde — Natura</option>
-          </select>
-        </div>
-      </div>
       <!-- f-out-of-stock: oculto — el estado lo maneja el POS automáticamente -->
       <input type="checkbox" id="f-out-of-stock" style="display:none">
       <p class="form-section">📦 Inventario</p>
@@ -1706,9 +1687,28 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         </div>
         <textarea id="f-description" placeholder="Describe el producto: materiales, uso, características…" onblur="applyDescriptionFormat('f-description')"></textarea>
       </div>
+      <p class="form-section">📋 Nota interna <span style="font-size:.65rem;font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0">— solo visible en Inventario</span></p>
       <div class="form-row">
-        <label>Nota interna <span style="font-size:.68rem;background:#EFF6FF;color:#1E40AF;padding:1px 6px;border-radius:4px;font-weight:600">🔒 Solo Inventario</span></label>
-        <textarea id="f-notes" placeholder="Proveedor, precio mínimo, instrucciones de reabastecimiento…" style="min-height:58px;font-size:.84rem;background:#F8FAFF;border-color:#BFDBFE;resize:none"></textarea>
+        <textarea id="f-notes" placeholder="Ej: Proveedor Mayoreo López · mínimo 5 piezas · no bajar de $180" style="min-height:58px;font-size:.84rem;background:#FFFBEB;border-color:#FCD34D;resize:none"></textarea>
+      </div>
+      <p class="form-section">🏷 Detalles</p>
+      <div class="form-row">
+        <div class="field">
+          <label>Insignia (opcional)</label>
+          <input type="text" id="f-badge" placeholder="Ej: Más vendido, Nuevo…"
+                 list="badge-options" autocomplete="off">
+          <datalist id="badge-options"></datalist>
+        </div>
+        <div class="field">
+          <label>Tipo de insignia</label>
+          <select id="f-badge-type">
+            <option value="">Sin insignia</option>
+            <option value="best">⭐ Dorada — Más vendido</option>
+            <option value="new">🖤 Negra — Nuevo</option>
+            <option value="promo">🔴 Roja — Oferta / Promo</option>
+            <option value="natura">🟢 Verde — Natura</option>
+          </select>
+        </div>
       </div>
       <p class="form-section">⚙️ Visibilidad</p>
       <div class="form-row">

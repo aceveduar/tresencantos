@@ -388,7 +388,13 @@ button,a{touch-action:manipulation}
 .pos-freq-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);writing-mode:vertical-rl;text-orientation:mixed;align-self:center;flex-shrink:0;padding-right:4px;border-right:1px solid var(--border);margin-right:4px}
 .pos-freq-card{flex-shrink:0;width:68px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:5px 4px;border-radius:10px;border:1.5px solid transparent;transition:.15s;-webkit-tap-highlight-color:transparent}
 .pos-freq-card:hover,.pos-freq-card:active{background:#F0E8DC;border-color:rgba(201,164,98,.4)}
-.pos-freq-img{width:48px;height:48px;border-radius:8px;object-fit:cover;background:#F5EDE4;flex-shrink:0}
+.pos-freq-img-wrap{position:relative;flex-shrink:0}
+.pos-freq-img{width:48px;height:48px;border-radius:8px;object-fit:cover;background:#F5EDE4;display:block;transition:transform .2s}
+.pos-freq-card:hover:not(.card-sold) .pos-freq-img{transform:scale(1.06)}
+.pos-freq-add{position:absolute;inset:0;border-radius:8px;background:rgba(201,164,98,0);display:flex;align-items:center;justify-content:center;transition:background .2s}
+.pos-freq-card:hover:not(.card-sold) .pos-freq-add{background:rgba(201,164,98,.18)}
+.pos-freq-add-icon{width:22px;height:22px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;opacity:0;transform:scale(.6);transition:opacity .2s,transform .2s;box-shadow:0 2px 8px rgba(201,164,98,.5)}
+.pos-freq-card:hover:not(.card-sold) .pos-freq-add-icon{opacity:1;transform:scale(1)}
 .pos-freq-name{font-size:.58rem;font-weight:600;color:var(--charcoal);text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25;max-width:64px}
 .pos-freq-price{font-size:.62rem;color:var(--gold-dark);font-weight:700}
 
@@ -876,7 +882,6 @@ button,a{touch-action:manipulation}
       <input type="search" id="pos-search" placeholder="Buscar producto..." oninput="searchProducts(this.value)" autocomplete="off">
       <div class="pos-sort-toggle" id="pos-sort-toggle">
         <button class="pos-sort-btn" data-sort="recientes" onclick="setPosSort('recientes')" title="Recientes">🕐</button>
-        <button class="pos-sort-btn" data-sort="populares" onclick="setPosSort('populares')" title="Más vendidos">🔥</button>
         <button class="pos-sort-btn" data-sort="az"        onclick="setPosSort('az')"        title="A → Z">AZ</button>
       </div>
       <span class="pos-sort-sep"></span>
@@ -1295,7 +1300,7 @@ async function loadProducts() {
 async function refreshPosProducts() {
   const btn = document.getElementById('btn-refresh-pos');
   if (btn) { btn.style.opacity = '.4'; btn.style.pointerEvents = 'none'; }
-  await Promise.all([loadProducts(), loadSalesStats()]);
+  await Promise.all([loadProducts(), loadSalesStats(), loadTopProductsFromSales()]);
   showAllProducts();
   if (btn) { btn.style.opacity = ''; btn.style.pointerEvents = ''; }
   toast('Catálogo actualizado ✓', 'success');
@@ -1528,43 +1533,40 @@ function productCard(p) {
 
 /* ── CART ── */
 /* ── FRECUENTES ── */
-let _freqData = {};
-let _freqTimer = null;
+let _topFromSales = [];
 
-async function loadFreqFromSupabase() {
-  const r = await api('config?id=eq.pos_freq&select=id,value');
-  if (r.ok && r.data?.[0]?.value) {
-    try { _freqData = JSON.parse(r.data[0].value); } catch { _freqData = {}; }
+async function loadTopProductsFromSales() {
+  const desde = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+  const r = await api(`sales?created_at=gte.${desde}T00:00:00&type=eq.venta&select=items`);
+  if (!r.ok || !Array.isArray(r.data)) return;
+  const counts = {};
+  for (const sale of r.data) {
+    for (const item of (Array.isArray(sale.items) ? sale.items : [])) {
+      if (item.id) counts[item.id] = (counts[item.id] || 0) + (item.qty || 1);
+    }
   }
-}
-
-function _freqIncrement(id) {
-  _freqData[id] = (_freqData[id] || 0) + 1;
-  clearTimeout(_freqTimer);
-  _freqTimer = setTimeout(() => {
-    api('config', {
-      method: 'POST',
-      headers: { 'Prefer': 'resolution=merge-duplicates' },
-      body: JSON.stringify({ id: 'pos_freq', value: JSON.stringify(_freqData) })
-    });
-  }, 4000);
+  _topFromSales = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([id]) => parseInt(id));
 }
 
 function renderFrecuentes(hide) {
   const el = document.getElementById('pos-frecuentes');
   if (!el) return;
   if (hide) { el.classList.remove('visible'); return; }
-  const freq = _freqData;
-  const top = Object.entries(freq)
-    .sort((a, b) => b[1] - a[1]).slice(0, 8)
-    .map(([id]) => products.find(p => p.id === parseInt(id)))
+  const top = _topFromSales
+    .map(id => products.find(p => p.id === id))
     .filter(p => p && !p.outOfStock && p.stock > 0);
   if (top.length < 3) { el.classList.remove('visible'); return; }
   const FB = 'tresencantos_default.png';
   el.innerHTML = `<span class="pos-freq-label">Freq.</span>` +
     top.map(p => `
 <div class="pos-freq-card" onclick="addToCart(${p.id})" title="${p.name}">
-  <img class="pos-freq-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${FB}'">
+  <div class="pos-freq-img-wrap">
+    <img class="pos-freq-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${FB}'">
+    <div class="pos-freq-add"><span class="pos-freq-add-icon">+</span></div>
+  </div>
   <span class="pos-freq-name">${p.name}</span>
   <span class="pos-freq-price">$${p.price.toLocaleString('es-MX')}</span>
 </div>`).join('');
@@ -1585,7 +1587,6 @@ function addToCart(id, btn, e) {
   } else {
     cart.push({ product: p, qty: 1 });
   }
-  _freqIncrement(id);
   renderCart();
   _cartAddFeedback(btn, e);
 }
@@ -3133,7 +3134,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (_nl) _nl.textContent = _name;
   } catch {}
   initDivider();
-  await Promise.all([loadProducts(), loadPosCategories(), loadSalesStats(), loadFreqFromSupabase(), loadPosNameMap()]);
+  await Promise.all([loadProducts(), loadPosCategories(), loadSalesStats(), loadTopProductsFromSales(), loadPosNameMap()]);
   renderCategoryChips();
   setPosView(posView);
   setPosSort(posSort);

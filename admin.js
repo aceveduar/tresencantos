@@ -455,7 +455,8 @@ async function doLoginEmail() {
     email:         result.data.user.email,
     user:          result.data.user
   }));
-  await showApp();
+  // Recargar para que ROLE se re-evalúe con la sesión correcta
+  location.reload();
 }
 
 async function doLogout() {
