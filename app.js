@@ -190,7 +190,8 @@ async function loadProducts() {
         featured: p.featured,
         outOfStock: p.out_of_stock,
         originalPrice: p.original_price,
-        stock: p.stock
+        stock: p.stock,
+        images: p.images || null
       }));
       return;
     }
@@ -747,14 +748,25 @@ function openModal(id) {
   const descHTML = p.description
     ? `<p class="modal-desc">${p.description}</p>`
     : '';
+  const allImgs = [p.image, ...(p.images || [])].filter(Boolean);
+  const hasGallery = allImgs.length > 1;
+  const galleryHTML = hasGallery
+    ? `<div class="modal-gallery" id="modal-gallery" onscroll="_updateGalleryDots(this)">
+        ${allImgs.map((src, i) => `<img class="modal-gallery-img" src="${src}" alt="${p.name} ${i+1}" onerror="this.onerror=null;this.src='${fallback}'"${oos && i===0 ? ' style="filter:grayscale(.4)"' : ''}>`).join('')}
+       </div>
+       <div class="modal-gallery-dots" id="modal-gallery-dots">
+         ${allImgs.map((_,i) => `<span class="mgd${i===0?' mgd-active':''}" onclick="_goToGalleryImg(${i})"></span>`).join('')}
+       </div>`
+    : `<img class="modal-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'"${oos ? ' style="filter:grayscale(.4)"' : ''}>`;
+
   const overlay = document.getElementById('modal-overlay');
   overlay.innerHTML = `
 <div class="modal" role="dialog" aria-modal="true" aria-label="${p.name}">
-  <div class="modal-img-wrap">
-    <img class="modal-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'"${oos ? ' style="filter:grayscale(.4)"' : ''}>
+  <div class="modal-img-wrap${hasGallery ? ' has-gallery' : ''}">
+    ${galleryHTML}
     <button class="modal-close" onclick="closeModal()" aria-label="Cerrar">✕</button>
     ${oos ? `<span class="product-badge badge-oos" style="position:absolute;top:10px;left:10px;background:#9B8B78">Agotado</span>` : ''}
-    ${modalBadgeArea}
+    ${!hasGallery ? modalBadgeArea : ''}
   </div>
   <div class="modal-body">
     <p class="modal-cat">${catDisplay}</p>
@@ -820,6 +832,16 @@ function closeModal() {
   document.getElementById('modal-overlay')?.classList.remove('open');
   document.body.style.overflow = '';
   activeProduct = null;
+}
+
+function _updateGalleryDots(gallery) {
+  const idx = Math.round(gallery.scrollLeft / gallery.offsetWidth);
+  document.querySelectorAll('#modal-gallery-dots .mgd').forEach((d, i) => d.classList.toggle('mgd-active', i === idx));
+}
+
+function _goToGalleryImg(idx) {
+  const g = document.getElementById('modal-gallery');
+  if (g) g.scrollTo({ left: idx * g.offsetWidth, behavior: 'smooth' });
 }
 
 /* ── WHATSAPP FLOTANTE ── */

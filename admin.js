@@ -49,6 +49,7 @@ const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd
 
 let products = [];
 let _kitItemsEdit = [];
+let _additionalImagesEdit = [];
 let deleteTargetId = null;
 let selectedIds = new Set();
 let dragSrcId = null;
@@ -602,7 +603,8 @@ async function loadProductsFromSupabase() {
       cost: p.cost ?? null,
       isPublished: p.is_published ?? true,
       notes: p.notes || null,
-      kitItems: p.kit_items || null
+      kitItems: p.kit_items || null,
+      images: p.images || null
     }));
     return;
   }
@@ -768,7 +770,7 @@ function setAdminView(view) {
 
 function adminCard(p) {
   const fallback = DEFAULT_IMG;
-  const oos = p.outOfStock || p.stock === 0;
+  const oos = p.kitItems?.length ? false : (p.outOfStock || p.stock === 0);
   const sel = selectedIds.has(p.id);
   const catColor = getCatColor(p.category);
   const badgeHTML = p.badge
@@ -1003,7 +1005,7 @@ function editCategoryInline(e, id) {
 
 function desktopRow(p) {
   const fallback = DEFAULT_IMG;
-  const oos = p.outOfStock || p.stock === 0;
+  const oos = p.kitItems?.length ? false : (p.outOfStock || p.stock === 0);
   const badgeHTML  = p.badge ? `<span class="badge badge-${p.badgeType||'none'} badge-xs">${p.badge}</span>` : '';
   const featStar   = `<span onclick="toggleFeatured(${p.id})" class="toggle-featured" title="${p.featured ? 'Quitar destacado' : 'Destacar'}">${p.featured ? '⭐' : '☆'}</span>`;
   const catColor   = getCatColor(p.category);
@@ -1055,7 +1057,7 @@ function desktopRow(p) {
 function mobileCard(p) {
   const fallback = DEFAULT_IMG;
   const sel = selectedIds.has(p.id);
-  const oos = p.outOfStock || p.stock === 0;
+  const oos = p.kitItems?.length ? false : (p.outOfStock || p.stock === 0);
   const catColor = getCatColor(p.category);
   const pubTitle  = p.isPublished === false ? 'Oculto del sitio — toca para publicar' : p.outOfStock ? 'Publicado pero agotado — no aparece en el sitio' : 'Visible en sitio — toca para ocultar';
   const pubEmoji  = p.isPublished === false ? '🙈' : p.outOfStock ? '⚠️' : '🌐';
@@ -1866,6 +1868,8 @@ function openForm(id) {
     document.getElementById('f-is-kit').checked = isKit;
     _kitItemsEdit = isKit ? JSON.parse(JSON.stringify(p.kitItems)) : [];
     toggleKitMode();
+    _additionalImagesEdit = p.images ? [...p.images] : [];
+    renderAdditionalImages();
   } else {
     document.getElementById('f-id').value = '';
     document.getElementById('f-name').value = '';
@@ -1892,6 +1896,8 @@ function openForm(id) {
     document.getElementById('f-is-kit').checked = false;
     _kitItemsEdit = [];
     document.getElementById('kit-editor').style.display = 'none';
+    _additionalImagesEdit = [];
+    renderAdditionalImages();
   }
 
   _clearDupWarnings();
@@ -2207,7 +2213,8 @@ async function saveProduct() {
     stock: parseInt(document.getElementById('f-stock').value) || 0,
     cost: parseFloat(document.getElementById('f-cost').value) || null,
     isPublished: publishedVal,
-    kitItems: document.getElementById('f-is-kit').checked && _kitItemsEdit.length ? _kitItemsEdit : null
+    kitItems: document.getElementById('f-is-kit').checked && _kitItemsEdit.length ? _kitItemsEdit : null,
+    images: _additionalImagesEdit.length ? _additionalImagesEdit : null
   };
 
   const dbPayload = {
@@ -2220,14 +2227,15 @@ async function saveProduct() {
     badge: data.badge,
     badge_type: data.badgeType,
     featured: data.featured,
-    out_of_stock: data.outOfStock,
+    out_of_stock: data.kitItems ? false : data.outOfStock,
     original_price: data.originalPrice,
     barcode: data.barcode,
     stock: data.stock,
     cost: data.cost,
     is_published: data.isPublished,
     notes: notes,
-    kit_items: data.kitItems
+    kit_items: data.kitItems,
+    images: data.images
   };
 
   const saveBtn = document.getElementById('save-btn');
@@ -2394,6 +2402,82 @@ function changeKitQty(productId, delta) {
   if (!item) return;
   item.qty = Math.max(1, item.qty + delta);
   renderKitEditor();
+}
+
+/* ── ADDITIONAL IMAGES ── */
+function _fileToBase64Resized(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = e => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX = 900;
+        let w = img.width, h = img.height;
+        if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+        if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderAdditionalImages() {
+  const strip = document.getElementById('additional-images-strip');
+  if (!strip) return;
+  if (!_additionalImagesEdit.length) {
+    strip.innerHTML = '<span style="font-size:.78rem;color:var(--muted);align-self:center;padding-left:2px">Sin imágenes adicionales</span>';
+    return;
+  }
+  strip.innerHTML = _additionalImagesEdit.map((url, i) => `
+<div style="position:relative;flex-shrink:0">
+  <img src="${url}" style="width:72px;height:72px;object-fit:contain;border-radius:8px;border:1px solid var(--border);background:#F7F2EB;display:block" onerror="this.style.opacity='.3'">
+  <button type="button" onclick="removeAdditionalImage(${i})" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;cursor:pointer;font-size:.65rem;display:flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.25)">✕</button>
+</div>`).join('');
+}
+
+function removeAdditionalImage(idx) {
+  _additionalImagesEdit.splice(idx, 1);
+  renderAdditionalImages();
+}
+
+async function addAdditionalImageUrl() {
+  const inp = document.getElementById('add-img-url-input');
+  const url = inp?.value.trim();
+  if (!url) return;
+  if (_additionalImagesEdit.length >= 5) { toast('Máximo 5 imágenes adicionales', ''); return; }
+  _additionalImagesEdit.push(url);
+  inp.value = '';
+  renderAdditionalImages();
+}
+
+async function handleAdditionalImageFile(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const addBtn = document.getElementById('add-img-file-btn');
+  if (addBtn) { addBtn.textContent = '⏳ Subiendo…'; addBtn.disabled = true; }
+  if (_additionalImagesEdit.length >= 5) { toast('Máximo 5 imágenes adicionales', ''); input.value = ''; return; }
+  try {
+    const base64 = await _fileToBase64Resized(file);
+    let url = base64;
+    if (driveEp && driveSecret) {
+      const driveResult = await uploadToDrive(base64);
+      if (driveResult) url = driveResult;
+    }
+    _additionalImagesEdit.push(url);
+    renderAdditionalImages();
+  } catch {
+    toast('Error al procesar la imagen', 'error');
+  } finally {
+    if (addBtn) { addBtn.textContent = '📁 Desde galería'; addBtn.disabled = false; }
+    input.value = '';
+  }
 }
 
 /* ── DELETE ── */

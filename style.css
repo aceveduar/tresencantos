@@ -372,6 +372,14 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 /* Zona 1 — Imagen */
 .modal-img-wrap{position:relative;flex-shrink:0;padding-top:12px}
 .modal-img{width:100%;aspect-ratio:4/3;object-fit:contain;background:#fff;display:block}
+/* Gallery (multiple images) */
+.modal-img-wrap.has-gallery{padding-top:0}
+.modal-gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:#fff;aspect-ratio:4/3}
+.modal-gallery::-webkit-scrollbar{display:none}
+.modal-gallery-img{flex:0 0 100%;width:100%;object-fit:contain;background:#fff;scroll-snap-align:start}
+.modal-gallery-dots{display:flex;justify-content:center;gap:6px;padding:8px 0 4px;background:#fff;flex-shrink:0}
+.mgd{width:7px;height:7px;border-radius:50%;background:#D1C4B8;cursor:pointer;transition:.2s;flex-shrink:0}
+.mgd-active{background:var(--gold);transform:scale(1.25)}
 .modal-close{position:absolute;top:10px;right:10px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.92);color:var(--charcoal);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;transition:var(--ease);z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.18)}
 .modal-close:hover{background:#fff;box-shadow:0 3px 14px rgba(0,0,0,.24)}
 

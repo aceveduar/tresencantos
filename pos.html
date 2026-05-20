@@ -813,6 +813,8 @@ button,a{touch-action:manipulation}
 </style>
 </head>
 <body>
+<script src="splash.js"></script>
+<script>showSplash('🛍️','Caja','Punto de venta')</script>
 
 <!-- TOPBAR -->
 <div class="topbar">
@@ -1408,8 +1410,8 @@ function setPosView(view) {
 
 function posCard(p) {
   const effStock = getKitStock(p);
-  const oos = effStock === 0 || p.outOfStock;
   const isKit = !!(p.kitItems?.length);
+  const oos = isKit ? effStock === 0 : (effStock === 0 || p.outOfStock);
   const stockCls = isKit ? (oos ? 'stock-sold' : 'stock-ok') : (effStock === 0 ? 'stock-sold' : effStock === 1 ? 'stock-one' : 'stock-ok');
   const stockTxt = isKit
     ? (oos ? 'Sin stock' : `🎁 ${effStock} kit${effStock!==1?'s':''}`)
@@ -1532,8 +1534,11 @@ const PROD_PLACEHOLDER = 'tresencantos_default.png';
 function productCard(p) {
   const effStock = getKitStock(p);
   const isKit    = !!(p.kitItems?.length);
-  const oos      = effStock === 0 || p.outOfStock;
+  const oos      = isKit ? effStock === 0 : (effStock === 0 || p.outOfStock);
   const disabled = oos ? 'style="opacity:.5;cursor:not-allowed"' : '';
+  const kitCompsLine = isKit && p.kitItems?.length
+    ? `<div style="font-size:.7rem;color:#9B8B78;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.kitItems.map(c=>c.name).join(' · ')}</div>`
+    : '';
   const stockSub = isKit
     ? (oos ? ' · <span style="color:var(--red)">Sin stock</span>' : ` · <span style="color:#6B9E78;font-weight:600">🎁 ${effStock} kit${effStock!==1?'s':''}</span>`)
     : effStock === 1
@@ -1548,6 +1553,7 @@ function productCard(p) {
   <img class="pos-prod-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
   <div class="pos-prod-info">
     <div class="pos-prod-name">${isKit ? '🎁 ' : ''}${p.name}</div>
+    ${kitCompsLine}
     <div class="pos-prod-sub">${p.categoryLabel}${stockSub}</div>
   </div>
   <div class="pos-prod-right">
@@ -1603,7 +1609,8 @@ function addToCart(id, btn, e) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   const effStock = getKitStock(p);
-  if (effStock === 0 || p.outOfStock) return;
+  const isKitP = !!(p.kitItems?.length);
+  if (effStock === 0 || (!isKitP && p.outOfStock)) return;
 
   const existing = cart.find(x => x.product.id === id);
   if (existing) {
@@ -1670,7 +1677,8 @@ function removeFromCart(id) {
 function changeQty(id, delta) {
   const item = cart.find(x => x.product.id === id);
   if (!item) return;
-  item.qty = Math.max(1, Math.min(item.qty + delta, item.product.stock));
+  const maxStock = getKitStock(item.product);
+  item.qty = Math.max(1, Math.min(item.qty + delta, maxStock));
   renderCart();
 }
 
@@ -1795,11 +1803,16 @@ function renderCart() {
   }
 
   const fallback = () => 'tresencantos_default.png';
-  el.innerHTML = cart.map(({ product: p, qty }) => `
+  el.innerHTML = cart.map(({ product: p, qty }) => {
+    const kitSub = p.kitItems?.length
+      ? `<div style="font-size:.7rem;color:#9B8B78;margin-top:1px">🎁 ${p.kitItems.map(c=>`${c.qty>1?c.qty+'× ':''}${c.name}`).join(', ')}</div>`
+      : '';
+    return `
 <div class="cart-item" data-pid="${p.id}">
   <img class="ci-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback(p.id)}'">
   <div class="ci-info">
     <div class="ci-name">${p.name}</div>
+    ${kitSub}
     <div class="ci-price">$${p.price.toLocaleString('es-MX')} c/u</div>
     <div class="ci-row2">
       <div class="ci-qty">
@@ -1814,7 +1827,8 @@ function renderCart() {
   <div class="ci-right">
     <div class="ci-subtotal">$${(p.price * qty).toLocaleString('es-MX')}</div>
   </div>
-</div>`).join('');
+</div>`;
+  }).join('');
   applySwipeRemove();
 }
 
