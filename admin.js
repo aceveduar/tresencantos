@@ -481,14 +481,6 @@ function _applyRoleUI() {
   if (!can.importJSON) {
     document.getElementById('tools-json-section')?.style.setProperty('display', 'none');
   }
-  // Chips de rol en topbar
-  const roleLabels = { operador: 'Operador', encargado: 'Encargada', duena: 'Propietaria' };
-  if (roleLabels[ROLE]) {
-    const chip = document.createElement('span');
-    chip.className = 'role-chip';
-    chip.textContent = roleLabels[ROLE];
-    document.getElementById('user-display')?.after(chip);
-  }
   // Operador: ocultar Reportes, Actividad y Settings
   if (ROLE === 'operador') {
     ['stats.html','activity.html','settings.html'].forEach(href => {
