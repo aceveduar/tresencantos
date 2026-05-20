@@ -371,6 +371,16 @@ button,a{touch-action:manipulation}
   pointer-events:none;
 }
 
+/* LIGHTBOX IMAGEN */
+.img-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:900;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s;padding:20px 16px}
+.img-lightbox.open{opacity:1;pointer-events:auto}
+.img-lightbox-img{max-width:100%;max-height:65dvh;border-radius:12px;object-fit:contain;display:block}
+.img-lightbox-info{width:100%;max-width:360px;margin-top:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 16px;backdrop-filter:blur(8px)}
+.img-lb-name{font-size:.92rem;font-weight:700;color:#fff;margin-bottom:6px;line-height:1.3}
+.img-lb-row{display:flex;justify-content:space-between;align-items:center;font-size:.78rem;margin-top:4px}
+.img-lb-label{color:rgba(255,255,255,.5)}
+.img-lb-val{color:rgba(255,255,255,.9);font-weight:600}
+
 /* FRECUENTES */
 .pos-freq-bar{display:none;overflow-x:auto;padding:8px 12px 10px;gap:8px;border-bottom:1px solid var(--border);background:#FDFAF6;flex-shrink:0;scrollbar-width:none;-webkit-overflow-scrolling:touch;align-items:flex-start}
 .pos-freq-bar::-webkit-scrollbar{display:none}
@@ -658,8 +668,9 @@ button,a{touch-action:manipulation}
 }
 
 @media(max-width:640px){
-  /* Solo mobile: ocultar toggle de vista (espacio limitado) */
   .pos-view-toggle{display:none}
+  .pos-view-toggle + .pos-sort-sep{display:none}
+  #pos-refresh-btn{display:none}
 }
 
 /* CART TOPBAR BUTTON */
@@ -2122,6 +2133,40 @@ function applySwipeRemove() {
   });
 }
 
+let _posNameMap = {};
+async function loadPosNameMap() {
+  const r = await api('config?id=eq.user_names&select=id,value');
+  if (r.ok && r.data?.[0]?.value) {
+    try { _posNameMap = JSON.parse(r.data[0].value); } catch {}
+  }
+}
+function _sellerLabel(email) {
+  if (!email) return null;
+  return _posNameMap[email] || email.split('@')[0].replace(/\./g,' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function openLightbox(img) {
+  document.getElementById('img-lightbox-img').src = img.src;
+  const name   = img.dataset.name   || '';
+  const price  = img.dataset.price  || '';
+  const qty    = parseInt(img.dataset.qty) || 1;
+  const seller = img.dataset.seller || '';
+  document.getElementById('img-lb-name').textContent = name;
+  const priceNum = parseFloat(price);
+  const priceStr = qty > 1
+    ? `$${priceNum.toLocaleString('es-MX')} × ${qty}`
+    : `$${priceNum.toLocaleString('es-MX')}`;
+  document.getElementById('img-lb-price').textContent = priceStr;
+  const sellerName = _sellerLabel(seller);
+  const sellerRow = document.getElementById('img-lb-seller-row');
+  document.getElementById('img-lb-seller').textContent = sellerName || '—';
+  sellerRow.style.display = sellerName ? '' : 'none';
+  document.getElementById('img-lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('img-lightbox').classList.remove('open');
+}
+
 function openHistory() {
   document.getElementById('history-offcanvas').classList.add('open');
   document.getElementById('history-backdrop').classList.add('open');
@@ -2135,7 +2180,7 @@ function closeHistory() {
 }
 
 async function loadHistory() {
-  const result = await api(`sales?select=id,total,created_at,items,payment_method,type,customer,discount,note,paid_amount,abonos&order=created_at.desc&limit=50`);
+  const result = await api(`sales?select=id,total,created_at,items,payment_method,type,customer,discount,note,paid_amount,abonos,seller_email&order=created_at.desc&limit=50`);
   const el = document.getElementById('history-list');
   if (!result.ok || !result.data?.length) {
     salesCache = {};
@@ -2190,7 +2235,7 @@ async function loadHistory() {
         const img = products.find(p => p.id === i.id)?.image || THUMB_PH;
         return `
 <div class="hi-item">
-  <img class="hi-item-thumb" src="${img}" alt="${i.name}" onerror="this.src='${THUMB_PH}'">
+  <img class="hi-item-thumb" src="${img}" alt="${i.name}" onerror="this.src='${THUMB_PH}'" data-name="${i.name.replace(/"/g,'&quot;')}" data-price="${i.price}" data-qty="${i.qty||1}" data-seller="${s.seller_email||''}" onclick="event.stopPropagation();openLightbox(this)" style="cursor:zoom-in">
   <span class="hi-item-name">${i.name}</span>
   <span class="hi-item-qty">×${i.qty || 1}</span>
   <span class="hi-item-sub">$${((i.subtotal ?? i.price * (i.qty || 1))).toLocaleString('es-MX')}</span>
@@ -3082,7 +3127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (_nl) _nl.textContent = _name;
   } catch {}
   initDivider();
-  await Promise.all([loadProducts(), loadPosCategories(), loadSalesStats(), loadFreqFromSupabase()]);
+  await Promise.all([loadProducts(), loadPosCategories(), loadSalesStats(), loadFreqFromSupabase(), loadPosNameMap()]);
   renderCategoryChips();
   setPosView(posView);
   setPosSort(posSort);
@@ -3148,5 +3193,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 });
 </script>
+<div class="img-lightbox" id="img-lightbox" onclick="closeLightbox()">
+  <img class="img-lightbox-img" id="img-lightbox-img" src="" alt="">
+  <div class="img-lightbox-info" id="img-lightbox-info" onclick="event.stopPropagation()">
+    <div class="img-lb-name" id="img-lb-name"></div>
+    <div class="img-lb-row" id="img-lb-price-row">
+      <span class="img-lb-label">Precio</span>
+      <span class="img-lb-val" id="img-lb-price"></span>
+    </div>
+    <div class="img-lb-row" id="img-lb-seller-row">
+      <span class="img-lb-label">Vendedor</span>
+      <span class="img-lb-val" id="img-lb-seller"></span>
+    </div>
+  </div>
+</div>
 </body>
 </html>

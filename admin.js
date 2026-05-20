@@ -361,11 +361,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     if ((e.key === 'z' || e.key === 'Z') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); doUndo(); }
   });
 
+  // Placeholder adaptativo del buscador — corto en mobile, completo en desktop
+  const _adaptSearch = () => {
+    const el = document.getElementById('search-input');
+    if (el) el.placeholder = window.innerWidth <= 640 ? 'Buscar…' : 'Buscar… varios términos separados por coma';
+  };
+  _adaptSearch();
+
   // Re-renderizar tabla al rotar el teléfono o redimensionar ventana
   let _resizeTimer;
   window.addEventListener('resize', () => {
     clearTimeout(_resizeTimer);
-    _resizeTimer = setTimeout(renderTable, 180);
+    _resizeTimer = setTimeout(() => { renderTable(); _adaptSearch(); }, 180);
   });
 
   // Botón scroll-to-top
@@ -606,12 +613,16 @@ async function renderStats() {
 
   let ventasHoy = 0, ingresosHoy = 0;
   try {
-    const hoy = new Date().toISOString().split('T')[0];
-    // Solo ventas completadas (type=venta), no apartados pendientes
-    const sr = await supabaseApi(`sales?created_at=gte.${hoy}T00:00:00&type=eq.venta&select=total`);
+    const TZ = 'America/Mexico_City';
+    const todayMX = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
+    const sr = await supabaseApi(`sales?created_at=gte.${todayMX}T00:00:00&select=total,created_at,type`);
     if (sr.ok && Array.isArray(sr.data)) {
-      ventasHoy   = sr.data.length;
-      ingresosHoy = sr.data.reduce((s, x) => s + (parseFloat(x.total) || 0), 0);
+      const hoyMX = sr.data.filter(x => {
+        const fechaMX = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(x.created_at));
+        return fechaMX === todayMX && x.type !== 'apartado';
+      });
+      ventasHoy   = hoyMX.length;
+      ingresosHoy = hoyMX.reduce((s, x) => s + (parseFloat(x.total) || 0), 0);
     }
   } catch {}
 
