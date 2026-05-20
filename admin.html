@@ -238,6 +238,12 @@ td,th{overflow:hidden}
   width:20px;height:20px;border-radius:50%;background:#E85D5D;
   font-size:.6rem;color:#fff;flex-shrink:0;vertical-align:middle;
 }
+.note-dot{
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:.65rem;vertical-align:middle;cursor:pointer;
+  margin-left:3px;opacity:.7;transition:.15s;
+}
+.note-dot:hover{opacity:1;transform:scale(1.2)}
 /* QV — zona de flag */
 .qv-flag-active{
   background:#fff3f3;border:1px solid rgba(232,93,93,.25);
@@ -1704,6 +1710,10 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           </div>
         </div>
         <textarea id="f-description" placeholder="Describe el producto: materiales, uso, características…" onblur="applyDescriptionFormat('f-description')"></textarea>
+      </div>
+      <div class="form-row">
+        <label>Nota interna <span style="font-size:.68rem;background:#EFF6FF;color:#1E40AF;padding:1px 6px;border-radius:4px;font-weight:600">🔒 Solo Inventario</span></label>
+        <textarea id="f-notes" placeholder="Proveedor, precio mínimo, instrucciones de reabastecimiento…" style="min-height:58px;font-size:.84rem;background:#F8FAFF;border-color:#BFDBFE;resize:none"></textarea>
       </div>
       <p class="form-section">⚙️ Visibilidad</p>
       <div class="form-row">

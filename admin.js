@@ -591,7 +591,8 @@ async function loadProductsFromSupabase() {
       barcode: p.barcode || null,
       stock: p.stock ?? 0,
       cost: p.cost ?? null,
-      isPublished: p.is_published ?? true
+      isPublished: p.is_published ?? true,
+      notes: p.notes || null
     }));
     return;
   }
@@ -766,6 +767,7 @@ function adminCard(p) {
   const pubTitle  = p.isPublished === false ? 'Oculto del sitio — toca para publicar' : p.outOfStock ? 'Publicado pero agotado — no aparece en el sitio' : 'Visible en sitio — toca para ocultar';
   const pubEmoji  = p.isPublished === false ? '🙈' : p.outOfStock ? '⚠️' : '🌐';
   const flagDotAC = _flagItem(p.id) ? `<span class="flag-dot" title="Pendiente de revisión">🚩</span>` : '';
+  const noteDotAC = p.notes ? `<span class="note-dot" onclick="event.stopPropagation();toast('📝 '+${JSON.stringify(p.notes)})" title="${p.notes.replace(/"/g,'&quot;')}">📝</span>` : '';
 
   return `
 <div class="admin-card${sel?' card-selected':''}${oos?' card-oos':''}"
@@ -789,7 +791,7 @@ function adminCard(p) {
     </button>
   </div>
   <div class="ac-body">
-    <div class="ac-name" title="${p.name}">${p.name}</div>
+    <div class="ac-name" title="${p.name}">${p.name}${noteDotAC}</div>
     <div class="ac-meta">
       <span class="cat-dot" style="background:${catColor}"></span>
       <span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" title="Toca para cambiar categoría" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.categoryLabel}</span>
@@ -1043,6 +1045,7 @@ function mobileCard(p) {
   const catColor = getCatColor(p.category);
   const pubTitle  = p.isPublished === false ? 'Oculto del sitio — toca para publicar' : p.outOfStock ? 'Publicado pero agotado — no aparece en el sitio' : 'Visible en sitio — toca para ocultar';
   const pubEmoji  = p.isPublished === false ? '🙈' : p.outOfStock ? '⚠️' : '🌐';
+  const noteDot   = p.notes ? `<span class="note-dot" onclick="event.stopPropagation();toast('📝 '+${JSON.stringify(p.notes)})" title="${p.notes.replace(/"/g,'&quot;')}">📝</span>` : '';
 
   const priceHTML = p.originalPrice
     ? `<span class="mpc-price-orig">$${p.originalPrice.toLocaleString('es-MX')}</span>
@@ -1079,7 +1082,7 @@ function mobileCard(p) {
           </button>
         </div>
         <div class="mpc-info">
-          <div class="mpc-name">${p.name}${_flagItem(p.id) ? ' <span class="flag-dot-row" title="Pendiente de revisión">🚩</span>' : ''}</div>
+          <div class="mpc-name">${p.name}${_flagItem(p.id) ? ' <span class="flag-dot-row" title="Pendiente de revisión">🚩</span>' : ''}${noteDot}</div>
           <div class="mpc-cat-tag">
             <span class="cat-dot" style="background:${catColor}"></span>
             <span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría">${p.categoryLabel}</span>
@@ -1835,6 +1838,7 @@ function openForm(id) {
     document.getElementById('f-badge').value = p.badge || '';
     document.getElementById('f-badge-type').value = p.badgeType || '';
     document.getElementById('f-description').value = p.description;
+    document.getElementById('f-notes').value = p.notes || '';
     document.getElementById('f-image').value = p.image;
     document.getElementById('f-featured').checked = p.featured;
     document.getElementById('f-out-of-stock').checked = p.outOfStock || false;
@@ -1855,6 +1859,7 @@ function openForm(id) {
     document.getElementById('f-badge').value = '';
     document.getElementById('f-badge-type').value = '';
     document.getElementById('f-description').value = '';
+    document.getElementById('f-notes').value = '';
     document.getElementById('f-image').value = '';
     document.getElementById('f-featured').checked = false;
     document.getElementById('f-out-of-stock').checked = false;
@@ -2153,6 +2158,7 @@ async function saveProduct() {
   const price = parseFloat(document.getElementById('f-price').value);
   const image = document.getElementById('f-image').value.trim();
   const description = document.getElementById('f-description').value.trim();
+  const notes = document.getElementById('f-notes').value.trim() || null;
 
   if (!name || isNaN(price)) {
     toast('Completa nombre y precio.', 'error');
@@ -2197,7 +2203,8 @@ async function saveProduct() {
     barcode: data.barcode,
     stock: data.stock,
     cost: data.cost,
-    is_published: data.isPublished
+    is_published: data.isPublished,
+    notes: notes
   };
 
   const saveBtn = document.getElementById('save-btn');
