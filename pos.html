@@ -1290,10 +1290,24 @@ async function loadProducts() {
       stock: p.stock ?? 0,
       outOfStock: p.out_of_stock,
       badge: p.badge,
-      badgeType: p.badge_type
+      badgeType: p.badge_type,
+      kitItems: p.kit_items || null
     }));
   }
   renderFrecuentes();
+}
+
+/* ── KIT STOCK ── */
+function getKitStock(p) {
+  if (!p.kitItems?.length) return p.stock;
+  let min = Infinity;
+  for (const comp of p.kitItems) {
+    const c = products.find(x => x.id === comp.id);
+    if (!c || c.outOfStock || c.stock === 0) return 0;
+    const avail = Math.floor(c.stock / comp.qty);
+    if (avail < min) min = avail;
+  }
+  return min === Infinity ? 0 : min;
 }
 
 /* ── LOAD CATEGORIES ── */
@@ -1393,9 +1407,13 @@ function setPosView(view) {
 }
 
 function posCard(p) {
-  const oos = p.stock === 0 || p.outOfStock;
-  const stockCls = p.stock === 0 ? 'stock-sold' : p.stock === 1 ? 'stock-one' : 'stock-ok';
-  const stockTxt = p.stock === 0 ? 'Sin stock' : `${p.stock} ud${p.stock!==1?'s':''}`;
+  const effStock = getKitStock(p);
+  const oos = effStock === 0 || p.outOfStock;
+  const isKit = !!(p.kitItems?.length);
+  const stockCls = isKit ? 'stock-ok' : (effStock === 0 ? 'stock-sold' : effStock === 1 ? 'stock-one' : 'stock-ok');
+  const stockTxt = isKit
+    ? (oos ? 'Sin stock' : `🎁 ${effStock} kit${effStock!==1?'s':''}`)
+    : (effStock === 0 ? 'Sin stock' : `${effStock} ud${effStock!==1?'s':''}`);
   const fallback  = 'tresencantos_default.png';
   return `
 <div class="pos-card${oos?' card-sold':''}" onclick="${oos?'':` addToCart(${p.id},this.querySelector('.pos-card-add-icon'),event)`}">
@@ -1407,7 +1425,7 @@ function posCard(p) {
     </div>
   </div>
   <div class="pos-card-body">
-    <div class="pos-card-name">${p.name}</div>
+    <div class="pos-card-name">${isKit ? '🎁 ' : ''}${p.name}</div>
     <div class="pos-card-price">$${p.price.toLocaleString('es-MX')}</div>
     <span class="pos-card-stock ${stockCls}">${stockTxt}</span>
   </div>
@@ -1508,20 +1526,24 @@ function searchProducts(q) {
 const PROD_PLACEHOLDER = 'tresencantos_default.png';
 
 function productCard(p) {
-  const oos      = p.stock === 0 || p.outOfStock;
+  const effStock = getKitStock(p);
+  const isKit    = !!(p.kitItems?.length);
+  const oos      = effStock === 0 || p.outOfStock;
   const disabled = oos ? 'style="opacity:.5;cursor:not-allowed"' : '';
-  const stockSub = p.stock === 1
-    ? ' · <span style="color:#C9A462;font-weight:700">Última</span>'
-    : p.stock >= 2 && p.stock <= 5
-      ? ` · <span style="color:#6B9E78;font-weight:600">${p.stock} uds</span>`
-      : p.stock > 5
-        ? ` · <span style="color:#9B8B78">${p.stock} uds</span>`
-        : '';
+  const stockSub = isKit
+    ? (oos ? ' · <span style="color:var(--red)">Sin stock</span>' : ` · <span style="color:#6B9E78;font-weight:600">🎁 ${effStock} kit${effStock!==1?'s':''}</span>`)
+    : effStock === 1
+      ? ' · <span style="color:#C9A462;font-weight:700">Última</span>'
+      : effStock >= 2 && effStock <= 5
+        ? ` · <span style="color:#6B9E78;font-weight:600">${effStock} uds</span>`
+        : effStock > 5
+          ? ` · <span style="color:#9B8B78">${effStock} uds</span>`
+          : '';
   return `
 <div class="pos-prod" onclick="${oos ? '' : `addToCart(${p.id})`}" ${disabled}>
   <img class="pos-prod-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
   <div class="pos-prod-info">
-    <div class="pos-prod-name">${p.name}</div>
+    <div class="pos-prod-name">${isKit ? '🎁 ' : ''}${p.name}</div>
     <div class="pos-prod-sub">${p.categoryLabel}${stockSub}</div>
   </div>
   <div class="pos-prod-right">
@@ -1575,11 +1597,13 @@ function renderFrecuentes(hide) {
 
 function addToCart(id, btn, e) {
   const p = products.find(x => x.id === id);
-  if (!p || p.stock === 0 || p.outOfStock) return;
+  if (!p) return;
+  const effStock = getKitStock(p);
+  if (effStock === 0 || p.outOfStock) return;
 
   const existing = cart.find(x => x.product.id === id);
   if (existing) {
-    if (existing.qty >= p.stock) {
+    if (existing.qty >= effStock) {
       _cartStockFeedback(btn, e);
       return;
     }
@@ -2239,11 +2263,13 @@ async function loadHistory() {
 
       const THUMB_PH = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2228%22 height=%2228%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23D1C4B8%22 stroke-width=%221.5%22%3E%3Crect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/%3E%3Ccircle cx=%228.5%22 cy=%228.5%22 r=%221.5%22/%3E%3Cpath d=%22m21 15-5-5L5 21%22/%3E%3C/svg%3E';
       const itemsHTML = items.map(i => {
-        const img = products.find(p => p.id === i.id)?.image || THUMB_PH;
+        const cur = products.find(p => p.id === i.id);
+        const img = cur?.image || THUMB_PH;
+        const displayName = cur?.name || i.name;
         return `
 <div class="hi-item">
-  <img class="hi-item-thumb" src="${img}" alt="${i.name}" onerror="this.src='${THUMB_PH}'" data-name="${i.name.replace(/"/g,'&quot;')}" data-price="${i.price}" data-qty="${i.qty||1}" data-seller="${s.seller_email||''}" onclick="event.stopPropagation();openLightbox(this)" style="cursor:zoom-in">
-  <span class="hi-item-name">${i.name}</span>
+  <img class="hi-item-thumb" src="${img}" alt="${displayName}" onerror="this.src='${THUMB_PH}'" data-name="${displayName.replace(/"/g,'&quot;')}" data-price="${i.price}" data-qty="${i.qty||1}" data-seller="${s.seller_email||''}" onclick="event.stopPropagation();openLightbox(this)" style="cursor:zoom-in">
+  <span class="hi-item-name">${displayName}</span>
   <span class="hi-item-qty">×${i.qty || 1}</span>
   <span class="hi-item-sub">$${((i.subtotal ?? i.price * (i.qty || 1))).toLocaleString('es-MX')}</span>
 </div>`;
@@ -2305,12 +2331,19 @@ async function deleteSale(id) {
   if (Array.isArray(sale.items)) {
     for (const item of sale.items) {
       const p = products.find(x => x.id === item.id);
-      const newStock = (p ? p.stock : 0) + (item.qty || 1);
-      await api(`products?id=eq.${item.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ stock: newStock, out_of_stock: false })
-      });
-      if (p) { p.stock = newStock; p.outOfStock = false; }
+      if (p?.kitItems?.length) {
+        // Kit: restaurar componentes
+        for (const comp of p.kitItems) {
+          const lc = products.find(x => x.id === comp.id);
+          const newCompStock = (lc ? lc.stock : 0) + (item.qty || 1) * comp.qty;
+          await api(`products?id=eq.${comp.id}`, { method:'PATCH', body:JSON.stringify({ stock: newCompStock, out_of_stock: false }) });
+          if (lc) { lc.stock = newCompStock; lc.outOfStock = false; }
+        }
+      } else {
+        const newStock = (p ? p.stock : 0) + (item.qty || 1);
+        await api(`products?id=eq.${item.id}`, { method:'PATCH', body:JSON.stringify({ stock: newStock, out_of_stock: false }) });
+        if (p) { p.stock = newStock; p.outOfStock = false; }
+      }
     }
   }
 
@@ -2814,12 +2847,27 @@ async function cobrar() {
 
   // Reducir stock
   for (const { product: p, qty } of cart) {
+    if (p.kitItems?.length) continue; // kits: manejados abajo por componente
     const newStock = Math.max(0, p.stock - qty);
     const patch = { stock: newStock };
     if (newStock === 0) patch.out_of_stock = true;
     await api(`products?id=eq.${p.id}`, { method:'PATCH', body:JSON.stringify(patch) });
     const lp = products.find(x => x.id === p.id);
     if (lp) { lp.stock = newStock; if (newStock === 0) lp.outOfStock = true; }
+  }
+  // Reducir stock de componentes de kits
+  for (const { product: p, qty } of cart) {
+    if (!p.kitItems?.length) continue;
+    for (const comp of p.kitItems) {
+      const lc = products.find(x => x.id === comp.id);
+      if (!lc) continue;
+      const newCompStock = Math.max(0, lc.stock - qty * comp.qty);
+      const compPatch = { stock: newCompStock };
+      if (newCompStock === 0) compPatch.out_of_stock = true;
+      await api(`products?id=eq.${comp.id}`, { method:'PATCH', body:JSON.stringify(compPatch) });
+      lc.stock = newCompStock;
+      if (newCompStock === 0) lc.outOfStock = true;
+    }
   }
 
   btn.removeAttribute('data-loading');

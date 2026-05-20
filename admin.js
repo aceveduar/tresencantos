@@ -48,6 +48,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUyNjIyNiwiZXhwIjoyMDk0MTAyMjI2fQ.B9nZ1KENDQsUtn9PFwiMTrXuMZuWWIphGnH8XPfeJjQ';
 
 let products = [];
+let _kitItemsEdit = [];
 let deleteTargetId = null;
 let selectedIds = new Set();
 let dragSrcId = null;
@@ -600,7 +601,8 @@ async function loadProductsFromSupabase() {
       stock: p.stock ?? 0,
       cost: p.cost ?? null,
       isPublished: p.is_published ?? true,
-      notes: p.notes || null
+      notes: p.notes || null,
+      kitItems: p.kit_items || null
     }));
     return;
   }
@@ -832,9 +834,9 @@ function adminCard(p) {
 }
 
 function stockChip(p) {
-  // stock = 0 → muestra "0" en rojo (no "Sin stock" — eso ya lo indica el botón de Estado)
-  // stock = 1 → gris neutro (pieza única, estado normal)
-  // stock > 1 → verde
+  if (p.kitItems?.length) {
+    return `<span class="stock-chip stock-ok" title="Kit — stock calculado desde componentes" style="cursor:default">🎁 Kit</span>`;
+  }
   const cls = p.stock === 0 ? 'sold' : p.stock === 1 ? 'one' : 'ok';
   return `<span class="stock-chip stock-${cls}" onclick="editStockInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar stock" style="cursor:pointer">${p.stock}</span>`;
 }
@@ -1860,6 +1862,11 @@ function openForm(id) {
     document.getElementById('f-cost').value = p.cost ?? '';
     updateMarginDisplay();
     previewImg();
+    const isKit = !!(p.kitItems && p.kitItems.length);
+    document.getElementById('f-is-kit').checked = isKit;
+    _kitItemsEdit = isKit ? JSON.parse(JSON.stringify(p.kitItems)) : [];
+    document.getElementById('kit-editor').style.display = isKit ? 'block' : 'none';
+    if (isKit) renderKitEditor();
   } else {
     document.getElementById('f-id').value = '';
     document.getElementById('f-name').value = '';
@@ -1883,6 +1890,9 @@ function openForm(id) {
     document.getElementById('f-img-file').value = '';
     document.getElementById('f-img-camera').value = '';
     hideAiFormBtn();
+    document.getElementById('f-is-kit').checked = false;
+    _kitItemsEdit = [];
+    document.getElementById('kit-editor').style.display = 'none';
   }
 
   _clearDupWarnings();
@@ -2197,7 +2207,8 @@ async function saveProduct() {
     barcode: document.getElementById('f-barcode').value.trim() || null,
     stock: parseInt(document.getElementById('f-stock').value) || 0,
     cost: parseFloat(document.getElementById('f-cost').value) || null,
-    isPublished: publishedVal
+    isPublished: publishedVal,
+    kitItems: document.getElementById('f-is-kit').checked && _kitItemsEdit.length ? _kitItemsEdit : null
   };
 
   const dbPayload = {
@@ -2216,7 +2227,8 @@ async function saveProduct() {
     stock: data.stock,
     cost: data.cost,
     is_published: data.isPublished,
-    notes: notes
+    notes: notes,
+    kit_items: data.kitItems
   };
 
   const saveBtn = document.getElementById('save-btn');
@@ -2277,6 +2289,97 @@ async function saveProduct() {
   renderStats();
   _updateDupBadge();
   toast(idVal ? 'Guardado ✓' : 'Producto agregado ✓');
+}
+
+/* ── KIT EDITOR ── */
+function toggleKitMode() {
+  const isKit = document.getElementById('f-is-kit').checked;
+  document.getElementById('kit-editor').style.display = isKit ? 'block' : 'none';
+  if (isKit) renderKitEditor();
+}
+
+function renderKitEditor() {
+  const list = document.getElementById('kit-components-list');
+  if (!_kitItemsEdit.length) {
+    list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:.8rem;padding:12px 0">Sin componentes — busca productos arriba</div>';
+    _updateKitStockCalc();
+    return;
+  }
+  list.innerHTML = _kitItemsEdit.map(item => {
+    const p = products.find(x => x.id === item.id);
+    const stock = p ? (p.outOfStock || p.stock === 0 ? '<span style="color:var(--red)">Agotado</span>' : `<span style="color:var(--green)">${p.stock} uds</span>`) : '<span style="color:var(--muted)">—</span>';
+    return `
+<div class="kit-comp-row">
+  ${p?.image ? `<img src="${p.image}" class="kit-comp-img" onerror="this.style.display='none'">` : '<div class="kit-comp-img"></div>'}
+  <span class="kit-comp-name">${item.name}</span>
+  <span class="kit-comp-stock">${stock}</span>
+  <div class="kit-comp-qty">
+    <button type="button" onclick="changeKitQty(${item.id},-1)">−</button>
+    <span>${item.qty}</span>
+    <button type="button" onclick="changeKitQty(${item.id},1)">+</button>
+  </div>
+  <button type="button" class="kit-comp-remove" onclick="removeKitComponent(${item.id})" title="Quitar">✕</button>
+</div>`;
+  }).join('');
+  _updateKitStockCalc();
+}
+
+function _updateKitStockCalc() {
+  const calcEl = document.getElementById('kit-stock-calc');
+  const valEl  = document.getElementById('kit-stock-val');
+  if (!_kitItemsEdit.length) { if (calcEl) calcEl.style.display = 'none'; return; }
+  let minStock = Infinity;
+  let anyOos = false;
+  for (const comp of _kitItemsEdit) {
+    const p = products.find(x => x.id === comp.id);
+    if (!p || p.outOfStock || p.stock === 0) { anyOos = true; break; }
+    const avail = Math.floor(p.stock / comp.qty);
+    if (avail < minStock) minStock = avail;
+  }
+  const final = anyOos ? 0 : (minStock === Infinity ? 0 : minStock);
+  if (calcEl) calcEl.style.display = '';
+  if (valEl) {
+    valEl.textContent = final === 0 ? '0 (algún componente agotado)' : `${final} kit${final !== 1 ? 's' : ''}`;
+    valEl.style.color = final === 0 ? 'var(--red)' : final <= 2 ? 'var(--gold-dark)' : 'var(--green)';
+  }
+}
+
+function searchKitProducts(query) {
+  const resultsEl = document.getElementById('kit-search-results');
+  if (!query.trim()) { resultsEl.style.display = 'none'; return; }
+  const editingId = parseInt(document.getElementById('f-id').value) || null;
+  const q = query.toLowerCase();
+  const matches = products.filter(p => p.id !== editingId && p.name.toLowerCase().includes(q)).slice(0, 6);
+  if (!matches.length) { resultsEl.style.display = 'none'; return; }
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = matches.map(p => `
+<div onclick="addKitComponent(${p.id})" style="cursor:pointer;padding:7px 10px;display:flex;align-items:center;gap:8px;font-size:.82rem;border-bottom:1px solid var(--border);transition:.1s" onmouseenter="this.style.background='#FFF8EE'" onmouseleave="this.style.background=''">
+  <img src="${p.image}" style="width:28px;height:28px;object-fit:cover;border-radius:5px;flex-shrink:0" onerror="this.style.display='none'">
+  <span style="flex:1;font-weight:600">${p.name}</span>
+  <span style="color:var(--muted);font-size:.74rem">${p.stock > 0 && !p.outOfStock ? p.stock+' uds' : 'Agotado'}</span>
+</div>`).join('');
+}
+
+function addKitComponent(productId) {
+  if (_kitItemsEdit.find(i => i.id === productId)) { toast('Ya está en el kit', ''); return; }
+  const p = products.find(x => x.id === productId);
+  if (!p) return;
+  _kitItemsEdit.push({ id: p.id, name: p.name, qty: 1 });
+  document.getElementById('kit-search').value = '';
+  document.getElementById('kit-search-results').style.display = 'none';
+  renderKitEditor();
+}
+
+function removeKitComponent(productId) {
+  _kitItemsEdit = _kitItemsEdit.filter(i => i.id !== productId);
+  renderKitEditor();
+}
+
+function changeKitQty(productId, delta) {
+  const item = _kitItemsEdit.find(i => i.id === productId);
+  if (!item) return;
+  item.qty = Math.max(1, item.qty + delta);
+  renderKitEditor();
 }
 
 /* ── DELETE ── */
