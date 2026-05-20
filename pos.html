@@ -2194,6 +2194,38 @@ function _sellerLabel(email) {
   return _posNameMap[email] || email.split('@')[0].replace(/\./g,' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
+function _initLightboxSwipe() {
+  const lb = document.getElementById('img-lightbox');
+  if (!lb || lb._swipeInited) return;
+  lb._swipeInited = true;
+  let sy = 0, cy = 0, on = false;
+  lb.addEventListener('touchstart', e => {
+    sy = e.touches[0].clientY; cy = 0; on = false;
+  }, { passive: true });
+  lb.addEventListener('touchmove', e => {
+    const dy = e.touches[0].clientY - sy;
+    if (!on && dy > 10) on = true;
+    if (!on) return;
+    cy = Math.max(0, dy);
+    const lbImg = document.getElementById('img-lightbox-img');
+    if (lbImg) lbImg.style.transform = `translateY(${cy * 0.45}px) scale(${Math.max(0.85, 1 - cy / 700)})`;
+    lb.style.background = `rgba(0,0,0,${Math.max(0, 0.88 - cy / 280)})`;
+  }, { passive: true });
+  lb.addEventListener('touchend', () => {
+    if (!on) return; on = false;
+    const lbImg = document.getElementById('img-lightbox-img');
+    if (cy > 80) {
+      closeLightbox();
+      if (lbImg) { lbImg.style.transform = ''; lbImg.style.transition = ''; }
+      lb.style.background = '';
+    } else {
+      if (lbImg) { lbImg.style.transition = 'transform .36s cubic-bezier(.34,1.26,.64,1)'; lbImg.style.transform = ''; setTimeout(() => lbImg.style.transition = '', 360); }
+      lb.style.background = '';
+    }
+    cy = 0;
+  });
+}
+
 function openLightbox(img) {
   document.getElementById('img-lightbox-img').src = img.src;
   const name   = img.dataset.name   || '';
@@ -2211,6 +2243,7 @@ function openLightbox(img) {
   document.getElementById('img-lb-seller').textContent = sellerName || '—';
   sellerRow.style.display = sellerName ? '' : 'none';
   document.getElementById('img-lightbox').classList.add('open');
+  _initLightboxSwipe();
 }
 function closeLightbox() {
   document.getElementById('img-lightbox').classList.remove('open');

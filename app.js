@@ -678,8 +678,12 @@ function _swipeDown(getSheet, closeFn, getOverlay) {
 function initModal() {
   const overlay = document.getElementById('modal-overlay');
   overlay?.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-  // Swipe down para cerrar en mobile
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeModal(); return; }
+    if (!activeProduct) return;
+    if (e.key === 'ArrowRight') _modalNavigate(1);
+    if (e.key === 'ArrowLeft')  _modalNavigate(-1);
+  });
   _swipeDown(
     () => document.querySelector('#modal-overlay .modal'),
     closeModal,
@@ -690,6 +694,55 @@ function initModal() {
     closeCart,
     () => document.getElementById('cart-overlay')
   );
+  _initModalSwipeNav();
+}
+
+function _modalNavigate(dir) {
+  const idx = products.findIndex(p => p.id === activeProduct?.id);
+  if (idx === -1) return;
+  const next = products[idx + dir];
+  if (!next) return;
+  const modal = document.querySelector('#modal-overlay .modal');
+  if (modal) {
+    modal.style.transition = 'transform .2s cubic-bezier(.4,0,1,1), opacity .18s ease';
+    modal.style.transform  = `translateX(${dir > 0 ? '-40px' : '40px'})`;
+    modal.style.opacity    = '0';
+  }
+  setTimeout(() => {
+    openModal(next.id);
+    const nm = document.querySelector('#modal-overlay .modal');
+    if (nm) {
+      nm.style.transition = 'none';
+      nm.style.transform  = `translateX(${dir > 0 ? '40px' : '-40px'})`;
+      nm.style.opacity    = '0';
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        nm.style.transition = 'transform .3s cubic-bezier(.215,.61,.355,1), opacity .26s ease';
+        nm.style.transform  = '';
+        nm.style.opacity    = '';
+        setTimeout(() => { nm.style.transition = nm.style.transform = nm.style.opacity = ''; }, 300);
+      }));
+    }
+  }, 190);
+}
+
+function _initModalSwipeNav() {
+  let sx = 0, sy = 0, swDir = null;
+  document.addEventListener('touchstart', e => {
+    if (!document.querySelector('#modal-overlay.open')) return;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; swDir = null;
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (swDir) return;
+    const dx = Math.abs(e.touches[0].clientX - sx);
+    const dy = Math.abs(e.touches[0].clientY - sy);
+    if (dx > 8 || dy > 8) swDir = dx > dy ? 'h' : 'v';
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (!activeProduct || swDir !== 'h') return;
+    const dx = e.changedTouches[0].clientX - sx;
+    if (Math.abs(dx) < 45) return;
+    _modalNavigate(dx < 0 ? 1 : -1);
+  }, { passive: true });
 }
 
 function openModal(id) {

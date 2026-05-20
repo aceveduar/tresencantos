@@ -1898,6 +1898,7 @@ function openForm(id) {
   initImageUpload();
   document.getElementById('save-btn').disabled = false;
   _applyPriceLock();
+  _initFormSwipe();
   setTimeout(() => document.getElementById('f-name').focus(), 100);
 }
 
@@ -1906,6 +1907,39 @@ function closeForm() {
   document.body.style.overflow = '';
   setBtn(document.getElementById('save-btn'), false);
   _clearDupWarnings();
+}
+
+function _initFormSwipe() {
+  const overlay = document.getElementById('form-overlay');
+  if (!overlay || overlay._swipeInited) return;
+  overlay._swipeInited = true;
+  let sy = 0, cy = 0, on = false;
+  overlay.addEventListener('touchstart', e => {
+    if (!e.target.closest('.modal-head')) return;
+    sy = e.touches[0].clientY; cy = 0; on = false;
+  }, { passive: true });
+  overlay.addEventListener('touchmove', e => {
+    if (!on && e.touches[0].clientY - sy > 10) on = true;
+    if (!on) return;
+    cy = Math.max(0, e.touches[0].clientY - sy);
+    const modal = overlay.querySelector('.modal');
+    if (modal) { modal.style.transition = 'none'; modal.style.transform = `translateY(${cy * 0.4}px)`; }
+    overlay.style.background = `rgba(0,0,0,${Math.max(0, 0.6 - cy / 320)})`;
+  }, { passive: true });
+  overlay.addEventListener('touchend', () => {
+    if (!on) return; on = false;
+    const modal = overlay.querySelector('.modal');
+    if (cy > 90) {
+      if (modal) { modal.style.transition = 'transform .32s cubic-bezier(.4,0,1,1)'; modal.style.transform = 'translateY(90px)'; }
+      overlay.style.transition = 'opacity .28s ease';
+      overlay.style.opacity = '0';
+      setTimeout(() => { closeForm(); if (modal) { modal.style.transform = modal.style.transition = ''; } overlay.style.background = overlay.style.opacity = overlay.style.transition = ''; }, 300);
+    } else {
+      if (modal) { modal.style.transition = 'transform .32s cubic-bezier(.34,1.26,.64,1)'; modal.style.transform = ''; setTimeout(() => modal.style.transition = '', 320); }
+      overlay.style.background = '';
+    }
+    cy = 0;
+  });
 }
 
 function toggleOfertaField(forceShow) {
@@ -4193,14 +4227,14 @@ function _initQVSwipe() {
 function _qvCloseWithAnim(dir) {
   const panel = document.getElementById('qv-panel');
   if (panel) {
-    panel.style.transition = 'transform .22s ease, opacity .22s ease';
-    panel.style.transform  = dir === 'down' ? 'translateY(100%)' : 'translateY(-60px) scale(.96)';
+    panel.style.transition = 'transform .32s cubic-bezier(.4,0,1,1), opacity .28s ease';
+    panel.style.transform  = dir === 'down' ? 'translateY(105%)' : 'translateY(-48px) scale(.95)';
     panel.style.opacity    = '0';
   }
   setTimeout(() => {
     closeQV();
     if (panel) { panel.style.transition = ''; panel.style.transform = ''; panel.style.opacity = ''; }
-  }, 200);
+  }, 300);
 }
 
 // Doble tap en imagen → zoom pantalla completa

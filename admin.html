@@ -492,10 +492,10 @@ tr:hover .drag-handle{opacity:1}
 .qv-nav-btn:disabled{display:none}
 .qv-nav-btn:hover{background:rgba(255,255,255,.97)}
 .qv-counter{font-size:.68rem;color:var(--muted-light);font-weight:500;flex-shrink:0;padding-left:8px;white-space:nowrap}
-@keyframes qv-from-right{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:translateX(0)}}
-@keyframes qv-from-left {from{opacity:0;transform:translateX(-22px)}to{opacity:1;transform:translateX(0)}}
-.qv-anim-right .qv-img-zone,.qv-anim-right .qv-info{animation:qv-from-right .2s ease}
-.qv-anim-left  .qv-img-zone,.qv-anim-left  .qv-info{animation:qv-from-left  .2s ease}
+@keyframes qv-from-right{from{opacity:0;transform:translateX(36px)}to{opacity:1;transform:translateX(0)}}
+@keyframes qv-from-left {from{opacity:0;transform:translateX(-36px)}to{opacity:1;transform:translateX(0)}}
+.qv-anim-right .qv-img-zone,.qv-anim-right .qv-info{animation:qv-from-right .3s cubic-bezier(.215,.61,.355,1)}
+.qv-anim-left  .qv-img-zone,.qv-anim-left  .qv-info{animation:qv-from-left  .3s cubic-bezier(.215,.61,.355,1)}
 /* Zoom fullscreen */
 #qv-zoom{position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;transition:background .2s;cursor:zoom-out}
 #qv-zoom.open{background:rgba(0,0,0,.92)}
