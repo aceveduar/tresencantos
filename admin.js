@@ -139,7 +139,7 @@ function renderCategorySelects() {
   const tSel = document.getElementById('cat-filter');
   if (tSel) {
     const roots = rootCats();
-    tSel.innerHTML = `<option value="all">Categoría</option>` +
+    tSel.innerHTML = `<option value="all">Todas las categorías</option>` +
       roots.map(r => {
         const subs = subCats(r.code);
         if (subs.length) {
@@ -148,6 +148,98 @@ function renderCategorySelects() {
         return `<option value="${r.code}">${r.label}</option>`;
       }).join('');
   }
+  _updateCatFilterBtn();
+}
+
+function _updateCatFilterBtn() {
+  const btn = document.getElementById('cat-filter-btn');
+  const lbl = document.getElementById('cat-filter-btn-label');
+  if (!btn || !lbl) return;
+  const val = document.getElementById('cat-filter')?.value || 'all';
+  if (val === 'all') {
+    lbl.textContent = 'Categoría';
+    btn.classList.remove('has-filter');
+  } else {
+    const cat = categories.find(c => c.code === val);
+    lbl.textContent = cat?.label || val;
+    btn.classList.add('has-filter');
+  }
+}
+
+function openCatSheet() {
+  const cur = document.getElementById('cat-filter')?.value || 'all';
+  const roots = rootCats();
+  const list = document.getElementById('cat-sheet-list');
+  if (!list) return;
+
+  const item = (code, label, isSub, isActive) =>
+    `<button class="cat-sheet-item${isSub ? ' sub' : ''}${isActive ? ' active' : ''}" onclick="selectCatSheet('${code}')">
+       <span>${label}</span>
+       <span class="cat-sheet-check">✓</span>
+     </button>`;
+
+  const sinCategCount = products.filter(p => p.category === 'por_revisar').length;
+  const warnSection = sinCategCount > 0
+    ? `<div class="cat-sheet-warn-section">
+         <span class="cat-sheet-warn-label">⚠️ Necesitan atención</span>
+         <button class="cat-sheet-item warn${cur === 'por_revisar' ? ' active' : ''}" onclick="selectCatSheet('por_revisar')">
+           <span>Sin categoría — ${sinCategCount} producto${sinCategCount !== 1 ? 's' : ''}</span>
+           <span class="cat-sheet-check">✓</span>
+         </button>
+       </div>`
+    : '';
+
+  list.innerHTML =
+    item('all', 'Todas las categorías', false, cur === 'all') +
+    warnSection +
+    roots.filter(r => r.code !== 'por_revisar').map(r => {
+      const subs = subCats(r.code);
+      const groupLabel = `<span class="cat-sheet-group-label">${r.label}</span>`;
+      if (subs.length) {
+        return groupLabel +
+          item(r.code, `${r.label} — Todos`, false, cur === r.code) +
+          subs.map(s => item(s.code, s.label, true, cur === s.code)).join('');
+      }
+      return item(r.code, r.label, false, cur === r.code);
+    }).join('');
+
+  document.getElementById('cat-sheet-overlay').classList.add('open');
+  document.getElementById('cat-sheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  _initCatSheetSwipe();
+}
+
+function closeCatSheet() {
+  document.getElementById('cat-sheet-overlay').classList.remove('open');
+  document.getElementById('cat-sheet').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function selectCatSheet(code) {
+  const sel = document.getElementById('cat-filter');
+  if (sel) sel.value = code;
+  _adminPage = 1;
+  _updateCatFilterBtn();
+  renderTable();
+  closeCatSheet();
+}
+
+function _initCatSheetSwipe() {
+  const sheet = document.getElementById('cat-sheet');
+  if (!sheet || sheet._swipeInited) return;
+  sheet._swipeInited = true;
+  let sy = null, cy = 0;
+  sheet.addEventListener('touchstart', e => { sy = e.touches[0].clientY; cy = 0; }, { passive: true });
+  sheet.addEventListener('touchmove', e => {
+    if (sy === null) return;
+    const dy = e.touches[0].clientY - sy;
+    if (dy > 0) { cy = dy; sheet.style.transform = `translateY(${dy}px)`; }
+  }, { passive: true });
+  sheet.addEventListener('touchend', () => {
+    if (cy > 80) closeCatSheet();
+    sheet.style.transform = '';
+    sy = null; cy = 0;
+  }, { passive: true });
 }
 
 const getSupabaseUrl = () => SUPABASE_URL;
@@ -197,6 +289,7 @@ function getFilteredProducts() {
       (_statFilter === 'sin-stock'    && (p.stock === 0 || p.outOfStock)) ||
       (_statFilter === 'sin-publicar' && p.isPublished === false) ||
       (_statFilter === 'sin-codigo'   && !p.barcode) ||
+      (_statFilter === 'sin-categ'    && p.category === 'por_revisar') ||
       (_statFilter === 'ultima-pieza' && p.stock === 1 && !p.outOfStock);
     return matchCat && matchQ && matchFlag && matchStat;
   });
@@ -626,6 +719,7 @@ function renderStats() {
   const ultimaPieza = products.filter(p => p.stock === 1 && !p.outOfStock).length;
   const sinPublicar = products.filter(p => p.isPublished === false).length;
   const sinCodigo   = products.filter(p => !p.barcode).length;
+  const sinCateg    = products.filter(p => p.category === 'por_revisar').length;
   const nFlag       = _flagged.length;
   const anyFilter   = _statFilter || _showOnlyFlagged;
 
@@ -653,10 +747,11 @@ function renderStats() {
        <span class="sc-lbl">Todos</span>
      </button>` +
     chip('con-stock',   '✅', conStock,    'Con stock',    '#059669') +
-    chip('sin-stock',   '🚫', sinStock,    'Sin stock',    '#dc2626') +
+    (sinStock > 0 ? chip('sin-stock', '🚫', sinStock, 'Sin stock', '#dc2626') : '') +
     (ultimaPieza > 0 ? chip('ultima-pieza','⚡', ultimaPieza, 'Última pieza', '#B45309') : '') +
     (sinPublicar  > 0 ? chip('sin-publicar','🙈', sinPublicar, 'Sin publicar', '#C2410C') : '') +
     (sinCodigo    > 0 ? chip('sin-codigo',  '🔲', sinCodigo,   'Sin código',   '#4B5563') : '') +
+    (sinCateg     > 0 ? chip('sin-categ',   '⚠️', sinCateg,    'Sin categoría','#B45309') : '') +
     (nFlag        > 0 ? chip('revisar',     '🚩', nFlag,       'Por revisar',  '#dc2626') : '');
 
   // Alerta de productos sin precio — solo visible para superadmin
@@ -785,11 +880,13 @@ function adminCard(p, editable = false) {
   const oosTitle  = oos ? 'Agotado — toca para marcar disponible' : 'Disponible — toca para agotar';
   const pubTitle  = p.isPublished === false ? 'Oculto del sitio — toca para publicar' : p.outOfStock ? 'Publicado pero agotado — no aparece en el sitio' : 'Visible en sitio — toca para ocultar';
   const pubEmoji  = p.isPublished === false ? '🙈' : p.outOfStock ? '⚠️' : '🌐';
-  const flagDotAC = _flagItem(p.id) ? `<span class="flag-dot" title="Pendiente de revisión">🚩</span>` : '';
+  const flagData  = _flagItem(p.id);
+  const flagDotAC = flagData ? `<span class="flag-dot" title="${flagData.note ? flagData.note : 'Pendiente de revisión'}">🚩</span>` : '';
   const noteDotAC = p.notes ? `<span class="note-dot" onclick="event.stopPropagation();toast('📝 '+${JSON.stringify(p.notes)})" title="${p.notes.replace(/"/g,'&quot;')}">📝</span>` : '';
+  const isSinCat  = p.category === 'por_revisar';
 
   return `
-<div class="admin-card${sel?' card-selected':''}${oos?' card-oos':''}"
+<div class="admin-card${sel?' card-selected':''}${oos?' card-oos':''}${isSinCat?' card-por-revisar':''}"
      data-id="${p.id}"
      onclick="_cardTap(event,${p.id})"
      ontouchstart="_lpStart(event,${p.id})"
@@ -811,10 +908,11 @@ function adminCard(p, editable = false) {
   </div>
   <div class="ac-body">
     <div class="ac-name" title="${p.name}">${p.name}${noteDotAC}</div>
+    ${flagData?.note ? `<div class="flag-note-line">🚩 "${flagData.note}"</div>` : ''}
     <div class="ac-meta">
       <span class="cat-dot" style="background:${catColor}"></span>
       ${editable
-        ? `<span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Clic para cambiar categoría" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.categoryLabel}</span>`
+        ? `<span class="cat-label-inline${isSinCat?' cat-label-sin-cat':''}" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Clic para cambiar categoría" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.categoryLabel}</span>`
         : `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.72rem;color:var(--muted)">${p.categoryLabel}</span>`
       }
     </div>
@@ -1025,9 +1123,11 @@ function desktopRow(p) {
   const featStar   = `<span onclick="toggleFeatured(${p.id})" class="toggle-featured" title="${p.featured ? 'Quitar destacado' : 'Destacar'}">${p.featured ? '⭐' : '☆'}</span>`;
   const catColor   = getCatColor(p.category);
   const catDot     = `<span class="cat-dot" style="background:${catColor}"></span>`;
-  const flagDotRow = _flagItem(p.id) ? `<span class="flag-dot-row" title="Pendiente de revisión">🚩</span>` : '';
+  const flagDataDR = _flagItem(p.id);
+  const isSinCatDR = p.category === 'por_revisar';
+  const flagDotRow = flagDataDR ? `<span class="flag-dot-row" title="${flagDataDR.note || 'Pendiente de revisión'}">🚩</span>` : '';
   return `
-<tr draggable="true" data-id="${p.id}" class="${selectedIds.has(p.id) ? 'row-selected' : ''}"
+<tr draggable="true" data-id="${p.id}" class="${selectedIds.has(p.id) ? 'row-selected' : ''}${isSinCatDR ? ' card-por-revisar' : ''}"
     ondblclick="if(!event.target.closest('button,input,select,a,.drag-handle,.cat-label-inline'))openForm(${p.id})"
     title="Doble clic para editar">
   <td class="col-check" style="text-align:center">
@@ -1039,9 +1139,10 @@ function desktopRow(p) {
       <img class="prod-thumb" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'" onclick="event.stopPropagation();openQV(${p.id})" style="cursor:pointer${oos ? ';opacity:.5;filter:grayscale(.5)' : ''}" title="Ver detalle rápido">
       <div style="min-width:0;flex:1">
         <div class="prod-name" title="${p.name}">${p.name}</div>
+        ${flagDataDR?.note ? `<div class="flag-note-line">🚩 "${flagDataDR.note}"</div>` : ''}
         <div class="prod-meta">
           ${catDot}
-          <span class="prod-meta-text"><span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${p.categoryLabel}</span> · #${p.id}${p.barcode ? ` · 🔲 ${p.barcode}` : ''}</span>
+          <span class="prod-meta-text"><span class="cat-label-inline${isSinCatDR ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${p.categoryLabel}</span> · #${p.id}${p.barcode ? ` · 🔲 ${p.barcode}` : ''}</span>
           ${badgeHTML}${featStar}${publishedToggle(p)}${flagDotRow}
         </div>
       </div>
@@ -1076,7 +1177,9 @@ function mobileCard(p) {
   const catColor = getCatColor(p.category);
   const pubTitle  = p.isPublished === false ? 'Oculto del sitio — toca para publicar' : p.outOfStock ? 'Publicado pero agotado — no aparece en el sitio' : 'Visible en sitio — toca para ocultar';
   const pubEmoji  = p.isPublished === false ? '🙈' : p.outOfStock ? '⚠️' : '🌐';
-  const noteDot   = p.notes ? `<span class="note-dot" onclick="event.stopPropagation();toast('📝 '+${JSON.stringify(p.notes)})" title="${p.notes.replace(/"/g,'&quot;')}">📝</span>` : '';
+  const noteDot    = p.notes ? `<span class="note-dot" onclick="event.stopPropagation();toast('📝 '+${JSON.stringify(p.notes)})" title="${p.notes.replace(/"/g,'&quot;')}">📝</span>` : '';
+  const flagDataMC = _flagItem(p.id);
+  const isSinCatMC = p.category === 'por_revisar';
 
   const priceHTML = p.originalPrice
     ? `<span class="mpc-price-orig">$${p.originalPrice.toLocaleString('es-MX')}</span>
@@ -1090,7 +1193,7 @@ function mobileCard(p) {
     : '';
 
   return `
-<tr class="mpc-row${sel ? ' row-selected' : ''}" data-id="${p.id}">
+<tr class="mpc-row${sel ? ' row-selected' : ''}${isSinCatMC ? ' card-por-revisar' : ''}" data-id="${p.id}">
   <td>
     <div class="mpc${oos ? ' mpc-oos' : ''}">
       <div class="mpc-top"
@@ -1113,10 +1216,11 @@ function mobileCard(p) {
           </button>
         </div>
         <div class="mpc-info">
-          <div class="mpc-name">${p.name}${_flagItem(p.id) ? ' <span class="flag-dot-row" title="Pendiente de revisión">🚩</span>' : ''}${noteDot}</div>
+          <div class="mpc-name">${p.name}${flagDataMC ? ' <span class="flag-dot-row" title="'+(flagDataMC.note||'Pendiente de revisión')+'">🚩</span>' : ''}${noteDot}</div>
+          ${flagDataMC?.note ? `<div class="flag-note-line">🚩 "${flagDataMC.note}"</div>` : ''}
           <div class="mpc-cat-tag">
             <span class="cat-dot" style="background:${catColor}"></span>
-            <span style="font-size:.72rem;color:var(--muted)">${p.categoryLabel}</span>
+            <span style="font-size:.72rem;color:${isSinCatMC ? '#B45309' : 'var(--muted)'};font-weight:${isSinCatMC ? '600' : '400'}">${p.categoryLabel}</span>
             ${badgeHTML}
             <button class="ac-pub-dot"
                     onclick="togglePublished(${p.id})"
@@ -1211,6 +1315,7 @@ function renderTable() {
 
   updateSelectAllCheckbox();
   if (!mobile) initDragDrop();
+  _updateActiveFiltersBar();
 }
 
 function _loadMoreAdmin() {
@@ -1976,11 +2081,44 @@ function updateMarginDisplay() {
   el.style.color = parseFloat(pct) >= 30 ? 'var(--green)' : parseFloat(pct) >= 10 ? 'var(--gold-dark)' : 'var(--red)';
 }
 
+function _updateActiveFiltersBar() {
+  const bar = document.getElementById('filter-active-bar');
+  const chipsEl = document.getElementById('fac-chips');
+  if (!bar || !chipsEl) return;
+
+  const chips = [];
+  const catVal = document.getElementById('cat-filter')?.value || 'all';
+  const sortVal = document.getElementById('sort-select')?.value || 'recent';
+  const searchVal = document.getElementById('search-input')?.value?.trim() || '';
+
+  if (searchVal) chips.push(`🔍 "${searchVal.length > 20 ? searchVal.slice(0,20)+'…' : searchVal}"`);
+
+  if (catVal !== 'all') {
+    const cat = categories.find(c => c.code === catVal);
+    chips.push(`📂 ${cat?.label || catVal}`);
+  }
+  const sortLabels = { 'name-az':'A→Z','name-za':'Z→A','price-desc':'$ Mayor','price-asc':'$ Menor','stock-asc':'Agotados primero','stock-desc':'En stock primero' };
+  if (sortLabels[sortVal]) chips.push(`↕ ${sortLabels[sortVal]}`);
+
+  if (_statFilter) {
+    const statLabels = { 'con-stock':'Con stock','sin-stock':'Sin stock','ultima-pieza':'Última pieza','sin-publicar':'Sin publicar','sin-codigo':'Sin código','sin-categ':'Sin categoría' };
+    chips.push(statLabels[_statFilter] || _statFilter);
+  }
+  if (_showOnlyFlagged) chips.push('🚩 Por revisar');
+
+  if (chips.length > 0) {
+    chipsEl.innerHTML = chips.map(t => `<span class="fac-chip">${t}</span>`).join('');
+    bar.classList.add('visible');
+  } else {
+    bar.classList.remove('visible');
+  }
+}
+
 function clearAdminFilters() {
   const s = document.getElementById('search-input');
   const c = document.getElementById('cat-filter');
   if (s) s.value = '';
-  if (c) c.value = 'all';
+  if (c) { c.value = 'all'; _updateCatFilterBtn(); }
   if (_showOnlyFlagged) { _showOnlyFlagged = false; _syncFlagFilter(); }
   _statFilter = null;
   _toggleSearchClear();

@@ -102,15 +102,55 @@ main{max-width:1080px;margin:0 auto;padding:28px 32px}
 .sc-lbl{color:var(--muted);font-weight:500}
 .stat-chip.sc-active .sc-lbl{color:inherit;opacity:.85}
 
+/* ── CATEGORY BOTTOM SHEET ─────────────────────────────────────────── */
+#cat-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1400;opacity:0;pointer-events:none;transition:opacity .2s}
+#cat-sheet-overlay.open{opacity:1;pointer-events:auto}
+#cat-sheet{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;z-index:1401;transform:translateY(100%);transition:transform .28s cubic-bezier(.25,.8,.25,1);max-height:82dvh;display:flex;flex-direction:column;overflow:hidden}
+#cat-sheet.open{transform:translateY(0)}
+.cat-sheet-pill{width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0;flex-shrink:0}
+.cat-sheet-header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
+.cat-sheet-title{font-size:.9rem;font-weight:700;color:var(--charcoal)}
+.cat-sheet-close{width:28px;height:28px;border-radius:50%;border:none;background:var(--cream);color:var(--charcoal);font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.cat-sheet-list{overflow-y:auto;flex:1;padding:6px 0 20px;-webkit-overflow-scrolling:touch}
+.cat-sheet-group-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:12px 18px 4px;display:block}
+.cat-sheet-item{display:flex;align-items:center;justify-content:space-between;padding:11px 18px;font-size:.88rem;font-weight:500;color:var(--charcoal);cursor:pointer;transition:background .12s;border:none;background:none;width:100%;text-align:left;font-family:inherit}
+.cat-sheet-item:active{background:var(--cream)}
+.cat-sheet-item.active{color:var(--gold-dark);font-weight:700;background:var(--gold-light)}
+.cat-sheet-item.sub{padding-left:30px;font-size:.84rem;color:var(--charcoal-soft)}
+.cat-sheet-item.sub.active{color:var(--gold-dark)}
+.cat-sheet-check{font-size:.85rem;opacity:0}
+.cat-sheet-item.active .cat-sheet-check{opacity:1}
+/* Botón de filtro categoría en mobile */
+#cat-filter-btn{display:none;align-items:center;gap:6px;padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:.82rem;font-weight:500;color:var(--charcoal);cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s;min-width:0;flex:1}
+#cat-filter-btn.has-filter{border-color:var(--gold);color:var(--gold-dark);background:var(--gold-light)}
+#cat-filter-btn-label{overflow:hidden;text-overflow:ellipsis;flex:1;text-align:left}
+#cat-filter-btn-arrow{flex-shrink:0;font-size:.65rem;color:var(--muted)}
+
 /* ══ TOOLBAR ═══════════════════════════════════════════════════════════ */
 .toolbar{
-  display:flex;gap:10px;align-items:center;flex-wrap:wrap;
-  margin-bottom:18px;
-  padding:14px 18px;
+  display:flex;flex-direction:column;gap:8px;
+  margin-bottom:14px;
+  padding:12px 14px;
   background:#fff;border:1px solid var(--border);
   border-radius:16px;box-shadow:var(--shadow-sm);
 }
-.search-wrap{position:relative;flex:1;min-width:200px}
+.tb-search-row{display:flex;align-items:center;gap:8px;width:100%}
+.tb-filter-row{display:flex;align-items:center;gap:8px;width:100%}
+.tb-filter-row #cat-filter{flex:1;min-width:0}
+.tb-filter-row #cat-filter-btn{flex:1;min-width:0}
+.tb-filter-row #sort-select{flex:1;min-width:0}
+/* Barra de filtros activos */
+.filter-active-bar{display:none;align-items:center;gap:6px;
+  padding:5px 14px 7px;font-size:.72rem;color:var(--muted);flex-wrap:wrap}
+.filter-active-bar.visible{display:flex}
+.fac-chip{display:inline-flex;align-items:center;gap:3px;background:var(--cream);
+  border:1px solid var(--border);border-radius:50px;padding:2px 8px;font-size:.7rem;
+  font-weight:500;color:var(--charcoal)}
+.fac-clear{margin-left:auto;flex-shrink:0;background:none;border:none;cursor:pointer;
+  font-size:.72rem;font-weight:600;color:var(--gold-dark);padding:2px 6px;
+  border-radius:6px;font-family:inherit;transition:.15s}
+.fac-clear:hover{background:var(--gold-light)}
+.search-wrap{position:relative;flex:1;min-width:0}
 .search-wrap input{
   width:100%;padding:10px 34px 10px 40px;
   border:1.5px solid var(--border);border-radius:50px;
@@ -235,6 +275,18 @@ td,th{overflow:hidden}
   margin-left:3px;opacity:.7;transition:.15s;
 }
 .note-dot:hover{opacity:1;transform:scale(1.2)}
+/* Producto sin categoría real */
+.card-por-revisar{border-left:3px solid #F59E0B!important}
+.cat-label-sin-cat{color:#B45309!important;font-weight:600!important}
+/* Nota de flag visible en card */
+.flag-note-line{font-size:.68rem;color:#c62828;margin-top:2px;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;
+  font-style:italic;opacity:.85}
+/* Cat sheet — sección por revisar */
+.cat-sheet-warn-section{background:#FFFBEB;border-bottom:1px solid #FDE68A;margin-bottom:4px}
+.cat-sheet-warn-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#B45309;padding:10px 18px 4px;display:block}
+.cat-sheet-item.warn{color:#92400E;background:#FFFBEB}
+.cat-sheet-item.warn:active,.cat-sheet-item.warn.active{background:#FEF3C7;color:#78350F}
 /* QV — zona de flag */
 .qv-flag-active{
   background:#fff3f3;border:1px solid rgba(232,93,93,.25);
@@ -898,8 +950,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     flex-wrap:nowrap;overflow-x:auto;
     scrollbar-width:none;-webkit-overflow-scrolling:touch;
     margin:0 -12px 10px;padding:2px 12px 8px;gap:6px;
-    -webkit-mask:linear-gradient(to right,#000 88%,transparent 100%);
-    mask:linear-gradient(to right,#000 88%,transparent 100%);
+    -webkit-mask:linear-gradient(to right,#000 82%,transparent 98%);
+    mask:linear-gradient(to right,#000 82%,transparent 98%);
   }
   .stats::-webkit-scrollbar{display:none}
   .stat-chip{padding:5px 11px;font-size:.73rem}
@@ -912,10 +964,12 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   /* FAB — mostrar en mobile */
   .fab-add{display:flex;align-items:center;justify-content:center;bottom:calc(24px + env(safe-area-inset-bottom))}
   /* Toolbar — ocultar btn Agregar (reemplazado por FAB) */
-  .toolbar > .btn-gold{display:none}
+  .toolbar > .btn-gold,.tb-search-row .btn-gold{display:none}
   /* Toolbar: búsqueda en fila propia, categoría+sort comparten fila */
   .toolbar{flex-wrap:wrap;gap:8px;margin-bottom:14px;padding:12px 12px;border-radius:var(--r)}
-  .search-wrap{flex:1;min-width:200px}
+  #cat-filter{display:none}
+  #cat-filter-btn{display:flex}
+  .search-wrap{flex:1;min-width:0}
   #cat-filter{flex:1;min-width:110px}
   #sort-select{flex:1;min-width:90px}
   .prod-count{display:none}
@@ -1151,6 +1205,12 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .btn-versite{display:none}
   .session-user{display:none}
   .btn-logout{display:none}
+  /* Toolbar en desktop: todo en una sola fila */
+  .toolbar{flex-direction:row;flex-wrap:wrap;gap:10px;padding:14px 18px}
+  .tb-search-row{flex:1;min-width:240px;width:auto}
+  .tb-filter-row{flex-shrink:0;width:auto;gap:10px}
+  .tb-filter-row #cat-filter-btn{flex:none;min-width:140px}
+  .tb-filter-row #sort-select{flex:none;min-width:140px}
 }
 
 /* ── DISPOSITIVOS SIN HOVER (táctiles: tablets, teléfonos) ────────────
@@ -1411,32 +1471,46 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 
     <!-- TOOLBAR -->
     <div class="toolbar">
-      <button class="btn btn-gold" onclick="openForm()">+ Agregar</button>
-      <div class="search-wrap">
-        <span class="s-icon">🔍</span>
-        <input type="text" id="search-input" placeholder="Buscar… varios términos separados por coma" oninput="_adminPage=1;renderTable();_toggleSearchClear()">
-        <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearchInput()" title="Borrar búsqueda" style="display:none">✕</button>
+      <!-- Fila 1: búsqueda + acciones -->
+      <div class="tb-search-row">
+        <button class="btn btn-gold" onclick="openForm()" style="flex-shrink:0">+ Agregar</button>
+        <div class="search-wrap">
+          <span class="s-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Buscar productos…" oninput="_adminPage=1;renderTable();_toggleSearchClear()">
+          <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearchInput()" title="Borrar" style="display:none">✕</button>
+        </div>
+        <button class="btn btn-outline btn-sm" id="btn-capture-mode" onclick="openCaptureMode()" title="Captura rápida con IA" style="display:none;flex-shrink:0">✨</button>
+        <button class="btn btn-outline btn-sm" onclick="openSearchScanner()" title="Buscar por código de barras" style="flex-shrink:0">📷</button>
       </div>
-      <button class="btn btn-outline btn-sm" id="btn-capture-mode" onclick="openCaptureMode()" title="Captura rápida con IA" style="display:none">✨ <span class="cap-mode-label">Captura rápida</span></button>
-      <button class="btn btn-outline btn-sm" onclick="openSearchScanner()" title="Buscar por código de barras">📷</button>
-      <select class="filter-select" id="cat-filter" onchange="_adminPage=1;renderTable()">
-        <option value="all">Todas las categorías</option>
-        <!-- Opciones cargadas dinámicamente por renderCategorySelects() -->
-      </select>
-      <select class="filter-select" id="sort-select" onchange="currentSort=this.value;_adminPage=1;renderTable()">
-        <option value="position">Mi orden</option>
-        <option value="recent" selected>Recientes</option>
-        <option value="name-az">A → Z</option>
-        <option value="name-za">Z → A</option>
-        <option value="price-desc">Precio: mayor</option>
-        <option value="price-asc">Precio: menor</option>
-        <option value="stock-asc">Stock: sin existencia</option>
-        <option value="stock-desc">Stock: con existencia</option>
-      </select>
-      <span id="prod-count" class="prod-count" style="display:none"></span>
-      <div class="view-toggle">
-        <button class="view-btn active" id="vbtn-list"  onclick="setAdminView('list')"  title="Vista lista">☰</button>
-        <button class="view-btn"        id="vbtn-cards" onclick="setAdminView('cards')" title="Vista tarjetas">⊞</button>
+      <!-- Fila 2: filtros + vista -->
+      <div class="tb-filter-row">
+        <select class="filter-select" id="cat-filter" onchange="_adminPage=1;renderTable()">
+          <option value="all">Todas las categorías</option>
+        </select>
+        <button id="cat-filter-btn" onclick="openCatSheet()">
+          <span id="cat-filter-btn-label">Categoría</span>
+          <span id="cat-filter-btn-arrow">▾</span>
+        </button>
+        <select class="filter-select" id="sort-select" onchange="currentSort=this.value;_adminPage=1;renderTable()">
+          <option value="position">Mi orden</option>
+          <option value="recent" selected>Recientes</option>
+          <option value="name-az">A → Z</option>
+          <option value="name-za">Z → A</option>
+          <option value="price-desc">$ Mayor</option>
+          <option value="price-asc">$ Menor</option>
+          <option value="stock-asc">Agotados primero</option>
+          <option value="stock-desc">En stock primero</option>
+        </select>
+        <span id="prod-count" class="prod-count" style="display:none"></span>
+        <div class="view-toggle">
+          <button class="view-btn active" id="vbtn-list"  onclick="setAdminView('list')"  title="Vista lista">☰</button>
+          <button class="view-btn"        id="vbtn-cards" onclick="setAdminView('cards')" title="Vista tarjetas">⊞</button>
+        </div>
+      </div>
+      <!-- Fila 3: filtros activos (dinámica) -->
+      <div class="filter-active-bar" id="filter-active-bar">
+        <span id="fac-chips"></span>
+        <button class="fac-clear" onclick="clearAdminFilters()">✕ Limpiar filtros</button>
       </div>
     </div>
 
@@ -1998,6 +2072,17 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     <div class="qv-actions" id="qv-actions"></div>
   </div>
   <button class="qv-outer-nav" id="qv-next" onclick="qvNavigate(1)" title="Producto siguiente">&#8250;</button>
+</div>
+
+<!-- CATEGORY BOTTOM SHEET -->
+<div id="cat-sheet-overlay" onclick="closeCatSheet()"></div>
+<div id="cat-sheet">
+  <div class="cat-sheet-pill"></div>
+  <div class="cat-sheet-header">
+    <span class="cat-sheet-title">Categoría</span>
+    <button class="cat-sheet-close" onclick="closeCatSheet()">✕</button>
+  </div>
+  <div class="cat-sheet-list" id="cat-sheet-list"></div>
 </div>
 </body>
 </html>
