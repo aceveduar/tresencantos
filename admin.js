@@ -57,6 +57,7 @@ let currentSort = 'recent';
 let _adminPage = 1;
 const ADMIN_PAGE_SIZE = 50;
 let _realtimeChannel = null;
+let _statFilter = null; // 'con-stock' | 'sin-stock' | 'sin-publicar' | 'sin-codigo' | 'ultima-pieza'
 
 /* Categorías — cargadas dinámicamente desde config.categories */
 let categories = []; // [{code, label, color}]
@@ -191,7 +192,13 @@ function getFilteredProducts() {
       (p.barcode && p.barcode.includes(t))
     );
     const matchFlag = !_showOnlyFlagged || !!_flagItem(p.id);
-    return matchCat && matchQ && matchFlag;
+    const matchStat = !_statFilter ||
+      (_statFilter === 'con-stock'    && p.stock > 0 && !p.outOfStock) ||
+      (_statFilter === 'sin-stock'    && (p.stock === 0 || p.outOfStock)) ||
+      (_statFilter === 'sin-publicar' && p.isPublished === false) ||
+      (_statFilter === 'sin-codigo'   && !p.barcode) ||
+      (_statFilter === 'ultima-pieza' && p.stock === 1 && !p.outOfStock);
+    return matchCat && matchQ && matchFlag && matchStat;
   });
 
   switch (currentSort) {
@@ -612,52 +619,45 @@ async function loadProductsFromSupabase() {
 }
 
 /* ── STATS ── */
-async function renderStats() {
-  const sinStock   = products.filter(p => p.stock === 0 || p.outOfStock).length;
-  const disponibles = products.filter(p => p.stock > 0 && !p.outOfStock).length;
+function renderStats() {
+  const total       = products.length;
+  const conStock    = products.filter(p => p.stock > 0 && !p.outOfStock).length;
+  const sinStock    = products.filter(p => p.stock === 0 || p.outOfStock).length;
+  const ultimaPieza = products.filter(p => p.stock === 1 && !p.outOfStock).length;
+  const sinPublicar = products.filter(p => p.isPublished === false).length;
+  const sinCodigo   = products.filter(p => !p.barcode).length;
+  const nFlag       = _flagged.length;
+  const anyFilter   = _statFilter || _showOnlyFlagged;
 
-  let ventasHoy = 0, ingresosHoy = 0;
-  try {
-    const TZ = 'America/Mexico_City';
-    const todayMX = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
-    const sr = await supabaseApi(`sales?created_at=gte.${todayMX}T00:00:00&select=total,created_at,type`);
-    if (sr.ok && Array.isArray(sr.data)) {
-      const hoyMX = sr.data.filter(x => {
-        const fechaMX = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(x.created_at));
-        return fechaMX === todayMX && x.type !== 'apartado';
-      });
-      ventasHoy   = hoyMX.length;
-      ingresosHoy = hoyMX.reduce((s, x) => s + (parseFloat(x.total) || 0), 0);
-    }
-  } catch {}
+  const chip = (key, icon, count, label, activeColor, activeTextColor='#fff') => {
+    const isActive = key === 'revisar' ? _showOnlyFlagged : _statFilter === key;
+    const isTodos  = key === 'todos';
+    const isFilter = key !== 'todos-info';
+    const activeStyle = isActive ? `background:${activeColor};border-color:${activeColor};color:${activeTextColor}` : '';
+    return `<button class="stat-chip${isFilter ? ' stat-chip-filter' : ''}${isActive ? ' sc-active' : ''}"
+      ${isFilter ? `onclick="toggleStatFilter('${key}')"` : ''}
+      style="${activeStyle}" title="${label}">
+      <span class="sc-icon">${icon}</span>
+      <span class="sc-num">${count}</span>
+      <span class="sc-lbl">${label}</span>
+    </button>`;
+  };
 
-  document.getElementById('stats').innerHTML = `
-    <div class="stat-card">
-      <div class="stat-icon si-gold">📦</div>
-      <div class="num">${products.length}</div>
-      <div class="lbl">Productos</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon si-green">✅</div>
-      <div class="num" style="color:var(--green)">${disponibles}</div>
-      <div class="lbl">Con stock</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon si-red">🚫</div>
-      <div class="num" style="color:var(--red)">${sinStock}</div>
-      <div class="lbl">Sin stock</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon si-blue">🛍</div>
-      <div class="num">${ventasHoy}</div>
-      <div class="lbl">Ventas hoy</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon si-amber">💵</div>
-      <div class="num" style="color:var(--green)">$${ingresosHoy.toLocaleString('es-MX')}</div>
-      <div class="lbl">Ingresos hoy</div>
-    </div>
-  `;
+  const todosActive = !anyFilter;
+  const todosStyle  = todosActive ? 'background:var(--gold);border-color:var(--gold);color:#fff' : '';
+
+  document.getElementById('stats').innerHTML =
+    `<button class="stat-chip stat-chip-filter${todosActive ? ' sc-active' : ''}" onclick="toggleStatFilter('todos')" style="${todosStyle}">
+       <span class="sc-icon">📦</span>
+       <span class="sc-num">${total}</span>
+       <span class="sc-lbl">Todos</span>
+     </button>` +
+    chip('con-stock',   '✅', conStock,    'Con stock',    '#059669') +
+    chip('sin-stock',   '🚫', sinStock,    'Sin stock',    '#dc2626') +
+    (ultimaPieza > 0 ? chip('ultima-pieza','⚡', ultimaPieza, 'Última pieza', '#B45309') : '') +
+    (sinPublicar  > 0 ? chip('sin-publicar','🙈', sinPublicar, 'Sin publicar', '#C2410C') : '') +
+    (sinCodigo    > 0 ? chip('sin-codigo',  '🔲', sinCodigo,   'Sin código',   '#4B5563') : '') +
+    (nFlag        > 0 ? chip('revisar',     '🚩', nFlag,       'Por revisar',  '#dc2626') : '');
 
   // Alerta de productos sin precio — solo visible para superadmin
   if (can.publishProduct) {
@@ -1982,9 +1982,11 @@ function clearAdminFilters() {
   if (s) s.value = '';
   if (c) c.value = 'all';
   if (_showOnlyFlagged) { _showOnlyFlagged = false; _syncFlagFilter(); }
+  _statFilter = null;
   _toggleSearchClear();
   _adminPage = 1;
   renderTable();
+  renderStats();
 }
 
 function _toggleSearchClear() {
@@ -4140,14 +4142,28 @@ function toggleFlagFilter() {
   renderTable();
 }
 
+function toggleStatFilter(key) {
+  if (key === 'todos') {
+    _statFilter = null;
+    if (_showOnlyFlagged) { _showOnlyFlagged = false; localStorage.setItem('te_flag_filter','0'); }
+  } else if (key === 'revisar') {
+    _statFilter = null;
+    _showOnlyFlagged = !_showOnlyFlagged;
+    localStorage.setItem('te_flag_filter', _showOnlyFlagged ? '1' : '0');
+  } else {
+    if (_showOnlyFlagged) { _showOnlyFlagged = false; localStorage.setItem('te_flag_filter','0'); }
+    _statFilter = _statFilter === key ? null : key;
+  }
+  _adminPage = 1;
+  renderStats();
+  renderTable();
+}
+
 function _syncFlagFilter() {
   localStorage.setItem('te_flag_filter', _showOnlyFlagged ? '1' : '0');
-  const btn = document.getElementById('flag-filter-btn');
-  if (!btn) return;
-  const n = _flagged.length;
-  btn.style.display = n > 0 ? '' : 'none';
-  btn.textContent = `🚩 Revisar${n > 0 ? ` (${n})` : ''}`;
-  btn.classList.toggle('active', _showOnlyFlagged);
+  _adminPage = 1;
+  renderStats();
+  renderTable();
 }
 
 function _qvShowFlagForm(id) {
