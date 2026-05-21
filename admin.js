@@ -1288,8 +1288,11 @@ function renderTable() {
       if (tbody) tbody.innerHTML = `<tr><td colspan="5">${emptyHTML}</td></tr>`;
     }
     updateBulkBar();
+    if (document.getElementById('scan-result-panel')?.style.display !== 'block') _updateActiveFiltersBar();
     return;
   }
+
+  if (document.getElementById('scan-result-panel')?.style.display !== 'block') _updateActiveFiltersBar();
 
   const visible  = filtered.slice(0, _adminPage * ADMIN_PAGE_SIZE);
   const hasMore  = visible.length < filtered.length;
@@ -1315,7 +1318,6 @@ function renderTable() {
 
   updateSelectAllCheckbox();
   if (!mobile) initDragDrop();
-  _updateActiveFiltersBar();
 }
 
 function _loadMoreAdmin() {
@@ -3532,22 +3534,26 @@ function showScanResult(id) {
   bcEl.style.display = p.barcode ? '' : 'none';
 
   // Acciones
+  const btnScan = `<button class="qv-btn qv-btn-dup" style="flex:0 0 100%" onclick="clearScanResult();openSearchScanner()">📷 Escanear otro</button>`;
   const btnEdit = can.editProduct ? `<button class="qv-btn qv-btn-edit" onclick="clearScanResult();openForm(${p.id})">${ICON_EDIT} Más campos</button>` : '';
   const btnDup  = `<button class="qv-btn qv-btn-dup" onclick="clearScanResult();duplicateProduct(${p.id})">⧉ Duplicar</button>`;
   const btnPub  = can.publishProduct ? `<button class="qv-btn qv-btn-pub" onclick="_qvTogglePublished(${p.id})">${p.isPublished === false ? '🌐 Publicar' : '🙈 Ocultar'}</button>` : '';
   const btnDel  = can.deleteProduct  ? `<button class="qv-btn qv-btn-del" onclick="clearScanResult();askDelete(${p.id})">✕ Eliminar</button>` : '';
-  document.getElementById('srp-actions').innerHTML = btnEdit + btnDup + btnPub + btnDel;
+  document.getElementById('srp-actions').innerHTML = btnScan + btnEdit + btnDup + btnPub + btnDel;
 
-  // Mostrar panel, ocultar lista
+  // Mostrar panel, ocultar lista y elementos irrelevantes
   document.getElementById('scan-result-panel').style.display = 'block';
   document.getElementById('products-view-wrap').style.display = 'none';
   const bulkBar = document.getElementById('bulk-bar');
   if (bulkBar) bulkBar.style.display = 'none';
+  const filterBar = document.getElementById('filter-active-bar');
+  if (filterBar) filterBar.classList.remove('visible');
 }
 
 function clearScanResult() {
   document.getElementById('scan-result-panel').style.display = 'none';
   document.getElementById('products-view-wrap').style.display = '';
+  _updateActiveFiltersBar();
 }
 
 function _srpRefresh(id) {
