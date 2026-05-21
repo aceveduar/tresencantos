@@ -777,6 +777,15 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .btn-clear-field{color:var(--muted-light);border-color:transparent;background:transparent;font-size:.8rem}
 .btn-clear-field:hover{color:var(--red);background:#FEF2F2;border-color:#FECACA}
 @keyframes pulse-rec{0%,100%{opacity:1}50%{opacity:.55}}
+/* Campo en modo grabación */
+.field-recording{
+  border-color:var(--red)!important;background:#FFF5F5!important;
+  animation:pulse-field-rec 1.2s ease-in-out infinite;
+}
+@keyframes pulse-field-rec{
+  0%,100%{box-shadow:0 0 0 3px rgba(232,93,93,.15)}
+  50%{box-shadow:0 0 0 6px rgba(232,93,93,.08)}
+}
 
 /* ══ CATEGORY MANAGER ════════════════════════════════════════════════════ */
 .cat-mgr-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)}

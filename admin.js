@@ -3609,6 +3609,8 @@ function dictate(fieldId) {
     const rec = _activeRec;
     _activeRec = null;
     rec.stop();
+    // Limpiar visual del campo activo (puede ser distinto al fieldId actual)
+    document.querySelectorAll('.field-recording').forEach(el => el.classList.remove('field-recording'));
     return;
   }
 
@@ -3622,11 +3624,19 @@ function dictate(fieldId) {
   _activeRec = sr;
 
   const startValue  = field.value.trimEnd();
-  let committedText = '';  // texto final acumulado — persiste entre sub-sesiones Android
-  let nextFinalIdx  = 0;  // próximo índice final a procesar en la sub-sesión actual
+  let committedText = '';
+  let nextFinalIdx  = 0;
+  let _silenceTimer = null;
+
+  const stopDictation = () => {
+    if (_silenceTimer) { clearTimeout(_silenceTimer); _silenceTimer = null; }
+    if (_activeRec === sr) { _activeRec = null; sr.stop(); }
+  };
 
   if (!btn.dataset.iconOnly) btn.textContent = '⏹ Detener';
   btn.classList.add('recording');
+  field.classList.add('field-recording');
+  toast('🎤 Grabando… toca el botón para detener', '');
 
   // FIX Android: blur cierra el teclado del sistema → su micrófono deja de escuchar
   field.blur();
@@ -3650,25 +3660,41 @@ function dictate(fieldId) {
     field.dispatchEvent(new Event('input'));
   };
 
+  sr.onspeechstart = () => {
+    if (_silenceTimer) { clearTimeout(_silenceTimer); _silenceTimer = null; }
+  };
+
+  sr.onspeechend = () => {
+    // Iniciar timer de silencio — si no vuelve a hablar en 4s, detener automáticamente
+    if (_activeRec === sr && sr.continuous) {
+      _silenceTimer = setTimeout(() => stopDictation(), 4000);
+    }
+  };
+
   sr.onend = () => {
+    if (_silenceTimer) { clearTimeout(_silenceTimer); _silenceTimer = null; }
     if (_activeRec === sr) {
       // Android cerró la sub-sesión pero el usuario no detuvo — reiniciar
-      nextFinalIdx = 0;  // nueva sub-sesión: e.results empieza desde 0
-      try { sr.start(); } catch (_) { /* race condition inofensiva */ }
+      nextFinalIdx = 0;
+      try { sr.start(); } catch (_) {}
     } else {
-      // Usuario detuvo (_activeRec ya fue nulleado) — confirmar texto final
+      // Grabación terminada — limpiar estado visual
       const sep   = startValue && committedText ? ' ' : '';
       field.value = (startValue + sep + committedText).trim();
       field.dispatchEvent(new Event('input'));
       if (!btn.dataset.iconOnly) btn.textContent = origLabel;
       btn.classList.remove('recording');
+      field.classList.remove('field-recording');
+      toast('✓ Dictado finalizado', 'success');
     }
   };
 
   sr.onerror = e => {
+    if (_silenceTimer) { clearTimeout(_silenceTimer); _silenceTimer = null; }
     _activeRec = null;
     if (!btn.dataset.iconOnly) btn.textContent = origLabel;
     btn.classList.remove('recording');
+    field.classList.remove('field-recording');
     const sep   = startValue && committedText ? ' ' : '';
     field.value = (startValue + sep + committedText).trim();
     field.dispatchEvent(new Event('input'));
