@@ -2470,11 +2470,21 @@ function renderAdditionalImages() {
     strip.innerHTML = '<span style="font-size:.78rem;color:var(--muted);align-self:center;padding-left:2px">Sin imágenes adicionales</span>';
     return;
   }
-  strip.innerHTML = _additionalImagesEdit.map((url, i) => `
-<div style="position:relative;flex-shrink:0">
+  strip.innerHTML = _additionalImagesEdit.map((url, i) => {
+    const isDrive  = url.includes('drive.google.com');
+    const isBase64 = url.startsWith('data:');
+    const badge = isDrive
+      ? `<span title="Guardada en Drive" style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);background:#34a853;color:#fff;font-size:.5rem;font-weight:700;padding:1px 5px;border-radius:4px;white-space:nowrap;pointer-events:none">Drive</span>`
+      : isBase64
+      ? `<span title="Base64 — no subida a Drive" style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);background:#e67e22;color:#fff;font-size:.5rem;font-weight:700;padding:1px 5px;border-radius:4px;white-space:nowrap;pointer-events:none">Base64</span>`
+      : '';
+    return `
+<div style="position:relative;flex-shrink:0;margin-bottom:8px">
   <img src="${url}" style="width:72px;height:72px;object-fit:contain;border-radius:8px;border:1px solid var(--border);background:#F7F2EB;display:block" onerror="this.style.opacity='.3'">
   <button type="button" onclick="removeAdditionalImage(${i})" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;cursor:pointer;font-size:.65rem;display:flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.25)">✕</button>
-</div>`).join('');
+  ${badge}
+</div>`;
+  }).join('');
 }
 
 function removeAdditionalImage(idx) {
@@ -4232,11 +4242,18 @@ async function _qvEditName(e, id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   const el = e.currentTarget;
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;align-items:center;gap:6px';
   const input = document.createElement('input');
   input.type = 'text';
   input.value = p.name;
-  input.style.cssText = 'width:100%;padding:4px 8px;border:2px solid var(--gold);border-radius:6px;font-size:1.1rem;font-weight:700;font-family:inherit;outline:none;color:var(--charcoal);box-sizing:border-box';
-  el.replaceWith(input);
+  input.style.cssText = 'flex:1;min-width:0;padding:4px 8px;border:2px solid var(--gold);border-radius:6px;font-size:1.1rem;font-weight:700;font-family:inherit;outline:none;color:var(--charcoal);box-sizing:border-box';
+  const btn = document.createElement('button');
+  btn.textContent = '✓';
+  btn.style.cssText = 'flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--gold);color:#fff;border:none;cursor:pointer;font-size:1rem;font-weight:700;display:flex;align-items:center;justify-content:center';
+  wrap.appendChild(input);
+  wrap.appendChild(btn);
+  el.replaceWith(wrap);
   input.focus(); input.select();
   let saved = false;
   const save = async () => {
@@ -4250,9 +4267,11 @@ async function _qvEditName(e, id) {
     else toast('Error al actualizar nombre', 'error');
     _qvRefresh(id); renderTable();
   };
-  input.addEventListener('blur', save);
+  btn.addEventListener('mousedown', e => e.preventDefault()); // evita blur antes del click
+  btn.addEventListener('click', () => { saved = false; save(); });
+  input.addEventListener('blur', e => { if (e.relatedTarget !== btn) save(); });
   input.addEventListener('keydown', ev => {
-    if (ev.key === 'Enter') input.blur();
+    if (ev.key === 'Enter') save();
     if (ev.key === 'Escape') { saved = true; _qvRefresh(id); }
   });
 }
@@ -4262,12 +4281,18 @@ async function _qvEditDesc(e, id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   const el = e.currentTarget;
+  const wrap = document.createElement('div');
   const ta = document.createElement('textarea');
   ta.value = p.description || '';
   ta.rows = 3;
   ta.placeholder = 'Descripción del producto…';
-  ta.style.cssText = 'width:100%;padding:6px 8px;border:2px solid var(--gold);border-radius:6px;font-size:.85rem;font-family:inherit;outline:none;color:var(--charcoal);resize:vertical;box-sizing:border-box';
-  el.replaceWith(ta);
+  ta.style.cssText = 'width:100%;padding:6px 8px;border:2px solid var(--gold);border-radius:6px;font-size:.85rem;font-family:inherit;outline:none;color:var(--charcoal);resize:vertical;box-sizing:border-box;display:block';
+  const btn = document.createElement('button');
+  btn.textContent = '✓ Guardar';
+  btn.style.cssText = 'margin-top:6px;padding:5px 16px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;display:block';
+  wrap.appendChild(ta);
+  wrap.appendChild(btn);
+  el.replaceWith(wrap);
   ta.focus();
   let saved = false;
   const save = async () => {
@@ -4281,7 +4306,9 @@ async function _qvEditDesc(e, id) {
     else toast('Error al actualizar descripción', 'error');
     _qvRefresh(id);
   };
-  ta.addEventListener('blur', save);
+  btn.addEventListener('mousedown', e => e.preventDefault());
+  btn.addEventListener('click', () => { saved = false; save(); });
+  ta.addEventListener('blur', e => { if (e.relatedTarget !== btn) save(); });
   ta.addEventListener('keydown', ev => {
     if (ev.key === 'Escape') { saved = true; _qvRefresh(id); }
   });
