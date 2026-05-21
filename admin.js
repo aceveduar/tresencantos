@@ -54,6 +54,9 @@ let deleteTargetId = null;
 let selectedIds = new Set();
 let dragSrcId = null;
 let currentSort = 'recent';
+let _adminPage = 1;
+const ADMIN_PAGE_SIZE = 50;
+let _realtimeChannel = null;
 
 /* Categorías — cargadas dinámicamente desde config.categories */
 let categories = []; // [{code, label, color}]
@@ -565,6 +568,7 @@ async function showApp() {
   _syncFlagFilter();
   renderStats();
   setAdminView(currentAdminView);
+  initRealtime();
   setTimeout(_updateDupBadge, 0);
   if (location.hash === '#dup-review') {
     history.replaceState(null, '', location.pathname);
@@ -573,31 +577,35 @@ async function showApp() {
 }
 
 /* ── LOAD PRODUCTS ── */
+function mapProduct(p) {
+  return {
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    categoryLabel: p.category_label,
+    price: p.price,
+    description: p.description,
+    image: p.image,
+    badge: p.badge,
+    badgeType: p.badge_type,
+    featured: p.featured,
+    outOfStock: p.out_of_stock,
+    originalPrice: p.original_price,
+    barcode: p.barcode || null,
+    stock: p.stock ?? 0,
+    cost: p.cost ?? null,
+    isPublished: p.is_published ?? true,
+    notes: p.notes || null,
+    kitItems: p.kit_items || null,
+    images: p.images || null
+  };
+}
+
 async function loadProductsFromSupabase() {
   const result = await supabaseApi('products?select=*&order=position.asc');
   const data = result.data;
   if (result.ok && Array.isArray(data) && data.length) {
-    products = data.map(p => ({
-      id: p.id,
-      name: p.name,
-      category: p.category,
-      categoryLabel: p.category_label,
-      price: p.price,
-      description: p.description,
-      image: p.image,
-      badge: p.badge,
-      badgeType: p.badge_type,
-      featured: p.featured,
-      outOfStock: p.out_of_stock,
-      originalPrice: p.original_price,
-      barcode: p.barcode || null,
-      stock: p.stock ?? 0,
-      cost: p.cost ?? null,
-      isPublished: p.is_published ?? true,
-      notes: p.notes || null,
-      kitItems: p.kit_items || null,
-      images: p.images || null
-    }));
+    products = data.map(mapProduct);
     return;
   }
   products = [];
@@ -675,6 +683,7 @@ function filterNoPriceProducts() {
   if (catFilter) catFilter.value = 'all';
   if (searchInput) searchInput.value = '';
   if (sortSel) { sortSel.value = 'price-asc'; currentSort = 'price-asc'; }
+  _adminPage = 1;
   renderTable();
   document.getElementById('no-price-alert')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
@@ -762,7 +771,7 @@ function setAdminView(view) {
   renderTable();
 }
 
-function adminCard(p) {
+function adminCard(p, editable = false) {
   const fallback = DEFAULT_IMG;
   const oos = p.kitItems?.length ? false : (p.outOfStock || p.stock === 0);
   const sel = selectedIds.has(p.id);
@@ -804,7 +813,10 @@ function adminCard(p) {
     <div class="ac-name" title="${p.name}">${p.name}${noteDotAC}</div>
     <div class="ac-meta">
       <span class="cat-dot" style="background:${catColor}"></span>
-      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.72rem;color:var(--muted)">${p.categoryLabel}</span>
+      ${editable
+        ? `<span class="cat-label-inline" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Clic para cambiar categoría" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.categoryLabel}</span>`
+        : `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.72rem;color:var(--muted)">${p.categoryLabel}</span>`
+      }
     </div>
     <div class="ac-price-row">${priceHTML}</div>
     <div class="ac-footer">
@@ -812,7 +824,7 @@ function adminCard(p) {
         <button class="ac-status-dot ${oos?'ac-dot-sold':'ac-dot-avail'}"
                 onclick="toggleOutOfStock(${p.id})"
                 title="${oosTitle}"></button>
-        ${stockChip(p)}
+        ${stockChip(p, editable)}
         <button class="ac-pub-dot" onclick="togglePublished(${p.id})"
                 ontouchstart="event.stopPropagation()"
                 title="${pubTitle}">
@@ -935,6 +947,7 @@ async function togglePublished(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   const newVal = p.isPublished === false ? true : false;
+  if (newVal && p.price === 0) { toast('Precio $0 — ajusta el precio antes de publicar en la web', 'warn'); return; }
   const result = await supabaseApi(`products?id=eq.${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ is_published: newVal })
@@ -1174,18 +1187,36 @@ function renderTable() {
     return;
   }
 
+  const visible  = filtered.slice(0, _adminPage * ADMIN_PAGE_SIZE);
+  const hasMore  = visible.length < filtered.length;
+  const moreHTML = hasMore
+    ? `<div id="load-more-wrap" style="padding:16px;text-align:center">
+        <button class="btn btn-outline btn-sm" onclick="_loadMoreAdmin()">
+          Ver ${Math.min(ADMIN_PAGE_SIZE, filtered.length - visible.length)} más de ${filtered.length - visible.length}
+        </button>
+       </div>`
+    : '';
+
   if (useCards && cardGrid) {
-    cardGrid.innerHTML = filtered.map(p => adminCard(p)).join('');
+    const desktopCards = !mobile;
+    cardGrid.innerHTML = visible.map(p => adminCard(p, desktopCards)).join('') + moreHTML;
     updateBulkBar();
     return;
   }
 
   // Vista lista: mobile → mpc cards, desktop → tabla
   const tbody = document.getElementById('products-table');
-  if (tbody) tbody.innerHTML = filtered.map(p => mobile ? mobileCard(p) : desktopRow(p)).join('');
+  if (tbody) tbody.innerHTML = visible.map(p => mobile ? mobileCard(p) : desktopRow(p)).join('') +
+    (hasMore ? `<tr><td colspan="5">${moreHTML}</td></tr>` : '');
 
   updateSelectAllCheckbox();
   if (!mobile) initDragDrop();
+}
+
+function _loadMoreAdmin() {
+  _adminPage++;
+  renderTable();
+  document.getElementById('load-more-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 /* ── SELECTION ── */
@@ -1952,6 +1983,7 @@ function clearAdminFilters() {
   if (c) c.value = 'all';
   if (_showOnlyFlagged) { _showOnlyFlagged = false; _syncFlagFilter(); }
   _toggleSearchClear();
+  _adminPage = 1;
   renderTable();
 }
 
@@ -1964,6 +1996,7 @@ function clearSearchInput() {
   const s = document.getElementById('search-input');
   if (s) s.value = '';
   _toggleSearchClear();
+  _adminPage = 1;
   renderTable();
 }
 
@@ -2309,20 +2342,15 @@ async function saveProduct() {
 function toggleKitMode() {
   const isKit = document.getElementById('f-is-kit').checked;
   document.getElementById('kit-editor').style.display = isKit ? 'block' : 'none';
+  const stockWrap  = document.getElementById('f-stock-wrap');
   const stockInput = document.getElementById('f-stock');
-  const stockHint  = document.getElementById('f-stock-hint');
-  const kitNote    = document.getElementById('kit-stock-note');
   if (isKit) {
+    if (stockWrap) stockWrap.style.display = 'none';
     stockInput.disabled = true;
     stockInput.value = '0';
-    stockInput.style.opacity = '.4';
-    if (stockHint) stockHint.style.display = 'none';
-    if (kitNote)   kitNote.style.display = '';
   } else {
+    if (stockWrap) stockWrap.style.display = '';
     stockInput.disabled = false;
-    stockInput.style.opacity = '';
-    if (stockHint) stockHint.style.display = '';
-    if (kitNote)   kitNote.style.display = 'none';
   }
   if (isKit) renderKitEditor();
 }
@@ -4199,6 +4227,66 @@ async function _qvEditPrice(e, id) {
   });
 }
 
+async function _qvEditName(e, id) {
+  e.stopPropagation();
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const el = e.currentTarget;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = p.name;
+  input.style.cssText = 'width:100%;padding:4px 8px;border:2px solid var(--gold);border-radius:6px;font-size:1.1rem;font-weight:700;font-family:inherit;outline:none;color:var(--charcoal);box-sizing:border-box';
+  el.replaceWith(input);
+  input.focus(); input.select();
+  let saved = false;
+  const save = async () => {
+    if (saved) return; saved = true;
+    const newName = input.value.trim();
+    if (!newName || newName === p.name) { _qvRefresh(id); renderTable(); return; }
+    const result = await supabaseApi(`products?id=eq.${id}`, {
+      method: 'PATCH', body: JSON.stringify({ name: newName })
+    });
+    if (result.ok) { p.name = newName; toast('Nombre actualizado'); }
+    else toast('Error al actualizar nombre', 'error');
+    _qvRefresh(id); renderTable();
+  };
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter') input.blur();
+    if (ev.key === 'Escape') { saved = true; _qvRefresh(id); }
+  });
+}
+
+async function _qvEditDesc(e, id) {
+  e.stopPropagation();
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const el = e.currentTarget;
+  const ta = document.createElement('textarea');
+  ta.value = p.description || '';
+  ta.rows = 3;
+  ta.placeholder = 'Descripción del producto…';
+  ta.style.cssText = 'width:100%;padding:6px 8px;border:2px solid var(--gold);border-radius:6px;font-size:.85rem;font-family:inherit;outline:none;color:var(--charcoal);resize:vertical;box-sizing:border-box';
+  el.replaceWith(ta);
+  ta.focus();
+  let saved = false;
+  const save = async () => {
+    if (saved) return; saved = true;
+    const newDesc = ta.value.trim();
+    if (newDesc === (p.description || '').trim()) { _qvRefresh(id); return; }
+    const result = await supabaseApi(`products?id=eq.${id}`, {
+      method: 'PATCH', body: JSON.stringify({ description: newDesc || null })
+    });
+    if (result.ok) { p.description = newDesc || null; toast('Descripción actualizada'); }
+    else toast('Error al actualizar descripción', 'error');
+    _qvRefresh(id);
+  };
+  ta.addEventListener('blur', save);
+  ta.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape') { saved = true; _qvRefresh(id); }
+  });
+}
+
 let _qvSwipeX = null, _qvSwipeY = null, _qvSwipeDir = null;
 
 function _initQVSwipe() {
@@ -4357,7 +4445,12 @@ function _renderQV(p) {
      <span class="qv-cat-label cat-label-inline qv-editable" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría">${p.categoryLabel || '—'}</span>`;
 
   // Nombre
-  document.getElementById('qv-name').textContent = p.name;
+  const nameEl = document.getElementById('qv-name');
+  if (can.editProduct) {
+    nameEl.innerHTML = `<span class="qv-editable" onclick="_qvEditName(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar nombre">${p.name}</span>`;
+  } else {
+    nameEl.textContent = p.name;
+  }
 
   // Precio
   let priceHTML = `<span class="qv-price qv-editable" onclick="_qvEditPrice(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar precio">$${p.price.toLocaleString('es-MX')} <small style="font-size:.42em;font-weight:400;color:var(--muted);font-family:inherit">MXN</small></span>`;
@@ -4369,11 +4462,14 @@ function _renderQV(p) {
   document.getElementById('qv-price-row').innerHTML = priceHTML;
 
   // Chips de estado
+  const _pubClick = can.publishProduct
+    ? `onclick="_qvTogglePublished(${p.id})" ontouchstart="event.stopPropagation()" style="cursor:pointer" title="Toca para cambiar visibilidad"`
+    : '';
   const pubChip  = p.isPublished === false
-    ? `<span class="qv-chip qv-chip-hidden">🙈 Oculto</span>`
+    ? `<span class="qv-chip qv-chip-hidden" ${_pubClick}>🙈 Oculto</span>`
     : p.outOfStock
       ? `<span class="qv-chip qv-chip-warn">⚠️ Agotado</span>`
-      : `<span class="qv-chip qv-chip-web">🌐 Web</span>`;
+      : `<span class="qv-chip qv-chip-web" ${_pubClick}>🌐 Web</span>`;
   const oosChip  = oos
     ? `<span class="qv-chip qv-chip-sold">⊘ Agotado</span>`
     : `<span class="qv-chip qv-chip-ok">✓ Disponible</span>`;
@@ -4394,8 +4490,13 @@ function _renderQV(p) {
 
   // Descripción
   const descEl = document.getElementById('qv-desc');
-  descEl.textContent = p.description || '';
-  descEl.style.display = p.description ? '' : 'none';
+  if (can.editProduct) {
+    descEl.style.display = '';
+    descEl.innerHTML = `<span class="qv-editable" onclick="_qvEditDesc(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar descripción" style="display:block;min-height:1.4em">${p.description || '<em style="color:var(--muted);font-style:normal;font-size:.82rem">+ Agregar descripción</em>'}</span>`;
+  } else {
+    descEl.textContent = p.description || '';
+    descEl.style.display = p.description ? '' : 'none';
+  }
 
   // Zona de flag
   const flagData = _flagItem(p.id);
@@ -4421,7 +4522,7 @@ function _renderQV(p) {
 
   // Botones de acción
   const btnEdit = can.editProduct
-    ? `<button class="qv-btn qv-btn-edit" onclick="closeQV();openForm(${p.id})">${ICON_EDIT} Editar</button>`
+    ? `<button class="qv-btn qv-btn-edit" onclick="closeQV();openForm(${p.id})">${ICON_EDIT} Más campos</button>`
     : '';
   const btnDup  = `<button class="qv-btn qv-btn-dup" onclick="closeQV();duplicateProduct(${p.id})">⧉ Duplicar</button>`;
   const btnPub  = can.publishProduct
@@ -4450,3 +4551,42 @@ document.addEventListener('keydown', e => {
     closeQV();
   }
 });
+
+/* ── SUPABASE REALTIME ── */
+function initRealtime() {
+  if (typeof window.supabase === 'undefined') return;
+  try {
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    _realtimeChannel = client
+      .channel('admin-products')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, _handleRealtimeProduct)
+      .subscribe();
+  } catch(err) {
+    console.warn('Realtime no disponible:', err);
+  }
+}
+
+function _handleRealtimeProduct({ eventType, new: row, old }) {
+  // Ignorar si hay un input activo en el QV (usuario editando inline)
+  if (document.querySelector('#qv-info input, #qv-info textarea')) return;
+
+  if (eventType === 'UPDATE') {
+    const idx = products.findIndex(x => x.id === row.id);
+    if (idx >= 0) {
+      products[idx] = { ...products[idx], ...mapProduct(row) };
+      renderTable(); renderStats(); _qvRefresh(row.id);
+    }
+  } else if (eventType === 'INSERT') {
+    if (!products.find(x => x.id === row.id)) {
+      products.push(mapProduct(row));
+      renderTable(); renderStats();
+    }
+  } else if (eventType === 'DELETE') {
+    const idx = products.findIndex(x => x.id === old.id);
+    if (idx >= 0) {
+      products.splice(idx, 1);
+      if (_qvCurrentId === old.id) closeQV();
+      renderTable(); renderStats();
+    }
+  }
+}
