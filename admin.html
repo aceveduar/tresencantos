@@ -102,6 +102,39 @@ main{max-width:1080px;margin:0 auto;padding:28px 32px}
 .sc-lbl{color:var(--muted);font-weight:500}
 .stat-chip.sc-active .sc-lbl{color:inherit;opacity:.85}
 
+/* ── SCAN RESULT PANEL ──────────────────────────────────────────────── */
+#scan-result-panel{display:none;animation:srp-in .2s ease}
+@keyframes srp-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.srp-back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;
+  font-size:.82rem;font-weight:600;color:var(--muted);cursor:pointer;padding:4px 0 12px;
+  font-family:inherit;transition:.15s}
+.srp-back:hover{color:var(--charcoal)}
+.srp-card{background:#fff;border-radius:16px;border:1px solid var(--border);
+  box-shadow:var(--shadow-sm);overflow:hidden}
+.srp-img{width:100%;height:280px;object-fit:contain;background:#FAF7F3;display:block}
+.srp-body{padding:20px 20px 14px}
+.srp-cat-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.srp-cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.srp-cat-label{font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-dark)}
+.srp-name{font-family:'Playfair Display',serif;font-size:1.35rem;font-weight:700;
+  color:var(--charcoal);line-height:1.25;margin-bottom:10px}
+.srp-price-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.srp-price{font-size:1.5rem;font-weight:800;font-family:'Playfair Display',serif;color:var(--charcoal)}
+.srp-orig{font-size:.88rem;text-decoration:line-through;color:var(--muted)}
+.srp-disc{background:var(--red);color:#fff;font-size:.68rem;font-weight:800;padding:3px 9px;border-radius:50px}
+.srp-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+.srp-desc{font-size:.85rem;color:var(--muted);line-height:1.6;margin-bottom:10px}
+.srp-barcode{font-size:.72rem;color:var(--muted-light);margin-bottom:4px;font-family:monospace}
+.srp-actions{display:flex;flex-wrap:wrap;gap:8px;padding:14px 20px;
+  border-top:1px solid var(--border);background:#FDFAF7}
+@media(min-width:641px){
+  .srp-card{display:grid;grid-template-columns:320px 1fr}
+  .srp-img{height:100%;min-height:300px}
+  .srp-right{display:flex;flex-direction:column}
+  .srp-body{flex:1}
+  .srp-actions{border-top:none;border-left:none;padding:14px 20px 20px}
+}
+
 /* ── CATEGORY BOTTOM SHEET ─────────────────────────────────────────── */
 #cat-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1400;opacity:0;pointer-events:none;transition:opacity .2s}
 #cat-sheet-overlay.open{opacity:1;pointer-events:auto}
@@ -1534,6 +1567,28 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       <button class="btn btn-sm" onclick="bulkExport()">Exportar</button>
       <button class="btn btn-sm" onclick="bulkRestock()">📦 Reabastecer</button>
       <button class="btn btn-red btn-sm" onclick="bulkDelete()">Eliminar ✕</button>
+    </div>
+
+    <!-- SCAN RESULT PANEL -->
+    <div id="scan-result-panel">
+      <button class="srp-back" onclick="clearScanResult()">← Volver al catálogo</button>
+      <div class="srp-card" id="srp-card">
+        <img class="srp-img" id="srp-img" src="" alt="">
+        <div class="srp-right">
+          <div class="srp-body">
+            <div class="srp-cat-row">
+              <span class="srp-cat-dot" id="srp-cat-dot"></span>
+              <span class="srp-cat-label" id="srp-cat-label"></span>
+            </div>
+            <div class="srp-name" id="srp-name"></div>
+            <div class="srp-price-row" id="srp-price-row"></div>
+            <div class="srp-chips" id="srp-chips"></div>
+            <div class="srp-desc" id="srp-desc"></div>
+            <div class="srp-barcode" id="srp-barcode"></div>
+          </div>
+          <div class="srp-actions" id="srp-actions"></div>
+        </div>
+      </div>
     </div>
 
     <!-- PRODUCTS TABLE / CARD GRID -->

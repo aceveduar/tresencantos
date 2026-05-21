@@ -3473,6 +3473,87 @@ async function _deleteDupProduct(id, pairKey) {
   });
 }
 
+function showScanResult(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const fallback = DEFAULT_IMG;
+  const oos = p.kitItems?.length ? false : (p.outOfStock || p.stock === 0);
+  const catColor = getCatColor(p.category);
+
+  document.getElementById('srp-img').src = p.image || fallback;
+  document.getElementById('srp-img').onerror = function(){ this.src = fallback; };
+  document.getElementById('srp-cat-dot').style.background = catColor;
+  document.getElementById('srp-cat-label').textContent = p.categoryLabel || '';
+
+  // Nombre editable inline
+  const nameEl = document.getElementById('srp-name');
+  if (can.editProduct) {
+    nameEl.innerHTML = `<span class="qv-editable" onclick="_qvEditName(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar nombre">${p.name}</span>`;
+  } else {
+    nameEl.textContent = p.name;
+  }
+
+  // Precio
+  let priceHTML = `<span class="srp-price qv-editable" onclick="_qvEditPrice(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar precio">$${p.price.toLocaleString('es-MX')} <small style="font-size:.42em;font-weight:400;color:var(--muted)">MXN</small></span>`;
+  if (p.originalPrice && p.originalPrice > p.price) {
+    const pct = Math.round((1 - p.price / p.originalPrice) * 100);
+    priceHTML += `<span class="srp-orig">$${p.originalPrice.toLocaleString('es-MX')}</span><span class="srp-disc">-${pct}%</span>`;
+  }
+  document.getElementById('srp-price-row').innerHTML = priceHTML;
+
+  // Chips
+  const _pubClick = can.publishProduct ? `onclick="_qvTogglePublished(${p.id})" ontouchstart="event.stopPropagation()" style="cursor:pointer" title="Toca para cambiar visibilidad"` : '';
+  const pubChip = p.isPublished === false
+    ? `<span class="qv-chip qv-chip-hidden" ${_pubClick}>🙈 Oculto</span>`
+    : p.outOfStock ? `<span class="qv-chip qv-chip-warn">⚠️ Agotado</span>`
+    : `<span class="qv-chip qv-chip-web" ${_pubClick}>🌐 Web</span>`;
+  const oosChip = oos
+    ? `<span class="qv-chip qv-chip-sold">⊘ Agotado</span>`
+    : `<span class="qv-chip qv-chip-ok">✓ Disponible</span>`;
+  const stockCls = p.stock === 0 ? 'qv-chip-sold' : p.stock === 1 ? '' : 'qv-chip-ok';
+  const stockChip = p.kitItems?.length
+    ? `<span class="qv-chip qv-chip-ok">🎁 Kit</span>`
+    : `<span class="qv-chip ${stockCls} qv-editable" onclick="editStockInline(event,${p.id})" ontouchstart="event.stopPropagation()" style="cursor:pointer" title="Toca para editar stock">📦 ${p.stock}</span>`;
+  document.getElementById('srp-chips').innerHTML = oosChip + pubChip + stockChip;
+
+  // Descripción editable
+  const descEl = document.getElementById('srp-desc');
+  if (can.editProduct) {
+    descEl.style.display = '';
+    descEl.innerHTML = `<span class="qv-editable" onclick="_qvEditDesc(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar">${p.description || '<em style="color:var(--muted);font-style:normal;font-size:.82rem">+ Agregar descripción</em>'}</span>`;
+  } else {
+    descEl.textContent = p.description || '';
+    descEl.style.display = p.description ? '' : 'none';
+  }
+
+  // Código de barras
+  const bcEl = document.getElementById('srp-barcode');
+  bcEl.textContent = p.barcode ? `🔲 ${p.barcode}` : '';
+  bcEl.style.display = p.barcode ? '' : 'none';
+
+  // Acciones
+  const btnEdit = can.editProduct ? `<button class="qv-btn qv-btn-edit" onclick="clearScanResult();openForm(${p.id})">${ICON_EDIT} Más campos</button>` : '';
+  const btnDup  = `<button class="qv-btn qv-btn-dup" onclick="clearScanResult();duplicateProduct(${p.id})">⧉ Duplicar</button>`;
+  const btnPub  = can.publishProduct ? `<button class="qv-btn qv-btn-pub" onclick="_qvTogglePublished(${p.id})">${p.isPublished === false ? '🌐 Publicar' : '🙈 Ocultar'}</button>` : '';
+  const btnDel  = can.deleteProduct  ? `<button class="qv-btn qv-btn-del" onclick="clearScanResult();askDelete(${p.id})">✕ Eliminar</button>` : '';
+  document.getElementById('srp-actions').innerHTML = btnEdit + btnDup + btnPub + btnDel;
+
+  // Mostrar panel, ocultar lista
+  document.getElementById('scan-result-panel').style.display = 'block';
+  document.getElementById('products-view-wrap').style.display = 'none';
+  const bulkBar = document.getElementById('bulk-bar');
+  if (bulkBar) bulkBar.style.display = 'none';
+}
+
+function clearScanResult() {
+  document.getElementById('scan-result-panel').style.display = 'none';
+  document.getElementById('products-view-wrap').style.display = '';
+}
+
+function _srpRefresh(id) {
+  if (document.getElementById('scan-result-panel').style.display !== 'none') showScanResult(id);
+}
+
 function _onAdminScan(code) {
   if (_scanCtx === 'form') {
     document.getElementById('f-barcode').value = code;
@@ -3483,9 +3564,7 @@ function _onAdminScan(code) {
     closeAdminScanner();
     const p = products.find(x => x.barcode === code);
     if (p) {
-      document.getElementById('search-input').value = p.name;
-      renderTable();
-      toast(`Encontrado: ${p.name}`, 'success');
+      showScanResult(p.id);
     } else {
       toast(`Código "${code}" — ningún producto asignado`, 'error');
     }
@@ -3628,6 +3707,13 @@ function dictate(fieldId) {
   let nextFinalIdx  = 0;
   let _silenceTimer = null;
 
+  const SILENCE_MS = 5000;
+
+  const resetSilenceTimer = () => {
+    if (_silenceTimer) clearTimeout(_silenceTimer);
+    _silenceTimer = setTimeout(() => stopDictation(), SILENCE_MS);
+  };
+
   const stopDictation = () => {
     if (_silenceTimer) { clearTimeout(_silenceTimer); _silenceTimer = null; }
     if (_activeRec === sr) { _activeRec = null; sr.stop(); }
@@ -3641,7 +3727,11 @@ function dictate(fieldId) {
   // FIX Android: blur cierra el teclado del sistema → su micrófono deja de escuchar
   field.blur();
 
+  // Arrancar timer de silencio desde el inicio — se resetea en cada onresult
+  resetSilenceTimer();
+
   sr.onresult = e => {
+    resetSilenceTimer(); // cualquier resultado de voz reinicia el contador
     // Solo agregar finales NUEVOS desde nextFinalIdx — nunca releer los ya procesados
     for (let i = nextFinalIdx; i < e.results.length; i++) {
       if (e.results[i].isFinal) {
@@ -3658,17 +3748,6 @@ function dictate(fieldId) {
     field.value   = startValue + sep + all;
     if (!cur.isFinal && btn.dataset.iconOnly) return; // búsqueda: solo disparar en finales
     field.dispatchEvent(new Event('input'));
-  };
-
-  sr.onspeechstart = () => {
-    if (_silenceTimer) { clearTimeout(_silenceTimer); _silenceTimer = null; }
-  };
-
-  sr.onspeechend = () => {
-    // Iniciar timer de silencio — si no vuelve a hablar en 4s, detener automáticamente
-    if (_activeRec === sr && sr.continuous) {
-      _silenceTimer = setTimeout(() => stopDictation(), 4000);
-    }
   };
 
   sr.onend = () => {
@@ -4381,6 +4460,7 @@ function qvNavigate(dir) {
 }
 
 function _qvRefresh(id) {
+  _srpRefresh(id);
   if (_qvCurrentId !== id) return;
   if (!document.getElementById('qv-overlay')?.classList.contains('open')) return;
   const p = products.find(x => x.id === id);
@@ -4747,6 +4827,7 @@ function _renderQV(p) {
 async function _qvTogglePublished(id) {
   await togglePublished(id);
   const p = products.find(x => x.id === id);
+  _srpRefresh(id);
   if (p && _qvCurrentId === id && document.getElementById('qv-overlay').classList.contains('open')) {
     _renderQV(p);
   }
