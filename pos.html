@@ -435,7 +435,7 @@ button,a{touch-action:manipulation}
 .pos-freq-price{font-size:.62rem;color:var(--gold-dark);font-weight:700}
 
 /* CATEGORY CHIPS */
-.cat-chip-bar{display:flex;gap:6px;padding:8px 14px;background:#fff;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;flex-shrink:0;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%);mask-image:linear-gradient(to right,#000 82%,transparent 100%)}
+.cat-chip-bar{display:flex;gap:6px;padding:8px 14px;background:#fff;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;flex-shrink:0;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(to right,#000 78%,transparent 97%);mask-image:linear-gradient(to right,#000 78%,transparent 97%)}
 .cat-chip-bar::-webkit-scrollbar{display:none}
 .cat-chip{flex-shrink:0;padding:6px 14px;border-radius:50px;border:1.5px solid var(--border);background:#fff;font-size:.76rem;font-weight:600;cursor:pointer;color:#9B8B78;transition:.15s;white-space:nowrap}
 .cat-chip.active{background:var(--charcoal);color:#fff;border-color:var(--charcoal)}
@@ -1479,7 +1479,7 @@ function posCard(p) {
 function renderCategoryChips() {
   const bar = document.getElementById('cat-chip-bar');
   if (!bar) return;
-  const roots = posCategories.filter(c => !c.parent && products.some(p => catMatchesFilter(p.category, c.code)));
+  const roots = posCategories.filter(c => !c.parent && c.code !== 'por_revisar' && products.some(p => catMatchesFilter(p.category, c.code)));
   const chips = roots.length
     ? roots
     : [...new Map(products.map(p => [p.category, { code: p.category, label: p.categoryLabel }])).values()];
