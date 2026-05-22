@@ -62,6 +62,35 @@ let _statFilter = null; // 'con-stock' | 'sin-stock' | 'sin-publicar' | 'sin-cod
 /* Categorías — cargadas dinámicamente desde config.categories */
 let categories = []; // [{code, label, color}]
 
+/* ── USAGE TRACKER (TE) ─────────────────────────────────────────────── */
+const TE = (() => {
+  const _q = [];
+  let _timer = null;
+  const _email = () => { try { return JSON.parse(localStorage.getItem(SESSION_KEY))?.user?.email || ''; } catch { return ''; } };
+  const _flush = () => {
+    const items = _q.splice(0);
+    if (!items.length) return;
+    // supabaseApi disponible en tiempo de ejecución
+    fetch(`${SUPABASE_URL}/rest/v1/usage_log`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify(items)
+    }).catch(() => {});
+  };
+  return {
+    track(event, payload = {}) {
+      _q.push({ event, user_email: _email(), payload });
+      clearTimeout(_timer);
+      _timer = setTimeout(_flush, 5000);
+    },
+    trackSearch(q, found) {
+      if ((q || '').length < 3) return;
+      this.track('search', { found });
+    },
+    report() {}  // reportes en stats.html
+  };
+})();
+
 const CAT_DEFAULTS = [
   // ── BOLSOS ──────────────────────────────────────────────
   {code:'bolsos',              label:'Bolsos',              color:'#C9A462'},

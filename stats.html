@@ -541,6 +541,17 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
     </div>
   </div>
 
+  <!-- USO DE FUNCIONES -->
+  <div class="card" id="uso-card" style="margin-bottom:16px">
+    <div class="card-head">
+      <h2>🔧 Uso de funciones</h2>
+      <span id="uso-label" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body" id="uso-body">
+      <div class="loading-state">Cargando…</div>
+    </div>
+  </div>
+
   <!-- INVENTARIO -->
   <div class="card">
     <div class="card-head">
@@ -757,6 +768,7 @@ function renderAll() {
   renderInventory();
   renderRentabilidad();
   renderVendedores();
+  loadUsage().then(renderUsage);
 }
 
 function renderVendedores() {
@@ -1419,6 +1431,76 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 });
+
+/* ── USO DE FUNCIONES ─────────────────────────────────────────────────── */
+const EVENT_LABELS = {
+  'qv_open':         { label: 'Vista rápida de producto',  icon: '🔍' },
+  'form_open_edit':  { label: 'Editar producto',            icon: '✏️' },
+  'form_open_add':   { label: 'Agregar producto',           icon: '➕' },
+  'product_saved':   { label: 'Producto guardado',          icon: '💾' },
+  'scan_result':     { label: 'Escaneo de código',          icon: '🔲' },
+  'search':          { label: 'Búsqueda de producto',       icon: '🔍' },
+  'filter_category': { label: 'Filtro por categoría',       icon: '🏷️' },
+  'filter_chip':     { label: 'Filtro de estado',           icon: '🔵' },
+  'filter_sort':     { label: 'Ordenamiento',               icon: '↕️' },
+  'inline_price':    { label: 'Precio editado inline',      icon: '💰' },
+  'inline_name':     { label: 'Nombre editado inline',      icon: '✏️' },
+  'inline_desc':     { label: 'Descripción editada inline', icon: '📝' },
+  'dictate_start':   { label: 'Dictado por voz',            icon: '🎤' },
+};
+
+let _usageData = [];
+
+async function loadUsage() {
+  const days = currentPeriod === 0 ? 1 : currentPeriod;
+  const since = days === 0 ? new Date().toISOString().split('T')[0] + 'T00:00:00'
+    : new Date(Date.now() - days * 86400000).toISOString();
+  const filter = days === 9999 ? '' : `&created_at=gte.${since}`;
+  const r = await api(`usage_log?select=event,user_email,created_at${filter}&order=created_at.desc&limit=2000`);
+  _usageData = (r.ok && Array.isArray(r.data)) ? r.data : [];
+  return _usageData;
+}
+
+function renderUsage() {
+  const body  = document.getElementById('uso-body');
+  const label = document.getElementById('uso-label');
+  if (!body) return;
+
+  if (!_usageData.length) {
+    body.innerHTML = '<p style="color:var(--muted);font-size:.85rem;text-align:center;padding:16px 0">Sin datos aún — usa el Inventario para generar registros</p>';
+    label.textContent = '';
+    return;
+  }
+
+  // Agrupar por evento
+  const counts = {};
+  _usageData.forEach(row => {
+    counts[row.event] = (counts[row.event] || 0) + 1;
+  });
+
+  const sorted = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+
+  const max = sorted[0]?.[1] || 1;
+  const periodoLabel = currentPeriod === 0 ? 'hoy' : currentPeriod === 9999 ? 'total' : `últimos ${currentPeriod} días`;
+  label.textContent = `${_usageData.length} acciones — ${periodoLabel}`;
+
+  body.innerHTML = sorted.map(([event, count]) => {
+    const info = EVENT_LABELS[event] || { label: event, icon: '⚙️' };
+    const pct  = Math.round((count / max) * 100);
+    return `
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-size:.84rem;font-weight:600;color:var(--charcoal)">${info.icon} ${info.label}</span>
+        <span style="font-size:.82rem;font-weight:700;color:var(--muted);flex-shrink:0;margin-left:8px">${count}</span>
+      </div>
+      <div style="height:6px;background:#F0EBE3;border-radius:99px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:var(--gold);border-radius:99px;transition:width .4s ease"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
 </script>
 
 <div class="sd-overlay" id="sd-overlay" onclick="if(event.target===this)closeSaleDetail()">
