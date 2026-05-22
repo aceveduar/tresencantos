@@ -4992,6 +4992,17 @@ function _qvOpenZoom() {
   requestAnimationFrame(() => fs.classList.add('open'));
 }
 
+function _srpOpenZoom() {
+  const img = document.getElementById('srp-img');
+  if (!img?.src) return;
+  const fs = document.createElement('div');
+  fs.id = 'qv-zoom';
+  fs.innerHTML = `<img src="${img.src}" alt=""><button onclick="document.getElementById('qv-zoom').remove()" title="Cerrar">✕</button>`;
+  fs.onclick = e => { if (e.target === fs) fs.remove(); };
+  document.body.appendChild(fs);
+  requestAnimationFrame(() => fs.classList.add('open'));
+}
+
 // Teclado: ← → Esc cuando el QV está abierto
 document.addEventListener('keydown', e => {
   if (!_qvCurrentId) return;
