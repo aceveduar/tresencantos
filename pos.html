@@ -179,6 +179,7 @@ button,a{touch-action:manipulation}
 /* STOCK LIMIT FEEDBACK — shake + rojo */
 @keyframes btn-shake{0%,100%{transform:translateX(0)}15%{transform:translateX(-5px)}35%{transform:translateX(5px)}55%{transform:translateX(-4px)}75%{transform:translateX(3px)}}
 .pos-prod-add.btn-stock,.pos-card-add-icon.btn-stock{background:var(--red)!important;color:#fff!important;animation:btn-shake .4s ease}
+.pos-prod-add.btn-stock-oos{background:#E8E0D5;color:#9B8B78;cursor:pointer;opacity:1}
 
 /* CASH QUICK BUTTONS */
 .cash-quick{display:flex;gap:4px;margin-bottom:6px;flex-wrap:nowrap}
@@ -1132,6 +1133,27 @@ button,a{touch-action:manipulation}
   </div>
 </div>
 
+<!-- RESTOCK PROMPT -->
+<div id="restock-prompt" style="display:none;position:fixed;inset:0;z-index:520;background:rgba(0,0,0,.45);align-items:flex-end;justify-content:center" onclick="if(event.target===this)_closeRestockPrompt()">
+  <div style="background:#fff;border-radius:20px 20px 0 0;padding:22px 20px 32px;width:100%;max-width:480px;box-shadow:0 -8px 32px rgba(0,0,0,.18)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <span style="font-weight:700;font-size:.95rem;color:var(--charcoal)">📦 Sin stock — ¿Reabastecer?</span>
+      <button onclick="_closeRestockPrompt()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted);touch-action:manipulation">✕</button>
+    </div>
+    <div id="restock-prod-name" style="font-size:.82rem;color:var(--muted);margin-bottom:20px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
+      <span style="font-size:.88rem;font-weight:600;color:var(--charcoal)">Unidades a agregar</span>
+      <div style="display:flex;align-items:center;gap:14px">
+        <button onclick="_restockChangeQty(-1)" style="width:38px;height:38px;border-radius:9px;border:1.5px solid var(--border);background:#fff;font-size:1.3rem;font-weight:700;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center">−</button>
+        <span id="restock-qty-val" style="font-size:1.3rem;font-weight:700;min-width:28px;text-align:center">1</span>
+        <button onclick="_restockChangeQty(1)" style="width:38px;height:38px;border-radius:9px;border:1.5px solid var(--border);background:#fff;font-size:1.3rem;font-weight:700;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center">+</button>
+      </div>
+    </div>
+    <button id="restock-confirm-btn" onclick="_confirmRestock()" style="width:100%;background:var(--charcoal);color:#fff;border:none;border-radius:12px;padding:15px;font-size:.92rem;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation;margin-bottom:10px">Reabastecer y agregar al carrito →</button>
+    <button onclick="_closeRestockPrompt()" style="width:100%;background:none;border:none;color:var(--muted);font-size:.85rem;cursor:pointer;font-family:inherit;touch-action:manipulation;padding:6px">Cancelar</button>
+  </div>
+</div>
+
 <!-- SALE DONE OVERLAY — onclick vacío: no cierra al tocar fuera -->
 <div class="overlay" id="sale-done-overlay" onclick="void 0">
   <div class="sale-done-modal">
@@ -1467,7 +1489,7 @@ function posCard(p) {
     : '';
   const fallback  = 'tresencantos_default.png';
   return `
-<div class="pos-card${oos?' card-sold':''}" onclick="${oos?'':` addToCart(${p.id},this.querySelector('.pos-card-add-icon'),event)`}">
+<div class="pos-card${oos?' card-sold':''}" onclick="${oos?`_showRestockPrompt(${p.id})`:` addToCart(${p.id},this.querySelector('.pos-card-add-icon'),event)`}">
   <div class="pos-card-img-wrap">
     <img class="pos-card-img" src="${p.image}" alt="${p.name}"
          onerror="this.onerror=null;this.src='${fallback}'"
@@ -1600,7 +1622,7 @@ function productCard(p) {
           ? ` · <span style="color:#9B8B78">${effStock} uds</span>`
           : '';
   return `
-<div class="pos-prod" onclick="${oos ? '' : `addToCart(${p.id})`}" ${disabled}>
+<div class="pos-prod" onclick="${oos ? `_showRestockPrompt(${p.id})` : `addToCart(${p.id},null,event)`}" ${oos ? '' : ''}>
   <img class="pos-prod-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'" onclick="event.stopPropagation();openPosPreview(${p.id})" style="cursor:zoom-in">
   <div class="pos-prod-info">
     <div class="pos-prod-name">${isKit ? '🎁 ' : ''}${p.name}</div>
@@ -1609,7 +1631,7 @@ function productCard(p) {
   </div>
   <div class="pos-prod-right">
     <div class="pos-prod-price">$${p.price.toLocaleString('es-MX')}</div>
-    <button class="pos-prod-add" onclick="event.stopPropagation();${oos ? '' : `addToCart(${p.id},this,event)`}" title="Agregar" ${oos ? 'disabled' : ''}>+</button>
+    <button class="pos-prod-add${oos ? ' btn-stock-oos' : ''}" onclick="event.stopPropagation();${oos ? `_showRestockPrompt(${p.id})` : `addToCart(${p.id},this,event)`}" title="${oos ? 'Sin stock — toca para reabastecer' : 'Agregar'}">+</button>
   </div>
 </div>`;
 }
@@ -1710,14 +1732,68 @@ function _cartStockFeedback(btn, e) {
   const el = btn || (() => {
     if (!e) return null;
     const el2 = document.elementFromPoint(e.clientX, e.clientY);
-    return el2?.closest('.pos-prod-add, .pos-card-add-icon');
+    return el2?.closest('.pos-prod-add, .pos-card-add-icon')
+        || el2?.closest('.pos-prod, .pos-card')?.querySelector('.pos-prod-add, .pos-card-add-icon');
   })();
   if (el) {
     el.classList.remove('btn-added', 'btn-stock');
-    el.offsetWidth; // reflow para reiniciar animación
+    el.offsetWidth;
     el.classList.add('btn-stock');
     clearTimeout(el._rt);
     el._rt = setTimeout(() => el.classList.remove('btn-stock'), 500);
+  }
+}
+
+/* ── RESTOCK PROMPT ── */
+let _restockProductId = null;
+let _restockQty = 1;
+
+function _showRestockPrompt(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  _restockProductId = id;
+  _restockQty = 1;
+  document.getElementById('restock-prod-name').textContent = p.name;
+  document.getElementById('restock-qty-val').textContent = 1;
+  const btn = document.getElementById('restock-confirm-btn');
+  btn.disabled = false;
+  btn.textContent = 'Reabastecer y agregar al carrito →';
+  document.getElementById('restock-prompt').style.display = 'flex';
+}
+
+function _restockChangeQty(delta) {
+  _restockQty = Math.max(1, Math.min(99, _restockQty + delta));
+  document.getElementById('restock-qty-val').textContent = _restockQty;
+}
+
+function _closeRestockPrompt() {
+  document.getElementById('restock-prompt').style.display = 'none';
+}
+
+async function _confirmRestock() {
+  const id = _restockProductId;
+  if (!id) return;
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const btn = document.getElementById('restock-confirm-btn');
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+  const newStock = (p.stock || 0) + _restockQty;
+  const res = await api(`products?id=eq.${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ stock: newStock, out_of_stock: false })
+  });
+  if (res.ok) {
+    p.stock = newStock;
+    p.outOfStock = false;
+    _closeRestockPrompt();
+    filterAndRender();
+    addToCart(id);
+    toast(`📦 +${_restockQty} en stock — agregado al carrito`, '');
+  } else {
+    toast('Error al reabastecer', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Reabastecer y agregar al carrito →';
   }
 }
 
