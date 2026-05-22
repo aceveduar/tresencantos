@@ -1452,12 +1452,12 @@ const EVENT_LABELS = {
 let _usageData = [];
 
 async function loadUsage() {
-  const days = currentPeriod === 0 ? 1 : currentPeriod;
-  const since = days === 0 ? new Date().toISOString().split('T')[0] + 'T00:00:00'
-    : new Date(Date.now() - days * 86400000).toISOString();
-  const filter = days === 9999 ? '' : `&created_at=gte.${since}`;
-  const r = await api(`usage_log?select=event,user_email,created_at${filter}&order=created_at.desc&limit=2000`);
-  _usageData = (r.ok && Array.isArray(r.data)) ? r.data : [];
+  try {
+    const since = PERIODS[currentPeriod]?.();
+    const filter = since ? `&created_at=gte.${since}` : '';
+    const r = await api(`usage_log?select=event,user_email,created_at${filter}&order=created_at.desc&limit=2000`);
+    _usageData = (r.ok && Array.isArray(r.data)) ? r.data : [];
+  } catch { _usageData = []; }
   return _usageData;
 }
 
@@ -1472,18 +1472,12 @@ function renderUsage() {
     return;
   }
 
-  // Agrupar por evento
   const counts = {};
-  _usageData.forEach(row => {
-    counts[row.event] = (counts[row.event] || 0) + 1;
-  });
+  _usageData.forEach(row => { counts[row.event] = (counts[row.event] || 0) + 1; });
 
-  const sorted = Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
-
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
   const max = sorted[0]?.[1] || 1;
-  const periodoLabel = currentPeriod === 0 ? 'hoy' : currentPeriod === 9999 ? 'total' : `últimos ${currentPeriod} días`;
+  const periodoLabel = { today:'hoy', week:'últimos 7 días', month:'últimos 30 días', all:'total' }[currentPeriod] || '';
   label.textContent = `${_usageData.length} acciones — ${periodoLabel}`;
 
   body.innerHTML = sorted.map(([event, count]) => {
