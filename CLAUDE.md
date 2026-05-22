@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-05-20 (rev 7).
+Documentación técnica del proyecto. Última actualización: 2026-05-22 (rev 8).
 
 ## Rol de Claude en este proyecto
 
@@ -70,7 +70,7 @@ tresencantos/
 ├── app.js          # Lógica de la Tienda
 ├── style.css       # Estilos de la Tienda
 ├── admin.html      # Inventario: CRUD productos, estilos inline
-├── admin.js        # Lógica del Inventario (~2600 líneas)
+├── admin.js        # Lógica del Inventario (~4600 líneas)
 ├── pos.html        # Caja: carrito, cobro, apartados, historial offcanvas
 ├── stats.html      # Reportes: dashboard estadísticas (Chart.js CDN)
 ├── staging.html    # Staging: subida masiva + IA Groq
@@ -386,12 +386,17 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
 - `_updateGalleryDots(gallery)` / `_goToGalleryImg(idx)` — navegación de dots en modal sitio
 - `_qvGalleryScroll(gallery)` / `_qvGoTo(idx)` — navegación de dots en QV admin
 
+### Protección "cambios sin guardar" en formulario (2026-05-22)
+`_formSnapshot` / `_takeFormSnapshot()` / `_formIsDirty()` — al abrir el formulario se toma un snapshot de todos los campos 150ms después del focus. Al cerrar sin guardar, si hay diferencias aparece `confirm()`. Se limpia en `saveProduct()` y `closeForm()`.
+
 ### Bugs resueltos relevantes
 - `closeForm()` llama `setBtn(saveBtn, false)` → evita botón Guardar bloqueado en segunda edición
 - Inline stock en Android: `type="text"` + `inputMode="numeric"` + botón ✓ sin depender de `blur`
 - `uploadToDrive`: usaba variables `ep`/`secret` undefined tras refactor — corregido a `driveEp`/`driveSecret`
 - Historial Caja mostraba nombre del producto al momento de la venta (snapshot) — ahora usa el nombre actual del catálogo con fallback al snapshot
 - Kit con `out_of_stock=true` en BD aparecía como "Agotado" en Caja aunque los componentes tuvieran stock — corregido ignorando `out_of_stock` para kits
+- `.ci-price` en carrito: `display:inline-block` no basta dentro de un flex-column — la línea punteada se estiraba al 100% del ancho. Fix: `align-self:flex-start`.
+- `noteDotAC` / `noteDot` — variables eliminadas en refactor pero referenciadas en templates de `adminCard()` y `mobileCard()` → `ReferenceError` que rompía todo el render del Inventario. Corregido 2026-05-22.
 
 ---
 
@@ -407,13 +412,30 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
 - **Método de pago** — 💵 Efectivo / 📱 Transferencia. Transferencia oculta campos de cambio
 - **Nota de venta** — texto libre que aparece en ticket WA
 - **Apartados/anticipos** — checkbox "Es apartado", requiere nombre de cliente + anticipo. Panel "📌 Apartados" muestra pendientes con botón "Completar"
-- **Ticket por WhatsApp** — botón en modal post-venta. Incluye productos, total, método, cambio, nota y aviso de transferencia pendiente si aplica
+- **Ticket por WhatsApp** — botón en modal post-venta. Al enviarlo el modal se cierra automáticamente (400ms delay) — sin tap extra. Incluye productos, total, método, cambio, nota y aviso de transferencia pendiente si aplica
 - **Historial** — últimas 50 ventas en **offcanvas lateral** (botón Historial en topbar). Cancelar venta → borra `sales` → restaura stock. Solo superadmin puede cancelar (`CAN_CANCEL_SALE`)
 - **Corte de caja** — botón 🧾 Corte en topbar. Muestra totales del turno (efectivo, transferencia, ventas, apartados) con opción de compartir por WhatsApp. Turno se registra en `localStorage` keys `te_shift_start` / `te_shift_date` al abrir el POS cada día
 - **Apartados con fecha límite** — campo `📅 Fecha límite de pago` en el formulario de apartado (default 30 días). En la lista de apartados muestra el estado con color: rojo=vencido, ámbar=≤7 días, verde=ok
+- **Banner apartados vencidos** — franja roja debajo del topbar (`#apt-venc-banner`), clickeable → abre pestaña Apartados. Se muestra/oculta al cargar apartados.
+- **Modal post-venta protegido** — `onclick="void 0"` (no cierra al tocar fuera) + Escape bloqueado con `_escGuard`. Se limpia al cerrar con `closeSaleDone()`.
+- **Modo Recepción** (`openRecvMode`) — overlay `#recv-overlay` para recibir inventario desde la Caja sin salir al Inventario. CSS en admin.html, JS en admin.js línea ~4164.
+- **Productos OOS ocultos en Caja** — `getFilteredProducts()` filtra `outOfStock || stock === 0` antes de renderizar. Aplica a lista, grid y búsqueda. Frecuentes ya filtraban OOS independientemente.
 - **Validación:** efectivo debe cubrir total; doble submit bloqueado con flag `_cobrandoAhora`
 - **Mobile:** `pos-right` scrollable, cart-items con `max-height:120px` para que checkout siempre sea visible
 - **seller_email** — se guarda en cada venta con el email del usuario autenticado
+
+### Restock rápido desde la Caja (2026-05-22)
+
+Bottom sheet `#restock-prompt` que aparece en dos situaciones:
+1. **Producto OOS** (stock=0 / outOfStock=true) — tocar la fila, la imagen o el botón `+` abre el prompt directamente
+2. **Stock límite en carrito** — al intentar agregar más unidades de las que hay en stock, primero sacude en rojo (350ms) y luego abre el prompt
+
+**Flujo:** elegir cantidad con `[−] N [+]` → "Reabastecer y agregar al carrito →" → PATCH a Supabase (`stock += N, out_of_stock = false`) → actualiza array local → llama `filterAndRender()` → llama `addToCart(id)` → toast confirmación.
+
+**Funciones:** `_showRestockPrompt(id)`, `_restockChangeQty(delta)`, `_confirmRestock()`, `_closeRestockPrompt()`
+**Globals:** `_restockProductId`, `_restockQty`
+
+**Nota CSS:** `.pos-prod-add.btn-stock-oos` — estilo gris para botón `+` de productos OOS (reemplaza `disabled`). La imagen de un producto OOS tiene `cursor:pointer` y llama `_showRestockPrompt` en vez de `openPosPreview`.
 
 ### Kits en Caja
 - `getKitStock(p)` — stock efectivo: `min(floor(comp.stock / comp.qty))` sobre todos los componentes

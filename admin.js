@@ -1260,7 +1260,7 @@ function mobileCard(p) {
       ? `<span class="mpc-price-orig">$${p.originalPrice.toLocaleString('es-MX')}</span><span class="mpc-price ac-price-tap" onclick="editPriceInlineAdmin(event,${p.id})" ontouchstart="event.stopPropagation()">$${p.price.toLocaleString('es-MX')}</span>`
       : `<span class="mpc-price ac-price-tap" onclick="editPriceInlineAdmin(event,${p.id})" ontouchstart="event.stopPropagation()">$${p.price.toLocaleString('es-MX')}</span>`;
 
-  const stockInfo = `<span class="mpc-stock-inline">${stockChip(p)}</span>`;
+  const stockInfo = `<span class="mpc-stock-inline">${stockChip(p, true)}</span>`;
 
   const badgeHTML = p.badge
     ? `<span class="badge badge-${p.badgeType||'none'} mpc-badge-inline" style="font-size:.6rem;padding:2px 7px">${p.badge}</span>`
@@ -1379,8 +1379,7 @@ function renderTable() {
     : '';
 
   if (useCards && cardGrid) {
-    const desktopCards = !mobile;
-    cardGrid.innerHTML = visible.map(p => adminCard(p, desktopCards)).join('') + moreHTML;
+    cardGrid.innerHTML = visible.map(p => adminCard(p, true)).join('') + moreHTML;
     updateBulkBar();
     return;
   }
@@ -2145,7 +2144,11 @@ function openForm(id) {
   document.getElementById('save-btn').disabled = false;
   _applyPriceLock();
   setTimeout(() => {
-    document.getElementById('f-name').focus();
+    if (id) {
+      document.getElementById('f-name').focus();
+    } else {
+      document.querySelector('#form-overlay .modal-body').scrollTop = 0;
+    }
     _formSnapshot = _takeFormSnapshot();
   }, 150);
 }
