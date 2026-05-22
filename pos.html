@@ -1494,14 +1494,16 @@ function setCategory(cat) {
   searchProducts(q);
 }
 
+const _norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
 /* ── SEARCH ── */
 function getFilteredProducts(q = '') {
-  const term = q.trim().toLowerCase();
+  const term = _norm(q);
   const filtered = products.filter(p => {
     const matchCat = catMatchesFilter(p.category, currentCat);
-    const matchQ   = !term || p.name.toLowerCase().includes(term) ||
+    const matchQ   = !term || _norm(p.name).includes(term) ||
                      (p.barcode && p.barcode.includes(term)) ||
-                     p.categoryLabel.toLowerCase().includes(term);
+                     _norm(p.categoryLabel).includes(term);
     return matchCat && matchQ;
   });
   return applySort(filtered);
@@ -3384,11 +3386,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Enter en búsqueda → agrega el primer resultado disponible
   document.getElementById('pos-search').addEventListener('keydown', e => {
     if (e.key !== 'Enter') return;
-    const term = e.target.value.trim().toLowerCase();
+    const term = _norm(e.target.value);
     if (!term) return;
     const match = products.find(p =>
       !p.outOfStock && p.stock > 0 && (
-        p.name.toLowerCase().includes(term) ||
+        _norm(p.name).includes(term) ||
         (p.barcode && p.barcode.includes(term))
       )
     );

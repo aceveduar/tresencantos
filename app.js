@@ -288,9 +288,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderCartBadge();
 });
 
+const _norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
 /* ── SEARCH ── */
 function onSearchInput(val) {
-  searchQuery = val.trim().toLowerCase();
+  searchQuery = _norm(val);
   _catalogShowAll = false;
   render();
 }
@@ -309,9 +311,9 @@ function render() {
   let list = products.filter(p => {
     const matchCat = catMatchesFilter(p.category, currentFilter);
     const matchQ   = !searchQuery ||
-      p.name.toLowerCase().includes(searchQuery) ||
-      (p.description || '').toLowerCase().includes(searchQuery) ||
-      p.categoryLabel.toLowerCase().includes(searchQuery);
+      _norm(p.name).includes(searchQuery) ||
+      _norm(p.description).includes(searchQuery) ||
+      _norm(p.categoryLabel).includes(searchQuery);
     return matchCat && matchQ;
   });
 

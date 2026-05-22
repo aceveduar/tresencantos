@@ -273,15 +273,17 @@ function adminCatMatches(productCat, filterCat) {
   return false;
 }
 
+const _norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
 function getFilteredProducts() {
-  const q   = document.getElementById('search-input')?.value.toLowerCase() || '';
+  const q   = _norm(document.getElementById('search-input')?.value) || '';
   const cat = document.getElementById('cat-filter')?.value || 'all';
   const filtered = products.filter(p => {
     const matchCat = adminCatMatches(p.category, cat);
     const terms    = q ? q.split(',').map(t => t.trim()).filter(Boolean) : [];
     const matchQ   = !terms.length || terms.some(t =>
-      p.name.toLowerCase().includes(t) ||
-      (p.categoryLabel || '').toLowerCase().includes(t) ||
+      _norm(p.name).includes(t) ||
+      _norm(p.categoryLabel).includes(t) ||
       (p.barcode && p.barcode.includes(t))
     );
     const matchFlag = !_showOnlyFlagged || !!_flagItem(p.id);
@@ -934,9 +936,9 @@ function adminCard(p, editable = false) {
         </button>
       </div>
       <div class="ac-actions">
-        <button class="action-btn" onclick="openForm(${p.id})" title="Editar">${ICON_EDIT}</button>
-        <button class="action-btn btn-duplicate" onclick="duplicateProduct(${p.id})" title="Duplicar">${ICON_COPY}</button>
-        ${can.deleteProduct ? `<button class="action-btn del" onclick="askDelete(${p.id})" title="Eliminar">✕</button>` : ''}
+        <button class="action-btn" onclick="event.stopPropagation();openForm(${p.id})" ontouchstart="event.stopPropagation()" title="Editar">${ICON_EDIT}</button>
+        <button class="action-btn btn-duplicate" onclick="event.stopPropagation();duplicateProduct(${p.id})" ontouchstart="event.stopPropagation()" title="Duplicar">${ICON_COPY}</button>
+        ${can.deleteProduct ? `<button class="action-btn del" onclick="event.stopPropagation();askDelete(${p.id})" ontouchstart="event.stopPropagation()" title="Eliminar">✕</button>` : ''}
       </div>
     </div>
   </div>
@@ -1166,9 +1168,9 @@ function desktopRow(p) {
   </td>
   <td class="col-actions">
     <div class="actions">
-      <button class="action-btn" onclick="openForm(${p.id})" title="Editar">${ICON_EDIT}</button>
-      <button class="action-btn" onclick="duplicateProduct(${p.id})" title="Duplicar">${ICON_COPY}</button>
-      ${can.deleteProduct ? `<button class="action-btn del" onclick="askDelete(${p.id})" title="Eliminar">✕</button>` : ''}
+      <button class="action-btn" onclick="event.stopPropagation();openForm(${p.id})" ontouchstart="event.stopPropagation()" title="Editar">${ICON_EDIT}</button>
+      <button class="action-btn" onclick="event.stopPropagation();duplicateProduct(${p.id})" ontouchstart="event.stopPropagation()" title="Duplicar">${ICON_COPY}</button>
+      ${can.deleteProduct ? `<button class="action-btn del" onclick="event.stopPropagation();askDelete(${p.id})" ontouchstart="event.stopPropagation()" title="Eliminar">✕</button>` : ''}
     </div>
   </td>
 </tr>`;

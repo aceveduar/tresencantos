@@ -406,6 +406,7 @@ tr:hover .actions, tr.row-selected .actions{opacity:1}
   border:1.5px solid var(--border);background:#FAFAF8;cursor:pointer;
   font-size:.8rem;line-height:1;transition:all .15s;
   color:var(--muted);flex-shrink:0;padding:0;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
 }
 .action-btn:hover{border-color:var(--gold);color:var(--gold-dark);background:var(--gold-light);transform:translateY(-1px);box-shadow:0 2px 8px rgba(201,164,98,.2)}
 .action-btn:active{transform:translateY(0)}
@@ -1884,6 +1885,10 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           </div>
         </div>
         <textarea id="f-description" placeholder="Describe el producto: materiales, uso, características…" onblur="applyDescriptionFormat('f-description')"></textarea>
+      </div>
+      <div class="field">
+        <label>Nota interna <span style="font-weight:400;color:var(--muted-light)">(solo admins, no se publica)</span></label>
+        <input type="text" id="f-notes" placeholder="Ej: revisar precio, promo hasta fin de mes…">
       </div>
       <p class="form-section">🏷 Detalles</p>
       <div class="form-row">
