@@ -701,7 +701,6 @@ function mapProduct(p) {
     stock: p.stock ?? 0,
     cost: p.cost ?? null,
     isPublished: p.is_published ?? true,
-    notes: p.notes || null,
     kitItems: p.kit_items || null,
     images: p.images || null
   };
@@ -891,7 +890,6 @@ function adminCard(p, editable = false) {
   const pubEmoji  = p.isPublished === false ? '🙈' : p.outOfStock ? '⚠️' : '🌐';
   const flagData  = _flagItem(p.id);
   const flagDotAC = flagData ? `<span class="flag-dot" title="${flagData.note ? flagData.note : 'Pendiente de revisión'}">🚩</span>` : '';
-  const noteDotAC = p.notes ? `<span class="note-dot" onclick="event.stopPropagation();toast('📝 '+${JSON.stringify(p.notes)})" title="${p.notes.replace(/"/g,'&quot;')}">📝</span>` : '';
   const isSinCat  = p.category === 'por_revisar';
 
   return `
@@ -916,7 +914,7 @@ function adminCard(p, editable = false) {
     </button>
   </div>
   <div class="ac-body">
-    <div class="ac-name" title="${p.name}">${p.name}${noteDotAC}</div>
+    <div class="ac-name" title="${p.name}">${p.name}</div>
     ${flagData?.note ? `<div class="flag-note-line">🚩 "${flagData.note}"</div>` : ''}
     <div class="ac-meta">
       <span class="cat-dot" style="background:${catColor}"></span>
@@ -1253,7 +1251,6 @@ function mobileCard(p) {
   const catColor = getCatColor(p.category);
   const pubTitle  = p.isPublished === false ? 'Oculto del sitio — toca para publicar' : p.outOfStock ? 'Publicado pero agotado — no aparece en el sitio' : 'Visible en sitio — toca para ocultar';
   const pubEmoji  = p.isPublished === false ? '🙈' : p.outOfStock ? '⚠️' : '🌐';
-  const noteDot    = p.notes ? `<span class="note-dot" onclick="event.stopPropagation();toast('📝 '+${JSON.stringify(p.notes)})" title="${p.notes.replace(/"/g,'&quot;')}">📝</span>` : '';
   const flagDataMC = _flagItem(p.id);
   const isSinCatMC = p.category === 'por_revisar';
 
@@ -1293,7 +1290,7 @@ function mobileCard(p) {
           </button>
         </div>
         <div class="mpc-info">
-          <div class="mpc-name">${p.name}${flagDataMC ? ' <span class="flag-dot-row" title="'+(flagDataMC.note||'Pendiente de revisión')+'">🚩</span>' : ''}${noteDot}</div>
+          <div class="mpc-name">${p.name}${flagDataMC ? ' <span class="flag-dot-row" title="'+(flagDataMC.note||'Pendiente de revisión')+'">🚩</span>' : ''}</div>
           ${flagDataMC?.note ? `<div class="flag-note-line">🚩 "${flagDataMC.note}"</div>` : ''}
           <div class="mpc-cat-tag">
             <span class="cat-dot" style="background:${catColor}"></span>
@@ -1525,7 +1522,6 @@ async function duplicateProduct(id) {
         featured: copy.featured, out_of_stock: false, is_published: false,
         original_price: copy.originalPrice, position: copy.position,
         barcode: null, stock: copy.stock ?? 0, cost: copy.cost ?? null,
-        notes: copy.notes ?? null,
         kit_items: copy.kitItems ?? null,
         images: copy.images ?? null
       })
@@ -2055,6 +2051,24 @@ async function saveInlineAiKey() {
 }
 
 /* ── FORM ── */
+let _formSnapshot = null;
+
+function _takeFormSnapshot() {
+  const ids = ['f-name','f-price','f-original-price','f-description','f-image','f-category','f-badge','f-badge-type','f-barcode','f-stock','f-cost'];
+  const snap = {};
+  ids.forEach(id => { const el = document.getElementById(id); if (el) snap[id] = el.value; });
+  ['f-featured','f-out-of-stock','f-published','f-is-kit'].forEach(id => {
+    const el = document.getElementById(id); if (el) snap[id] = el.checked;
+  });
+  return snap;
+}
+
+function _formIsDirty() {
+  if (!_formSnapshot) return false;
+  const cur = _takeFormSnapshot();
+  return Object.keys(_formSnapshot).some(k => _formSnapshot[k] !== cur[k]);
+}
+
 function openForm(id) {
   if (id && !can.editProduct) { toast('Vista de solo lectura', ''); return; }
   if (!id && !can.addProduct) { toast('Sin permiso para agregar productos', 'error'); return; }
@@ -2076,7 +2090,6 @@ function openForm(id) {
     document.getElementById('f-badge').value = p.badge || '';
     document.getElementById('f-badge-type').value = p.badgeType || '';
     document.getElementById('f-description').value = p.description;
-    document.getElementById('f-notes').value = p.notes || '';
     document.getElementById('f-image').value = p.image;
     if (p.image) { const w = document.getElementById('f-img-url-wrap'); if (w) w.style.display = 'block'; }
     document.getElementById('f-featured').checked = p.featured;
@@ -2104,12 +2117,12 @@ function openForm(id) {
     document.getElementById('f-badge').value = '';
     document.getElementById('f-badge-type').value = '';
     document.getElementById('f-description').value = '';
-    document.getElementById('f-notes').value = '';
     document.getElementById('f-image').value = '';
     const _urlWrap = document.getElementById('f-img-url-wrap'); if (_urlWrap) _urlWrap.style.display = 'none';
     document.getElementById('img-upload-zone')?.classList.remove('has-image');
     document.getElementById('f-featured').checked = false;
     document.getElementById('f-out-of-stock').checked = false;
+    document.getElementById('f-published').checked = false;
     document.getElementById('f-barcode').value = '';
     document.getElementById('f-stock').value = 1;
     document.getElementById('f-cost').value = '';
@@ -2131,10 +2144,17 @@ function openForm(id) {
   initImageUpload();
   document.getElementById('save-btn').disabled = false;
   _applyPriceLock();
-  setTimeout(() => document.getElementById('f-name').focus(), 100);
+  setTimeout(() => {
+    document.getElementById('f-name').focus();
+    _formSnapshot = _takeFormSnapshot();
+  }, 150);
 }
 
 function closeForm() {
+  if (_formIsDirty()) {
+    if (!confirm('Tienes cambios sin guardar. ¿Salir de todas formas?')) return;
+  }
+  _formSnapshot = null;
   document.getElementById('form-overlay').classList.remove('open');
   document.body.style.overflow = '';
   setBtn(document.getElementById('save-btn'), false);
@@ -2451,7 +2471,6 @@ async function saveProduct() {
   const price = parseFloat(document.getElementById('f-price').value);
   const image = document.getElementById('f-image').value.trim();
   const description = document.getElementById('f-description').value.trim();
-  const notes = document.getElementById('f-notes').value.trim() || null;
 
   if (!name || isNaN(price)) {
     toast('Completa nombre y precio.', 'error');
@@ -2499,7 +2518,6 @@ async function saveProduct() {
     stock: data.stock,
     cost: data.cost,
     is_published: data.isPublished,
-    notes: notes,
     kit_items: data.kitItems,
     images: data.images
   };
@@ -2559,6 +2577,7 @@ async function saveProduct() {
     logActivity('producto_creado', `Creó "${name}" — $${price.toLocaleString('es-MX')}`, { id: newId, name, price });
     TE?.track('product_saved', { action: 'add', name });
   }
+  _formSnapshot = null;
   closeForm();
   renderTable();
   renderStats();

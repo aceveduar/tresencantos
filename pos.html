@@ -914,6 +914,13 @@ button,a{touch-action:manipulation}
   </div>
 </div>
 
+<!-- BANNER APARTADOS VENCIDOS -->
+<div id="apt-venc-banner" style="display:none;background:#FEE2E2;border-bottom:2px solid #FECACA;padding:9px 16px;cursor:pointer;display:none;align-items:center;gap:8px;font-size:.82rem;font-weight:700;color:#B91C1C;touch-action:manipulation" onclick="switchPosTab('apartados')">
+  <span style="font-size:1rem">⚠️</span>
+  <span id="apt-venc-banner-txt"></span>
+  <span style="margin-left:auto;font-size:.75rem;font-weight:600;opacity:.7">Ver →</span>
+</div>
+
 <!-- MAIN -->
 <div class="pos-body">
 
@@ -1125,8 +1132,8 @@ button,a{touch-action:manipulation}
   </div>
 </div>
 
-<!-- SALE DONE OVERLAY -->
-<div class="overlay" id="sale-done-overlay">
+<!-- SALE DONE OVERLAY — onclick vacío: no cierra al tocar fuera -->
+<div class="overlay" id="sale-done-overlay" onclick="void 0">
   <div class="sale-done-modal">
     <button class="sd-close" onclick="closeSaleDone()" aria-label="Cerrar">✕</button>
     <div class="sd-icon" id="sd-icon">✓</div>
@@ -2742,6 +2749,17 @@ async function loadApartados() {
     alertBtn.style.display = vencidos > 0 ? '' : 'none';
     alertCount.textContent = vencidos === 1 ? '1 vencido' : `${vencidos} vencidos`;
   }
+  // Banner prominente debajo del topbar
+  const banner = document.getElementById('apt-venc-banner');
+  const bannerTxt = document.getElementById('apt-venc-banner-txt');
+  if (banner && bannerTxt) {
+    if (vencidos > 0) {
+      bannerTxt.textContent = `${vencidos} apartado${vencidos>1?'s':''} vencido${vencidos>1?'s':''} — requieren atención`;
+      banner.style.display = 'flex';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
 
   if (empty) {
     if (list)    list.innerHTML = '<div class="history-empty">Sin apartados activos</div>';
@@ -3119,6 +3137,10 @@ async function cobrar() {
 }
 
 function showSaleDone() {
+  // Bloquear Escape mientras el modal esté abierto
+  const _escGuard = e => { if (e.key === 'Escape') e.stopImmediatePropagation(); };
+  document.addEventListener('keydown', _escGuard, true);
+  document.getElementById('sale-done-overlay')._escGuard = _escGuard;
   const s = _lastSale;
   const fmt = n => `$${parseFloat(n||0).toLocaleString('es-MX')} MXN`;
   const isApt = s.isApartado;
@@ -3173,7 +3195,12 @@ function sendWhatsAppTicket() {
 }
 
 function closeSaleDone() {
-  document.getElementById('sale-done-overlay').classList.remove('open');
+  const overlay = document.getElementById('sale-done-overlay');
+  if (overlay._escGuard) {
+    document.removeEventListener('keydown', overlay._escGuard, true);
+    delete overlay._escGuard;
+  }
+  overlay.classList.remove('open');
   document.getElementById('pos-search').focus();
 }
 

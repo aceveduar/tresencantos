@@ -173,6 +173,7 @@ function showSkeleton() {
 
 async function loadProducts() {
   showSkeleton();
+  let failed = false;
   try {
     // is_published=true: solo publicados. out_of_stock=false: solo con stock
     const result = await supabaseApi('products?select=*&is_published=eq.true&out_of_stock=eq.false&category=neq.por_revisar&order=position.asc');
@@ -195,8 +196,21 @@ async function loadProducts() {
       }));
       return;
     }
-  } catch {}
+    if (!result.ok) failed = true;
+  } catch { failed = true; }
   products = [];
+  if (failed) _showCatalogError();
+}
+
+function _showCatalogError() {
+  const grid = document.getElementById('products-grid');
+  if (!grid) return;
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:56px 24px">
+    <div style="font-size:2.5rem;margin-bottom:14px">😕</div>
+    <p style="font-size:.95rem;color:#6B5C48;margin-bottom:6px;font-weight:600">No pudimos cargar el catálogo</p>
+    <p style="font-size:.82rem;color:#9B8B78;margin-bottom:22px">Revisa tu conexión e intenta de nuevo</p>
+    <button onclick="location.reload()" style="background:#C9A462;color:#fff;border:none;border-radius:50px;padding:12px 28px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">↺ Reintentar</button>
+  </div>`;
 }
 
 /* ── REVISTA ── */
