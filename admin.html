@@ -896,8 +896,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 }
 .fab-kit:active{transform:scale(.88)}
 /* Kit Builder */
-#kit-builder-overlay{display:flex;opacity:0;pointer-events:none;transition:opacity .2s}
-#kit-builder-overlay.kb-open{opacity:1;pointer-events:auto}
+#kit-builder-overlay{display:none}
+#kit-builder-overlay.kb-open{display:flex;opacity:1;pointer-events:auto}
 .kb-input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:.92rem;font-family:inherit;outline:none;box-sizing:border-box;transition:.15s}
 .kb-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,164,98,.1)}
 .kb-label{font-size:.75rem;font-weight:700;color:var(--muted);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}

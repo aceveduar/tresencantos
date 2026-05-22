@@ -5267,14 +5267,18 @@ function openKitBuilder() {
     byId('kb-save-btn').textContent = 'Guardar Kit →';
     _kbPopulateCategories();
     _kbRenderComponents();
-    byId('kit-builder-overlay').classList.add('kb-open');
+    const kbo = byId('kit-builder-overlay');
+    kbo.style.display = 'flex';
+    kbo.classList.add('kb-open');
     document.body.style.overflow = 'hidden';
     setTimeout(() => byId('kb-name').focus(), 250);
   } catch(e) { toast('Error al abrir Kit Builder: ' + e.message, 'error'); }
 }
 
 function closeKitBuilder() {
-  document.getElementById('kit-builder-overlay').classList.remove('kb-open');
+  const el = document.getElementById('kit-builder-overlay');
+  el.classList.remove('kb-open');
+  el.style.display = 'none';
   document.body.style.overflow = '';
 }
 
