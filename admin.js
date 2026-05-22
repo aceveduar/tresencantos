@@ -880,9 +880,12 @@ function adminCard(p, editable = false) {
   const badgeHTML = p.badge
     ? `<span class="badge badge-${p.badgeType||'none'} ac-badge-pos" style="font-size:.6rem;padding:2px 6px">${p.badge}</span>`
     : '';
-  const priceHTML = p.originalPrice
-    ? `<span class="ac-orig">$${p.originalPrice.toLocaleString('es-MX')}</span><span class="ac-price">$${p.price.toLocaleString('es-MX')}</span>`
-    : `<span class="ac-price">$${p.price.toLocaleString('es-MX')}</span>`;
+  const priceDisplay = p.price === 0
+    ? `<span class="ac-price ac-price-zero" onclick="editPriceInlineAdmin(event,${p.id})" ontouchstart="event.stopPropagation()" title="Sin precio — toca para agregar">Sin precio</span>`
+    : p.originalPrice
+      ? `<span class="ac-orig">$${p.originalPrice.toLocaleString('es-MX')}</span><span class="ac-price ac-price-tap" onclick="editPriceInlineAdmin(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar precio">$${p.price.toLocaleString('es-MX')}</span>`
+      : `<span class="ac-price ac-price-tap" onclick="editPriceInlineAdmin(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar precio">$${p.price.toLocaleString('es-MX')}</span>`;
+  const priceHTML = priceDisplay;
   const oosTitle  = oos ? 'Agotado — toca para marcar disponible' : 'Disponible — toca para agotar';
   const pubTitle  = p.isPublished === false ? 'Oculto del sitio — toca para publicar' : p.outOfStock ? 'Publicado pero agotado — no aparece en el sitio' : 'Visible en sitio — toca para ocultar';
   const pubEmoji  = p.isPublished === false ? '🙈' : p.outOfStock ? '⚠️' : '🌐';
@@ -1034,6 +1037,71 @@ async function editStockInline(e, id) {
   }, 50);
 }
 
+async function editPriceInlineAdmin(e, id) {
+  e.stopPropagation();
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  if (!can.editProduct) { toast('Sin permiso para editar precios', 'error'); return; }
+
+  const trigger = e.currentTarget;
+  const mobile = isMobile();
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.inputMode = 'decimal';
+  input.pattern = '[0-9]*';
+  input.autocomplete = 'off';
+  input.value = p.price || '';
+  input.placeholder = '0';
+  input.style.cssText = 'width:80px;padding:3px 7px;border:2px solid var(--gold);border-radius:6px;font-size:16px;outline:none;font-family:inherit;font-weight:700;text-align:center;color:var(--charcoal)';
+
+  let container;
+  if (mobile) {
+    container = document.createElement('span');
+    container.style.cssText = 'display:inline-flex;align-items:center;gap:4px;vertical-align:middle';
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.textContent = '✓';
+    btn.style.cssText = 'background:var(--gold);border:none;color:#fff;border-radius:6px;padding:4px 7px;font-size:.82rem;cursor:pointer;font-family:inherit;line-height:1;touch-action:manipulation';
+    btn.ontouchend = ev => { ev.preventDefault(); save(); };
+    btn.onclick = () => save();
+    container.appendChild(input); container.appendChild(btn);
+    trigger.replaceWith(container);
+  } else {
+    trigger.replaceWith(input);
+  }
+
+  let saved = false;
+  const save = async () => {
+    if (saved) return;
+    saved = true;
+    const newPrice = parseFloat(input.value);
+    if (isNaN(newPrice) || newPrice < 0) { renderTable(); _qvRefresh(id); return; }
+    if (newPrice === p.price) { renderTable(); _qvRefresh(id); return; }
+
+    const result = await supabaseApi(`products?id=eq.${id}`, {
+      method: 'PATCH', body: JSON.stringify({ price: newPrice })
+    });
+    if (result.ok) {
+      p.price = newPrice;
+      renderStats();
+      toast(`Precio actualizado → $${newPrice.toLocaleString('es-MX')}`);
+    } else {
+      toast('Error al actualizar precio', 'error');
+    }
+    renderTable(); _qvRefresh(id);
+  };
+
+  input.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter')  { ev.preventDefault(); save(); }
+    if (ev.key === 'Escape') { saved = true; renderTable(); _qvRefresh(id); }
+  });
+  setTimeout(() => {
+    input.focus();
+    if (!mobile) input.select();
+    if (!mobile) setTimeout(() => { if (!saved) input.addEventListener('blur', save); }, 500);
+  }, 50);
+}
+
 // getCatColor() reemplaza CAT_COLORS — usa el array dinámico de categorías
 
 function publishedToggle(p) {
@@ -1156,7 +1224,9 @@ function desktopRow(p) {
   </td>
   <td class="col-price">
     ${p.originalPrice ? `<div class="orig-price-cell">$${p.originalPrice.toLocaleString('es-MX')}</div>` : ''}
-    <div class="price-cell">$${p.price.toLocaleString('es-MX')}</div>
+    ${p.price === 0
+      ? `<div class="price-cell ac-price-zero" onclick="editPriceInlineAdmin(event,${p.id})" title="Sin precio — clic para agregar" style="cursor:pointer">Sin precio</div>`
+      : `<div class="price-cell ac-price-tap" onclick="editPriceInlineAdmin(event,${p.id})" title="Clic para editar precio" style="cursor:pointer">$${p.price.toLocaleString('es-MX')}</div>`}
   </td>
   <td class="col-state">
     <div class="state-cell">
@@ -1187,10 +1257,11 @@ function mobileCard(p) {
   const flagDataMC = _flagItem(p.id);
   const isSinCatMC = p.category === 'por_revisar';
 
-  const priceHTML = p.originalPrice
-    ? `<span class="mpc-price-orig">$${p.originalPrice.toLocaleString('es-MX')}</span>
-       <span class="mpc-price">$${p.price.toLocaleString('es-MX')}</span>`
-    : `<span class="mpc-price">$${p.price.toLocaleString('es-MX')}</span>`;
+  const priceHTML = p.price === 0
+    ? `<span class="mpc-price ac-price-zero" onclick="editPriceInlineAdmin(event,${p.id})" ontouchstart="event.stopPropagation()" title="Sin precio">Sin precio</span>`
+    : p.originalPrice
+      ? `<span class="mpc-price-orig">$${p.originalPrice.toLocaleString('es-MX')}</span><span class="mpc-price ac-price-tap" onclick="editPriceInlineAdmin(event,${p.id})" ontouchstart="event.stopPropagation()">$${p.price.toLocaleString('es-MX')}</span>`
+      : `<span class="mpc-price ac-price-tap" onclick="editPriceInlineAdmin(event,${p.id})" ontouchstart="event.stopPropagation()">$${p.price.toLocaleString('es-MX')}</span>`;
 
   const stockInfo = `<span class="mpc-stock-inline">${stockChip(p)}</span>`;
 
