@@ -1621,8 +1621,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
             </div>
             <div class="cap-field">
               <label>¿Cuántas hay?</label>
-              <input type="number" id="cap-stock" placeholder="1" min="1" value="1"
-                oninput="if(parseInt(this.value)<1||!this.value)this.value=1">
+              <input type="number" id="cap-stock" placeholder="1" min="1" value="1" inputmode="numeric">
             </div>
           </div>
           <div class="cap-field">
