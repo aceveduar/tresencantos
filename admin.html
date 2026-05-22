@@ -1172,9 +1172,11 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   }
   .modal-foot .btn{width:100%;justify-content:center;padding:14px}
 
-  /* Zona de imagen: ocultar drag zone en mobile, solo botones */
-  .img-upload-zone .up-icon,.img-upload-zone .up-text{display:none}
-  .img-upload-zone{padding:8px;border-style:solid;background:transparent}
+  /* Zona de imagen: ícono como placeholder, ocultar texto drag */
+  .img-upload-zone .up-text{display:none}
+  .img-upload-zone .up-icon{display:block;font-size:2rem;margin-bottom:8px;opacity:.35}
+  .img-upload-zone{padding:20px 8px 12px;border-style:dashed;background:#FAFAF8}
+  .img-upload-zone.has-image{display:none}
   .img-btns .btn{flex:1;justify-content:center;min-height:44px}
 
   /* Ocultar campo "Etiqueta visible" — se llena automáticamente */
@@ -1476,8 +1478,11 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
             </div>
           </div>
           <div class="cap-field">
-            <label>Categoría</label>
-            <select id="cap-category"><option value="">Sin categoría</option></select>
+            <label>Código de barras <span style="font-weight:400;color:var(--muted-light)">(opcional)</span></label>
+            <div style="display:flex;gap:6px">
+              <input type="text" id="cap-barcode" placeholder="Escanea o escribe…" style="flex:1" autocomplete="off">
+              <button type="button" class="btn btn-outline btn-sm" onclick="openCapScanner()" title="Escanear">📷</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1728,14 +1733,14 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     </div>
     <div class="modal-body">
       <input type="hidden" id="f-id">
-      <p class="form-section">🖼 Imagen del producto</p>
+      <p class="form-section">📸 Fotos del producto</p>
       <div class="field" style="margin-bottom:4px">
         <!-- Inputs ocultos — galería y cámara -->
         <input type="file" id="f-img-file" accept="image/*" style="display:none" onchange="handleFileSelect(this)">
         <input type="file" id="f-img-camera" accept="image/*" capture="environment" style="display:none" onchange="handleFileSelect(this)">
         <!-- Zona de arrastre (drag & drop desktop) -->
         <div class="img-upload-zone" id="img-upload-zone">
-          <div class="up-icon">🖼️</div>
+          <div class="up-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
           <div class="up-text">Arrastra una foto aquí</div>
           <div class="img-btns">
             <button type="button" class="btn btn-outline btn-sm"
@@ -1748,9 +1753,11 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
             </button>
           </div>
         </div>
-        <div class="upload-or">o pega una URL</div>
-        <input type="url" id="f-image" class="form-input" placeholder="https://…" oninput="previewImg()">
-        <p class="hint">Google Drive, Unsplash u otro enlace de imagen</p>
+        <div class="upload-or"><button type="button" class="btn btn-outline btn-sm" style="font-size:.75rem;color:var(--muted);border:none;padding:0;background:none;cursor:pointer" onclick="document.getElementById('f-img-url-wrap').style.display='block';this.parentElement.style.display='none'">+ o pega una URL</button></div>
+        <div id="f-img-url-wrap" style="display:none">
+          <input type="url" id="f-image" class="form-input" placeholder="https://…" oninput="previewImg()">
+          <p class="hint">Google Drive, Unsplash u otro enlace de imagen</p>
+        </div>
         <img id="f-img-preview" class="img-preview" alt="Vista previa">
         <!-- Botón IA — aparece tras subir imagen -->
         <div id="ai-form-wrap" style="display:none">
@@ -1767,16 +1774,21 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           </div>
         </div>
       </div>
-      <p class="form-section">🖼 Imágenes adicionales <span style="font-size:.65rem;font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(opcional — para mostrar caja, detalle, etc.)</span></p>
+      <p style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px">Imágenes adicionales <span style="font-weight:400;letter-spacing:0;text-transform:none">(opcional)</span></p>
       <div style="margin-bottom:4px">
         <div id="additional-images-strip" style="display:flex;gap:8px;flex-wrap:wrap;min-height:32px;margin-bottom:10px;align-items:flex-start"></div>
         <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
           <input type="file" id="add-img-file-input" accept="image/*" style="display:none" onchange="handleAdditionalImageFile(this)">
+          <input type="file" id="add-img-camera-input" accept="image/*" capture="environment" style="display:none" onchange="handleAdditionalImageFile(this)">
           <button type="button" id="add-img-file-btn" class="btn btn-outline btn-sm" onclick="document.getElementById('add-img-file-input').click()">📁 Desde galería</button>
-          <input type="url" id="add-img-url-input" class="form-input" placeholder="o pega una URL de imagen…" style="min-width:160px">
+          <button type="button" class="btn btn-cam btn-sm" onclick="document.getElementById('add-img-camera-input').click()">📷 Tomar foto</button>
+          <button type="button" class="btn btn-outline btn-sm" style="font-size:.75rem;color:var(--muted)" onclick="document.getElementById('add-img-url-wrap').style.display='flex';this.style.display='none'">+ URL</button>
+        </div>
+        <div id="add-img-url-wrap" style="display:none;gap:7px;align-items:center;margin-top:6px">
+          <input type="url" id="add-img-url-input" class="form-input" placeholder="Pega una URL de imagen…" style="flex:1">
           <button type="button" class="btn btn-outline btn-sm" onclick="addAdditionalImageUrl()">+ Agregar</button>
         </div>
-        <p class="hint">Máx. 5 imágenes. Se muestran en el modal del sitio como galería deslizable.</p>
+        <p style="font-size:.73rem;color:var(--muted-light);margin-top:5px;line-height:1.4">Máx. 5 · galería deslizable en el sitio</p>
       </div>
       <p class="form-section">📋 Información básica</p>
       <div class="form-row">

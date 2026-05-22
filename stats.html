@@ -47,6 +47,21 @@ button,select{font-family:inherit}
 /* ── MAIN ── */
 main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 
+/* ── RESUMEN DEL DÍA ── */
+.day-summary{
+  background:linear-gradient(135deg,#1C1817 0%,#2E2825 100%);
+  border-radius:16px;padding:20px 20px 18px;margin-bottom:20px;color:#fff;
+}
+.day-summary-date{font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:10px}
+.day-summary-main{font-size:1.6rem;font-weight:700;font-family:'Playfair Display',serif;color:#fff;line-height:1.2;margin-bottom:4px}
+.day-summary-sub{font-size:.84rem;color:rgba(255,255,255,.6);margin-bottom:14px}
+.day-summary-best{font-size:.8rem;color:var(--gold);font-weight:600;margin-bottom:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.day-summary-pills{display:flex;gap:8px;flex-wrap:wrap}
+.day-summary-pill{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.1);border-radius:50px;padding:5px 12px;font-size:.75rem;color:rgba(255,255,255,.8);font-weight:500}
+.day-summary-pill.apt{background:rgba(254,243,199,.15);color:#FDE68A}
+.day-summary-pill.apt.venc{background:rgba(239,68,68,.2);color:#FCA5A5}
+.day-summary-none{font-size:.9rem;color:rgba(255,255,255,.45);font-style:italic}
+
 /* ── PERIOD SELECTOR ── */
 .period-bar{
   display:flex;gap:8px;margin-bottom:26px;
@@ -130,6 +145,26 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .badge-sm{font-size:.65rem;font-weight:700;padding:3px 9px;border-radius:50px;white-space:nowrap}
 .badge-red{background:#FEE2E2;color:#991B1B}
 .badge-amber{background:#FEF3C7;color:#92400E}
+
+/* ── VENTAS DEL DÍA ── */
+.dv-sale{border-bottom:1px solid var(--border)}
+.dv-sale:last-child{border-bottom:none}
+.dv-sale-head{display:flex;align-items:center;gap:8px;padding:10px 6px;cursor:pointer;transition:background .15s;border-radius:8px;margin:0 -6px}
+.dv-sale-head:hover,.dv-sale-head:active{background:#FFF8EE}
+.dv-sale-time{font-size:.76rem;color:var(--muted);font-weight:500;white-space:nowrap}
+.dv-sale-pay{font-size:.82rem}
+.dv-sale-names{flex:1;min-width:0;font-size:.78rem;color:var(--charcoal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dv-sale-total{font-family:'Playfair Display',serif;font-weight:700;font-size:.92rem;color:var(--green);white-space:nowrap}
+.dv-sale-arrow{font-size:.7rem;color:var(--muted);transition:transform .2s;flex-shrink:0}
+.dv-sale.open .dv-sale-arrow{transform:rotate(90deg)}
+.dv-body{display:none;padding:4px 0 8px}
+.dv-sale.open .dv-body{display:block}
+.dv-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #F5EDE4}
+.dv-item:last-child{border-bottom:none}
+.dv-thumb{width:34px;height:34px;object-fit:cover;border-radius:6px;background:#F0EBE3;flex-shrink:0}
+.dv-item-name{font-size:.79rem;font-weight:600;flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--charcoal)}
+.dv-item-meta{font-size:.69rem;color:var(--muted);margin-top:1px}
+.dv-item-sub{font-size:.8rem;font-weight:700;font-family:'Playfair Display',serif;color:var(--charcoal);white-space:nowrap;flex-shrink:0}
 
 /* ── VENTAS RECIENTES ── */
 .recent-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:.82rem;cursor:pointer;transition:.15s;border-radius:8px;margin:0 -6px;padding-left:6px;padding-right:6px}
@@ -339,6 +374,15 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
     <button class="period-btn" data-period="all" onclick="setPeriod('all')">Todo</button>
   </div>
 
+  <!-- RESUMEN DEL DÍA -->
+  <div class="day-summary" id="day-summary">
+    <div class="day-summary-date" id="ds-date"></div>
+    <div class="day-summary-main" id="ds-main">—</div>
+    <div class="day-summary-sub" id="ds-sub"></div>
+    <div class="day-summary-best" id="ds-best" style="display:none"></div>
+    <div class="day-summary-pills" id="ds-pills"></div>
+  </div>
+
   <!-- KPIs -->
   <div class="kpi-grid">
     <div class="kpi-card">
@@ -407,17 +451,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-head">
-        <h2>Ventas recientes</h2>
-        <span id="recent-period"></span>
-      </div>
-      <div class="card-body" style="padding-top:8px;padding-bottom:8px">
-        <div id="recent-sales">
-          <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
-        </div>
-      </div>
-    </div>
+
   </div>
 
   <!-- HORA PICO -->
@@ -491,6 +525,19 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
     </div>
     <div class="card-body" id="vendedores-body">
       <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
+    </div>
+  </div>
+
+  <!-- VENTAS DEL DÍA -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <h2>Ventas de hoy</h2>
+      <span id="today-sales-count" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body" style="padding-top:8px;padding-bottom:8px">
+      <div id="today-sales-list" style="max-height:400px;overflow-y:auto;overscroll-behavior:contain">
+        <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
+      </div>
     </div>
   </div>
 
@@ -613,7 +660,7 @@ async function loadNameMap() {
 async function loadSales() {
   const from = PERIODS[currentPeriod]();
   const filter = from ? `&created_at=gte.${from}` : '';
-  const r = await api(`sales?select=id,total,created_at,items,payment_method,type,seller_email&order=created_at.desc${filter}&limit=500`);
+  const r = await api(`sales?select=id,total,created_at,items,payment_method,type,seller_email,discount,customer&order=created_at.desc${filter}&limit=500`);
   sales = (r.ok && Array.isArray(r.data)) ? r.data.filter(s => s.type !== 'apartado') : [];
 }
 
@@ -626,8 +673,71 @@ async function loadPreviousSales() {
 }
 
 async function loadProducts() {
-  const r = await api('products?select=id,name,category,category_label,price,cost,stock,out_of_stock&order=position.asc&limit=500');
+  const r = await api('products?select=id,name,category,category_label,price,cost,stock,out_of_stock,image&order=position.asc&limit=500');
   products = (r.ok && Array.isArray(r.data)) ? r.data : [];
+}
+
+let todaySales = [];
+async function loadTodaySales() {
+  const from = new Date(); from.setHours(0,0,0,0);
+  const r = await api(`sales?select=id,total,created_at,items,payment_method,type,discount,note,seller_email,customer&order=created_at.desc&created_at=gte.${from.toISOString()}&limit=200`);
+  todaySales = (r.ok && Array.isArray(r.data)) ? r.data : [];
+}
+
+function renderTodaySales() {
+  const el = document.getElementById('today-sales-list');
+  const countEl = document.getElementById('today-sales-count');
+  if (!el) return;
+  const all = [...todaySales].sort((a,b) => new Date(b.created_at)-new Date(a.created_at));
+  const ventas = all.filter(s => s.type !== 'apartado');
+  const apartados = all.filter(s => s.type === 'apartado');
+  const hoy = new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
+  if (countEl) countEl.textContent = all.length
+    ? `${ventas.length} venta${ventas.length!==1?'s':''}${apartados.length?` · ${apartados.length} apt.`:''}`
+    : hoy;
+  if (!all.length) { el.innerHTML = '<p class="no-data">Sin ventas hoy</p>'; return; }
+  const PH = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 24 24' fill='none' stroke='%23C9A462' stroke-width='1.5'%3E%3Crect x='3' y='3' width='18' height='18' rx='3'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'/%3E%3Cpolyline points='21 15 16 10 5 21'/%3E%3C/svg%3E`;
+  el.innerHTML = all.map((s, idx) => {
+    const t = new Date(s.created_at);
+    const time = t.toLocaleString('es-MX',{hour:'2-digit',minute:'2-digit'});
+    const payIcon = s.payment_method==='transferencia' ? '📱' : '💵';
+    const isAp = s.type === 'apartado';
+    const items = Array.isArray(s.items) ? s.items : [];
+    const names = items.map(i => i.name).join(', ');
+    const apTag = isAp ? `<span style="font-size:.62rem;background:#FEF3C7;color:#92400E;padding:1px 6px;border-radius:50px;font-weight:700;flex-shrink:0">APT</span>` : '';
+    const itemsHtml = items.map(i => {
+      const prod = products.find(p => p.id === i.id);
+      const img = prod?.image || PH;
+      const qty = i.qty || 1;
+      const sub = parseFloat(i.subtotal ?? i.price * qty);
+      const meta = qty > 1
+        ? `${qty} × $${parseFloat(i.price).toLocaleString('es-MX',{maximumFractionDigits:0})}`
+        : `$${parseFloat(i.price).toLocaleString('es-MX',{maximumFractionDigits:0})}`;
+      return `<div class="dv-item">
+  <img class="dv-thumb" src="${img}" alt="${i.name}" onerror="this.src='${PH}'">
+  <div style="flex:1;min-width:0"><div class="dv-item-name">${i.name}</div><div class="dv-item-meta">${meta}</div></div>
+  <div class="dv-item-sub">$${sub.toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
+</div>`;
+    }).join('');
+    const discRow = s.discount>0
+      ? `<div style="font-size:.7rem;color:var(--muted);text-align:right;padding-top:4px">Descuento −$${parseFloat(s.discount).toLocaleString('es-MX',{maximumFractionDigits:0})}</div>` : '';
+    const custRow = isAp && s.customer ? `<div style="font-size:.7rem;color:var(--muted);padding-top:2px">Cliente: ${s.customer}</div>` : '';
+    return `<div class="dv-sale" id="dv-${idx}">
+  <div class="dv-sale-head" onclick="dvToggle(${idx})">
+    <span class="dv-sale-time">${time}</span>
+    <span class="dv-sale-pay">${payIcon}</span>
+    ${apTag}
+    <span class="dv-sale-names">${names}</span>
+    <span class="dv-sale-total">$${parseFloat(s.total).toLocaleString('es-MX',{maximumFractionDigits:0})}</span>
+    <span class="dv-sale-arrow">›</span>
+  </div>
+  <div class="dv-body">${itemsHtml}${discRow}${custRow}</div>
+</div>`;
+  }).join('');
+}
+
+function dvToggle(idx) {
+  document.getElementById('dv-'+idx)?.classList.toggle('open');
 }
 
 /* ── RENDER ── */
@@ -635,14 +745,14 @@ function renderAll() {
   const lbl = PERIOD_LABELS[currentPeriod];
   document.getElementById('chart-period-label').textContent = lbl;
   document.getElementById('top-prod-period').textContent = lbl;
-  document.getElementById('recent-period').textContent = lbl;
   document.getElementById('hour-period-label').textContent = lbl;
 
+  renderDaySummary();
   renderKPIs();
   renderRevenueChart();
   renderCatChart();
   renderTopProducts();
-  renderRecentSales();
+  renderTodaySales();
   renderHourChart();
   renderInventory();
   renderRentabilidad();
@@ -1094,6 +1204,61 @@ async function setPeriod(period) {
   renderAll();
 }
 
+/* ── RESUMEN DEL DÍA ── */
+let _aptResumen = { count: 0, pendiente: 0, vencidos: 0 };
+
+function renderDaySummary() {
+  const fecha = new Date().toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
+  document.getElementById('ds-date').textContent = fecha.charAt(0).toUpperCase() + fecha.slice(1);
+
+  const ventas = todaySales.filter(s => s.type !== 'apartado');
+  const totalHoy = ventas.reduce((s, v) => s + parseFloat(v.total || 0), 0);
+  const numVentas = ventas.length;
+
+  const mainEl = document.getElementById('ds-main');
+  const subEl  = document.getElementById('ds-sub');
+  const bestEl = document.getElementById('ds-best');
+  const pillsEl = document.getElementById('ds-pills');
+
+  if (!numVentas) {
+    mainEl.innerHTML = '<span class="day-summary-none">Aún no hay ventas hoy</span>';
+    subEl.textContent = '';
+    bestEl.style.display = 'none';
+  } else {
+    mainEl.textContent = `$${totalHoy.toLocaleString('es-MX', {maximumFractionDigits:0})}`;
+    subEl.textContent = `${numVentas} venta${numVentas !== 1 ? 's' : ''} hoy`;
+
+    // Producto más vendido por ingresos
+    const freq = {};
+    ventas.forEach(v => (v.items || []).forEach(i => {
+      freq[i.name] = (freq[i.name] || 0) + parseFloat(i.subtotal ?? i.price * (i.qty||1));
+    }));
+    const best = Object.entries(freq).sort((a,b) => b[1]-a[1])[0];
+    if (best) {
+      bestEl.style.display = 'block';
+      const bestName = best[0].length > 28 ? best[0].slice(0, 26) + '…' : best[0];
+      bestEl.textContent = `⭐ Lo más vendido: ${bestName} ($${Math.round(best[1]).toLocaleString('es-MX')})`;
+    } else {
+      bestEl.style.display = 'none';
+    }
+  }
+
+  // Pills
+  const pills = [];
+  const efectivo = ventas.filter(v => v.payment_method !== 'transferencia').reduce((s,v) => s + parseFloat(v.total||0), 0);
+  const transfer = ventas.filter(v => v.payment_method === 'transferencia').reduce((s,v) => s + parseFloat(v.total||0), 0);
+  if (efectivo > 0) pills.push(`<span class="day-summary-pill">💵 $${efectivo.toLocaleString('es-MX',{maximumFractionDigits:0})} efectivo</span>`);
+  if (transfer > 0) pills.push(`<span class="day-summary-pill">📱 $${transfer.toLocaleString('es-MX',{maximumFractionDigits:0})} transferencia</span>`);
+  if (_aptResumen.count > 0) {
+    const cls = _aptResumen.vencidos > 0 ? 'apt venc' : 'apt';
+    const txt = _aptResumen.vencidos > 0
+      ? `⚠️ ${_aptResumen.count} apartado${_aptResumen.count>1?'s':''} · ${_aptResumen.vencidos} vencido${_aptResumen.vencidos>1?'s':''}`
+      : `⏳ ${_aptResumen.count} apartado${_aptResumen.count>1?'s':''} por cobrar`;
+    pills.push(`<span class="day-summary-pill ${cls}">${txt}</span>`);
+  }
+  pillsEl.innerHTML = pills.join('');
+}
+
 /* ── APARTADOS PENDIENTES ── */
 async function loadApartadosPendientes() {
   const body = document.getElementById('apt-pending-body');
@@ -1107,6 +1272,7 @@ async function loadApartadosPendientes() {
   const totalPendiente = data.reduce((s, a) => s + Math.max(0, (parseFloat(a.total)||0) - (parseFloat(a.paid_amount)||0)), 0);
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const vencidos = data.filter(a => a.due_date && new Date(a.due_date+'T00:00:00') < hoy).length;
+  _aptResumen = { count: data.length, pendiente: totalPendiente, vencidos };
 
   label.textContent = `${data.length} activos · $${totalPendiente.toLocaleString('es-MX')} por cobrar${vencidos ? ` · ⚠️ ${vencidos} vencido${vencidos>1?'s':''}` : ''}`;
 
@@ -1243,7 +1409,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   );
   try {
     await Promise.race([
-      Promise.all([loadProducts(), loadSales(), loadPreviousSales(), loadApartadosPendientes(), loadClientas(), loadNameMap()]),
+      Promise.all([loadProducts(), loadSales(), loadPreviousSales(), loadApartadosPendientes(), loadClientas(), loadNameMap(), loadTodaySales()]),
       timeout
     ]);
     renderAll();

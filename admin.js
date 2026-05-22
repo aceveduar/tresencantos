@@ -2007,6 +2007,7 @@ function openForm(id) {
     document.getElementById('f-description').value = p.description;
     document.getElementById('f-notes').value = p.notes || '';
     document.getElementById('f-image').value = p.image;
+    if (p.image) { const w = document.getElementById('f-img-url-wrap'); if (w) w.style.display = 'block'; }
     document.getElementById('f-featured').checked = p.featured;
     document.getElementById('f-out-of-stock').checked = p.outOfStock || false;
     document.getElementById('f-published').checked = p.isPublished !== false; // default true
@@ -2034,6 +2035,8 @@ function openForm(id) {
     document.getElementById('f-description').value = '';
     document.getElementById('f-notes').value = '';
     document.getElementById('f-image').value = '';
+    const _urlWrap = document.getElementById('f-img-url-wrap'); if (_urlWrap) _urlWrap.style.display = 'none';
+    document.getElementById('img-upload-zone')?.classList.remove('has-image');
     document.getElementById('f-featured').checked = false;
     document.getElementById('f-out-of-stock').checked = false;
     document.getElementById('f-barcode').value = '';
@@ -2345,12 +2348,15 @@ function clearField(id) {
 function previewImg() {
   const url = document.getElementById('f-image').value.trim();
   const preview = document.getElementById('f-img-preview');
+  const zone = document.getElementById('img-upload-zone');
   if (url) {
     preview.src = url;
     preview.classList.add('show');
-    preview.onerror = () => preview.classList.remove('show');
+    preview.onerror = () => { preview.classList.remove('show'); zone?.classList.remove('has-image'); };
+    zone?.classList.add('has-image');
   } else {
     preview.classList.remove('show');
+    zone?.classList.remove('has-image');
   }
 }
 
@@ -2618,7 +2624,7 @@ function renderAdditionalImages() {
   const strip = document.getElementById('additional-images-strip');
   if (!strip) return;
   if (!_additionalImagesEdit.length) {
-    strip.innerHTML = '<span style="font-size:.78rem;color:var(--muted);align-self:center;padding-left:2px">Sin imágenes adicionales</span>';
+    strip.innerHTML = '<span style="font-size:.73rem;color:var(--muted-light);line-height:1.4;align-self:center;padding-left:2px">Sin imágenes adicionales</span>';
     return;
   }
   strip.innerHTML = _additionalImagesEdit.map((url, i) => {
@@ -3132,6 +3138,12 @@ function openFormScanner() {
   _launchScanner();
 }
 
+function openCapScanner() {
+  _scanCtx = 'capture';
+  document.getElementById('scanner-title').textContent = 'Escanear código de barras';
+  _launchScanner();
+}
+
 function openSearchScanner() {
   _scanCtx = 'search';
   TE?.track('scan_search');
@@ -3573,7 +3585,11 @@ function _srpRefresh(id) {
 }
 
 function _onAdminScan(code) {
-  if (_scanCtx === 'form') {
+  if (_scanCtx === 'capture') {
+    document.getElementById('cap-barcode').value = code;
+    closeAdminScanner();
+    toast(`Código asignado: ${code}`, 'success');
+  } else if (_scanCtx === 'form') {
     document.getElementById('f-barcode').value = code;
     closeAdminScanner();
     checkBarcodeConflict();
@@ -4045,22 +4061,6 @@ let captureCount = 0;
 let captureImageDataUrl = null;
 
 function openCaptureMode() {
-  const sel = document.getElementById('cap-category');
-  if (sel) {
-    sel.innerHTML = '<option value="">Sin categoría</option>';
-    const roots = categories.filter(c => !c.parent);
-    roots.forEach(r => {
-      const subs = categories.filter(c => c.parent === r.code);
-      if (subs.length) {
-        const grp = document.createElement('optgroup');
-        grp.label = r.label;
-        subs.forEach(s => { const o = document.createElement('option'); o.value = s.code; o.textContent = s.label; grp.appendChild(o); });
-        sel.appendChild(grp);
-      } else {
-        const o = document.createElement('option'); o.value = r.code; o.textContent = r.label; sel.appendChild(o);
-      }
-    });
-  }
   resetCaptureForm(true);
   document.getElementById('cap-overlay').style.display = 'flex';
   document.body.style.overflow = 'hidden';
@@ -4094,7 +4094,7 @@ function resetCaptureForm(keepCount) {
   priceEl.classList.remove('cap-err');
   const stockEl = document.getElementById('cap-stock');
   if (stockEl) stockEl.value = '1';
-  document.getElementById('cap-category').value = '';
+  const capBarcode = document.getElementById('cap-barcode'); if (capBarcode) capBarcode.value = '';
   const saveBtn = document.getElementById('cap-save-btn');
   if (saveBtn) saveBtn.textContent = 'Guardar y siguiente →';
   updateCapSaveBtn();
@@ -4237,8 +4237,7 @@ async function saveCaptureProduct() {
   const btn = document.getElementById('cap-save-btn');
   btn.disabled = true; btn.textContent = 'Guardando...';
   try {
-    const catCode = document.getElementById('cap-category').value;
-    const catObj  = categories.find(c => c.code === catCode);
+    const barcode = document.getElementById('cap-barcode')?.value.trim() || null;
     // Consultar el ID máximo real en Supabase para evitar conflictos de primary key
     const maxResult = await supabaseApi('products?select=id&order=id.desc&limit=1');
     const maxId = (maxResult.ok && maxResult.data?.length) ? maxResult.data[0].id : 0;
@@ -4246,11 +4245,12 @@ async function saveCaptureProduct() {
     const payload = {
       id: newId, name, price,
       description: '',
-      category: catCode || '',
-      category_label: catObj?.label || '',
+      category: 'por_revisar',
+      category_label: 'Por revisar',
       image: captureImageDataUrl || '',
       is_published: false, out_of_stock: false,
-      stock, featured: false, position: newId
+      stock, featured: false, position: newId,
+      barcode
     };
     const { ok, data: saveData } = await supabaseApi('products', {
       method: 'POST',
@@ -4262,7 +4262,7 @@ async function saveCaptureProduct() {
       console.error('Supabase error captura rápida:', msg);
       throw new Error(msg);
     }
-    products.unshift({ ...payload, originalPrice: null, badge: null, badgeType: null, barcode: null, cost: null });
+    products.unshift({ ...payload, originalPrice: null, badge: null, badgeType: null, barcode, cost: null });
     captureCount++;
     const counter = document.getElementById('cap-counter');
     counter.textContent = '✓ ' + captureCount + ' capturado' + (captureCount > 1 ? 's' : '');

@@ -1888,7 +1888,7 @@ function renderCart() {
     const effPrice = customPrice ?? p.price;
     const isCustom = customPrice != null && customPrice !== p.price;
     const priceLabel = isCustom
-      ? `$${effPrice.toLocaleString('es-MX')} <span style="text-decoration:line-through;opacity:.45;font-size:.65rem">$${p.price.toLocaleString('es-MX')}</span>`
+      ? `<span style="text-decoration:line-through;opacity:.45;font-size:.65rem;margin-right:3px">$${p.price.toLocaleString('es-MX')}</span>$${effPrice.toLocaleString('es-MX')}`
       : `$${effPrice.toLocaleString('es-MX')}`;
     const kitSub = p.kitItems?.length
       ? `<div style="font-size:.7rem;color:#9B8B78;margin-top:1px">🎁 ${p.kitItems.map(c=>`${c.qty>1?c.qty+'× ':''}${c.name}`).join(', ')}</div>`
@@ -3438,7 +3438,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const match = products.find(p =>
       !p.outOfStock && p.stock > 0 && (
         terms.every(t => _norm(p.name).includes(t)) ||
-        (p.barcode && p.barcode.includes(raw))
+        (p.barcode && p.barcode === raw)
       )
     );
     if (match) {
