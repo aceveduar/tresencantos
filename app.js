@@ -310,10 +310,12 @@ function render() {
   if (!grid) return;
   let list = products.filter(p => {
     const matchCat = catMatchesFilter(p.category, currentFilter);
-    const matchQ   = !searchQuery ||
-      _norm(p.name).includes(searchQuery) ||
-      _norm(p.description).includes(searchQuery) ||
-      _norm(p.categoryLabel).includes(searchQuery);
+    const groups = searchQuery ? searchQuery.split(',').map(g => g.trim().split(/\s+/).filter(Boolean)).filter(g => g.length) : [];
+    const matchQ = !groups.length || groups.some(g => g.every(t =>
+      _norm(p.name).includes(t) ||
+      _norm(p.description).includes(t) ||
+      _norm(p.categoryLabel).includes(t)
+    ));
     return matchCat && matchQ;
   });
 

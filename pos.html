@@ -1498,12 +1498,14 @@ const _norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, 
 
 /* ── SEARCH ── */
 function getFilteredProducts(q = '') {
-  const term = _norm(q);
+  const groups = _norm(q).split(',').map(g => g.trim().split(/\s+/).filter(Boolean)).filter(g => g.length);
   const filtered = products.filter(p => {
     const matchCat = catMatchesFilter(p.category, currentCat);
-    const matchQ   = !term || _norm(p.name).includes(term) ||
-                     (p.barcode && p.barcode.includes(term)) ||
-                     _norm(p.categoryLabel).includes(term);
+    const matchQ   = !groups.length || groups.some(g => g.every(t =>
+      _norm(p.name).includes(t) ||
+      (p.barcode && p.barcode.includes(t)) ||
+      _norm(p.categoryLabel).includes(t)
+    ));
     return matchCat && matchQ;
   });
   return applySort(filtered);
@@ -3386,12 +3388,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Enter en búsqueda → agrega el primer resultado disponible
   document.getElementById('pos-search').addEventListener('keydown', e => {
     if (e.key !== 'Enter') return;
-    const term = _norm(e.target.value);
-    if (!term) return;
+    const raw   = e.target.value.trim();
+    const terms = _norm(raw).split(/\s+/).filter(Boolean);
+    if (!terms.length) return;
     const match = products.find(p =>
       !p.outOfStock && p.stock > 0 && (
-        _norm(p.name).includes(term) ||
-        (p.barcode && p.barcode.includes(term))
+        terms.every(t => _norm(p.name).includes(t)) ||
+        (p.barcode && p.barcode.includes(raw))
       )
     );
     if (match) {

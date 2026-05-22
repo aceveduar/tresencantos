@@ -280,12 +280,12 @@ function getFilteredProducts() {
   const cat = document.getElementById('cat-filter')?.value || 'all';
   const filtered = products.filter(p => {
     const matchCat = adminCatMatches(p.category, cat);
-    const terms    = q ? q.split(',').map(t => t.trim()).filter(Boolean) : [];
-    const matchQ   = !terms.length || terms.some(t =>
+    const groups = q ? q.split(',').map(g => g.trim().split(/\s+/).filter(Boolean)).filter(g => g.length) : [];
+    const matchQ = !groups.length || groups.some(g => g.every(t =>
       _norm(p.name).includes(t) ||
       _norm(p.categoryLabel).includes(t) ||
       (p.barcode && p.barcode.includes(t))
-    );
+    ));
     const matchFlag = !_showOnlyFlagged || !!_flagItem(p.id);
     const matchStat = !_statFilter ||
       (_statFilter === 'con-stock'    && p.stock > 0 && !p.outOfStock) ||
