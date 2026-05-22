@@ -3192,6 +3192,7 @@ function sendWhatsAppTicket() {
     msg = `🛍 *Tres Encantos*\n━━━━━━━━━━━━━━\n${lines}${disc}\n━━━━━━━━━━━━━━\n*Total: $${(s.total||0).toLocaleString('es-MX')} MXN*\n${metodo}${chng}${note}${transAviso}\n\n¡Gracias por tu compra! 💛`;
   }
   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  setTimeout(() => closeSaleDone(), 400);
 }
 
 function closeSaleDone() {
