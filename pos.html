@@ -115,7 +115,7 @@ button,a{touch-action:manipulation}
 .ci-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .ci-name{font-size:.86rem;font-weight:600;line-height:1.3;color:var(--charcoal);
   overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
-.ci-price{font-size:.72rem;color:#8A7564;font-weight:500;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;border-bottom:1px dashed #C9A462;display:inline-block}
+.ci-price{font-size:.72rem;color:#8A7564;font-weight:500;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;border-bottom:1px dashed #C9A462;display:inline-block;align-self:flex-start}
 .ci-price:active{opacity:.6}
 .ci-price.ci-price-custom{color:var(--gold-dark);border-bottom-style:solid}
 .ci-price-input{width:80px;padding:2px 6px;border:2px solid var(--gold);border-radius:6px;font-size:.82rem;font-family:inherit;font-weight:600;color:var(--charcoal);outline:none;touch-action:manipulation}
@@ -1532,6 +1532,9 @@ const _norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, 
 function getFilteredProducts(q = '') {
   const groups = _norm(q).split(',').map(g => g.trim().split(/\s+/).filter(Boolean)).filter(g => g.length);
   const filtered = products.filter(p => {
+    const effStock = getKitStock(p);
+    const isOos = p.kitItems?.length ? effStock === 0 : (p.outOfStock || p.stock === 0);
+    if (isOos) return false;
     const matchCat = catMatchesFilter(p.category, currentCat);
     const matchQ   = !groups.length || groups.some(g => g.every(t =>
       _norm(p.name).includes(t) ||
@@ -1623,7 +1626,7 @@ function productCard(p) {
           : '';
   return `
 <div class="pos-prod" onclick="${oos ? `_showRestockPrompt(${p.id})` : `addToCart(${p.id},null,event)`}" ${oos ? '' : ''}>
-  <img class="pos-prod-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'" onclick="event.stopPropagation();openPosPreview(${p.id})" style="cursor:zoom-in">
+  <img class="pos-prod-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'" onclick="event.stopPropagation();${oos ? `_showRestockPrompt(${p.id})` : `openPosPreview(${p.id})`}" style="cursor:${oos?'pointer':'zoom-in'}">
   <div class="pos-prod-info">
     <div class="pos-prod-name">${isKit ? '🎁 ' : ''}${p.name}</div>
     ${kitCompsLine}
@@ -1690,6 +1693,7 @@ function addToCart(id, btn, e) {
   if (existing) {
     if (existing.qty >= effStock) {
       _cartStockFeedback(btn, e);
+      setTimeout(() => _showRestockPrompt(id), 350);
       return;
     }
     existing.qty++;
