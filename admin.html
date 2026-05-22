@@ -1383,6 +1383,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     </div>
     <div class="topbar-right">
       <button id="dup-badge-btn" onclick="openDupReview()" title="Revisar posibles duplicados"><span id="dup-badge-count">0</span><span class="dup-badge-label" id="dup-badge-label"> duplicados</span></button>
+      <button id="btn-tracker" class="btn btn-outline btn-sm btn-stats-admin" onclick="TE.report()" title="Ver uso del día (Ctrl+Shift+U)" style="display:none">📈</button>
       <a href="stats.html" class="btn btn-outline btn-sm btn-stats-admin">📊 Reportes</a>
       <a href="activity.html" class="btn btn-outline btn-sm btn-stats-admin">📋 Actividad</a>
       <a href="settings.html" class="btn btn-outline btn-sm btn-stats-admin">⚙️ Config</a>
@@ -1518,7 +1519,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         <button class="btn btn-gold" onclick="openForm()" style="flex-shrink:0">+ Agregar</button>
         <div class="search-wrap">
           <span class="s-icon">🔍</span>
-          <input type="text" id="search-input" placeholder="Buscar productos…" oninput="_adminPage=1;renderTable();_toggleSearchClear()">
+          <input type="text" id="search-input" placeholder="Buscar productos…" oninput="_adminPage=1;renderTable();_toggleSearchClear();TE?.trackSearch(this.value,!!getFilteredProducts().length)">
           <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearchInput()" title="Borrar" style="display:none">✕</button>
         </div>
         <button class="btn btn-outline btn-sm" id="btn-capture-mode" onclick="openCaptureMode()" title="Captura rápida con IA" style="display:none;flex-shrink:0">✨</button>
@@ -1533,7 +1534,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           <span id="cat-filter-btn-label">Categoría</span>
           <span id="cat-filter-btn-arrow">▾</span>
         </button>
-        <select class="filter-select" id="sort-select" onchange="currentSort=this.value;_adminPage=1;renderTable()">
+        <select class="filter-select" id="sort-select" onchange="currentSort=this.value;_adminPage=1;renderTable();TE?.track('filter_sort',{sort:this.value})">
           <option value="position">Mi orden</option>
           <option value="recent" selected>Recientes</option>
           <option value="name-az">A → Z</option>
@@ -2085,6 +2086,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="tracker.js"></script>
 <script src="admin.js"></script>
 <!-- MODAL: comparar producto similar -->
 <div id="sim-overlay" onclick="if(event.target===this)closeSimilarModal()">

@@ -1648,6 +1648,7 @@ function addToCart(id, btn, e) {
   const effStock = getKitStock(p);
   const isKitP = !!(p.kitItems?.length);
   if (effStock === 0 || (!isKitP && p.outOfStock)) return;
+  TE?.track('pos_add_cart', { id: p.id, name: p.name });
 
   const existing = cart.find(x => x.product.id === id);
   if (existing) {
@@ -2268,6 +2269,7 @@ let _posPrevId = null;
 
 function openPosPreview(id) {
   const p = products.find(x => x.id === id);
+  if (p) TE?.track('pos_preview', { id: p.id, name: p.name });
   if (!p) return;
   _posPrevId = id;
   const fallback = PROD_PLACEHOLDER;
@@ -3043,6 +3045,8 @@ async function cobrar() {
       { total, items: items.length, method: payMethod, discount: disc || 0 });
   }
 
+  TE?.track('pos_checkout', { total, items: items.length, method: payMethod, apartado: !!isApartado });
+
   // Guardar para el ticket WA
   _lastSale = { total, paidAmount, change, disc, note, items, payMethod, isApartado, customer };
 
@@ -3444,5 +3448,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     </div>
   </div>
 </div>
+<script src="tracker.js"></script>
 </body>
 </html>

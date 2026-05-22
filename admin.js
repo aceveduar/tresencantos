@@ -216,6 +216,7 @@ function closeCatSheet() {
 }
 
 function selectCatSheet(code) {
+  if (code !== 'all') TE?.track('filter_category', { cat: code });
   const sel = document.getElementById('cat-filter');
   if (sel) sel.value = code;
   _adminPage = 1;
@@ -604,6 +605,9 @@ function _applyRoleUI() {
   if (!can.manageSettings) {
     document.querySelectorAll('a[href="settings.html"]').forEach(a => a.style.setProperty('display', 'none'));
   }
+  // Tracker — visible para todos los admins autenticados
+  const btnTracker = document.getElementById('btn-tracker');
+  if (btnTracker) btnTracker.style.removeProperty('display');
   // Botones de agregar producto — solo si puede
   if (!can.addProduct) {
     document.querySelectorAll('[onclick="openForm()"]').forEach(b => b.style.setProperty('display', 'none'));
@@ -1981,6 +1985,7 @@ async function saveInlineAiKey() {
 function openForm(id) {
   if (id && !can.editProduct) { toast('Vista de solo lectura', ''); return; }
   if (!id && !can.addProduct) { toast('Sin permiso para agregar productos', 'error'); return; }
+  TE?.track(id ? 'form_open_edit' : 'form_open_add', id ? { id } : {});
   populateBadgeList();
   const overlay = document.getElementById('form-overlay');
   document.getElementById('form-title').textContent = id ? 'Editar producto' : 'Agregar producto';
@@ -2468,10 +2473,12 @@ async function saveProduct() {
   if (idVal) {
     _trackEdit(parseInt(idVal));
     logActivity('producto_editado', `Editó "${name}"`, { id: parseInt(idVal), name, price });
+    TE?.track('product_saved', { action: 'edit', name });
   } else {
     const newId = products[products.length - 1]?.id;
-    if (newId) _trackEdit(newId); // también registrar creaciones en el historial
+    if (newId) _trackEdit(newId);
     logActivity('producto_creado', `Creó "${name}" — $${price.toLocaleString('es-MX')}`, { id: newId, name, price });
+    TE?.track('product_saved', { action: 'add', name });
   }
   closeForm();
   renderTable();
@@ -3117,6 +3124,7 @@ function _loadQuagga() {
 }
 
 function openFormScanner() {
+  TE?.track('scan_form');
   _scanCtx = 'form';
   document.getElementById('scanner-title').textContent = 'Escanear código de barras';
   _launchScanner();
@@ -3124,6 +3132,7 @@ function openFormScanner() {
 
 function openSearchScanner() {
   _scanCtx = 'search';
+  TE?.track('scan_search');
   document.getElementById('scanner-title').textContent = 'Buscar producto por código';
   _launchScanner();
 }
@@ -3478,6 +3487,7 @@ async function _deleteDupProduct(id, pairKey) {
 function showScanResult(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
+  TE?.track('scan_result', { id: p.id, name: p.name });
   const fallback = DEFAULT_IMG;
   const oos = p.kitItems?.length ? false : (p.outOfStock || p.stock === 0);
   const catColor = getCatColor(p.category);
@@ -3679,6 +3689,7 @@ async function addCategory() {
 let _activeRec = null;
 
 function dictate(fieldId) {
+  if (!_activeRec) TE?.track('dictate_start', { field: fieldId });
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) {
     toast('Dictado no disponible. Usa Chrome o Safari.', 'error');
@@ -4392,6 +4403,7 @@ function toggleFlagFilter() {
 }
 
 function toggleStatFilter(key) {
+  if (key !== 'todos') TE?.track('filter_chip', { chip: key });
   if (key === 'todos') {
     _statFilter = null;
     if (_showOnlyFlagged) { _showOnlyFlagged = false; localStorage.setItem('te_flag_filter','0'); }
@@ -4437,6 +4449,7 @@ let _qvCurrentId = null;
 function openQV(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
+  TE?.track('qv_open', { id: p.id, name: p.name });
   _qvCurrentId = id;
   _renderQV(p);
   document.getElementById('qv-overlay').classList.add('open');
@@ -4492,7 +4505,7 @@ async function _qvEditPrice(e, id) {
     const result = await supabaseApi(`products?id=eq.${id}`, {
       method: 'PATCH', body: JSON.stringify({ price: newPrice })
     });
-    if (result.ok) { p.price = newPrice; toast(`Precio → $${newPrice.toLocaleString('es-MX')}`); }
+    if (result.ok) { p.price = newPrice; toast(`Precio → $${newPrice.toLocaleString('es-MX')}`); TE?.track('inline_price'); }
     else toast('Error al actualizar precio', 'error');
     _qvRefresh(id); renderTable();
   };
@@ -4529,7 +4542,7 @@ async function _qvEditName(e, id) {
     const result = await supabaseApi(`products?id=eq.${id}`, {
       method: 'PATCH', body: JSON.stringify({ name: newName })
     });
-    if (result.ok) { p.name = newName; toast('Nombre actualizado'); }
+    if (result.ok) { p.name = newName; toast('Nombre actualizado'); TE?.track('inline_name'); }
     else toast('Error al actualizar nombre', 'error');
     _qvRefresh(id); renderTable();
   };
@@ -4568,7 +4581,7 @@ async function _qvEditDesc(e, id) {
     const result = await supabaseApi(`products?id=eq.${id}`, {
       method: 'PATCH', body: JSON.stringify({ description: newDesc || null })
     });
-    if (result.ok) { p.description = newDesc || null; toast('Descripción actualizada'); }
+    if (result.ok) { p.description = newDesc || null; toast('Descripción actualizada'); TE?.track('inline_desc'); }
     else toast('Error al actualizar descripción', 'error');
     _qvRefresh(id);
   };
