@@ -964,7 +964,7 @@ async function editStockInline(e, id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
 
-  const chip   = e.currentTarget;
+  const chip   = e.currentTarget || e.target.closest('.stock-chip');
   const mobile = isMobile();
 
   // type="text" + inputMode="numeric" es más fiable que type="number" en Android
@@ -5197,25 +5197,29 @@ function _handleRealtimeProduct({ eventType, new: row, old }) {
 let _kbComponents = [];
 
 function openKitBuilder() {
-  if (!can.addProduct) { toast('Sin permiso para agregar productos', 'error'); return; }
-  _kbComponents = [];
-  document.getElementById('kb-name').value = '';
-  document.getElementById('kb-price').value = '';
-  document.getElementById('kb-search').value = '';
-  document.getElementById('kb-search-results').style.display = 'none';
-  document.getElementById('kb-search-results').innerHTML = '';
-  document.getElementById('kb-stock-preview').textContent = '';
-  document.getElementById('kb-save-btn').disabled = false;
-  document.getElementById('kb-save-btn').textContent = 'Guardar Kit →';
-  _kbPopulateCategories();
-  _kbRenderComponents();
-  const overlay = document.getElementById('kit-builder-overlay');
-  overlay.style.display = 'flex';
-  setTimeout(() => document.getElementById('kb-name').focus(), 200);
+  try {
+    if (!can.addProduct) { toast('Sin permiso para agregar productos', 'error'); return; }
+    _kbComponents = [];
+    const byId = id => document.getElementById(id);
+    byId('kb-name').value = '';
+    byId('kb-price').value = '';
+    byId('kb-search').value = '';
+    byId('kb-search-results').style.display = 'none';
+    byId('kb-search-results').innerHTML = '';
+    byId('kb-stock-preview').textContent = '';
+    byId('kb-save-btn').disabled = false;
+    byId('kb-save-btn').textContent = 'Guardar Kit →';
+    _kbPopulateCategories();
+    _kbRenderComponents();
+    byId('kit-builder-overlay').classList.add('kb-open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => byId('kb-name').focus(), 250);
+  } catch(e) { toast('Error al abrir Kit Builder: ' + e.message, 'error'); }
 }
 
 function closeKitBuilder() {
-  document.getElementById('kit-builder-overlay').style.display = 'none';
+  document.getElementById('kit-builder-overlay').classList.remove('kb-open');
+  document.body.style.overflow = '';
 }
 
 function _kbPopulateCategories() {
@@ -5339,7 +5343,8 @@ async function _saveKit() {
   });
 
   if (!result.ok) {
-    toast('Error al guardar el kit', 'error');
+    const errMsg = result.data?.message || result.data?.hint || result.data?.details || `HTTP ${result.status}`;
+    toast(`Error al guardar kit: ${errMsg}`, 'error');
     btn.disabled = false; btn.textContent = 'Guardar Kit →';
     return;
   }
