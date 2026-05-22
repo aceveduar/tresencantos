@@ -3631,11 +3631,27 @@ function showScanResult(id) {
   const oosChip = oos
     ? `<span class="qv-chip qv-chip-sold">⊘ Agotado</span>`
     : `<span class="qv-chip qv-chip-ok">✓ Disponible</span>`;
-  const stockCls = p.stock === 0 ? 'qv-chip-sold' : p.stock === 1 ? '' : 'qv-chip-ok';
-  const stockChip = p.kitItems?.length
-    ? `<span class="qv-chip qv-chip-ok">🎁 Kit</span>`
-    : `<span class="qv-chip ${stockCls} qv-editable" onclick="editStockInline(event,${p.id})" ontouchstart="event.stopPropagation()" style="cursor:pointer" title="Toca para editar stock">📦 ${p.stock}</span>`;
-  document.getElementById('srp-chips').innerHTML = oosChip + pubChip + stockChip;
+  document.getElementById('srp-chips').innerHTML = oosChip + pubChip;
+
+  // Stock hero — prominente y tappeable para editar
+  const heroEl = document.getElementById('srp-stock-hero');
+  if (p.kitItems?.length) {
+    heroEl.style.display = 'none';
+  } else {
+    const stockColor = p.stock === 0 ? 'var(--red)' : p.stock === 1 ? '#C9A462' : 'var(--charcoal)';
+    const stockLabel = p.stock === 0 ? 'Sin stock' : p.stock === 1 ? 'Última unidad' : 'En stock';
+    heroEl.style.display = 'flex';
+    heroEl.innerHTML = `
+      <div>
+        <div class="srp-stock-num" style="color:${stockColor}">${p.stock}</div>
+      </div>
+      <div>
+        <div class="srp-stock-label">${stockLabel}</div>
+        <div class="srp-stock-hint">Toca para editar</div>
+      </div>`;
+    heroEl.onclick = e => editStockInline(e, p.id);
+    heroEl.ontouchstart = e => e.stopPropagation();
+  }
 
   // Descripción editable
   const descEl = document.getElementById('srp-desc');
@@ -3653,12 +3669,12 @@ function showScanResult(id) {
   bcEl.style.display = p.barcode ? '' : 'none';
 
   // Acciones
-  const btnScan = `<button class="qv-btn qv-btn-dup" style="flex:0 0 100%" onclick="clearScanResult();openSearchScanner()">📷 Escanear otro</button>`;
   const btnEdit = can.editProduct ? `<button class="qv-btn qv-btn-edit" onclick="clearScanResult();openForm(${p.id})">${ICON_EDIT} Más campos</button>` : '';
   const btnDup  = `<button class="qv-btn qv-btn-dup" onclick="clearScanResult();duplicateProduct(${p.id})">⧉ Duplicar</button>`;
   const btnPub  = can.publishProduct ? `<button class="qv-btn qv-btn-pub" onclick="_qvTogglePublished(${p.id})">${p.isPublished === false ? '🌐 Publicar' : '🙈 Ocultar'}</button>` : '';
   const btnDel  = can.deleteProduct  ? `<button class="qv-btn qv-btn-del" onclick="clearScanResult();askDelete(${p.id})">✕ Eliminar</button>` : '';
-  document.getElementById('srp-actions').innerHTML = btnScan + btnEdit + btnDup + btnPub + btnDel;
+  const btnScan = `<button class="qv-btn qv-btn-dup" style="flex:0 0 100%;margin-top:4px" onclick="clearScanResult();openSearchScanner()">📷 Escanear otro producto</button>`;
+  document.getElementById('srp-actions').innerHTML = btnEdit + btnDup + btnPub + btnDel + btnScan;
 
   // Mostrar panel, ocultar lista y elementos irrelevantes
   document.getElementById('scan-result-panel').style.display = 'block';
