@@ -5334,7 +5334,7 @@ async function _saveKit() {
     headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify({
       id: newId, name, category: catCode, category_label: catLabel,
-      price, description: null, image: DEFAULT_IMG,
+      price, description: '', image: DEFAULT_IMG,
       badge: null, badge_type: null, featured: false,
       out_of_stock: false, original_price: null,
       barcode: null, stock: 0, cost: null,
