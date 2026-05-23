@@ -175,8 +175,8 @@ async function loadProducts() {
   showSkeleton();
   let failed = false;
   try {
-    // is_published=true: solo publicados. out_of_stock=false: solo con stock
-    const result = await supabaseApi('products?select=*&is_published=eq.true&out_of_stock=eq.false&category=neq.por_revisar&order=position.asc');
+    // Publicados con stock O apartados activos
+    const result = await supabaseApi('products?select=*&is_published=eq.true&category=neq.por_revisar&or=(out_of_stock.eq.false,is_apartado.eq.true)&order=position.asc');
     if (result.ok && Array.isArray(result.data) && result.data.length) {
       products = result.data.map(p => ({
         id: p.id,
@@ -190,6 +190,7 @@ async function loadProducts() {
         badgeType: p.badge_type,
         featured: p.featured,
         outOfStock: p.out_of_stock,
+        isApartado: p.is_apartado || false,
         originalPrice: p.original_price,
         stock: p.stock,
         images: p.images || null
@@ -377,8 +378,11 @@ function discountPct(p) {
 
 function cardHTML(p) {
   const oos = p.outOfStock || p.stock === 0;
+  const apt = p.isApartado;
   const pct = discountPct(p);
-  const oosTag = oos ? `<span class="product-badge badge-oos" style="background:#9B8B78">Agotado</span>` : '';
+  const oosTag = apt
+    ? `<span class="product-badge badge-apartado">📌 Apartado</span>`
+    : oos ? `<span class="product-badge badge-oos" style="background:#9B8B78">Agotado</span>` : '';
 
   let badgeArea = '';
   const badgeIsPromo = !p.badgeType || p.badgeType === 'promo';
@@ -400,8 +404,9 @@ function cardHTML(p) {
   const priceHTML = pct > 0
     ? `<div class="product-price"><s class="price-before">$${p.originalPrice.toLocaleString('es-MX')}</s> $${p.price.toLocaleString('es-MX')}</div>`
     : `<div class="product-price">$${p.price.toLocaleString('es-MX')}</div>`;
-  const buyBtn = oos
-    ? `<button class="btn-buy btn-buy-oos" disabled>Agotado</button>`
+  const buyBtn = apt
+    ? `<button class="btn-buy btn-buy-oos" onclick="event.stopPropagation();whatsapp(${p.id},this)" style="background:#92400E">${WA_SVG} Consultar</button>`
+    : oos ? `<button class="btn-buy btn-buy-oos" disabled>Agotado</button>`
     : `<button class="btn-buy" onclick="event.stopPropagation();whatsapp(${p.id},this)">${WA_SVG} Pedir</button>`;
   return `
 <article class="product-card reveal${oos ? ' card-oos' : ''}" onclick="openModal(${p.id})">

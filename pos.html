@@ -1045,7 +1045,7 @@ button,a{touch-action:manipulation}
           <div class="apartado-field-row">
             <div class="cash-field">
               <label>Anticipo recibido</label>
-              <input type="number" id="pos-anticipo" min="1" step="1" placeholder="" oninput="updateAnticipoInfo()">
+              <input type="number" id="pos-anticipo" min="0" step="1" placeholder="0 = sin anticipo" oninput="updateAnticipoInfo()">
             </div>
             <div class="cash-field">
               <label>Pendiente</label>
@@ -2625,14 +2625,14 @@ async function deleteSale(id) {
           const lc = products.find(x => x.id === comp.id);
           const newStock = (lc ? lc.stock : 0) + (item.qty || 1) * comp.qty;
           restores.push(
-            api(`products?id=eq.${comp.id}`, { method:'PATCH', body:JSON.stringify({ stock: newStock, out_of_stock: false }) })
+            api(`products?id=eq.${comp.id}`, { method:'PATCH', body:JSON.stringify({ stock: newStock, out_of_stock: false, is_apartado: false }) })
               .then(() => { if (lc) { lc.stock = newStock; lc.outOfStock = false; } })
           );
         }
       } else {
         const newStock = (p ? p.stock : 0) + (item.qty || 1);
         restores.push(
-          api(`products?id=eq.${item.id}`, { method:'PATCH', body:JSON.stringify({ stock: newStock, out_of_stock: false }) })
+          api(`products?id=eq.${item.id}`, { method:'PATCH', body:JSON.stringify({ stock: newStock, out_of_stock: false, is_apartado: false }) })
             .then(() => { if (p) { p.stock = newStock; p.outOfStock = false; } })
         );
       }
@@ -3063,6 +3063,11 @@ async function confirmLiquidar() {
   });
   btn.disabled = false; btn.textContent = '✓ Liquidar';
   if (!r.ok) { toast('Error al completar apartado', 'error'); return; }
+  // Limpiar is_apartado en los productos de este apartado
+  const saleItems = sale?.items || [];
+  await Promise.all(saleItems.map(item =>
+    api(`products?id=eq.${item.id}`, { method:'PATCH', body:JSON.stringify({ is_apartado: false }) }).catch(()=>{})
+  ));
   logActivity('apartado_liquidado', `Liquidó apartado — ${method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo'}`, { method, restante });
   closeLiqModal();
   toast(`Apartado liquidado ✓ — $${restante.toLocaleString('es-MX')} recibido`, 'success');
@@ -3108,7 +3113,6 @@ async function cobrar() {
   if (isApartado) {
     if (!customer) { toast('Ingresa el nombre del cliente', 'error'); document.getElementById('pos-customer').focus(); _cobrandoAhora = false; return; }
     paidAmount = parseFloat(document.getElementById('pos-anticipo')?.value) || 0;
-    if (paidAmount <= 0) { toast('Ingresa el anticipo recibido', 'error'); document.getElementById('pos-anticipo').focus(); _cobrandoAhora = false; return; }
     if (paidAmount > total) { toast('El anticipo no puede ser mayor al total del pedido', 'error'); document.getElementById('pos-anticipo').focus(); _cobrandoAhora = false; return; }
     change = 0;
   } else if (payMethod === 'efectivo') {
@@ -3153,26 +3157,27 @@ async function cobrar() {
   const stockUpdates = [];
   for (const { product: p, qty } of cart) {
     if (p.kitItems?.length) {
-      // Kit: descontar componentes
       for (const comp of p.kitItems) {
         const lc = products.find(x => x.id === comp.id);
         if (!lc) continue;
         const newStock = Math.max(0, lc.stock - qty * comp.qty);
         const patch = { stock: newStock };
-        if (newStock === 0) patch.out_of_stock = true;
+        if (newStock === 0) patch.out_of_stock = !isApartado; // apartado: no marcar agotado
+        if (newStock === 0 && isApartado) patch.is_apartado = true;
         stockUpdates.push(
           api(`products?id=eq.${comp.id}`, { method:'PATCH', body:JSON.stringify(patch) })
-            .then(() => { lc.stock = newStock; if (newStock === 0) lc.outOfStock = true; })
+            .then(() => { lc.stock = newStock; if (newStock === 0 && !isApartado) lc.outOfStock = true; })
         );
       }
     } else {
       const newStock = Math.max(0, p.stock - qty);
       const patch = { stock: newStock };
-      if (newStock === 0) patch.out_of_stock = true;
+      if (newStock === 0) patch.out_of_stock = !isApartado;
+      if (isApartado) patch.is_apartado = true;
       const lp = products.find(x => x.id === p.id);
       stockUpdates.push(
         api(`products?id=eq.${p.id}`, { method:'PATCH', body:JSON.stringify(patch) })
-          .then(() => { if (lp) { lp.stock = newStock; if (newStock === 0) lp.outOfStock = true; } })
+          .then(() => { if (lp) { lp.stock = newStock; if (newStock === 0 && !isApartado) lp.outOfStock = true; } })
       );
     }
   }

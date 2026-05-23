@@ -733,7 +733,8 @@ function mapProduct(p) {
     cost: p.cost ?? null,
     isPublished: p.is_published ?? true,
     kitItems: p.kit_items || null,
-    images: p.images || null
+    images: p.images || null,
+    isApartado: p.is_apartado || false
   };
 }
 
@@ -1000,7 +1001,7 @@ function adminCard(p, editable = false) {
                 onclick="toggleOutOfStock(${p.id})"
                 title="${oosTitle}"></button>
         ${stockChip(p, editable)}
-        ${_apartadosMap[p.id] ? `<span class="apt-chip" title="${_apartadosMap[p.id]} unidad(es) en apartado activo">📌${_apartadosMap[p.id]}</span>` : ''}
+        ${p.isApartado ? `<span class="apt-chip">📌 Apartado</span>` : (_apartadosMap[p.id] ? `<span class="apt-chip" title="${_apartadosMap[p.id]} unidad(es) en apartado">📌${_apartadosMap[p.id]}</span>` : '')}
         <button class="ac-pub-dot" onclick="togglePublished(${p.id})"
                 ontouchstart="event.stopPropagation()"
                 title="${pubTitle}">
@@ -1376,7 +1377,7 @@ function mobileCard(p) {
           </div>
           <div class="mpc-price-row">
             ${priceHTML}${stockInfo}
-            ${_apartadosMap[p.id] ? `<span class="apt-chip" title="${_apartadosMap[p.id]} unidad(es) en apartado">📌${_apartadosMap[p.id]}</span>` : ''}
+            ${p.isApartado ? `<span class="apt-chip">📌 Apartado</span>` : (_apartadosMap[p.id] ? `<span class="apt-chip">📌${_apartadosMap[p.id]}</span>` : '')}
             <button class="ac-status-dot ${oos?'ac-dot-sold':'ac-dot-avail'}"
                     onclick="toggleOutOfStock(${p.id})"
                     ontouchstart="event.stopPropagation()"
