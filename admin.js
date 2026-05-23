@@ -699,7 +699,7 @@ async function showApp() {
   </td></tr>`;
 
   await loadCategories();
-  await Promise.all([loadAppConfig(), loadFlagged(), loadRecentlyEdited()]);
+  await Promise.all([loadAppConfig(), loadFlagged(), loadRecentlyEdited(), loadApartadosMap()]);
   _loadNameMap();
   await loadProductsFromSupabase();
   _syncFlagFilter();
@@ -825,6 +825,23 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden && isAuthenticated()) renderStats();
 });
 
+
+/* ── APARTADOS ACTIVOS — mapa productId → unidades reservadas ── */
+let _apartadosMap = {}; // { productId: totalUnits }
+
+async function loadApartadosMap() {
+  const r = await supabaseApi('sales?type=eq.apartado&select=items,total,paid_amount');
+  if (!r.ok || !Array.isArray(r.data)) return;
+  const map = {};
+  r.data.forEach(sale => {
+    // Solo apartados sin liquidar (paid_amount < total)
+    if (parseFloat(sale.paid_amount || 0) >= parseFloat(sale.total || 0)) return;
+    (sale.items || []).forEach(item => {
+      if (item.id) map[item.id] = (map[item.id] || 0) + (item.qty || 1);
+    });
+  });
+  _apartadosMap = map;
+}
 
 /* ── RECENTLY EDITED — centralizado en Supabase ── */
 let _editedList = []; // cache local: [productId, ...] ordenado por edited_at desc
@@ -983,6 +1000,7 @@ function adminCard(p, editable = false) {
                 onclick="toggleOutOfStock(${p.id})"
                 title="${oosTitle}"></button>
         ${stockChip(p, editable)}
+        ${_apartadosMap[p.id] ? `<span class="apt-chip" title="${_apartadosMap[p.id]} unidad(es) en apartado activo">📌${_apartadosMap[p.id]}</span>` : ''}
         <button class="ac-pub-dot" onclick="togglePublished(${p.id})"
                 ontouchstart="event.stopPropagation()"
                 title="${pubTitle}">
@@ -1358,6 +1376,7 @@ function mobileCard(p) {
           </div>
           <div class="mpc-price-row">
             ${priceHTML}${stockInfo}
+            ${_apartadosMap[p.id] ? `<span class="apt-chip" title="${_apartadosMap[p.id]} unidad(es) en apartado">📌${_apartadosMap[p.id]}</span>` : ''}
             <button class="ac-status-dot ${oos?'ac-dot-sold':'ac-dot-avail'}"
                     onclick="toggleOutOfStock(${p.id})"
                     ontouchstart="event.stopPropagation()"
