@@ -3096,7 +3096,38 @@ function _bcpFilter(q) {
       html += `</div>`;
     }
   }
-  list.innerHTML = html || '<p style="color:var(--muted);font-size:.85rem;text-align:center;padding:20px 0">Sin resultados</p>';
+  if (!html) {
+    const label = q.trim();
+    list.innerHTML = `
+      <p style="color:var(--muted);font-size:.85rem;text-align:center;padding:16px 0 10px">Sin resultados para "<strong>${label}</strong>"</p>
+      <div style="text-align:center">
+        <button onclick="_bcpCreateAndSelect('${label.replace(/'/g,"\\'")}')"
+          style="background:var(--charcoal);color:#fff;border:none;border-radius:10px;padding:11px 20px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">
+          + Crear categoría "${label}"
+        </button>
+      </div>`;
+  } else {
+    list.innerHTML = html;
+  }
+}
+
+async function _bcpCreateAndSelect(label) {
+  label = label.trim();
+  if (!label) return;
+  const code = label.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+  if (categories.find(c => c.code === code)) {
+    // Ya existe con ese código — seleccionarla directamente
+    return _bcpSelect(code);
+  }
+  const color = CAT_PALETTE[categories.length % CAT_PALETTE.length];
+  categories.push({ code, label, color });
+  await _saveCategories();
+  renderCategorySelects();
+  populateCatParentSelect();
+  toast(`Categoría "${label}" creada ✓`, 'success');
+  _bcpSelect(code);
 }
 
 async function _bcpSelect(code) {
