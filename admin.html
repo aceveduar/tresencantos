@@ -2340,6 +2340,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   <div class="qv-panel" id="qv-panel">
     <div class="qv-img-zone">
       <div id="qv-img-container"></div>
+      <input type="file" id="qv-img-file" accept="image/*" style="display:none" onchange="_qvHandleImgUpload(this)">
       <button class="qv-close" onclick="closeQV()">✕</button>
       <div class="qv-badge-zone" id="qv-badge-zone"></div>
     </div>

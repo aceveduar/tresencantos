@@ -5234,6 +5234,51 @@ function _qvImgDoubleTap(e) {
   _qvLastTap = now;
 }
 
+// Desktop: clic simple = zoom, doble clic = subir imagen
+let _qvClickTimer = null;
+function _qvImgClick(e) {
+  clearTimeout(_qvClickTimer);
+  _qvClickTimer = setTimeout(() => _qvOpenZoom(), 220);
+}
+function _qvImgDblClick(e) {
+  clearTimeout(_qvClickTimer);
+  if (!can.editProduct) return;
+  document.getElementById('qv-img-file').click();
+}
+
+async function _qvHandleImgUpload(input) {
+  const file = input.files?.[0];
+  if (!file || !_qvCurrentId) return;
+  const p = products.find(x => x.id === _qvCurrentId);
+  if (!p) return;
+
+  const img = document.getElementById('qv-img');
+  if (img) { img.style.opacity = '.4'; img.style.transition = 'opacity .2s'; }
+  toast('Subiendo imagen…', '');
+
+  const b64 = await _fileToBase64Resized(file);
+  let finalUrl = b64;
+  if (driveEp && driveSecret) {
+    const driveResult = await uploadToDrive(b64);
+    if (driveResult) finalUrl = driveResult;
+  }
+
+  const result = await supabaseApi(`products?id=eq.${_qvCurrentId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ image: finalUrl })
+  });
+  input.value = '';
+  if (result.ok) {
+    p.image = finalUrl;
+    renderTable();
+    openQV(_qvCurrentId);
+    toast('Imagen actualizada ✓', 'success');
+  } else {
+    if (img) img.style.opacity = '1';
+    toast('Error al guardar imagen', 'error');
+  }
+}
+
 function _qvOpenZoom() {
   const p = products.find(x => x.id === _qvCurrentId);
   if (!p) return;
@@ -5322,7 +5367,7 @@ function _renderQV(p) {
        <button class="qv-img-nav qv-img-nav-prev" onclick="_qvImgNav(-1)" title="Imagen anterior">&#8249;</button>
        <button class="qv-img-nav qv-img-nav-next" onclick="_qvImgNav(1)"  title="Imagen siguiente">&#8250;</button>`;
   } else {
-    imgContainer.innerHTML = `<img id="qv-img" src="${allImgs[0]}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'" ontouchend="_qvImgDoubleTap(event)" onclick="_qvImgDoubleTap(event)" style="width:100%;height:260px;object-fit:contain;display:block;cursor:zoom-in;${oosStyle}">`;
+    imgContainer.innerHTML = `<img id="qv-img" src="${allImgs[0]}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'" onclick="_qvImgClick(event)" ondblclick="_qvImgDblClick(event)" style="width:100%;height:260px;object-fit:contain;display:block;cursor:zoom-in;${oosStyle}" title="Clic: ver completa · Doble clic: cambiar imagen">`;
   }
 
   // Badge
