@@ -3975,21 +3975,63 @@ function renderCatManagerList() {
 }
 
 function _catAddSubInline(parentCode) {
+  // Si ya hay un formulario abierto para este padre, lo cierra
+  const existing = document.getElementById(`cat-sub-form-${parentCode}`);
+  if (existing) { existing.remove(); return; }
+  // Cierra otros formularios abiertos
+  document.querySelectorAll('[id^="cat-sub-form-"]').forEach(el => el.remove());
+
   const parent = categories.find(c => c.code === parentCode);
   if (!parent) return;
-  const label = prompt(`Nueva subcategoría de "${parent.label}":\nEscribe el nombre:`);
-  if (!label?.trim()) return;
-  const code = parentCode + '_' + label.trim().toLowerCase()
+
+  const form = document.createElement('div');
+  form.id = `cat-sub-form-${parentCode}`;
+  form.style.cssText = 'display:flex;gap:6px;align-items:center;padding:6px 0 6px 18px;margin-left:6px;border-left:2px solid var(--gold)';
+  form.innerHTML = `
+    <span class="cat-mgr-dot" style="background:${parent.color||'#9B8B78'}"></span>
+    <input id="cat-sub-input-${parentCode}" type="text" placeholder="Nombre de la subcategoría…"
+      style="flex:1;padding:7px 11px;border:1.5px solid var(--gold);border-radius:8px;font-size:.84rem;font-family:inherit;outline:none"
+      onkeydown="if(event.key==='Enter')_catSubConfirm('${parentCode}');if(event.key==='Escape')this.closest('[id^=cat-sub-form]').remove()">
+    <button onclick="_catSubConfirm('${parentCode}')"
+      style="background:var(--gold);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:.8rem;font-weight:700;cursor:pointer;touch-action:manipulation;white-space:nowrap">✓ Agregar</button>
+    <button onclick="document.getElementById('cat-sub-form-${parentCode}').remove()"
+      style="background:none;border:none;color:var(--muted);font-size:1rem;cursor:pointer;padding:4px;touch-action:manipulation">✕</button>`;
+
+  // Insertar después de la fila raíz (antes del bloque de subs si existe)
+  const rootRow = document.querySelector(`.cat-mgr-root`);
+  const allRoots = document.querySelectorAll('.cat-mgr-root');
+  let targetRoot = null;
+  allRoots.forEach(row => {
+    const btn = row.querySelector(`[onclick="_catAddSubInline('${parentCode}')"]`);
+    if (btn) targetRoot = row;
+  });
+  if (targetRoot) {
+    const subsBlock = targetRoot.nextElementSibling;
+    if (subsBlock?.classList.contains('cat-mgr-subs')) {
+      subsBlock.insertAdjacentElement('afterend', form);
+    } else {
+      targetRoot.insertAdjacentElement('afterend', form);
+    }
+    setTimeout(() => document.getElementById(`cat-sub-input-${parentCode}`)?.focus(), 50);
+  }
+}
+
+async function _catSubConfirm(parentCode) {
+  const input = document.getElementById(`cat-sub-input-${parentCode}`);
+  const label = input?.value.trim();
+  if (!label) { input?.focus(); return; }
+  const code = parentCode + '_' + label.toLowerCase()
     .normalize('NFD').replace(/[̀-ͯ]/g,'')
     .replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
-  if (categories.find(c => c.code === code)) { toast('Ya existe esa subcategoría', 'error'); return; }
-  const color = CAT_PALETTE[categories.length % CAT_PALETTE.length];
-  categories.push({ code, label: label.trim(), color, parent: parentCode });
-  _saveCategories();
+  if (categories.find(c => c.code === code)) { toast('Ya existe esa subcategoría', 'error'); input?.focus(); return; }
+  const parent = categories.find(c => c.code === parentCode);
+  const color = parent?.color || CAT_PALETTE[categories.length % CAT_PALETTE.length];
+  categories.push({ code, label, color, parent: parentCode });
+  await _saveCategories();
   renderCategorySelects();
   renderCatManagerList();
   populateCatParentSelect();
-  toast(`Subcategoría "${label.trim()}" creada ✓`, 'success');
+  toast(`"${label}" agregada ✓`, 'success');
 }
 
 async function updateCatLabel(idx, newLabel) {
