@@ -3678,8 +3678,8 @@ function showScanResult(id) {
         <div class="srp-stock-label">${stockLabel}</div>
         <div class="srp-stock-hint">Toca para editar</div>
       </div>`;
-    heroEl.className = 'srp-stock-hero stock-chip';
-    heroEl.onclick = e => editStockInline(e, p.id);
+    heroEl.className = 'srp-stock-hero';
+    heroEl.onclick = e => { e.stopPropagation(); _srpEditStock(p.id); };
     heroEl.ontouchstart = e => e.stopPropagation();
   }
 
@@ -3723,6 +3723,59 @@ function clearScanResult() {
 
 function _srpRefresh(id) {
   if (document.getElementById('scan-result-panel').style.display !== 'none') showScanResult(id);
+}
+
+async function _srpEditStock(id) {
+  const p = products.find(x => x.id === id);
+  const heroEl = document.getElementById('srp-stock-hero');
+  if (!p || !heroEl) return;
+
+  // Reemplaza el contenido del hero — sin quitar el elemento del DOM
+  heroEl.innerHTML = `
+    <input id="srp-stock-input" type="text" inputmode="numeric" pattern="[0-9]*"
+      value="${p.stock}" autocomplete="off"
+      style="width:64px;padding:6px 10px;border:2px solid var(--gold);border-radius:8px;font-size:1.4rem;font-weight:800;text-align:center;font-family:inherit;outline:none;color:var(--charcoal)">
+    <button id="srp-stock-ok" type="button"
+      style="background:var(--gold);border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:.85rem;font-weight:700;cursor:pointer;touch-action:manipulation">✓ Guardar</button>`;
+  heroEl.onclick = null;
+
+  const input = document.getElementById('srp-stock-input');
+  const btn   = document.getElementById('srp-stock-ok');
+  input.focus(); input.select();
+
+  let saved = false;
+  const save = async () => {
+    if (saved) return;
+    saved = true;
+    const newStock = Math.max(0, parseInt(input.value) || 0);
+    const patch = { stock: newStock };
+    if (newStock > 0 && p.outOfStock)  patch.out_of_stock = false;
+    if (newStock === 0 && !p.outOfStock) patch.out_of_stock = true;
+
+    const result = await supabaseApi(`products?id=eq.${id}`, {
+      method: 'PATCH', body: JSON.stringify(patch)
+    });
+    if (result.ok) {
+      p.stock = newStock;
+      if (patch.out_of_stock !== undefined) p.outOfStock = patch.out_of_stock;
+      toast(`📦 Stock actualizado → ${newStock}`, '');
+      renderTable(); renderStats();
+    } else {
+      toast('Error al actualizar stock', 'error');
+    }
+    _srpRefresh(id);
+  };
+
+  btn.ontouchend = e => { e.preventDefault(); save(); };
+  btn.onclick    = () => save();
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); save(); }
+    if (e.key === 'Escape') { saved = true; _srpRefresh(id); }
+  });
+  // Tap fuera → guardar automáticamente
+  setTimeout(() => {
+    input.addEventListener('blur', () => { if (!saved) save(); });
+  }, 400);
 }
 
 function _onAdminScan(code) {
