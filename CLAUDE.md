@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-05-22 (rev 8).
+Documentación técnica del proyecto. Última actualización: 2026-05-23 (rev 9).
 
 ## Rol de Claude en este proyecto
 
@@ -389,6 +389,18 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
 ### Protección "cambios sin guardar" en formulario (2026-05-22)
 `_formSnapshot` / `_takeFormSnapshot()` / `_formIsDirty()` — al abrir el formulario se toma un snapshot de todos los campos 150ms después del focus. Al cerrar sin guardar, si hay diferencias aparece `confirm()`. Se limpia en `saveProduct()` y `closeForm()`.
 
+### Funcionalidades añadidas (2026-05-22/23)
+- **Drag & drop en cards** — `_cardDragStart/End/Over/Drop()` con borde dorado izquierda/derecha. Misma función `save()` que tabla.
+- **Seleccionar todos los visibles** — `selectAllVisible()` usa `getFilteredProducts()`. Botón "Todos" en bulk bar + clic en contador de productos.
+- **Deseleccionar** — botón ✕ en bulk bar llama `clearBulkSelection()`.
+- **Bulk categoría: bottom sheet** — `bulkSetCategory()` abre `#bulk-cat-overlay` con chips tappables agrupados por padre y buscador. Reemplaza `prompt()`.
+- **Gestionar categorías UX** — raíces como encabezados editables con `[+ Sub]` inline (sin prompt), subcategorías agrupadas, auto-código desde nombre. Sin mostrar códigos técnicos.
+- **QV imagen: 1 clic = zoom, doble clic = cambiar imagen** — `_qvImgClick/DblClick()` + `_qvHandleImgUpload()`. Sube a Drive o base64, PATCH, refresca QV.
+- **Layout wide iMac** — `≥1280px`: max-width 1440px, 7+ columnas, imagen 4:3. `≥1600px`: max-width 1800px, 9+ columnas. Botones de acción como overlay deslizante en hover (no compiten con footer).
+- **Recientes centralizado** — tabla `recently_edited` en Supabase. `loadRecentlyEdited()` al iniciar, `_trackEdit()` hace upsert + cache local instantáneo.
+- **TE tracking** — objeto `TE` en admin.js con batch 5s hacia tabla `usage_log`. Sección "🔧 Uso de funciones" en Reportes con top 10 acciones del período.
+- **Scan result panel mejorado** — imagen 180px, stock hero tappeable con editor inline dedicado `_srpEditStock()` (blur = guardar, sin reemplazar el elemento del DOM), "Escanear otro" al final.
+
 ### Bugs resueltos relevantes
 - `closeForm()` llama `setBtn(saveBtn, false)` → evita botón Guardar bloqueado en segunda edición
 - Inline stock en Android: `type="text"` + `inputMode="numeric"` + botón ✓ sin depender de `blur`
@@ -419,7 +431,8 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
 - **Banner apartados vencidos** — franja roja debajo del topbar (`#apt-venc-banner`), clickeable → abre pestaña Apartados. Se muestra/oculta al cargar apartados.
 - **Modal post-venta protegido** — `onclick="void 0"` (no cierra al tocar fuera) + Escape bloqueado con `_escGuard`. Se limpia al cerrar con `closeSaleDone()`.
 - **Modo Recepción** (`openRecvMode`) — overlay `#recv-overlay` para recibir inventario desde la Caja sin salir al Inventario. CSS en admin.html, JS en admin.js línea ~4164.
-- **Productos OOS ocultos en Caja** — `getFilteredProducts()` filtra `outOfStock || stock === 0` antes de renderizar. Aplica a lista, grid y búsqueda. Frecuentes ya filtraban OOS independientemente.
+- **Productos OOS ocultos en Caja** — `getFilteredProducts()` filtra `outOfStock || stock === 0`. Aplica a lista, grid y búsqueda.
+- **Restock desde Caja** — `_showRestockPrompt(id)` + `_confirmRestock()`. Aparece al tocar producto OOS o al superar stock en carrito (350ms delay tras shake). PATCH stock + auto-agrega al carrito.
 - **Validación:** efectivo debe cubrir total; doble submit bloqueado con flag `_cobrandoAhora`
 - **Mobile:** `pos-right` scrollable, cart-items con `max-height:120px` para que checkout siempre sea visible
 - **seller_email** — se guarda en cada venta con el email del usuario autenticado
