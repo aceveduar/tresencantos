@@ -1028,7 +1028,7 @@ async function editStockInline(e, id) {
     if (saved) return;
     saved = true;
     const newStock = Math.max(0, parseInt(input.value) || 0);
-    if (newStock === p.stock) { renderTable(); _qvRefresh(id); return; }
+    if (newStock === p.stock) { renderTable(); _qvRefresh(id); _srpRefresh(id); return; }
 
     const patch = { stock: newStock };
     if (newStock > 0 && p.outOfStock)  patch.out_of_stock = false;
@@ -1046,7 +1046,7 @@ async function editStockInline(e, id) {
     } else {
       toast('Error al actualizar stock', 'error');
     }
-    renderTable(); _qvRefresh(id);
+    renderTable(); _qvRefresh(id); _srpRefresh(id);
   };
 
   input.addEventListener('keydown', ev => {
@@ -3678,6 +3678,7 @@ function showScanResult(id) {
         <div class="srp-stock-label">${stockLabel}</div>
         <div class="srp-stock-hint">Toca para editar</div>
       </div>`;
+    heroEl.className = 'srp-stock-hero stock-chip';
     heroEl.onclick = e => editStockInline(e, p.id);
     heroEl.ontouchstart = e => e.stopPropagation();
   }
