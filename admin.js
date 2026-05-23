@@ -3942,21 +3942,54 @@ function renderCatManagerList() {
     el.innerHTML = '<p style="color:var(--muted);font-size:.84rem;text-align:center;padding:12px">Sin categorías</p>';
     return;
   }
-  const rows = [];
+  let html = '';
   rootCats().forEach(r => {
-    rows.push({ c:r, i:categories.indexOf(r), indent:false });
-    subCats(r.code).forEach(s => rows.push({ c:s, i:categories.indexOf(s), indent:true }));
+    const ri = categories.indexOf(r);
+    const subs = subCats(r.code);
+    html += `
+<div class="cat-mgr-root">
+  <span class="cat-mgr-dot" style="background:${r.color||'#9B8B78'}"></span>
+  <input class="cat-mgr-root-name" type="text" value="${r.label}"
+         onblur="updateCatLabel(${ri},this.value)"
+         onkeydown="if(event.key==='Enter')this.blur()" title="Editar nombre">
+  <button class="cat-mgr-add-sub" onclick="_catAddSubInline('${r.code}')" title="Agregar subcategoría">+ Sub</button>
+  <button class="cat-mgr-del" onclick="deleteCategoryAt(${ri})" title="Eliminar">✕</button>
+</div>`;
+    if (subs.length) {
+      html += `<div class="cat-mgr-subs">`;
+      subs.forEach(s => {
+        const si = categories.indexOf(s);
+        html += `
+<div class="cat-mgr-sub-row">
+  <span class="cat-mgr-dot" style="background:${s.color||r.color||'#9B8B78'}"></span>
+  <input class="cat-mgr-sub-name" type="text" value="${s.label}"
+         onblur="updateCatLabel(${si},this.value)"
+         onkeydown="if(event.key==='Enter')this.blur()" title="Editar nombre">
+  <button class="cat-mgr-del" onclick="deleteCategoryAt(${si})" title="Eliminar">✕</button>
+</div>`;
+      });
+      html += `</div>`;
+    }
   });
-  el.innerHTML = rows.map(({ c, i, indent }) => `
-<div class="cat-mgr-row" style="${indent ? `padding-left:20px;border-left:3px solid ${c.color||'#ccc'};margin-left:8px` : ''}">
-  <span class="cat-dot" style="background:${c.color||'#9B8B78'};width:10px;height:10px;flex-shrink:0"></span>
-  <span class="cat-mgr-code">${c.code}</span>
-  <input type="text" value="${c.label}" class="cat-label-input"
-         onblur="updateCatLabel(${i}, this.value)"
-         onkeydown="if(event.key==='Enter')this.blur()"
-         placeholder="Nombre visible">
-  <button class="action-btn del" onclick="deleteCategoryAt(${i})" title="Eliminar">✕</button>
-</div>`).join('');
+  el.innerHTML = html;
+}
+
+function _catAddSubInline(parentCode) {
+  const parent = categories.find(c => c.code === parentCode);
+  if (!parent) return;
+  const label = prompt(`Nueva subcategoría de "${parent.label}":\nEscribe el nombre:`);
+  if (!label?.trim()) return;
+  const code = parentCode + '_' + label.trim().toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+  if (categories.find(c => c.code === code)) { toast('Ya existe esa subcategoría', 'error'); return; }
+  const color = CAT_PALETTE[categories.length % CAT_PALETTE.length];
+  categories.push({ code, label: label.trim(), color, parent: parentCode });
+  _saveCategories();
+  renderCategorySelects();
+  renderCatManagerList();
+  populateCatParentSelect();
+  toast(`Subcategoría "${label.trim()}" creada ✓`, 'success');
 }
 
 async function updateCatLabel(idx, newLabel) {
@@ -3991,15 +4024,14 @@ async function deleteCategoryAt(idx) {
 }
 
 async function addCategory() {
-  const codeInput   = document.getElementById('new-cat-code');
   const labelInput  = document.getElementById('new-cat-label');
   const parentInput = document.getElementById('new-cat-parent');
-  const code   = codeInput.value.trim().toLowerCase().replace(/\s+/g, '_');
   const label  = labelInput.value.trim();
   const parent = parentInput?.value || '';
-  if (!code || !label) { toast('Completa el código y el nombre', 'error'); return; }
-  if (!/^[a-z0-9_]+$/.test(code)) { toast('El código solo puede tener letras, números y guión bajo', 'error'); return; }
-  if (categories.find(c => c.code === code)) { toast('Ya existe una categoría con ese código', 'error'); return; }
+  if (!label) { toast('Escribe el nombre de la categoría', 'error'); labelInput.focus(); return; }
+  const base = label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+  const code = parent ? `${parent}_${base}` : base;
+  if (categories.find(c => c.code === code)) { toast('Ya existe una categoría con ese nombre', 'error'); return; }
   const color = CAT_PALETTE[categories.length % CAT_PALETTE.length];
   const newCat = { code, label, color };
   if (parent && categories.find(c => c.code === parent)) newCat.parent = parent;
@@ -4007,7 +4039,7 @@ async function addCategory() {
   await _saveCategories();
   renderCategorySelects();
   renderCatManagerList();
-  codeInput.value = ''; labelInput.value = '';
+  labelInput.value = '';
   if (parentInput) parentInput.value = '';
   toast(`${parent ? 'Subcategoría' : 'Categoría'} "${label}" creada ✓`, 'success');
 }
