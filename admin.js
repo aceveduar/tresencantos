@@ -4001,12 +4001,18 @@ function renderCatManagerList() {
     el.innerHTML = '<p style="color:var(--muted);font-size:.84rem;text-align:center;padding:12px">Sin categorías</p>';
     return;
   }
+  const roots = rootCats();
   let html = '';
-  rootCats().forEach(r => {
+  roots.forEach(r => {
     const ri = categories.indexOf(r);
     const subs = subCats(r.code);
+    const parentOpts = roots.map(x => `<option value="${x.code}"${x.code===r.code?' selected':''}>${x.label}</option>`).join('');
     html += `
-<div class="cat-mgr-root">
+<div class="cat-mgr-root" draggable="true" data-code="${r.code}"
+     ondragstart="_catDragStart(event,'root','${r.code}')"
+     ondragover="_catDragOver(event,'root')"
+     ondrop="_catDrop(event,'root','${r.code}')">
+  <span class="cat-mgr-handle" title="Arrastrar para reordenar">⠿</span>
   <span class="cat-mgr-dot" style="background:${r.color||'#9B8B78'}"></span>
   <input class="cat-mgr-root-name" type="text" value="${r.label}"
          onblur="updateCatLabel(${ri},this.value)"
@@ -4015,15 +4021,25 @@ function renderCatManagerList() {
   <button class="cat-mgr-del" onclick="deleteCategoryAt(${ri})" title="Eliminar">✕</button>
 </div>`;
     if (subs.length) {
-      html += `<div class="cat-mgr-subs">`;
+      html += `<div class="cat-mgr-subs" data-parent="${r.code}">`;
       subs.forEach(s => {
         const si = categories.indexOf(s);
+        const pOpts = roots.filter(x=>x.code!==r.code).map(x=>`<option value="${x.code}">${x.label}</option>`).join('');
         html += `
-<div class="cat-mgr-sub-row">
+<div class="cat-mgr-sub-row" draggable="true" data-code="${s.code}"
+     ondragstart="_catDragStart(event,'sub','${s.code}')"
+     ondragover="_catDragOver(event,'sub')"
+     ondrop="_catDrop(event,'sub','${s.code}')">
+  <span class="cat-mgr-handle">⠿</span>
   <span class="cat-mgr-dot" style="background:${s.color||r.color||'#9B8B78'}"></span>
   <input class="cat-mgr-sub-name" type="text" value="${s.label}"
          onblur="updateCatLabel(${si},this.value)"
          onkeydown="if(event.key==='Enter')this.blur()" title="Editar nombre">
+  <select title="Mover a otra categoría" onchange="_catChangeParent('${s.code}',this.value)"
+    style="font-size:.7rem;border:1.5px solid var(--border);border-radius:7px;padding:2px 4px;color:var(--muted);background:#fff;cursor:pointer;max-width:90px;font-family:inherit">
+    <option value="${r.code}" selected>↳ ${r.label}</option>
+    ${pOpts}
+  </select>
   <button class="cat-mgr-del" onclick="deleteCategoryAt(${si})" title="Eliminar">✕</button>
 </div>`;
       });
@@ -4073,6 +4089,56 @@ function _catAddSubInline(parentCode) {
     }
     setTimeout(() => document.getElementById(`cat-sub-input-${parentCode}`)?.focus(), 50);
   }
+}
+
+/* ── CATEGORY DRAG & DROP ── */
+let _catDragCode = null;
+let _catDragType = null;
+
+function _catDragStart(e, type, code) {
+  _catDragCode = code;
+  _catDragType = type;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => e.currentTarget?.classList.add('cat-drag-over'), 0);
+}
+
+function _catDragOver(e, type) {
+  if (type !== _catDragType) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
+  e.currentTarget.classList.add('cat-drag-over');
+}
+
+async function _catDrop(e, type, targetCode) {
+  e.preventDefault();
+  document.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
+  if (!_catDragCode || _catDragCode === targetCode || type !== _catDragType) return;
+
+  const srcIdx = categories.findIndex(c => c.code === _catDragCode);
+  const tgtIdx = categories.findIndex(c => c.code === targetCode);
+  if (srcIdx === -1 || tgtIdx === -1) return;
+
+  const [item] = categories.splice(srcIdx, 1);
+  const newTgt = categories.findIndex(c => c.code === targetCode);
+  categories.splice(newTgt, 0, item);
+
+  await _saveCategories();
+  renderCategorySelects();
+  renderCatManagerList();
+  _catDragCode = null;
+}
+
+async function _catChangeParent(subCode, newParentCode) {
+  const sub = categories.find(c => c.code === subCode);
+  const newParent = categories.find(c => c.code === newParentCode);
+  if (!sub || !newParent) return;
+  sub.parent = newParentCode;
+  sub.color = newParent.color || sub.color;
+  await _saveCategories();
+  renderCategorySelects();
+  renderCatManagerList();
+  toast(`"${sub.label}" movida a "${newParent.label}" ✓`, 'success');
 }
 
 async function _catSubConfirm(parentCode) {
