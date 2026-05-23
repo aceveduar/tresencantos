@@ -960,7 +960,7 @@ function adminCard(p, editable = false) {
   const isSinCat  = p.category === 'por_revisar';
 
   return `
-<div class="admin-card${sel?' card-selected':''}${oos?' card-oos':''}${isSinCat?' card-por-revisar':''}"
+<div class="admin-card${sel?' card-selected':''}${p.isApartado?' card-apartado':oos?' card-oos':''}${isSinCat?' card-por-revisar':''}"
      data-id="${p.id}"
      onclick="_cardTap(event,${p.id})"
      ontouchstart="_lpStart(event,${p.id})"
