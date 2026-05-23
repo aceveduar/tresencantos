@@ -1374,6 +1374,24 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .ac-body{padding:10px 12px}
   .ac-name{font-size:.8rem}
   .ac-price{font-size:.88rem}
+  /* Acciones como overlay deslizante — footer queda solo con estados */
+  .ac-actions{
+    position:absolute;bottom:0;left:0;right:0;
+    background:rgba(28,24,23,.78);backdrop-filter:blur(2px);
+    display:flex;justify-content:center;gap:8px;padding:9px 8px;
+    opacity:0;transform:translateY(100%);
+    transition:opacity .18s,transform .18s cubic-bezier(.2,.8,.3,1);
+    border-radius:0 0 14px 14px;
+  }
+  .admin-card:hover .ac-actions{opacity:1;transform:translateY(0)}
+  .ac-actions .action-btn{
+    width:32px;height:32px;background:rgba(255,255,255,.92);
+    border:none;color:var(--charcoal);border-radius:8px;
+  }
+  .ac-actions .action-btn:hover{background:#fff;color:var(--gold-dark);transform:scale(1.1)}
+  .ac-actions .action-btn.del{color:var(--red)}
+  .ac-actions .action-btn.del:hover{background:var(--red);color:#fff}
+  .ac-footer{border-top:none;margin-top:6px;padding-top:0}
 }
 @media(min-width:1600px){
   main{max-width:1800px;padding:24px 56px}
