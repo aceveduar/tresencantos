@@ -1351,6 +1351,22 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .topbar-nav-mobile{gap:2px}
 }
 
+/* ── PANTALLAS GRANDES (iMac, monitores wide) ─────────────────────── */
+@media(min-width:1280px){
+  main{max-width:1440px;padding:24px 40px}
+  .admin-cards-grid{grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:14px}
+  .ac-img{aspect-ratio:4/3}
+  .ac-body{padding:10px 12px}
+  .ac-name{font-size:.8rem}
+  .ac-price{font-size:.88rem}
+}
+@media(min-width:1600px){
+  main{max-width:1800px;padding:24px 56px}
+  .admin-cards-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+  .ac-img{aspect-ratio:4/3}
+  .ac-body{padding:9px 11px}
+}
+
 /* ══ MODO RECEPCIÓN ══════════════════════════════════════════════════ */
 .recv-overlay{position:fixed;inset:0;z-index:400;background:#fff;display:flex;flex-direction:column;overflow:hidden}
 .recv-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--charcoal);color:#fff;flex-shrink:0}
