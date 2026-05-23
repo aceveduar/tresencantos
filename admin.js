@@ -983,6 +983,11 @@ function adminCard(p, editable = false) {
             title="${p.featured?'Quitar destacado':'Destacar'}">
       ${p.featured?'⭐':'☆'}
     </button>
+    <div class="ac-actions">
+      <button class="action-btn" onclick="event.stopPropagation();openForm(${p.id})" ontouchstart="event.stopPropagation()" title="Editar">${ICON_EDIT}</button>
+      <button class="action-btn btn-duplicate" onclick="event.stopPropagation();duplicateProduct(${p.id})" ontouchstart="event.stopPropagation()" title="Duplicar">${ICON_COPY}</button>
+      ${can.deleteProduct ? `<button class="action-btn del" onclick="event.stopPropagation();askDelete(${p.id})" ontouchstart="event.stopPropagation()" title="Eliminar">✕</button>` : ''}
+    </div>
   </div>
   <div class="ac-body">
     <div class="ac-name" title="${p.name}">${p.name}</div>
@@ -1007,11 +1012,6 @@ function adminCard(p, editable = false) {
                 title="${pubTitle}">
           ${pubEmoji}
         </button>
-      </div>
-      <div class="ac-actions">
-        <button class="action-btn" onclick="event.stopPropagation();openForm(${p.id})" ontouchstart="event.stopPropagation()" title="Editar">${ICON_EDIT}</button>
-        <button class="action-btn btn-duplicate" onclick="event.stopPropagation();duplicateProduct(${p.id})" ontouchstart="event.stopPropagation()" title="Duplicar">${ICON_COPY}</button>
-        ${can.deleteProduct ? `<button class="action-btn del" onclick="event.stopPropagation();askDelete(${p.id})" ontouchstart="event.stopPropagation()" title="Eliminar">✕</button>` : ''}
       </div>
     </div>
   </div>
