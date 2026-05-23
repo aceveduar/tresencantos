@@ -699,7 +699,7 @@ async function showApp() {
   </td></tr>`;
 
   await loadCategories();
-  await Promise.all([loadAppConfig(), loadFlagged()]);
+  await Promise.all([loadAppConfig(), loadFlagged(), loadRecentlyEdited()]);
   _loadNameMap();
   await loadProductsFromSupabase();
   _syncFlagFilter();
@@ -826,17 +826,35 @@ document.addEventListener('visibilitychange', () => {
 });
 
 
-/* ── RECENTLY EDITED — compartido con POS vía localStorage ── */
-const _EDITED_KEY = 'te_recently_edited';
+/* ── RECENTLY EDITED — centralizado en Supabase ── */
+let _editedList = []; // cache local: [productId, ...] ordenado por edited_at desc
+
+async function loadRecentlyEdited() {
+  const r = await supabaseApi('recently_edited?select=product_id&order=edited_at.desc&limit=60');
+  if (r.ok && Array.isArray(r.data)) {
+    _editedList = r.data.map(x => x.product_id);
+    // Fallback: migrar datos locales si la tabla está vacía
+    if (!_editedList.length) {
+      const local = JSON.parse(localStorage.getItem('te_recently_edited') || '[]');
+      if (local.length) _editedList = local;
+    }
+  }
+}
 
 function _trackEdit(id) {
-  let list = JSON.parse(localStorage.getItem(_EDITED_KEY) || '[]');
-  list = [id, ...list.filter(x => x !== id)].slice(0, 60);
-  localStorage.setItem(_EDITED_KEY, JSON.stringify(list));
+  // Actualiza cache local inmediatamente
+  _editedList = [id, ..._editedList.filter(x => x !== id)].slice(0, 60);
+  // Sincroniza con Supabase en background
+  const email = (() => { try { return JSON.parse(localStorage.getItem(SESSION_KEY))?.user?.email || ''; } catch { return ''; } })();
+  supabaseApi('recently_edited', {
+    method: 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ product_id: id, user_email: email, edited_at: new Date().toISOString() })
+  }).catch(() => {});
 }
 
 function _editedOrder() {
-  return JSON.parse(localStorage.getItem(_EDITED_KEY) || '[]');
+  return _editedList;
 }
 
 /* ── TABLE ── */
