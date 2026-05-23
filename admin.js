@@ -2989,36 +2989,67 @@ async function bulkDelete() {
   toast('Productos eliminados', 'success');
 }
 
-async function bulkSetCategory() {
+function bulkSetCategory() {
   if (!selectedIds.size) return;
-  const options = categories.map(c => `  ${c.code} → ${c.label}`).join('\n');
-  const cat = prompt(`Nueva categoría para ${selectedIds.size} producto(s):\n\n${options}\n\nEscribe el código:`);
-  if (cat === null) return;
-  const category = cat.trim().toLowerCase();
-  if (!categories.find(c => c.code === category)) {
-    toast('Código inválido. Usa uno de la lista.', 'error');
-    return;
-  }
-  const categoryLabel = getCatLabel(category);
+  document.getElementById('bcp-sub').textContent = `${selectedIds.size} producto${selectedIds.size > 1 ? 's' : ''} seleccionado${selectedIds.size > 1 ? 's' : ''}`;
+  document.getElementById('bcp-search-input').value = '';
+  _bcpFilter('');
+  document.getElementById('bulk-cat-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
 
-  if (getSupabaseUrl()) {
-    const ids = [...selectedIds].join(',');
-    const result = await supabaseApi(`products?id=in.(${ids})`, {
-      method: 'PATCH',
-      body: JSON.stringify({ category, category_label: categoryLabel })
-    });
-    if (!result.ok) {
-      toast('Error al actualizar categoría', 'error');
-      return;
+function closeBulkCatPicker() {
+  document.getElementById('bulk-cat-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function _bcpFilter(q) {
+  const term = (q || '').toLowerCase();
+  const roots = categories.filter(c => !c.parent);
+  const list  = document.getElementById('bcp-list');
+  let html = '';
+
+  for (const root of roots) {
+    const subs = categories.filter(c => c.parent === root.code);
+    const all  = [root, ...subs];
+    const visible = term ? all.filter(c => c.label.toLowerCase().includes(term) || c.code.includes(term)) : all;
+    if (!visible.length) continue;
+
+    if (!term) {
+      html += `<div class="bcp-group-label">${root.label}</div><div class="bcp-chips">`;
+      html += `<button class="bcp-chip" onclick="_bcpSelect('${root.code}')"><span class="bcp-dot" style="background:${root.color||'#9B8B78'}"></span>${root.label}</button>`;
+      subs.forEach(s => {
+        html += `<button class="bcp-chip bcp-sub-chip" onclick="_bcpSelect('${s.code}')"><span class="bcp-dot" style="background:${s.color||root.color||'#9B8B78'}"></span>${s.label}</button>`;
+      });
+      html += `</div>`;
+    } else {
+      html += `<div class="bcp-chips" style="margin-bottom:8px">`;
+      visible.forEach(c => {
+        html += `<button class="bcp-chip" onclick="_bcpSelect('${c.code}')"><span class="bcp-dot" style="background:${c.color||'#9B8B78'}"></span>${c.label}</button>`;
+      });
+      html += `</div>`;
     }
   }
+  list.innerHTML = html || '<p style="color:var(--muted);font-size:.85rem;text-align:center;padding:20px 0">Sin resultados</p>';
+}
+
+async function _bcpSelect(code) {
+  const cat = categories.find(c => c.code === code);
+  if (!cat) return;
+  closeBulkCatPicker();
+
+  const ids = [...selectedIds].join(',');
+  const result = await supabaseApi(`products?id=in.(${ids})`, {
+    method: 'PATCH',
+    body: JSON.stringify({ category: cat.code, category_label: cat.label })
+  });
+  if (!result.ok) { toast('Error al actualizar categoría', 'error'); return; }
 
   products.forEach(p => {
-    if (selectedIds.has(p.id)) { p.category = category; p.categoryLabel = categoryLabel; }
+    if (selectedIds.has(p.id)) { p.category = cat.code; p.categoryLabel = cat.label; }
   });
-  renderTable();
-  renderStats();
-  toast(`Categoría "${categoryLabel}" aplicada a ${selectedIds.size} producto(s)`, 'success');
+  renderTable(); renderStats();
+  toast(`● ${cat.label} → ${selectedIds.size} producto${selectedIds.size > 1 ? 's' : ''}`, '');
 }
 
 async function bulkToggleFeatured() {
