@@ -1787,7 +1787,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           <option value="stock-asc">Agotados primero</option>
           <option value="stock-desc">En stock primero</option>
         </select>
-        <span id="prod-count" class="prod-count" style="display:none"></span>
+        <span id="prod-count" class="prod-count" style="display:none" onclick="selectAllVisible()" title="Clic para seleccionar todos" style="cursor:pointer"></span>
         <div class="view-toggle">
           <button class="view-btn active" id="vbtn-list"  onclick="setAdminView('list')"  title="Vista lista">☰</button>
           <button class="view-btn"        id="vbtn-cards" onclick="setAdminView('cards')" title="Vista tarjetas">⊞</button>
@@ -1802,8 +1802,9 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 
     <!-- BULK BAR -->
     <div class="bulk-bar" id="bulk-bar" style="display:none">
-      <button class="btn btn-sm" onclick="clearBulkSelection()" style="border-color:rgba(255,255,255,.4);opacity:.8">✕</button>
+      <button class="btn btn-sm" onclick="clearBulkSelection()" style="border-color:rgba(255,255,255,.4);opacity:.8" title="Deseleccionar todo">✕</button>
       <span id="bulk-count">0 seleccionados</span>
+      <button class="btn btn-sm" id="bulk-select-all-btn" onclick="selectAllVisible()" style="border-color:rgba(255,255,255,.4);opacity:.8" title="Seleccionar todos los visibles">Todos</button>
       <button class="btn btn-sm" onclick="bulkSetCategory()">Cambiar categoría</button>
       <button class="btn btn-sm" onclick="bulkToggleFeatured()">⭐ Destacar / Quitar</button>
       <button class="btn btn-sm" onclick="bulkToggleOOS()">Agotado / Disponible</button>

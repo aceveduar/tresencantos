@@ -1486,6 +1486,15 @@ function clearBulkSelection() {
   updateBulkBar();
 }
 
+function selectAllVisible() {
+  const visible = getFilteredProducts();
+  visible.forEach(p => selectedIds.add(p.id));
+  document.getElementById('products-card-grid')?.classList.add('selection-active');
+  renderTable();
+  updateBulkBar();
+  toast(`${visible.length} productos seleccionados`, '');
+}
+
 function updateBulkBar() {
   const bar = document.getElementById('bulk-bar');
   const countEl = document.getElementById('bulk-count');
