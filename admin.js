@@ -948,7 +948,11 @@ function adminCard(p, editable = false) {
      ontouchstart="_lpStart(event,${p.id})"
      ontouchend="_lpEnd(${p.id})"
      ontouchmove="_lpMove(${p.id})"
-     ondragstart="void 0"
+     draggable="true"
+     ondragstart="_cardDragStart(event,${p.id})"
+     ondragend="_cardDragEnd(event)"
+     ondragover="_cardDragOver(event,${p.id})"
+     ondrop="_cardDrop(event,${p.id})"
      style="cursor:pointer">
   <div class="ac-img-wrap">
     <img class="ac-img" src="${p.image}" alt="${p.name}"
@@ -1647,6 +1651,52 @@ function initDragDrop() {
       renderTable();
     });
   });
+}
+
+/* ── DRAG & DROP CARDS ── */
+function _cardDragStart(e, id) {
+  dragSrcId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => e.target.closest('.admin-card')?.classList.add('card-dragging'), 0);
+}
+
+function _cardDragEnd(e) {
+  e.target.closest('.admin-card')?.classList.remove('card-dragging');
+  document.querySelectorAll('.card-drop-before,.card-drop-after').forEach(c => {
+    c.classList.remove('card-drop-before','card-drop-after');
+  });
+}
+
+function _cardDragOver(e, id) {
+  e.preventDefault();
+  if (id === dragSrcId) return;
+  document.querySelectorAll('.card-drop-before,.card-drop-after').forEach(c => {
+    c.classList.remove('card-drop-before','card-drop-after');
+  });
+  const card = e.currentTarget;
+  const mid = card.getBoundingClientRect().left + card.getBoundingClientRect().width / 2;
+  card.classList.add(e.clientX < mid ? 'card-drop-before' : 'card-drop-after');
+}
+
+async function _cardDrop(e, targetId) {
+  e.preventDefault();
+  if (targetId === dragSrcId) return;
+  const card = e.currentTarget;
+  const isBefore = card.classList.contains('card-drop-before');
+  card.classList.remove('card-drop-before','card-drop-after');
+
+  const srcIdx = products.findIndex(p => p.id === dragSrcId);
+  const tgtIdx = products.findIndex(p => p.id === targetId);
+  const [item] = products.splice(srcIdx, 1);
+  const insertAt = isBefore
+    ? (srcIdx < tgtIdx ? tgtIdx - 1 : tgtIdx)
+    : (srcIdx < tgtIdx ? tgtIdx : tgtIdx + 1);
+  products.splice(insertAt, 0, item);
+
+  toast('Guardando orden...', '');
+  const ok = await save();
+  if (ok) toast('Orden guardado ✓');
+  renderTable();
 }
 
 /* ── BADGE DATALIST ── */

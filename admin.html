@@ -677,6 +677,10 @@ tr.dragging{opacity:.35;background:var(--gold-light)}
 tr.drop-above td{box-shadow:inset 0 2px 0 var(--gold)}
 tr.drop-below td{box-shadow:inset 0 -2px 0 var(--gold)}
 .drag-handle{cursor:grab;color:#D5C9BC;padding:0 6px;font-size:1rem;user-select:none;transition:.15s}
+/* Drag & drop cards */
+.admin-card.card-dragging{opacity:.3;transform:scale(.97)}
+.admin-card.card-drop-before{box-shadow:-4px 0 0 var(--gold),var(--shadow-sm)}
+.admin-card.card-drop-after{box-shadow:4px 0 0 var(--gold),var(--shadow-sm)}
 .drag-handle:hover{color:var(--gold)}
 
 /* Out of stock */
