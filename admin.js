@@ -1475,6 +1475,13 @@ function toggleSelectAll() {
   updateBulkBar();
 }
 
+function clearBulkSelection() {
+  selectedIds.clear();
+  document.getElementById('products-card-grid')?.classList.remove('selection-active');
+  renderTable();
+  updateBulkBar();
+}
+
 function updateBulkBar() {
   const bar = document.getElementById('bulk-bar');
   const countEl = document.getElementById('bulk-count');
