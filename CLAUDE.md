@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-05-23 (rev 9).
+Documentación técnica del proyecto. Última actualización: 2026-05-26 (rev 10).
 
 ## Rol de Claude en este proyecto
 

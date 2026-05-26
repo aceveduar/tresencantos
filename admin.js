@@ -53,6 +53,7 @@ let _additionalImagesEdit = [];
 let deleteTargetId = null;
 let selectedIds = new Set();
 let dragSrcId = null;
+let _multiDrag = false;
 let _dragScrollRaf = null;
 
 function _dragAutoScroll(e) {
@@ -71,6 +72,31 @@ function _dragAutoScroll(e) {
 }
 document.addEventListener('dragover', _dragAutoScroll);
 document.addEventListener('dragend', () => { cancelAnimationFrame(_dragScrollRaf); _dragScrollRaf = null; });
+
+function _startMultiDrag(e) {
+  _multiDrag = true;
+  const ghost = document.createElement('div');
+  ghost.textContent = `${selectedIds.size} productos`;
+  ghost.style.cssText = 'position:fixed;left:-9999px;top:0;background:var(--charcoal);color:#fff;padding:7px 16px;border-radius:50px;font-weight:700;font-size:.82rem;white-space:nowrap';
+  document.body.appendChild(ghost);
+  e.dataTransfer.setDragImage(ghost, 70, 18);
+  setTimeout(() => ghost.remove(), 0);
+  selectedIds.forEach(sid => {
+    document.querySelector(`tr[data-id="${sid}"]`)?.classList.add('dragging');
+    document.querySelector(`.admin-card[data-id="${sid}"]`)?.classList.add('card-dragging');
+  });
+}
+
+function _doMultiDrop(targetId, insertBefore) {
+  if (selectedIds.has(targetId)) return false; // soltar sobre seleccionado = no-op
+  const group = products.filter(p => selectedIds.has(p.id));
+  const rest  = products.filter(p => !selectedIds.has(p.id));
+  const tgtIdx = rest.findIndex(p => p.id === targetId);
+  if (tgtIdx === -1) return false;
+  rest.splice(insertBefore ? tgtIdx : tgtIdx + 1, 0, ...group);
+  products.splice(0, products.length, ...rest);
+  return true;
+}
 let currentSort = 'recent';
 let _adminPage = 1;
 const ADMIN_PAGE_SIZE = 50;
@@ -1663,41 +1689,51 @@ function initDragDrop() {
   rows.forEach(row => {
     row.addEventListener('dragstart', e => {
       dragSrcId = parseInt(row.dataset.id);
-      row.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
       if (currentSort !== 'position') {
         currentSort = 'position';
         const sortSel = document.getElementById('sort-select');
         if (sortSel) sortSel.value = 'position';
       }
+      if (selectedIds.has(dragSrcId) && selectedIds.size > 1) {
+        _startMultiDrag(e);
+      } else {
+        _multiDrag = false;
+        row.classList.add('dragging');
+      }
     });
     row.addEventListener('dragend', () => {
-      row.classList.remove('dragging');
-      document.querySelectorAll('tr.drop-above,tr.drop-below').forEach(r => {
-        r.classList.remove('drop-above','drop-below');
-      });
+      _multiDrag = false;
+      document.querySelectorAll('tr.dragging,.admin-card.card-dragging').forEach(el =>
+        el.classList.remove('dragging','card-dragging'));
+      document.querySelectorAll('tr.drop-above,tr.drop-below').forEach(r =>
+        r.classList.remove('drop-above','drop-below'));
     });
     row.addEventListener('dragover', e => {
       e.preventDefault();
-      if (parseInt(row.dataset.id) === dragSrcId) return;
+      const tid = parseInt(row.dataset.id);
+      if (tid === dragSrcId || selectedIds.has(tid) && _multiDrag) return;
       const rect = row.getBoundingClientRect();
       const mid = rect.top + rect.height / 2;
-      document.querySelectorAll('tr.drop-above,tr.drop-below').forEach(r => {
-        r.classList.remove('drop-above','drop-below');
-      });
+      document.querySelectorAll('tr.drop-above,tr.drop-below').forEach(r =>
+        r.classList.remove('drop-above','drop-below'));
       row.classList.add(e.clientY < mid ? 'drop-above' : 'drop-below');
     });
-    row.addEventListener('drop', async e => {
+    row.addEventListener('drop', e => {
       e.preventDefault();
       const targetId = parseInt(row.dataset.id);
       if (targetId === dragSrcId) return;
-      const srcIdx = products.findIndex(p => p.id === dragSrcId);
-      const tgtIdx = products.findIndex(p => p.id === targetId);
       const isAbove = row.classList.contains('drop-above');
-      const [item] = products.splice(srcIdx, 1);
-      const insertAt = isAbove ? (srcIdx < tgtIdx ? tgtIdx - 1 : tgtIdx) : (srcIdx < tgtIdx ? tgtIdx : tgtIdx + 1);
-      products.splice(insertAt, 0, item);
-      renderTable(); // optimistic: mueve visualmente al instante
+      if (_multiDrag) {
+        _doMultiDrop(targetId, isAbove);
+      } else {
+        const srcIdx = products.findIndex(p => p.id === dragSrcId);
+        const tgtIdx = products.findIndex(p => p.id === targetId);
+        const [item] = products.splice(srcIdx, 1);
+        const insertAt = isAbove ? (srcIdx < tgtIdx ? tgtIdx - 1 : tgtIdx) : (srcIdx < tgtIdx ? tgtIdx : tgtIdx + 1);
+        products.splice(insertAt, 0, item);
+      }
+      renderTable();
       save().then(ok => toast(ok ? 'Orden guardado ✓' : 'Error al guardar orden', ok ? '' : 'error'));
     });
   });
@@ -1707,47 +1743,55 @@ function initDragDrop() {
 function _cardDragStart(e, id) {
   dragSrcId = id;
   e.dataTransfer.effectAllowed = 'move';
-  setTimeout(() => e.target.closest('.admin-card')?.classList.add('card-dragging'), 0);
   if (currentSort !== 'position') {
     currentSort = 'position';
     const sortSel = document.getElementById('sort-select');
     if (sortSel) sortSel.value = 'position';
   }
+  if (selectedIds.has(id) && selectedIds.size > 1) {
+    _startMultiDrag(e);
+  } else {
+    _multiDrag = false;
+    setTimeout(() => e.target.closest('.admin-card')?.classList.add('card-dragging'), 0);
+  }
 }
 
 function _cardDragEnd(e) {
-  e.target.closest('.admin-card')?.classList.remove('card-dragging');
-  document.querySelectorAll('.card-drop-before,.card-drop-after').forEach(c => {
-    c.classList.remove('card-drop-before','card-drop-after');
-  });
+  _multiDrag = false;
+  document.querySelectorAll('tr.dragging,.admin-card.card-dragging').forEach(el =>
+    el.classList.remove('dragging','card-dragging'));
+  document.querySelectorAll('.card-drop-before,.card-drop-after').forEach(c =>
+    c.classList.remove('card-drop-before','card-drop-after'));
 }
 
 function _cardDragOver(e, id) {
   e.preventDefault();
-  if (id === dragSrcId) return;
-  document.querySelectorAll('.card-drop-before,.card-drop-after').forEach(c => {
-    c.classList.remove('card-drop-before','card-drop-after');
-  });
+  if (id === dragSrcId || (_multiDrag && selectedIds.has(id))) return;
+  document.querySelectorAll('.card-drop-before,.card-drop-after').forEach(c =>
+    c.classList.remove('card-drop-before','card-drop-after'));
   const card = e.currentTarget;
   const mid = card.getBoundingClientRect().left + card.getBoundingClientRect().width / 2;
   card.classList.add(e.clientX < mid ? 'card-drop-before' : 'card-drop-after');
 }
 
-async function _cardDrop(e, targetId) {
+function _cardDrop(e, targetId) {
   e.preventDefault();
   if (targetId === dragSrcId) return;
   const card = e.currentTarget;
   const isBefore = card.classList.contains('card-drop-before');
   card.classList.remove('card-drop-before','card-drop-after');
-
-  const srcIdx = products.findIndex(p => p.id === dragSrcId);
-  const tgtIdx = products.findIndex(p => p.id === targetId);
-  const [item] = products.splice(srcIdx, 1);
-  const insertAt = isBefore
-    ? (srcIdx < tgtIdx ? tgtIdx - 1 : tgtIdx)
-    : (srcIdx < tgtIdx ? tgtIdx : tgtIdx + 1);
-  products.splice(insertAt, 0, item);
-  renderTable(); // optimistic: mueve visualmente al instante
+  if (_multiDrag) {
+    _doMultiDrop(targetId, isBefore);
+  } else {
+    const srcIdx = products.findIndex(p => p.id === dragSrcId);
+    const tgtIdx = products.findIndex(p => p.id === targetId);
+    const [item] = products.splice(srcIdx, 1);
+    const insertAt = isBefore
+      ? (srcIdx < tgtIdx ? tgtIdx - 1 : tgtIdx)
+      : (srcIdx < tgtIdx ? tgtIdx : tgtIdx + 1);
+    products.splice(insertAt, 0, item);
+  }
+  renderTable();
   save().then(ok => toast(ok ? 'Orden guardado ✓' : 'Error al guardar orden', ok ? '' : 'error'));
 }
 
