@@ -105,40 +105,53 @@ main{max-width:1080px;margin:0 auto;padding:28px 32px}
 /* ── SCAN RESULT PANEL ──────────────────────────────────────────────── */
 #scan-result-panel{display:none;animation:srp-in .2s ease}
 @keyframes srp-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.srp-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .srp-back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;
-  font-size:.82rem;font-weight:600;color:var(--muted);cursor:pointer;padding:4px 0 12px;
+  font-size:.82rem;font-weight:600;color:var(--muted);cursor:pointer;padding:4px 0;
   font-family:inherit;transition:.15s}
 .srp-back:hover{color:var(--charcoal)}
+.srp-btn-scan{display:inline-flex;align-items:center;gap:5px;background:var(--gold);
+  color:#fff;border:none;border-radius:20px;padding:7px 14px;font-size:.8rem;
+  font-weight:700;cursor:pointer;touch-action:manipulation;font-family:inherit}
 .srp-card{background:#fff;border-radius:16px;border:1px solid var(--border);
   box-shadow:var(--shadow-sm);overflow:hidden}
-.srp-img{width:100%;height:180px;object-fit:contain;background:#FAF7F3;display:block}
-.srp-body{padding:20px 20px 14px}
-.srp-cat-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.srp-header{display:flex;gap:14px;padding:16px;align-items:flex-start;
+  border-bottom:1px solid var(--border)}
+.srp-thumb{width:88px;height:88px;object-fit:contain;background:#FAF7F3;
+  border-radius:10px;flex-shrink:0;cursor:zoom-in}
+.srp-header-body{flex:1;min-width:0}
+.srp-cat-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
 .srp-cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .srp-cat-label{font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-dark)}
-.srp-name{font-family:'Playfair Display',serif;font-size:1.35rem;font-weight:700;
-  color:var(--charcoal);line-height:1.25;margin-bottom:10px}
-.srp-price-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
-.srp-price{font-size:1.5rem;font-weight:800;font-family:'Playfair Display',serif;color:var(--charcoal)}
-.srp-orig{font-size:.88rem;text-decoration:line-through;color:var(--muted)}
-.srp-disc{background:var(--red);color:#fff;font-size:.68rem;font-weight:800;padding:3px 9px;border-radius:50px}
-.srp-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
-.srp-stock-hero{display:flex;align-items:center;gap:12px;background:#F7F2EB;border-radius:12px;padding:12px 16px;margin-bottom:14px;cursor:pointer;touch-action:manipulation;border:1.5px solid var(--border)}
-.srp-stock-hero:active{background:#EEE7DA}
-.srp-stock-num{font-size:2rem;font-weight:800;color:var(--charcoal);font-family:'Playfair Display',serif;line-height:1}
-.srp-stock-label{font-size:.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
-.srp-stock-hint{font-size:.68rem;color:var(--gold-dark);margin-top:2px}
-.srp-desc{font-size:.85rem;color:var(--muted);line-height:1.6;margin-bottom:10px}
-.srp-barcode{font-size:.72rem;color:var(--muted-light);margin-bottom:4px;font-family:monospace}
-.srp-actions{display:flex;flex-wrap:wrap;gap:8px;padding:14px 20px;
+.srp-name{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;
+  color:var(--charcoal);line-height:1.25;margin-bottom:6px}
+.srp-price-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.srp-price{font-size:1.2rem;font-weight:800;font-family:'Playfair Display',serif;color:var(--charcoal)}
+.srp-orig{font-size:.82rem;text-decoration:line-through;color:var(--muted)}
+.srp-disc{background:var(--red);color:#fff;font-size:.65rem;font-weight:800;padding:2px 8px;border-radius:50px}
+.srp-stock-hero{padding:14px 16px;border-bottom:1px solid var(--border)}
+.srp-stock-lbl{font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:8px}
+.srp-stepper-row{display:flex;align-items:center;gap:10px}
+.srp-step-btn{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);
+  background:#fff;color:var(--charcoal);font-size:1.3rem;font-weight:700;
+  cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center;
+  transition:border-color .15s,background .15s;line-height:1;font-family:inherit}
+.srp-step-btn:active{background:#F7F2EB;border-color:var(--gold)}
+.srp-stock-num{font-size:2rem;font-weight:800;font-family:'Playfair Display',serif;
+  line-height:1;min-width:48px;text-align:center;transition:color .15s}
+.srp-stock-status{font-size:.72rem;color:var(--muted);font-weight:600;text-transform:uppercase;
+  letter-spacing:.06em;margin-top:6px}
+.srp-step-save{margin-left:auto;background:var(--gold);color:#fff;border:none;
+  border-radius:20px;padding:8px 20px;font-size:.82rem;font-weight:700;cursor:pointer;
+  touch-action:manipulation;font-family:inherit;display:none}
+.srp-step-save.visible{display:block}
+.srp-meta{padding:12px 16px 6px}
+.srp-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}
+.srp-desc{font-size:.85rem;color:var(--muted);line-height:1.6;margin-bottom:8px}
+.srp-barcode{font-size:.72rem;color:var(--muted-light);margin-bottom:2px;font-family:monospace}
+.srp-actions{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px 16px;
   border-top:1px solid var(--border);background:#FDFAF7}
-@media(min-width:641px){
-  .srp-card{display:grid;grid-template-columns:320px 1fr}
-  .srp-img{height:100%;min-height:300px}
-  .srp-right{display:flex;flex-direction:column}
-  .srp-body{flex:1}
-  .srp-actions{border-top:none;border-left:none;padding:14px 20px 20px}
-}
 
 /* ── CATEGORY BOTTOM SHEET ─────────────────────────────────────────── */
 #cat-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1400;opacity:0;pointer-events:none;transition:opacity .2s}
@@ -680,14 +693,18 @@ tr:hover .drag-handle{opacity:1}
 .upload-or::before{left:0}.upload-or::after{right:0}
 
 /* Drag & drop table */
-tr.dragging{opacity:.35;background:var(--gold-light)}
-tr.drop-above td{box-shadow:inset 0 2px 0 var(--gold)}
-tr.drop-below td{box-shadow:inset 0 -2px 0 var(--gold)}
+tr[draggable="true"]{cursor:grab}
+tr[draggable="true"]:active{cursor:grabbing}
+tr.dragging{opacity:.3;background:var(--gold-light)}
+tr.drop-above{box-shadow:0 -3px 0 var(--gold);background:var(--gold-light)}
+tr.drop-below{box-shadow:0 3px 0 var(--gold);background:var(--gold-light)}
 .drag-handle{cursor:grab;color:#D5C9BC;padding:0 6px;font-size:1rem;user-select:none;transition:.15s}
 /* Drag & drop cards */
-.admin-card.card-dragging{opacity:.3;transform:scale(.97)}
-.admin-card.card-drop-before{box-shadow:-4px 0 0 var(--gold),var(--shadow-sm)}
-.admin-card.card-drop-after{box-shadow:4px 0 0 var(--gold),var(--shadow-sm)}
+.admin-card[draggable="true"]{cursor:grab}
+.admin-card[draggable="true"]:active{cursor:grabbing}
+.admin-card.card-dragging{opacity:.3;transform:scale(.97);pointer-events:none}
+.admin-card.card-drop-before{box-shadow:0 -3px 0 var(--gold),var(--shadow-sm);background:var(--gold-light)}
+.admin-card.card-drop-after{box-shadow:0 3px 0 var(--gold),var(--shadow-sm);background:var(--gold-light)}
 .drag-handle:hover{color:var(--gold)}
 
 /* Out of stock */
@@ -1844,24 +1861,29 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 
     <!-- SCAN RESULT PANEL -->
     <div id="scan-result-panel">
-      <button class="srp-back" onclick="clearScanResult()">← Volver al catálogo</button>
+      <div class="srp-nav">
+        <button class="srp-back" onclick="clearScanResult()">← Volver al catálogo</button>
+        <button class="srp-btn-scan" onclick="clearScanResult();openSearchScanner()">📷 Escanear otro</button>
+      </div>
       <div class="srp-card" id="srp-card">
-        <img class="srp-img" id="srp-img" src="" alt="" onclick="_srpOpenZoom()" style="cursor:zoom-in">
-        <div class="srp-right">
-          <div class="srp-body">
+        <div class="srp-header">
+          <img class="srp-thumb" id="srp-img" src="" alt="" onclick="_srpOpenZoom()">
+          <div class="srp-header-body">
             <div class="srp-cat-row">
               <span class="srp-cat-dot" id="srp-cat-dot"></span>
               <span class="srp-cat-label" id="srp-cat-label"></span>
             </div>
             <div class="srp-name" id="srp-name"></div>
             <div class="srp-price-row" id="srp-price-row"></div>
-            <div id="srp-stock-hero" class="srp-stock-hero" style="display:none"></div>
-            <div class="srp-chips" id="srp-chips"></div>
-            <div class="srp-desc" id="srp-desc"></div>
-            <div class="srp-barcode" id="srp-barcode"></div>
           </div>
-          <div class="srp-actions" id="srp-actions"></div>
         </div>
+        <div id="srp-stock-hero" style="display:none"></div>
+        <div class="srp-meta">
+          <div class="srp-chips" id="srp-chips"></div>
+          <div class="srp-desc" id="srp-desc"></div>
+          <div class="srp-barcode" id="srp-barcode"></div>
+        </div>
+        <div class="srp-actions" id="srp-actions"></div>
       </div>
     </div>
 

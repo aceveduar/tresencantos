@@ -78,7 +78,6 @@ button,a,[onclick]{touch-action:manipulation}
   .user-avatar{width:24px;height:24px;font-size:.68rem}
   .modal{border-radius:20px 20px 0 0;max-width:100%;position:fixed;bottom:0;left:0;right:0}
   .overlay{align-items:flex-end;padding:0}
-  .add-cat-grid{grid-template-columns:1fr}
   .btn-row{gap:6px}
 }
 
@@ -137,17 +136,48 @@ button,a,[onclick]{touch-action:manipulation}
 .modal-foot{padding:16px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0}
 
 /* ── CATEGORY MANAGER ── */
-.cat-mgr-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)}
-.cat-mgr-row:last-child{border-bottom:none}
-.cat-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.cat-code{font-size:.72rem;font-weight:700;color:var(--muted);background:var(--cream);padding:3px 8px;border-radius:50px;white-space:nowrap;flex-shrink:0;min-width:70px;text-align:center}
-.cat-label-inp{flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;outline:none;font-family:inherit}
-.cat-label-inp:focus{border-color:var(--gold)}
+.cat-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;cursor:default}
 .cat-del{background:none;border:none;color:var(--muted-light);cursor:pointer;font-size:.9rem;padding:4px 6px;border-radius:6px;transition:.15s;flex-shrink:0}
 .cat-del:hover{color:var(--red);background:#FEF2F2}
-.add-cat-grid{display:grid;grid-template-columns:1fr 1.5fr;gap:8px;margin-bottom:8px}
-.add-cat-grid input,.cat-parent-sel{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;outline:none;font-family:inherit;width:100%}
-.add-cat-grid input:focus,.cat-parent-sel:focus{border-color:var(--gold)}
+/* Sección collapsible por categoría raíz */
+.cat-section{border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden}
+.cat-sec-head{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;user-select:none;background:#fff;transition:background .15s}
+.cat-sec-head:hover{background:var(--cream)}
+.cat-sec-arrow{font-size:.65rem;color:var(--muted);width:12px;text-align:center;flex-shrink:0;transition:transform .2s}
+.cat-section.open .cat-sec-arrow{transform:rotate(90deg)}
+.cat-sec-name{flex:1;font-size:.9rem;font-weight:700;color:var(--charcoal);background:none;border:none;outline:none;font-family:inherit;cursor:text;padding:2px 4px;border-radius:4px;min-width:0}
+.cat-sec-name:focus{background:var(--cream);outline:2px solid var(--gold);cursor:auto}
+.cat-sec-count{font-size:.68rem;color:var(--muted);font-weight:600;flex-shrink:0;background:var(--cream);padding:2px 7px;border-radius:50px}
+.cat-mgr-add-sub{font-size:.72rem;color:var(--gold-dark);font-weight:700;background:none;border:1.5px solid var(--gold);border-radius:50px;padding:3px 9px;cursor:pointer;white-space:nowrap;touch-action:manipulation;flex-shrink:0;font-family:inherit}
+.cat-mgr-add-sub:hover{background:var(--gold-light)}
+/* Cuerpo colapsable */
+.cat-sec-body{display:none;border-top:1px solid var(--border);background:#FDFAF8}
+.cat-section.open .cat-sec-body{display:block}
+/* Subcategorías */
+.cat-subs-list{padding:2px 0}
+.cat-sub-row{display:flex;align-items:center;gap:7px;padding:7px 12px 7px 22px;border-bottom:1px dashed rgba(0,0,0,.06)}
+.cat-sub-row:last-child{border-bottom:none}
+.cat-sub-name{flex:1;font-size:.85rem;color:var(--charcoal);background:none;border:none;outline:none;font-family:inherit;cursor:text;padding:2px 4px;border-radius:4px;min-width:0}
+.cat-sub-name:focus{background:#fff;outline:2px solid var(--gold);cursor:auto}
+.cat-move-sel{font-size:.7rem;border:1.5px solid var(--border);border-radius:7px;padding:3px 5px;color:var(--muted);background:#fff;cursor:pointer;width:44px;font-family:inherit;flex-shrink:0}
+.cat-move-sel:focus{border-color:var(--gold);outline:none}
+.cat-prod-count{font-size:.67rem;color:#fff;font-weight:700;flex-shrink:0;background:var(--muted-light);padding:2px 6px;border-radius:50px;min-width:20px;text-align:center}
+/* Formulario inline "+ Sub" */
+.cat-sub-inline-form{display:flex;align-items:center;gap:7px;padding:8px 12px 8px 22px;background:var(--gold-light);border-top:1px solid var(--border)}
+.cat-sub-new-inp{flex:1;padding:7px 11px;border:1.5px solid var(--gold);border-radius:8px;font-size:.84rem;font-family:inherit;outline:none;min-width:0}
+/* Drag & drop */
+.cat-drag-handle{cursor:grab;color:#C4B5A8;font-size:.9rem;user-select:none;flex-shrink:0;padding:0 2px;touch-action:none}
+.cat-drag-handle:active{cursor:grabbing}
+.cat-section.cat-dragging{opacity:.4;pointer-events:none}
+.cat-sub-row.cat-dragging{opacity:.4}
+.cat-section.cat-drag-over{border-top:2.5px solid var(--gold)!important;border-radius:0 0 10px 10px}
+.cat-sub-row.cat-drag-over{border-top:2px solid var(--gold)}
+.cat-sec-head.cat-drag-accept{background:var(--gold-light)!important;border-radius:0}
+/* Formulario agregar nueva */
+.add-cat-row{display:flex;gap:8px;margin-bottom:8px}
+.add-cat-row input,.add-cat-row select,.cat-parent-sel{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;outline:none;font-family:inherit}
+.add-cat-row input{flex:1}
+.add-cat-row input:focus,.add-cat-row select:focus,.cat-parent-sel:focus{border-color:var(--gold)}
 
 /* ── UPLOAD ZONE ── */
 .upload-zone{border:2px dashed var(--border);border-radius:var(--r);padding:28px 20px;text-align:center;cursor:pointer;transition:.15s;background:#FDFAF8}
@@ -173,9 +203,10 @@ button,a,[onclick]{touch-action:manipulation}
 @media(max-width:640px){
   .main{padding:16px 12px 48px}
   .scard-row{padding:14px 14px}
-  .modal{border-radius:20px 20px 0 0;max-width:100%;position:fixed;bottom:0;left:0;right:0;border-radius:20px 20px 0 0}
+  .modal{border-radius:20px 20px 0 0;max-width:100%;position:fixed;bottom:0;left:0;right:0}
   .overlay{align-items:flex-end;padding:0}
-  .add-cat-grid{grid-template-columns:1fr}
+  .add-cat-row{flex-direction:column}
+  .add-cat-row select{max-width:100%!important}
   .btn-row{gap:6px}
 }
 </style>
@@ -393,28 +424,22 @@ button,a,[onclick]{touch-action:manipulation}
 
 <!-- ── MODAL: CATEGORÍAS ── -->
 <div class="overlay" id="cat-overlay">
-  <div class="modal">
+  <div class="modal" style="max-width:540px">
     <div class="modal-head">
       <h3>🏷 Gestionar categorías</h3>
       <button class="modal-close" onclick="closeCatManager()">✕</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:.82rem;color:var(--muted);margin-bottom:14px;line-height:1.5">Edita el nombre directamente. El código (en gris) identifica los productos internamente.</p>
       <div id="cat-list"></div>
-      <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border)">
-        <span class="field-label">Nueva categoría / subcategoría</span>
-        <div class="add-cat-grid">
-          <input type="text" id="new-cat-code" placeholder="código (ej: perfumes)" onkeydown="if(event.key==='Enter')addCategory()">
-          <input type="text" id="new-cat-label" placeholder="Nombre visible (ej: Perfumes)" onkeydown="if(event.key==='Enter')addCategory()">
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-          <label style="font-size:.74rem;color:var(--muted);font-weight:600;white-space:nowrap">Categoría padre:</label>
-          <select id="new-cat-parent" class="cat-parent-sel">
-            <option value="">— Es categoría raíz —</option>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+        <span class="field-label">Agregar categoría o subcategoría</span>
+        <div class="add-cat-row">
+          <input type="text" id="new-cat-label" placeholder="Nombre (ej: Perfumes)" onkeydown="if(event.key==='Enter')addCategory()">
+          <select id="new-cat-parent" class="cat-parent-sel" style="flex-shrink:0;max-width:180px">
+            <option value="">Raíz</option>
           </select>
         </div>
-        <p class="field-hint">Solo letras, números y guión bajo. No se puede cambiar después.</p>
-        <button class="btn btn-gold btn-sm" onclick="addCategory()" style="margin-top:10px">+ Agregar</button>
+        <button class="btn btn-gold btn-sm" onclick="addCategory()" style="width:100%">+ Agregar</button>
       </div>
     </div>
     <div class="modal-foot">
@@ -516,6 +541,9 @@ function api(path, opts = {}) {
 /* ── STATE ── */
 let categories = [];
 let groqApiKey = null;
+let _openSections = new Set();
+let _dragCode = null, _dragType = null;
+let _catCounts = {};
 let driveEp    = null;
 let driveSecret= null;
 let nameMap    = {};
@@ -692,6 +720,12 @@ function openCatManager() {
   populateCatParent();
   document.getElementById('cat-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
+  api('products?select=category').then(r => {
+    if (!r.ok || !Array.isArray(r.data)) return;
+    _catCounts = {};
+    r.data.forEach(p => { if (p.category) _catCounts[p.category] = (_catCounts[p.category]||0)+1; });
+    renderCatList();
+  });
 }
 
 function closeCatManager() {
@@ -702,23 +736,273 @@ function closeCatManager() {
 function renderCatList() {
   const el = document.getElementById('cat-list');
   if (!categories.length) {
-    el.innerHTML = '<p style="color:var(--muted);font-size:.84rem;text-align:center;padding:12px">Sin categorías</p>';
+    el.innerHTML = '<p style="color:var(--muted);font-size:.84rem;text-align:center;padding:16px">Sin categorías</p>';
     return;
   }
-  const rows = [];
-  rootCats().forEach(r => {
-    rows.push({ c:r, i:categories.indexOf(r), indent:false });
-    subCats(r.code).forEach(s => rows.push({ c:s, i:categories.indexOf(s), indent:true }));
+  const roots = rootCats();
+  el.innerHTML = roots.map(r => {
+    const ri = categories.indexOf(r);
+    const subs = subCats(r.code);
+    const otherRoots = roots.filter(x => x.code !== r.code);
+    const parentOpts = otherRoots.map(x => `<option value="${x.code}">${escH(x.label)}</option>`).join('');
+    const subRows = subs.map(s => {
+      const si = categories.indexOf(s);
+      const moveOpts = otherRoots.map(x => `<option value="${x.code}">${x.label}</option>`).join('');
+      const cnt = _catCounts[s.code];
+      return `<div class="cat-sub-row" draggable="true" data-code="${s.code}"
+        ondragstart="_catDragStart(event,'sub','${s.code}')"
+        ondragover="_catDragOverSub(event,'${s.code}')"
+        ondrop="_catDropSub(event,'${s.code}')"
+        ondragend="_catDragEnd()">
+        <span class="cat-drag-handle" title="Arrastrar">⠿</span>
+        <span class="cat-dot" style="background:${s.color||r.color||'#9B8B78'}" title="${s.code}"></span>
+        <input type="text" class="cat-sub-name" value="${escH(s.label)}"
+          onblur="updateCatLabel(${si},this.value)"
+          onkeydown="if(event.key==='Enter')this.blur()">
+        ${cnt ? `<span class="cat-prod-count">${cnt}</span>` : ''}
+        ${otherRoots.length ? `<select class="cat-move-sel" onchange="_catMoveToParent('${s.code}',this.value)" title="Mover a otra categoría">
+          <option value="" disabled selected>↳</option>
+          ${moveOpts}
+        </select>` : ''}
+        <button class="cat-del" onclick="deleteCategoryAt(${si})" title="Eliminar">✕</button>
+      </div>`;
+    }).join('');
+    const rootCount = (_catCounts[r.code]||0) + subs.reduce((n,s) => n+(_catCounts[s.code]||0), 0);
+    return `<div class="cat-section" draggable="true" data-code="${r.code}"
+      ondragstart="_catDragStart(event,'root','${r.code}')"
+      ondragover="_catDragOverSection(event,'${r.code}')"
+      ondrop="_catDropSection(event,'${r.code}')"
+      ondragend="_catDragEnd()">
+      <div class="cat-sec-head" onclick="toggleCatSection('${r.code}')"
+        ondragover="_catDragOverHead(event,'${r.code}')"
+        ondrop="_catDropOnHead(event,'${r.code}')">
+        <span class="cat-drag-handle" title="Arrastrar para reordenar">⠿</span>
+        <span class="cat-sec-arrow">▶</span>
+        <span class="cat-dot" style="background:${r.color||'#9B8B78'}" title="${r.code}"></span>
+        <input type="text" class="cat-sec-name" value="${escH(r.label)}"
+          onclick="event.stopPropagation()"
+          onblur="updateCatLabel(${ri},this.value)"
+          onkeydown="if(event.key==='Enter')this.blur();event.stopPropagation()">
+        ${subs.length ? `<span class="cat-sec-count">${subs.length} sub</span>` : ''}
+        ${rootCount ? `<span class="cat-prod-count">${rootCount}</span>` : ''}
+        ${otherRoots.length ? `<select class="cat-move-sel" onclick="event.stopPropagation()" onchange="event.stopPropagation();_catMakeSubOf('${r.code}',this.value)" title="Mover como subcategoría de…">
+          <option value="" disabled selected>↳</option>
+          ${parentOpts}
+        </select>` : ''}
+        <button class="cat-mgr-add-sub" onclick="event.stopPropagation();_catAddSubInline('${r.code}')" title="Agregar subcategoría">+ Sub</button>
+        <button class="cat-del" onclick="event.stopPropagation();deleteCategoryAt(${ri})" title="Eliminar raíz">✕</button>
+      </div>
+      <div class="cat-sec-body">
+        ${subRows ? `<div class="cat-subs-list">${subRows}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  // Restaurar secciones que estaban abiertas
+  _openSections.forEach(code => {
+    const s = document.querySelector(`.cat-section[data-code="${CSS.escape(code)}"]`);
+    if (s) s.classList.add('open');
   });
-  el.innerHTML = rows.map(({ c, i, indent }) => `
-    <div class="cat-mgr-row" style="${indent ? `padding-left:18px;border-left:3px solid ${c.color||'#ccc'};margin-left:8px` : ''}">
-      <span class="cat-dot" style="background:${c.color||'#9B8B78'}"></span>
-      <span class="cat-code">${c.code}</span>
-      <input type="text" class="cat-label-inp" value="${c.label}"
-             onblur="updateCatLabel(${i},this.value)"
-             onkeydown="if(event.key==='Enter')this.blur()">
-      <button class="cat-del" onclick="deleteCategoryAt(${i})" title="Eliminar">✕</button>
-    </div>`).join('');
+}
+
+function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function toggleCatSection(code) {
+  const section = document.querySelector(`.cat-section[data-code="${CSS.escape(code)}"]`);
+  if (!section) return;
+  section.classList.toggle('open');
+  section.classList.contains('open') ? _openSections.add(code) : _openSections.delete(code);
+}
+
+function _catOpenSection(code) {
+  _openSections.add(code);
+  const s = document.querySelector(`.cat-section[data-code="${CSS.escape(code)}"]`);
+  if (s) s.classList.add('open');
+}
+
+function _catAddSubInline(parentCode) {
+  const section = document.querySelector(`.cat-section[data-code="${CSS.escape(parentCode)}"]`);
+  if (!section) return;
+  _catOpenSection(parentCode);
+  const existing = document.getElementById(`cat-sub-form-${parentCode}`);
+  if (existing) { existing.remove(); return; }
+  const parent = categories.find(c => c.code === parentCode);
+  if (!parent) return;
+  const form = document.createElement('div');
+  form.id = `cat-sub-form-${parentCode}`;
+  form.className = 'cat-sub-inline-form';
+  form.innerHTML = `
+    <span class="cat-dot" style="background:${parent.color||'#9B8B78'}"></span>
+    <input id="cat-sub-inp-${parentCode}" type="text" placeholder="Nombre de la subcategoría…" class="cat-sub-new-inp"
+      onkeydown="if(event.key==='Enter')_catSubConfirm('${parentCode}');if(event.key==='Escape')this.closest('.cat-sub-inline-form').remove()">
+    <button onclick="_catSubConfirm('${parentCode}')" class="btn btn-gold btn-sm" style="flex-shrink:0;padding:6px 12px">✓</button>
+    <button onclick="document.getElementById('cat-sub-form-${parentCode}').remove()" class="cat-del">✕</button>`;
+  section.querySelector('.cat-sec-body').appendChild(form);
+  setTimeout(() => document.getElementById(`cat-sub-inp-${parentCode}`)?.focus(), 50);
+}
+
+async function _catSubConfirm(parentCode) {
+  const input = document.getElementById(`cat-sub-inp-${parentCode}`);
+  const label = input?.value.trim();
+  if (!label) { input?.focus(); return; }
+  const code = parentCode + '_' + label.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+  if (categories.find(c => c.code === code)) { toast('Ya existe esa subcategoría', 'err'); input?.focus(); return; }
+  const parent = categories.find(c => c.code === parentCode);
+  const color = parent?.color || CAT_PALETTE[categories.length % CAT_PALETTE.length];
+  categories.push({ code, label, color, parent: parentCode });
+  await _saveCats();
+  renderCatList();
+  populateCatParent();
+  _catOpenSection(parentCode);
+  toast(`"${label}" agregada ✓`, 'ok');
+}
+
+async function _catMoveToParent(subCode, newParentCode) {
+  if (!newParentCode) return;
+  const sub = categories.find(c => c.code === subCode);
+  const newParent = categories.find(c => c.code === newParentCode);
+  if (!sub || !newParent) return;
+  sub.parent = newParentCode;
+  sub.color = newParent.color || sub.color;
+  await _saveCats();
+  renderCatList();
+  populateCatParent();
+  _catOpenSection(newParentCode);
+  toast(`"${sub.label}" movida a "${newParent.label}" ✓`, 'ok');
+}
+
+async function _catMakeSubOf(rootCode, newParentCode) {
+  if (!newParentCode) { renderCatList(); return; }
+  const root = categories.find(c => c.code === rootCode);
+  const newParent = categories.find(c => c.code === newParentCode);
+  if (!root || !newParent) { renderCatList(); return; }
+  const children = subCats(rootCode);
+  const msg = children.length
+    ? `¿Mover "${root.label}" y sus ${children.length} subcategoría(s) a "${newParent.label}"?`
+    : `¿Mover "${root.label}" a "${newParent.label}"?`;
+  if (!confirm(msg)) { renderCatList(); return; }
+  root.parent = newParentCode;
+  root.color = newParent.color || root.color;
+  children.forEach(c => { c.parent = newParentCode; c.color = newParent.color || c.color; });
+  await _saveCats();
+  renderCatList();
+  populateCatParent();
+  _catOpenSection(newParentCode);
+  const msg2 = children.length
+    ? `"${root.label}" y ${children.length} sub(s) movidas a "${newParent.label}" ✓`
+    : `"${root.label}" movida a "${newParent.label}" ✓`;
+  toast(msg2, 'ok');
+}
+
+/* ── DRAG & DROP ─────────────────────────────────────────────────── */
+function _catDragStart(e, type, code) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON') {
+    e.preventDefault(); return;
+  }
+  if (type === 'sub') e.stopPropagation(); // evita que burbujee al .cat-section padre
+  _dragCode = code; _dragType = type;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', code);
+  setTimeout(() => {
+    const el = document.querySelector(
+      type === 'root' ? `.cat-section[data-code="${CSS.escape(code)}"]`
+                      : `.cat-sub-row[data-code="${CSS.escape(code)}"]`);
+    if (el) el.classList.add('cat-dragging');
+  }, 0);
+}
+
+function _catDragEnd() {
+  document.querySelectorAll('.cat-dragging,.cat-drag-over,.cat-drag-accept')
+    .forEach(el => el.classList.remove('cat-dragging','cat-drag-over','cat-drag-accept'));
+  _dragCode = null; _dragType = null;
+}
+
+function _catDragOverSection(e, targetCode) {
+  if (_dragType !== 'root' || _dragCode === targetCode) return;
+  e.preventDefault(); e.stopPropagation();
+  document.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
+  e.currentTarget.classList.add('cat-drag-over');
+}
+
+function _catDropSection(e, targetCode) {
+  e.preventDefault(); e.stopPropagation();
+  if (_dragType !== 'root' || _dragCode === targetCode) return;
+  _catReorder(_dragCode, targetCode);
+}
+
+function _catDragOverHead(e, parentCode) {
+  if (_dragCode === parentCode) return;
+  if (_dragType === 'sub') {
+    const sub = categories.find(c => c.code === _dragCode);
+    if (!sub || sub.parent === parentCode) return;
+  }
+  e.preventDefault(); e.stopPropagation();
+  document.querySelectorAll('.cat-drag-accept,.cat-drag-over').forEach(el => el.classList.remove('cat-drag-accept','cat-drag-over'));
+  e.currentTarget.classList.add('cat-drag-accept');
+}
+
+function _catDropOnHead(e, parentCode) {
+  e.preventDefault(); e.stopPropagation();
+  if (_dragCode === parentCode) return;
+  const newParent = categories.find(c => c.code === parentCode);
+  if (!newParent) return;
+
+  if (_dragType === 'sub') {
+    const sub = categories.find(c => c.code === _dragCode);
+    if (!sub || sub.parent === parentCode) return;
+    sub.parent = parentCode;
+    sub.color = newParent.color || sub.color;
+    _saveCats().then(() => {
+      renderCatList(); populateCatParent(); _catOpenSection(parentCode);
+      toast(`"${sub.label}" movida a "${newParent.label}" ✓`, 'ok');
+    });
+    return;
+  }
+
+  if (_dragType === 'root') {
+    const root = categories.find(c => c.code === _dragCode);
+    if (!root) return;
+    const children = subCats(root.code);
+    root.parent = parentCode;
+    root.color = newParent.color || root.color;
+    children.forEach(c => { c.parent = parentCode; c.color = newParent.color || c.color; });
+    _saveCats().then(() => {
+      renderCatList(); populateCatParent(); _catOpenSection(parentCode);
+      const msg = children.length
+        ? `"${root.label}" y ${children.length} sub(s) movidas a "${newParent.label}" ✓`
+        : `"${root.label}" movida a "${newParent.label}" ✓`;
+      toast(msg, 'ok');
+    });
+  }
+}
+
+function _catDragOverSub(e, targetCode) {
+  if (_dragType !== 'sub' || _dragCode === targetCode) return;
+  e.preventDefault(); e.stopPropagation();
+  document.querySelectorAll('.cat-sub-row.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
+  e.currentTarget.classList.add('cat-drag-over');
+}
+
+function _catDropSub(e, targetCode) {
+  e.preventDefault(); e.stopPropagation();
+  if (_dragType !== 'sub' || _dragCode === targetCode) return;
+  const src = categories.find(c => c.code === _dragCode);
+  const tgt = categories.find(c => c.code === targetCode);
+  if (!src || !tgt || src.parent !== tgt.parent) return;
+  _catReorder(_dragCode, targetCode);
+}
+
+async function _catReorder(srcCode, tgtCode) {
+  const srcIdx = categories.findIndex(c => c.code === srcCode);
+  const tgtIdx = categories.findIndex(c => c.code === tgtCode);
+  if (srcIdx === -1 || tgtIdx === -1) return;
+  const [item] = categories.splice(srcIdx, 1);
+  const newTgt = categories.findIndex(c => c.code === tgtCode);
+  categories.splice(newTgt, 0, item);
+  await _saveCats();
+  renderCatList();
+  if (item.parent) _catOpenSection(item.parent);
 }
 
 function populateCatParent() {
@@ -757,15 +1041,16 @@ async function deleteCategoryAt(idx) {
 }
 
 async function addCategory() {
-  const codeInput  = document.getElementById('new-cat-code');
   const labelInput = document.getElementById('new-cat-label');
   const parentSel  = document.getElementById('new-cat-parent');
-  const code  = codeInput.value.trim().toLowerCase().replace(/\s+/g,'_');
-  const label = labelInput.value.trim();
-  const parent= parentSel.value;
-  if (!code || !label) { toast('Completa el código y el nombre', 'err'); return; }
-  if (!/^[a-z0-9_]+$/.test(code)) { toast('El código solo puede tener letras, números y guión bajo', 'err'); return; }
-  if (categories.find(c => c.code === code)) { toast('Ya existe una categoría con ese código', 'err'); return; }
+  const label  = labelInput.value.trim();
+  const parent = parentSel.value;
+  if (!label) { toast('Escribe el nombre de la categoría', 'err'); labelInput.focus(); return; }
+  const base = label.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+  const code = parent ? `${parent}_${base}` : base;
+  if (categories.find(c => c.code === code)) { toast('Ya existe una categoría con ese nombre', 'err'); return; }
   const color = CAT_PALETTE[categories.length % CAT_PALETTE.length];
   const newCat = { code, label, color };
   if (parent && categories.find(c => c.code === parent)) newCat.parent = parent;
@@ -773,7 +1058,9 @@ async function addCategory() {
   await _saveCats();
   renderCatList();
   populateCatParent();
-  codeInput.value = ''; labelInput.value = '';
+  labelInput.value = '';
+  parentSel.value = '';
+  if (parent) _catOpenSection(parent);
   toast(`${parent ? 'Subcategoría' : 'Categoría'} "${label}" creada ✓`, 'ok');
 }
 

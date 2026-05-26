@@ -53,6 +53,24 @@ let _additionalImagesEdit = [];
 let deleteTargetId = null;
 let selectedIds = new Set();
 let dragSrcId = null;
+let _dragScrollRaf = null;
+
+function _dragAutoScroll(e) {
+  if (dragSrcId === null) return;
+  const ZONE = 80, SPEED = 18;
+  const y = e.clientY;
+  const h = window.innerHeight;
+  cancelAnimationFrame(_dragScrollRaf);
+  if (y < ZONE) {
+    const step = () => { window.scrollBy(0, -SPEED * (1 - y / ZONE)); if (dragSrcId !== null) _dragScrollRaf = requestAnimationFrame(step); };
+    _dragScrollRaf = requestAnimationFrame(step);
+  } else if (y > h - ZONE) {
+    const step = () => { window.scrollBy(0, SPEED * (1 - (h - y) / ZONE)); if (dragSrcId !== null) _dragScrollRaf = requestAnimationFrame(step); };
+    _dragScrollRaf = requestAnimationFrame(step);
+  }
+}
+document.addEventListener('dragover', _dragAutoScroll);
+document.addEventListener('dragend', () => { cancelAnimationFrame(_dragScrollRaf); _dragScrollRaf = null; });
 let currentSort = 'recent';
 let _adminPage = 1;
 const ADMIN_PAGE_SIZE = 50;
@@ -458,6 +476,11 @@ function setBtn(el, loading, text) {
 }
 
 /* ── INIT ── */
+window.addEventListener('pageshow', () => {
+  const srp = document.getElementById('scan-result-panel');
+  if (srp) srp.style.display = 'none';
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
   if (isAuthenticated()) {
     await showApp();
@@ -1453,9 +1476,18 @@ function renderTable() {
 }
 
 function _loadMoreAdmin() {
+  const firstNewIndex = _adminPage * ADMIN_PAGE_SIZE;
   _adminPage++;
   renderTable();
-  document.getElementById('load-more-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  const useCards = localStorage.getItem('te_admin_view') !== 'list';
+  const cardGrid = document.getElementById('card-grid');
+  if (useCards && cardGrid) {
+    cardGrid.querySelectorAll('.admin-card')[firstNewIndex]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    const tbody = document.getElementById('products-table');
+    tbody?.querySelectorAll('tr')[firstNewIndex]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 /* ── SELECTION ── */
@@ -1633,6 +1665,11 @@ function initDragDrop() {
       dragSrcId = parseInt(row.dataset.id);
       row.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
+      if (currentSort !== 'position') {
+        currentSort = 'position';
+        const sortSel = document.getElementById('sort-select');
+        if (sortSel) sortSel.value = 'position';
+      }
     });
     row.addEventListener('dragend', () => {
       row.classList.remove('dragging');
@@ -1660,10 +1697,8 @@ function initDragDrop() {
       const [item] = products.splice(srcIdx, 1);
       const insertAt = isAbove ? (srcIdx < tgtIdx ? tgtIdx - 1 : tgtIdx) : (srcIdx < tgtIdx ? tgtIdx : tgtIdx + 1);
       products.splice(insertAt, 0, item);
-      toast('Guardando orden...', '');
-      const ok = await save();
-      if (ok) toast('Orden guardado ✓');
-      renderTable();
+      renderTable(); // optimistic: mueve visualmente al instante
+      save().then(ok => toast(ok ? 'Orden guardado ✓' : 'Error al guardar orden', ok ? '' : 'error'));
     });
   });
 }
@@ -1673,6 +1708,11 @@ function _cardDragStart(e, id) {
   dragSrcId = id;
   e.dataTransfer.effectAllowed = 'move';
   setTimeout(() => e.target.closest('.admin-card')?.classList.add('card-dragging'), 0);
+  if (currentSort !== 'position') {
+    currentSort = 'position';
+    const sortSel = document.getElementById('sort-select');
+    if (sortSel) sortSel.value = 'position';
+  }
 }
 
 function _cardDragEnd(e) {
@@ -1707,11 +1747,8 @@ async function _cardDrop(e, targetId) {
     ? (srcIdx < tgtIdx ? tgtIdx - 1 : tgtIdx)
     : (srcIdx < tgtIdx ? tgtIdx : tgtIdx + 1);
   products.splice(insertAt, 0, item);
-
-  toast('Guardando orden...', '');
-  const ok = await save();
-  if (ok) toast('Orden guardado ✓');
-  renderTable();
+  renderTable(); // optimistic: mueve visualmente al instante
+  save().then(ok => toast(ok ? 'Orden guardado ✓' : 'Error al guardar orden', ok ? '' : 'error'));
 }
 
 /* ── BADGE DATALIST ── */
@@ -3814,25 +3851,26 @@ function showScanResult(id) {
     : `<span class="qv-chip qv-chip-ok">✓ Disponible</span>`;
   document.getElementById('srp-chips').innerHTML = oosChip + pubChip;
 
-  // Stock hero — prominente y tappeable para editar
+  // Stock stepper
+  _srpPendingStock = null;
   const heroEl = document.getElementById('srp-stock-hero');
   if (p.kitItems?.length) {
     heroEl.style.display = 'none';
   } else {
-    const stockColor = p.stock === 0 ? 'var(--red)' : p.stock === 1 ? '#C9A462' : 'var(--charcoal)';
-    const stockLabel = p.stock === 0 ? 'Sin stock' : p.stock === 1 ? 'Última unidad' : 'En stock';
-    heroEl.style.display = 'flex';
-    heroEl.innerHTML = `
-      <div>
-        <div class="srp-stock-num" style="color:${stockColor}">${p.stock}</div>
-      </div>
-      <div>
-        <div class="srp-stock-label">${stockLabel}</div>
-        <div class="srp-stock-hint">Toca para editar</div>
-      </div>`;
+    const stockColor = p.stock === 0 ? 'var(--red)' : p.stock === 1 ? 'var(--gold-dark)' : 'var(--charcoal)';
+    const stockStatus = p.stock === 0 ? 'Sin stock' : p.stock === 1 ? 'Última unidad' : `${p.stock} en stock`;
+    heroEl.style.display = 'block';
     heroEl.className = 'srp-stock-hero';
-    heroEl.onclick = e => { e.stopPropagation(); _srpEditStock(p.id); };
-    heroEl.ontouchstart = e => e.stopPropagation();
+    heroEl.onclick = null;
+    heroEl.innerHTML = `
+      <div class="srp-stock-lbl">STOCK</div>
+      <div class="srp-stepper-row">
+        <button class="srp-step-btn" onclick="_srpStep(-1,${p.id})" ontouchstart="event.stopPropagation()">−</button>
+        <span class="srp-stock-num" id="srp-stock-val" style="color:${stockColor}">${p.stock}</span>
+        <button class="srp-step-btn" onclick="_srpStep(1,${p.id})" ontouchstart="event.stopPropagation()">+</button>
+        <button class="srp-step-save" id="srp-step-save" onclick="_srpSaveStep(${p.id})" ontouchstart="event.stopPropagation()">Guardar</button>
+      </div>
+      <div class="srp-stock-status" id="srp-stock-status">${stockStatus}</div>`;
   }
 
   // Descripción editable
@@ -3855,8 +3893,7 @@ function showScanResult(id) {
   const btnDup  = `<button class="qv-btn qv-btn-dup" onclick="clearScanResult();duplicateProduct(${p.id})">⧉ Duplicar</button>`;
   const btnPub  = can.publishProduct ? `<button class="qv-btn qv-btn-pub" onclick="_qvTogglePublished(${p.id})">${p.isPublished === false ? '🌐 Publicar' : '🙈 Ocultar'}</button>` : '';
   const btnDel  = can.deleteProduct  ? `<button class="qv-btn qv-btn-del" onclick="clearScanResult();askDelete(${p.id})">✕ Eliminar</button>` : '';
-  const btnScan = `<button class="qv-btn qv-btn-dup" style="flex:0 0 100%;margin-top:4px" onclick="clearScanResult();openSearchScanner()">📷 Escanear otro producto</button>`;
-  document.getElementById('srp-actions').innerHTML = btnEdit + btnDup + btnPub + btnDel + btnScan;
+  document.getElementById('srp-actions').innerHTML = btnEdit + btnDup + btnPub + btnDel;
 
   // Mostrar panel, ocultar lista y elementos irrelevantes
   document.getElementById('scan-result-panel').style.display = 'block';
@@ -3875,6 +3912,60 @@ function clearScanResult() {
 
 function _srpRefresh(id) {
   if (document.getElementById('scan-result-panel').style.display !== 'none') showScanResult(id);
+}
+
+let _srpPendingStock = null;
+
+function _srpStep(delta, id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  if (_srpPendingStock === null) _srpPendingStock = p.stock;
+  _srpPendingStock = Math.max(0, _srpPendingStock + delta);
+
+  const numEl    = document.getElementById('srp-stock-val');
+  const saveBtn  = document.getElementById('srp-step-save');
+  const statusEl = document.getElementById('srp-stock-status');
+
+  if (numEl) {
+    numEl.textContent = _srpPendingStock;
+    numEl.style.color = _srpPendingStock === 0 ? 'var(--red)' : _srpPendingStock === 1 ? 'var(--gold-dark)' : 'var(--charcoal)';
+  }
+  if (statusEl) {
+    statusEl.textContent = _srpPendingStock === 0 ? 'Sin stock' : _srpPendingStock === 1 ? 'Última unidad' : `${_srpPendingStock} en stock`;
+  }
+  if (saveBtn) {
+    const changed = _srpPendingStock !== p.stock;
+    saveBtn.classList.toggle('visible', changed);
+    if (!changed) _srpPendingStock = null;
+  }
+}
+
+async function _srpSaveStep(id) {
+  if (_srpPendingStock === null) return;
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const newStock = _srpPendingStock;
+  const patch = { stock: newStock };
+  if (newStock > 0 && p.outOfStock)   patch.out_of_stock = false;
+  if (newStock === 0 && !p.outOfStock) patch.out_of_stock = true;
+
+  const saveBtn = document.getElementById('srp-step-save');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '...'; }
+
+  const result = await supabaseApi(`products?id=eq.${id}`, {
+    method: 'PATCH', body: JSON.stringify(patch)
+  });
+  if (result.ok) {
+    p.stock = newStock;
+    if (patch.out_of_stock !== undefined) p.outOfStock = patch.out_of_stock;
+    _srpPendingStock = null;
+    toast(`📦 Stock → ${newStock}`);
+    renderTable(); renderStats();
+  } else {
+    toast('Error al actualizar stock', 'error');
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; }
+  }
+  _srpRefresh(id);
 }
 
 async function _srpEditStock(id) {
