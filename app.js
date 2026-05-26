@@ -17,6 +17,11 @@ let _modalQty     = 1;
 const CATALOG_LIMIT = 12;
 let _catalogShowAll = false;
 
+function _descHtml(desc) {
+  if (!desc) return '';
+  return desc.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
 /* ── CARRITO ── */
 let cart = JSON.parse(localStorage.getItem('te_cart') || '[]');
 
@@ -417,7 +422,7 @@ function cardHTML(p) {
   <div class="product-body">
     <p class="product-cat">${p.categoryLabel}</p>
     <h3>${p.name}</h3>
-    <p class="product-desc">${p.description || ''}</p>
+    <p class="product-desc">${_descHtml(p.description)}</p>
     <div class="product-footer">
       ${priceHTML}
       ${buyBtn}
@@ -822,7 +827,7 @@ function openModal(id) {
       </button>
       <button class="modal-wa-mobile" onclick="whatsapp(${p.id})">${WA_SVG} Pedir directo por WhatsApp</button>`;
   const descHTML = p.description
-    ? `<p class="modal-desc">${p.description}</p>`
+    ? `<p class="modal-desc">${_descHtml(p.description)}</p>`
     : '';
   const allImgs = [p.image, ...(p.images || [])].filter(Boolean);
   const hasGallery = allImgs.length > 1;

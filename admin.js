@@ -357,7 +357,8 @@ function getFilteredProducts() {
     const matchQ = !groups.length || groups.some(g => g.every(t =>
       _norm(p.name).includes(t) ||
       _norm(p.categoryLabel).includes(t) ||
-      (p.barcode && p.barcode.includes(t))
+      (p.barcode && p.barcode.includes(t)) ||
+      t === String(Math.round(p.price || 0))
     ));
     const matchFlag = !_showOnlyFlagged || !!_flagItem(p.id);
     const matchStat = !_statFilter ||
@@ -2147,24 +2148,102 @@ async function analyzeFormImage() {
   lbl.textContent = 'Analizando imagen…';
   try {
     const catList = categories.map(c => `"${c.code}" (${c.label})`).join(', ');
-    const systemPrompt = `Eres el asistente de catálogo de Tres Encantos, boutique mexicana. Vendemos bolsos, mochilas, accesorios, maquillaje y productos Natura.
-Voz cálida y aspiracional, español de México. Cuando detectes texto o números en la imagen sé preciso — nunca inventes datos que no estén visibles.`;
-    const userPrompt = `Analiza esta imagen de producto y responde ÚNICAMENTE con JSON válido, sin markdown ni texto extra.
+    const systemPrompt = `Eres copywriter senior de catálogo para Tres Encantos, boutique mexicana. Escribes copy listo para publicar — sin edición posterior — al nivel de Sephora, Liverpool, ZARA o Amazon MX.
 
-OBLIGATORIOS (siempre devuélvelos, no importa qué):
-• "name": nombre comercial atractivo, máximo 55 chars. Incluye marca si es legible (ej: "Bolso David Jones Negro"). Sin códigos, sin SKUs.
-• "description": 1-2 oraciones emocionales y comerciales — qué hace sentir, para qué ocasión. Máximo 180 chars.
+━━ PASO 0 (SIEMPRE primero) ━━
+Lee de arriba a abajo TODO el texto impreso en la imagen: marca, línea/colección, tipo, concentración, variante/aroma, volumen/peso (ml, g), género, ingrediente estrella. Ese texto manda sobre cualquier suposición tuya.
 
-OPCIONALES (devuelve null o "" si no estás seguro — nunca fuerces un valor):
-• "category": elige el código exacto de esta lista SOLO si el producto coincide claramente. Si tienes duda, devuelve "".
-  Opciones: ${catList}
-• "price": busca en la imagen un precio escrito a mano con plumón o lapicero, en etiqueta adhesiva de color, o impreso en el empaque.
-  - Devuelve solo el número sin símbolos (ej: 350).
-  - NO confundas con: mililitros (ml), onzas (oz), gramos (g), tallas (S/M/L/XL), porcentajes (%), códigos de barras, números de lote o cualquier otro valor numérico que no sea precio.
-  - Si no hay precio visible o tienes la mínima duda, devuelve null.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TÍTULO — NATURA (máxima prioridad si detectas la marca)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Fórmula: Natura [Línea] [Tipo/Concentración] [Variante] [ml o g] [Género si aplica]
 
-Formato de respuesta:
-{"name":"...","description":"...","category":"código exacto o cadena vacía","price":número_sin_símbolo_o_null}`;
+Líneas reconocibles: Kaiak, Essencial, Una, Humor, Nativa, Plant, Tododia, Boticaría, Ekos, Chronos, Mamá Terra, Lumina, Luna, Aqua Mundi, Erva Doce, Faces, Amó, Sínia.
+Concentraciones: EDP · EDT · Colônia · Desodorante Colônia · Desodorante Aerossol.
+Género: Masculino / Femenino — solo si está escrito; omite si es unisex o no está claro.
+
+Títulos Natura correctos (copia este nivel de detalle):
+• "Natura Kaiak Desodorante Colônia Clásico 100ml Masculino"
+• "Natura Essencial Eau de Parfum Floral 75ml Femenino"
+• "Natura Una Colônia Oud Amaderado 75ml"
+• "Natura Tododia Crema Corporal Coco 400ml"
+• "Natura Ekos Aceite Corporal Ucuuba 100ml"
+• "Natura Chronos Sérum Antienvejecimiento Plus 30g"
+• "Natura Plant Shampoo Hidratación Intensa 300ml"
+• "Natura Faces Labial Cremoso Rojo Coral 3.5g"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TÍTULO — GENERAL (todo lo que no es Natura)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Fórmula: [Marca visible] + [Tipo] + [Material/Acabado] + [Color/Estampado]
+• "Bolso Tote Cuero Vegano Negro — David Jones"
+• "Cartera Mediana con Cadena Dorada Camel"
+• "Mochila Antirrobo Nylon Gris Oscuro — Guess"
+• "Clutch de Noche con Pedrería Champagne"
+• "Sombras Ahumadas Paleta Café Terracota — NYX"
+
+PROHIBIDO en cualquier título: "bonito", "elegante", "especial", "hermoso", "de calidad", "perfecto", SKUs, códigos alfanuméricos, dimensiones físicas.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DESCRIPCIÓN PREMIUM — fórmulas por tipo
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Regla universal: empieza SIEMPRE con verbo activo o el ingrediente/rasgo estrella. NUNCA con "Este producto es...", "Es un...", "Perfecto para...".
+
+▸ Natura — perfumes y colonias:
+  "[Familia olfativa] de [notas clave] que [efecto en quien lo usa]. [Intensidad/duración] para [momento o tipo de persona]."
+  Ej: "Fragancia amaderada de oud y almizcle que envuelve con calidez sensual. Larga duración, ideal para noches y ocasiones especiales."
+  Ej: "Cítrico fresco de bergamota y cedro blanco que irradia vitalidad. Ligero y persistente, perfecto para el día a día activo."
+
+▸ Natura — cremas, lociones, aceites corporales:
+  "[Ingrediente clave] que [beneficio concreto en piel]. [Textura/sensación de uso o resultado visible]."
+  Ej: "Manteca de ucuuba que restaura la piel más seca en profundidad. Textura aterciopelada que se absorbe sin residuo graso."
+  Ej: "Aceite de maracuyá que nutre e ilumina la piel. Fórmula ligera con aroma tropical que permanece en la piel."
+
+▸ Natura — cabello (shampoo, acondicionador, mascarilla):
+  "[Ingrediente activo] que [beneficio en cabello]. [Resultado desde la primera aplicación o tipo de cabello]."
+  Ej: "Proteína de arroz que fortalece y repara el cabello dañado por calor. Cabello suave, con brillo y sin frizz desde el primer uso."
+
+▸ Natura — maquillaje (Faces):
+  "[Acabado/cobertura] con [beneficio adicional]. [Tono/paleta y para qué tipo de piel o look]."
+  Ej: "Acabado mate de larga duración que hidrata mientras cubre. Tono cálido ideal para pieles medias y looks naturales."
+
+▸ Bolsos, mochilas, carteras:
+  "[Material o rasgo de diseño] que [funcionalidad o sensación]. [Para qué estilo de vida u ocasión]."
+  Ej: "Cuero vegano suave con herrajes dorados que eleva cualquier outfit. Amplio interior organizado para el día completo."
+
+▸ Accesorios y joyería:
+  "[Material/acabado] [forma o diseño] que [efecto visual o sensación]. [Ocasión ideal]."
+  Ej: "Acero dorado en forma de media luna que da un toque minimal y sofisticado. Combina con cualquier look, de día o de noche."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CATEGORÍAS — mapeo de productos a códigos
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Usa el código exacto de esta lista. Aplica el mapeo lógico:
+• Natura perfumes / colonias / desodorantes con aroma → subcategorías de natura (ej: natura_perfumes)
+• Natura cremas, lociones, aceites corporales → subcategorías de natura (ej: natura_cremas)
+• Natura shampoo, acondicionador, mascarilla → subcategorías de natura (ej: natura_cabello si existe)
+• Natura maquillaje (Faces) → subcategorías de natura o maquillaje
+• Bolso grande / tote / shopper / mochila → bolsos o subcategoría correspondiente
+• Cartera / billetera / monedero → accesorios o subcategoría
+• Anillo / collar / aretes / pulsera → joyería o accesorios
+• Labial / sombra / base / rubor → maquillaje
+Si no hay código exacto o tienes duda → devuelve "".
+Opciones disponibles: ${catList}
+
+Español de México. Responde SOLO con JSON válido, sin markdown.`;
+    const userPrompt = `PASO 0: escanea la imagen completa — marca, línea, concentración, variante, ml/g, género, ingrediente visible.
+
+Devuelve ÚNICAMENTE JSON válido, sin markdown.
+
+OBLIGATORIOS:
+• "name": 45-70 chars. Natura → fórmula Natura completa. Otros → marca+tipo+material+color. Cero adjetivos genéricos.
+• "description": copy listo para publicar, máximo 160 chars. Sigue la fórmula exacta del sistema según el tipo de producto. Empieza con verbo activo o ingrediente estrella — nunca con "Este es...".
+
+OPCIONALES:
+• "category": código exacto según el mapeo del sistema. "" si no estás seguro.
+• "price": número de etiqueta/plumón/empaque (ej: 350). Solo dígitos. NO confundas con ml, oz, g, tallas, %, lotes, códigos de barras. null si duda.
+
+Formato: {"name":"...","description":"...","category":"","price":null}`;
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
@@ -2177,7 +2256,7 @@ Formato de respuesta:
             { type: 'image_url', image_url: { url: currentFormImageDataUrl } }
           ]}
         ],
-        temperature: 0.3, max_tokens: 450
+        temperature: 0.3, max_tokens: 500
       })
     });
     if (!response.ok) {
@@ -2572,10 +2651,40 @@ function applyTitleCase(fieldId) {
   if (el && el.value.trim()) el.value = toTitleCase(el.value);
 }
 
-/* Formatea descripción: primera letra mayúscula + punto al final */
+/* Convierte HTML del portapapeles a texto limpio con bullets y saltos de línea */
+function _htmlToPlainText(html) {
+  let s = html;
+  s = s.replace(/<li[^>]*>/gi, '\n• ').replace(/<\/li>/gi, '');
+  s = s.replace(/<br\s*\/?>/gi, '\n');
+  s = s.replace(/<\/?(p|div|h[1-6]|ul|ol|blockquote|tr)[^>]*>/gi, '\n');
+  s = s.replace(/<[^>]+>/g, '');
+  s = s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ').replace(/&#39;/g,"'").replace(/&quot;/g,'"');
+  return s.split('\n').map(l => l.trim()).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/* Handler de paste en campos de descripción — convierte HTML a texto limpio */
+function handleDescPaste(e) {
+  const html = e.clipboardData?.getData('text/html');
+  if (!html) return;
+  e.preventDefault();
+  const clean = _htmlToPlainText(html);
+  const ta = e.target;
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  ta.value = ta.value.slice(0, start) + clean + ta.value.slice(end);
+  ta.selectionStart = ta.selectionEnd = start + clean.length;
+}
+
+/* Escapa HTML y convierte \n en <br> para renderizado seguro de descripciones */
+function _descHtml(desc) {
+  if (!desc) return '';
+  return desc.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+/* Formatea descripción: primera letra mayúscula + punto al final (preserva saltos de línea) */
 function formatDescription(str) {
   if (!str) return str;
-  let s = str.trim().replace(/\s+/g, ' ');
+  const lines = str.split('\n').map(l => l.replace(/ +/g, ' ').trim());
+  let s = lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
   if (!s) return s;
   s = s.charAt(0).toUpperCase() + s.slice(1);
   if (!/[.!?…]$/.test(s)) s += '.';
@@ -3921,9 +4030,9 @@ function showScanResult(id) {
   const descEl = document.getElementById('srp-desc');
   if (can.editProduct) {
     descEl.style.display = '';
-    descEl.innerHTML = `<span class="qv-editable" onclick="_qvEditDesc(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar">${p.description || '<em style="color:var(--muted);font-style:normal;font-size:.82rem">+ Agregar descripción</em>'}</span>`;
+    descEl.innerHTML = `<span class="qv-editable" onclick="_qvEditDesc(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar">${_descHtml(p.description) || '<em style="color:var(--muted);font-style:normal;font-size:.82rem">+ Agregar descripción</em>'}</span>`;
   } else {
-    descEl.textContent = p.description || '';
+    descEl.innerHTML = _descHtml(p.description);
     descEl.style.display = p.description ? '' : 'none';
   }
 
@@ -4995,8 +5104,8 @@ async function runCaptureAI() {
   _capSetAIStatus(false, '', 'Analizando imagen con IA...');
   try {
     const catList = categories.map(c => '"' + c.code + '" (' + c.label + ')').join(', ');
-    const sysP = 'Eres el asistente de catálogo de Tres Encantos, boutique mexicana de bolsos, accesorios, maquillaje y Natura. Español de México. Preciso con texto y números visibles.';
-    const usrP = 'Analiza esta imagen y responde SOLO con JSON válido sin markdown.\n\nOBLIGATORIOS:\n- "name": nombre comercial atractivo, max 55 chars, incluye marca si visible, sin códigos.\n- "description": 1-2 oraciones emocionales, max 180 chars.\n\nOPCIONALES (null o "" si no estás seguro):\n- "category": código exacto de: ' + catList + '\n- "price": precio en etiqueta/plumón/empaque, solo número (ej: 350). NO confundas con ml, oz, g, tallas, %, códigos. null si dudas.\n\n{"name":"...","description":"...","category":"","price":null}';
+    const sysP = 'Eres copywriter senior para Tres Encantos. Copy listo para publicar, nivel Sephora/Liverpool/Amazon MX.\n\nPASO 0: lee TODO el texto del empaque (marca, línea, concentración, variante, ml/g, género) antes de escribir.\n\nTÍTULO NATURA (si detectas la marca): Natura [Línea] [Tipo/Concentración] [Variante] [ml/g] [Género]. Líneas: Kaiak, Essencial, Una, Humor, Nativa, Plant, Tododia, Boticaría, Ekos, Chronos, Mamá Terra, Lumina, Luna, Faces, Amó. Concentraciones: EDP, EDT, Colônia, Desodorante Colônia. Ej: "Natura Kaiak Desodorante Colônia Clásico 100ml Masculino", "Natura Essencial EDP Floral 75ml Femenino", "Natura Tododia Crema Corporal Coco 400ml".\n\nTÍTULO GENERAL: [Marca] + [Tipo] + [Material/Acabado] + [Color]. Ej: "Bolso Tote Cuero Vegano Negro — David Jones".\n\nDESCRIPCIÓN PREMIUM — empieza SIEMPRE con verbo activo o ingrediente estrella, nunca "Este es..." o "Es un...". Fórmulas:\n• Perfume/Colonia Natura → "[Familia olfativa] de [notas] que [efecto]. [Intensidad/ocasión]."\n• Crema/Aceite/Loción Natura → "[Ingrediente] que [beneficio en piel]. [Textura/resultado visible]."\n• Cabello Natura → "[Ingrediente activo] que [beneficio]. [Resultado desde primera aplicación]."\n• Maquillaje → "[Acabado/cobertura] que [beneficio extra]. [Tono/look ideal]."\n• Bolso/Cartera → "[Material/diseño] que [funcionalidad]. [Ocasión/estilo de vida]."\n\nCATEGORÍA — mapeo: perfumes/colonias Natura → natura_perfumes; cremas/aceites Natura → natura_cremas; cabello Natura → natura_cabello; maquillaje Faces → maquillaje o natura; bolso grande → bolsos; cartera/monedero → accesorios; labial/sombra → maquillaje. "" si no hay coincidencia clara.\n\nPROHIBIDO en títulos: "bonito","elegante","especial","hermoso". Sin SKUs ni códigos. Español de México.';
+    const usrP = 'PASO 0: escanea la imagen — marca, línea, concentración, variante, ml/g, género. Devuelve SOLO JSON válido sin markdown.\n\nOBLIGATORIOS:\n- "name": 45-70 chars. Natura: línea+tipo+variante+ml+género. Otros: marca+tipo+material+color.\n- "description": copy listo para publicar, máx 160 chars. Fórmula según tipo. Empieza con verbo o ingrediente, nunca "Este es...".\n\nOPCIONALES (null o "" si dudas):\n- "category": código exacto según mapeo del sistema. Opciones: ' + catList + '\n- "price": número de etiqueta/plumón/empaque (ej: 350). Solo dígitos. NO confundas con ml, oz, g, tallas, %, códigos. null si duda.\n\n{"name":"...","description":"...","category":"","price":null}';
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + groqApiKey },
@@ -5006,7 +5115,7 @@ async function runCaptureAI() {
           { role: 'system', content: sysP },
           { role: 'user', content: [{ type: 'text', text: usrP }, { type: 'image_url', image_url: { url: captureImageDataUrl } }] }
         ],
-        temperature: 0.3, max_tokens: 400
+        temperature: 0.3, max_tokens: 500
       })
     });
     if (!res.ok) throw new Error('Error ' + res.status);
@@ -5394,6 +5503,7 @@ async function _qvEditDesc(e, id) {
   wrap.appendChild(btn);
   el.replaceWith(wrap);
   ta.focus();
+  ta.addEventListener('paste', handleDescPaste);
   let saved = false;
   const save = async () => {
     if (saved) return; saved = true;
@@ -5675,9 +5785,9 @@ function _renderQV(p) {
   const descEl = document.getElementById('qv-desc');
   if (can.editProduct) {
     descEl.style.display = '';
-    descEl.innerHTML = `<span class="qv-editable" onclick="_qvEditDesc(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar descripción" style="display:block;min-height:1.4em">${p.description || '<em style="color:var(--muted);font-style:normal;font-size:.82rem">+ Agregar descripción</em>'}</span>`;
+    descEl.innerHTML = `<span class="qv-editable" onclick="_qvEditDesc(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar descripción" style="display:block;min-height:1.4em">${_descHtml(p.description) || '<em style="color:var(--muted);font-style:normal;font-size:.82rem">+ Agregar descripción</em>'}</span>`;
   } else {
-    descEl.textContent = p.description || '';
+    descEl.innerHTML = _descHtml(p.description);
     descEl.style.display = p.description ? '' : 'none';
   }
 

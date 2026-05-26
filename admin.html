@@ -2185,7 +2185,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
             <button type="button" class="dictate-btn btn-clear-field" onclick="clearField('f-description')" title="Limpiar descripción" aria-label="Limpiar descripción">⌫</button>
           </div>
         </div>
-        <textarea id="f-description" placeholder="Describe el producto: materiales, uso, características…" onblur="applyDescriptionFormat('f-description')"></textarea>
+        <textarea id="f-description" placeholder="Describe el producto: materiales, uso, características…" onblur="applyDescriptionFormat('f-description')" onpaste="handleDescPaste(event)"></textarea>
       </div>
       <p class="form-section">🏷 Detalles</p>
       <div class="form-row">

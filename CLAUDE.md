@@ -401,6 +401,11 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
 - **TE tracking** — objeto `TE` en admin.js con batch 5s hacia tabla `usage_log`. Sección "🔧 Uso de funciones" en Reportes con top 10 acciones del período.
 - **Scan result panel mejorado** — imagen 180px, stock hero tappeable con editor inline dedicado `_srpEditStock()` (blur = guardar, sin reemplazar el elemento del DOM), "Escanear otro" al final.
 
+### Funcionalidades añadidas (2026-05-26)
+- **Drag & drop mejorado** — auto-scroll al acercarse al borde de la ventana (`_dragAutoScroll`, zona 80px, velocidad proporcional al borde). Re-render **optimista**: el producto se mueve visualmente al instante antes de que Supabase confirme. Al iniciar el drag (`dragstart`) se cambia automáticamente el sort a "Mi orden" en lugar de esperar al drop.
+- **Multi-select drag** — si el producto arrastrado está en `selectedIds` y hay 2+ seleccionados, se mueven todos juntos manteniendo su orden relativo. `_startMultiDrag(e)` crea ghost image "N productos" con `setDragImage`. `_doMultiDrop(targetId, insertBefore)` reemplaza el array `products` construyendo `rest + group` en el punto de inserción. Soltar sobre un producto seleccionado es no-op. Arrastrar un producto no seleccionado ignora la selección y mueve solo ese.
+- **Indicadores de drop más visibles** — tabla: `box-shadow 3px` en `<tr>` + fondo dorado sutil (antes era `inset 2px` en `<td>`, casi invisible). Cards: borde superior/inferior (antes lateral — confuso en grid vertical).
+
 ### Bugs resueltos relevantes
 - `closeForm()` llama `setBtn(saveBtn, false)` → evita botón Guardar bloqueado en segunda edición
 - Inline stock en Android: `type="text"` + `inputMode="numeric"` + botón ✓ sin depender de `blur`
@@ -409,6 +414,7 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
 - Kit con `out_of_stock=true` en BD aparecía como "Agotado" en Caja aunque los componentes tuvieran stock — corregido ignorando `out_of_stock` para kits
 - `.ci-price` en carrito: `display:inline-block` no basta dentro de un flex-column — la línea punteada se estiraba al 100% del ancho. Fix: `align-self:flex-start`.
 - `noteDotAC` / `noteDot` — variables eliminadas en refactor pero referenciadas en templates de `adminCard()` y `mobileCard()` → `ReferenceError` que rompía todo el render del Inventario. Corregido 2026-05-22.
+- **SRP aparecía sin escanear** — el bfcache del browser restauraba el DOM con `display:block` en el inline style. Fix: `window.addEventListener('pageshow', ...)` fuerza `display:none` en cada restauración de página.
 
 ---
 
