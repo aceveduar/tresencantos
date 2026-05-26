@@ -943,9 +943,7 @@ function adminCard(p, editable = false) {
   const oos = p.kitItems?.length ? false : (p.outOfStock || p.stock === 0);
   const sel = selectedIds.has(p.id);
   const catColor = getCatColor(p.category);
-  const badgeHTML = p.badge
-    ? `<span class="badge badge-${p.badgeType||'none'} ac-badge-pos" style="font-size:.6rem;padding:2px 6px">${p.badge}</span>`
-    : '';
+
   const priceDisplay = p.price === 0
     ? `<span class="ac-price ac-price-zero" onclick="editPriceInlineAdmin(event,${p.id})" ontouchstart="event.stopPropagation()" title="Sin precio — toca para agregar">Sin precio</span>`
     : p.originalPrice
@@ -977,7 +975,7 @@ function adminCard(p, editable = false) {
          onerror="this.onerror=null;this.src='${fallback}'">
     <input type="checkbox" class="ac-check row-check"
            ${sel?'checked':''} onchange="toggleRowSelect(${p.id},this.checked)">
-    ${badgeHTML}${flagDotAC}
+    ${flagDotAC}
     <div class="ac-oos-label"></div>
     <button class="ac-star toggle-featured" onclick="toggleFeatured(${p.id})"
             title="${p.featured?'Quitar destacado':'Destacar'}">
@@ -1002,9 +1000,6 @@ function adminCard(p, editable = false) {
     <div class="ac-price-row">${priceHTML}</div>
     <div class="ac-footer">
       <div style="display:flex;align-items:center;gap:6px">
-        <button class="ac-status-dot ${oos?'ac-dot-sold':'ac-dot-avail'}"
-                onclick="toggleOutOfStock(${p.id})"
-                title="${oosTitle}"></button>
         ${stockChip(p, editable)}
         ${p.isApartado ? `<span class="apt-chip">📌 Apartado</span>` : (_apartadosMap[p.id] ? `<span class="apt-chip" title="${_apartadosMap[p.id]} unidad(es) en apartado">📌${_apartadosMap[p.id]}</span>` : '')}
         <button class="ac-pub-dot" onclick="togglePublished(${p.id})"
@@ -1211,8 +1206,8 @@ function editCategoryInline(e, id) {
   if (!p) return;
   const span = e.currentTarget;
   const sel = document.createElement('select');
-  sel.style.cssText = 'border:2px solid var(--gold);border-radius:6px;padding:2px 6px;font-size:.78rem;font-family:inherit;background:#fff;color:var(--charcoal);outline:none;max-width:150px;cursor:pointer;touch-action:manipulation';
-  rootCats().forEach(r => {
+  sel.style.cssText = 'border:2px solid var(--gold);border-radius:6px;padding:3px 28px 3px 8px;font-size:.80rem;font-family:inherit;background:#fff url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'6\' viewBox=\'0 0 10 6\'%3E%3Cpath d=\'M0 0l5 6 5-6\' fill=\'%23C9A462\'/%3E%3C/svg%3E") no-repeat right 8px center;color:var(--charcoal);outline:none;max-width:200px;min-width:120px;cursor:pointer;touch-action:manipulation;-webkit-appearance:none;appearance:none;box-shadow:0 2px 8px rgba(0,0,0,.1)';
+  rootCats().filter(r => r.code !== 'por_revisar').forEach(r => {
     const subs = subCats(r.code);
     if (subs.length) {
       const og = document.createElement('optgroup');
@@ -1263,7 +1258,6 @@ function editCategoryInline(e, id) {
 function desktopRow(p) {
   const fallback = DEFAULT_IMG;
   const oos = p.kitItems?.length ? false : (p.outOfStock || p.stock === 0);
-  const badgeHTML  = p.badge ? `<span class="badge badge-${p.badgeType||'none'} badge-xs">${p.badge}</span>` : '';
   const featStar   = `<span onclick="toggleFeatured(${p.id})" class="toggle-featured" title="${p.featured ? 'Quitar destacado' : 'Destacar'}">${p.featured ? '⭐' : '☆'}</span>`;
   const catColor   = getCatColor(p.category);
   const catDot     = `<span class="cat-dot" style="background:${catColor}"></span>`;
@@ -1287,7 +1281,7 @@ function desktopRow(p) {
         <div class="prod-meta">
           ${catDot}
           <span class="prod-meta-text"><span class="cat-label-inline${isSinCatDR ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${p.categoryLabel}</span> · #${p.id}${p.barcode ? ` · 🔲 ${p.barcode}` : ''}</span>
-          ${badgeHTML}${featStar}${publishedToggle(p)}${flagDotRow}
+          ${featStar}${publishedToggle(p)}${flagDotRow}
         </div>
       </div>
     </div>
@@ -1334,9 +1328,6 @@ function mobileCard(p) {
 
   const stockInfo = `<span class="mpc-stock-inline">${stockChip(p, true)}</span>`;
 
-  const badgeHTML = p.badge
-    ? `<span class="badge badge-${p.badgeType||'none'} mpc-badge-inline" style="font-size:.6rem;padding:2px 7px">${p.badge}</span>`
-    : '';
 
   return `
 <tr class="mpc-row${sel ? ' row-selected' : ''}${isSinCatMC ? ' card-por-revisar' : ''}" data-id="${p.id}">
@@ -1367,21 +1358,16 @@ function mobileCard(p) {
           <div class="mpc-cat-tag">
             <span class="cat-dot" style="background:${catColor}"></span>
             <span style="font-size:.72rem;color:${isSinCatMC ? '#B45309' : 'var(--muted)'};font-weight:${isSinCatMC ? '600' : '400'}">${p.categoryLabel}</span>
-            ${badgeHTML}
+          </div>
+          <div class="mpc-price-row">
+            ${priceHTML}${stockInfo}
+            ${p.isApartado ? `<span class="apt-chip">📌 Apartado</span>` : (_apartadosMap[p.id] ? `<span class="apt-chip">📌${_apartadosMap[p.id]}</span>` : '')}
             <button class="ac-pub-dot"
                     onclick="togglePublished(${p.id})"
                     ontouchstart="event.stopPropagation()"
                     title="${pubTitle}">
               ${pubEmoji}
             </button>
-          </div>
-          <div class="mpc-price-row">
-            ${priceHTML}${stockInfo}
-            ${p.isApartado ? `<span class="apt-chip">📌 Apartado</span>` : (_apartadosMap[p.id] ? `<span class="apt-chip">📌${_apartadosMap[p.id]}</span>` : '')}
-            <button class="ac-status-dot ${oos?'ac-dot-sold':'ac-dot-avail'}"
-                    onclick="toggleOutOfStock(${p.id})"
-                    ontouchstart="event.stopPropagation()"
-                    title="${oos?'Agotado — toca para disponible':'Disponible — toca para agotar'}"></button>
           </div>
         </div>
         <div class="mpc-top-actions">
