@@ -1325,7 +1325,8 @@ let payMethod   = 'efectivo';
 let discType    = 'pct';
 let _lastSale   = {};
 let posView     = (window.innerWidth <= 1024) ? 'list' : (localStorage.getItem('te_pos_view') || 'list');
-let posSort     = localStorage.getItem('te_pos_sort') || 'recientes';
+let posSort     = localStorage.getItem('te_pos_sort') || 'position';
+let _posRecentOrder = JSON.parse(localStorage.getItem('te_recently_edited') || '[]');
 
 /* ── API ── */
 function api(path, opts = {}) {
@@ -1346,7 +1347,7 @@ function api(path, opts = {}) {
 
 /* ── LOAD PRODUCTS ── */
 async function loadProducts() {
-  const result = await api('products?select=*&order=name.asc');
+  const result = await api('products?select=*&order=position.asc');
   if (result.ok && Array.isArray(result.data)) {
     products = result.data.map(p => ({
       id: p.id,
@@ -1384,7 +1385,7 @@ function getKitStock(p) {
 async function refreshPosProducts() {
   const btn = document.getElementById('btn-refresh-pos');
   if (btn) { btn.style.opacity = '.4'; btn.style.pointerEvents = 'none'; }
-  await Promise.all([loadProducts(), loadSalesStats(), loadTopProductsFromSales()]);
+  await Promise.all([loadProducts(), loadSalesStats(), loadTopProductsFromSales(), loadPosRecentlyEdited()]);
   showAllProducts();
   if (btn) { btn.style.opacity = ''; btn.style.pointerEvents = ''; }
   toast('Catálogo actualizado ✓', 'success');
@@ -1401,6 +1402,16 @@ async function loadPosConfig() {
   try {
     const r = await api('config?id=eq.show_restock&select=id,value');
     if (r.ok && r.data?.length) _showRestock = r.data[0].value !== 'false';
+  } catch {}
+}
+
+async function loadPosRecentlyEdited() {
+  try {
+    const r = await api('recently_edited?select=product_id&order=edited_at.desc&limit=60');
+    if (r.ok && Array.isArray(r.data)) {
+      _posRecentOrder = r.data.map(d => d.product_id);
+      localStorage.setItem('te_recently_edited', JSON.stringify(_posRecentOrder));
+    }
   } catch {}
 }
 
@@ -1421,7 +1432,7 @@ async function loadSalesStats() {
 function applySort(list) {
   switch (posSort) {
     case 'recientes': {
-      const order = JSON.parse(localStorage.getItem('te_recently_edited') || '[]');
+      const order = _posRecentOrder.length ? _posRecentOrder : JSON.parse(localStorage.getItem('te_recently_edited') || '[]');
       if (!order.length) return [...list].sort((a, b) => b.id - a.id);
       return [...list].sort((a, b) => {
         const ia = order.indexOf(a.id), ib = order.indexOf(b.id);
@@ -3518,7 +3529,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (_nl) _nl.textContent = _name;
   } catch {}
   initDivider();
-  await Promise.all([loadProducts(), loadPosCategories(), loadSalesStats(), loadTopProductsFromSales(), loadPosNameMap(), loadPosConfig()]);
+  await Promise.all([loadProducts(), loadPosCategories(), loadSalesStats(), loadTopProductsFromSales(), loadPosNameMap(), loadPosConfig(), loadPosRecentlyEdited()]);
   renderCategoryChips();
   setPosView(posView);
   setPosSort(posSort);
