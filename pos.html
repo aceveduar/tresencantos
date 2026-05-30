@@ -476,7 +476,6 @@ button,a{touch-action:manipulation}
 .apartado-pending-lbl{font-size:.8rem;font-weight:700;text-align:center;padding:1px 0}
 
 /* APARTADOS PANEL — inline (desktop) */
-.apartados-panel{border-top:2px solid var(--gold);flex-shrink:0;max-height:160px;overflow-y:auto;background:#FFFBF4;overscroll-behavior-y:contain}
 /* APARTADO CARD — rediseñada */
 .apartado-item{display:flex;flex-direction:column;gap:10px;padding:14px 12px;border-radius:12px;margin:8px;background:#fff;border:1px solid #F0E8DC;box-shadow:0 1px 4px rgba(28,24,23,.06)}
 .apt-overdue{border-color:#FECACA;background:#FFF5F5}
@@ -517,23 +516,6 @@ button,a{touch-action:manipulation}
 .abonar-footer .btn-cancel{flex:1;padding:13px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-size:.88rem;font-weight:600;cursor:pointer;font-family:inherit;color:var(--muted)}
 .abonar-footer .btn-confirm{flex:2;padding:13px;border-radius:10px;border:none;background:var(--gold);color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
 .abonar-footer .btn-confirm:hover{background:var(--gold-dark)}
-/* APARTADOS VIEW — tab dedicado (mobile) */
-.pos-apartados-view{
-  display:none;flex-direction:column;flex:1;overflow-y:auto;
-  background:#FFFBF4;
-}
-.pos-apartados-view.tab-active{display:flex!important}
-.apt-view-header{
-  padding:14px 16px 10px;font-size:.8rem;font-weight:700;
-  color:var(--gold-dark);text-transform:uppercase;letter-spacing:.05em;
-  border-bottom:1px solid #F5EBDA;background:#FFF8EE;flex-shrink:0;
-  display:flex;align-items:center;gap:6px;
-}
-.apt-view-empty{text-align:center;padding:48px 20px;color:#9B8B78;font-size:.86rem}
-.apt-view-empty .em{font-size:2rem;margin-bottom:8px}
-.apartados-header{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;font-size:.72rem;font-weight:700;color:var(--gold-dark);text-transform:uppercase;letter-spacing:.05em;cursor:pointer;user-select:none;background:#FFF8EE;position:sticky;top:0;z-index:1}
-.apartados-header:hover{color:var(--charcoal)}
-.apartados-list{padding:0 8px 8px}
 
 /* SALE DONE WA BUTTON */
 .btn-wa-ticket{width:100%;margin-top:8px;padding:11px;border-radius:12px;border:none;background:#25D366;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
@@ -550,13 +532,12 @@ button,a{touch-action:manipulation}
   .btn-label{display:none}
   .topbar-sep-user{display:none!important}
   /* Ocultar refresh (↻) en mobile — poco espacio */
-  #btn-refresh-pos { display:none }
   .title-long{display:none}
   .title-short{display:inline!important}
   .today-stats{display:none!important}
   .cart-topbar-btn{padding:5px 8px!important}
   /* Corte e Historial: mismo estilo que íconos de módulo en mobile */
-  #btn-corte-pos,#btn-history-pos{
+  #btn-corte-pos,#btn-history-pos,#btn-apt-pos{
     border:none!important;background:transparent!important;
     color:rgba(255,255,255,.6)!important;
     width:34px;height:34px;padding:0!important;
@@ -567,7 +548,7 @@ button,a{touch-action:manipulation}
     padding-right:4px!important;margin-right:2px;
     border-radius:0!important;
   }
-  #btn-corte-pos:active,#btn-history-pos:active{opacity:.55}
+  #btn-corte-pos:active,#btn-history-pos:active,#btn-apt-pos:active{opacity:.55}
   #btn-stats-pos{display:none!important}
   .topbar-right > .btn-outline-white:last-of-type{display:none}
 
@@ -582,8 +563,6 @@ button,a{touch-action:manipulation}
   .cat-chip{padding:5px 12px;font-size:.72rem}
   .cart-header{padding:8px 12px}
   .ci-qty button{min-height:38px;min-width:38px;width:38px;height:38px}
-  /* En mobile el panel inline se reemplaza por el tab dedicado */
-  #apartados-panel{display:none!important}
 
   /* ── CHECKOUT TOUCH-FRIENDLY ─────────────────────────────── */
   .pos-checkout{padding:8px 12px 12px}
@@ -780,7 +759,7 @@ button,a{touch-action:manipulation}
 @media(min-width:768px) and (max-width:1024px){
   .btn-label{display:inline}
   /* Mismo estilo visual que los tbn-icon: columna, sin borde */
-  #btn-corte-pos,#btn-history-pos{
+  #btn-corte-pos,#btn-history-pos,#btn-apt-pos{
     display:flex!important;flex-direction:column!important;
     align-items:center!important;gap:2px!important;
     padding:5px 9px!important;border-radius:9px!important;
@@ -790,7 +769,7 @@ button,a{touch-action:manipulation}
     border-right:none!important;padding-right:9px!important;margin-right:0!important;
     font-size:.57rem!important;font-weight:600!important;letter-spacing:.02em!important;
   }
-  #btn-corte-pos:hover,#btn-history-pos:hover{
+  #btn-corte-pos:hover,#btn-history-pos:hover,#btn-apt-pos:hover{
     color:rgba(255,255,255,.9)!important;background:rgba(255,255,255,.09)!important;
   }
   #btn-corte-pos svg,#btn-history-pos svg{width:15px!important;height:15px!important}
@@ -849,6 +828,9 @@ button,a{touch-action:manipulation}
   .topbar-nav-mobile{position:absolute;left:50%;transform:translateX(-50%);gap:2px}
   .tbn-icon{padding:6px 11px}
   .tbn-icon svg{width:16px;height:16px}
+  /* Botones de acción: solo ícono en desktop estándar para no chocar con nav centrada */
+  #btn-corte-pos .btn-label,#btn-apt-pos .btn-label,#btn-history-pos .btn-label{display:none}
+  #btn-corte-pos,#btn-apt-pos,#btn-history-pos{padding:6px 10px!important;gap:0!important;}
 }
 </style>
 </head>
@@ -864,18 +846,19 @@ button,a{touch-action:manipulation}
   </div>
   <!-- DERECHA: acciones de Caja + nav de módulos + usuario + salir -->
   <div class="topbar-right">
-    <button id="apt-vencidos-alert" style="display:none;background:#FEE2E2;color:#E85D5D;border:1.5px solid #FECACA;border-radius:50px;padding:4px 12px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s" onclick="switchPosTab('apartados')" title="Ver apartados vencidos">⚠️ <span id="apt-vencidos-count"></span></button>
+    <button id="apt-vencidos-alert" style="display:none;background:#FEE2E2;color:#E85D5D;border:1.5px solid #FECACA;border-radius:50px;padding:4px 12px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s" onclick="openApartados()" title="Ver apartados vencidos">⚠️ <span id="apt-vencidos-count"></span></button>
     <button class="cart-topbar-btn" id="cart-topbar-btn" onclick="toggleCartPreview()" title="Ver carrito">
       🛒
       <span id="cart-topbar-badge" class="cart-badge" style="display:none"></span>
     </button>
-    <button class="history-oc-btn" id="btn-refresh-pos" onclick="refreshPosProducts()" title="Actualizar catálogo">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-      <span class="btn-label">Actualizar</span>
-    </button>
     <button class="history-oc-btn" onclick="openCorte()" id="btn-corte-pos" title="Corte de caja">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       <span class="btn-label">Corte</span>
+    </button>
+    <button class="history-oc-btn" onclick="openApartados()" id="btn-apt-pos" title="Apartados" style="position:relative">
+      📌
+      <span class="btn-label">Apartados</span>
+      <span id="btn-apt-badge" style="display:none;position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;border-radius:50px;background:var(--gold);color:#fff;font-size:.6rem;font-weight:800;padding:0 4px;display:none;align-items:center;justify-content:center;line-height:1"></span>
     </button>
     <button class="history-oc-btn" onclick="openHistory()" id="btn-history-pos" title="Historial">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -916,7 +899,7 @@ button,a{touch-action:manipulation}
 </div>
 
 <!-- BANNER APARTADOS VENCIDOS -->
-<div id="apt-venc-banner" style="display:none;background:#FEE2E2;border-bottom:2px solid #FECACA;padding:9px 16px;cursor:pointer;display:none;align-items:center;gap:8px;font-size:.82rem;font-weight:700;color:#B91C1C;touch-action:manipulation" onclick="switchPosTab('apartados')">
+<div id="apt-venc-banner" style="display:none;background:#FEE2E2;border-bottom:2px solid #FECACA;padding:9px 16px;cursor:pointer;display:none;align-items:center;gap:8px;font-size:.82rem;font-weight:700;color:#B91C1C;touch-action:manipulation" onclick="openApartados()">
   <span style="font-size:1rem">⚠️</span>
   <span id="apt-venc-banner-txt"></span>
   <span style="margin-left:auto;font-size:.75rem;font-weight:600;opacity:.7">Ver →</span>
@@ -969,16 +952,7 @@ button,a{touch-action:manipulation}
       <div class="cart-empty"><div class="em">🛒</div>El carrito está vacío</div>
     </div>
 
-    <!-- APARTADOS PENDIENTES -->
-    <div class="apartados-panel" id="apartados-panel">
-      <div class="apartados-header" onclick="toggleApartadosPanel()">
-        <span>📌 Apartados <span id="apartados-count"></span></span>
-        <span id="apartados-toggle">▾</span>
-      </div>
-      <div class="apartados-list" id="apartados-list" style="display:none"></div>
-    </div>
-
-    <!-- Historial movido al offcanvas -->
+    <!-- Apartados movidos al offcanvas -->
 
     <div class="pos-checkout">
       <!-- Total -->
@@ -1071,11 +1045,6 @@ button,a{touch-action:manipulation}
     </div>
   </div>
 
-  <!-- APARTADOS VIEW — tab dedicado mobile -->
-  <div class="pos-apartados-view tab-hidden" id="pos-apartados-view">
-    <div class="apt-view-header">📌 Apartados pendientes</div>
-    <div id="apt-view-list" style="padding:8px 8px 16px"></div>
-  </div>
 
   <!-- TAB BAR — solo teléfonos (≤640px) -->
   <div class="pos-tab-bar" id="pos-tab-bar">
@@ -1088,7 +1057,7 @@ button,a{touch-action:manipulation}
       <span>Cobrar</span>
       <span class="pos-tab-badge" id="tab-cart-badge" style="display:none"></span>
     </button>
-    <button class="pos-tab" id="tab-apartados" onclick="switchPosTab('apartados')">
+    <button class="pos-tab" id="tab-apartados" onclick="openApartados()">
       <span class="pos-tab-icon">📌</span>
       <span>Apartados</span>
       <span class="pos-tab-badge" id="tab-apt-badge" style="display:none"></span>
@@ -1238,6 +1207,21 @@ button,a{touch-action:manipulation}
     <button id="corte-wa-btn" onclick="compartirCorteWA()" style="margin-top:14px;width:100%;padding:12px;border-radius:50px;border:none;background:#25D366;color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit">
       📲 Compartir por WhatsApp
     </button>
+  </div>
+</div>
+
+<!-- APARTADOS OFFCANVAS -->
+<div class="history-backdrop" id="apt-backdrop" onclick="closeApartados()" style="display:none"></div>
+<div class="history-offcanvas" id="apt-offcanvas">
+  <div class="history-oc-head">
+    <div>
+      <div class="history-oc-title">📌 Apartados pendientes</div>
+      <div id="apt-oc-count" style="font-size:.74rem;color:var(--muted);margin-top:1px"></div>
+    </div>
+    <button class="history-oc-close" onclick="closeApartados()">✕</button>
+  </div>
+  <div class="history-oc-body" id="apt-offcanvas-list">
+    <div class="history-empty">Cargando…</div>
   </div>
 </div>
 
@@ -1885,27 +1869,20 @@ const isTabMode = () => window.innerWidth <= 1024;
 function switchPosTab(tab) {
   _currentTab = tab;
   if (!isTabMode()) return;
-  const left    = document.getElementById('pos-left');
-  const right   = document.getElementById('pos-right');
-  const aptView = document.getElementById('pos-apartados-view');
+  const left  = document.getElementById('pos-left');
+  const right = document.getElementById('pos-right');
   if (!left || !right) return;
 
-  const isCatalog   = tab === 'catalog';
-  const isCart      = tab === 'cart';
-  const isApartados = tab === 'apartados';
+  const isCatalog = tab === 'catalog';
+  const isCart    = tab === 'cart';
 
-  left.classList.toggle('tab-active',   isCatalog);
-  left.classList.toggle('tab-hidden',   !isCatalog);
-  right.classList.toggle('tab-active',  isCart);
-  right.classList.toggle('tab-hidden',  !isCart);
-  if (aptView) {
-    aptView.classList.toggle('tab-active', isApartados);
-    aptView.classList.toggle('tab-hidden', !isApartados);
-  }
-  document.getElementById('tab-catalog')?.classList.toggle('active',    isCatalog);
-  document.getElementById('tab-cart')?.classList.toggle('active',       isCart);
-  document.getElementById('tab-apartados')?.classList.toggle('active',  isApartados);
-  if (!isCatalog) updateChange(); // recalcular cambio al abrir cobro
+  left.classList.toggle('tab-active',  isCatalog);
+  left.classList.toggle('tab-hidden',  !isCatalog);
+  right.classList.toggle('tab-active', isCart);
+  right.classList.toggle('tab-hidden', !isCart);
+  document.getElementById('tab-catalog')?.classList.toggle('active', isCatalog);
+  document.getElementById('tab-cart')?.classList.toggle('active',    isCart);
+  if (!isCatalog) updateChange();
 }
 
 /* ── CART TOPBAR PREVIEW ── */
@@ -2506,6 +2483,20 @@ function closeLightbox() {
   document.getElementById('img-lightbox').classList.remove('open');
 }
 
+function openApartados() {
+  document.getElementById('apt-offcanvas').classList.add('open');
+  const bd = document.getElementById('apt-backdrop');
+  if (bd) { bd.style.display = ''; bd.classList.add('open'); }
+  document.body.style.overflow = 'hidden';
+}
+
+function closeApartados() {
+  document.getElementById('apt-offcanvas').classList.remove('open');
+  const bd = document.getElementById('apt-backdrop');
+  if (bd) { bd.classList.remove('open'); setTimeout(() => { bd.style.display = 'none'; }, 280); }
+  document.body.style.overflow = '';
+}
+
 function openHistory() {
   document.getElementById('history-offcanvas').classList.add('open');
   document.getElementById('history-backdrop').classList.add('open');
@@ -2810,21 +2801,13 @@ function updateAnticipoInfo() {
   }
 }
 
-function toggleApartadosPanel() {
-  const list = document.getElementById('apartados-list');
-  const toggle = document.getElementById('apartados-toggle');
-  const open = list.style.display === 'none';
-  list.style.display = open ? 'block' : 'none';
-  toggle.textContent = open ? '▴' : '▾';
-}
 
 async function loadApartados() {
-  const result = await api(`sales?type=eq.apartado&select=id,total,paid_amount,customer,created_at,due_date,items,abonos&order=created_at.desc&limit=20`);
-  const list      = document.getElementById('apartados-list');
-  const aptView   = document.getElementById('apt-view-list');
-  const countEl   = document.getElementById('apartados-count');
-  const panel     = document.getElementById('apartados-panel');
+  const result = await api(`sales?type=eq.apartado&select=id,total,paid_amount,customer,created_at,due_date,items,abonos&order=created_at.desc&limit=100`);
+  const ocList    = document.getElementById('apt-offcanvas-list');
+  const ocCount   = document.getElementById('apt-oc-count');
   const tabBadge  = document.getElementById('tab-apt-badge');
+  const btnBadge  = document.getElementById('btn-apt-badge');
 
   const empty = !result.ok || !result.data?.length;
   const hoyMs = new Date().setHours(0,0,0,0);
@@ -2835,11 +2818,22 @@ async function loadApartados() {
     return new Date(s.due_date + 'T00:00:00') < hoyMs;
   }).length;
 
-  // Badge del tab Apartados — rojo si hay vencidos
+  // Badge del tab mobile — rojo si hay vencidos
   if (tabBadge) {
     tabBadge.textContent = empty ? '' : result.data.length;
     tabBadge.style.display = empty ? 'none' : 'flex';
     tabBadge.style.background = vencidos > 0 ? '#E85D5D' : '';
+  }
+
+  // Badge del botón en topbar
+  if (btnBadge) {
+    if (empty) {
+      btnBadge.style.display = 'none';
+    } else {
+      btnBadge.textContent = result.data.length;
+      btnBadge.style.display = 'flex';
+      btnBadge.style.background = vencidos > 0 ? '#E85D5D' : 'var(--gold)';
+    }
   }
 
   // Alerta en topbar — solo si hay vencidos
@@ -2862,15 +2856,12 @@ async function loadApartados() {
   }
 
   if (empty) {
-    if (list)    list.innerHTML = '<div class="history-empty">Sin apartados activos</div>';
-    if (aptView) aptView.innerHTML = '<div class="apt-view-empty"><div class="em">📌</div>Sin apartados pendientes</div>';
-    if (countEl) countEl.textContent = '';
-    if (panel)   panel.style.display = 'none';
+    if (ocList)  ocList.innerHTML = '<div class="history-empty"><div style="font-size:2rem;margin-bottom:8px">📌</div>Sin apartados pendientes</div>';
+    if (ocCount) ocCount.textContent = '';
     return;
   }
 
-  if (panel)   panel.style.display = '';
-  if (countEl) countEl.textContent = `(${result.data.length})`;
+  if (ocCount) ocCount.textContent = `${result.data.length} apartado${result.data.length !== 1 ? 's' : ''} activo${result.data.length !== 1 ? 's' : ''}${vencidos > 0 ? ` · ${vencidos} vencido${vencidos > 1 ? 's' : ''}` : ''}`;
 
   // Guardar datos para acceso en abonarApartado
   _apartadosData = {};
@@ -2935,8 +2926,7 @@ async function loadApartados() {
 </div>`;
   }).join('');
 
-  if (list)    list.innerHTML = itemsHTML;
-  if (aptView) aptView.innerHTML = itemsHTML;
+  if (ocList) ocList.innerHTML = itemsHTML;
 }
 
 /* ── RECORDATORIO WA APARTADO ───────────────────────────────────────── */
@@ -3540,8 +3530,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   showAllProducts();
 
   // Swipe para cerrar offcanvas (derecha)
-  initSwipeToClose('corte-offcanvas',   'corte-backdrop',   closeCorte,   0.35);
-  initSwipeToClose('history-offcanvas', 'history-backdrop', closeHistory, 0.35);
+  initSwipeToClose('corte-offcanvas',   'corte-backdrop',   closeCorte,      0.35);
+  initSwipeToClose('history-offcanvas', 'history-backdrop', closeHistory,    0.35);
+  initSwipeToClose('apt-offcanvas',     'apt-backdrop',     closeApartados,  0.35);
 
   // Swipe down para cerrar modales / bottom sheets
   const saleDoneOv = document.getElementById('sale-done-overlay');

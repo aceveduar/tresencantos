@@ -369,7 +369,8 @@ function getFilteredProducts() {
       (_statFilter === 'sin-publicar' && p.isPublished === false) ||
       (_statFilter === 'sin-codigo'   && !p.barcode) ||
       (_statFilter === 'sin-categ'    && p.category === 'por_revisar') ||
-      (_statFilter === 'ultima-pieza' && p.stock === 1 && !p.outOfStock);
+      (_statFilter === 'ultima-pieza' && p.stock === 1 && !p.outOfStock) ||
+      (_statFilter === 'sin-precio'   && (!p.price || p.price === 0));
     return matchCat && matchQ && matchFlag && matchStat && matchCreator;
   });
 
@@ -914,16 +915,15 @@ function showNoPriceAlert() {
 }
 
 function filterNoPriceProducts() {
-  // Resetea filtros y ordena por precio ascendente → productos con $0 quedan arriba
-  const catFilter = document.getElementById('cat-filter');
+  const catFilter   = document.getElementById('cat-filter');
   const searchInput = document.getElementById('search-input');
-  const sortSel = document.getElementById('sort-select');
-  if (catFilter) catFilter.value = 'all';
+  if (catFilter)   catFilter.value   = 'all';
   if (searchInput) searchInput.value = '';
-  if (sortSel) { sortSel.value = 'price-asc'; currentSort = 'price-asc'; }
-  _adminPage = 1;
+  if (_showOnlyFlagged) { _showOnlyFlagged = false; localStorage.setItem('te_flag_filter','0'); }
+  _statFilter = 'sin-precio';
+  _adminPage  = 1;
+  renderStats();
   renderTable();
-  document.getElementById('no-price-alert')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 // Refrescar ingresos/ventas del día cuando el usuario vuelve a esta pestaña
@@ -1621,9 +1621,11 @@ function selectAllVisible() {
 function updateBulkBar() {
   const bar = document.getElementById('bulk-bar');
   const countEl = document.getElementById('bulk-count');
+  const compareBtn = document.getElementById('bulk-compare-btn');
   if (selectedIds.size > 0) {
     bar.style.display = 'flex';
     countEl.textContent = `${selectedIds.size} seleccionado${selectedIds.size !== 1 ? 's' : ''}`;
+    if (compareBtn) compareBtn.style.display = selectedIds.size === 2 ? '' : 'none';
   } else {
     bar.style.display = 'none';
   }
@@ -2577,7 +2579,7 @@ function _updateActiveFiltersBar() {
   if (sortLabels[sortVal]) chips.push(`↕ ${sortLabels[sortVal]}`);
 
   if (_statFilter) {
-    const statLabels = { 'con-stock':'Con stock','sin-stock':'Sin stock','ultima-pieza':'Última pieza','sin-publicar':'Sin publicar','sin-codigo':'Sin código','sin-categ':'Sin categoría' };
+    const statLabels = { 'con-stock':'Con stock','sin-stock':'Sin stock','ultima-pieza':'Última pieza','sin-publicar':'Sin publicar','sin-codigo':'Sin código','sin-categ':'Sin categoría','sin-precio':'Sin precio' };
     chips.push(statLabels[_statFilter] || _statFilter);
   }
   if (_showOnlyFlagged) chips.push('🚩 Por revisar');
@@ -2593,8 +2595,10 @@ function _updateActiveFiltersBar() {
 function clearAdminFilters() {
   const s = document.getElementById('search-input');
   const c = document.getElementById('cat-filter');
+  const sortSel = document.getElementById('sort-select');
   if (s) s.value = '';
   if (c) { c.value = 'all'; _updateCatFilterBtn(); }
+  if (sortSel) { sortSel.value = 'recent'; currentSort = 'recent'; }
   if (_showOnlyFlagged) { _showOnlyFlagged = false; _syncFlagFilter(); }
   _statFilter = null;
   _toggleSearchClear();
@@ -2877,6 +2881,17 @@ async function saveProduct() {
   if (!name) {
     toast('El nombre es obligatorio.', 'error');
     return;
+  }
+
+  if (document.getElementById('f-is-kit').checked) {
+    if (_kitItemsEdit.length === 0) {
+      toast('Un kit necesita al menos 2 componentes.', 'error');
+      return;
+    }
+    if (_kitItemsEdit.length === 1 && _kitItemsEdit[0].qty < 2) {
+      toast('Un kit con un solo producto no tiene sentido — agrégale más componentes o véndelo directamente.', 'error');
+      return;
+    }
   }
 
   const idVal = document.getElementById('f-id').value;
@@ -3950,6 +3965,45 @@ function closeDupReview() {
   document.body.style.overflow = '';
 }
 
+function _dupThumb(img, name) {
+  return img
+    ? `<img src="${img}" alt="${name}" loading="lazy">`
+    : `<div class="dup-prod-ph">📦</div>`;
+}
+
+function _dupCard(p, pairKey, isMed) {
+  return `
+    <div class="dup-prod">
+      ${_dupThumb(p.image, p.name)}
+      <div class="dup-prod-name">${p.name}</div>
+      <div class="dup-prod-meta">${p.categoryLabel || '—'} · $${(p.price||0).toLocaleString('es-MX')} · Stock ${p.stock}${p.createdBy ? `<span style="margin-left:6px;color:var(--muted);font-size:.78em">· 👤 ${_userNames[p.createdBy] || p.createdBy.split('@')[0]}</span>` : ''}</div>
+      <div class="dup-prod-actions">
+        <button class="btn btn-outline btn-sm" onclick="closeDupReview();openForm(${p.id})">${isMed ? 'Renombrar →' : 'Editar →'}</button>
+        ${(!isMed && can.deleteProduct) ? `<button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="_deleteDupProduct(${p.id},'${pairKey}')">Eliminar</button>` : ''}
+      </div>
+    </div>`;
+}
+
+function _dupRenderPair({ a, b, signals, pairKey, score, imgDetected }) {
+  const isMed = score < 0.75 && !imgDetected;
+  const cls   = isMed ? 'dup-med' : 'dup-high';
+  const dot   = isMed ? 'amber' : (imgDetected ? 'purple' : 'red');
+  const dotStyle = imgDetected ? 'style="background:#8B5CF6"' : '';
+  const signalBadge = imgDetected ? `<span class="dup-visual-badge">📷 IA visual</span>` : '';
+  return `
+    <div class="dup-pair" id="dup-pair-${pairKey}">
+      <div class="dup-signals-row">
+        <div class="dup-signals ${cls}"><span class="dup-dot ${dot}" ${dotStyle}></span>${signals.join(' · ')}${signalBadge}</div>
+        <button class="dup-pair-ai-btn" id="dup-ai-btn-${pairKey}" onclick="_dupAnalyzePair('${pairKey}',${a.id},${b.id})">🤖 Ver imágenes</button>
+      </div>
+      <div class="dup-pair-ai-result" id="dup-ai-${pairKey}"></div>
+      <div class="dup-pair-cols">${_dupCard(a, pairKey, isMed)}${_dupCard(b, pairKey, isMed)}</div>
+      <button class="dup-dismiss" onclick="_dismissDupPair('${pairKey}')">
+        ${isMed ? '✓ Los nombres ya son distintos — no volver a avisar' : '✓ Son productos distintos — no volver a avisar'}
+      </button>
+    </div>`;
+}
+
 function _renderDupReview() {
   const body = document.getElementById('dup-review-body');
   const pairs = _findDuplicatePairs();
@@ -3959,46 +4013,17 @@ function _renderDupReview() {
     return;
   }
 
-  // Umbral: score >= 0.75 → probable duplicado; menor → nombres ambiguos
   const high = pairs.filter(p => p.score >= 0.75);
   const med  = pairs.filter(p => p.score < 0.75);
-
-  const thumb = (img, name) => img
-    ? `<img src="${img}" alt="${name}" loading="lazy">`
-    : `<div class="dup-prod-ph">📦</div>`;
-
-  const card = (p, pairKey, isMed) => `
-    <div class="dup-prod">
-      ${thumb(p.image, p.name)}
-      <div class="dup-prod-name">${p.name}</div>
-      <div class="dup-prod-meta">${p.categoryLabel || '—'} · $${(p.price||0).toLocaleString('es-MX')} · Stock ${p.stock}</div>
-      <div class="dup-prod-actions">
-        <button class="btn btn-outline btn-sm" onclick="closeDupReview();openForm(${p.id})">${isMed ? 'Renombrar →' : 'Editar →'}</button>
-        ${(!isMed && can.deleteProduct) ? `<button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="_deleteDupProduct(${p.id},'${pairKey}')">Eliminar</button>` : ''}
-      </div>
-    </div>`;
-
-  const renderPair = ({ a, b, signals, pairKey, score }) => {
-    const isMed = score < 0.75;
-    const cls = isMed ? 'dup-med' : 'dup-high';
-    return `
-      <div class="dup-pair" id="dup-pair-${pairKey}">
-        <div class="dup-signals ${cls}"><span class="dup-dot ${isMed?'amber':'red'}"></span>${signals.join(' · ')}</div>
-        <div class="dup-pair-cols">${card(a, pairKey, isMed)}${card(b, pairKey, isMed)}</div>
-        <button class="dup-dismiss" onclick="_dismissDupPair('${pairKey}')">
-          ${isMed ? '✓ Los nombres ya son distintos — no volver a avisar' : '✓ Son productos distintos — no volver a avisar'}
-        </button>
-      </div>`;
-  };
 
   let html = '';
   if (high.length) {
     html += `<div class="dup-section-title"><span class="dup-dot red"></span>Probables duplicados — considera eliminar uno</div>`;
-    html += high.map(renderPair).join('');
+    html += high.map(_dupRenderPair).join('');
   }
   if (med.length) {
     html += `<div class="dup-section-title"><span class="dup-dot amber"></span>Nombres ambiguos — mejora el nombre para diferenciarlos</div>`;
-    html += med.map(renderPair).join('');
+    html += med.map(_dupRenderPair).join('');
   }
   body.innerHTML = html;
 }
@@ -6464,4 +6489,306 @@ async function _batchPublish() {
     btn.disabled = false;
     btn.textContent = `Publicar ${toPublish.length} productos`;
   }
+}
+
+/* ══════════════════════════════════════════════════════
+   COMPARE MODAL — comparación lado a lado + IA
+   ══════════════════════════════════════════════════════ */
+
+let _compareIds = [];
+
+function openCompareModal() {
+  if (selectedIds.size !== 2) return;
+  _compareIds = [...selectedIds];
+  const [a, b] = _compareIds.map(id => products.find(p => p.id === id));
+  if (!a || !b) return;
+
+  document.getElementById('compare-col-a').innerHTML = _renderCmpCol(a, b.id);
+  document.getElementById('compare-col-b').innerHTML = _renderCmpCol(b, a.id);
+
+  // Reset AI section
+  const aiResult = document.getElementById('compare-ai-result');
+  aiResult.textContent = '';
+  aiResult.className = '';
+  aiResult.style.display = 'none';
+  const aiBtn = document.getElementById('compare-ai-btn');
+  if (aiBtn) { aiBtn.disabled = false; aiBtn.textContent = '🤖 ¿Son el mismo producto?'; }
+
+  // Render keep/delete actions
+  const actions = document.getElementById('compare-actions');
+  if (can.deleteProduct) {
+    actions.innerHTML = `
+      <button class="cmp-keep-btn" onclick="_cmpKeep(${a.id},${b.id})">✓ Quedarme con <b>${_truncate(a.name,22)}</b><br><small style="font-weight:400;opacity:.7">Eliminar el otro</small></button>
+      <button class="cmp-keep-btn" onclick="_cmpKeep(${b.id},${a.id})">✓ Quedarme con <b>${_truncate(b.name,22)}</b><br><small style="font-weight:400;opacity:.7">Eliminar el otro</small></button>`;
+  } else {
+    actions.innerHTML = `<div style="font-size:.8rem;color:var(--muted);grid-column:1/-1;text-align:center">Solo el administrador puede eliminar productos</div>`;
+  }
+
+  document.getElementById('compare-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCompareModal() {
+  document.getElementById('compare-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  _compareIds = [];
+}
+
+function _truncate(str, max) {
+  return str && str.length > max ? str.slice(0, max) + '…' : (str || '');
+}
+
+function _renderCmpCol(p, otherId) {
+  const margin = p.cost && p.price ? Math.round((p.price - p.cost) / p.price * 100) : null;
+  const marginClass = margin === null ? '' : margin >= 30 ? 'green' : margin >= 10 ? 'amber' : 'red';
+
+  const chips = [];
+  if (p.isPublished) chips.push('<span class="cmp-chip green">🌐 Publicado</span>');
+  else chips.push('<span class="cmp-chip">🙈 Oculto</span>');
+  if (p.featured) chips.push('<span class="cmp-chip amber">⭐ Destacado</span>');
+  if (p.outOfStock || p.stock === 0) chips.push('<span class="cmp-chip red">Agotado</span>');
+  else chips.push(`<span class="cmp-chip green">Stock: ${p.stock}</span>`);
+  if (p.barcode) chips.push(`<span class="cmp-chip">🔲 ${p.barcode}</span>`);
+
+  return `
+    <img class="cmp-img" src="${p.image || DEFAULT_IMG}" onerror="this.src='${DEFAULT_IMG}'" loading="lazy">
+    <div class="cmp-name">${p.name}</div>
+    <div class="cmp-meta">${p.categoryLabel || '—'}${p.createdBy ? ` · 👤 ${_creatorName(p.createdBy)}` : ''} · #${p.id}</div>
+    <div class="cmp-price">$${(p.price || 0).toLocaleString('es-MX')} <span style="font-size:.75rem;font-weight:400;color:var(--muted)">MXN</span>${p.originalPrice ? `<s>$${p.originalPrice.toLocaleString('es-MX')}</s>` : ''}</div>
+    ${margin !== null ? `<div class="cmp-meta"><span class="cmp-chip ${marginClass}">Costo $${p.cost.toLocaleString('es-MX')} · Margen ${margin}%</span></div>` : ''}
+    <div>${chips.join('')}</div>
+    ${p.description ? `<div class="cmp-desc">${p.description}</div>` : ''}
+  `;
+}
+
+async function _cmpKeep(keepId, deleteId) {
+  if (!can.deleteProduct) return;
+  const del = products.find(p => p.id === deleteId);
+  if (!del) return;
+  if (!confirm(`¿Eliminar "${del.name}"?\n\nSe quedará el otro producto. Esta acción no se puede deshacer.`)) return;
+
+  const btns = document.querySelectorAll('.cmp-keep-btn');
+  btns.forEach(b => b.disabled = true);
+
+  const result = await supabaseApi(`products?id=eq.${deleteId}`, {
+    method: 'DELETE',
+    headers: { 'Prefer': 'return=minimal' }
+  });
+
+  if (!result.ok) {
+    btns.forEach(b => b.disabled = false);
+    toast('Error al eliminar', 'error');
+    return;
+  }
+
+  logActivity('producto_eliminado', `Eliminó "${del.name}" (duplicado)`, { id: deleteId, name: del.name });
+  products = products.filter(p => p.id !== deleteId);
+  selectedIds.delete(deleteId);
+  selectedIds.delete(keepId);
+  if (_qvCurrentId === deleteId) closeQV();
+  closeCompareModal();
+  renderTable();
+  renderStats();
+  updateBulkBar();
+  _updateDupBadge();
+  toast(`"${del.name}" eliminado — se quedó el producto seleccionado`);
+}
+
+async function compareWithAI() {
+  if (!groqApiKey) {
+    toast('Configura la API key de Groq en Configuración → Integraciones', 'error');
+    return;
+  }
+  const [a, b] = _compareIds.map(id => products.find(p => p.id === id));
+  if (!a || !b) return;
+
+  const btn = document.getElementById('compare-ai-btn');
+  const result = document.getElementById('compare-ai-result');
+  btn.disabled = true;
+  btn.textContent = '🤖 Analizando…';
+  result.style.display = 'none';
+  result.className = '';
+
+  const imgA = a.image || DEFAULT_IMG;
+  const imgB = b.image || DEFAULT_IMG;
+
+  // Groq Vision soporta URLs y data URIs
+  const content = [
+    {
+      type: 'text',
+      text: `Eres un asistente de inventario para una boutique. Analiza las dos imágenes de productos y determina si son el mismo artículo físico (aunque tengan nombres diferentes o fondos distintos). Los nombres registrados son: "${a.name}" y "${b.name}". Responde en español con: 1) SÍ, NO o PROBABLEMENTE en mayúsculas al inicio, y 2) una justificación de máximo 2 oraciones basada en las características visuales del producto. Sé directo y conciso.`
+    },
+    { type: 'image_url', image_url: { url: imgA } },
+    { type: 'image_url', image_url: { url: imgB } }
+  ];
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
+      body: JSON.stringify({
+        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+        messages: [{ role: 'user', content }],
+        max_tokens: 180,
+        temperature: 0.2
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+    const text = data.choices?.[0]?.message?.content?.trim() || 'Sin respuesta';
+    result.textContent = text;
+    result.style.display = 'block';
+    result.classList.add('show');
+  } catch (e) {
+    toast('Error al consultar IA: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🤖 ¿Son el mismo producto?';
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   DUPLICADOS — análisis visual con IA
+   ══════════════════════════════════════════════════════ */
+
+async function _dupAnalyzePair(pairKey, idA, idB) {
+  if (!groqApiKey) { toast('Configura Groq en Configuración → Integraciones', 'error'); return; }
+  const a = products.find(p => p.id === idA);
+  const b = products.find(p => p.id === idB);
+  if (!a || !b) return;
+
+  const btn    = document.getElementById(`dup-ai-btn-${pairKey}`);
+  const result = document.getElementById(`dup-ai-${pairKey}`);
+  if (btn) { btn.disabled = true; btn.textContent = '🤖 Analizando…'; }
+  if (result) { result.className = 'dup-pair-ai-result'; result.style.display = 'none'; }
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
+      body: JSON.stringify({
+        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: `Analiza estas dos imágenes de productos de una boutique. ¿Son el mismo artículo físico aunque tengan nombres o fondos diferentes? Nombres: "${a.name}" y "${b.name}". Responde en español: SÍ, NO o PROBABLEMENTE, seguido de una sola oración de justificación visual. Sé muy conciso.` },
+            { type: 'image_url', image_url: { url: a.image || DEFAULT_IMG } },
+            { type: 'image_url', image_url: { url: b.image || DEFAULT_IMG } }
+          ]
+        }],
+        max_tokens: 100,
+        temperature: 0.1
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+    const text = data.choices?.[0]?.message?.content?.trim() || 'Sin respuesta';
+    if (result) {
+      result.textContent = '🤖 ' + text;
+      result.style.display = 'block';
+      result.classList.add('show');
+    }
+  } catch (e) {
+    toast('Error al consultar IA: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🤖 Ver imágenes'; }
+  }
+}
+
+async function _scanImageDuplicates() {
+  if (!groqApiKey) { toast('Configura Groq en Configuración → Integraciones', 'error'); return; }
+
+  const btn    = document.getElementById('dup-img-scan-btn');
+  const status = document.getElementById('dup-img-scan-status');
+  if (btn) { btn.disabled = true; btn.textContent = '🔍 Escaneando…'; }
+  if (status) { status.textContent = 'Preparando…'; status.style.display = 'inline'; }
+
+  const dismissed = _getDismissedDups();
+
+  // Agrupar por categoría raíz (ignora subcategorías)
+  const byCat = {};
+  products.forEach(p => {
+    const root = (p.category || 'sin_cat').split('_')[0];
+    if (!byCat[root]) byCat[root] = [];
+    byCat[root].push(p);
+  });
+
+  // Solo categorías con 2+ productos
+  const cats = Object.entries(byCat).filter(([, ps]) => ps.length >= 2);
+  const foundPairs = [];
+
+  let processed = 0;
+  for (const [catCode, catProducts] of cats) {
+    if (status) status.textContent = `Analizando "${catCode}" (${processed + 1}/${cats.length})…`;
+
+    // Batches de 8 imágenes máx (límite práctico Groq Vision)
+    for (let start = 0; start < catProducts.length; start += 8) {
+      const batch = catProducts.slice(start, start + 8);
+      if (batch.length < 2) continue;
+
+      const listing = batch.map((p, i) => `${i + 1}. ${p.name} (ID:${p.id})`).join('\n');
+      const content = [
+        {
+          type: 'text',
+          text: `Eres un auditor de inventario. Analiza las imágenes de estos ${batch.length} productos de la categoría "${catCode}" y detecta cuáles parecen ser el MISMO artículo físico aunque sus nombres sean diferentes o sus fotos tengan fondos distintos.\n\nProductos:\n${listing}\n\nResponde SOLO con pares de números (1-based) en el formato "X,Y" — un par por línea. Si no hay similares visuales responde exactamente: ninguno`
+        },
+        ...batch.map(p => ({ type: 'image_url', image_url: { url: p.image || DEFAULT_IMG } }))
+      ];
+
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
+          body: JSON.stringify({
+            model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+            messages: [{ role: 'user', content }],
+            max_tokens: 80,
+            temperature: 0.1
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+        const text = data.choices?.[0]?.message?.content?.trim() || 'ninguno';
+
+        if (!/^ninguno$/i.test(text)) {
+          const lines = text.split('\n').map(l => l.trim()).filter(l => /^\d+[,\s]\d+$/.test(l));
+          for (const line of lines) {
+            const parts = line.split(/[,\s]+/).map(n => parseInt(n) - 1);
+            const [iA, iB] = parts;
+            if (iA >= 0 && iB >= 0 && iA < batch.length && iB < batch.length && iA !== iB) {
+              const a = batch[iA], b = batch[iB];
+              const pairKey = `${Math.min(a.id, b.id)}_${Math.max(a.id, b.id)}`;
+              if (!dismissed.has(pairKey) && !document.getElementById(`dup-pair-${pairKey}`)) {
+                foundPairs.push({ a, b, score: 0.9, signals: ['imagen similar'], pairKey, imgDetected: true });
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Image scan error for category', catCode, ':', e.message);
+      }
+
+      if (start + 8 < catProducts.length) await new Promise(r => setTimeout(r, 1200));
+    }
+
+    processed++;
+    if (processed < cats.length) await new Promise(r => setTimeout(r, 800));
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = '🔍 Buscar por imagen (IA)'; }
+  if (status) { status.textContent = ''; status.style.display = 'none'; }
+
+  if (!foundPairs.length) {
+    toast('✓ IA no encontró más duplicados visuales en el catálogo');
+    return;
+  }
+
+  // Insertar sección al inicio del cuerpo
+  const body = document.getElementById('dup-review-body');
+  const section = document.createElement('div');
+  section.innerHTML =
+    `<div class="dup-section-title"><span class="dup-dot" style="background:#8B5CF6"></span>Detectados por imagen (IA) — verifica y decide</div>` +
+    foundPairs.map(_dupRenderPair).join('');
+  body.prepend(section);
+  toast(`🔍 ${foundPairs.length} par${foundPairs.length !== 1 ? 'es' : ''} con imagen similar detectado${foundPairs.length !== 1 ? 's' : ''}`, 'success');
 }

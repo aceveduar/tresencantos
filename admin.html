@@ -1579,6 +1579,61 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .batch-footer button:hover{background:var(--gold-dark)}
 .batch-footer button:disabled{opacity:.5;cursor:default}
 .batch-empty{grid-column:1/-1;text-align:center;color:var(--muted);font-size:.85rem;padding:40px 20px}
+
+/* ── DUP REVIEW — image scan ── */
+.dup-img-scan-row{display:flex;align-items:center;gap:8px;padding:10px 20px;border-bottom:1px solid var(--border);background:#fdfaf7;flex-wrap:wrap}
+#dup-img-scan-btn{padding:7px 14px;border-radius:50px;border:1.5px solid var(--gold);background:var(--gold-light);color:var(--charcoal);font-weight:600;cursor:pointer;font-size:.79rem;font-family:inherit;transition:.15s;flex-shrink:0}
+#dup-img-scan-btn:hover:not(:disabled){background:var(--gold);color:#fff}
+#dup-img-scan-btn:disabled{opacity:.5;cursor:default}
+#dup-img-scan-status{font-size:.78rem;color:var(--muted);display:none}
+.dup-signals-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.dup-signals-row .dup-signals{flex:1;margin-bottom:0}
+.dup-pair-ai-btn{font-size:.72rem;padding:3px 9px;border-radius:50px;border:1px solid var(--border);background:#fff;cursor:pointer;font-family:inherit;color:var(--muted);transition:.15s;flex-shrink:0}
+.dup-pair-ai-btn:hover:not(:disabled){border-color:var(--gold);color:var(--charcoal)}
+.dup-pair-ai-btn:disabled{opacity:.45;cursor:default}
+.dup-pair-ai-result{font-size:.77rem;line-height:1.5;color:var(--charcoal);margin-bottom:10px;padding:7px 10px;background:#f9f6f0;border-radius:7px;border-left:2px solid var(--gold);display:none}
+.dup-pair-ai-result.show{display:block}
+.dup-visual-badge{display:inline-flex;align-items:center;gap:3px;font-size:.71rem;padding:2px 7px;border-radius:50px;background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;vertical-align:middle}
+
+/* ── COMPARE MODAL ── */
+#compare-modal{position:fixed;inset:0;z-index:850;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:16px}
+#compare-modal.open{display:flex}
+.cmp-panel{background:#fff;border-radius:16px;width:100%;max-width:940px;max-height:92dvh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.cmp-head{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--border);flex-shrink:0}
+.cmp-head h3{font-size:.95rem;font-weight:700;color:var(--charcoal);margin:0}
+.cmp-head-close{width:30px;height:30px;border-radius:50%;border:none;background:var(--border);cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;transition:.15s}
+.cmp-head-close:hover{background:#d4c8bb}
+.cmp-body{display:grid;grid-template-columns:1fr 32px 1fr;flex:1;min-height:0}
+.cmp-col{padding:18px;display:flex;flex-direction:column;gap:9px;overflow-y:auto}
+.cmp-col-a{border-right:1px solid var(--border)}
+.cmp-divider{display:flex;align-items:center;justify-content:center;color:var(--muted-light);font-size:.7rem;font-weight:700;writing-mode:vertical-rl;letter-spacing:.15em;background:var(--cream)}
+.cmp-img{width:100%;aspect-ratio:1/1;object-fit:contain;background:#f8f4ef;border-radius:10px;border:1px solid var(--border)}
+.cmp-name{font-weight:700;font-size:.92rem;color:var(--charcoal);line-height:1.35}
+.cmp-meta{font-size:.78rem;color:var(--muted);line-height:1.45}
+.cmp-price{font-size:1rem;font-weight:700;color:var(--charcoal)}
+.cmp-price s{font-size:.8rem;font-weight:400;color:var(--muted);margin-left:5px}
+.cmp-chip{display:inline-block;font-size:.73rem;padding:2px 8px;border-radius:50px;background:var(--cream);color:var(--charcoal);border:1px solid var(--border);margin:1px 2px 1px 0}
+.cmp-chip.green{background:#d1fae5;color:#065f46;border-color:#6ee7b7}
+.cmp-chip.red{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
+.cmp-chip.amber{background:#fef3c7;color:#92400e;border-color:#fcd34d}
+.cmp-desc{font-size:.77rem;color:#5c4e42;line-height:1.55;border-top:1px solid var(--border);padding-top:8px;margin-top:2px}
+.cmp-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px;flex-shrink:0;background:#fdfaf7}
+.cmp-ai-row{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
+#compare-ai-btn{flex-shrink:0;padding:8px 14px;border-radius:50px;border:1.5px solid var(--gold);background:var(--gold-light);color:var(--charcoal);font-weight:600;cursor:pointer;font-size:.8rem;font-family:inherit;transition:.15s}
+#compare-ai-btn:hover:not(:disabled){background:var(--gold);color:#fff}
+#compare-ai-btn:disabled{opacity:.5;cursor:default}
+#compare-ai-result{font-size:.82rem;line-height:1.55;color:var(--charcoal);display:none;flex:1;padding:8px 12px;background:#fff;border-radius:8px;border-left:3px solid var(--gold)}
+#compare-ai-result.show{display:block}
+.cmp-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cmp-keep-btn{padding:10px 8px;border-radius:8px;border:1.5px solid var(--gold);background:var(--gold-light);color:var(--charcoal);font-weight:600;cursor:pointer;font-size:.78rem;font-family:inherit;transition:.15s;line-height:1.4;text-align:center}
+.cmp-keep-btn:hover{background:var(--gold);color:#fff}
+.cmp-keep-btn:disabled{opacity:.45;cursor:default}
+@media(max-width:620px){
+  .cmp-body{grid-template-columns:1fr}
+  .cmp-divider{writing-mode:horizontal-tb;padding:6px 16px;border-top:1px solid var(--border)}
+  .cmp-col-a{border-right:none;border-bottom:1px solid var(--border)}
+  .cmp-actions{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -1884,6 +1939,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       <button class="btn btn-sm" onclick="clearBulkSelection()" style="border-color:rgba(255,255,255,.4);opacity:.8" title="Deseleccionar todo">✕</button>
       <span id="bulk-count">0 seleccionados</span>
       <button class="btn btn-sm" id="bulk-select-all-btn" onclick="selectAllVisible()" style="border-color:rgba(255,255,255,.4);opacity:.8" title="Seleccionar todos los visibles">Todos</button>
+      <button class="btn btn-sm" id="bulk-compare-btn" onclick="openCompareModal()" style="display:none">⚖️ Comparar</button>
       <button class="btn btn-sm" onclick="bulkSetCategory()">Cambiar categoría</button>
       <button class="btn btn-sm" onclick="bulkToggleFeatured()">⭐ Destacar / Quitar</button>
       <button class="btn btn-sm" onclick="bulkToggleOOS()">Agotado / Disponible</button>
@@ -2282,6 +2338,28 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   </div>
 </div>
 
+<!-- COMPARE MODAL -->
+<div id="compare-modal" onclick="if(event.target===this)closeCompareModal()">
+  <div class="cmp-panel">
+    <div class="cmp-head">
+      <h3>⚖️ Comparar productos</h3>
+      <button class="cmp-head-close" onclick="closeCompareModal()">✕</button>
+    </div>
+    <div class="cmp-body">
+      <div class="cmp-col cmp-col-a" id="compare-col-a"></div>
+      <div class="cmp-divider">VS</div>
+      <div class="cmp-col cmp-col-b" id="compare-col-b"></div>
+    </div>
+    <div class="cmp-footer">
+      <div class="cmp-ai-row">
+        <button id="compare-ai-btn" onclick="compareWithAI()">🤖 ¿Son el mismo producto?</button>
+        <div id="compare-ai-result"></div>
+      </div>
+      <div class="cmp-actions" id="compare-actions"></div>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -2391,6 +2469,10 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     <div class="modal-head" style="padding:16px 20px 14px">
       <h3 style="font-size:1.05rem">Posibles duplicados</h3>
       <button class="modal-close-btn" onclick="closeDupReview()">✕</button>
+    </div>
+    <div class="dup-img-scan-row">
+      <button id="dup-img-scan-btn" onclick="_scanImageDuplicates()">🔍 Buscar por imagen (IA)</button>
+      <span id="dup-img-scan-status"></span>
     </div>
     <div class="modal-body" id="dup-review-body" style="padding:0 20px 24px"></div>
   </div>
