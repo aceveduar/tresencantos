@@ -199,7 +199,7 @@ function renderCategorySelects() {
   if (fSel) {
     const cur = fSel.value;
     const roots = rootCats();
-    fSel.innerHTML = `<option value="" disabled selected>Selecciona una categoría</option>` + roots.map(r => {
+    fSel.innerHTML = `<option value="por_revisar">📋 Por revisar</option>` + roots.filter(r => r.code !== 'por_revisar').map(r => {
       const subs = subCats(r.code);
       if (subs.length) {
         return `<optgroup label="${r.label}"><option value="${r.code}">${r.label} — General</option>${subs.map(s => `<option value="${s.code}">${s.label}</option>`).join('')}</optgroup>`;
@@ -349,8 +349,9 @@ function adminCatMatches(productCat, filterCat) {
 const _norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 function getFilteredProducts() {
-  const q   = _norm(document.getElementById('search-input')?.value) || '';
-  const cat = document.getElementById('cat-filter')?.value || 'all';
+  const q           = _norm(document.getElementById('search-input')?.value) || '';
+  const cat         = document.getElementById('cat-filter')?.value || 'all';
+  const creatorVal  = document.getElementById('creator-filter')?.value || 'all';
   const filtered = products.filter(p => {
     const matchCat = adminCatMatches(p.category, cat);
     const groups = q ? q.split(',').map(g => g.trim().split(/\s+/).filter(Boolean)).filter(g => g.length) : [];
@@ -360,7 +361,8 @@ function getFilteredProducts() {
       (p.barcode && p.barcode.includes(t)) ||
       t === String(Math.round(p.price || 0))
     ));
-    const matchFlag = !_showOnlyFlagged || !!_flagItem(p.id);
+    const matchFlag    = !_showOnlyFlagged || !!_flagItem(p.id);
+    const matchCreator = creatorVal === 'all' || p.createdBy === creatorVal || (!p.createdBy && creatorVal === '__none__');
     const matchStat = !_statFilter ||
       (_statFilter === 'con-stock'    && p.stock > 0 && !p.outOfStock) ||
       (_statFilter === 'sin-stock'    && (p.stock === 0 || p.outOfStock)) ||
@@ -368,7 +370,7 @@ function getFilteredProducts() {
       (_statFilter === 'sin-codigo'   && !p.barcode) ||
       (_statFilter === 'sin-categ'    && p.category === 'por_revisar') ||
       (_statFilter === 'ultima-pieza' && p.stock === 1 && !p.outOfStock);
-    return matchCat && matchQ && matchFlag && matchStat;
+    return matchCat && matchQ && matchFlag && matchStat && matchCreator;
   });
 
   switch (currentSort) {
@@ -717,10 +719,28 @@ function _applyRoleUI() {
   if (can.addProduct) {
     document.getElementById('btn-capture-mode')?.style.removeProperty('display');
   }
-  // Botón Carga masiva — solo superadmin
-  if (ROLE === 'superadmin') {
+  // Botón Carga masiva — solo superadmin y si está activado en config
+  if (ROLE === 'superadmin' && _showBatch) {
     document.getElementById('btn-batch-upload')?.style.removeProperty('display');
   }
+}
+
+function _refreshCreatorFilter() {
+  const sel = document.getElementById('creator-filter');
+  if (!sel) return;
+  if (!_showCreator || ROLE !== 'superadmin') {
+    sel.style.display = 'none';
+    sel.value = 'all';
+    return;
+  }
+  // Poblar con creadores únicos presentes en el catálogo actual
+  const emails = [...new Set(products.map(p => p.createdBy).filter(Boolean))].sort();
+  const cur = sel.value;
+  sel.innerHTML = `<option value="all">👤 Todos</option>` +
+    emails.map(e => `<option value="${e}">${_userNames[e] || e.split('@')[0]}</option>`).join('') +
+    (products.some(p => !p.createdBy) ? `<option value="__none__">Sin registro</option>` : '');
+  sel.style.display = '';
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
 }
 
 function _getUserDisplay() {
@@ -758,6 +778,7 @@ async function showApp() {
   await loadProductsFromSupabase();
   _syncFlagFilter();
   renderStats();
+  _refreshCreatorFilter();
   setAdminView(currentAdminView);
   initRealtime();
   setTimeout(_updateDupBadge, 0);
@@ -788,7 +809,8 @@ function mapProduct(p) {
     isPublished: p.is_published ?? true,
     kitItems: p.kit_items || null,
     images: p.images || null,
-    isApartado: p.is_apartado || false
+    isApartado: p.is_apartado || false,
+    createdBy: p.created_by || null
   };
 }
 
@@ -1047,9 +1069,10 @@ function adminCard(p, editable = false) {
     <div class="ac-meta">
       <span class="cat-dot" style="background:${catColor}"></span>
       ${editable
-        ? `<span class="cat-label-inline${isSinCat?' cat-label-sin-cat':''}" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Clic para cambiar categoría" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.categoryLabel}</span>`
+        ? `<span class="cat-label-inline${isSinCat?' cat-label-sin-cat':''}" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Clic para cambiar categoría" style="${isSinCat?'':'overflow:hidden;text-overflow:ellipsis;white-space:nowrap'}">${isSinCat ? 'Sin categoría' : p.categoryLabel}</span>`
         : `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.72rem;color:var(--muted)">${p.categoryLabel}</span>`
       }
+      ${_showCreator && ROLE === 'superadmin' && p.createdBy ? `<span class="creator-chip" title="${p.createdBy}">👤 ${_creatorName(p.createdBy)}</span>` : ''}
     </div>
     <div class="ac-price-row">${priceHTML}</div>
     <div class="ac-footer">
@@ -1334,7 +1357,7 @@ function desktopRow(p) {
         ${flagDataDR?.note ? `<div class="flag-note-line">🚩 "${flagDataDR.note}"</div>` : ''}
         <div class="prod-meta">
           ${catDot}
-          <span class="prod-meta-text"><span class="cat-label-inline${isSinCatDR ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${p.categoryLabel}</span> · #${p.id}${p.barcode ? ` · 🔲 ${p.barcode}` : ''}</span>
+          <span class="prod-meta-text"><span class="cat-label-inline${isSinCatDR ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${isSinCatDR ? 'Sin categoría' : p.categoryLabel}</span> · #${p.id}${p.barcode ? ` · 🔲 ${p.barcode}` : ''}${_showCreator && ROLE === 'superadmin' && p.createdBy ? ` · <span class="creator-chip" title="${p.createdBy}">👤 ${_creatorName(p.createdBy)}</span>` : ''}</span>
           ${featStar}${publishedToggle(p)}${flagDotRow}
         </div>
       </div>
@@ -1411,7 +1434,8 @@ function mobileCard(p) {
           ${flagDataMC?.note ? `<div class="flag-note-line">🚩 "${flagDataMC.note}"</div>` : ''}
           <div class="mpc-cat-tag">
             <span class="cat-dot" style="background:${catColor}"></span>
-            <span style="font-size:.72rem;color:${isSinCatMC ? '#B45309' : 'var(--muted)'};font-weight:${isSinCatMC ? '600' : '400'}">${p.categoryLabel}</span>
+            <span class="${isSinCatMC ? 'cat-label-sin-cat' : ''}" style="font-size:.72rem;color:${isSinCatMC ? '' : 'var(--muted)'};font-weight:400">${isSinCatMC ? 'Sin categoría' : p.categoryLabel}</span>
+            ${_showCreator && ROLE === 'superadmin' && p.createdBy ? `<span class="creator-chip" title="${p.createdBy}">👤 ${_creatorName(p.createdBy)}</span>` : ''}
           </div>
           <div class="mpc-price-row">
             ${priceHTML}${stockInfo}
@@ -1811,12 +1835,21 @@ function populateBadgeList() {
 }
 
 /* ── CONFIG GLOBAL (Supabase — disponible en todos los dispositivos) ── */
-let groqApiKey  = null;
-let driveEp     = null;
-let driveSecret = null;
+let groqApiKey   = null;
+let driveEp      = null;
+let driveSecret  = null;
+let _showCreator = false;
+let _showBatch   = false;
+let _userNames   = {};  // { "email@x.com": "Nombre visible" }
+
+function _creatorName(email) {
+  if (!email) return '';
+  const name = _userNames[email] || email.split('@')[0];
+  return name.charAt(0).toUpperCase();
+}
 
 async function loadAppConfig() {
-  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret,wa_float,captura_rapida,dismissed_dups)&select=id,value');
+  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret,wa_float,captura_rapida,dismissed_dups,show_creator,show_batch,user_names)&select=id,value');
   if (r.ok && r.data) {
     r.data.forEach(row => {
       if (row.id === 'groq_key')     groqApiKey  = row.value || null;
@@ -1835,6 +1868,22 @@ async function loadAppConfig() {
         if (row.value === 'false') {
           document.getElementById('btn-capture-mode')?.style.setProperty('display', 'none');
         }
+      }
+      if (row.id === 'show_creator') {
+        _showCreator = row.value === 'true';
+        const toggle = document.getElementById('show-creator-toggle');
+        if (toggle) toggle.checked = _showCreator;
+        _refreshCreatorFilter();
+      }
+      if (row.id === 'show_batch') {
+        _showBatch = row.value === 'true';
+        const btn = document.getElementById('btn-batch-upload');
+        if (btn && ROLE === 'superadmin') {
+          _showBatch ? btn.style.removeProperty('display') : btn.style.setProperty('display', 'none');
+        }
+      }
+      if (row.id === 'user_names') {
+        try { _userNames = JSON.parse(row.value || '{}'); } catch { _userNames = {}; }
       }
     });
   }
@@ -2393,7 +2442,7 @@ function openForm(id) {
   } else {
     document.getElementById('f-id').value = '';
     document.getElementById('f-name').value = '';
-    document.getElementById('f-category').value = categories[0]?.code || 'bolsos';
+    document.getElementById('f-category').value = 'por_revisar';
     document.getElementById('f-category-label').value = categories[0]?.label || '';
     document.getElementById('f-price').value = '';
     document.getElementById('f-original-price').value = '';
@@ -2735,12 +2784,8 @@ function validateForm() {
   };
 
   const name  = document.getElementById('f-name')?.value.trim();
-  const price = parseFloat(document.getElementById('f-price')?.value);
-  const cat   = document.getElementById('f-category')?.value;
 
-  if (!name)                markError('f-name',     'El nombre es obligatorio');
-  if (!price || price <= 0) markError('f-price',    'Ingresa un precio de venta válido');
-  if (!cat)                 markError('f-category', 'Selecciona una categoría');
+  if (!name) markError('f-name', 'El nombre es obligatorio');
 
   if (firstInvalid) {
     firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2789,24 +2834,26 @@ async function saveProduct() {
   }
 
   const name = document.getElementById('f-name').value.trim();
-  const price = parseFloat(document.getElementById('f-price').value);
+  const price = parseFloat(document.getElementById('f-price').value) || 0;
   const image = document.getElementById('f-image').value.trim();
   const description = document.getElementById('f-description').value.trim();
 
-  if (!name || isNaN(price)) {
-    toast('Completa nombre y precio.', 'error');
+  if (!name) {
+    toast('El nombre es obligatorio.', 'error');
     return;
   }
 
   const idVal = document.getElementById('f-id').value;
   const badge = document.getElementById('f-badge').value.trim();
   const origPrice = parseFloat(document.getElementById('f-original-price').value) || null;
-  // Operador: productos nuevos siempre inician como no publicados (requieren revisión de precio)
-  const publishedVal = !idVal && !can.publishProduct ? false : document.getElementById('f-published').checked;
+  const catVal = document.getElementById('f-category').value || 'por_revisar';
+  // Sin precio → nunca publicar en web. Operador → siempre inicia sin publicar.
+  const sinPrecio = !price || price <= 0;
+  const publishedVal = sinPrecio ? false : (!idVal && !can.publishProduct ? false : document.getElementById('f-published').checked);
   const data = {
     name,
-    category: document.getElementById('f-category').value,
-    categoryLabel: document.getElementById('f-category-label').value.trim() || getCatLabel(document.getElementById('f-category').value),
+    category: catVal,
+    categoryLabel: document.getElementById('f-category-label').value.trim() || getCatLabel(catVal),
     price,
     originalPrice: (origPrice && origPrice > price) ? origPrice : null,
     description,
@@ -2840,7 +2887,8 @@ async function saveProduct() {
     cost: data.cost,
     is_published: data.isPublished,
     kit_items: data.kitItems,
-    images: data.images
+    images: data.images,
+    ...(!idVal ? { created_by: getCurrentUserEmail() } : {})
   };
 
   const saveBtn = document.getElementById('save-btn');
@@ -2903,7 +2951,11 @@ async function saveProduct() {
   renderTable();
   renderStats();
   _updateDupBadge();
-  toast(idVal ? 'Guardado ✓' : 'Producto agregado ✓');
+  if (sinPrecio && !idVal) {
+    toast('Producto guardado sin precio — asígnalo antes de publicar en la tienda', 'warn');
+  } else {
+    toast(idVal ? 'Guardado ✓' : 'Producto agregado ✓');
+  }
 }
 
 /* ── KIT EDITOR ── */
@@ -5153,22 +5205,18 @@ async function runCaptureAI() {
 
 function updateCapSaveBtn() {
   const name  = document.getElementById('cap-name')?.value.trim();
-  const price = parseFloat(document.getElementById('cap-price')?.value);
-  const ok    = !!(name && price > 0);
+  const ok    = !!name;
   document.getElementById('cap-save-btn').disabled = !ok;
   const hint = document.getElementById('cap-require-hint');
   if (!hint) return;
-  if (ok) { hint.textContent = ''; return; }
-  if (!name && !(price > 0)) hint.textContent = '⚠️ Nombre y precio son obligatorios';
-  else if (!name)             hint.textContent = '⚠️ Falta el nombre del producto';
-  else                        hint.textContent = '⚠️ Falta el precio de venta';
+  hint.textContent = ok ? '' : '⚠️ Falta el nombre del producto';
 }
 
 async function saveCaptureProduct() {
   const name  = document.getElementById('cap-name').value.trim();
-  const price = parseFloat(document.getElementById('cap-price').value);
+  const price = parseFloat(document.getElementById('cap-price').value) || 0;
   const stock = Math.max(1, parseInt(document.getElementById('cap-stock')?.value) || 1);
-  if (!name || !price || price <= 0) return;
+  if (!name) return;
   const btn = document.getElementById('cap-save-btn');
   btn.disabled = true; btn.textContent = 'Guardando...';
   try {
@@ -5185,7 +5233,7 @@ async function saveCaptureProduct() {
       image: captureImageDataUrl || '',
       is_published: false, out_of_stock: false,
       stock, featured: false, position: newId,
-      barcode
+      barcode, created_by: getCurrentUserEmail()
     };
     const { ok, data: saveData } = await supabaseApi('products', {
       method: 'POST',
@@ -5197,7 +5245,8 @@ async function saveCaptureProduct() {
       console.error('Supabase error captura rápida:', msg);
       throw new Error(msg);
     }
-    products.unshift({ ...payload, originalPrice: null, badge: null, badgeType: null, barcode, cost: null });
+    products.unshift({ ...payload, originalPrice: null, badge: null, badgeType: null, barcode, cost: null, createdBy: payload.created_by });
+    logActivity('producto_creado', `Creó "${name}" — $${(price||0).toLocaleString('es-MX')}`, { id: newId, name, price });
     captureCount++;
     const counter = document.getElementById('cap-counter');
     counter.textContent = '✓ ' + captureCount + ' capturado' + (captureCount > 1 ? 's' : '');
@@ -6276,7 +6325,8 @@ async function _batchPublish() {
         category_label: catObj?.label || 'Por revisar',
         price: 0, image: imageUrl,
         is_published: false, out_of_stock: false,
-        stock: 1, featured: false, position: nextId
+        stock: 1, featured: false, position: nextId,
+        created_by: getCurrentUserEmail()
       };
       const { ok } = await supabaseApi('products', {
         method: 'POST',
@@ -6284,7 +6334,8 @@ async function _batchPublish() {
         body: JSON.stringify(payload)
       });
       if (ok) {
-        products.unshift({ ...payload, originalPrice: null, badge: null, badgeType: null, cost: null });
+        products.unshift({ ...payload, originalPrice: null, badge: null, badgeType: null, cost: null, createdBy: payload.created_by });
+        logActivity('producto_creado', `Creó "${payload.name}" — carga masiva`, { id: nextId, name: payload.name, price: 0 });
         created++;
         nextId++;
       }
