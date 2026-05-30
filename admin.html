@@ -1230,7 +1230,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .mpc-oos-btn{font-size:.72rem!important;flex-shrink:0;min-height:38px;padding:0 11px!important}
 
   /* Vista tarjetas en mobile: 2 columnas compactas */
-  .admin-cards-grid{grid-template-columns:1fr 1fr;gap:10px;padding:12px}
+  .admin-cards-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;padding:12px}
   .ac-img-wrap{aspect-ratio:4/3}
   .ac-body{padding:7px 9px 9px;gap:3px}
   .ac-name{font-size:.78rem;margin-bottom:3px;-webkit-line-clamp:2}
@@ -1303,7 +1303,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 
 /* Pantallas muy pequeñas (<380px) */
 @media(max-width:380px){
-  .admin-cards-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .admin-cards-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
   .stats{grid-template-columns:1fr 1fr}
   .bulk-bar .btn{font-size:.68rem;padding:5px 8px}
   main{padding:14px 10px}
