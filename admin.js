@@ -717,6 +717,10 @@ function _applyRoleUI() {
   if (can.addProduct) {
     document.getElementById('btn-capture-mode')?.style.removeProperty('display');
   }
+  // Botón Carga masiva — solo superadmin
+  if (ROLE === 'superadmin') {
+    document.getElementById('btn-batch-upload')?.style.removeProperty('display');
+  }
 }
 
 function _getUserDisplay() {
@@ -2658,7 +2662,10 @@ function _htmlToPlainText(html) {
   s = s.replace(/<br\s*\/?>/gi, '\n');
   s = s.replace(/<\/?(p|div|h[1-6]|ul|ol|blockquote|tr)[^>]*>/gi, '\n');
   s = s.replace(/<[^>]+>/g, '');
-  s = s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ').replace(/&#39;/g,"'").replace(/&quot;/g,'"');
+  // Decode ALL HTML entities (named, numeric &#225;, hex &#xE1;) via DOM
+  const tmp = document.createElement('textarea');
+  tmp.innerHTML = s;
+  s = tmp.value;
   return s.split('\n').map(l => l.trim()).join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
@@ -6056,4 +6063,240 @@ async function _saveKit() {
   renderTable();
   renderStats();
   toast(`🎁 Kit "${name}" creado`, '');
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   CARGA MASIVA CON IA — solo superadmin
+   ══════════════════════════════════════════════════════════════════ */
+
+let _batchItems = []; // [{dataUrl, name, description, category, status}]
+
+function openBatchUpload() {
+  _batchItems = [];
+  _batchRenderCards();
+  document.getElementById('batch-overlay').style.display = 'flex';
+  document.getElementById('batch-file-input').value = '';
+  document.getElementById('batch-camera-input').value = '';
+}
+
+function closeBatchUpload() {
+  document.getElementById('batch-overlay').style.display = 'none';
+  _batchItems = [];
+}
+
+function _batchDragOver(e) {
+  e.preventDefault();
+  document.getElementById('batch-dropzone').classList.add('drag-over');
+}
+function _batchDragLeave(e) {
+  document.getElementById('batch-dropzone').classList.remove('drag-over');
+}
+function _batchDrop(e) {
+  e.preventDefault();
+  document.getElementById('batch-dropzone').classList.remove('drag-over');
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  if (files.length) _batchProcessFiles(files);
+}
+function _batchHandleInput(input) {
+  const files = Array.from(input.files);
+  if (files.length) _batchProcessFiles(files);
+  input.value = '';
+}
+
+async function _batchProcessFiles(files) {
+  const btn = document.getElementById('batch-analyze-all-btn');
+  for (const file of files) {
+    const dataUrl = await _fileToBase64Resized(file);
+    _batchItems.push({ dataUrl, name: '', description: '', category: '', status: 'pending' });
+  }
+  _batchRenderCards();
+  if (btn) btn.style.display = '';
+}
+
+function _batchRenderCards() {
+  const grid = document.getElementById('batch-grid');
+  const publishBtn = document.getElementById('batch-publish-btn');
+  const analyzeBtn = document.getElementById('batch-analyze-all-btn');
+  if (!_batchItems.length) {
+    grid.innerHTML = '<div class="batch-empty">Agrega fotos para comenzar</div>';
+    publishBtn.disabled = true;
+    publishBtn.textContent = 'Publicar 0 productos';
+    if (analyzeBtn) analyzeBtn.style.display = 'none';
+    return;
+  }
+  const catOptions = categories.map(c => {
+    if (c.parent) return `<option value="${c.code}">${c.label}</option>`;
+    return `<option value="${c.code}" style="font-weight:700">${c.label}</option>`;
+  }).join('');
+
+  grid.innerHTML = _batchItems.map((item, i) => {
+    const statusHtml = item.status === 'analyzing'
+      ? '<div class="batch-status analyzing">🔄 Analizando…</div>'
+      : item.status === 'done'
+      ? '<div class="batch-status done">✓ Listo</div>'
+      : item.status === 'error'
+      ? '<div class="batch-status error">✗ Error — reintenta</div>'
+      : '';
+    return `
+<div class="batch-card" id="bcard-${i}">
+  <img class="batch-card-img" src="${item.dataUrl}" alt="">
+  <div class="batch-card-body">
+    ${statusHtml}
+    <div class="batch-card-actions">
+      <button class="btn-ai" onclick="_batchAnalyzeOne(${i})" ${item.status === 'analyzing' ? 'disabled' : ''}>✨ Analizar</button>
+      <button class="btn-remove" onclick="_batchRemove(${i})" title="Eliminar">✕</button>
+    </div>
+    <input type="text" placeholder="Nombre del producto" value="${item.name.replace(/"/g,'&quot;')}"
+           oninput="_batchItems[${i}].name=this.value;_batchUpdateFooter()">
+    <textarea rows="2" placeholder="Descripción…"
+              oninput="_batchItems[${i}].description=this.value">${item.description}</textarea>
+    <select onchange="_batchItems[${i}].category=this.value">
+      <option value="">— Categoría —</option>
+      ${catOptions}
+    </select>
+  </div>
+</div>`;
+  }).join('');
+
+  // Restore category selects
+  _batchItems.forEach((item, i) => {
+    const sel = grid.querySelector(`#bcard-${i} select`);
+    if (sel && item.category) sel.value = item.category;
+  });
+
+  _batchUpdateFooter();
+}
+
+function _batchUpdateFooter() {
+  const btn = document.getElementById('batch-publish-btn');
+  const ready = _batchItems.filter(it => it.name.trim()).length;
+  btn.textContent = `Publicar ${ready} producto${ready !== 1 ? 's' : ''}`;
+  btn.disabled = ready === 0;
+}
+
+function _batchRemove(idx) {
+  _batchItems.splice(idx, 1);
+  _batchRenderCards();
+  if (_batchItems.length) document.getElementById('batch-analyze-all-btn').style.display = '';
+}
+
+async function _batchCallGroq(dataUrl) {
+  if (!groqApiKey) throw new Error('No hay Groq key configurada');
+  const catList = categories.map(c => c.code).join(', ');
+  const systemPrompt = `Eres experto en productos de boutique mexicana. Analiza la imagen y responde SOLO JSON válido sin markdown.\nCategorías disponibles: ${catList}`;
+  const userPrompt = `Devuelve JSON: {"name":"45-70 chars, marca+tipo+material+color/variante","description":"copy máx 160 chars, empieza con verbo activo, nunca con Este es","category":"código exacto o vacío si dudas","price":null}`;
+  const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqApiKey}` },
+    body: JSON.stringify({
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: [
+          { type: 'text', text: userPrompt },
+          { type: 'image_url', image_url: { url: dataUrl } }
+        ]}
+      ],
+      temperature: 0.3, max_tokens: 400
+    })
+  });
+  if (!resp.ok) {
+    const eb = await resp.json().catch(() => ({}));
+    throw new Error(eb?.error?.message || `Error ${resp.status}`);
+  }
+  const data = await resp.json();
+  const text = data.choices?.[0]?.message?.content || '';
+  const m = text.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('Respuesta IA inválida');
+  return JSON.parse(m[0]);
+}
+
+async function _batchAnalyzeOne(idx) {
+  if (!_batchItems[idx]) return;
+  _batchItems[idx].status = 'analyzing';
+  _batchRenderCards();
+  try {
+    const parsed = await _batchCallGroq(_batchItems[idx].dataUrl);
+    _batchItems[idx].name        = toTitleCase(parsed.name || '');
+    _batchItems[idx].description = formatDescription(parsed.description || '') || '';
+    const match = parsed.category ? categories.find(c => c.code === parsed.category) : null;
+    _batchItems[idx].category    = match ? match.code : '';
+    _batchItems[idx].status      = 'done';
+  } catch (err) {
+    console.error('Batch IA error:', err);
+    _batchItems[idx].status = 'error';
+  }
+  _batchRenderCards();
+}
+
+async function _batchAnalyzeAll() {
+  if (!groqApiKey) { toast('Configura la Groq API key en Configuración primero', 'error'); return; }
+  const btn = document.getElementById('batch-analyze-all-btn');
+  btn.disabled = true; btn.textContent = '⏳ Analizando…';
+  for (let i = 0; i < _batchItems.length; i++) {
+    if (_batchItems[i].status === 'analyzing') continue;
+    _batchItems[i].status = 'analyzing';
+    _batchRenderCards();
+    try {
+      const parsed = await _batchCallGroq(_batchItems[i].dataUrl);
+      _batchItems[i].name        = toTitleCase(parsed.name || '');
+      _batchItems[i].description = formatDescription(parsed.description || '') || '';
+      const match = parsed.category ? categories.find(c => c.code === parsed.category) : null;
+      _batchItems[i].category    = match ? match.code : '';
+      _batchItems[i].status      = 'done';
+    } catch (err) {
+      _batchItems[i].status = 'error';
+    }
+    _batchRenderCards();
+    if (i < _batchItems.length - 1) await new Promise(r => setTimeout(r, 1500));
+  }
+  btn.disabled = false; btn.textContent = '✨ Analizar todo';
+}
+
+async function _batchPublish() {
+  const toPublish = _batchItems.filter(it => it.name.trim());
+  if (!toPublish.length) return;
+  const btn = document.getElementById('batch-publish-btn');
+  btn.disabled = true; btn.textContent = 'Publicando…';
+  try {
+    const maxResult = await supabaseApi('products?select=id&order=id.desc&limit=1');
+    let nextId = (maxResult.ok && maxResult.data?.length) ? maxResult.data[0].id + 1 : 1;
+    let created = 0;
+    for (const item of toPublish) {
+      // Intentar subir a Drive, fallback a base64
+      let imageUrl = item.dataUrl;
+      if (driveEp && driveSecret) {
+        try { imageUrl = await uploadToDrive(item.dataUrl); } catch(_) {}
+      }
+      const catObj = categories.find(c => c.code === item.category);
+      const payload = {
+        id: nextId, name: item.name.trim(),
+        description: item.description.trim() || null,
+        category: item.category || 'por_revisar',
+        category_label: catObj?.label || 'Por revisar',
+        price: 0, image: imageUrl,
+        is_published: false, out_of_stock: false,
+        stock: 1, featured: false, position: nextId
+      };
+      const { ok } = await supabaseApi('products', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify(payload)
+      });
+      if (ok) {
+        products.unshift({ ...payload, originalPrice: null, badge: null, badgeType: null, cost: null });
+        created++;
+        nextId++;
+      }
+    }
+    renderTable();
+    renderStats();
+    toast(`✓ ${created} producto${created !== 1 ? 's' : ''} creado${created !== 1 ? 's' : ''} — ajusta precio y publica en web cuando estén listos`, 'success');
+    closeBatchUpload();
+  } catch (err) {
+    console.error('Batch publish error:', err);
+    toast('Error al publicar — revisa la consola', 'error');
+    btn.disabled = false;
+    btn.textContent = `Publicar ${toPublish.length} productos`;
+  }
 }

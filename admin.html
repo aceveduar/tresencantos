@@ -1546,6 +1546,36 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .cap-overlay{padding:0;align-items:flex-end}
   .cap-modal{border-radius:20px 20px 0 0;max-width:100%;max-height:95dvh}
 }
+
+/* ── CARGA MASIVA ─────────────────────────────────────────────────── */
+#batch-overlay{position:fixed;inset:0;z-index:1100;background:#F7F2EB;display:flex;flex-direction:column;overflow:hidden}
+.batch-header{display:flex;align-items:center;gap:10px;padding:14px 16px;background:#fff;border-bottom:1px solid var(--border);flex-shrink:0}
+.batch-header h2{font-family:'Playfair Display',serif;font-size:1.05rem;margin:0;flex:1}
+.batch-dropzone{margin:14px 14px 0;border:2px dashed var(--gold);border-radius:14px;background:#fff;padding:24px 16px;text-align:center;cursor:pointer;transition:.2s;flex-shrink:0}
+.batch-dropzone.drag-over{background:var(--gold-light);border-color:var(--gold-dark)}
+.batch-dropzone p{margin:6px 0 12px;color:var(--muted);font-size:.82rem}
+.batch-dz-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.batch-grid{flex:1;overflow-y:auto;padding:12px 14px;display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-content:start}
+@media(min-width:600px){.batch-grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:900px){.batch-grid{grid-template-columns:repeat(4,1fr)}}
+.batch-card{background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column;position:relative}
+.batch-card-img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:#f0ebe4}
+.batch-card-body{padding:9px 10px;display:flex;flex-direction:column;gap:7px;flex:1}
+.batch-card input,.batch-card textarea,.batch-card select{width:100%;font-family:inherit;font-size:.76rem;border:1.5px solid var(--border);border-radius:8px;padding:6px 8px;outline:none;color:var(--charcoal);background:#fff;box-sizing:border-box;resize:none}
+.batch-card input:focus,.batch-card textarea:focus,.batch-card select:focus{border-color:var(--gold)}
+.batch-card-actions{display:flex;gap:6px;align-items:center}
+.batch-card .btn-ai{flex:1;padding:6px;border:none;border-radius:8px;background:var(--gold-light);color:var(--gold-dark);font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit}
+.batch-card .btn-ai:disabled{opacity:.5;cursor:default}
+.batch-card .btn-remove{width:28px;height:28px;border:none;border-radius:50%;background:#FEE2E2;color:#E85D5D;font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.batch-status{font-size:.67rem;font-weight:700;padding:2px 7px;border-radius:20px;text-align:center;margin-top:-3px}
+.batch-status.analyzing{background:#FFF8EE;color:var(--gold-dark)}
+.batch-status.done{background:#D1FAE5;color:#065F46}
+.batch-status.error{background:#FEE2E2;color:#991B1B}
+.batch-footer{padding:12px 14px;background:#fff;border-top:1px solid var(--border);flex-shrink:0}
+.batch-footer button{width:100%;padding:14px;border:none;border-radius:12px;background:var(--gold);color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+.batch-footer button:hover{background:var(--gold-dark)}
+.batch-footer button:disabled{opacity:.5;cursor:default}
+.batch-empty{grid-column:1/-1;text-align:center;color:var(--muted);font-size:.85rem;padding:40px 20px}
 </style>
 </head>
 <body>
@@ -1809,6 +1839,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearchInput()" title="Borrar" style="display:none">✕</button>
         </div>
         <button class="btn btn-outline btn-sm" id="btn-capture-mode" onclick="openCaptureMode()" title="Captura rápida con IA" style="display:none;flex-shrink:0">✨</button>
+        <button class="btn btn-outline btn-sm" id="btn-batch-upload" onclick="openBatchUpload()" title="Carga masiva con IA" style="display:none;flex-shrink:0">📸</button>
         <button class="btn btn-outline btn-sm" onclick="openRecvMode()" title="Recibir mercancía" style="flex-shrink:0">📦</button>
         <button class="btn btn-outline btn-sm" onclick="openSearchScanner()" title="Buscar por código de barras" style="flex-shrink:0">📷</button>
       </div>
@@ -2068,7 +2099,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         <div id="additional-images-strip" style="display:flex;gap:8px;flex-wrap:wrap;min-height:32px;margin-bottom:10px;align-items:flex-start"></div>
         <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
           <input type="file" id="add-img-file-input" accept="image/*" style="display:none" onchange="handleAdditionalImageFile(this)">
-          <input type="file" id="add-img-camera-input" accept="image/*" style="display:none" onchange="handleAdditionalImageFile(this)">
+          <input type="file" id="add-img-camera-input" accept="image/*" capture="environment" style="display:none" onchange="handleAdditionalImageFile(this)">
           <button type="button" id="add-img-file-btn" class="btn btn-outline btn-sm" onclick="document.getElementById('add-img-file-input').click()">📁 Desde galería</button>
           <button type="button" class="btn btn-cam btn-sm" onclick="document.getElementById('add-img-camera-input').click()">📷 Tomar foto</button>
           <button type="button" class="btn btn-outline btn-sm" style="font-size:.75rem;color:var(--muted)" onclick="document.getElementById('add-img-url-wrap').style.display='flex';this.style.display='none'">+ URL</button>
@@ -2427,6 +2458,37 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     <div class="qv-actions" id="qv-actions"></div>
   </div>
   <button class="qv-outer-nav" id="qv-next" onclick="qvNavigate(1)" title="Producto siguiente">&#8250;</button>
+</div>
+
+<!-- CARGA MASIVA OVERLAY -->
+<div id="batch-overlay" style="display:none">
+  <div class="batch-header">
+    <h2>📸 Carga masiva</h2>
+    <button class="btn btn-outline btn-sm" id="batch-analyze-all-btn" onclick="_batchAnalyzeAll()" style="display:none">✨ Analizar todo</button>
+    <button class="btn btn-outline btn-sm" onclick="closeBatchUpload()" style="color:var(--muted)">✕</button>
+  </div>
+  <div class="batch-dropzone" id="batch-dropzone"
+       ondragover="_batchDragOver(event)" ondragleave="_batchDragLeave(event)" ondrop="_batchDrop(event)"
+       onclick="document.getElementById('batch-file-input').click()">
+    <div style="font-size:2rem">🖼</div>
+    <p>Arrastra fotos aquí o toca para elegir</p>
+    <div class="batch-dz-btns" onclick="event.stopPropagation()">
+      <label class="btn btn-gold btn-sm" style="cursor:pointer">
+        📁 Galería
+        <input type="file" id="batch-file-input" accept="image/*" multiple style="display:none" onchange="_batchHandleInput(this)">
+      </label>
+      <label class="btn btn-outline btn-sm" style="cursor:pointer">
+        📷 Cámara
+        <input type="file" id="batch-camera-input" accept="image/*" capture="environment" style="display:none" onchange="_batchHandleInput(this)">
+      </label>
+    </div>
+  </div>
+  <div class="batch-grid" id="batch-grid">
+    <div class="batch-empty" id="batch-empty">Agrega fotos para comenzar</div>
+  </div>
+  <div class="batch-footer">
+    <button id="batch-publish-btn" onclick="_batchPublish()" disabled>Publicar 0 productos</button>
+  </div>
 </div>
 
 <!-- CATEGORY BOTTOM SHEET -->

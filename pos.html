@@ -2956,6 +2956,8 @@ let _abonarMethod = 'efectivo';
 let _apartadosData = {}; // id → sale data (para acceder a abonos al abonar)
 
 function abonarApartado(id, total, pagado, nombre) {
+  total  = parseFloat(total)  || 0;
+  pagado = parseFloat(pagado) || 0;
   const abonos = Array.isArray(_apartadosData[id]?.abonos) ? _apartadosData[id].abonos : [];
   _abonarCtx = { id, total, pagado, pendiente: total - pagado, nombre, abonos };
   _abonarMethod = 'efectivo';
