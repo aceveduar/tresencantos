@@ -286,14 +286,14 @@ td,th{overflow:hidden}
   background:#fff;border-radius:16px;border:1.5px solid var(--border);
   overflow:hidden;box-shadow:var(--shadow-sm);
   transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s,border-color .2s;
-  position:relative;display:flex;flex-direction:column;
+  position:relative;display:flex;flex-direction:column;min-width:0;
 }
 .admin-card:hover{transform:translateY(-4px);box-shadow:var(--shadow);border-color:var(--gold)}
 .admin-card.card-selected{border-color:var(--gold);background:#FFFBF3;box-shadow:0 0 0 3px rgba(201,164,98,.15)}
 .admin-card.card-oos .ac-img{opacity:.45;filter:grayscale(.6)}
 /* Imagen */
-.ac-img-wrap{position:relative;overflow:hidden}
-.ac-img{width:100%;aspect-ratio:1;object-fit:cover;display:block;transition:transform .35s ease}
+.ac-img-wrap{position:relative;overflow:hidden;aspect-ratio:1}
+.ac-img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s ease}
 .admin-card:hover .ac-img{transform:scale(1.04)}
 .ac-check{
   position:absolute;top:10px;left:10px;width:18px;height:18px;
@@ -1231,7 +1231,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 
   /* Vista tarjetas en mobile: 2 columnas compactas */
   .admin-cards-grid{grid-template-columns:1fr 1fr;gap:10px;padding:12px}
-  .ac-img{aspect-ratio:4/3}
+  .ac-img-wrap{aspect-ratio:4/3}
   .ac-body{padding:7px 9px 9px;gap:3px}
   .ac-name{font-size:.78rem;margin-bottom:3px;-webkit-line-clamp:2}
   .ac-meta{font-size:.65rem;margin-bottom:4px;gap:3px}
@@ -1687,19 +1687,16 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           <label class="kb-label">Nombre del kit</label>
           <input id="kb-name" class="kb-input" type="text" placeholder="Ej: Kit Hidratación Natura">
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div>
-            <label class="kb-label">Precio $</label>
-            <input id="kb-price" class="kb-input" type="text" inputmode="decimal" placeholder="0.00">
-          </div>
-          <div>
-            <label class="kb-label">Categoría</label>
-            <select id="kb-category" class="kb-input" style="padding:10px 12px;cursor:pointer"></select>
-          </div>
+        <div>
+          <label class="kb-label">Precio $</label>
+          <input id="kb-price" class="kb-input" type="text" inputmode="decimal" placeholder="0.00">
         </div>
         <div>
           <label class="kb-label">Componentes</label>
-          <input id="kb-search" class="kb-input" type="text" placeholder="🔍 Buscar producto para agregar..." oninput="_kbSearch(this.value)" style="margin-bottom:6px">
+          <div style="display:flex;gap:8px;margin-bottom:6px">
+            <input id="kb-search" class="kb-input" type="text" placeholder="🔍 Buscar producto para agregar..." oninput="_kbSearch(this.value)" style="flex:1;margin-bottom:0">
+            <button type="button" onclick="openKitScanner()" style="flex-shrink:0;width:44px;height:44px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation" title="Escanear código de barras">📷</button>
+          </div>
           <div id="kb-search-results" style="display:none;max-height:180px;overflow-y:auto;border:1.5px solid var(--border);border-radius:10px;background:#fff;margin-bottom:10px"></div>
           <div id="kb-components"></div>
           <div id="kb-stock-preview" style="font-size:.78rem;text-align:center;margin-top:8px;min-height:18px"></div>
@@ -1811,10 +1808,11 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   <main>
     <!-- STATS -->
     <div class="stats" id="stats"></div>
-    <div id="no-price-alert" style="display:none;background:#FFF8EE;border:1.5px solid var(--gold);border-radius:10px;padding:10px 16px;margin-bottom:14px;align-items:center;gap:10px;font-size:.82rem;cursor:pointer" onclick="filterNoPriceProducts()">
-      <span style="font-size:1.1rem">⚠️</span>
-      <span id="no-price-alert-text" style="flex:1;color:var(--charcoal);font-weight:500"></span>
-      <span style="color:var(--gold-dark);font-weight:700;font-size:.78rem;white-space:nowrap">Ver →</span>
+    <div id="no-price-alert" style="display:none;background:#FFF8EE;border:1.5px solid var(--gold);border-radius:10px;padding:10px 16px;margin-bottom:14px;align-items:center;gap:10px;font-size:.82rem">
+      <span style="font-size:1.1rem;flex-shrink:0">⚠️</span>
+      <span id="no-price-alert-text" style="flex:1;color:var(--charcoal);font-weight:500;cursor:pointer" onclick="filterNoPriceProducts()"></span>
+      <span style="color:var(--gold-dark);font-weight:700;font-size:.78rem;white-space:nowrap;cursor:pointer" onclick="filterNoPriceProducts()">Ver →</span>
+      <button onclick="dismissNoPriceAlert()" style="background:none;border:none;font-size:1rem;color:var(--muted);cursor:pointer;padding:2px 4px;line-height:1;flex-shrink:0;touch-action:manipulation" title="Cerrar por ahora">✕</button>
     </div>
 
     <!-- BANNER DUPLICADOS -->
@@ -1843,7 +1841,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         </div>
         <button class="btn btn-outline btn-sm" id="btn-capture-mode" onclick="openCaptureMode()" title="Captura rápida con IA" style="display:none;flex-shrink:0">✨</button>
         <button class="btn btn-outline btn-sm" id="btn-batch-upload" onclick="openBatchUpload()" title="Carga masiva con IA" style="display:none;flex-shrink:0">📸</button>
-        <button class="btn btn-outline btn-sm" onclick="openRecvMode()" title="Recibir mercancía" style="flex-shrink:0">📦</button>
+        <button class="btn btn-outline btn-sm" id="btn-recv-mode" onclick="openRecvMode()" title="Recibir mercancía" style="display:none;flex-shrink:0">📦</button>
         <button class="btn btn-outline btn-sm" onclick="openSearchScanner()" title="Buscar por código de barras" style="flex-shrink:0">📷</button>
       </div>
       <!-- Fila 2: filtros + vista -->

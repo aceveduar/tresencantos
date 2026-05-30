@@ -865,7 +865,19 @@ function renderStats() {
     (sinPublicar  > 0 ? chip('sin-publicar','🙈', sinPublicar, 'Sin publicar', '#C2410C') : '') +
     (sinCodigo    > 0 ? chip('sin-codigo',  '🔲', sinCodigo,   'Sin código',   '#4B5563') : '') +
     (sinCateg     > 0 ? chip('sin-categ',   '⚠️', sinCateg,    'Sin categoría','#B45309') : '') +
-    (nFlag        > 0 ? chip('revisar',     '🚩', nFlag,       'Por revisar',  '#dc2626') : '');
+    (nFlag        > 0 ? chip('revisar',     '🚩', nFlag,       'Por revisar',  '#dc2626') : '') +
+    (() => {
+      if (!can.publishProduct) return '';
+      const sinPrecio = products.filter(p => !p.price || p.price === 0);
+      if (!sinPrecio.length) return '';
+      const dismissed = sessionStorage.getItem('te_no_price_dismissed') === 'true';
+      if (!dismissed) return '';
+      return `<button class="stat-chip stat-chip-filter" onclick="showNoPriceAlert()" style="" title="Ver productos sin precio">
+        <span class="sc-icon">💲</span>
+        <span class="sc-num">${sinPrecio.length}</span>
+        <span class="sc-lbl">Sin precio</span>
+      </button>`;
+    })();
 
   // Alerta de productos sin precio — solo visible para superadmin
   if (can.publishProduct) {
@@ -875,12 +887,30 @@ function renderStats() {
     if (alertEl && alertTxt) {
       if (sinPrecio.length > 0) {
         alertTxt.textContent = `${sinPrecio.length} producto${sinPrecio.length > 1 ? 's' : ''} sin precio — pendiente de revisión antes de publicar`;
-        alertEl.style.display = 'flex';
+        const dismissed = sessionStorage.getItem('te_no_price_dismissed') === 'true';
+        alertEl.style.display = dismissed ? 'none' : 'flex';
       } else {
         alertEl.style.display = 'none';
+        sessionStorage.removeItem('te_no_price_dismissed');
       }
     }
   }
+}
+
+function dismissNoPriceAlert() {
+  sessionStorage.setItem('te_no_price_dismissed', 'true');
+  document.getElementById('no-price-alert').style.display = 'none';
+  renderStats(); // actualiza chips para mostrar el chip 💲
+}
+
+function showNoPriceAlert() {
+  sessionStorage.removeItem('te_no_price_dismissed');
+  const alertEl = document.getElementById('no-price-alert');
+  if (alertEl) {
+    alertEl.style.display = 'flex';
+    alertEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  renderStats(); // quita el chip 💲
 }
 
 function filterNoPriceProducts() {
@@ -1840,6 +1870,7 @@ let driveEp      = null;
 let driveSecret  = null;
 let _showCreator = false;
 let _showBatch   = false;
+let _showRecv    = false;
 let _userNames   = {};  // { "email@x.com": "Nombre visible" }
 
 function _creatorName(email) {
@@ -1849,7 +1880,7 @@ function _creatorName(email) {
 }
 
 async function loadAppConfig() {
-  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret,wa_float,captura_rapida,dismissed_dups,show_creator,show_batch,user_names)&select=id,value');
+  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret,wa_float,captura_rapida,dismissed_dups,show_creator,show_batch,show_recv,user_names)&select=id,value');
   if (r.ok && r.data) {
     r.data.forEach(row => {
       if (row.id === 'groq_key')     groqApiKey  = row.value || null;
@@ -1881,6 +1912,11 @@ async function loadAppConfig() {
         if (btn && ROLE === 'superadmin') {
           _showBatch ? btn.style.removeProperty('display') : btn.style.setProperty('display', 'none');
         }
+      }
+      if (row.id === 'show_recv') {
+        _showRecv = row.value === 'true';
+        const btn = document.getElementById('btn-recv-mode');
+        if (btn) _showRecv ? btn.style.removeProperty('display') : btn.style.setProperty('display', 'none');
       }
       if (row.id === 'user_names') {
         try { _userNames = JSON.parse(row.value || '{}'); } catch { _userNames = {}; }
@@ -3676,6 +3712,12 @@ function openSearchScanner() {
   _launchScanner();
 }
 
+function openKitScanner() {
+  _scanCtx = 'kb';
+  document.getElementById('scanner-title').textContent = 'Escanear componente del kit';
+  _launchScanner();
+}
+
 async function _launchScanner() {
   document.getElementById('scanner-status').textContent = 'Iniciando cámara...';
   document.getElementById('scanner-overlay').classList.add('open');
@@ -4260,6 +4302,13 @@ function _onAdminScan(code) {
     } else {
       toast(`Código "${code}" — ningún producto asignado`, 'error');
     }
+  } else if (_scanCtx === 'kb') {
+    closeAdminScanner();
+    const p = products.find(x => x.barcode === code);
+    if (!p) { toast(`Código "${code}" — ningún producto encontrado`, 'error'); return; }
+    if (p.kitItems?.length) { toast('Los kits no pueden ser componentes de otro kit', 'error'); return; }
+    _kbAddComponent(p.id);
+    toast(`${p.name} agregado al kit`, '');
   }
 }
 
@@ -5883,7 +5932,10 @@ function _renderQV(p) {
   const btnFlag = flagData
     ? `<button class="qv-btn qv-btn-flagdone" onclick="unflagProduct(${p.id})">✓ Revisado</button>`
     : `<button class="qv-btn qv-btn-flag"    onclick="_qvShowFlagForm(${p.id})">🚩 Revisar</button>`;
-  document.getElementById('qv-actions').innerHTML = btnEdit + btnDup + btnPub + btnDel + btnFlag;
+  const btnDismantle = (can.editProduct && p.kitItems?.length)
+    ? `<button class="qv-btn" style="border-color:#FED7AA;color:#C2410C;background:#FFF7ED" onclick="_dismantleKit(${p.id})">📦 Desarmar kit</button>`
+    : '';
+  document.getElementById('qv-actions').innerHTML = btnDismantle + btnEdit + btnDup + btnPub + btnDel + btnFlag;
 }
 
 async function _qvTogglePublished(id) {
@@ -5957,7 +6009,6 @@ function openKitBuilder() {
     byId('kb-stock-preview').textContent = '';
     byId('kb-save-btn').disabled = false;
     byId('kb-save-btn').textContent = 'Guardar Kit →';
-    _kbPopulateCategories();
     _kbRenderComponents();
     const kbo = byId('kit-builder-overlay');
     kbo.style.display = 'flex';
@@ -5995,27 +6046,37 @@ function _kbSearch(q) {
   const matches = products.filter(p =>
     !p.kitItems?.length && !taken.has(p.id) &&
     p.name.toLowerCase().includes(term)
-  ).slice(0, 8);
+  ).sort((a, b) => {
+    const aOos = a.outOfStock || a.stock === 0;
+    const bOos = b.outOfStock || b.stock === 0;
+    return aOos - bOos; // con stock primero
+  }).slice(0, 8);
   if (!matches.length) {
     res.innerHTML = '<div style="padding:10px 14px;font-size:.82rem;color:var(--muted)">Sin resultados</div>';
     res.style.display = 'block'; return;
   }
-  res.innerHTML = matches.map(p => `
-    <div class="kb-result-item" onclick="_kbAddComponent(${p.id})">
-      <img src="${p.image}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0;background:#F0EBE3" onerror="this.src='${DEFAULT_IMG}'">
+  res.innerHTML = matches.map(p => {
+    const isOos = p.outOfStock || p.stock === 0;
+    const stockTxt = isOos
+      ? `<span style="color:var(--red)">⚠️ Agotado — se puede agregar igual</span>`
+      : `${p.stock} en stock`;
+    return `
+    <div class="kb-result-item" onclick="_kbAddComponent(${p.id})" style="${isOos ? 'opacity:.75' : ''}">
+      <img src="${p.image}" style="width:36px;height:36px;object-fit:cover;border-radius:7px;flex-shrink:0;background:#F0EBE3" onerror="this.src='${DEFAULT_IMG}'">
       <div style="flex:1;min-width:0">
         <div style="font-size:.84rem;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${p.name}</div>
-        <div style="font-size:.72rem;color:var(--muted)">${p.stock} en stock · $${p.price.toLocaleString('es-MX')}</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:1px">${stockTxt}</div>
       </div>
       <span style="font-size:.75rem;color:var(--gold);font-weight:700;flex-shrink:0">+ agregar</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   res.style.display = 'block';
 }
 
 function _kbAddComponent(id) {
   const p = products.find(x => x.id === id);
   if (!p || _kbComponents.find(c => c.id === id)) return;
-  _kbComponents.push({ id: p.id, name: p.name, qty: 1, stock: p.stock });
+  _kbComponents.push({ id: p.id, name: p.name, qty: 1, stock: p.stock, image: p.image, oos: p.outOfStock || p.stock === 0 });
   document.getElementById('kb-search').value = '';
   document.getElementById('kb-search-results').style.display = 'none';
   _kbRenderComponents();
@@ -6039,15 +6100,19 @@ function _kbChangeQty(id, delta) {
 function _kbRenderComponents() {
   const el = document.getElementById('kb-components');
   if (!_kbComponents.length) {
-    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:.82rem;border:1.5px dashed var(--border);border-radius:10px">Busca productos para agregar como componentes</div>';
+    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:.82rem;border:1.5px dashed var(--border);border-radius:10px">Busca o escanea productos para agregar como componentes</div>';
     return;
   }
   el.innerHTML = _kbComponents.map(c => `
     <div class="kb-comp">
-      <div style="flex:1;min-width:0;font-size:.84rem;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${c.name}</div>
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+      <img src="${c.image || DEFAULT_IMG}" style="width:44px;height:44px;object-fit:cover;border-radius:9px;flex-shrink:0" onerror="this.src='${DEFAULT_IMG}'">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.84rem;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${c.name}</div>
+        ${c.oos ? `<div style="font-size:.7rem;color:var(--red);margin-top:2px">⚠️ Agotado — disponibilidad calculada cuando haya stock</div>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
         <button class="kb-qty-btn" onclick="_kbChangeQty(${c.id},-1)">−</button>
-        <span style="font-size:.9rem;font-weight:700;min-width:20px;text-align:center">${c.qty}</span>
+        <span style="font-size:.9rem;font-weight:700;min-width:22px;text-align:center">${c.qty}</span>
         <button class="kb-qty-btn" onclick="_kbChangeQty(${c.id},1)">+</button>
         <button class="kb-qty-btn" onclick="_kbRemoveComponent(${c.id})" style="border-color:#FECACA;background:#FEF2F2;color:var(--red)">✕</button>
       </div>
@@ -6071,8 +6136,8 @@ async function _saveKit() {
   if (isNaN(price) || price < 0) { toast('Escribe un precio válido', 'error'); document.getElementById('kb-price').focus(); return; }
   if (!_kbComponents.length)     { toast('Agrega al menos un componente', 'error'); return; }
 
-  const catCode  = document.getElementById('kb-category').value;
-  const catLabel = getCatLabel(catCode);
+  const catCode  = 'kits';
+  const catLabel = getCatLabel('kits') || 'Kits';
   const newId    = products.reduce((m, p) => Math.max(m, p.id), 0) + 1;
   const position = products.length;
   const isPublished = can.publishProduct ? true : false;
@@ -6112,6 +6177,55 @@ async function _saveKit() {
   renderTable();
   renderStats();
   toast(`🎁 Kit "${name}" creado`, '');
+}
+
+async function _dismantleKit(id) {
+  const p = products.find(x => x.id === id);
+  if (!p?.kitItems?.length) return;
+
+  if (!confirm(`¿Desarmar el kit "${p.name}"?\n\nSe convertirá en un producto individual. Tendrás que asignarle stock manualmente.`)) return;
+
+  const restoreStock = confirm(`¿Devolver stock a los componentes?\n\nSe sumará 1 unidad de cada componente al stock actual.`);
+  const kitBackup = JSON.parse(JSON.stringify(p.kitItems));
+
+  const patches = [
+    supabaseApi(`products?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ kit_items: null, stock: 0, out_of_stock: true })
+    })
+  ];
+
+  if (restoreStock) {
+    kitBackup.forEach(comp => {
+      const compProd = products.find(x => x.id === comp.id);
+      if (!compProd) return;
+      const newStock = (compProd.stock || 0) + comp.qty;
+      patches.push(supabaseApi(`products?id=eq.${comp.id}`, {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ stock: newStock, out_of_stock: false })
+      }));
+    });
+  }
+
+  const results = await Promise.all(patches);
+  if (!results[0].ok) { toast('Error al desarmar el kit', 'error'); return; }
+
+  // Actualizar array local
+  p.kitItems = null; p.stock = 0; p.outOfStock = true;
+  if (restoreStock) {
+    kitBackup.forEach(comp => {
+      const compProd = products.find(x => x.id === comp.id);
+      if (compProd) { compProd.stock = (compProd.stock || 0) + comp.qty; compProd.outOfStock = false; }
+    });
+  }
+
+  closeQV();
+  renderTable();
+  renderStats();
+  logActivity('producto_editado', `Desarmó kit "${p.name}"${restoreStock ? ' — stock devuelto a componentes' : ''}`, { id, name: p.name });
+  toast(`📦 Kit "${p.name}" desarmado${restoreStock ? ' · stock devuelto a componentes' : ''}`, '');
 }
 
 /* ══════════════════════════════════════════════════════════════════

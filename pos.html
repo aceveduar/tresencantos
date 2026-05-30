@@ -1397,6 +1397,13 @@ async function loadPosCategories() {
   } catch {}
 }
 
+async function loadPosConfig() {
+  try {
+    const r = await api('config?id=eq.show_restock&select=id,value');
+    if (r.ok && r.data?.length) _showRestock = r.data[0].value !== 'false';
+  } catch {}
+}
+
 async function loadSalesStats() {
   try {
     const r = await api('sales?select=items&order=created_at.desc&limit=200');
@@ -1751,8 +1758,10 @@ function _cartStockFeedback(btn, e) {
 /* ── RESTOCK PROMPT ── */
 let _restockProductId = null;
 let _restockQty = 1;
+let _showRestock = true;
 
 function _showRestockPrompt(id) {
+  if (!_showRestock) return;
   const p = products.find(x => x.id === id);
   if (!p) return;
   _restockProductId = id;
@@ -3509,7 +3518,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (_nl) _nl.textContent = _name;
   } catch {}
   initDivider();
-  await Promise.all([loadProducts(), loadPosCategories(), loadSalesStats(), loadTopProductsFromSales(), loadPosNameMap()]);
+  await Promise.all([loadProducts(), loadPosCategories(), loadSalesStats(), loadTopProductsFromSales(), loadPosNameMap(), loadPosConfig()]);
   renderCategoryChips();
   setPosView(posView);
   setPosSort(posSort);
