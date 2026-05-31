@@ -1755,12 +1755,24 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       </div>
       <div style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px;overscroll-behavior:contain">
         <div>
+          <label class="kb-label">Foto del kit <span style="font-size:.7rem;color:var(--muted)">(opcional)</span></label>
+          <div id="kb-img-zone" onclick="document.getElementById('kb-img-input').click()" style="border:2px dashed var(--border);border-radius:12px;cursor:pointer;overflow:hidden;background:#FAFAF8;display:flex;align-items:center;justify-content:center;min-height:80px;position:relative;transition:border-color .2s">
+            <div id="kb-img-placeholder" style="display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--muted);font-size:.82rem;padding:16px">
+              <span style="font-size:1.6rem">📷</span><span>Toca para agregar foto</span>
+            </div>
+            <img id="kb-img-preview" src="" alt="" style="display:none;width:100%;height:120px;object-fit:cover">
+            <button id="kb-img-remove" type="button" onclick="event.stopPropagation();_kbRemoveImage()" style="display:none;position:absolute;top:8px;right:8px;background:rgba(255,255,255,.92);border:1px solid var(--border);border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:.85rem;line-height:28px;text-align:center;touch-action:manipulation">✕</button>
+          </div>
+          <input id="kb-img-input" type="file" accept="image/*" capture="environment" style="display:none" onchange="_kbHandleImageFile(this)">
+        </div>
+        <div>
           <label class="kb-label">Nombre del kit</label>
           <input id="kb-name" class="kb-input" type="text" placeholder="Ej: Kit Hidratación Natura">
         </div>
         <div>
           <label class="kb-label">Precio $</label>
           <input id="kb-price" class="kb-input" type="text" inputmode="decimal" placeholder="0.00">
+          <div id="kb-price-hint" style="display:none;margin-top:5px;font-size:.75rem;color:var(--muted)"></div>
         </div>
         <div>
           <label class="kb-label">Componentes</label>
@@ -2559,6 +2571,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       <div class="qv-price-row" id="qv-price-row"></div>
       <div class="qv-chips" id="qv-chips"></div>
       <div class="qv-desc" id="qv-desc"></div>
+      <div id="qv-kit-components" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border-light)"></div>
       <div id="qv-flag-zone"></div>
       <div class="qv-id-hint" id="qv-id"></div>
     </div>

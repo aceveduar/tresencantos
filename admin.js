@@ -6058,6 +6058,26 @@ function _renderQV(p) {
     descEl.style.display = p.description ? '' : 'none';
   }
 
+  // Componentes del kit
+  const kitZone = document.getElementById('qv-kit-components');
+  if (kitZone) {
+    if (p.kitItems?.length) {
+      kitZone.style.display = '';
+      kitZone.innerHTML = `<div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">🎁 Incluye</div>` +
+        p.kitItems.map(item => {
+          const comp = products.find(x => x.id === item.id);
+          return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-light)">
+            <img src="${comp?.image || DEFAULT_IMG}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0;background:#F0EBE3" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
+            <span style="flex:1;font-size:.82rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${item.name}</span>
+            <span style="font-size:.75rem;color:var(--muted);font-weight:600;flex-shrink:0">×${item.qty}</span>
+          </div>`;
+        }).join('');
+    } else {
+      kitZone.style.display = 'none';
+      kitZone.innerHTML = '';
+    }
+  }
+
   // Zona de flag
   const flagData = _flagItem(p.id);
   const flagZone = document.getElementById('qv-flag-zone');
@@ -6157,11 +6177,15 @@ function _handleRealtimeProduct({ eventType, new: row, old }) {
 
 /* ══ KIT BUILDER ════════════════════════════════════════════════════════ */
 let _kbComponents = [];
+let _kbImageDataUrl = null;
+
+const KIT_DEFAULT_IMG = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23FFF8EE'/%3E%3Ctext x='50' y='62' font-size='52' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%8E%81%3C/text%3E%3C/svg%3E`;
 
 function openKitBuilder() {
   try {
     if (!can.addProduct) { toast('Sin permiso para agregar productos', 'error'); return; }
     _kbComponents = [];
+    _kbImageDataUrl = null;
     const byId = id => document.getElementById(id);
     byId('kb-name').value = '';
     byId('kb-price').value = '';
@@ -6171,6 +6195,11 @@ function openKitBuilder() {
     byId('kb-stock-preview').textContent = '';
     byId('kb-save-btn').disabled = false;
     byId('kb-save-btn').textContent = 'Guardar Kit →';
+    byId('kb-img-preview').style.display = 'none';
+    byId('kb-img-placeholder').style.display = 'flex';
+    byId('kb-img-remove').style.display = 'none';
+    byId('kb-img-input').value = '';
+    byId('kb-price-hint').style.display = 'none';
     _kbRenderComponents();
     const kbo = byId('kit-builder-overlay');
     kbo.style.display = 'flex';
@@ -6235,6 +6264,39 @@ function _kbSearch(q) {
   res.style.display = 'block';
 }
 
+async function _kbHandleImageFile(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const dataUrl = await _fileToBase64Resized(file);
+  _kbImageDataUrl = dataUrl;
+  const preview = document.getElementById('kb-img-preview');
+  preview.src = dataUrl; preview.style.display = 'block';
+  document.getElementById('kb-img-placeholder').style.display = 'none';
+  document.getElementById('kb-img-remove').style.display = 'block';
+}
+
+function _kbRemoveImage() {
+  _kbImageDataUrl = null;
+  document.getElementById('kb-img-preview').style.display = 'none';
+  document.getElementById('kb-img-placeholder').style.display = 'flex';
+  document.getElementById('kb-img-remove').style.display = 'none';
+  document.getElementById('kb-img-input').value = '';
+}
+
+function _kbSuggestPrice() {
+  const hint = document.getElementById('kb-price-hint');
+  if (!_kbComponents.length) { hint.style.display = 'none'; return; }
+  const sum = _kbComponents.reduce((t, c) => {
+    const p = products.find(x => x.id === c.id);
+    return t + (p?.price || 0) * c.qty;
+  }, 0);
+  if (!sum) { hint.style.display = 'none'; return; }
+  hint.style.display = 'block';
+  hint.innerHTML = `Suma de componentes: <strong>$${sum.toLocaleString('es-MX')}</strong> · <a href="#" onclick="event.preventDefault();document.getElementById('kb-price').value=${sum};this.parentElement.style.display='none'" style="color:var(--gold);text-decoration:none;font-weight:600">Usar este precio</a>`;
+  const priceEl = document.getElementById('kb-price');
+  if (!priceEl.value) priceEl.value = sum;
+}
+
 function _kbAddComponent(id) {
   const p = products.find(x => x.id === id);
   if (!p || _kbComponents.find(c => c.id === id)) return;
@@ -6243,12 +6305,14 @@ function _kbAddComponent(id) {
   document.getElementById('kb-search-results').style.display = 'none';
   _kbRenderComponents();
   _kbUpdateStock();
+  _kbSuggestPrice();
 }
 
 function _kbRemoveComponent(id) {
   _kbComponents = _kbComponents.filter(c => c.id !== id);
   _kbRenderComponents();
   _kbUpdateStock();
+  _kbSuggestPrice();
 }
 
 function _kbChangeQty(id, delta) {
@@ -6257,6 +6321,7 @@ function _kbChangeQty(id, delta) {
   c.qty = Math.max(1, c.qty + delta);
   _kbRenderComponents();
   _kbUpdateStock();
+  _kbSuggestPrice();
 }
 
 function _kbRenderComponents() {
@@ -6308,12 +6373,18 @@ async function _saveKit() {
   const btn = document.getElementById('kb-save-btn');
   btn.disabled = true; btn.textContent = 'Guardando…';
 
+  let kitImage = KIT_DEFAULT_IMG;
+  if (_kbImageDataUrl) {
+    const uploaded = await uploadToDrive(_kbImageDataUrl);
+    kitImage = uploaded || _kbImageDataUrl;
+  }
+
   const result = await supabaseApi('products', {
     method: 'POST',
     headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify({
       id: newId, name, category: catCode, category_label: catLabel,
-      price, description: '', image: DEFAULT_IMG,
+      price, description: '', image: kitImage,
       badge: null, badge_type: null, featured: false,
       out_of_stock: false, original_price: null,
       barcode: null, stock: 0, cost: null,
@@ -6330,7 +6401,7 @@ async function _saveKit() {
 
   products.push({
     id: newId, name, category: catCode, categoryLabel: catLabel,
-    price, originalPrice: null, description: null, image: DEFAULT_IMG,
+    price, originalPrice: null, description: null, image: kitImage,
     badge: null, badgeType: null, featured: false, outOfStock: false,
     barcode: null, stock: 0, cost: null, isPublished, kitItems, images: null, position
   });
