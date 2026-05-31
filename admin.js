@@ -1413,7 +1413,7 @@ function desktopRow(p) {
         ${flagDataDR?.note ? `<div class="flag-note-line">🚩 "${flagDataDR.note}"</div>` : ''}
         <div class="prod-meta">
           ${catDot}
-          <span class="prod-meta-text"><span class="cat-label-inline${isSinCatDR ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${isSinCatDR ? 'Sin categoría' : p.categoryLabel}</span> · #${p.id}${p.barcode ? ` · 🔲 ${p.barcode}` : ''}${_showCreator && ROLE === 'superadmin' && p.createdBy ? ` · <span class="creator-chip" title="${p.createdBy}">👤 ${_creatorName(p.createdBy)}</span>` : ''}</span>
+          <span class="prod-meta-text"><span class="cat-label-inline${isSinCatDR ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${isSinCatDR ? 'Sin categoría' : p.categoryLabel}</span> · #${p.id}${_showCreator && ROLE === 'superadmin' && p.createdBy ? ` · <span class="creator-chip" title="${p.createdBy}">👤 ${_creatorName(p.createdBy)}</span>` : ''}</span>
           ${featStar}${publishedToggle(p)}${flagDotRow}
         </div>
       </div>
@@ -5963,7 +5963,7 @@ function _renderQV(p) {
   if (allImgs.length > 1) {
     imgContainer.innerHTML =
       `<div class="qv-gallery" id="qv-gallery" onscroll="_qvGalleryScroll(this)" ontouchend="_qvImgDoubleTap(event)">
-        ${allImgs.map((src, i) => `<img class="qv-gallery-img" src="${src}" alt="${p.name} ${i+1}" onerror="this.onerror=null;this.src='${fallback}'" style="${oosStyle}">`).join('')}
+        ${allImgs.map((src, i) => `<img class="qv-gallery-img" src="${src}" alt="${p.name} ${i+1}" onerror="this.onerror=null;this.src='${fallback}'" onclick="_qvOpenZoom()" style="cursor:zoom-in;${oosStyle}">`).join('')}
        </div>
        <div class="qv-gallery-dots" id="qv-gallery-dots">
          ${allImgs.map((_,i) => `<span class="qv-gd${i===0?' active':''}" onclick="_qvGoTo(${i})"></span>`).join('')}

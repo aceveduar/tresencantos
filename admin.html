@@ -251,7 +251,7 @@ th{
   color:var(--muted);padding:14px 16px;text-align:left;
   border-bottom:1px solid var(--border);
 }
-td{padding:14px 16px;font-size:.875rem;border-bottom:1px solid var(--border-light);vertical-align:middle}
+td{padding:9px 16px;font-size:.875rem;border-bottom:1px solid var(--border-light);vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:#FDFAF6;transition:background .12s}
 
@@ -261,7 +261,7 @@ tr:hover td{background:#FDFAF6;transition:background .12s}
   flex-shrink:0;box-shadow:var(--shadow-sm);
   background:#F0EBE3;
 }
-.prod-name{font-weight:600;font-size:.9rem;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;color:var(--charcoal);line-height:1.35;white-space:normal}
+.prod-name{font-weight:600;font-size:.9rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--charcoal);line-height:1.35}
 .prod-cat{font-size:.73rem;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ── 5 COLUMNAS ── */
@@ -716,8 +716,8 @@ tr.drop-below{box-shadow:0 3px 0 var(--gold);background:var(--gold-light)}
 /* Out of stock */
 .badge-oos{background:#9B8B78}
 .oos-cell{
-  font-size:.72rem;font-weight:700;padding:5px 11px;border-radius:50px;
-  display:inline-flex;align-items:center;gap:5px;
+  font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:50px;
+  display:inline-flex;align-items:center;gap:4px;
   border:1.5px solid transparent;cursor:pointer;transition:all .16s;white-space:nowrap;
 }
 .oos-cell::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0;display:block}
