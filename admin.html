@@ -1800,7 +1800,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     <div class="recv-body">
       <div class="recv-scan-zone">
         <div class="recv-search-row">
-          <input id="recv-search" class="recv-search" placeholder="Buscar producto por nombre…" oninput="recvSearch(this.value)" autocomplete="off">
+          <input id="recv-search" class="recv-search" placeholder="Buscar producto por nombre…" oninput="recvSearch(this.value)" onkeydown="recvSearchKey(event)" autocomplete="off">
           <button class="recv-scan-btn" onclick="openRecvScanner()">📷 Escanear</button>
         </div>
         <div id="recv-search-results" class="recv-search-results"></div>

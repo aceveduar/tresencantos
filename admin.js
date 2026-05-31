@@ -5109,8 +5109,8 @@ function recvSearch(q) {
   const matches = products.filter(p => _norm(p.name).includes(_norm(val))).slice(0, 8);
   resultsEl.style.display = 'block';
   if (!matches.length) {
-    resultsEl.innerHTML = `<div style="padding:12px 14px;font-size:.82rem;color:var(--muted);display:flex;align-items:center;gap:8px">
-      No encontrado
+    resultsEl.innerHTML = `<div class="recv-no-found" style="padding:12px 14px;font-size:.82rem;color:var(--muted);display:flex;align-items:center;gap:8px">
+      No encontrado: <em style="color:var(--charcoal)">${val}</em>
       <button class="btn btn-outline btn-sm" onclick="document.getElementById('recv-search').value='';document.getElementById('recv-search-results').style.display='none';closeRecvMode();openCaptureMode()" style="margin-left:auto;font-size:.72rem">+ Dar de alta</button>
     </div>`;
     return;
@@ -5125,6 +5125,23 @@ function recvSearch(q) {
   </div>
   <span class="recv-result-add">+ Recibir</span>
 </div>`).join('');
+}
+
+function recvSearchKey(e) {
+  if (e.key !== 'Enter') return;
+  const resultsEl = document.getElementById('recv-search-results');
+  if (resultsEl.style.display === 'none') return;
+  // No encontrado: Enter limpia el campo para el próximo escaneo
+  if (resultsEl.querySelector('.recv-no-found')) {
+    e.preventDefault();
+    document.getElementById('recv-search').value = '';
+    resultsEl.style.display = 'none';
+    document.getElementById('recv-search').focus();
+    return;
+  }
+  // Hay resultados: Enter selecciona el primero
+  const first = resultsEl.querySelector('.recv-result-item');
+  if (first) first.click();
 }
 
 function recvConfirmAdd(id, qty = 1) {
