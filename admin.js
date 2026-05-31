@@ -6713,15 +6713,27 @@ async function _cmpKeep(keepId, deleteId) {
 
 async function _urlToBase64(url) {
   if (!url || url.startsWith('data:')) return url;
-  try {
-    const res = await fetch(url);
-    const blob = await res.blob();
-    return new Promise(resolve => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.readAsDataURL(blob);
-    });
-  } catch { return url; }
+  // fetch() falla por CORS en Drive URLs — usar canvas vía <img> que sí puede cargar la imagen
+  return new Promise(resolve => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const MAX = 768;
+        let w = img.naturalWidth, h = img.naturalHeight;
+        if (w > MAX || h > MAX) {
+          if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+          else        { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      } catch { resolve(url); } // canvas tainted → fallback a URL
+    };
+    img.onerror = () => resolve(url);
+    img.src = url;
+  });
 }
 
 async function compareWithAI() {
