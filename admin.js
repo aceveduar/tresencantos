@@ -339,7 +339,12 @@ function getCurrentUserEmail() {
   try {
     const s = JSON.parse(localStorage.getItem(SESSION_KEY));
     if (!s?.access_token) return 'desconocido';
-    return JSON.parse(atob(s.access_token.split('.')[1])).email || 'desconocido';
+    // Usar email guardado directamente en la sesión (más confiable que decodificar JWT)
+    if (s.email) return s.email;
+    if (s.user?.email) return s.user.email;
+    // Fallback: decodificar JWT (Base64URL → Base64 estándar antes de atob)
+    const b64 = s.access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(b64)).email || 'desconocido';
   } catch { return 'desconocido'; }
 }
 function logActivity(action, summary, meta = null) {
@@ -385,7 +390,8 @@ function getFilteredProducts() {
       (_statFilter === 'sin-codigo'   && !p.barcode) ||
       (_statFilter === 'sin-categ'    && p.category === 'por_revisar') ||
       (_statFilter === 'ultima-pieza' && p.stock === 1 && !p.outOfStock) ||
-      (_statFilter === 'sin-precio'   && (!p.price || p.price === 0));
+      (_statFilter === 'sin-precio'   && (!p.price || p.price === 0)) ||
+      (_statFilter === 'imagen-base64' && p.image?.startsWith('data:'));
     return matchCat && matchQ && matchFlag && matchStat && matchCreator;
   });
 
@@ -882,6 +888,11 @@ function renderStats() {
     (sinCodigo    > 0 ? chip('sin-codigo',  '🔲', sinCodigo,   'Sin código',   '#4B5563') : '') +
     (sinCateg     > 0 ? chip('sin-categ',   '⚠️', sinCateg,    'Sin categoría','#B45309') : '') +
     (nFlag        > 0 ? chip('revisar',     '🚩', nFlag,       'Por revisar',  '#dc2626') : '') +
+    (() => {
+      if (ROLE !== 'superadmin') return '';
+      const nBase64 = products.filter(p => p.image?.startsWith('data:')).length;
+      return nBase64 > 0 ? chip('imagen-base64', '🗄', nBase64, 'Imagen base64', '#7C3AED') : '';
+    })() +
     (() => {
       if (!can.publishProduct) return '';
       const sinPrecio = products.filter(p => !p.price || p.price === 0);
@@ -2130,6 +2141,55 @@ async function uploadToDrive(b64) {
   }
 }
 
+async function migrateBase64ToDrive() {
+  const toMigrate = products.filter(p => p.image?.startsWith('data:'));
+  if (!toMigrate.length) { toast('No hay imágenes base64 que migrar', ''); return; }
+  if (!driveEp || !driveSecret) { toast('Configura Google Drive primero en Herramientas → Google Drive', 'error'); return; }
+  if (!confirm(`¿Migrar ${toMigrate.length} imágenes a Google Drive automáticamente?\n\nTarda ~${toMigrate.length} segundos. No cierres la ventana.`)) return;
+
+  // Crear overlay de progreso
+  const overlay = document.createElement('div');
+  overlay.id = 'migrate-progress';
+  overlay.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--charcoal);color:#fff;padding:14px 20px;border-radius:12px;font-size:.85rem;z-index:9999;min-width:260px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.4)';
+  document.body.appendChild(overlay);
+
+  const setProgress = (cur, total, name) => {
+    overlay.innerHTML = `<div style="font-weight:600;margin-bottom:6px">Migrando imágenes a Drive…</div>
+      <div style="background:#444;border-radius:6px;height:6px;margin-bottom:8px">
+        <div style="background:var(--gold);height:6px;border-radius:6px;width:${Math.round(cur/total*100)}%;transition:width .3s"></div>
+      </div>
+      <div style="color:var(--muted-light);font-size:.78rem">${cur}/${total} — ${name}</div>`;
+  };
+
+  let ok = 0, fail = 0;
+  for (let i = 0; i < toMigrate.length; i++) {
+    const p = toMigrate[i];
+    setProgress(i, toMigrate.length, p.name.slice(0, 35));
+    const url = await uploadToDrive(p.image);
+    if (url) {
+      const res = await supabaseApi(`products?id=eq.${p.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ image: url })
+      });
+      if (res.ok) {
+        const idx = products.findIndex(x => x.id === p.id);
+        if (idx > -1) products[idx].image = url;
+        ok++;
+      } else { fail++; }
+    } else { fail++; }
+    await new Promise(r => setTimeout(r, 600));
+  }
+
+  overlay.remove();
+  renderTable();
+  renderStats();
+  if (fail === 0) {
+    toast(`✓ ${ok} imágenes migradas a Drive — egress reducido`, 'success');
+  } else {
+    toast(`${ok} migradas, ${fail} fallidas — revisa la conexión con Drive`, 'error');
+  }
+}
+
 /* ── IMAGE UPLOAD ── */
 let imageUploadController = null;
 let currentFormImageDataUrl = null; // base64 de la imagen actual para análisis IA
@@ -2594,8 +2654,11 @@ function _updateActiveFiltersBar() {
   if (sortLabels[sortVal]) chips.push(`↕ ${sortLabels[sortVal]}`);
 
   if (_statFilter) {
-    const statLabels = { 'con-stock':'Con stock','sin-stock':'Sin stock','ultima-pieza':'Última pieza','sin-publicar':'Sin publicar','sin-codigo':'Sin código','sin-categ':'Sin categoría','sin-precio':'Sin precio' };
+    const statLabels = { 'con-stock':'Con stock','sin-stock':'Sin stock','ultima-pieza':'Última pieza','sin-publicar':'Sin publicar','sin-codigo':'Sin código','sin-categ':'Sin categoría','sin-precio':'Sin precio','imagen-base64':'Imagen base64' };
     chips.push(statLabels[_statFilter] || _statFilter);
+    if (_statFilter === 'imagen-base64' && ROLE === 'superadmin') {
+      chips.push(`<button class="fac-chip fac-chip-action" onclick="migrateBase64ToDrive()">🚀 Migrar todas a Drive</button>`);
+    }
   }
   if (_showOnlyFlagged) chips.push('🚩 Por revisar');
 
@@ -6868,11 +6931,17 @@ async function _scanImageDuplicates() {
     if (e.key === 'Enter') {
       if (buf.length >= 4) {
         e.preventDefault();
-        const si = document.getElementById('search-input');
-        if (si) {
-          si.value = buf;
-          si.dispatchEvent(new Event('input', { bubbles: true }));
-          si.focus();
+        const code = buf;
+        const exactMatch = products.find(p => p.barcode && p.barcode === code);
+        if (exactMatch) {
+          showScanResult(exactMatch.id);
+        } else {
+          const si = document.getElementById('search-input');
+          if (si) {
+            si.value = code;
+            si.dispatchEvent(new Event('input', { bubbles: true }));
+            si.focus();
+          }
         }
       }
       buf = '';
