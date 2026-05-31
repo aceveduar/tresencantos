@@ -6424,7 +6424,21 @@ async function _saveKit() {
   if (!_kbComponents.length)     { toast('Agrega al menos un componente', 'error'); return; }
 
   const catCode  = 'kits';
-  const catLabel = getCatLabel('kits') || 'Kits';
+
+  // Auto-crear la categoría 'kits' si no existe
+  if (!categories.find(c => c.code === 'kits')) {
+    const newCat = { code: 'kits', label: 'Kits', color: '#C9A462' };
+    categories.push(newCat);
+    const catJson = JSON.stringify(categories);
+    await supabaseApi("config?id=eq.categories", {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ value: catJson })
+    });
+    renderCategorySelects();
+  }
+
+  const catLabel = categories.find(c => c.code === 'kits')?.label || 'Kits';
   const newId    = products.reduce((m, p) => Math.max(m, p.id), 0) + 1;
   const position = products.length;
   const isPublished = can.publishProduct ? true : false;
@@ -6467,6 +6481,10 @@ async function _saveKit() {
   });
   logActivity('producto_creado', `Creó kit "${name}" — $${price.toLocaleString('es-MX')}`, { id: newId, name, price });
   closeKitBuilder();
+  // Resetear filtros para que el kit siempre sea visible al crearlo
+  const cf = document.getElementById('cat-filter');
+  if (cf) cf.value = 'all';
+  _statFilter = null;
   renderTable();
   renderStats();
   toast(`🎁 Kit "${name}" creado`, '');
