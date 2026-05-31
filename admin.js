@@ -5835,40 +5835,66 @@ function _initQVSwipe() {
   if (!overlay || overlay._swipeInited) return;
   overlay._swipeInited = true;
 
+  let _qvDragging = false;
+
   overlay.addEventListener('touchstart', e => {
-    // No iniciar swipe si el toque empieza sobre un campo de texto editable
-    if (e.target.closest('input, textarea, [contenteditable]')) { _qvSwipeX = null; return; }
+    // No iniciar swipe sobre inputs ni sobre la descripción scrolleable
+    if (e.target.closest('input, textarea, [contenteditable], .qv-desc')) { _qvSwipeX = null; return; }
     _qvSwipeX   = e.touches[0].clientX;
     _qvSwipeY   = e.touches[0].clientY;
-    _qvSwipeDir = null; // 'h' | 'v' | null
+    _qvSwipeDir = null;
+    _qvDragging = false;
   }, { passive: true });
 
   overlay.addEventListener('touchmove', e => {
-    if (_qvSwipeX === null || _qvSwipeDir) return;
-    const dx = Math.abs(e.touches[0].clientX - _qvSwipeX);
-    const dy = Math.abs(e.touches[0].clientY - _qvSwipeY);
-    if (dx > 8 || dy > 8) _qvSwipeDir = dx > dy ? 'h' : 'v';
+    if (_qvSwipeX === null) return;
+    const dx    = Math.abs(e.touches[0].clientX - _qvSwipeX);
+    const dy    = e.touches[0].clientY - _qvSwipeY;
+    const absDy = Math.abs(dy);
+    if (!_qvSwipeDir && (dx > 8 || absDy > 8)) _qvSwipeDir = dx > absDy ? 'h' : 'v';
+
+    // En mobile: el panel sigue el dedo en tiempo real
+    if (_qvSwipeDir === 'v' && window.innerWidth <= 600) {
+      const panel = document.getElementById('qv-panel');
+      if (panel) {
+        panel.style.transition = 'none';
+        // Hacia arriba: resistencia (efecto rubber band al 25%)
+        panel.style.transform = `translateY(${dy > 0 ? dy : dy * 0.25}px)`;
+        _qvDragging = true;
+      }
+    }
   }, { passive: true });
 
   overlay.addEventListener('touchend', e => {
     if (_qvSwipeX === null) return;
-    const dx = e.changedTouches[0].clientX - _qvSwipeX;
-    const dy = e.changedTouches[0].clientY - _qvSwipeY;
-    const dir = _qvSwipeDir;
+    const dx        = e.changedTouches[0].clientX - _qvSwipeX;
+    const dy        = e.changedTouches[0].clientY - _qvSwipeY;
+    const dir       = _qvSwipeDir;
+    const wasDragging = _qvDragging;
     _qvSwipeX = _qvSwipeY = _qvSwipeDir = null;
+    _qvDragging = false;
+
+    const panel = document.getElementById('qv-panel');
 
     if (dir === 'h' && Math.abs(dx) >= 40) {
-      // ← → Navegar entre productos (no en galería de imágenes)
+      // ← → Navegar entre productos (no en galería)
+      if (panel) { panel.style.transition = ''; panel.style.transform = ''; }
       if (!e.target.closest('.qv-gallery')) qvNavigate(dx < 0 ? 1 : -1);
 
     } else if (dir === 'v' && dy > 72) {
-      // ↓ Cerrar QV
+      // ↓ suficiente → cerrar
       _qvCloseWithAnim('down');
 
     } else if (dir === 'v' && dy < -72) {
-      // ↑ Abrir formulario de edición
+      // ↑ suficiente → abrir formulario
       _qvCloseWithAnim('up');
       setTimeout(() => openForm(_qvCurrentId || 0), 180);
+
+    } else if (wasDragging && panel) {
+      // No llegó al umbral → rebotar de vuelta con spring
+      panel.style.transition = 'transform .38s cubic-bezier(.34,1.56,.64,1)';
+      panel.style.transform  = 'translateY(0)';
+      setTimeout(() => { panel.style.transition = ''; panel.style.transform = ''; }, 380);
     }
   }, { passive: true });
 }
