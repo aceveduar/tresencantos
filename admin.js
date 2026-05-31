@@ -5109,9 +5109,12 @@ function recvSearch(q) {
   const matches = products.filter(p => _norm(p.name).includes(_norm(val))).slice(0, 8);
   resultsEl.style.display = 'block';
   if (!matches.length) {
-    resultsEl.innerHTML = `<div class="recv-no-found" style="padding:12px 14px;font-size:.82rem;color:var(--muted);display:flex;align-items:center;gap:8px">
-      No encontrado: <em style="color:var(--charcoal)">${val}</em>
-      <button class="btn btn-outline btn-sm" onclick="document.getElementById('recv-search').value='';document.getElementById('recv-search-results').style.display='none';closeRecvMode();openCaptureMode()" style="margin-left:auto;font-size:.72rem">+ Dar de alta</button>
+    const safeVal = val.replace(/'/g, "\\'");
+    resultsEl.innerHTML = `<div class="recv-no-found" style="padding:18px 16px;text-align:center">
+      <div style="font-size:1.6rem;margin-bottom:6px">🔍</div>
+      <div style="font-weight:600;color:var(--charcoal);font-size:.88rem;margin-bottom:4px">Producto no encontrado</div>
+      <div style="font-size:.76rem;color:var(--muted);margin-bottom:14px;word-break:break-all;max-width:260px;margin-left:auto;margin-right:auto">${val}</div>
+      <button onclick="recvCreateProduct('${safeVal}')" style="width:100%;padding:11px 16px;background:var(--charcoal);color:#fff;border:none;border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">+ Crear producto →</button>
     </div>`;
     return;
   }
@@ -5127,16 +5130,33 @@ function recvSearch(q) {
 </div>`).join('');
 }
 
+function recvCreateProduct(val) {
+  document.getElementById('recv-search').value = '';
+  document.getElementById('recv-search-results').style.display = 'none';
+  closeRecvMode();
+  openForm();
+  // Pre-llenar barcode si es numérico (pistola), o nombre si es texto
+  setTimeout(() => {
+    const isBarcode = /^\d{6,}$/.test(val);
+    if (isBarcode) {
+      const bc = document.getElementById('f-barcode');
+      if (bc) bc.value = val;
+    } else {
+      const nm = document.getElementById('f-name');
+      if (nm) { nm.value = val; nm.focus(); }
+    }
+  }, 150);
+}
+
 function recvSearchKey(e) {
   if (e.key !== 'Enter') return;
   const resultsEl = document.getElementById('recv-search-results');
   if (resultsEl.style.display === 'none') return;
-  // No encontrado: Enter limpia el campo para el próximo escaneo
+  // No encontrado: Enter abre el formulario de creación
   if (resultsEl.querySelector('.recv-no-found')) {
     e.preventDefault();
-    document.getElementById('recv-search').value = '';
-    resultsEl.style.display = 'none';
-    document.getElementById('recv-search').focus();
+    const val = document.getElementById('recv-search').value;
+    recvCreateProduct(val);
     return;
   }
   // Hay resultados: Enter selecciona el primero
