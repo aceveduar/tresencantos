@@ -583,7 +583,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   let _resizeTimer;
   window.addEventListener('resize', () => {
     clearTimeout(_resizeTimer);
-    _resizeTimer = setTimeout(() => { if (!_inlineEditActive) { renderTable(); _adaptSearch(); } }, 180);
+    _resizeTimer = setTimeout(() => {
+    const focused = document.activeElement;
+    const inTable = focused && (focused.tagName === 'INPUT' || focused.tagName === 'TEXTAREA') && document.querySelector('.table-wrap')?.contains(focused);
+    if (!inTable) { renderTable(); _adaptSearch(); }
+  }, 180);
   });
 
   // Botón scroll-to-top
@@ -1348,7 +1352,6 @@ function editCategoryInline(e, id) {
   _bcpFilter('');
   document.getElementById('bulk-cat-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
-  setTimeout(() => document.getElementById('bcp-search-input')?.focus(), 200);
 }
 
 function desktopRow(p) {
@@ -3418,7 +3421,6 @@ function openFormCatPicker() {
   _bcpFilter('');
   document.getElementById('bulk-cat-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
-  setTimeout(() => document.getElementById('bcp-search-input')?.focus(), 200);
 }
 
 function _updateFormCatBtn(code) {
