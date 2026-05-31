@@ -5836,6 +5836,8 @@ function _initQVSwipe() {
   overlay._swipeInited = true;
 
   overlay.addEventListener('touchstart', e => {
+    // No iniciar swipe si el toque empieza sobre un campo de texto editable
+    if (e.target.closest('input, textarea, [contenteditable]')) { _qvSwipeX = null; return; }
     _qvSwipeX   = e.touches[0].clientX;
     _qvSwipeY   = e.touches[0].clientY;
     _qvSwipeDir = null; // 'h' | 'v' | null
