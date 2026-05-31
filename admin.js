@@ -6773,7 +6773,7 @@ async function compareWithAI() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
       body: JSON.stringify({
-        model: canUseImages ? 'meta-llama/llama-4-scout-17b-16e-instruct' : 'llama3-8b-8192',
+        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
         messages: [{ role: 'user', content }],
         max_tokens: 180,
         temperature: 0.2
