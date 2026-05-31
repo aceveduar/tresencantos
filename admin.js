@@ -1331,61 +1331,20 @@ async function togglePublished(id) {
 
 let _catEditActive = false;
 
+let _bcpInlineId = null;
+
 function editCategoryInline(e, id) {
   e.stopPropagation();
   e.stopImmediatePropagation();
-  _catEditActive = true;
+  _bcpFormMode = false;
+  _bcpInlineId = id;
   const p = products.find(x => x.id === id);
-  if (!p) return;
-  const span = e.currentTarget;
-  const sel = document.createElement('select');
-  sel.style.cssText = 'border:2px solid var(--gold);border-radius:6px;padding:3px 28px 3px 8px;font-size:.80rem;font-family:inherit;background:#fff url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'6\' viewBox=\'0 0 10 6\'%3E%3Cpath d=\'M0 0l5 6 5-6\' fill=\'%23C9A462\'/%3E%3C/svg%3E") no-repeat right 8px center;color:var(--charcoal);outline:none;max-width:200px;min-width:120px;cursor:pointer;touch-action:manipulation;-webkit-appearance:none;appearance:none;box-shadow:0 2px 8px rgba(0,0,0,.1)';
-  rootCats().filter(r => r.code !== 'por_revisar').forEach(r => {
-    const subs = subCats(r.code);
-    if (subs.length) {
-      const og = document.createElement('optgroup');
-      og.label = r.label;
-      const rootOpt = document.createElement('option');
-      rootOpt.value = r.code; rootOpt.textContent = `${r.label} — General`;
-      if (r.code === p.category) rootOpt.selected = true;
-      og.appendChild(rootOpt);
-      subs.forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.code; opt.textContent = s.label;
-        if (s.code === p.category) opt.selected = true;
-        og.appendChild(opt);
-      });
-      sel.appendChild(og);
-    } else {
-      const opt = document.createElement('option');
-      opt.value = r.code; opt.textContent = r.label;
-      if (r.code === p.category) opt.selected = true;
-      sel.appendChild(opt);
-    }
-  });
-  span.replaceWith(sel);
-  let saved = false;
-  const save = async () => {
-    if (saved) return; saved = true;
-    _catEditActive = false;
-    const newCode = sel.value;
-    if (newCode === p.category) { renderTable(); _qvRefresh(id); return; }
-    const cat = categories.find(c => c.code === newCode);
-    if (!cat) { renderTable(); _qvRefresh(id); return; }
-    const result = await supabaseApi(`products?id=eq.${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ category: newCode, category_label: cat.label })
-    });
-    if (result.ok) {
-      p.category = newCode; p.categoryLabel = cat.label;
-      toast(`Categoría → ${cat.label}`);
-    } else { toast('Error al actualizar categoría', 'error'); }
-    renderTable(); _qvRefresh(id);
-  };
-  sel.addEventListener('change', save);
-  sel.addEventListener('blur', () => { _catEditActive = false; if (!saved) renderTable(); });
-  sel.addEventListener('keydown', ev => { if (ev.key === 'Escape') { _catEditActive = false; saved = true; renderTable(); } });
-  setTimeout(() => sel.focus(), 50);
+  document.getElementById('bcp-sub').textContent = p ? p.name : 'Cambiar categoría';
+  document.getElementById('bcp-search-input').value = '';
+  _bcpFilter('');
+  document.getElementById('bulk-cat-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('bcp-search-input')?.focus(), 200);
 }
 
 function desktopRow(p) {
@@ -3479,6 +3438,7 @@ function bulkSetCategory() {
 
 function closeBulkCatPicker() {
   _bcpFormMode = false;
+  _bcpInlineId = null;
   document.getElementById('bulk-cat-overlay').classList.remove('open');
   document.body.style.overflow = '';
 }
@@ -3588,6 +3548,22 @@ async function _bcpSelect(code) {
     const lblInput = document.getElementById('f-category-label');
     if (lblInput) lblInput.value = cat.label;
     _updateFormCatBtn(cat.code);
+    return;
+  }
+
+  if (_bcpInlineId !== null) {
+    const inlineId = _bcpInlineId;
+    closeBulkCatPicker();
+    const p = products.find(x => x.id === inlineId);
+    if (!p || p.category === cat.code) { renderTable(); _qvRefresh(inlineId); return; }
+    supabaseApi(`products?id=eq.${inlineId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ category: cat.code, category_label: cat.label })
+    }).then(r => {
+      if (r.ok) { p.category = cat.code; p.categoryLabel = cat.label; toast(`Categoría → ${cat.label}`); }
+      else toast('Error al actualizar categoría', 'error');
+      renderTable(); _qvRefresh(inlineId);
+    });
     return;
   }
 
