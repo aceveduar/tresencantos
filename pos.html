@@ -916,7 +916,10 @@ button,a{touch-action:manipulation}
   <!-- IZQUIERDO: búsqueda + productos -->
   <div class="pos-left" id="pos-left">
     <div class="pos-search-bar">
-      <input type="search" id="pos-search" placeholder="Buscar producto..." oninput="searchProducts(this.value)" autocomplete="off">
+      <div style="position:relative;flex:1;min-width:0;display:flex">
+        <input type="text" id="pos-search" placeholder="Buscar producto..." oninput="searchProducts(this.value);_togglePosSearchClear()" autocomplete="off" style="flex:1;min-width:0;padding-right:32px">
+        <button id="pos-search-clear" onclick="clearPosSearch()" title="Limpiar" style="display:none;position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#B5A696;font-size:1rem;padding:4px;line-height:1;touch-action:manipulation">✕</button>
+      </div>
       <div class="pos-sort-toggle" id="pos-sort-toggle">
         <button class="pos-sort-btn" data-sort="recientes" onclick="setPosSort('recientes')" title="Recientes">🕐</button>
         <button class="pos-sort-btn" data-sort="az"        onclick="setPosSort('az')"        title="A → Z">AZ</button>
@@ -1598,6 +1601,17 @@ function showAllProducts() {
   }
   const groupCat = currentCat === 'all' && posView === 'list' && posSort === 'az';
   renderPosProducts(filtered, groupCat);
+}
+
+function _togglePosSearchClear() {
+  const btn = document.getElementById('pos-search-clear');
+  if (btn) btn.style.display = document.getElementById('pos-search')?.value ? '' : 'none';
+}
+function clearPosSearch() {
+  const s = document.getElementById('pos-search');
+  if (s) { s.value = ''; s.focus(); }
+  _togglePosSearchClear();
+  searchProducts('');
 }
 
 function searchProducts(q) {
@@ -3575,6 +3589,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (match) {
       addToCart(match.id);
       e.target.value = '';
+      _togglePosSearchClear();
       showAllProducts();
     }
   });
