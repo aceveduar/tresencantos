@@ -14,15 +14,20 @@ WHERE email = 'ofe@tresencantos.com';
 
 
 
+-- Asignar created_by usando fecha en hora México (UTC-6)
+-- Supabase guarda en UTC — usar AT TIME ZONE para no tener que restar 6 horas a mano
 UPDATE products
 SET created_by = 'areli@tresencantos.com'
 WHERE created_by IS NULL
-  AND created_at >= '2026-05-30'::date;
+  AND (created_at AT TIME ZONE 'America/Mexico_City')::date = '2026-05-30'; -- ← cambia la fecha
 
-
--- ⚠️ Ajusta la fecha si Areli agregó productos en días anteriores.
--- Primero verifica qué productos tienen null:
-SELECT id, name, created_at FROM products WHERE created_by IS NULL ORDER BY created_at DESC LIMIT 20;
+-- Ver productos sin created_by con hora en México:
+SELECT id, name,
+  (created_at AT TIME ZONE 'America/Mexico_City') AS hora_mexico,
+  created_by
+FROM products
+WHERE created_by IS NULL
+ORDER BY created_at DESC LIMIT 20;
 
 
 -- Imágenes en base64 (pesan mucho y causan egress alto)
@@ -38,3 +43,19 @@ SELECT id, name, category_label, LEFT(image, 30) AS imagen_inicio
 FROM products
 WHERE image LIKE 'data:image/%'
 ORDER BY name;
+
+
+
+UPDATE products
+SET created_by = 'eacevedo@sunname.com.mx'
+WHERE id BETWEEN 502 AND 511
+   OR id BETWEEN 515 AND 518;
+
+UPDATE products
+SET created_by = 'eacevedo@sunname.com.mx'
+WHERE created_by IS NULL
+  AND id BETWEEN 1 AND 189;
+
+  UPDATE products
+SET created_by = 'ofe@tresencantos.com'
+WHERE created_by IS NULL;

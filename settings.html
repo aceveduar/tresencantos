@@ -14,7 +14,8 @@
   --border:#EAE0D4;--muted:#8A7564;--muted-light:#B5A696;--r:12px;
 }
 html{-webkit-text-size-adjust:100%}
-body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal);min-height:100dvh;display:flex;flex-direction:column}
+body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal);min-height:100dvh;display:flex;flex-direction:column;scrollbar-width:none}
+body::-webkit-scrollbar{display:none}
 button,input,select,textarea{font-family:inherit}
 a{text-decoration:none}
 *{-webkit-tap-highlight-color:transparent}
@@ -207,7 +208,10 @@ button,a,[onclick]{touch-action:manipulation}
   .overlay{align-items:flex-end;padding:0}
   .add-cat-row{flex-direction:column}
   .add-cat-row select{max-width:100%!important}
+  .add-cat-row input,.add-cat-row select,.cat-parent-sel{font-size:1rem}
   .btn-row{gap:6px}
+  /* En mobile: ocultar contadores y selector de mover — el nombre necesita el espacio */
+  .cat-sec-count,.cat-prod-count,.cat-move-sel{display:none!important}
 }
 </style>
 </head>
