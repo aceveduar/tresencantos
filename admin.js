@@ -5152,11 +5152,11 @@ function recvSearchKey(e) {
   if (e.key !== 'Enter') return;
   const resultsEl = document.getElementById('recv-search-results');
   if (resultsEl.style.display === 'none') return;
-  // No encontrado: Enter abre el formulario de creación
+  // No encontrado: Enter de la pistola limpia el campo pero deja la tarjeta visible
   if (resultsEl.querySelector('.recv-no-found')) {
     e.preventDefault();
-    const val = document.getElementById('recv-search').value;
-    recvCreateProduct(val);
+    document.getElementById('recv-search').value = '';
+    document.getElementById('recv-search').focus();
     return;
   }
   // Hay resultados: Enter selecciona el primero
