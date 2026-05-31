@@ -5885,11 +5885,6 @@ function _initQVSwipe() {
       // ↓ suficiente → cerrar
       _qvCloseWithAnim('down');
 
-    } else if (dir === 'v' && dy < -72) {
-      // ↑ suficiente → abrir formulario
-      _qvCloseWithAnim('up');
-      setTimeout(() => openForm(_qvCurrentId || 0), 180);
-
     } else if (wasDragging && panel) {
       // No llegó al umbral → rebotar de vuelta con spring
       panel.style.transition = 'transform .38s cubic-bezier(.34,1.56,.64,1)';
