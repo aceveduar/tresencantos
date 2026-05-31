@@ -6711,6 +6711,19 @@ async function _cmpKeep(keepId, deleteId) {
   toast(`"${del.name}" eliminado — se quedó el producto seleccionado`);
 }
 
+async function _urlToBase64(url) {
+  if (!url || url.startsWith('data:')) return url;
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    });
+  } catch { return url; }
+}
+
 async function compareWithAI() {
   if (!groqApiKey) {
     toast('Configura la API key de Groq en Configuración → Integraciones', 'error');
@@ -6726,10 +6739,13 @@ async function compareWithAI() {
   result.style.display = 'none';
   result.className = '';
 
-  const imgA = a.image || DEFAULT_IMG;
-  const imgB = b.image || DEFAULT_IMG;
+  btn.textContent = '🤖 Cargando imágenes…';
+  const [imgA, imgB] = await Promise.all([
+    _urlToBase64(a.image || DEFAULT_IMG),
+    _urlToBase64(b.image || DEFAULT_IMG)
+  ]);
+  btn.textContent = '🤖 Analizando…';
 
-  // Groq Vision soporta URLs y data URIs
   const content = [
     {
       type: 'text',
@@ -6789,8 +6805,8 @@ async function _dupAnalyzePair(pairKey, idA, idB) {
           role: 'user',
           content: [
             { type: 'text', text: `Analiza estas dos imágenes de productos de una boutique. ¿Son el mismo artículo físico aunque tengan nombres o fondos diferentes? Nombres: "${a.name}" y "${b.name}". Responde en español: SÍ, NO o PROBABLEMENTE, seguido de una sola oración de justificación visual. Sé muy conciso.` },
-            { type: 'image_url', image_url: { url: a.image || DEFAULT_IMG } },
-            { type: 'image_url', image_url: { url: b.image || DEFAULT_IMG } }
+            { type: 'image_url', image_url: { url: await _urlToBase64(a.image || DEFAULT_IMG) } },
+            { type: 'image_url', image_url: { url: await _urlToBase64(b.image || DEFAULT_IMG) } }
           ]
         }],
         max_tokens: 100,
