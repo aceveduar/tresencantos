@@ -230,7 +230,7 @@ function _updateCatFilterBtn() {
   if (!btn || !lbl) return;
   const val = document.getElementById('cat-filter')?.value || 'all';
   if (val === 'all') {
-    lbl.textContent = 'Categoría';
+    lbl.textContent = 'Categorías';
     btn.classList.remove('has-filter');
   } else {
     const cat = categories.find(c => c.code === val);
@@ -240,47 +240,62 @@ function _updateCatFilterBtn() {
 }
 
 function openCatSheet() {
-  const cur = document.getElementById('cat-filter')?.value || 'all';
-  const roots = rootCats();
-  const list = document.getElementById('cat-sheet-list');
-  if (!list) return;
-
-  const item = (code, label, isSub, isActive) =>
-    `<button class="cat-sheet-item${isSub ? ' sub' : ''}${isActive ? ' active' : ''}" onclick="selectCatSheet('${code}')">
-       <span>${label}</span>
-       <span class="cat-sheet-check">✓</span>
-     </button>`;
-
-  const sinCategCount = products.filter(p => p.category === 'por_revisar').length;
-  const warnSection = sinCategCount > 0
-    ? `<div class="cat-sheet-warn-section">
-         <span class="cat-sheet-warn-label">⚠️ Necesitan atención</span>
-         <button class="cat-sheet-item warn${cur === 'por_revisar' ? ' active' : ''}" onclick="selectCatSheet('por_revisar')">
-           <span>Sin categoría — ${sinCategCount} producto${sinCategCount !== 1 ? 's' : ''}</span>
-           <span class="cat-sheet-check">✓</span>
-         </button>
-       </div>`
-    : '';
-
-  list.innerHTML =
-    item('all', 'Todas las categorías', false, cur === 'all') +
-    warnSection +
-    roots.filter(r => r.code !== 'por_revisar').map(r => {
-      const subs = subCats(r.code);
-      const groupLabel = `<span class="cat-sheet-group-label">${r.label}</span>`;
-      if (subs.length) {
-        return groupLabel +
-          item(r.code, `${r.label} — Todos`, false, cur === r.code) +
-          subs.map(s => item(s.code, s.label, true, cur === s.code)).join('');
-      }
-      return item(r.code, r.label, false, cur === r.code);
-    }).join('');
-
+  const searchEl = document.getElementById('cat-sheet-search');
+  if (searchEl) searchEl.value = '';
+  _renderCatSheetChips('');
   document.getElementById('cat-sheet-overlay').classList.add('open');
   document.getElementById('cat-sheet').classList.add('open');
   document.body.style.overflow = 'hidden';
   _initCatSheetSwipe();
+  setTimeout(() => searchEl?.focus(), 320);
 }
+
+function _renderCatSheetChips(query) {
+  const list = document.getElementById('cat-sheet-list');
+  if (!list) return;
+  const cur   = document.getElementById('cat-filter')?.value || 'all';
+  const roots = rootCats();
+  const q     = query.toLowerCase().trim();
+
+  const dot  = (color) => `<span style="width:8px;height:8px;border-radius:50%;background:${color || '#8A7564'};display:inline-block;flex-shrink:0"></span>`;
+  const chip = (code, label, color, isSelected) =>
+    `<button class="bcp-chip${isSelected ? ' selected' : ''}" onclick="selectCatSheet('${code}')">${dot(color)}${label}</button>`;
+
+  let html = '';
+
+  // Chip "Todas" + sección "Por revisar" en una misma franja
+  const sinCategCount = products.filter(p => p.category === 'por_revisar').length;
+  const todasMatch = !q || 'todas las categorías'.includes(q);
+  const revisar    = sinCategCount > 0 && (!q || 'por revisar sin categoría'.includes(q));
+
+  if (todasMatch || revisar) {
+    const todasChip   = todasMatch ? chip('all', 'Todas las categorías', '#8A7564', cur === 'all') : '';
+    const revisarChip = revisar
+      ? chip('por_revisar', `⚠️ Sin categoría — ${sinCategCount}`, '#D97706', cur === 'por_revisar')
+      : '';
+    html += `<div style="padding:10px 16px 10px"><div class="bcp-chips">${todasChip}${revisarChip}</div></div>`;
+  }
+
+  // Categorías agrupadas
+  roots.filter(r => r.code !== 'por_revisar').forEach(r => {
+    const subs  = subCats(r.code);
+    const color = r.color || '#8A7564';
+    const items = [
+      { code: r.code, label: subs.length ? 'Todos' : r.label, color },
+      ...subs.map(s => ({ code: s.code, label: s.label, color: s.color || color }))
+    ];
+    const filtered = q ? items.filter(i => i.label.toLowerCase().includes(q) || r.label.toLowerCase().includes(q)) : items;
+    if (!filtered.length) return;
+    html += `<div style="padding:2px 16px 10px;border-top:1px solid var(--border)">
+      <div class="bcp-group-label">${r.label.toUpperCase()}</div>
+      <div class="bcp-chips">${filtered.map(i => chip(i.code, i.label, i.color, cur === i.code)).join('')}</div>
+    </div>`;
+  });
+
+  list.innerHTML = html || `<div style="padding:28px;text-align:center;color:var(--muted);font-size:.85rem">Sin resultados</div>`;
+}
+
+function _catSheetFilter(q) { _renderCatSheetChips(q); }
 
 function closeCatSheet() {
   document.getElementById('cat-sheet-overlay').classList.remove('open');
@@ -3404,35 +3419,68 @@ function _bcpFilter(q) {
   }
   if (!html) {
     const label = q.trim();
+    _bcpPendingLabel = label;
     list.innerHTML = `
       <p style="color:var(--muted);font-size:.85rem;text-align:center;padding:16px 0 10px">Sin resultados para "<strong>${label}</strong>"</p>
-      <div style="text-align:center">
-        <button onclick="_bcpCreateAndSelect('${label.replace(/'/g,"\\'")}')"
+      <div style="display:flex;flex-direction:column;gap:10px;padding:0 8px 8px">
+        <button onclick="_bcpCreateAndSelect(null)"
           style="background:var(--charcoal);color:#fff;border:none;border-radius:10px;padding:11px 20px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">
-          + Crear categoría "${label}"
+          + Crear "${label}" como categoría
         </button>
+        <button onclick="_bcpToggleParentPicker(this)"
+          style="background:transparent;color:var(--charcoal);border:1.5px solid var(--border);border-radius:10px;padding:11px 20px;font-size:.88rem;font-weight:600;cursor:pointer;font-family:inherit;touch-action:manipulation">
+          + Crear "${label}" como subcategoría de…
+        </button>
+        <div id="bcp-parent-picker" style="display:none;padding-top:4px"></div>
       </div>`;
   } else {
     list.innerHTML = html;
   }
 }
 
-async function _bcpCreateAndSelect(label) {
-  label = label.trim();
+let _bcpPendingLabel = '';
+
+function _bcpToggleParentPicker(btn) {
+  const picker = document.getElementById('bcp-parent-picker');
+  if (!picker) return;
+  if (picker.style.display !== 'none') {
+    picker.style.display = 'none';
+    btn.style.borderColor = '';
+    return;
+  }
+  const roots = categories.filter(c => !c.parent);
+  if (!roots.length) { toast('No hay categorías para usar como padre', 'error'); return; }
+  picker.innerHTML = `
+    <p style="font-size:.8rem;color:var(--muted);margin-bottom:8px;text-align:center">Elige la categoría padre:</p>
+    <div class="bcp-chips" style="justify-content:center">
+      ${roots.map(r => `<button class="bcp-chip" onclick="_bcpCreateAndSelect('${r.code}')">
+        <span class="bcp-dot" style="background:${r.color||'#9B8B78'}"></span>${r.label}
+      </button>`).join('')}
+    </div>`;
+  picker.style.display = 'block';
+  btn.style.borderColor = 'var(--gold)';
+}
+
+async function _bcpCreateAndSelect(parentCode = null) {
+  const label = _bcpPendingLabel.trim();
   if (!label) return;
-  const code = label.toLowerCase()
+  const prefix = parentCode ? parentCode + '_' : '';
+  const code = (prefix + label.toLowerCase()
     .normalize('NFD').replace(/[̀-ͯ]/g,'')
-    .replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+    .replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,''));
   if (categories.find(c => c.code === code)) {
-    // Ya existe con ese código — seleccionarla directamente
     return _bcpSelect(code);
   }
-  const color = CAT_PALETTE[categories.length % CAT_PALETTE.length];
-  categories.push({ code, label, color });
+  const parent = parentCode ? categories.find(c => c.code === parentCode) : null;
+  const color = parent ? parent.color : CAT_PALETTE[categories.length % CAT_PALETTE.length];
+  const newCat = { code, label, color };
+  if (parentCode) newCat.parent = parentCode;
+  categories.push(newCat);
   await _saveCategories();
   renderCategorySelects();
   populateCatParentSelect();
-  toast(`Categoría "${label}" creada ✓`, 'success');
+  const suffix = parent ? ` en ${parent.label}` : '';
+  toast(`Categoría "${label}"${suffix} creada ✓`, 'success');
   _bcpSelect(code);
 }
 
@@ -6792,3 +6840,45 @@ async function _scanImageDuplicates() {
   body.prepend(section);
   toast(`🔍 ${foundPairs.length} par${foundPairs.length !== 1 ? 'es' : ''} con imagen similar detectado${foundPairs.length !== 1 ? 's' : ''}`, 'success');
 }
+
+// --- Interceptor global de escáner USB ---
+// Detecta ráfagas de caracteres (< 50ms entre cada uno) = escáner, no teclado humano
+;(function(){
+  let buf = '', t = null;
+
+  document.addEventListener('keydown', e => {
+    if (!e.isTrusted) return; // ignorar eventos sintéticos para evitar loop
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+    const active = document.activeElement;
+    const tag = active?.tagName?.toUpperCase();
+    // No interceptar si el cursor ya está en otro campo (formulario, textarea, etc.)
+    const inOtherInput = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT')
+      && active.id !== 'search-input';
+    if (inOtherInput) return;
+    // No interceptar si hay un modal abierto
+    if (document.querySelector('#form-overlay[style*="flex"], #qv-overlay.active, .modal-overlay.open')) return;
+
+    if (e.key === 'Enter') {
+      if (buf.length >= 4) {
+        e.preventDefault();
+        const si = document.getElementById('search-input');
+        if (si) {
+          si.value = buf;
+          si.dispatchEvent(new Event('input', { bubbles: true }));
+          si.focus();
+        }
+      }
+      buf = '';
+      clearTimeout(t);
+      return;
+    }
+
+    if (e.key.length === 1) {
+      buf += e.key;
+      clearTimeout(t);
+      // Si pasan más de 50ms sin otro carácter, no es escáner — resetear
+      t = setTimeout(() => { buf = ''; }, 50);
+    }
+  });
+})();
