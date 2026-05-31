@@ -6758,21 +6758,22 @@ async function compareWithAI() {
   ]);
   btn.textContent = '🤖 Analizando…';
 
-  const content = [
-    {
-      type: 'text',
-      text: `Eres un asistente de inventario para una boutique. Analiza las dos imágenes de productos y determina si son el mismo artículo físico (aunque tengan nombres diferentes o fondos distintos). Los nombres registrados son: "${a.name}" y "${b.name}". Responde en español con: 1) SÍ, NO o PROBABLEMENTE en mayúsculas al inicio, y 2) una justificación de máximo 2 oraciones basada en las características visuales del producto. Sé directo y conciso.`
-    },
-    { type: 'image_url', image_url: { url: imgA } },
-    { type: 'image_url', image_url: { url: imgB } }
-  ];
+  // Si las imágenes no se pudieron convertir (Drive bloquea CORS), usar comparación por texto
+  const canUseImages = imgA.startsWith('data:') && imgB.startsWith('data:');
+  const content = canUseImages
+    ? [
+        { type: 'text', text: `Eres un asistente de inventario. ¿Son el mismo producto físico? Nombres: "${a.name}" y "${b.name}". Responde en español: SÍ, NO o PROBABLEMENTE, seguido de máximo 2 oraciones de justificación visual. Sé directo.` },
+        { type: 'image_url', image_url: { url: imgA } },
+        { type: 'image_url', image_url: { url: imgB } }
+      ]
+    : `Eres un asistente de inventario. Compara estos dos productos de una boutique y determina si son el mismo artículo:\n\nProducto A: "${a.name}" — Categoría: ${a.categoryLabel} — Precio: $${a.price}\nProducto B: "${b.name}" — Categoría: ${b.categoryLabel} — Precio: $${b.price}\n\nResponde en español: SÍ, NO o PROBABLEMENTE, seguido de máximo 2 oraciones de justificación. Sé directo y conciso.`;
 
   try {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
       body: JSON.stringify({
-        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+        model: canUseImages ? 'meta-llama/llama-4-scout-17b-16e-instruct' : 'llama3-8b-8192',
         messages: [{ role: 'user', content }],
         max_tokens: 180,
         temperature: 0.2
@@ -6781,7 +6782,7 @@ async function compareWithAI() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
     const text = data.choices?.[0]?.message?.content?.trim() || 'Sin respuesta';
-    result.textContent = text;
+    result.textContent = (canUseImages ? '' : '📝 (comparación por nombre) ') + text;
     result.style.display = 'block';
     result.classList.add('show');
   } catch (e) {
