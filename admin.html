@@ -832,6 +832,9 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 /* ══ VOICE DICTATION ════════════════════════════════════════════════════ */
 .field-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .field-label-row label{margin-bottom:0;flex:1}
+.f-cat-btn{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--r);font-size:.9rem;background:#FAFAF8;font-family:inherit;color:var(--charcoal);cursor:pointer;display:flex;align-items:center;gap:8px;text-align:left;transition:.2s}
+.f-cat-btn:hover,.f-cat-btn:focus{border-color:var(--gold);background:#fff;box-shadow:0 0 0 3px rgba(201,164,98,.12);outline:none}
+.f-cat-arrow{margin-left:auto;color:var(--muted-light);font-size:.8rem}
 .btn-oferta-toggle{width:100%;padding:9px 14px;border:1.5px dashed var(--gold);border-radius:var(--r);background:var(--gold-light);color:var(--gold-dark);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;transition:.15s}
 .btn-oferta-toggle:hover{background:var(--cream-dark);border-color:var(--gold-dark)}
 .dictate-btn{
@@ -2202,9 +2205,12 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       <div class="form-row">
         <div class="field">
           <label>Categoría</label>
-          <select id="f-category" onchange="syncCategoryLabel()">
-            <!-- Opciones cargadas dinámicamente por renderCategorySelects() -->
-          </select>
+          <select id="f-category" style="display:none"></select>
+          <button type="button" id="f-category-btn" class="f-cat-btn" onclick="openFormCatPicker()">
+            <span id="f-cat-dot" class="cat-dot" style="background:#9B8B78"></span>
+            <span id="f-cat-label-display">Seleccionar categoría</span>
+            <span class="f-cat-arrow">▾</span>
+          </button>
         </div>
         <div class="field" id="field-cat-label">
           <label>Etiqueta visible</label>

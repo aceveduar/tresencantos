@@ -2530,6 +2530,7 @@ function openForm(id) {
     document.getElementById('f-name').value = p.name;
     document.getElementById('f-category').value = p.category;
     document.getElementById('f-category-label').value = p.categoryLabel;
+    _updateFormCatBtn(p.category);
     document.getElementById('f-price').value = p.price;
     document.getElementById('f-original-price').value = p.originalPrice || '';
     toggleOfertaField(!!p.originalPrice);
@@ -2557,6 +2558,7 @@ function openForm(id) {
     document.getElementById('f-name').value = '';
     document.getElementById('f-category').value = 'por_revisar';
     document.getElementById('f-category-label').value = categories[0]?.label || '';
+    _updateFormCatBtn('por_revisar');
     document.getElementById('f-price').value = '';
     document.getElementById('f-original-price').value = '';
     toggleOfertaField(false);
@@ -2701,6 +2703,7 @@ function clearSearchInput() {
 function syncCategoryLabel() {
   const cat = document.getElementById('f-category').value;
   document.getElementById('f-category-label').value = getCatLabel(cat);
+  _updateFormCatBtn(cat);
   _applyPriceLock();
 }
 
@@ -2786,6 +2789,7 @@ function suggestCategoryFromName() {
       sel.value = code;
       if (sel.value !== code) return; // código no existe en las opciones actuales
       syncCategoryLabel();
+      _updateFormCatBtn(code);
       sel.classList.add('ai-filled');
       setTimeout(() => sel.classList.remove('ai-filled'), 1400);
       return;
@@ -3442,8 +3446,30 @@ async function bulkDelete() {
   toast('Productos eliminados', 'success');
 }
 
+let _bcpFormMode = false;
+
+function openFormCatPicker() {
+  _bcpFormMode = true;
+  document.getElementById('bcp-sub').textContent = 'Categoría del producto';
+  document.getElementById('bcp-search-input').value = '';
+  _bcpFilter('');
+  document.getElementById('bulk-cat-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('bcp-search-input')?.focus(), 200);
+}
+
+function _updateFormCatBtn(code) {
+  const cat = categories.find(c => c.code === code);
+  const dot = document.getElementById('f-cat-dot');
+  const lbl = document.getElementById('f-cat-label-display');
+  if (!dot || !lbl) return;
+  dot.style.background = cat?.color || '#9B8B78';
+  lbl.textContent = cat?.label || code || 'Seleccionar categoría';
+}
+
 function bulkSetCategory() {
   if (!selectedIds.size) return;
+  _bcpFormMode = false;
   document.getElementById('bcp-sub').textContent = `${selectedIds.size} producto${selectedIds.size > 1 ? 's' : ''} seleccionado${selectedIds.size > 1 ? 's' : ''}`;
   document.getElementById('bcp-search-input').value = '';
   _bcpFilter('');
@@ -3452,6 +3478,7 @@ function bulkSetCategory() {
 }
 
 function closeBulkCatPicker() {
+  _bcpFormMode = false;
   document.getElementById('bulk-cat-overlay').classList.remove('open');
   document.body.style.overflow = '';
 }
@@ -3553,6 +3580,17 @@ async function _bcpCreateAndSelect(parentCode = null) {
 async function _bcpSelect(code) {
   const cat = categories.find(c => c.code === code);
   if (!cat) return;
+
+  if (_bcpFormMode) {
+    closeBulkCatPicker();
+    const sel = document.getElementById('f-category');
+    if (sel) sel.value = cat.code;
+    const lblInput = document.getElementById('f-category-label');
+    if (lblInput) lblInput.value = cat.label;
+    _updateFormCatBtn(cat.code);
+    return;
+  }
+
   closeBulkCatPicker();
 
   const ids = [...selectedIds].join(',');
