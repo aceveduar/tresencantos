@@ -550,6 +550,8 @@ button,a{touch-action:manipulation}
   }
   #btn-corte-pos:active,#btn-history-pos:active,#btn-apt-pos:active{opacity:.55}
   #btn-stats-pos{display:none!important}
+  #btn-apt-pos{display:none!important}
+  #apt-vencidos-alert{display:none!important}
   .topbar-right > .btn-outline-white:last-of-type{display:none}
 
   /* ── LAYOUT VERTICAL ─────────────────────────────────────── */
@@ -835,6 +837,9 @@ button,a{touch-action:manipulation}
 </style>
 </head>
 <body>
+<!-- Input trampa: captura escáner USB en Android sin mostrar teclado virtual -->
+<input id="scan-trap" type="text" inputmode="none" tabindex="-1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+  style="position:fixed;top:-200px;left:-200px;width:1px;height:1px;opacity:0;border:none;outline:none;padding:0;margin:0;pointer-events:none">
 <script src="splash.js"></script>
 <script>showSplash('🛍️','Caja','Punto de venta')</script>
 
@@ -3586,17 +3591,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Interceptor global de escáner USB
-  // Detecta ráfagas de caracteres (< 50ms entre cada uno) = escáner, no teclado humano
+  // --- Escáner USB: input trampa + interceptor ---
+  function _focusScanTrap() {
+    const trap = document.getElementById('scan-trap');
+    if (trap) { trap.value = ''; trap.focus({ preventScroll: true }); }
+  }
+
+  // Enfocar trampa al cargar (captura escáner sin tocar pantalla en Android)
+  setTimeout(_focusScanTrap, 400);
+
   ;(function(){
     let buf = '', t = null;
     document.addEventListener('keydown', e => {
-      if (!e.isTrusted) return; // ignorar eventos sintéticos para evitar loop
+      if (!e.isTrusted) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const active = document.activeElement;
       const tag = active?.tagName?.toUpperCase();
-      // Si cualquier input tiene foco, el input nativo ya maneja el escáner
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      // Si pos-search tiene foco, el input nativo ya maneja el escáner
+      if (active?.id === 'pos-search') return;
+      // Saltar otros inputs reales (formularios, apartado, etc.) pero no el scan-trap
+      if ((tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') && active?.id !== 'scan-trap') return;
       // No interceptar si hay un modal abierto
       if (document.getElementById('pos-scanner-overlay')?.classList.contains('open')) return;
       if (document.getElementById('sale-done')?.style.display === 'flex') return;
@@ -3608,10 +3622,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (si) {
             si.value = buf;
             si.dispatchEvent(new Event('input', { bubbles: true }));
-            si.focus();
-            // Disparar Enter para agregar al carrito si hay coincidencia exacta
             si.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
           }
+          setTimeout(_focusScanTrap, 150); // devolver foco a trampa tras agregar al carrito
         }
         buf = '';
         clearTimeout(t);

@@ -30,11 +30,11 @@ const ROLE = _parseRole();
 const _isSuperOrEncargado = ROLE === 'superadmin' || ROLE === 'encargado';
 const _isDuena = ROLE === 'duena';
 const can = {
-  deleteProduct:   _isSuperOrEncargado || _isDuena,
+  deleteProduct:   _isSuperOrEncargado || _isDuena || ROLE === 'operador',
   bulkDelete:      _isSuperOrEncargado,
   importJSON:      ROLE === 'superadmin',
   manageSettings:  ROLE === 'superadmin',
-  publishProduct:  ROLE === 'superadmin' || _isDuena,
+  publishProduct:  ROLE === 'superadmin' || _isDuena || ROLE === 'operador',
   editProduct:     true,
   addProduct:      true,
 };
@@ -3091,6 +3091,9 @@ function searchKitProducts(query) {
   const resultsEl = document.getElementById('kit-search-results');
   if (!query.trim()) { resultsEl.style.display = 'none'; return; }
   const editingId = parseInt(document.getElementById('f-id').value) || null;
+  // Coincidencia exacta de barcode → agregar componente automáticamente
+  const barcodeMatch = products.find(p => p.id !== editingId && p.barcode && p.barcode === query.trim());
+  if (barcodeMatch) { addKitComponent(barcodeMatch.id); return; }
   const q = query.toLowerCase();
   const matches = products.filter(p => p.id !== editingId && p.name.toLowerCase().includes(q)).slice(0, 6);
   if (!matches.length) { resultsEl.style.display = 'none'; return; }
@@ -5017,6 +5020,9 @@ function recvSearch(q) {
   const resultsEl = document.getElementById('recv-search-results');
   const val = q.trim();
   if (!val) { resultsEl.style.display = 'none'; return; }
+  // Coincidencia exacta de código de barras → agregar automáticamente sin mostrar lista
+  const barcodeMatch = products.find(p => p.barcode && p.barcode === val);
+  if (barcodeMatch) { recvConfirmAdd(barcodeMatch.id); return; }
   const matches = products.filter(p => _norm(p.name).includes(_norm(val))).slice(0, 8);
   resultsEl.style.display = 'block';
   if (!matches.length) {

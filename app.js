@@ -277,8 +277,12 @@ function initAdminBar() {
     const role = s.user?.user_metadata?.role ||
       (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.user_metadata?.role; } catch { return null; } })() ||
       'operador';
-    if (role === 'operador' || role === 'duena') {
-      ['activity.html', 'settings.html'].forEach(href => {
+    if (role === 'operador') {
+      ['stats.html', 'activity.html', 'settings.html'].forEach(href => {
+        document.querySelector(`#admin-bar a[href="${href}"]`)?.remove();
+      });
+    } else if (role === 'duena') {
+      ['settings.html'].forEach(href => {
         document.querySelector(`#admin-bar a[href="${href}"]`)?.remove();
       });
     }
