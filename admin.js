@@ -6421,7 +6421,7 @@ async function _saveKit() {
   const price = parseFloat(document.getElementById('kb-price').value);
   if (!name)                      { toast('Escribe el nombre del kit', 'error'); document.getElementById('kb-name').focus(); return; }
   if (isNaN(price) || price < 0) { toast('Escribe un precio válido', 'error'); document.getElementById('kb-price').focus(); return; }
-  if (!_kbComponents.length)     { toast('Agrega al menos un componente', 'error'); return; }
+  if (_kbComponents.length < 2)   { toast('Un kit necesita al menos 2 componentes', 'error'); return; }
 
   const catCode  = 'kits';
 
