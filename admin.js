@@ -583,7 +583,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let _resizeTimer;
   window.addEventListener('resize', () => {
     clearTimeout(_resizeTimer);
-    _resizeTimer = setTimeout(() => { renderTable(); _adaptSearch(); }, 180);
+    _resizeTimer = setTimeout(() => { if (!_inlineEditActive) { renderTable(); _adaptSearch(); } }, 180);
   });
 
   // Botón scroll-to-top
@@ -1235,11 +1235,14 @@ async function editStockInline(e, id) {
   }, 50);
 }
 
+let _inlineEditActive = false;
+
 async function editPriceInlineAdmin(e, id) {
   e.stopPropagation();
   const p = products.find(x => x.id === id);
   if (!p) return;
   if (!can.editProduct) { toast('Sin permiso para editar precios', 'error'); return; }
+  _inlineEditActive = true;
 
   const trigger = e.currentTarget;
   const mobile = isMobile();
@@ -1272,6 +1275,7 @@ async function editPriceInlineAdmin(e, id) {
   const save = async () => {
     if (saved) return;
     saved = true;
+    _inlineEditActive = false;
     const newPrice = parseFloat(input.value);
     if (isNaN(newPrice) || newPrice < 0) { renderTable(); _qvRefresh(id); return; }
     if (newPrice === p.price) { renderTable(); _qvRefresh(id); return; }
@@ -1291,7 +1295,7 @@ async function editPriceInlineAdmin(e, id) {
 
   input.addEventListener('keydown', ev => {
     if (ev.key === 'Enter')  { ev.preventDefault(); save(); }
-    if (ev.key === 'Escape') { saved = true; renderTable(); _qvRefresh(id); }
+    if (ev.key === 'Escape') { saved = true; _inlineEditActive = false; renderTable(); _qvRefresh(id); }
   });
   setTimeout(() => {
     input.focus();
