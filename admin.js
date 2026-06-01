@@ -3413,6 +3413,7 @@ async function bulkDelete() {
 }
 
 let _bcpFormMode = false;
+let _bcpKitMode  = false;
 
 function openFormCatPicker() {
   _bcpFormMode = true;
@@ -3421,6 +3422,24 @@ function openFormCatPicker() {
   _bcpFilter('');
   document.getElementById('bulk-cat-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+
+function openKitCatPicker() {
+  _bcpKitMode = true;
+  document.getElementById('bcp-sub').textContent = 'Categoría del kit';
+  document.getElementById('bcp-search-input').value = '';
+  _bcpFilter('');
+  document.getElementById('bulk-cat-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function _updateKitCatBtn(code) {
+  const cat = categories.find(c => c.code === code);
+  const dot = document.getElementById('kb-cat-dot');
+  const lbl = document.getElementById('kb-cat-label-display');
+  if (!dot || !lbl) return;
+  dot.style.background = cat?.color || '#9B8B78';
+  lbl.textContent = cat?.label || code || 'Seleccionar categoría';
 }
 
 function _updateFormCatBtn(code) {
@@ -3444,6 +3463,7 @@ function bulkSetCategory() {
 
 function closeBulkCatPicker() {
   _bcpFormMode = false;
+  _bcpKitMode  = false;
   _bcpInlineId = null;
   document.getElementById('bulk-cat-overlay').classList.remove('open');
   document.body.style.overflow = '';
@@ -3554,6 +3574,15 @@ async function _bcpSelect(code) {
     const lblInput = document.getElementById('f-category-label');
     if (lblInput) lblInput.value = cat.label;
     _updateFormCatBtn(cat.code);
+    return;
+  }
+
+  if (_bcpKitMode) {
+    closeBulkCatPicker();
+    const sel = document.getElementById('kb-category');
+    if (sel) sel.value = cat.code;
+    _updateKitCatBtn(cat.code);
+    document.body.style.overflow = 'hidden'; // restaurar lock del kit builder
     return;
   }
 
@@ -6260,6 +6289,12 @@ function openKitBuilder() {
     byId('kb-img-remove').style.display = 'none';
     byId('kb-img-input').value = '';
     byId('kb-price-hint').style.display = 'none';
+    const kbCatSel = byId('kb-category');
+    if (kbCatSel) kbCatSel.value = '';
+    const kbDot = byId('kb-cat-dot');
+    const kbLbl = byId('kb-cat-label-display');
+    if (kbDot) kbDot.style.background = '#9B8B78';
+    if (kbLbl) kbLbl.textContent = 'Seleccionar categoría';
     _kbRenderComponents();
     const kbo = byId('kit-builder-overlay');
     kbo.style.display = 'flex';
@@ -6423,22 +6458,10 @@ async function _saveKit() {
   if (isNaN(price) || price < 0) { toast('Escribe un precio válido', 'error'); document.getElementById('kb-price').focus(); return; }
   if (_kbComponents.length < 2)   { toast('Un kit necesita al menos 2 componentes', 'error'); return; }
 
-  const catCode  = 'kits';
-
-  // Auto-crear la categoría 'kits' si no existe
-  if (!categories.find(c => c.code === 'kits')) {
-    const newCat = { code: 'kits', label: 'Kits', color: '#C9A462' };
-    categories.push(newCat);
-    const catJson = JSON.stringify(categories);
-    await supabaseApi("config?id=eq.categories", {
-      method: 'PATCH',
-      headers: { 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ value: catJson })
-    });
-    renderCategorySelects();
-  }
-
-  const catLabel = categories.find(c => c.code === 'kits')?.label || 'Kits';
+  const catCode = document.getElementById('kb-category')?.value || '';
+  if (!catCode) { toast('Selecciona una categoría', 'error'); return; }
+  const catObj   = categories.find(c => c.code === catCode);
+  const catLabel = catObj?.label || catCode;
   const newId    = products.reduce((m, p) => Math.max(m, p.id), 0) + 1;
   const position = products.length;
   const isPublished = can.publishProduct ? true : false;
@@ -6459,7 +6482,7 @@ async function _saveKit() {
     body: JSON.stringify({
       id: newId, name, category: catCode, category_label: catLabel,
       price, description: '', image: kitImage,
-      badge: null, badge_type: null, featured: false,
+      badge: '🎁 Kit', badge_type: 'new', featured: false,
       out_of_stock: false, original_price: null,
       barcode: null, stock: 0, cost: null,
       is_published: isPublished, kit_items: kitItems, images: null, position
@@ -6476,7 +6499,7 @@ async function _saveKit() {
   products.push({
     id: newId, name, category: catCode, categoryLabel: catLabel,
     price, originalPrice: null, description: null, image: kitImage,
-    badge: null, badgeType: null, featured: false, outOfStock: false,
+    badge: '🎁 Kit', badgeType: 'new', featured: false, outOfStock: false,
     barcode: null, stock: 0, cost: null, isPublished, kitItems, images: null, position
   });
   _trackEdit(newId);

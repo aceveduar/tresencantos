@@ -1775,6 +1775,15 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           <div id="kb-price-hint" style="display:none;margin-top:5px;font-size:.75rem;color:var(--muted)"></div>
         </div>
         <div>
+          <label class="kb-label">Categoría</label>
+          <select id="kb-category" style="display:none"></select>
+          <button type="button" id="kb-cat-btn" class="f-cat-btn" onclick="openKitCatPicker()">
+            <span id="kb-cat-dot" class="cat-dot" style="background:#9B8B78;width:10px;height:10px;border-radius:50%;flex-shrink:0"></span>
+            <span id="kb-cat-label-display">Seleccionar categoría</span>
+            <span class="f-cat-arrow">▾</span>
+          </button>
+        </div>
+        <div>
           <label class="kb-label">Componentes</label>
           <div style="display:flex;gap:8px;margin-bottom:6px">
             <input id="kb-search" class="kb-input" type="text" placeholder="🔍 Buscar producto para agregar..." oninput="_kbSearch(this.value)" style="flex:1;margin-bottom:0">
