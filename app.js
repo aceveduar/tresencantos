@@ -388,14 +388,20 @@ function discountPct(p) {
 
 function kitStock(p) {
   if (!p.kitItems?.length) return null;
-  return Math.min(...p.kitItems.map(c => {
+  const stocks = p.kitItems.map(c => {
     const comp = products.find(x => x.id === c.id);
-    return comp ? Math.floor(comp.stock / c.qty) : 0;
-  }));
+    if (!comp) return null; // componente no publicado individualmente
+    return Math.floor(comp.stock / c.qty);
+  });
+  if (stocks.some(s => s === null)) return null; // fallback al flag del kit
+  return Math.min(...stocks);
 }
 
 function isOos(p) {
-  if (p.kitItems?.length) return kitStock(p) === 0;
+  if (p.kitItems?.length) {
+    const s = kitStock(p);
+    return s === null ? p.outOfStock : s === 0;
+  }
   return p.outOfStock || p.stock === 0;
 }
 
