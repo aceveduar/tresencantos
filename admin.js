@@ -1150,9 +1150,28 @@ function adminCard(p, editable = false) {
 </div>`;
 }
 
+function _kitInfo(p) {
+  if (!p.kitItems?.length) return null;
+  let min = Infinity, blocker = null;
+  for (const comp of p.kitItems) {
+    const c = products.find(x => x.id === comp.id);
+    if (!c || c.outOfStock || c.stock === 0) return { stock: 0, blocker: comp.name };
+    const avail = Math.floor(c.stock / comp.qty);
+    if (avail < min) { min = avail; blocker = comp.name; }
+  }
+  const stock = min === Infinity ? 0 : min;
+  return { stock, blocker: stock === 0 ? blocker : null };
+}
+
 function stockChip(p, editable = false) {
   if (p.kitItems?.length) {
-    return `<span class="stock-chip stock-ok" style="cursor:default">🎁 Kit</span>`;
+    const ki = _kitInfo(p);
+    if (ki?.stock === 0) {
+      const lbl = ki.blocker ? (ki.blocker.length > 14 ? ki.blocker.slice(0, 13) + '…' : ki.blocker) : '?';
+      return `<span class="stock-chip stock-sold" style="cursor:default" title="Falta: ${ki.blocker ?? 'componente agotado'}">🎁 Falta: ${lbl}</span>`;
+    }
+    const n = ki?.stock ?? 0;
+    return `<span class="stock-chip stock-ok" style="cursor:default">🎁 ${n} kit${n !== 1 ? 's' : ''}</span>`;
   }
   const cls = p.stock === 0 ? 'sold' : p.stock === 1 ? 'one' : 'ok';
   if (editable) {
@@ -6131,9 +6150,19 @@ function _renderQV(p) {
     const mc = m >= 30 ? 'qv-chip-ok' : m >= 10 ? '' : 'qv-chip-sold';
     marginChip = `<span class="qv-chip ${mc}">Margen ${m}%</span>`;
   }
-  const stockChipQV = p.kitItems?.length
-    ? `<span class="qv-chip qv-chip-ok">🎁 Kit</span>`
-    : `<span class="qv-chip ${stockCls} qv-editable" onclick="editStockInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar stock" style="cursor:pointer">📦 ${p.stock}</span>`;
+  let stockChipQV;
+  if (p.kitItems?.length) {
+    const ki = _kitInfo(p);
+    if (ki?.stock === 0) {
+      const lbl = ki.blocker ? (ki.blocker.length > 16 ? ki.blocker.slice(0, 15) + '…' : ki.blocker) : '?';
+      stockChipQV = `<span class="qv-chip qv-chip-sold" title="Falta: ${ki.blocker ?? 'componente agotado'}">🎁 Falta: ${lbl}</span>`;
+    } else {
+      const n = ki?.stock ?? 0;
+      stockChipQV = `<span class="qv-chip qv-chip-ok">🎁 ${n} kit${n !== 1 ? 's' : ''}</span>`;
+    }
+  } else {
+    stockChipQV = `<span class="qv-chip ${stockCls} qv-editable" onclick="editStockInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar stock" style="cursor:pointer">📦 ${p.stock}</span>`;
+  }
   document.getElementById('qv-chips').innerHTML =
     oosChip + pubChip + stockChipQV + featChip + barcodeChip + marginChip;
 
