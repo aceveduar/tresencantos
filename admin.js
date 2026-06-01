@@ -3379,6 +3379,40 @@ async function save() {
   return true;
 }
 
+/* ── MOVER AL INICIO ── */
+
+async function moveToTop(id) {
+  const idx = products.findIndex(p => p.id === id);
+  if (idx <= 0) { toast('Ya está al inicio del catálogo'); return; }
+  const [p] = products.splice(idx, 1);
+  products.unshift(p);
+  const ok = await save();
+  if (!ok) { products.splice(0, 1); products.splice(idx, 0, p); return; }
+  _forcePositionSort();
+  renderTable();
+  _qvRefresh(id);
+  toast('📌 Movido al inicio del catálogo');
+}
+
+async function bulkMoveToTop() {
+  if (!selectedIds.size) return;
+  const selected = products.filter(p => selectedIds.has(p.id));
+  const rest     = products.filter(p => !selectedIds.has(p.id));
+  products.length = 0;
+  products.push(...selected, ...rest);
+  const ok = await save();
+  if (!ok) { return; }
+  _forcePositionSort();
+  renderTable();
+  toast(`📌 ${selected.length} producto${selected.length > 1 ? 's movidos' : ' movido'} al inicio`);
+}
+
+function _forcePositionSort() {
+  currentSort = 'position';
+  const sel = document.getElementById('sort-select');
+  if (sel) sel.value = 'position';
+}
+
 /* ── BULK ACTIONS ── */
 
 async function bulkRestock() {
@@ -6234,7 +6268,10 @@ function _renderQV(p) {
   const btnDismantle = (can.editProduct && p.kitItems?.length)
     ? `<button class="qv-btn" style="border-color:#FED7AA;color:#C2410C;background:#FFF7ED" onclick="_dismantleKit(${p.id})">📦 Desarmar kit</button>`
     : '';
-  document.getElementById('qv-actions').innerHTML = btnDismantle + btnEdit + btnDup + btnPub + btnDel + btnFlag;
+  const btnTop = can.editProduct
+    ? `<button class="qv-btn" onclick="moveToTop(${p.id})" style="border-color:#C9A462;color:#A67C3A">📌 Al inicio</button>`
+    : '';
+  document.getElementById('qv-actions').innerHTML = btnDismantle + btnTop + btnEdit + btnDup + btnPub + btnDel + btnFlag;
 }
 
 async function _qvTogglePublished(id) {
