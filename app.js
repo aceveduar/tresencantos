@@ -181,7 +181,7 @@ async function loadProducts() {
   let failed = false;
   try {
     // Publicados con stock O apartados activos
-    const result = await supabaseApi('products?select=*&is_published=eq.true&category=neq.por_revisar&or=(out_of_stock.eq.false,is_apartado.eq.true)&order=position.asc');
+    const result = await supabaseApi('products?select=id,name,category,category_label,price,original_price,description,image,badge,badge_type,featured,out_of_stock,is_apartado,stock,images,kit_items&is_published=eq.true&category=neq.por_revisar&or=(out_of_stock.eq.false,is_apartado.eq.true)&order=position.asc');
     if (result.ok && Array.isArray(result.data) && result.data.length) {
       products = result.data.map(p => ({
         id: p.id,
