@@ -6479,6 +6479,7 @@ async function _saveKit() {
     badge: null, badgeType: null, featured: false, outOfStock: false,
     barcode: null, stock: 0, cost: null, isPublished, kitItems, images: null, position
   });
+  _trackEdit(newId);
   logActivity('producto_creado', `Creó kit "${name}" — $${price.toLocaleString('es-MX')}`, { id: newId, name, price });
   closeKitBuilder();
   // Resetear filtros para que el kit siempre sea visible al crearlo
