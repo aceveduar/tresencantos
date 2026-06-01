@@ -198,7 +198,8 @@ async function loadProducts() {
         isApartado: p.is_apartado || false,
         originalPrice: p.original_price,
         stock: p.stock,
-        images: p.images || null
+        images: p.images || null,
+        kitItems: p.kit_items || null
       }));
       return;
     }
@@ -385,8 +386,21 @@ function discountPct(p) {
   return Math.round((1 - p.price / p.originalPrice) * 100);
 }
 
+function kitStock(p) {
+  if (!p.kitItems?.length) return null;
+  return Math.min(...p.kitItems.map(c => {
+    const comp = products.find(x => x.id === c.id);
+    return comp ? Math.floor(comp.stock / c.qty) : 0;
+  }));
+}
+
+function isOos(p) {
+  if (p.kitItems?.length) return kitStock(p) === 0;
+  return p.outOfStock || p.stock === 0;
+}
+
 function cardHTML(p) {
-  const oos = p.outOfStock || p.stock === 0;
+  const oos = isOos(p);
   const apt = p.isApartado;
   const pct = discountPct(p);
   const oosTag = apt
@@ -783,7 +797,7 @@ function openModal(id) {
   activeProduct = p;
   _modalQty = 1;
   const fallback = 'tresencantos_default.png';
-  const oos = p.outOfStock || p.stock === 0;
+  const oos = isOos(p);
   const pct = discountPct(p);
 
   // Categoría con contexto de padre si es subcategoría
