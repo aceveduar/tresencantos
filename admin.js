@@ -3598,8 +3598,7 @@ async function _bcpSelect(code) {
 
   if (_bcpKitMode) {
     closeBulkCatPicker();
-    const sel = document.getElementById('kb-category');
-    if (sel) sel.value = cat.code;
+    _kbSelectedCatCode = cat.code;
     _updateKitCatBtn(cat.code);
     document.body.style.overflow = 'hidden'; // restaurar lock del kit builder
     return;
@@ -6296,14 +6295,39 @@ function _handleRealtimeProduct({ eventType, new: row, old }) {
 /* ══ KIT BUILDER ════════════════════════════════════════════════════════ */
 let _kbComponents = [];
 let _kbImageDataUrl = null;
+let _kbSelectedCatCode = '';
 
 const KIT_DEFAULT_IMG = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23FFF8EE'/%3E%3Ctext x='50' y='62' font-size='52' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%8E%81%3C/text%3E%3C/svg%3E`;
+
+function _kbAutoSuggestCat() {
+  if (_kbSelectedCatCode) return;
+  const raw = (document.getElementById('kb-name')?.value || '').toLowerCase();
+  const name = raw.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (!name || name.length < 3) return;
+
+  const words = name.split(/\s+/).filter(w => w.length > 2);
+  // subcategorías primero (más específicas)
+  const ordered = [...categories].sort((a, b) => (a.parent ? -1 : 1));
+  let match = null;
+  for (const cat of ordered) {
+    const label = cat.label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const code  = cat.code.toLowerCase();
+    if (words.some(w => label.includes(w) || code.includes(w))) { match = cat; break; }
+  }
+  // fallback: natura
+  if (!match) match = categories.find(c => c.code === 'natura') || categories.find(c => c.code.startsWith('natura'));
+  if (match) {
+    _kbSelectedCatCode = match.code;
+    _updateKitCatBtn(match.code);
+  }
+}
 
 function openKitBuilder() {
   try {
     if (!can.addProduct) { toast('Sin permiso para agregar productos', 'error'); return; }
     _kbComponents = [];
     _kbImageDataUrl = null;
+    _kbSelectedCatCode = '';
     const byId = id => document.getElementById(id);
     byId('kb-name').value = '';
     byId('kb-price').value = '';
@@ -6487,7 +6511,7 @@ async function _saveKit() {
   if (isNaN(price) || price < 0) { toast('Escribe un precio válido', 'error'); document.getElementById('kb-price').focus(); return; }
   if (_kbComponents.length < 2)   { toast('Un kit necesita al menos 2 componentes', 'error'); return; }
 
-  const catCode = document.getElementById('kb-category')?.value || '';
+  const catCode = _kbSelectedCatCode || '';
   if (!catCode) { toast('Selecciona una categoría', 'error'); return; }
   const catObj   = categories.find(c => c.code === catCode);
   const catLabel = catObj?.label || catCode;
