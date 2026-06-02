@@ -6547,7 +6547,7 @@ async function _kbCreateDraft(name) {
     headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify(draft)
   });
-  if (!result.ok) { toast('Error al crear borrador', 'error'); return; }
+  if (!result.ok) { toast(`Error ${result.status}: ${result.data?.message || result.data?.hint || JSON.stringify(result.data)}`, 'error'); return; }
   // Agregar al array local con el shape normalizado
   products.push({
     id: newId, name, category: 'por_revisar', categoryLabel: 'Por revisar',
