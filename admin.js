@@ -4051,12 +4051,14 @@ function _normStr(s) {
     .replace(/[^a-z0-9\s]/g, '').trim().replace(/\s+/g, ' ');
 }
 
+// Constantes fuera de la función — no se recrean en cada llamada
+const _DUP_STOP = new Set(['de','la','el','los','las','un','una','y','con','para','en','del','al']);
+const _stem = w => w.endsWith('es') && w.length > 4 ? w.slice(0,-2) : w.endsWith('s') && w.length > 3 ? w.slice(0,-1) : w;
+function _productWords(name) {
+  return new Set(_normStr(name).split(' ').filter(w => w.length > 1 && !_DUP_STOP.has(w)).map(_stem));
+}
 function _wordSim(a, b) {
-  const stop = new Set(['de','la','el','los','las','un','una','y','con','para','en','del','al']);
-  // simple plural stemming: pinzas→pinza, bolsos→bolso, collares→collar
-  const stem = w => w.endsWith('es') && w.length > 4 ? w.slice(0,-2) : w.endsWith('s') && w.length > 3 ? w.slice(0,-1) : w;
-  const words = s => new Set(_normStr(s).split(' ').filter(w => w.length > 1 && !stop.has(w)).map(stem));
-  const wa = words(a), wb = words(b);
+  const wa = _productWords(a), wb = _productWords(b);
   if (!wa.size || !wb.size) return 0;
   return [...wa].filter(w => wb.has(w)).length / Math.max(wa.size, wb.size);
 }
@@ -4147,41 +4149,85 @@ function _saveDismissedDups(set) {
 }
 
 function _findDuplicatePairs() {
-  const dismissed = _getDismissedDups();
-  const pairs = [];
-  for (let i = 0; i < products.length; i++) {
-    for (let j = i + 1; j < products.length; j++) {
-      const a = products[i], b = products[j];
-      const pairKey = `${Math.min(a.id, b.id)}_${Math.max(a.id, b.id)}`;
-      if (dismissed.has(pairKey)) continue;
+  const dismissed  = _getDismissedDups();
+  const productMap = new Map(products.map(p => [p.id, p]));
 
-      // Códigos de barras distintos → productos claramente diferentes, ignorar
-      if (a.barcode && b.barcode && a.barcode !== b.barcode) continue;
+  // Pre-computar palabras significativas de cada producto (una sola vez)
+  const wordSets = new Map(products.map(p => [p.id, _productWords(p.name)]));
 
-      const barcodeMatch = !!(a.barcode && b.barcode && a.barcode === b.barcode);
-      const exact = _normStr(a.name) === _normStr(b.name);
-      const nameSim = exact ? 1 : _wordSim(a.name, b.name);
-      const priceMatch = a.price > 0 && a.price === b.price;
-      // stock 1 es el default en boutique — solo cuenta como señal con 2+ unidades
-      const stockMatch = a.stock >= 2 && a.stock === b.stock;
-      const score = (barcodeMatch ? 1 : 0) + nameSim + (priceMatch ? 0.25 : 0) + (stockMatch ? 0.15 : 0);
+  // Índice: palabra → lista de IDs (solo pares que comparten al menos 1 palabra)
+  const wordIndex = Object.create(null);
+  products.forEach(p => {
+    wordSets.get(p.id).forEach(w => {
+      if (!wordIndex[w]) wordIndex[w] = [];
+      wordIndex[w].push(p.id);
+    });
+  });
 
-      // nameSim mínimo 0.55 para ignorar coincidencias solo por marca compartida
-      if (!barcodeMatch && !(nameSim >= 0.55 && score >= 0.55)) continue;
-
-      const signals = [];
-      if (barcodeMatch) signals.push('mismo código de barras');
-      if (exact) signals.push('nombre idéntico');
-      else if (nameSim >= 0.55) signals.push('nombre similar');
-      if (priceMatch) signals.push(`precio $${a.price.toLocaleString('es-MX')}`);
-      if (stockMatch) signals.push(`stock ${a.stock}`);
-      pairs.push({ a, b, score, signals, pairKey });
+  // Índice de barcodes para detectar coincidencias exactas
+  const barcodeIndex = Object.create(null);
+  products.forEach(p => {
+    if (p.barcode) {
+      if (!barcodeIndex[p.barcode]) barcodeIndex[p.barcode] = [];
+      barcodeIndex[p.barcode].push(p.id);
     }
-  }
+  });
+
+  const seen  = new Set();
+  const pairs = [];
+
+  const evalPair = (a, b) => {
+    const pairKey = `${Math.min(a.id, b.id)}_${Math.max(a.id, b.id)}`;
+    if (seen.has(pairKey) || dismissed.has(pairKey)) return;
+    seen.add(pairKey);
+    if (a.barcode && b.barcode && a.barcode !== b.barcode) return;
+
+    const barcodeMatch = !!(a.barcode && b.barcode && a.barcode === b.barcode);
+    const wa = wordSets.get(a.id), wb = wordSets.get(b.id);
+    const inter = wa && wb ? [...wa].filter(w => wb.has(w)).length : 0;
+    const nameSim = (wa?.size && wb?.size) ? inter / Math.max(wa.size, wb.size) : 0;
+    const exact = nameSim === 1 || _normStr(a.name) === _normStr(b.name);
+    const priceMatch = a.price > 0 && a.price === b.price;
+    const stockMatch = a.stock >= 2 && a.stock === b.stock;
+    const score = (barcodeMatch ? 1 : 0) + nameSim + (priceMatch ? 0.25 : 0) + (stockMatch ? 0.15 : 0);
+    if (!barcodeMatch && !(nameSim >= 0.55 && score >= 0.55)) return;
+
+    const signals = [];
+    if (barcodeMatch) signals.push('mismo código de barras');
+    if (exact) signals.push('nombre idéntico');
+    else if (nameSim >= 0.55) signals.push('nombre similar');
+    if (priceMatch) signals.push(`precio $${a.price.toLocaleString('es-MX')}`);
+    if (stockMatch) signals.push(`stock ${a.stock}`);
+    pairs.push({ a, b, score, signals, pairKey });
+  };
+
+  // Solo comparar productos que comparten palabras
+  Object.values(wordIndex).forEach(ids => {
+    if (ids.length < 2) return;
+    for (let i = 0; i < ids.length; i++)
+      for (let j = i + 1; j < ids.length; j++) {
+        const a = productMap.get(ids[i]), b = productMap.get(ids[j]);
+        if (a && b) evalPair(a, b);
+      }
+  });
+
+  // Barcodes iguales (aunque no compartan palabras en el nombre)
+  Object.values(barcodeIndex).forEach(ids => {
+    if (ids.length < 2) return;
+    for (let i = 0; i < ids.length; i++)
+      for (let j = i + 1; j < ids.length; j++) {
+        const a = productMap.get(ids[i]), b = productMap.get(ids[j]);
+        if (a && b) evalPair(a, b);
+      }
+  });
+
   return pairs.sort((x, y) => y.score - x.score);
 }
 
 function _updateDupBadge() {
+  (window.requestIdleCallback || (cb => setTimeout(cb, 300)))(_doUpdateDupBadge);
+}
+function _doUpdateDupBadge() {
   const banner = document.getElementById('dup-banner');
   if (!banner) return;
   if (ROLE !== 'superadmin' && ROLE !== 'encargado') { banner.style.display = 'none'; return; }
