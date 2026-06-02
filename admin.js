@@ -3182,7 +3182,7 @@ function addKitComponent(productId) {
   if (_kitItemsEdit.find(i => i.id === productId)) { toast('Ya está en el kit', ''); return; }
   const p = products.find(x => x.id === productId);
   if (!p) return;
-  _kitItemsEdit.push({ id: p.id, name: p.name, qty: 1 });
+  _kitItemsEdit.push({ id: p.id, name: p.name, qty: 1, image: p.image || null });
   document.getElementById('kit-search').value = '';
   document.getElementById('kit-search-results').style.display = 'none';
   renderKitEditor();
@@ -6752,7 +6752,7 @@ async function _saveKit() {
   const newId    = products.reduce((m, p) => Math.max(m, p.id), 0) + 1;
   const position = products.length;
   const isPublished = can.publishProduct ? true : false;
-  const kitItems = _kbComponents.map(c => ({ id: c.id, name: c.name, qty: c.qty }));
+  const kitItems = _kbComponents.map(c => ({ id: c.id, name: c.name, qty: c.qty, image: c.image || null }));
 
   const btn = document.getElementById('kb-save-btn');
   btn.disabled = true; btn.textContent = 'Guardando…';
