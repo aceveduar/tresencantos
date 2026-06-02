@@ -6402,13 +6402,10 @@ function _renderQV(p) {
   const btnFlag = flagData
     ? `<button class="qv-btn qv-btn-flagdone" onclick="unflagProduct(${p.id})">✓ Revisado</button>`
     : `<button class="qv-btn qv-btn-flag"    onclick="_qvShowFlagForm(${p.id})">🚩 Revisar</button>`;
-  const btnDismantle = (can.editProduct && p.kitItems?.length)
-    ? `<button class="qv-btn" style="border-color:#FED7AA;color:#C2410C;background:#FFF7ED" onclick="_dismantleKit(${p.id})">📦 Desarmar kit</button>`
-    : '';
   const btnTop = can.editProduct
     ? `<button class="qv-btn" onclick="moveToTop(${p.id})" style="border-color:#C9A462;color:#A67C3A">📌 Al inicio</button>`
     : '';
-  document.getElementById('qv-actions').innerHTML = btnDismantle + btnTop + btnEdit + btnDup + btnPub + btnDel + btnFlag;
+  document.getElementById('qv-actions').innerHTML = btnTop + btnEdit + btnDup + btnPub + btnDel + btnFlag;
 }
 
 async function _qvTogglePublished(id) {
