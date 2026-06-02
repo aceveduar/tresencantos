@@ -2997,7 +2997,12 @@ async function saveProduct() {
     stock: parseInt(document.getElementById('f-stock').value) || 0,
     cost: parseFloat(document.getElementById('f-cost').value) || null,
     isPublished: publishedVal,
-    kitItems: document.getElementById('f-is-kit').checked && _kitItemsEdit.length ? _kitItemsEdit : null,
+    kitItems: document.getElementById('f-is-kit').checked && _kitItemsEdit.length
+      ? _kitItemsEdit.map(item => {
+          const prod = products.find(x => x.id === item.id);
+          return { ...item, image: prod?.image || item.image || null };
+        })
+      : null,
     images: _additionalImagesEdit.length ? _additionalImagesEdit : null
   };
 
