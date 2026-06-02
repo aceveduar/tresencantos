@@ -6563,6 +6563,10 @@ async function _kbCreateDraft(name) {
 async function _kbHandleImageFile(input) {
   const file = input.files?.[0];
   if (!file) return;
+  await _kbSetImageFromFile(file);
+}
+
+async function _kbSetImageFromFile(file) {
   const dataUrl = await _fileToBase64Resized(file);
   _kbImageDataUrl = dataUrl;
   const preview = document.getElementById('kb-img-preview');
@@ -6570,6 +6574,29 @@ async function _kbHandleImageFile(input) {
   document.getElementById('kb-img-placeholder').style.display = 'none';
   document.getElementById('kb-img-remove').style.display = 'block';
 }
+
+/* ── PEGAR IMAGEN DESDE PORTAPAPELES (Ctrl+V / Cmd+V) ── */
+document.addEventListener('paste', async e => {
+  const file = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/'))?.getAsFile();
+  if (!file) return;
+
+  const formOpen = document.getElementById('form-overlay')?.classList.contains('open');
+  const kbOpen   = document.getElementById('kit-builder-overlay')?.classList.contains('open');
+
+  if (formOpen) {
+    // No pegar si el foco está en un input de texto
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    e.preventDefault();
+    document.getElementById('save-btn').disabled = true;
+    compressAndPreview(file);
+    toast('Imagen pegada desde portapapeles');
+  } else if (kbOpen) {
+    e.preventDefault();
+    await _kbSetImageFromFile(file);
+    toast('Imagen pegada desde portapapeles');
+  }
+});
 
 function _kbRemoveImage() {
   _kbImageDataUrl = null;
