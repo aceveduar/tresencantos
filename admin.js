@@ -809,7 +809,6 @@ async function showApp() {
   _refreshCreatorFilter();
   setAdminView(currentAdminView);
   initRealtime();
-  setTimeout(_updateDupBadge, 0);
   if (location.hash === '#dup-review') {
     history.replaceState(null, '', location.pathname);
     setTimeout(openDupReview, 500);
@@ -3090,7 +3089,6 @@ async function saveProduct() {
   closeForm();
   renderTable();
   renderStats();
-  _updateDupBadge();
   if (sinPrecio && !idVal) {
     toast('Producto guardado sin precio — asígnalo antes de publicar en la tienda', 'warn');
   } else {
@@ -3334,7 +3332,6 @@ async function confirmDelete() {
   renderTable();
   renderStats();
   updateBulkBar();
-  _updateDupBadge();
 
   // Toast con opción de deshacer (7 segundos)
   toastUndo(`"${truncName(deleted?.name || 'Producto')}" eliminado`, async () => {
@@ -4224,25 +4221,7 @@ function _findDuplicatePairs() {
   return pairs.sort((x, y) => y.score - x.score);
 }
 
-function _updateDupBadge() {
-  (window.requestIdleCallback || (cb => setTimeout(cb, 300)))(_doUpdateDupBadge);
-}
-function _doUpdateDupBadge() {
-  const banner = document.getElementById('dup-banner');
-  if (!banner) return;
-  if (ROLE !== 'superadmin' && ROLE !== 'encargado') { banner.style.display = 'none'; return; }
-  const pairs = _findDuplicatePairs();
-  if (!pairs.length) { banner.style.display = 'none'; return; }
-  const dismissedAt = parseInt(localStorage.getItem('te_dup_dismiss') || '0');
-  if (dismissedAt >= pairs.length) { banner.style.display = 'none'; return; }
-  const highCount = pairs.filter(p => p.score >= 0.75).length;
-  const titleEl = document.getElementById('dup-banner-title');
-  if (titleEl) titleEl.textContent = highCount
-    ? `${pairs.length} posibles duplicados — ${highCount} con alta probabilidad`
-    : `${pairs.length} nombres similares detectados`;
-  localStorage.setItem('te_dup_last_count', pairs.length);
-  banner.style.display = 'flex';
-}
+function _updateDupBadge() { /* desactivado — solo corre al abrir Revisión de duplicados */ }
 
 function _dismissDupBanner() {
   const pairs = _findDuplicatePairs();
@@ -7175,7 +7154,6 @@ async function _cmpKeep(keepId, deleteId) {
   renderTable();
   renderStats();
   updateBulkBar();
-  _updateDupBadge();
   toast(`"${del.name}" eliminado — se quedó el producto seleccionado`);
 }
 
