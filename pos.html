@@ -3260,21 +3260,23 @@ async function cobrar() {
         const newStock = Math.max(0, lc.stock - qty * comp.qty);
         const patch = { stock: newStock };
         if (newStock === 0) patch.out_of_stock = !isApartado; // apartado: no marcar agotado
+        if (newStock === 0 && !isApartado) patch.is_published = false;
         if (newStock === 0 && isApartado) patch.is_apartado = true;
         stockUpdates.push(
           api(`products?id=eq.${comp.id}`, { method:'PATCH', body:JSON.stringify(patch) })
-            .then(() => { lc.stock = newStock; if (newStock === 0 && !isApartado) lc.outOfStock = true; })
+            .then(() => { lc.stock = newStock; if (newStock === 0 && !isApartado) { lc.outOfStock = true; lc.isPublished = false; } })
         );
       }
     } else {
       const newStock = Math.max(0, p.stock - qty);
       const patch = { stock: newStock };
       if (newStock === 0) patch.out_of_stock = !isApartado;
+      if (newStock === 0 && !isApartado) patch.is_published = false;
       if (isApartado) patch.is_apartado = true;
       const lp = products.find(x => x.id === p.id);
       stockUpdates.push(
         api(`products?id=eq.${p.id}`, { method:'PATCH', body:JSON.stringify(patch) })
-          .then(() => { if (lp) { lp.stock = newStock; if (newStock === 0 && !isApartado) lp.outOfStock = true; } })
+          .then(() => { if (lp) { lp.stock = newStock; if (newStock === 0 && !isApartado) { lp.outOfStock = true; lp.isPublished = false; } } })
       );
     }
   }

@@ -1957,7 +1957,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           <option value="stock-asc">Agotados primero</option>
           <option value="stock-desc">En stock primero</option>
         </select>
-        <select class="filter-select" id="creator-filter" style="display:none" onchange="_adminPage=1;renderTable()">
+        <select class="filter-select" id="creator-filter" style="display:none" onchange="_adminPage=1;renderTable();renderStats()">
           <option value="all">👤 Todos</option>
         </select>
         <span id="prod-count" class="prod-count" style="display:none" onclick="selectAllVisible()" title="Clic para seleccionar todos" style="cursor:pointer"></span>

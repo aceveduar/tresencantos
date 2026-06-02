@@ -770,6 +770,7 @@ function _refreshCreatorFilter() {
   if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
 }
 
+
 function _getUserDisplay() {
   try {
     const s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
@@ -1228,6 +1229,7 @@ async function editStockInline(e, id) {
     const patch = { stock: newStock };
     if (newStock > 0 && p.outOfStock)  patch.out_of_stock = false;
     if (newStock === 0 && !p.outOfStock) patch.out_of_stock = true;
+    if (newStock === 0) patch.is_published = false;
 
     const result = await supabaseApi(`products?id=eq.${id}`, {
       method: 'PATCH',
@@ -1236,8 +1238,9 @@ async function editStockInline(e, id) {
     if (result.ok) {
       p.stock = newStock;
       if (patch.out_of_stock !== undefined) p.outOfStock = patch.out_of_stock;
+      if (newStock === 0) p.isPublished = false;
       renderStats();
-      toast(`Stock → ${newStock}${patch.out_of_stock !== undefined ? (patch.out_of_stock ? ' · Marcado agotado' : ' · Marcado disponible') : ''}`);
+      toast(`Stock → ${newStock}${patch.out_of_stock !== undefined ? (patch.out_of_stock ? ' · Marcado agotado · Oculto del sitio' : ' · Marcado disponible') : ''}`);
     } else {
       toast('Error al actualizar stock', 'error');
     }
@@ -2652,6 +2655,12 @@ function _updateActiveFiltersBar() {
   }
   if (_showOnlyFlagged) chips.push('🚩 Por revisar');
 
+  const creatorVal = document.getElementById('creator-filter')?.value || 'all';
+  if (creatorVal !== 'all') {
+    const label = creatorVal === '__none__' ? 'Sin registro' : (_userNames[creatorVal] || creatorVal.split('@')[0]);
+    chips.push(`👤 ${label}`);
+  }
+
   if (chips.length > 0) {
     chipsEl.innerHTML = chips.map(t => `<span class="fac-chip">${t}</span>`).join('');
     bar.classList.add('visible');
@@ -2664,9 +2673,11 @@ function clearAdminFilters() {
   const s = document.getElementById('search-input');
   const c = document.getElementById('cat-filter');
   const sortSel = document.getElementById('sort-select');
+  const creatorSel = document.getElementById('creator-filter');
   if (s) s.value = '';
   if (c) { c.value = 'all'; _updateCatFilterBtn(); }
   if (sortSel) { sortSel.value = 'recent'; currentSort = 'recent'; }
+  if (creatorSel) creatorSel.value = 'all';
   if (_showOnlyFlagged) { _showOnlyFlagged = false; _syncFlagFilter(); }
   _statFilter = null;
   _toggleSearchClear();
@@ -3658,9 +3669,14 @@ async function _bcpSelect(code) {
       method: 'PATCH',
       body: JSON.stringify({ category: cat.code, category_label: cat.label })
     }).then(r => {
-      if (r.ok) { p.category = cat.code; p.categoryLabel = cat.label; toast(`Categoría → ${cat.label}`); }
-      else toast('Error al actualizar categoría', 'error');
-      renderTable(); _qvRefresh(inlineId);
+      if (r.ok) {
+        p.category = cat.code; p.categoryLabel = cat.label;
+        // Si el filtro activo era "Sin categoría" y el producto ya tiene categoría, limpiarlo
+        // para que el producto quede visible en lugar de desaparecer de la vista
+        if (_statFilter === 'sin-categ' && cat.code !== 'por_revisar') _statFilter = null;
+        toast(`Categoría → ${cat.label}`);
+      } else toast('Error al actualizar categoría', 'error');
+      renderTable(); renderStats(); _qvRefresh(inlineId);
     });
     return;
   }
@@ -4068,7 +4084,13 @@ function checkNameSimilarity() {
   const price = parseFloat(document.getElementById('f-price').value) || null;
   const stock = parseInt(document.getElementById('f-stock').value);
 
-  const scored = products.filter(p => p.id !== editingId).map(p => {
+  const formBarcode = document.getElementById('f-barcode')?.value.trim();
+  const scored = products.filter(p => {
+    if (p.id === editingId) return false;
+    // Códigos de barras distintos → productos claramente diferentes
+    if (formBarcode && p.barcode && formBarcode !== p.barcode) return false;
+    return true;
+  }).map(p => {
     const exact = _normStr(p.name) === normName;
     const sim = exact ? 1 : _wordSim(name, p.name);
     const priceMatch = price && p.price === price;
@@ -4132,6 +4154,9 @@ function _findDuplicatePairs() {
       const a = products[i], b = products[j];
       const pairKey = `${Math.min(a.id, b.id)}_${Math.max(a.id, b.id)}`;
       if (dismissed.has(pairKey)) continue;
+
+      // Códigos de barras distintos → productos claramente diferentes, ignorar
+      if (a.barcode && b.barcode && a.barcode !== b.barcode) continue;
 
       const barcodeMatch = !!(a.barcode && b.barcode && a.barcode === b.barcode);
       const exact = _normStr(a.name) === _normStr(b.name);
@@ -4453,6 +4478,7 @@ async function _srpSaveStep(id) {
   const patch = { stock: newStock };
   if (newStock > 0 && p.outOfStock)   patch.out_of_stock = false;
   if (newStock === 0 && !p.outOfStock) patch.out_of_stock = true;
+  if (newStock === 0) patch.is_published = false;
 
   const saveBtn = document.getElementById('srp-step-save');
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '...'; }
@@ -4463,6 +4489,7 @@ async function _srpSaveStep(id) {
   if (result.ok) {
     p.stock = newStock;
     if (patch.out_of_stock !== undefined) p.outOfStock = patch.out_of_stock;
+    if (newStock === 0) p.isPublished = false;
     _srpPendingStock = null;
     toast(`📦 Stock → ${newStock}`);
     renderTable(); renderStats();
@@ -4499,6 +4526,7 @@ async function _srpEditStock(id) {
     const patch = { stock: newStock };
     if (newStock > 0 && p.outOfStock)  patch.out_of_stock = false;
     if (newStock === 0 && !p.outOfStock) patch.out_of_stock = true;
+    if (newStock === 0) patch.is_published = false;
 
     const result = await supabaseApi(`products?id=eq.${id}`, {
       method: 'PATCH', body: JSON.stringify(patch)
@@ -4506,6 +4534,7 @@ async function _srpEditStock(id) {
     if (result.ok) {
       p.stock = newStock;
       if (patch.out_of_stock !== undefined) p.outOfStock = patch.out_of_stock;
+      if (newStock === 0) p.isPublished = false;
       toast(`📦 Stock actualizado → ${newStock}`, '');
       renderTable(); renderStats();
     } else {
