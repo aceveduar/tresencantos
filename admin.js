@@ -6405,7 +6405,7 @@ function _renderQV(p) {
   const btnTop = can.editProduct
     ? `<button class="qv-btn" onclick="moveToTop(${p.id})" style="border-color:#C9A462;color:#A67C3A">📌 Al inicio</button>`
     : '';
-  document.getElementById('qv-actions').innerHTML = btnTop + btnEdit + btnDup + btnPub + btnDel + btnFlag;
+  document.getElementById('qv-actions').innerHTML = btnEdit + btnPub + btnTop + btnDup + btnFlag + btnDel;
 }
 
 async function _qvTogglePublished(id) {
