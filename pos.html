@@ -2931,6 +2931,8 @@ async function loadHistory() {
   // Agrupar por día en horario México
   const grupos = {};
   ventas.forEach(s => {
+    // Apartados sin anticipo: no son dinero recibido, se omiten del historial
+    if (s.type === 'apartado' && !(parseFloat(s.paid_amount) > 0)) return;
     const dia = mxDateKey(s.created_at);
     if (!grupos[dia]) grupos[dia] = [];
     grupos[dia].push(s);
@@ -2997,7 +2999,7 @@ async function loadHistory() {
     <span class="hi-time">${hora} · ${totalQty} art.</span>
     <span class="hi-spacer"></span>
     ${payBadge}
-    <span class="hi-total">$${total.toLocaleString('es-MX')}</span>
+    <span class="hi-total"${isApt ? ' title="Anticipo recibido"' : ''}>$${(isApt ? pagado : total).toLocaleString('es-MX')}${isApt ? '<span style="font-size:.65rem;color:#9B8B78;font-weight:400;margin-left:3px">anticipo</span>' : ''}</span>
     ${canCancelSale() ? `<button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar">✕</button>` : ''}
   </div>
   <div class="hi-items">${itemsHTML || '<div style="color:#9B8B78;font-size:.78rem;padding:4px 0">Sin detalle</div>'}</div>
