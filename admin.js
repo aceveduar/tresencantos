@@ -782,6 +782,7 @@ function _getUserDisplay() {
 
 async function showApp() {
   if (!await requireAuth()) return;
+  TE.track('module_inventario');
   try {
     const { name, initial } = _getUserDisplay();
     const avatarEl = document.getElementById('user-avatar');

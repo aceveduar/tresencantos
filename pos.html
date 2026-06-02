@@ -1427,6 +1427,18 @@ const SUPABASE_URL      = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjYyMjYsImV4cCI6MjA5NDEwMjIyNn0.irCFwOR5HL_ZOVjFGVw9LqmzYicDZTNEmxcknu_j6cI';
 const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUyNjIyNiwiZXhwIjoyMDk0MTAyMjI2fQ.B9nZ1KENDQsUtn9PFwiMTrXuMZuWWIphGnH8XPfeJjQ';
 const SESSION_KEY = 'te_admin_session';
+const TE = (() => {
+  const _q = [];
+  let _t = null;
+  const _email = () => { try { return JSON.parse(localStorage.getItem(SESSION_KEY))?.user?.email || ''; } catch { return ''; } };
+  const _flush = () => {
+    const items = _q.splice(0); if (!items.length) return;
+    fetch(`${SUPABASE_URL}/rest/v1/usage_log`, { method:'POST',
+      headers:{ apikey: SUPABASE_SERVICE_KEY, Authorization:`Bearer ${SUPABASE_SERVICE_KEY}`, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+      body: JSON.stringify(items) }).catch(()=>{});
+  };
+  return { track(event, payload={}) { _q.push({ event, user_email:_email(), payload }); clearTimeout(_t); _t = setTimeout(_flush, 5000); } };
+})();
 const _posSession = (() => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; } })();
 const KNOWN_ROLES = ['superadmin', 'encargado', 'operador', 'duena'];
 const _posRole = (() => {
@@ -1831,6 +1843,7 @@ function clearPosSearch() {
 }
 
 function searchProducts(q) {
+  if ((q||'').trim().length >= 3) TE.track('pos_search');
   renderFrecuentes(!!q.trim());
   const el = document.getElementById('pos-results');
   const matches = getFilteredProducts(q, !!q.trim()).slice(0, 40);
@@ -3965,7 +3978,7 @@ async function cobrar() {
       { total, items: items.length, method: payMethod, discount: disc || 0 });
   }
 
-  TE?.track('pos_checkout', { total, items: items.length, method: payMethod, apartado: !!isApartado });
+  TE.track(isApartado ? 'pos_apartado' : 'pos_checkout', { total, items: items.length, method: payMethod });
 
   // Guardar para el ticket WA
   const dueDateVal = isApartado ? document.getElementById('pos-due-date')?.value : null;
@@ -4262,6 +4275,7 @@ function initDivider() {
 
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
+  TE.track('module_caja');
   // Ocultar nav según rol
   if (_posRole !== 'superadmin' && _posRole !== 'duena') {
     document.querySelectorAll(`a.tbn-icon[href="activity.html"]`).forEach(a => a.style.display = 'none');
