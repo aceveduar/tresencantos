@@ -3240,8 +3240,14 @@ function renderAdditionalImages() {
       ? `<span title="Base64 — no subida a Drive" style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);background:#e67e22;color:#fff;font-size:.5rem;font-weight:700;padding:1px 5px;border-radius:4px;white-space:nowrap;pointer-events:none">Base64</span>`
       : '';
     return `
-<div style="position:relative;flex-shrink:0;margin-bottom:8px">
-  <img src="${url}" style="width:72px;height:72px;object-fit:contain;border-radius:8px;border:1px solid var(--border);background:#F7F2EB;display:block" onerror="this.style.opacity='.3'">
+<div draggable="true" data-ai="${i}"
+  style="position:relative;flex-shrink:0;margin-bottom:8px;cursor:grab;transition:opacity .15s,outline .15s"
+  ondragstart="_aiDragStart(event,${i})"
+  ondragover="_aiDragOver(event,${i})"
+  ondragleave="_aiDragLeave(event)"
+  ondrop="_aiDrop(event,${i})"
+  ondragend="_aiDragEnd()">
+  <img src="${url}" style="width:72px;height:72px;object-fit:contain;border-radius:8px;border:1px solid var(--border);background:#F7F2EB;display:block;pointer-events:none" onerror="this.style.opacity='.3'">
   <button type="button" onclick="removeAdditionalImage(${i})" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;cursor:pointer;font-size:.65rem;display:flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.25)">✕</button>
   ${badge}
 </div>`;
@@ -3251,6 +3257,36 @@ function renderAdditionalImages() {
 function removeAdditionalImage(idx) {
   _additionalImagesEdit.splice(idx, 1);
   renderAdditionalImages();
+}
+
+let _aiDragSrc = null;
+function _aiDragStart(e, idx) {
+  _aiDragSrc = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => { const el = document.querySelector(`[data-ai="${idx}"]`); if (el) el.style.opacity = '.35'; }, 0);
+}
+function _aiDragOver(e, idx) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('[data-ai]').forEach(el => el.style.outline = '');
+  if (idx !== _aiDragSrc) {
+    const el = document.querySelector(`[data-ai="${idx}"]`);
+    if (el) el.style.outline = '2px solid var(--gold)';
+  }
+}
+function _aiDragLeave(e) {
+  e.currentTarget.style.outline = '';
+}
+function _aiDrop(e, idx) {
+  e.preventDefault();
+  if (_aiDragSrc === null || _aiDragSrc === idx) return;
+  const moved = _additionalImagesEdit.splice(_aiDragSrc, 1)[0];
+  _additionalImagesEdit.splice(idx, 0, moved);
+  renderAdditionalImages();
+}
+function _aiDragEnd() {
+  _aiDragSrc = null;
+  document.querySelectorAll('[data-ai]').forEach(el => { el.style.opacity = ''; el.style.outline = ''; });
 }
 
 async function addAdditionalImageUrl() {
