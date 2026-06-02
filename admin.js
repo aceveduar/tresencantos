@@ -6503,8 +6503,17 @@ function _kbSearch(q) {
     const bOos = b.outOfStock || b.stock === 0;
     return aOos - bOos; // con stock primero
   }).slice(0, 8);
+  const createBtn = `
+    <div class="kb-result-item" onclick="_kbCreateDraft('${term.replace(/'/g,"\\'")}')">
+      <div style="width:36px;height:36px;border-radius:7px;background:var(--gold-light);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">➕</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.84rem;font-weight:600;color:var(--gold-dark)">Crear "${term}" como borrador</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:1px">Stock 0 · Sin publicar · editar después</div>
+      </div>
+    </div>`;
+
   if (!matches.length) {
-    res.innerHTML = '<div style="padding:10px 14px;font-size:.82rem;color:var(--muted)">Sin resultados</div>';
+    res.innerHTML = createBtn;
     res.style.display = 'block'; return;
   }
   res.innerHTML = matches.map(p => {
@@ -6521,8 +6530,34 @@ function _kbSearch(q) {
       </div>
       <span style="font-size:.75rem;color:var(--gold);font-weight:700;flex-shrink:0">+ agregar</span>
     </div>`;
-  }).join('');
+  }).join('') + createBtn;
   res.style.display = 'block';
+}
+
+async function _kbCreateDraft(name) {
+  const newId = products.reduce((m, p) => Math.max(m, p.id), 0) + 1;
+  const draft = {
+    id: newId, name, category: 'por_revisar', category_label: 'Por revisar',
+    price: 0, stock: 0, out_of_stock: true, is_published: false,
+    image: DEFAULT_IMG, position: products.length
+  };
+  const result = await supabaseApi('products', {
+    method: 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify(draft)
+  });
+  if (!result.ok) { toast('Error al crear borrador', 'error'); return; }
+  // Agregar al array local con el shape normalizado
+  products.push({
+    id: newId, name, category: 'por_revisar', categoryLabel: 'Por revisar',
+    price: 0, stock: 0, outOfStock: true, isPublished: false,
+    image: DEFAULT_IMG, position: products.length - 1
+  });
+  logActivity('producto_creado', `Borrador de kit: "${name}" — $0`, { id: newId, name, price: 0 });
+  document.getElementById('kb-search').value = '';
+  document.getElementById('kb-search-results').style.display = 'none';
+  _kbAddComponent(newId);
+  toast(`✓ "${name}" creado como borrador`);
 }
 
 async function _kbHandleImageFile(input) {
