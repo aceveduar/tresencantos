@@ -3019,11 +3019,37 @@ async function deleteSale(id) {
   const sale = salesCache[id];
   if (!sale) { toast('Registro no encontrado', 'error'); return; }
 
-  const isApt     = sale.type === 'apartado';
-  const total     = parseFloat(sale.total).toLocaleString('es-MX');
-  const itemCount = Array.isArray(sale.items) ? sale.items.length : 0;
-  const label     = isApt ? 'apartado' : 'venta';
-  if (!confirm(`¿Cancelar el ${label} de $${total} (${itemCount} artículo${itemCount !== 1 ? 's' : ''})?\n\nSe restaurará el stock de los productos.`)) return;
+  const isApt      = sale.type === 'apartado';
+  const abonos     = Array.isArray(sale.abonos) ? sale.abonos : [];
+  const wasApartado = !isApt && abonos.length > 0; // venta que vino de un apartado liquidado
+  const total      = parseFloat(sale.total).toLocaleString('es-MX');
+  const itemCount  = Array.isArray(sale.items) ? sale.items.length : 0;
+  const label      = isApt ? 'apartado' : 'venta';
+
+  // Si fue un apartado liquidado, ofrecer revertir antes de eliminar
+  if (wasApartado) {
+    const custParts = (sale.customer || '').split(' · 📱 ');
+    const nombre    = custParts[0] || 'Sin nombre';
+    const revert = confirm(`Esta venta viene de un apartado liquidado de ${nombre}.\n\n¿Regresar como apartado pendiente?\n\nAceptar = regresar como apartado (no restaura stock)\nCancelar = eliminar completamente (restaura stock)`);
+    if (revert) {
+      const prevAbonos = abonos.slice(0, -1); // quitar el último abono (la liquidación)
+      const prevPagado = prevAbonos.reduce((s, a) => s + parseFloat(a.amount || 0), 0);
+      const r = await api(`sales?id=eq.${id}`, { method:'PATCH', body: JSON.stringify({
+        type: 'apartado',
+        paid_amount: prevPagado,
+        abonos: prevAbonos.length > 0 ? prevAbonos : null
+      })});
+      if (!r.ok) { toast('Error al revertir', 'error'); return; }
+      delete salesCache[id];
+      await loadHistory();
+      await loadApartados();
+      toast(`Apartado de ${nombre} restaurado ✓`, 'success');
+      return;
+    }
+    if (!confirm(`¿Eliminar la venta de $${total} (${itemCount} artículo${itemCount !== 1 ? 's' : ''}) completamente?\n\nSe restaurará el stock.`)) return;
+  } else {
+    if (!confirm(`¿Cancelar el ${label} de $${total} (${itemCount} artículo${itemCount !== 1 ? 's' : ''})?\n\nSe restaurará el stock de los productos.`)) return;
+  }
 
   // 1. Eliminar el registro
   const delResult = await api(`sales?id=eq.${id}`, { method: 'DELETE' });
