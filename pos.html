@@ -518,6 +518,8 @@ button,a{touch-action:manipulation}
 .apt-paid-lbl{color:#6B9E78;font-weight:600}
 .apt-pending-lbl{color:var(--red);font-weight:600}
 .apt-btns{display:flex;gap:7px}
+.btn-cancelar-apt{flex-shrink:0;width:36px;padding:0;border-radius:8px;border:1.5px solid #FECACA;background:#FEF2F2;color:#DC2626;font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;line-height:1;font-weight:700}
+.btn-cancelar-apt:hover{background:#FEE2E2;border-color:#FCA5A5}
 /* Desktop grid */
 @media(min-width:768px){
   #apt-offcanvas{width:640px}
@@ -1447,6 +1449,52 @@ function getPosRole() {
 }
 function canCancelSale() { const r = getPosRole(); return r === 'superadmin' || r === 'encargado'; }
 function canEditApartado() { const r = getPosRole(); return r === 'superadmin' || r === 'duena'; }
+
+async function cancelApartado(id) {
+  if (!canEditApartado()) { toast('Sin permiso para cancelar apartados', 'error'); return; }
+  const sale = (_apartadosData || {})[id];
+  if (!sale) { toast('Apartado no encontrado', 'error'); return; }
+
+  const custParts = (sale.customer || '').split(' · 📱 ');
+  const nombre    = custParts[0] || 'Sin nombre';
+  const total     = parseFloat(sale.total || 0);
+  const pagado    = parseFloat(sale.paid_amount || 0);
+  const nItems    = Array.isArray(sale.items) ? sale.items.length : 0;
+
+  let msg = `¿Cancelar el apartado de ${nombre}?\n\n`;
+  msg += `• $${total.toLocaleString('es-MX')} total · ${nItems} producto${nItems !== 1 ? 's' : ''}\n`;
+  if (pagado > 0) msg += `• $${pagado.toLocaleString('es-MX')} ya pagado — se perderá al cancelar\n`;
+  msg += `\nSe restaurará el stock. Esta acción no se puede deshacer.`;
+  if (!confirm(msg)) return;
+
+  const delResult = await api(`sales?id=eq.${id}`, { method: 'DELETE' });
+  if (!delResult.ok) { toast('Error al cancelar apartado', 'error'); return; }
+
+  if (Array.isArray(sale.items)) {
+    const restores = [];
+    for (const item of sale.items) {
+      const p = products.find(x => x.id === item.id);
+      if (p?.kitItems?.length) {
+        for (const comp of p.kitItems) {
+          const lc = products.find(x => x.id === comp.id);
+          const newStock = (lc ? lc.stock : 0) + (item.qty || 1) * comp.qty;
+          restores.push(api(`products?id=eq.${comp.id}`, { method:'PATCH', body:JSON.stringify({ stock: newStock, out_of_stock: false }) })
+            .then(() => { if (lc) { lc.stock = newStock; lc.outOfStock = false; } }));
+        }
+      } else {
+        const newStock = (p ? p.stock : 0) + (item.qty || 1);
+        restores.push(api(`products?id=eq.${item.id}`, { method:'PATCH', body:JSON.stringify({ stock: newStock, out_of_stock: false }) })
+          .then(() => { if (p) { p.stock = newStock; p.outOfStock = false; } }));
+      }
+    }
+    await Promise.all(restores);
+  }
+
+  closeAptDetail();
+  await loadApartados();
+  showAllProducts();
+  toast(`Apartado de ${nombre} cancelado — stock restaurado ✓`, 'success');
+}
 
 /* ── AUTH CHECK ── */
 function getSession() {
@@ -2818,11 +2866,14 @@ function openAptDetail(id) {
   // Footer buttons
   const editBtn = canEditApartado()
     ? `<button class="btn-edit-apt adm-footer" onclick="closeAptDetail();openEditApartado(${id})" title="Editar" style="width:40px;height:40px;border-radius:10px;border:1.5px solid var(--border);background:#F7F2EB;color:var(--charcoal);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0">✏️</button>` : '';
+  const cancelBtn = canEditApartado()
+    ? `<button class="btn-cancelar-apt" onclick="cancelApartado(${id})" title="Cancelar apartado" style="width:40px;height:40px;border-radius:10px;margin-left:auto">✕</button>` : '';
   document.getElementById('adm-footer').innerHTML = `
     <button class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" title="Recordatorio WhatsApp">💬</button>
     ${editBtn}
     <button class="btn-abonar" onclick="closeAptDetail();abonarApartado('${id}','${total}','${pagado}','${nombre.replace(/'/g,"\\'")}')">+ Abonar</button>
-    <button class="btn-liquidar" onclick="closeAptDetail();openLiqModal(${id})">✓ Liquidar</button>`;
+    <button class="btn-liquidar" onclick="closeAptDetail();openLiqModal(${id})">✓ Liquidar</button>
+    ${cancelBtn}`;
 
   const modal = document.getElementById('apt-detail-modal');
   modal.style.display = 'flex';
@@ -3332,6 +3383,7 @@ function _renderApartadoCards(data) {
       ${canEditApartado() ? `<button class="btn-wa-reminder" onclick="event.stopPropagation();openEditApartado(${s.id})" title="Editar" style="background:#F7F2EB;color:var(--charcoal);border:1.5px solid var(--border)">✏️</button>` : ''}
       <button class="btn-abonar" onclick="event.stopPropagation();abonarApartado('${s.id}','${total}','${pagado}','${nombre.replace(/'/g,"\\'")}')">+ Abonar</button>
       <button class="btn-liquidar" onclick="event.stopPropagation();openLiqModal(${s.id})">✓ Liquidar</button>
+      ${canEditApartado() ? `<button class="btn-cancelar-apt" onclick="event.stopPropagation();cancelApartado(${s.id})" title="Cancelar apartado">✕</button>` : ''}
     </div>
   </div>
 </div>`;
@@ -3888,7 +3940,8 @@ async function cobrar() {
   TE?.track('pos_checkout', { total, items: items.length, method: payMethod, apartado: !!isApartado });
 
   // Guardar para el ticket WA
-  _lastSale = { total, paidAmount, change, disc, note, items, payMethod, isApartado, customer };
+  const dueDateVal = isApartado ? document.getElementById('pos-due-date')?.value : null;
+  _lastSale = { total, paidAmount, change, disc, note, items, payMethod, isApartado, customer, dueDate: dueDateVal };
 
   // Reset UI
   cart = [];
@@ -3903,11 +3956,7 @@ async function cobrar() {
   loadTodayStats(); loadHistory(); loadApartados();
 
   _cobrandoAhora = false;
-  if (isApartado) {
-    toast(`Apartado registrado para ${customer} ✓`, 'success');
-  } else {
-    showSaleDone();
-  }
+  showSaleDone();
 }
 
 function showSaleDone() {
@@ -3941,6 +3990,11 @@ function showSaleDone() {
   document.getElementById('sd-discount').textContent       = `−${fmt(s.disc)}`;
   document.getElementById('sd-note-row').style.display     = s.note ? '' : 'none';
   document.getElementById('sd-note').textContent           = s.note || '';
+  // Texto del botón WA y "Nueva venta" según contexto
+  const waBtn = document.querySelector('.btn-wa-ticket');
+  if (waBtn) waBtn.childNodes[waBtn.childNodes.length - 1].textContent = isApt ? ' Enviar confirmación por WhatsApp' : ' Enviar ticket por WhatsApp';
+  const newSaleBtn = document.querySelector('#sale-done-overlay .btn-green');
+  if (newSaleBtn) newSaleBtn.textContent = isApt ? '+ Nueva venta' : '+ Nueva venta';
   document.getElementById('sale-done-overlay').classList.add('open');
 }
 
@@ -3957,9 +4011,23 @@ function sendWhatsAppTicket() {
   const metodo   = s.payMethod === 'transferencia' ? '📱 Transferencia bancaria' : '💵 Efectivo';
   let msg;
   if (s.isApartado) {
-    const nombre    = (s.customer||'').split(' · 📱 ')[0] || 'Cliente';
+    const custParts = (s.customer||'').split(' · 📱 ');
+    const nombre    = custParts[0] || 'Cliente';
+    const telNum    = custParts[1] || '';
     const pendiente = Math.max(0, (s.total||0) - (s.paidAmount||0));
-    msg = `📌 *Apartado — Tres Encantos*\n━━━━━━━━━━━━━━\n👤 ${nombre}\n${lines}${disc}\n━━━━━━━━━━━━━━\n*Total pedido: $${(s.total||0).toLocaleString('es-MX')} MXN*\n✅ Anticipo recibido: $${(s.paidAmount||0).toLocaleString('es-MX')} (${metodo})\n⏳ *Pendiente: $${pendiente.toLocaleString('es-MX')} MXN*${note}\n\nTe avisamos cuando esté listo. ¡Gracias! 💛`;
+    const anticipoLine = (s.paidAmount||0) > 0
+      ? `✅ Anticipo recibido: $${(s.paidAmount||0).toLocaleString('es-MX')} (${metodo})\n⏳ *Pendiente: $${pendiente.toLocaleString('es-MX')} MXN*`
+      : `⏳ *Total a pagar al entregar: $${pendiente.toLocaleString('es-MX')} MXN*`;
+    let dueLine = '';
+    if (s.dueDate) {
+      const due = new Date(s.dueDate + 'T00:00:00');
+      dueLine = `\n📅 Fecha límite: *${due.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'})}*`;
+    }
+    msg = `📌 *Apartado — Tres Encantos*\n━━━━━━━━━━━━━━\n👤 ${nombre}\n${lines}${disc}\n━━━━━━━━━━━━━━\n*Total pedido: $${(s.total||0).toLocaleString('es-MX')} MXN*\n${anticipoLine}${dueLine}${note}\n\nTe avisamos cuando esté listo. ¡Gracias! 💛`;
+    const telLimpio = telNum.replace(/\D/g,'');
+    window.open(telLimpio ? `https://wa.me/52${telLimpio}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    setTimeout(() => closeSaleDone(), 400);
+    return;
   } else {
     const chng     = s.change > 0 ? `\n💵 Cambio: $${s.change.toLocaleString('es-MX')}` : '';
     const transAviso = s.payMethod === 'transferencia' ? `\n\n⚠️ _Pendiente confirmar recibo de transferencia_` : '';
