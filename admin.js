@@ -6539,7 +6539,7 @@ async function _kbCreateDraft(name) {
   const newId = products.reduce((m, p) => Math.max(m, p.id), 0) + 1;
   const draft = {
     id: newId, name, category: 'por_revisar', category_label: 'Por revisar',
-    price: 0, stock: 0, out_of_stock: true, is_published: false,
+    price: 0, description: '', stock: 0, out_of_stock: true, is_published: false,
     featured: false, image: DEFAULT_IMG, position: products.length
   };
   const result = await supabaseApi('products', {
@@ -6547,7 +6547,7 @@ async function _kbCreateDraft(name) {
     headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify(draft)
   });
-  if (!result.ok) { toast(`Error ${result.status}: ${result.data?.message || result.data?.hint || JSON.stringify(result.data)}`, 'error'); return; }
+  if (!result.ok) { toast('Error al crear borrador', 'error'); return; }
   // Agregar al array local con el shape normalizado
   products.push({
     id: newId, name, category: 'por_revisar', categoryLabel: 'Por revisar',
