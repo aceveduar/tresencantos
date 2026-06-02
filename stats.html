@@ -542,6 +542,20 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
     </div>
   </div>
 
+  <!-- GOOGLE ANALYTICS — solo Eduardo -->
+  <div id="ga4-link-card" style="display:none;margin-bottom:16px">
+    <a href="https://analytics.google.com/analytics/web/#/p484989597/reports/intelligenthome" target="_blank" rel="noopener"
+      style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;text-decoration:none;color:var(--charcoal);transition:.15s;box-shadow:0 2px 8px rgba(28,24,23,.06)"
+      onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">
+      <span style="font-size:1.3rem">📊</span>
+      <div style="flex:1">
+        <div style="font-size:.85rem;font-weight:600">Google Analytics</div>
+        <div style="font-size:.74rem;color:var(--muted)">Tráfico de la Tienda</div>
+      </div>
+      <span style="font-size:.75rem;color:var(--muted)">↗</span>
+    </a>
+  </div>
+
   <!-- USO DE FUNCIONES — solo superadmin -->
   <div class="card" id="uso-card" style="margin-bottom:16px;display:none">
     <div class="card-head" style="flex-wrap:wrap;gap:8px">
@@ -610,10 +624,16 @@ const SESSION_KEY = 'te_admin_session';
       (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.user_metadata?.role; } catch{} })() ||
       'operador';
     if (role === 'operador') window.location.href = 'admin.html';
+    const userEmail = s?.user?.email ||
+      (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.email; } catch{} })() || '';
     if (role === 'superadmin') {
       document.addEventListener('DOMContentLoaded', () => {
         const uc = document.getElementById('uso-card');
         if (uc) uc.style.display = '';
+        if (userEmail === 'eacevedo@sunname.com.mx') {
+          const ga = document.getElementById('ga4-link-card');
+          if (ga) ga.style.display = '';
+        }
       });
     }
     if (role !== 'superadmin' && role !== 'duena') {
