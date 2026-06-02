@@ -1141,7 +1141,7 @@ function adminCard(p, editable = false) {
     <div class="ac-footer">
       <div style="display:flex;align-items:center;gap:6px">
         ${stockChip(p, editable)}
-        ${p.isApartado ? `<span class="apt-chip">📌 Apartado</span>` : (_apartadosMap[p.id] ? `<span class="apt-chip" title="${_apartadosMap[p.id]} unidad(es) en apartado">📌${_apartadosMap[p.id]}</span>` : '')}
+        ${p.isApartado ? `<span class="apt-chip">📌 Apartado</span>` : (_apartadosMap[p.id] && p.stock <= 1 ? `<span class="apt-chip" title="${_apartadosMap[p.id]} unidad(es) en apartado">📌 Apartado</span>` : '')}
         <button class="ac-pub-dot" onclick="togglePublished(${p.id})"
                 ontouchstart="event.stopPropagation()"
                 title="${pubTitle}">
@@ -1485,7 +1485,7 @@ function mobileCard(p) {
           </div>
           <div class="mpc-price-row">
             ${priceHTML}${stockInfo}
-            ${p.isApartado ? `<span class="apt-chip">📌 Apartado</span>` : (_apartadosMap[p.id] ? `<span class="apt-chip">📌${_apartadosMap[p.id]}</span>` : '')}
+            ${p.isApartado ? `<span class="apt-chip">📌 Apartado</span>` : (_apartadosMap[p.id] && p.stock <= 1 ? `<span class="apt-chip">📌 Apartado</span>` : '')}
             <button class="ac-pub-dot"
                     onclick="togglePublished(${p.id})"
                     ontouchstart="event.stopPropagation()"
@@ -2835,7 +2835,8 @@ function _htmlToPlainText(html) {
   const tmp = document.createElement('textarea');
   tmp.innerHTML = s;
   s = tmp.value;
-  return s.split('\n').map(l => l.trim()).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  // Colapsar bullets duplicados al inicio de línea (ej: "• • texto" → "• texto")
+  return s.split('\n').map(l => l.trim().replace(/^([•\-\*·])\s*[•\-\*·]\s*/,'$1 ')).join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 /* Handler de paste en campos de descripción — convierte HTML a texto limpio */
