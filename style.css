@@ -390,6 +390,11 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .modal-title{font-family:'Playfair Display',serif;font-size:1.3rem;line-height:1.25;margin-bottom:10px}
 .modal-desc{color:var(--text-mid);font-size:.875rem;line-height:1.7;margin-bottom:0}
 .modal-urgency{margin-top:10px;font-size:.8rem;font-weight:600;color:#92400E}
+.modal-kit-includes{margin-top:12px;background:#F7F2EB;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.modal-kit-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gold-dark);margin-bottom:2px}
+.modal-kit-item{display:flex;align-items:center;gap:10px;font-size:.84rem;color:var(--text-dark)}
+.modal-kit-item img{width:36px;height:36px;object-fit:contain;border-radius:6px;background:#fff;flex-shrink:0}
+.modal-kit-qty{margin-left:auto;font-size:.75rem;color:#9B8B78;font-weight:600;flex-shrink:0}
 
 /* Zona 3 — CTA (siempre visible) */
 .modal-cta{flex-shrink:0;padding:14px 22px 20px;border-top:1px solid var(--border);background:#fff}

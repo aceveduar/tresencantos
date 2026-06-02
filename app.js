@@ -854,6 +854,19 @@ function openModal(id) {
   const descHTML = p.description
     ? `<p class="modal-desc">${_descHtml(p.description)}</p>`
     : '';
+  const kitHTML = p.kitItems?.length
+    ? `<div class="modal-kit-includes">
+        <div class="modal-kit-title">🎁 Incluye</div>
+        ${p.kitItems.map(item => {
+          const comp = products.find(x => x.id === item.id);
+          return `<div class="modal-kit-item">
+            ${comp?.image ? `<img src="${comp.image}" alt="${item.name}" onerror="this.style.display='none'">` : ''}
+            <span>${item.name}</span>
+            ${item.qty > 1 ? `<span class="modal-kit-qty">×${item.qty}</span>` : ''}
+          </div>`;
+        }).join('')}
+      </div>`
+    : '';
   const allImgs = [p.image, ...(p.images || [])].filter(Boolean);
   const hasGallery = allImgs.length > 1;
   const galleryHTML = hasGallery
@@ -878,6 +891,7 @@ function openModal(id) {
     <p class="modal-cat">${catDisplay}</p>
     <h2 class="modal-title">${p.name}</h2>
     ${descHTML}
+    ${kitHTML}
     ${urgencyText}
   </div>
   <div class="modal-cta">
