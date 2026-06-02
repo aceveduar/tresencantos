@@ -6503,8 +6503,9 @@ function _kbSearch(q) {
     const bOos = b.outOfStock || b.stock === 0;
     return aOos - bOos; // con stock primero
   }).slice(0, 8);
+  const termEncoded = encodeURIComponent(term);
   const createBtn = `
-    <div class="kb-result-item" onclick="_kbCreateDraft('${term.replace(/'/g,"\\'")}')">
+    <div class="kb-result-item" onclick="_kbCreateDraft(decodeURIComponent('${termEncoded}'))">
       <div style="width:36px;height:36px;border-radius:7px;background:var(--gold-light);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">➕</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:.84rem;font-weight:600;color:var(--gold-dark)">Crear "${term}" como borrador</div>
@@ -6539,7 +6540,7 @@ async function _kbCreateDraft(name) {
   const draft = {
     id: newId, name, category: 'por_revisar', category_label: 'Por revisar',
     price: 0, stock: 0, out_of_stock: true, is_published: false,
-    image: DEFAULT_IMG, position: products.length
+    featured: false, image: DEFAULT_IMG, position: products.length
   };
   const result = await supabaseApi('products', {
     method: 'POST',
