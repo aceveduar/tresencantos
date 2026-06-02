@@ -3118,6 +3118,32 @@ function toggleKitMode() {
   if (isKit) renderKitEditor();
 }
 
+function _kitCompPopover(id, event) {
+  event.stopPropagation();
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('kit-comp-popover')?.remove();
+  const pop = document.createElement('div');
+  pop.id = 'kit-comp-popover';
+  pop.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:14px;padding:16px;z-index:99999;box-shadow:0 8px 40px rgba(0,0,0,.28);width:240px;text-align:center';
+  const stockTxt = (p.outOfStock || p.stock === 0)
+    ? '<span style="color:var(--red)">Agotado</span>'
+    : `<span style="color:var(--green)">${p.stock} en stock</span>`;
+  pop.innerHTML = `
+    <button onclick="document.getElementById('kit-comp-popover')?.remove()" style="position:absolute;top:8px;right:10px;background:none;border:none;font-size:1.1rem;color:var(--muted);cursor:pointer;line-height:1">✕</button>
+    <img src="${p.image || DEFAULT_IMG}" onerror="this.src='${DEFAULT_IMG}'" style="width:100%;max-height:180px;object-fit:contain;border-radius:9px;background:#F9F5EF">
+    <div style="font-weight:700;margin-top:10px;font-size:.9rem;line-height:1.3">${p.name}</div>
+    <div style="font-size:.76rem;margin-top:5px;display:flex;justify-content:center;gap:10px">
+      ${stockTxt}
+      <span style="color:var(--muted)">$${(p.price||0).toLocaleString('es-MX')}</span>
+    </div>`;
+  document.body.appendChild(pop);
+  setTimeout(() => {
+    const close = e => { if (!pop.contains(e.target)) { pop.remove(); document.removeEventListener('click', close); } };
+    document.addEventListener('click', close);
+  }, 50);
+}
+
 function renderKitEditor() {
   const list = document.getElementById('kit-components-list');
   if (!_kitItemsEdit.length) {
@@ -3130,8 +3156,8 @@ function renderKitEditor() {
     const stock = p ? (p.outOfStock || p.stock === 0 ? '<span style="color:var(--red)">Agotado</span>' : `<span style="color:var(--green)">${p.stock} uds</span>`) : '<span style="color:var(--muted)">—</span>';
     return `
 <div class="kit-comp-row">
-  ${p?.image ? `<img src="${p.image}" class="kit-comp-img" onerror="this.style.display='none'">` : '<div class="kit-comp-img"></div>'}
-  <span class="kit-comp-name">${item.name}</span>
+  ${p?.image ? `<img src="${p.image}" class="kit-comp-img" onerror="this.style.display='none'" onclick="_kitCompPopover(${item.id},event)" style="cursor:zoom-in" title="Ver producto">` : '<div class="kit-comp-img"></div>'}
+  <span class="kit-comp-name" onclick="_kitCompPopover(${item.id},event)" style="cursor:pointer" title="Ver producto">${item.name}</span>
   <span class="kit-comp-stock">${stock}</span>
   <div class="kit-comp-qty">
     <button type="button" onclick="changeKitQty(${item.id},-1)">−</button>
@@ -3173,14 +3199,53 @@ function searchKitProducts(query) {
   if (barcodeMatch) { addKitComponent(barcodeMatch.id); return; }
   const q = query.toLowerCase();
   const matches = products.filter(p => p.id !== editingId && p.name.toLowerCase().includes(q)).slice(0, 6);
-  if (!matches.length) { resultsEl.style.display = 'none'; return; }
+  const termEncoded = encodeURIComponent(query.trim());
+  const createBtn = `
+<div onclick="_kitFormCreateDraft(decodeURIComponent('${termEncoded}'))" style="cursor:pointer;padding:7px 10px;display:flex;align-items:center;gap:8px;font-size:.82rem;border-bottom:1px solid var(--border);transition:.1s" onmouseenter="this.style.background='#FFF8EE'" onmouseleave="this.style.background=''">
+  <div style="width:28px;height:28px;border-radius:5px;background:var(--gold-light);display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0">➕</div>
+  <div style="flex:1;min-width:0">
+    <div style="font-weight:600;color:var(--gold-dark)">Crear "${query.trim()}" como borrador</div>
+    <div style="color:var(--muted);font-size:.74rem">Stock 0 · Sin publicar · editar después</div>
+  </div>
+</div>`;
+  if (!matches.length) {
+    resultsEl.innerHTML = createBtn;
+    resultsEl.style.display = 'block';
+    return;
+  }
   resultsEl.style.display = 'block';
   resultsEl.innerHTML = matches.map(p => `
 <div onclick="addKitComponent(${p.id})" style="cursor:pointer;padding:7px 10px;display:flex;align-items:center;gap:8px;font-size:.82rem;border-bottom:1px solid var(--border);transition:.1s" onmouseenter="this.style.background='#FFF8EE'" onmouseleave="this.style.background=''">
   <img src="${p.image}" style="width:28px;height:28px;object-fit:cover;border-radius:5px;flex-shrink:0" onerror="this.style.display='none'">
   <span style="flex:1;font-weight:600">${p.name}</span>
   <span style="color:var(--muted);font-size:.74rem">${p.stock > 0 && !p.outOfStock ? p.stock+' uds' : 'Agotado'}</span>
-</div>`).join('');
+</div>`).join('') + createBtn;
+}
+
+async function _kitFormCreateDraft(name) {
+  const newId = products.reduce((m, p) => Math.max(m, p.id), 0) + 1;
+  const draft = {
+    id: newId, name, category: 'por_revisar', category_label: 'Por revisar',
+    price: 0, description: '', stock: 0, out_of_stock: true, is_published: false,
+    featured: false, image: DEFAULT_IMG, position: products.length
+  };
+  const result = await supabaseApi('products', {
+    method: 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify(draft)
+  });
+  if (!result.ok) { toast('Error al crear borrador', 'error'); return; }
+  products.push({
+    id: newId, name, category: 'por_revisar', categoryLabel: 'Por revisar',
+    price: 0, description: '', stock: 0, outOfStock: true, isPublished: false,
+    featured: false, image: DEFAULT_IMG, position: products.length - 1,
+    kitItems: null
+  });
+  document.getElementById('kit-search').value = '';
+  document.getElementById('kit-search-results').style.display = 'none';
+  addKitComponent(newId);
+  logActivity('producto_creado', `Borrador de kit: "${name}" — $0`, { id: newId, name, price: 0 });
+  toast(`✓ "${name}" creado como borrador`);
 }
 
 function addKitComponent(productId) {
@@ -6719,8 +6784,8 @@ function _kbRenderComponents() {
   }
   el.innerHTML = _kbComponents.map(c => `
     <div class="kb-comp">
-      <img src="${c.image || DEFAULT_IMG}" style="width:44px;height:44px;object-fit:cover;border-radius:9px;flex-shrink:0" onerror="this.src='${DEFAULT_IMG}'">
-      <div style="flex:1;min-width:0">
+      <img src="${c.image || DEFAULT_IMG}" style="width:44px;height:44px;object-fit:cover;border-radius:9px;flex-shrink:0;cursor:zoom-in" onerror="this.src='${DEFAULT_IMG}'" onclick="_kitCompPopover(${c.id},event)" title="Ver producto">
+      <div style="flex:1;min-width:0;cursor:pointer" onclick="_kitCompPopover(${c.id},event)" title="Ver producto">
         <div style="font-size:.84rem;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${c.name}</div>
         ${c.oos ? `<div style="font-size:.7rem;color:var(--red);margin-top:2px">⚠️ Agotado — disponibilidad calculada cuando haya stock</div>` : ''}
       </div>
