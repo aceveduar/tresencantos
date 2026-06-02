@@ -101,7 +101,7 @@ let currentSort = 'recent';
 let _adminPage = 1;
 const ADMIN_PAGE_SIZE = 50;
 let _realtimeChannel = null;
-let _statFilter = null; // 'con-stock' | 'sin-stock' | 'sin-publicar' | 'sin-codigo' | 'ultima-pieza'
+let _statFilter = null; // 'con-stock' | 'sin-stock' | 'sin-publicar' | 'sin-codigo' | 'ultima-pieza' | 'kits'
 
 /* Categorías — cargadas dinámicamente desde config.categories */
 let categories = []; // [{code, label, color}]
@@ -391,7 +391,8 @@ function getFilteredProducts() {
       (_statFilter === 'sin-categ'    && p.category === 'por_revisar') ||
       (_statFilter === 'ultima-pieza' && p.stock === 1 && !p.outOfStock) ||
       (_statFilter === 'sin-precio'   && (!p.price || p.price === 0)) ||
-      (_statFilter === 'imagen-base64' && p.image?.startsWith('data:'));
+      (_statFilter === 'imagen-base64' && p.image?.startsWith('data:')) ||
+      (_statFilter === 'kits'         && !!p.kitItems?.length);
     return matchCat && matchQ && matchFlag && matchStat && matchCreator;
   });
 
@@ -857,6 +858,7 @@ function renderStats() {
   const sinStock    = products.filter(p => p.stock === 0 || p.outOfStock).length;
   const ultimaPieza = products.filter(p => p.stock === 1 && !p.outOfStock).length;
   const sinPublicar = products.filter(p => p.isPublished === false).length;
+  const nKits       = products.filter(p => !!p.kitItems?.length).length;
   const sinCodigo   = products.filter(p => !p.barcode).length;
   const sinCateg    = products.filter(p => p.category === 'por_revisar').length;
   const nFlag       = _flagged.length;
@@ -886,6 +888,7 @@ function renderStats() {
        <span class="sc-lbl">Todos</span>
      </button>` +
     chip('con-stock',   '✅', conStock,    'Con stock',    '#059669') +
+    (nKits > 0 ? chip('kits', '🎁', nKits, 'Kits', '#C9A462', '#fff') : '') +
     (sinStock > 0 ? chip('sin-stock', '🚫', sinStock, 'Sin stock', '#dc2626') : '') +
     (ultimaPieza > 0 ? chip('ultima-pieza','⚡', ultimaPieza, 'Última pieza', '#B45309') : '') +
     (sinPublicar  > 0 ? chip('sin-publicar','🙈', sinPublicar, 'Sin publicar', '#C2410C') : '') +
@@ -3040,11 +3043,19 @@ async function saveProduct() {
     const newProduct = { id: maxId + 1, ...data, position: products.length };
     products.push(newProduct);
 
-    const result = await supabaseApi('products', {
-      method: 'POST',
-      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({ id: newProduct.id, ...dbPayload, position: newProduct.position })
-    });
+    let result;
+    try {
+      result = await supabaseApi('products', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify({ id: newProduct.id, ...dbPayload, position: newProduct.position })
+      });
+    } catch (err) {
+      products.pop();
+      setBtn(saveBtn, false);
+      toast(`Error de red al guardar: sin conexión o tiempo de espera agotado`, 'error');
+      return;
+    }
     if (!result.ok) {
       products.pop();
       setBtn(saveBtn, false);
@@ -6076,11 +6087,46 @@ function _srpOpenZoom() {
   requestAnimationFrame(() => fs.classList.add('open'));
 }
 
+/* ── KIT COMPONENT MINI-POPUP ── */
+function _kitCompPopup(id, triggerEl) {
+  const existing = document.getElementById('kit-comp-popup');
+  if (existing) { existing.remove(); if (existing.dataset.forId == id) return; }
+  const comp = products.find(x => x.id === id);
+  if (!comp) return;
+  const stockTxt = comp.outOfStock || comp.stock === 0
+    ? '<span style="color:#E85D5D;font-size:.72rem;font-weight:600">● Agotado</span>'
+    : `<span style="color:#2D6A4F;font-size:.72rem;font-weight:600">● ${comp.stock} en stock</span>`;
+  const popup = document.createElement('div');
+  popup.id = 'kit-comp-popup';
+  popup.dataset.forId = id;
+  popup.style.cssText = 'position:fixed;z-index:9999;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.22);padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px;width:230px;animation:kcp-in .18s ease';
+  popup.innerHTML = `
+    <style>@keyframes kcp-in{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}</style>
+    <button onclick="document.getElementById('kit-comp-popup').remove()" style="position:absolute;top:8px;right:8px;background:none;border:none;font-size:1rem;cursor:pointer;color:#8A7564;line-height:1;padding:2px">✕</button>
+    <img src="${comp.image || DEFAULT_IMG}" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'" style="width:190px;height:190px;object-fit:contain;border-radius:8px;background:#F7F2EB">
+    <div style="font-size:.86rem;font-weight:600;color:#1C1817;text-align:center;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;width:100%">${comp.name}</div>
+    ${stockTxt}`;
+  // Posicionar junto al elemento que se clickeó
+  document.body.appendChild(popup);
+  const r = triggerEl.getBoundingClientRect();
+  const pw = 230, ph = popup.offsetHeight || 260;
+  let top = r.top + window.scrollY - ph - 8;
+  let left = r.left + window.scrollX + r.width / 2 - pw / 2;
+  if (top < 8) top = r.bottom + window.scrollY + 8;
+  left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+  popup.style.top = top + 'px';
+  popup.style.left = left + 'px';
+  const close = e => { if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('pointerdown', close); } };
+  setTimeout(() => document.addEventListener('pointerdown', close), 10);
+}
+
 // Teclado: ← → Esc cuando el QV está abierto
 document.addEventListener('keydown', e => {
   if (!_qvCurrentId) return;
-  if (e.key === 'ArrowRight') qvNavigate(1);
-  if (e.key === 'ArrowLeft')  qvNavigate(-1);
+  const tag = document.activeElement?.tagName;
+  const isEditing = tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable;
+  if (e.key === 'ArrowRight' && !isEditing) qvNavigate(1);
+  if (e.key === 'ArrowLeft'  && !isEditing) qvNavigate(-1);
   if (e.key === 'Escape' && !document.getElementById('form-overlay')?.classList.contains('open')) closeQV();
 });
 
@@ -6217,7 +6263,8 @@ function _renderQV(p) {
       kitZone.innerHTML = `<div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">🎁 Incluye</div>` +
         p.kitItems.map(item => {
           const comp = products.find(x => x.id === item.id);
-          return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-light)">
+          const clickable = comp ? `onclick="_kitCompPopup(${comp.id},this)" style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-light);cursor:pointer;border-radius:6px;transition:background .15s" onmouseenter="this.style.background='var(--gold-light)'" onmouseleave="this.style.background=''"` : `style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-light)"`;
+          return `<div ${clickable}>
             <img src="${comp?.image || DEFAULT_IMG}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0;background:#F0EBE3" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
             <span style="flex:1;font-size:.82rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${item.name}</span>
             <span style="font-size:.75rem;color:var(--muted);font-weight:600;flex-shrink:0">×${item.qty}</span>

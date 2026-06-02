@@ -482,6 +482,16 @@ button,a{touch-action:manipulation}
 .apt-overdue-badge{display:inline-flex;align-items:center;gap:5px;background:#FEE2E2;color:#DC2626;font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:50px;align-self:flex-start}
 .apt-customer{font-size:.86rem;font-weight:700;color:var(--charcoal);display:flex;align-items:center;gap:6px}
 .apt-meta{font-size:.72rem;color:#9B8B78;margin-top:2px}
+.apt-items-list{margin-top:8px;display:flex;flex-direction:column}
+.apt-item-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #EDE0CF;cursor:pointer;transition:opacity .15s}
+.apt-item-row:last-child{border-bottom:none}
+.apt-item-row:active{opacity:.7}
+.apt-item-thumb{width:60px;height:60px;object-fit:contain;border-radius:8px;flex-shrink:0;background:#F7F2EB;padding:4px}
+.apt-item-info{flex:1;min-width:0}
+.apt-item-name{font-size:.84rem;font-weight:600;color:var(--charcoal);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3}
+.apt-item-right{display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;gap:2px}
+.apt-item-price{font-size:.86rem;font-weight:700;color:var(--charcoal)}
+.apt-item-qty{font-size:.72rem;color:#9B8B78}
 .apt-progress-section{display:flex;flex-direction:column;gap:5px}
 .apt-progress-track{height:6px;background:#EDE6DC;border-radius:50px;overflow:hidden}
 .apt-progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-dark));border-radius:50px;transition:width .4s ease}
@@ -497,7 +507,9 @@ button,a{touch-action:manipulation}
 .btn-wa-reminder:hover{background:#1da851;transform:scale(1.05)}
 /* HISTORIAL DE ABONOS */
 .apt-abonos{margin:0 0 4px;border-top:1px solid #F0E8DC;padding-top:7px}
-.apt-abonos-title{font-size:.68rem;font-weight:700;color:#9B8B78;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.apt-abonos-title{font-size:.68rem;font-weight:700;color:#9B8B78;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;-webkit-user-select:none}
+.apt-abonos-toggle{font-size:.7rem;transition:transform .2s}
+.apt-abonos-body{overflow:hidden;transition:max-height .25s ease}
 .apt-abono-row{display:flex;justify-content:space-between;align-items:center;font-size:.74rem;color:#9B8B78;padding:3px 0;border-bottom:1px dashed #F0E8DC}
 .apt-abono-row:last-child{border-bottom:none}
 .apt-abono-amount{font-weight:700;color:var(--charcoal);flex-shrink:0;margin-left:8px}
@@ -2913,19 +2925,36 @@ async function loadApartados() {
     const abonos   = Array.isArray(s.abonos) ? s.abonos : [];
     const abonosHTML = abonos.length ? `
 <div class="apt-abonos">
-  <div class="apt-abonos-title">Historial de pagos</div>
-  ${abonos.map(a => {
-    const fecha = new Date(a.date).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
-    const ico   = a.method === 'transferencia' ? '📱' : '💵';
-    return `<div class="apt-abono-row"><span>${fecha} · ${ico} ${a.method}</span><span class="apt-abono-amount">$${parseFloat(a.amount).toLocaleString('es-MX')}</span></div>`;
-  }).join('')}
+  <div class="apt-abonos-title" onclick="_toggleAbonos(this)">Historial de pagos <span class="apt-abonos-toggle">▼</span></div>
+  <div class="apt-abonos-body" style="max-height:0">
+    ${abonos.map(a => {
+      const fecha = new Date(a.date).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+      const ico   = a.method === 'transferencia' ? '📱' : '💵';
+      return `<div class="apt-abono-row"><span>${fecha} · ${ico} ${a.method}</span><span class="apt-abono-amount">$${parseFloat(a.amount).toLocaleString('es-MX')}</span></div>`;
+    }).join('')}
+  </div>
 </div>` : '';
     const isOverdue  = s.due_date && (() => { const h=new Date();h.setHours(0,0,0,0);return new Date(s.due_date+'T00:00:00') < h; })();
     return `
 <div class="apartado-item${isOverdue ? ' apt-overdue' : ''}">
   ${isOverdue ? '<div class="apt-overdue-badge">⚠️ Vencido</div>' : ''}
   <div class="apt-customer">👤 ${nombre} <span style="font-weight:400;font-size:.76rem">${telefonoHTML}</span></div>
-  <div class="apt-meta">${t} · ${summary.substring(0,45)}${summary.length>45?'…':''}</div>
+  <div class="apt-meta">${t}</div>
+  <div class="apt-items-list">${Array.isArray(s.items) ? s.items.map(i => {
+      const prod  = products.find(x => x.id === i.id);
+      const img   = prod?.image || '';
+      const price = (i.subtotal ?? i.price*(i.qty||1)).toLocaleString('es-MX');
+      return `<div class="apt-item-row" onclick="_aptItemPopup(${i.id},this)">
+        <img class="apt-item-thumb" src="${img}" onerror="this.style.visibility='hidden'" alt="">
+        <div class="apt-item-info">
+          <div class="apt-item-name">${i.name}</div>
+        </div>
+        <div class="apt-item-right">
+          <span class="apt-item-price">$${price}</span>
+          <span class="apt-item-qty">×${i.qty||1}</span>
+        </div>
+      </div>`;
+    }).join('') : ''}</div>
   ${dueDateHTML}
   ${abonosHTML}
   <div class="apt-progress-section">
@@ -2946,6 +2975,43 @@ async function loadApartados() {
   }).join('');
 
   if (ocList) ocList.innerHTML = itemsHTML;
+}
+
+/* ── HISTORIAL TOGGLE ── */
+function _toggleAbonos(titleEl) {
+  const body   = titleEl.nextElementSibling;
+  const arrow  = titleEl.querySelector('.apt-abonos-toggle');
+  const open   = body.style.maxHeight !== '0px' && body.style.maxHeight !== '0';
+  body.style.maxHeight  = open ? '0' : body.scrollHeight + 'px';
+  arrow.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+/* ── POPUP IMAGEN PRODUCTO EN APARTADO ── */
+function _aptItemPopup(productId, triggerEl) {
+  const existing = document.getElementById('apt-item-popup');
+  if (existing) { existing.remove(); if (existing.dataset.forId == productId) return; }
+  const prod = products.find(x => x.id === productId);
+  if (!prod?.image) return;
+  const popup = document.createElement('div');
+  popup.id = 'apt-item-popup';
+  popup.dataset.forId = productId;
+  popup.style.cssText = 'position:fixed;z-index:9999;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.22);padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px;width:230px;animation:apt-pop-in .18s ease';
+  popup.innerHTML = `
+    <style>@keyframes apt-pop-in{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}</style>
+    <button onclick="document.getElementById('apt-item-popup').remove()" style="position:absolute;top:8px;right:8px;background:none;border:none;font-size:1rem;cursor:pointer;color:#8A7564;line-height:1;padding:2px">✕</button>
+    <img src="${prod.image}" onerror="this.onerror=null;this.src=''" style="width:190px;height:190px;object-fit:contain;border-radius:8px;background:#F7F2EB">
+    <div style="font-size:.86rem;font-weight:600;color:#1C1817;text-align:center;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;width:100%">${prod.name}</div>`;
+  document.body.appendChild(popup);
+  const r = triggerEl.getBoundingClientRect();
+  const pw = 230, ph = popup.offsetHeight || 280;
+  let top  = r.top - ph - 8;
+  let left = r.left + r.width / 2 - pw / 2;
+  if (top < 8) top = r.bottom + 8;
+  left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+  popup.style.top  = top  + 'px';
+  popup.style.left = left + 'px';
+  const close = e => { if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('pointerdown', close); } };
+  setTimeout(() => document.addEventListener('pointerdown', close), 10);
 }
 
 /* ── RECORDATORIO WA APARTADO ───────────────────────────────────────── */

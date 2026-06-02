@@ -778,9 +778,10 @@ function _modalNavigate(dir) {
 }
 
 function _initModalSwipeNav() {
-  let sx = 0, sy = 0, swDir = null;
+  let sx = 0, sy = 0, swDir = null, inGallery = false;
   document.addEventListener('touchstart', e => {
     if (!document.querySelector('#modal-overlay.open')) return;
+    inGallery = !!e.target.closest('.modal-gallery');
     sx = e.touches[0].clientX; sy = e.touches[0].clientY; swDir = null;
   }, { passive: true });
   document.addEventListener('touchmove', e => {
@@ -790,7 +791,7 @@ function _initModalSwipeNav() {
     if (dx > 8 || dy > 8) swDir = dx > dy ? 'h' : 'v';
   }, { passive: true });
   document.addEventListener('touchend', e => {
-    if (!activeProduct || swDir !== 'h') return;
+    if (!activeProduct || swDir !== 'h' || inGallery) return;
     const dx = e.changedTouches[0].clientX - sx;
     if (Math.abs(dx) < 45) return;
     _modalNavigate(dx < 0 ? 1 : -1);
