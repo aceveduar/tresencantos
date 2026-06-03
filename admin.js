@@ -51,6 +51,7 @@ let products = [];
 let _kitItemsEdit = [];
 let _additionalImagesEdit = [];
 let _returnToDupReview = false;
+let _returnToKitId = null; // ID del kit cuyo formulario se debe reabrir al cerrar un componente
 let _salesCountMap = new Map(); // productId → qty vendida total
 let deleteTargetId = null;
 let selectedIds = new Set();
@@ -2637,6 +2638,7 @@ function closeForm() {
   setBtn(document.getElementById('save-btn'), false);
   _clearDupWarnings();
   if (_returnToDupReview) { _returnToDupReview = false; setTimeout(openDupReview, 80); }
+  if (_returnToKitId) { const id = _returnToKitId; _returnToKitId = null; setTimeout(() => openForm(id), 80); }
 }
 
 
@@ -3173,7 +3175,8 @@ function _kitCompPopover(id, event) {
     <div style="font-size:.76rem;margin-top:5px;display:flex;justify-content:center;gap:10px">
       ${stockTxt}
       <span style="color:var(--muted)">$${(p.price||0).toLocaleString('es-MX')}</span>
-    </div>`;
+    </div>
+    <button onclick="_openFormFromKit(${p.id})" style="margin-top:12px;width:100%;padding:8px;border:none;border-radius:8px;background:var(--gold);color:#fff;font-size:.82rem;font-weight:600;cursor:pointer">✏️ Editar producto</button>`;
   document.body.appendChild(pop);
   setTimeout(() => {
     const close = e => { if (!pop.contains(e.target)) { pop.remove(); document.removeEventListener('click', close); } };
@@ -4415,6 +4418,19 @@ function _openFormFromDup(id) {
   _returnToDupReview = true;
   closeDupReview();
   openForm(id);
+}
+
+function _openFormFromKit(compId) {
+  const kitId = parseInt(document.getElementById('f-id')?.value) || null;
+  _returnToKitId = kitId;
+  document.getElementById('kit-comp-popover')?.remove();
+  // Cerrar sin pedir confirmación de cambios (el kit se reabrirá igual)
+  _formSnapshot = null;
+  document.getElementById('form-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  setBtn(document.getElementById('save-btn'), false);
+  _clearDupWarnings();
+  openForm(compId);
 }
 
 function _dupThumb(img, name) {
