@@ -957,7 +957,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .fab-add:active{transform:scale(.88);box-shadow:0 3px 12px rgba(201,164,98,.4)}
 .fab-add.fab-hidden{opacity:0;pointer-events:none;transform:scale(.7)}
 .fab-kit{
-  position:fixed;right:16px;z-index:110;
+  position:fixed;left:16px;z-index:110;
   width:46px;height:46px;border-radius:50%;
   background:var(--charcoal);color:#fff;font-size:1.15rem;
   border:none;cursor:pointer;display:none;
@@ -1108,7 +1108,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 
   /* FAB — mostrar en mobile */
   .fab-add{display:flex;align-items:center;justify-content:center;bottom:calc(24px + env(safe-area-inset-bottom))}
-  .fab-kit{display:flex;align-items:center;justify-content:center;bottom:calc(90px + env(safe-area-inset-bottom))}
+  .fab-kit{display:flex;align-items:center;justify-content:center;bottom:calc(24px + env(safe-area-inset-bottom))}
   /* Toolbar — ocultar btn Agregar (reemplazado por FAB) */
   .toolbar > .btn-gold,.tb-search-row .btn-gold{display:none}
   #btn-add-kit{display:none}
@@ -1963,8 +1963,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           <option value="name-za">Z → A</option>
           <option value="price-desc">$ Mayor</option>
           <option value="price-asc">$ Menor</option>
-          <option value="stock-asc">Agotados primero</option>
-          <option value="stock-desc">En stock primero</option>
+          <option value="stock-asc">Agotados</option>
+          <option value="stock-desc">Con stock</option>
         </select>
         <select class="filter-select" id="creator-filter" style="display:none" onchange="_adminPage=1;renderTable();renderStats()">
           <option value="all">👤 Todos</option>
