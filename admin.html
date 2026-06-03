@@ -1391,6 +1391,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .actions        {opacity:1!important}
   .ac-actions     {opacity:1!important}
   .drag-handle    {display:none!important}  /* drag & drop no funciona en touch */
+  /* Prevenir zoom de iOS en inputs — aplica a todos los tamaños de pantalla táctil */
+  input,select,textarea{font-size:16px!important;-webkit-appearance:none}
 }
 
 /* ══ TOPBAR NAV ══════════════════════════════════════════════════════ */
