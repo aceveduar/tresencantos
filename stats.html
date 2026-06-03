@@ -755,8 +755,10 @@ function renderTodaySales() {
       const meta = qty > 1
         ? `${qty} × $${parseFloat(i.price).toLocaleString('es-MX',{maximumFractionDigits:0})}`
         : `$${parseFloat(i.price).toLocaleString('es-MX',{maximumFractionDigits:0})}`;
+      const stockInfo = prod ? (prod.out_of_stock || prod.stock === 0 ? '● Agotado' : `● ${prod.stock} en stock`) : '';
+      const stockColor = prod && !prod.out_of_stock && prod.stock > 0 ? '#2D6A4F' : '#E85D5D';
       return `<div class="dv-item">
-  <img class="dv-thumb" src="${img}" alt="${i.name}" onerror="this.src='${PH}'">
+  <img class="dv-thumb" src="${img}" alt="${i.name}" onerror="this.src='${PH}'" style="cursor:pointer" onclick="event.stopPropagation();_dvImgPopup(this,'${img.replace(/'/g,"\\'")}','${i.name.replace(/'/g,"\\'")}',${parseFloat(i.price)},${qty},'${stockInfo}','${stockColor}')">
   <div style="flex:1;min-width:0"><div class="dv-item-name">${i.name}</div><div class="dv-item-meta">${meta}</div></div>
   <div class="dv-item-sub">$${sub.toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
 </div>`;
@@ -1551,6 +1553,27 @@ function renderUsage() {
       </div>
     </div>`;
   }).join('');
+}
+
+function _dvImgPopup(trigger, img, name, price, qty, stockInfo, stockColor) {
+  document.getElementById('dv-img-pop')?.remove();
+  const pop = document.createElement('div');
+  pop.id = 'dv-img-pop';
+  pop.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);animation:dvp-in .15s ease';
+  const priceStr = qty > 1
+    ? `${qty} × $${price.toLocaleString('es-MX',{maximumFractionDigits:0})}`
+    : `$${price.toLocaleString('es-MX',{maximumFractionDigits:0})} MXN`;
+  pop.innerHTML = `
+    <style>@keyframes dvp-in{from{opacity:0}to{opacity:1}}</style>
+    <div onclick="event.stopPropagation()" style="background:#fff;border-radius:18px;padding:18px;max-width:280px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,.28);text-align:center;position:relative">
+      <button onclick="document.getElementById('dv-img-pop').remove()" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:1.1rem;cursor:pointer;color:#8A7564;line-height:1">✕</button>
+      <img src="${img}" alt="${name}" onerror="this.style.display='none'" style="width:100%;max-height:220px;object-fit:contain;border-radius:10px;background:#F7F2EB;margin-bottom:12px">
+      <div style="font-size:.9rem;font-weight:700;color:#1C1817;line-height:1.35;margin-bottom:6px">${name}</div>
+      <div style="font-size:1rem;font-weight:700;font-family:'Playfair Display',serif;color:#C9A462;margin-bottom:${stockInfo?'6px':'0'}">${priceStr}</div>
+      ${stockInfo ? `<div style="font-size:.72rem;font-weight:600;color:${stockColor}">${stockInfo}</div>` : ''}
+    </div>`;
+  pop.addEventListener('click', () => pop.remove());
+  document.body.appendChild(pop);
 }
 </script>
 
