@@ -4683,7 +4683,9 @@ function showScanResult(id) {
   document.getElementById('srp-actions').innerHTML = btnEdit + btnDup + btnPub + btnDel;
 
   // Mostrar panel, ocultar lista y elementos irrelevantes
-  document.getElementById('scan-result-panel').style.display = 'block';
+  const srpPanel = document.getElementById('scan-result-panel');
+  srpPanel.style.display = 'block';
+  srpPanel.dataset.srpId = p.id;
   document.getElementById('products-view-wrap').style.display = 'none';
   const bulkBar = document.getElementById('bulk-bar');
   if (bulkBar) bulkBar.style.display = 'none';
@@ -6360,6 +6362,46 @@ function _qvOpenZoom() {
   fs.onclick = e => { if (e.target === fs) fs.remove(); };
   document.body.appendChild(fs);
   requestAnimationFrame(() => fs.classList.add('open'));
+}
+
+let _srpClickTimer = null;
+function _srpImgClick(e) {
+  clearTimeout(_srpClickTimer);
+  _srpClickTimer = setTimeout(() => _srpOpenZoom(), 220);
+}
+function _srpImgDblClick(e) {
+  clearTimeout(_srpClickTimer);
+  if (!can.editProduct) return;
+  document.getElementById('srp-img-file').click();
+}
+async function _srpHandleImgUpload(input) {
+  const file = input.files?.[0];
+  const srpId = parseInt(document.getElementById('scan-result-panel').dataset.srpId);
+  if (!file || !srpId) return;
+  const p = products.find(x => x.id === srpId);
+  if (!p) return;
+  const img = document.getElementById('srp-img');
+  if (img) { img.style.opacity = '.4'; img.style.transition = 'opacity .2s'; }
+  toast('Subiendo imagen…', '');
+  const b64 = await _fileToBase64Resized(file);
+  let finalUrl = b64;
+  if (driveEp && driveSecret) {
+    const driveResult = await uploadToDrive(b64);
+    if (driveResult) finalUrl = driveResult;
+  }
+  const result = await supabaseApi(`products?id=eq.${srpId}`, {
+    method: 'PATCH', body: JSON.stringify({ image: finalUrl })
+  });
+  input.value = '';
+  if (result.ok) {
+    p.image = finalUrl;
+    renderTable();
+    _srpRefresh(srpId);
+    toast('Imagen actualizada ✓', 'success');
+  } else {
+    if (img) img.style.opacity = '1';
+    toast('Error al guardar imagen', 'error');
+  }
 }
 
 function _srpOpenZoom() {

@@ -1988,7 +1988,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       </div>
       <div class="srp-card" id="srp-card">
         <div class="srp-header">
-          <img class="srp-thumb" id="srp-img" src="" alt="" onclick="_srpOpenZoom()">
+          <img class="srp-thumb" id="srp-img" src="" alt="" onclick="_srpImgClick(event)" ondblclick="_srpImgDblClick(event)" title="Clic: ver completa · Doble clic: cambiar imagen">
+          <input type="file" id="srp-img-file" accept="image/*" style="display:none" onchange="_srpHandleImgUpload(this)">
           <div class="srp-header-body">
             <div class="srp-cat-row">
               <span class="srp-cat-dot" id="srp-cat-dot"></span>
