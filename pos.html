@@ -3975,7 +3975,8 @@ async function cobrar() {
   } else {
     logActivity('venta',
       `Cobró $${total.toLocaleString('es-MX')} — ${items.length} producto${items.length !== 1 ? 's' : ''}`,
-      { total, items: items.length, method: payMethod, discount: disc || 0 });
+      { total, items: items.length, method: payMethod, discount: disc || 0,
+        itemIds: items.map(i => i.id) });
   }
 
   TE.track(isApartado ? 'pos_apartado' : 'pos_checkout', { total, items: items.length, method: payMethod });
