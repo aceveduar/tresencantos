@@ -51,6 +51,7 @@ let products = [];
 let _kitItemsEdit = [];
 let _additionalImagesEdit = [];
 let _returnToDupReview = false;
+let _salesCountMap = new Map(); // productId → qty vendida total
 let deleteTargetId = null;
 let selectedIds = new Set();
 let dragSrcId = null;
@@ -393,7 +394,8 @@ function getFilteredProducts() {
       (_statFilter === 'ultima-pieza' && p.stock === 1 && !p.outOfStock) ||
       (_statFilter === 'sin-precio'   && (!p.price || p.price === 0)) ||
       (_statFilter === 'imagen-base64' && p.image?.startsWith('data:')) ||
-      (_statFilter === 'kits'         && !!p.kitItems?.length);
+      (_statFilter === 'kits'         && !!p.kitItems?.length) ||
+      (_statFilter === 'vendidos'     && (_salesCountMap.get(p.id) || 0) > 0);
     return matchCat && matchQ && matchFlag && matchStat && matchCreator;
   });
 
@@ -806,6 +808,7 @@ async function showApp() {
   await Promise.all([loadAppConfig(), loadFlagged(), loadRecentlyEdited(), loadApartadosMap()]);
   _loadNameMap();
   await loadProductsFromSupabase();
+  loadSalesCounts(); // no-blocking — actualiza chips cuando termina
   _syncFlagFilter();
   renderStats();
   _refreshCreatorFilter();
@@ -841,6 +844,30 @@ function mapProduct(p) {
     isApartado: p.is_apartado || false,
     createdBy: p.created_by || null
   };
+}
+
+async function loadSalesCounts() {
+  try {
+    const r = await supabaseApi('sales?select=items&type=eq.venta&limit=5000');
+    if (!r.ok || !Array.isArray(r.data)) return;
+    const map = new Map();
+    r.data.forEach(sale => {
+      (sale.items || []).forEach(item => {
+        if (item.id) map.set(item.id, (map.get(item.id) || 0) + (item.qty || 1));
+      });
+    });
+    _salesCountMap = map;
+    // Persiste en config para que app.js pueda ordenar en la tienda
+    const obj = {};
+    map.forEach((qty, id) => { obj[id] = qty; });
+    supabaseApi('config', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ id: 'sales_counts', value: JSON.stringify(obj) })
+    });
+    renderStats();
+    renderTable();
+  } catch {}
 }
 
 async function loadProductsFromSupabase() {
@@ -891,6 +918,7 @@ function renderStats() {
      </button>` +
     chip('con-stock',   '✅', conStock,    'Con stock',    '#059669') +
     (nKits > 0 ? chip('kits', '🎁', nKits, 'Kits', '#C9A462', '#fff') : '') +
+    (_salesCountMap.size > 0 ? chip('vendidos', '🔥', _salesCountMap.size, 'Vendidos', '#B45309', '#fff') : '') +
     (sinStock > 0 ? chip('sin-stock', '🚫', sinStock, 'Sin stock', '#dc2626') : '') +
     (ultimaPieza > 0 ? chip('ultima-pieza','⚡', ultimaPieza, 'Última pieza', '#B45309') : '') +
     (sinPublicar  > 0 ? chip('sin-publicar','🙈', sinPublicar, 'Sin publicar', '#C2410C') : '') +
@@ -1143,7 +1171,8 @@ function adminCard(p, editable = false) {
     <div class="ac-footer">
       <div style="display:flex;align-items:center;gap:6px">
         ${stockChip(p, editable)}
-        ${p.isApartado ? `<span class="apt-chip">📌 Apartado</span>` : (_apartadosMap[p.id] && p.stock <= 1 ? `<span class="apt-chip" title="${_apartadosMap[p.id]} unidad(es) en apartado">📌 Apartado</span>` : '')}
+        ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip" title="${_apartadosMap[p.id] || ''} unidad(es) en apartado">📌 Apartado</span>` : ''}
+        ${(_salesCountMap.get(p.id) || 0) > 0 ? `<span class="apt-chip" style="background:#FFF7ED;color:#B45309;border-color:#FED7AA" title="${_salesCountMap.get(p.id)} vendidos">🔥 ${_salesCountMap.get(p.id)}</span>` : ''}
         <button class="ac-pub-dot" onclick="togglePublished(${p.id})"
                 ontouchstart="event.stopPropagation()"
                 title="${pubTitle}">
@@ -1487,7 +1516,8 @@ function mobileCard(p) {
           </div>
           <div class="mpc-price-row">
             ${priceHTML}${stockInfo}
-            ${p.isApartado ? `<span class="apt-chip">📌 Apartado</span>` : (_apartadosMap[p.id] && p.stock <= 1 ? `<span class="apt-chip">📌 Apartado</span>` : '')}
+            ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip">📌 Apartado</span>` : ''}
+            ${(_salesCountMap.get(p.id) || 0) > 0 ? `<span class="apt-chip" style="background:#FFF7ED;color:#B45309;border-color:#FED7AA" title="${_salesCountMap.get(p.id)} vendidos">🔥 ${_salesCountMap.get(p.id)}</span>` : ''}
             <button class="ac-pub-dot"
                     onclick="togglePublished(${p.id})"
                     ontouchstart="event.stopPropagation()"

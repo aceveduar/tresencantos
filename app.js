@@ -7,6 +7,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 let products = [];
 let publicCategories = [];
 let waFloatEnabled = true;
+let _salesCounts = {}; // { productId: qtySold } — cargado desde config
 let revistaUrl = "";
 let currentFilter = 'all';
 let searchQuery   = '';
@@ -239,11 +240,14 @@ function updateRevistaLink() {
 
 async function loadCategories() {
   try {
-    const result = await supabaseApi('config?id=in.(categories,wa_float)&select=id,value');
+    const result = await supabaseApi('config?id=in.(categories,wa_float,sales_counts)&select=id,value');
     if (result.ok && result.data) {
       result.data.forEach(row => {
         if (row.id === 'categories' && row.value) publicCategories = JSON.parse(row.value);
         if (row.id === 'wa_float') waFloatEnabled = row.value !== 'false';
+        if (row.id === 'sales_counts' && row.value) {
+          try { _salesCounts = JSON.parse(row.value); } catch {}
+        }
       });
     }
   } catch {}
@@ -349,6 +353,7 @@ function render() {
     case 'price-asc':  list = [...list].sort((a, b) => a.price - b.price); break;
     case 'price-desc': list = [...list].sort((a, b) => b.price - a.price); break;
     case 'name':       list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'es')); break;
+    case 'popular':    list = [...list].sort((a, b) => (_salesCounts[b.id] || 0) - (_salesCounts[a.id] || 0)); break;
   }
 
   if (!list.length) {
