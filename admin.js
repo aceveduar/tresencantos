@@ -51,7 +51,8 @@ let products = [];
 let _kitItemsEdit = [];
 let _additionalImagesEdit = [];
 let _returnToDupReview = false;
-let _returnToKitId = null; // ID del kit cuyo formulario se debe reabrir al cerrar un componente
+let _returnToKitId = null;     // ID del kit cuyo formulario se debe reabrir al cerrar un componente
+let _scrollToKitOnOpen = false; // al regresar al kit, hacer scroll hasta la sección de componentes
 let _salesCountMap = new Map(); // productId → qty vendida total
 let deleteTargetId = null;
 let selectedIds = new Set();
@@ -2538,7 +2539,9 @@ function _takeFormSnapshot() {
 function _formIsDirty() {
   if (!_formSnapshot) return false;
   const cur = _takeFormSnapshot();
-  return Object.keys(_formSnapshot).some(k => _formSnapshot[k] !== cur[k]);
+  const dirty = Object.keys(_formSnapshot).filter(k => _formSnapshot[k] !== cur[k]);
+  if (dirty.length) console.warn('[dirty]', dirty.map(k => `${k}: ${JSON.stringify(_formSnapshot[k])} → ${JSON.stringify(cur[k])}`));
+  return dirty.length > 0;
 }
 
 function openForm(id) {
@@ -2621,7 +2624,12 @@ function openForm(id) {
   document.getElementById('save-btn').disabled = false;
   _applyPriceLock();
   setTimeout(() => {
-    if (id) {
+    if (_scrollToKitOnOpen) {
+      _scrollToKitOnOpen = false;
+      const kitEl = document.getElementById('kit-editor');
+      const body  = document.querySelector('#form-overlay .modal-body');
+      if (kitEl && body) body.scrollTop = kitEl.offsetTop - 12;
+    } else if (id) {
       document.getElementById('f-name').focus();
     } else {
       document.querySelector('#form-overlay .modal-body').scrollTop = 0;
@@ -2641,7 +2649,7 @@ function closeForm() {
   _clearDupWarnings();
   const b = document.getElementById('form-kit-banner'); if (b) b.style.display = 'none';
   if (_returnToDupReview) { _returnToDupReview = false; setTimeout(openDupReview, 80); }
-  if (_returnToKitId) { const id = _returnToKitId; _returnToKitId = null; setTimeout(() => openForm(id), 80); }
+  if (_returnToKitId) { const id = _returnToKitId; _returnToKitId = null; _scrollToKitOnOpen = true; setTimeout(() => openForm(id), 80); }
 }
 
 
@@ -4434,7 +4442,7 @@ function _backToKit() {
   _clearDupWarnings();
   const b = document.getElementById('form-kit-banner'); if (b) b.style.display = 'none';
   const id = _returnToKitId; _returnToKitId = null;
-  if (id) setTimeout(() => openForm(id), 80);
+  if (id) { _scrollToKitOnOpen = true; setTimeout(() => openForm(id), 80); }
 }
 
 function _openFormFromKit(compId) {
