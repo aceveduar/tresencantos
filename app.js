@@ -354,6 +354,11 @@ function render() {
     case 'price-desc': list = [...list].sort((a, b) => b.price - a.price); break;
     case 'name':       list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'es')); break;
     case 'popular':    list = [...list].sort((a, b) => (_salesCounts[b.id] || 0) - (_salesCounts[a.id] || 0)); break;
+    case 'category':   list = [...list].sort((a, b) => {
+      const ca = a.category || '', cb = b.category || '';
+      if (ca !== cb) return ca.localeCompare(cb, 'es');
+      return (a.position ?? 9999) - (b.position ?? 9999);
+    }); break;
   }
 
   if (!list.length) {
