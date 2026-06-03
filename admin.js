@@ -170,6 +170,12 @@ const CAT_DEFAULTS = [
   {code:'natura_facial',       label:'Facial',              color:'#34d399', parent:'natura'},
   {code:'natura_cabello',      label:'Cabello Natura',      color:'#34d399', parent:'natura'},
   {code:'natura_maquillaje',   label:'Maquillaje Natura',   color:'#34d399', parent:'natura'},
+  // ── AVON ────────────────────────────────────────────────
+  {code:'avon',                label:'Avon',                color:'#e11d48'},
+  {code:'avon_perfumes',       label:'Perfumería',          color:'#e11d48', parent:'avon'},
+  {code:'avon_cuerpo',         label:'Cuerpo',              color:'#e11d48', parent:'avon'},
+  {code:'avon_facial',         label:'Facial',              color:'#e11d48', parent:'avon'},
+  {code:'avon_maquillaje',     label:'Maquillaje',          color:'#e11d48', parent:'avon'},
 ];
 const CAT_PALETTE = ['#C9A462','#60a5fa','#f472b6','#34d399','#a78bfa','#fb923c','#fbbf24','#a3e635','#2dd4bf','#f87171'];
 
@@ -2413,10 +2419,16 @@ Regla universal: empieza SIEMPRE con verbo activo o el ingrediente/rasgo estrell
 CATEGORÍAS — mapeo de productos a códigos
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Usa el código exacto de esta lista. Aplica el mapeo lógico:
-• Natura perfumes / colonias / desodorantes con aroma → subcategorías de natura (ej: natura_perfumes)
-• Natura cremas, lociones, aceites corporales → subcategorías de natura (ej: natura_cremas)
-• Natura shampoo, acondicionador, mascarilla → subcategorías de natura (ej: natura_cabello si existe)
-• Natura maquillaje (Faces) → subcategorías de natura o maquillaje
+• Natura perfumes / colonias / desodorantes con aroma → natura_perfumes
+• Natura cremas, lociones, aceites corporales → natura_cuerpo
+• Natura shampoo, acondicionador, mascarilla → natura_cabello
+• Natura maquillaje (Faces, Una) → natura_maquillaje
+• Natura facial (sérum, hidratante, limpiador) → natura_facial
+• Avon perfumes / colonias / desodorantes → avon_perfumes
+• Avon cremas, lociones, corporales → avon_cuerpo
+• Avon facial (sérum, hidratante, limpiador) → avon_facial
+• Avon maquillaje (labial, base, sombra, máscara) → avon_maquillaje
+• Si ves logo/marca Avon o líneas Avon (Anew, Skin So Soft, Far Away, Black Suede, Luck, Perceive) → usar avon_*
 • Bolso grande / tote / shopper / mochila → bolsos o subcategoría correspondiente
 • Cartera / billetera / monedero → accesorios o subcategoría
 • Anillo / collar / aretes / pulsera → joyería o accesorios
@@ -2777,6 +2789,20 @@ function suggestCategoryFromName() {
   if (!name || name.length < 4) return;
 
   const rules = [
+    // ── AVON subcategorías (específicas primero) ─────────────────────────
+    [/avon.*perfum|avon.*colonia|avon.*fragancia|far away|black suede|luck\b.*avon|perceive|avon.*desodor|avon.*deo/,
+     'avon_perfumes'],
+    [/avon.*shampoo|avon.*acondicion|avon.*cabell|avon.*pelo/,
+     'avon_cuerpo'],
+    [/anew|avon.*facial|avon.*serum|avon.*crema.*cara|avon.*antiedad|avon.*limpiador/,
+     'avon_facial'],
+    [/avon.*crema.*corp|avon.*locion|avon.*corporal|skin so soft|avon.*hidratante|avon.*exfoli/,
+     'avon_cuerpo'],
+    [/avon.*labial|avon.*base|avon.*rubor|avon.*sombra|avon.*rimel|avon.*mascara|avon.*maquill|avon.*lip|true color/,
+     'avon_maquillaje'],
+    // ── AVON general ────────────────────────────────────────────────────
+    [/\bavon\b/,
+     'avon'],
     // ── NATURA subcategorías (específicas primero) ───────────────────────
     [/perfum|colonia|desodoran|fragancia|eau de|toilette|body splash|deo col/,
      'natura_perfumes'],
@@ -5791,7 +5817,7 @@ async function runCaptureAI() {
   _capSetAIStatus(false, '', 'Analizando imagen con IA...');
   try {
     const catList = categories.map(c => '"' + c.code + '" (' + c.label + ')').join(', ');
-    const sysP = 'Eres copywriter senior para Tres Encantos. Copy listo para publicar, nivel Sephora/Liverpool/Amazon MX.\n\nPASO 0: lee TODO el texto del empaque (marca, línea, concentración, variante, ml/g, género) antes de escribir.\n\nTÍTULO NATURA (si detectas la marca): Natura [Línea] [Tipo/Concentración] [Variante] [ml/g] [Género]. Líneas: Kaiak, Essencial, Una, Humor, Nativa, Plant, Tododia, Boticaría, Ekos, Chronos, Mamá Terra, Lumina, Luna, Faces, Amó. Concentraciones: EDP, EDT, Colônia, Desodorante Colônia. Ej: "Natura Kaiak Desodorante Colônia Clásico 100ml Masculino", "Natura Essencial EDP Floral 75ml Femenino", "Natura Tododia Crema Corporal Coco 400ml".\n\nTÍTULO GENERAL: [Marca] + [Tipo] + [Material/Acabado] + [Color]. Ej: "Bolso Tote Cuero Vegano Negro — David Jones".\n\nDESCRIPCIÓN PREMIUM — empieza SIEMPRE con verbo activo o ingrediente estrella, nunca "Este es..." o "Es un...". Fórmulas:\n• Perfume/Colonia Natura → "[Familia olfativa] de [notas] que [efecto]. [Intensidad/ocasión]."\n• Crema/Aceite/Loción Natura → "[Ingrediente] que [beneficio en piel]. [Textura/resultado visible]."\n• Cabello Natura → "[Ingrediente activo] que [beneficio]. [Resultado desde primera aplicación]."\n• Maquillaje → "[Acabado/cobertura] que [beneficio extra]. [Tono/look ideal]."\n• Bolso/Cartera → "[Material/diseño] que [funcionalidad]. [Ocasión/estilo de vida]."\n\nCATEGORÍA — mapeo: perfumes/colonias Natura → natura_perfumes; cremas/aceites Natura → natura_cremas; cabello Natura → natura_cabello; maquillaje Faces → maquillaje o natura; bolso grande → bolsos; cartera/monedero → accesorios; labial/sombra → maquillaje. "" si no hay coincidencia clara.\n\nPROHIBIDO en títulos: "bonito","elegante","especial","hermoso". Sin SKUs ni códigos. Español de México.';
+    const sysP = 'Eres copywriter senior para Tres Encantos. Copy listo para publicar, nivel Sephora/Liverpool/Amazon MX.\n\nPASO 0: lee TODO el texto del empaque (marca, línea, concentración, variante, ml/g, género) antes de escribir.\n\nTÍTULO NATURA: Natura [Línea] [Tipo] [Variante] [ml/g] [Género]. Líneas: Kaiak, Essencial, Una, Humor, Nativa, Plant, Tododia, Ekos, Chronos, Mamá Terra, Lumina, Luna, Faces, Amó. Ej: "Natura Kaiak Desodorante Colônia Clásico 100ml Masculino".\n\nTÍTULO AVON: Avon [Línea] [Tipo] [Variante] [ml/g]. Líneas: Anew, Skin So Soft, Far Away, Black Suede, Luck, Perceive, True Color. Ej: "Avon Far Away Eau de Parfum 50ml Femenino", "Avon Anew Sérum Retinol 30ml".\n\nTÍTULO GENERAL: [Marca] + [Tipo] + [Material/Acabado] + [Color].\n\nDESCRIPCIÓN PREMIUM — empieza con verbo activo o ingrediente, nunca "Este es...":\n• Perfume/Colonia Natura o Avon → "[Familia olfativa] de [notas] que [efecto]."\n• Crema/Loción Natura o Avon → "[Ingrediente] que [beneficio]. [Textura/resultado]."\n• Maquillaje → "[Acabado] que [beneficio extra]. [Tono/look ideal]."\n• Bolso/Cartera → "[Material] que [funcionalidad]. [Ocasión]."\n\nCATEGORÍA — si ves marca Avon o líneas Avon → avon_perfumes/avon_cuerpo/avon_facial/avon_maquillaje. Si ves Natura → natura_perfumes/natura_cuerpo/natura_facial/natura_cabello/natura_maquillaje. Bolso grande → bolsos; cartera → accesorios; labial/sombra → maquillaje. "" si duda.\n\nPROHIBIDO: "bonito","elegante","especial","hermoso". Sin SKUs. Español de México.';
     const usrP = 'PASO 0: escanea la imagen — marca, línea, concentración, variante, ml/g, género. Devuelve SOLO JSON válido sin markdown.\n\nOBLIGATORIOS:\n- "name": 45-70 chars. Natura: línea+tipo+variante+ml+género. Otros: marca+tipo+material+color.\n- "description": copy listo para publicar, máx 160 chars. Fórmula según tipo. Empieza con verbo o ingrediente, nunca "Este es...".\n\nOPCIONALES (null o "" si dudas):\n- "category": código exacto según mapeo del sistema. Opciones: ' + catList + '\n- "price": número de etiqueta/plumón/empaque (ej: 350). Solo dígitos. NO confundas con ml, oz, g, tallas, %, códigos. null si duda.\n\n{"name":"...","description":"...","category":"","price":null}';
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
