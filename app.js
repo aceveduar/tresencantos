@@ -426,9 +426,7 @@ function cardHTML(p) {
     badgeArea = `<span class="product-badge badge-${p.badgeType||'best'}">${p.badge}</span>`;
   }
 
-  // "Últimas unidades" solo cuando hay 2–3 piezas y no hay descuento
-  const urgencyTag = (!oos && p.stock >= 2 && p.stock <= 3 && pct === 0)
-    ? `<span class="product-badge" style="background:#92400E;left:auto;right:10px">Últimas ${p.stock}</span>` : '';
+  const urgencyTag = '';
   const fallback = 'tresencantos_default.png';
   const priceHTML = pct > 0
     ? `<div class="product-price"><s class="price-before">$${p.originalPrice.toLocaleString('es-MX')}</s> $${p.price.toLocaleString('es-MX')}</div>`
@@ -827,8 +825,7 @@ function openModal(id) {
   } else if (p.badge) {
     modalBadgeArea = `<span class="product-badge badge-${p.badgeType||'best'}" style="position:absolute;top:10px;left:10px">${p.badge}</span>`;
   }
-  const urgencyText = (!oos && p.stock >= 2 && p.stock <= 3)
-    ? `<p class="modal-urgency">⚡ Últimas ${p.stock} unidades disponibles</p>` : '';
+  const urgencyText = '';
   const ctaPriceHTML = pct > 0
     ? `<div class="modal-cta-price">
          <span class="modal-price-old">$${p.originalPrice.toLocaleString('es-MX')}</span>
