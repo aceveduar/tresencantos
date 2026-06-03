@@ -52,6 +52,7 @@ let _kitItemsEdit = [];
 let _additionalImagesEdit = [];
 let _returnToDupReview = false;
 let _returnToKitId = null;     // ID del kit cuyo formulario se debe reabrir al cerrar un componente
+let _returnToKitQVId = null;   // ID del kit cuyo QV se debe reabrir al cerrar un componente
 let _scrollToKitOnOpen = false; // al regresar al kit, hacer scroll hasta la sección de componentes
 let _salesCountMap = new Map(); // productId → qty vendida total
 let deleteTargetId = null;
@@ -2650,7 +2651,8 @@ function closeForm() {
   _clearDupWarnings();
   const b = document.getElementById('form-kit-banner'); if (b) b.style.display = 'none';
   if (_returnToDupReview) { _returnToDupReview = false; setTimeout(openDupReview, 80); }
-  if (_returnToKitId) { const id = _returnToKitId; _returnToKitId = null; _scrollToKitOnOpen = true; setTimeout(() => openForm(id), 80); }
+  if (_returnToKitId)   { const id = _returnToKitId;   _returnToKitId   = null; _scrollToKitOnOpen = true; setTimeout(() => openForm(id), 80); }
+  if (_returnToKitQVId) { const id = _returnToKitQVId; _returnToKitQVId = null; setTimeout(() => openQV(id), 80); }
 }
 
 
@@ -4430,6 +4432,14 @@ function _openFormFromDup(id) {
   _returnToDupReview = true;
   closeDupReview();
   openForm(id);
+}
+
+function _openFormFromKitQV(compId) {
+  const kitId = _qvCurrentId;
+  _returnToKitQVId = kitId;
+  document.getElementById('kit-comp-popup')?.remove();
+  closeQV();
+  openForm(compId);
 }
 
 function _backToKit() {
@@ -6381,7 +6391,8 @@ function _kitCompPopup(id, triggerEl) {
     <button onclick="document.getElementById('kit-comp-popup').remove()" style="position:absolute;top:8px;right:8px;background:none;border:none;font-size:1rem;cursor:pointer;color:#8A7564;line-height:1;padding:2px">✕</button>
     <img src="${comp.image || DEFAULT_IMG}" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'" style="width:190px;height:190px;object-fit:contain;border-radius:8px;background:#F7F2EB">
     <div style="font-size:.86rem;font-weight:600;color:#1C1817;text-align:center;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;width:100%">${comp.name}</div>
-    ${stockTxt}`;
+    ${stockTxt}
+    ${can.editProduct ? `<button onclick="_openFormFromKitQV(${comp.id})" style="width:100%;padding:8px;border:none;border-radius:8px;background:var(--gold);color:#fff;font-size:.82rem;font-weight:600;cursor:pointer">✏️ Editar producto</button>` : ''}`;
   // Posicionar junto al elemento que se clickeó
   document.body.appendChild(popup);
   const r = triggerEl.getBoundingClientRect();
