@@ -1333,6 +1333,21 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 
 /* ── TABLETA (641px–1024px) ─────────────────────────────────────────────
    Portrait: ~641-900px  |  Landscape: ~900-1024px                      */
+/* Tableta portrait (641–768px): search en fila propia, botones con scroll */
+@media(min-width:641px) and (max-width:768px){
+  .toolbar > .btn-gold,.tb-search-row .btn-gold{display:none}
+  #btn-add-kit{display:none}
+  .toolbar{flex-wrap:wrap;gap:8px;padding:12px 12px;border-radius:var(--r)}
+  .tb-search-row{flex-wrap:wrap}
+  .search-wrap{order:-1;flex:0 0 100%}
+  .tb-actions{width:100%;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;gap:8px}
+  .tb-actions::-webkit-scrollbar{display:none}
+  .tb-actions .btn-outline.btn-sm{flex-shrink:0;white-space:nowrap}
+  .tb-filter-row #creator-filter{display:none!important}
+  .tb-filter-row #cat-filter-btn{flex:2;max-width:none}
+  .tb-filter-row #sort-select{flex:1;max-width:none}
+}
+
 @media(min-width:641px) and (max-width:1024px){
   body{overflow-x:hidden}
   main{padding:14px 18px}
@@ -1920,7 +1935,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         <button class="btn btn-outline" id="btn-add-kit" onclick="openKitBuilder()" style="flex-shrink:0">🎁 Kit</button>
         <div class="search-wrap">
           <span class="s-icon">🔍</span>
-          <input type="text" id="search-input" placeholder="Buscar productos…" onfocus="if(!this.value)this.placeholder='Nombre, categoría, código… (separa con coma)'" onblur="this.placeholder='Buscar productos…'" oninput="_adminPage=1;renderTable();_toggleSearchClear();TE?.trackSearch(this.value,!!getFilteredProducts().length)">
+          <input type="text" id="search-input" placeholder="Buscar productos…" autocorrect="off" autocomplete="off" spellcheck="false" onfocus="if(!this.value)this.placeholder='Nombre, categoría, código… (separa con coma)'" onblur="this.placeholder='Buscar productos…'" oninput="_adminPage=1;renderTable();_toggleSearchClear();TE?.trackSearch(this.value,!!getFilteredProducts().length)">
           <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearchInput()" title="Borrar" style="display:none">✕</button>
         </div>
         <div class="tb-actions">
