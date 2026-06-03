@@ -4314,12 +4314,16 @@ function _findDuplicatePairs() {
 
   // Índice de imágenes para detectar misma foto (sin necesidad de compartir palabras)
   const imageIndex = Object.create(null);
+  const imageFreq  = Object.create(null); // frecuencia de cada URL
   products.forEach(p => {
     if (p.image) {
+      imageFreq[p.image] = (imageFreq[p.image] || 0) + 1;
       if (!imageIndex[p.image]) imageIndex[p.image] = [];
       imageIndex[p.image].push(p.id);
     }
   });
+  // URLs que aparecen en 3+ productos = imagen genérica (logo, bolsa regalo…) — no es señal de duplicado
+  const isGenericImg = url => !url || url === DEFAULT_IMG || (imageFreq[url] || 0) >= 3;
 
   const seen  = new Set();
   const pairs = [];
@@ -4331,7 +4335,7 @@ function _findDuplicatePairs() {
     if (a.barcode && b.barcode && a.barcode !== b.barcode) return;
 
     const barcodeMatch = !!(a.barcode && b.barcode && a.barcode === b.barcode);
-    const imageMatch   = !!(a.image && b.image && a.image === b.image);
+    const imageMatch   = !!(a.image && b.image && a.image === b.image && !isGenericImg(a.image));
     const wa = wordSets.get(a.id), wb = wordSets.get(b.id);
     const inter = wa && wb ? [...wa].filter(w => wb.has(w)).length : 0;
     const nameSim = (wa?.size && wb?.size) ? inter / Math.max(wa.size, wb.size) : 0;
