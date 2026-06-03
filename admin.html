@@ -1935,7 +1935,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         <button class="btn btn-outline" id="btn-add-kit" onclick="openKitBuilder()" style="flex-shrink:0">🎁 Kit</button>
         <div class="search-wrap">
           <span class="s-icon">🔍</span>
-          <input type="text" id="search-input" placeholder="Buscar productos…" autocorrect="off" autocomplete="off" spellcheck="false" onfocus="if(!this.value)this.placeholder='Nombre, categoría, código… (separa con coma)'" onblur="this.placeholder='Buscar productos…'" oninput="_adminPage=1;renderTable();_toggleSearchClear();TE?.trackSearch(this.value,!!getFilteredProducts().length)">
+          <input type="text" id="search-input" placeholder="Buscar productos…" autocorrect="off" autocomplete="off" spellcheck="false" onfocus="if(!this.value)this.placeholder='Nombre, categoría, código… (separa con coma)'" onblur="this.placeholder='Buscar productos…'" oninput="_searchDebounce()">
           <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearchInput()" title="Borrar" style="display:none">✕</button>
         </div>
         <div class="tb-actions">

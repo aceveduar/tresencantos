@@ -2754,6 +2754,17 @@ function _toggleSearchClear() {
   if (btn) btn.style.display = document.getElementById('search-input')?.value ? '' : 'none';
 }
 
+let _searchDebTimer = null;
+function _searchDebounce() {
+  _toggleSearchClear();
+  clearTimeout(_searchDebTimer);
+  _searchDebTimer = setTimeout(() => {
+    _adminPage = 1;
+    renderTable();
+    TE?.trackSearch(document.getElementById('search-input')?.value || '', !!getFilteredProducts().length);
+  }, 180);
+}
+
 function clearSearchInput() {
   const s = document.getElementById('search-input');
   if (s) s.value = '';
