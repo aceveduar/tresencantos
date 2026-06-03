@@ -1515,7 +1515,7 @@ function renderUsage() {
     const current = sel.value;
     sel.innerHTML = '<option value="">Todos los usuarios</option>' +
       users.map(u => {
-        const name = (_nameMap || {})[u] || u.split('@')[0];
+        const name = nameMap[u] || u.split('@')[0];
         return `<option value="${u}" ${current === u ? 'selected' : ''}>${name}</option>`;
       }).join('');
   }
@@ -1535,7 +1535,7 @@ function renderUsage() {
   const sorted  = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 12);
   const max     = sorted[0]?.[1] || 1;
   const pLabel  = { today:'hoy', week:'últimos 7 días', month:'últimos 30 días', all:'total' }[currentPeriod] || '';
-  const uLabel  = userFilter ? ` · ${((_nameMap||{})[userFilter] || userFilter.split('@')[0])}` : '';
+  const uLabel  = userFilter ? ` · ${(nameMap[userFilter] || userFilter.split('@')[0])}` : '';
   if (label) label.textContent = `${filtered.length} acciones — ${pLabel}${uLabel}`;
 
   body.innerHTML = sorted.map(([event, count]) => {
