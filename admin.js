@@ -396,7 +396,9 @@ function getFilteredProducts() {
       (_statFilter === 'imagen-base64' && p.image?.startsWith('data:')) ||
       (_statFilter === 'kits'         && !!p.kitItems?.length) ||
       (_statFilter === 'vendidos'     && (_salesCountMap.get(p.id) || 0) > 0);
-    return matchCat && matchQ && matchFlag && matchStat && matchCreator;
+    const isKit = !!p.kitItems?.length;
+    const matchKit = _statFilter === 'kits' ? isKit : !isKit;
+    return matchCat && matchQ && matchFlag && matchStat && matchKit && matchCreator;
   });
 
   switch (currentSort) {
@@ -882,7 +884,7 @@ async function loadProductsFromSupabase() {
 
 /* ── STATS ── */
 function renderStats() {
-  const total       = products.length;
+  const total       = products.filter(p => !p.kitItems?.length).length;
   const conStock    = products.filter(p => p.stock > 0 && !p.outOfStock).length;
   const sinStock    = products.filter(p => p.stock === 0 || p.outOfStock).length;
   const ultimaPieza = products.filter(p => p.stock === 1 && !p.outOfStock).length;
@@ -1127,7 +1129,7 @@ function adminCard(p, editable = false) {
   const isSinCat  = p.category === 'por_revisar';
 
   return `
-<div class="admin-card${sel?' card-selected':''}${p.isApartado?' card-apartado':oos?' card-oos':''}${isSinCat?' card-por-revisar':''}"
+<div class="admin-card${sel?' card-selected':''}${(p.isApartado||_apartadosMap[p.id])&&p.stock<=1?' card-apartado':oos?' card-oos':''}${isSinCat?' card-por-revisar':''}"
      data-id="${p.id}"
      onclick="_cardTap(event,${p.id})"
      ontouchstart="_lpStart(event,${p.id})"
