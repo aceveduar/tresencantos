@@ -2548,6 +2548,8 @@ function openForm(id) {
   populateBadgeList();
   const overlay = document.getElementById('form-overlay');
   document.getElementById('form-title').textContent = id ? 'Editar producto' : 'Agregar producto';
+  // Ocultar banner de retorno al kit salvo que venga de _openFormFromKit
+  if (!_returnToKitId) { const b = document.getElementById('form-kit-banner'); if (b) b.style.display = 'none'; }
 
   if (id) {
     const p = products.find(x => x.id === id);
@@ -2637,6 +2639,7 @@ function closeForm() {
   document.body.style.overflow = '';
   setBtn(document.getElementById('save-btn'), false);
   _clearDupWarnings();
+  const b = document.getElementById('form-kit-banner'); if (b) b.style.display = 'none';
   if (_returnToDupReview) { _returnToDupReview = false; setTimeout(openDupReview, 80); }
   if (_returnToKitId) { const id = _returnToKitId; _returnToKitId = null; setTimeout(() => openForm(id), 80); }
 }
@@ -4423,14 +4426,18 @@ function _openFormFromDup(id) {
 function _openFormFromKit(compId) {
   const kitId = parseInt(document.getElementById('f-id')?.value) || null;
   _returnToKitId = kitId;
+  const kitName = kitId ? (products.find(x => x.id === kitId)?.name || 'kit') : 'kit';
   document.getElementById('kit-comp-popover')?.remove();
-  // Cerrar sin pedir confirmación de cambios (el kit se reabrirá igual)
   _formSnapshot = null;
   document.getElementById('form-overlay').classList.remove('open');
   document.body.style.overflow = '';
   setBtn(document.getElementById('save-btn'), false);
   _clearDupWarnings();
   openForm(compId);
+  // Mostrar banner "← Volver al kit [nombre]"
+  const banner = document.getElementById('form-kit-banner');
+  const bannerTxt = document.getElementById('form-kit-banner-txt');
+  if (banner) { banner.style.display = 'flex'; if (bannerTxt) bannerTxt.textContent = `Volver al kit: ${kitName}`; }
 }
 
 function _dupThumb(img, name) {
