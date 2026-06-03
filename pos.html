@@ -871,11 +871,19 @@ button,a{touch-action:manipulation}
 }
 
 /* Pantallas muy pequeñas */
+@media(max-width:640px){
+  .tbn-icon{padding:5px 5px;min-width:40px}
+  .tbn-icon svg{width:17px;height:17px}
+  .tbn-label{display:block;font-size:.46rem;letter-spacing:.01em}
+  .topbar-nav-mobile{gap:0}
+}
 @media(max-width:380px){
   .pos-grid{grid-template-columns:1fr 1fr;gap:6px;padding:6px}
   .cat-chip{padding:5px 9px;font-size:.68rem}
   .cash-quick button{font-size:.72rem;padding:6px 1px}
-  .tbn-icon{min-width:28px;padding:4px 5px}
+  .tbn-icon{min-width:34px;padding:5px 3px}
+  .tbn-icon svg{width:16px;height:16px}
+  .tbn-label{font-size:.42rem}
 }
 
 /* ══ TOPBAR NAV ══════════════════════════════════════════════════════ */
