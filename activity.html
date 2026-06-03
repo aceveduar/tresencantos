@@ -108,6 +108,7 @@ a{text-decoration:none}
 .date-sep{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:16px 2px 6px}
 .date-sep:first-child{padding-top:2px}
 .act-card{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:7px;transition:.15s}
+.act-card:active{background:#FFF8EE;border-color:var(--gold)}
 .act-card:hover{box-shadow:0 2px 10px rgba(28,24,23,.07)}
 .act-avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:800;color:#fff;margin-top:1px}
 .act-body{flex:1;min-width:0}
@@ -272,6 +273,7 @@ async function api(path, opts = {}) {
 let allData     = [];
 let currentType = '';
 let nameMap     = {}; // { email: displayName }
+let _prodMap    = {}; // { id: {name, image, price} } — para popup de eventos de producto
 
 /* ── NOMBRE HELPERS ── */
 function displayName(email) {
@@ -456,7 +458,8 @@ function render(data) {
       else if (item.action === 'apartado_abono' && meta.amount != null)
         detail = `$${meta.amount.toLocaleString('es-MX')} · ${meta.method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo'}`;
 
-      html += `<div class="act-card">
+      const idx = allData.indexOf(item);
+      html += `<div class="act-card" onclick="_actPopup(${idx})" style="cursor:pointer">
   <div class="act-avatar" style="background:${color}">${ini}</div>
   <div class="act-body">
     <div class="act-top">
@@ -472,6 +475,61 @@ function render(data) {
   }
 
   feed.innerHTML = html;
+}
+
+/* ── POPUP DE DETALLE ── */
+const DEFAULT_IMG = 'tresencantos_default.png';
+function _actPopup(idx) {
+  const item = allData[idx];
+  if (!item) return;
+  document.getElementById('act-pop')?.remove();
+
+  const meta = item.meta || {};
+  const cfg  = ACTION_CFG[item.action] || { icon:'•', label: item.action };
+  const time = new Date(item.created_at).toLocaleString('es-MX',
+    {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+
+  // Contenido según tipo de acción
+  let imgHtml = '', bodyHtml = '';
+  const isProductAction = ['producto_editado','producto_creado','producto_eliminado','duplicado_descartado'].includes(item.action);
+  const isSale  = item.action === 'venta';
+  const isApt   = item.action.startsWith('apartado');
+
+  if (isProductAction && meta.id) {
+    const p = _prodMap[meta.id];
+    const img = p?.image || DEFAULT_IMG;
+    imgHtml = `<img src="${img}" onerror="this.src='${DEFAULT_IMG}'" style="width:100%;max-height:200px;object-fit:contain;border-radius:10px;background:#F7F2EB;margin-bottom:12px">`;
+    bodyHtml = `<div style="font-size:.9rem;font-weight:700;line-height:1.35;margin-bottom:4px">${meta.name || p?.name || '—'}</div>`;
+    if (meta.price != null) bodyHtml += `<div style="font-size:1rem;font-weight:700;font-family:'Playfair Display',serif;color:#C9A462">$${parseFloat(meta.price).toLocaleString('es-MX')} MXN</div>`;
+    if (p?.price != null && p.price !== meta.price) bodyHtml += `<div style="font-size:.72rem;color:#8A7564;margin-top:2px">Precio actual: $${parseFloat(p.price).toLocaleString('es-MX')}</div>`;
+  } else if (isSale) {
+    bodyHtml = `<div style="font-size:1.1rem;font-weight:700;font-family:'Playfair Display',serif;color:#C9A462;margin-bottom:6px">$${parseFloat(meta.total||0).toLocaleString('es-MX')} MXN</div>`;
+    bodyHtml += `<div style="font-size:.82rem;color:#1C1817;margin-bottom:4px">${meta.items||0} producto${(meta.items||0)!==1?'s':''}</div>`;
+    bodyHtml += `<div style="font-size:.82rem;color:#8A7564">${meta.method==='transferencia'?'📱 Transferencia':'💵 Efectivo'}</div>`;
+    if (meta.discount > 0) bodyHtml += `<div style="font-size:.78rem;color:#059669;margin-top:4px">Descuento −$${parseFloat(meta.discount).toLocaleString('es-MX')}</div>`;
+  } else if (isApt) {
+    bodyHtml = `<div style="font-size:.9rem;font-weight:700;margin-bottom:6px">${meta.customer || item.summary}</div>`;
+    if (meta.total != null)    bodyHtml += `<div style="font-size:.82rem;color:#8A7564">Total: $${parseFloat(meta.total).toLocaleString('es-MX')}</div>`;
+    if (meta.anticipo != null) bodyHtml += `<div style="font-size:.82rem;color:#059669;margin-top:2px">Anticipo: $${parseFloat(meta.anticipo).toLocaleString('es-MX')}</div>`;
+    if (meta.pendiente != null) bodyHtml += `<div style="font-size:.82rem;color:#B45309;margin-top:2px">Pendiente: $${parseFloat(meta.pendiente).toLocaleString('es-MX')}</div>`;
+    if (meta.amount != null)   bodyHtml += `<div style="font-size:.82rem;color:#059669;margin-top:2px">Abono: $${parseFloat(meta.amount).toLocaleString('es-MX')}</div>`;
+  } else {
+    bodyHtml = `<div style="font-size:.85rem;color:#1C1817">${item.summary}</div>`;
+  }
+
+  const pop = document.createElement('div');
+  pop.id = 'act-pop';
+  pop.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);animation:ap-in .15s ease';
+  pop.innerHTML = `
+    <style>@keyframes ap-in{from{opacity:0}to{opacity:1}}</style>
+    <div onclick="event.stopPropagation()" style="background:#fff;border-radius:18px;padding:18px;max-width:300px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,.28);position:relative">
+      <button onclick="document.getElementById('act-pop').remove()" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:1.1rem;cursor:pointer;color:#8A7564;line-height:1">✕</button>
+      ${imgHtml}
+      <div style="font-size:.7rem;color:#8A7564;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;font-weight:600">${cfg.icon} ${cfg.label} · ${time}</div>
+      ${bodyHtml}
+    </div>`;
+  pop.addEventListener('click', () => pop.remove());
+  document.body.appendChild(pop);
 }
 
 /* ── TOAST ── */
@@ -495,6 +553,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (_nl) _nl.textContent = _n;
   } catch {}
   await loadNameMap();
+  api('products?select=id,name,image,price&limit=2000').then(r => {
+    if (r.ok && Array.isArray(r.data)) r.data.forEach(p => { _prodMap[p.id] = p; });
+  });
   load();
 });
 </script>
