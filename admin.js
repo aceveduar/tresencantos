@@ -4280,6 +4280,15 @@ function _findDuplicatePairs() {
     }
   });
 
+  // Índice de imágenes para detectar misma foto (sin necesidad de compartir palabras)
+  const imageIndex = Object.create(null);
+  products.forEach(p => {
+    if (p.image) {
+      if (!imageIndex[p.image]) imageIndex[p.image] = [];
+      imageIndex[p.image].push(p.id);
+    }
+  });
+
   const seen  = new Set();
   const pairs = [];
 
@@ -4290,17 +4299,21 @@ function _findDuplicatePairs() {
     if (a.barcode && b.barcode && a.barcode !== b.barcode) return;
 
     const barcodeMatch = !!(a.barcode && b.barcode && a.barcode === b.barcode);
+    const imageMatch   = !!(a.image && b.image && a.image === b.image);
     const wa = wordSets.get(a.id), wb = wordSets.get(b.id);
     const inter = wa && wb ? [...wa].filter(w => wb.has(w)).length : 0;
     const nameSim = (wa?.size && wb?.size) ? inter / Math.max(wa.size, wb.size) : 0;
     const exact = nameSim === 1 || _normStr(a.name) === _normStr(b.name);
     const priceMatch = a.price > 0 && a.price === b.price;
     const stockMatch = a.stock >= 2 && a.stock === b.stock;
-    const score = (barcodeMatch ? 1 : 0) + nameSim + (priceMatch ? 0.25 : 0) + (stockMatch ? 0.15 : 0);
-    if (!barcodeMatch && !(nameSim >= 0.55 && score >= 0.55)) return;
+    const catMatch   = !!(a.category && a.category === b.category);
+    const score = (barcodeMatch ? 1 : 0) + (imageMatch ? 0.8 : 0) + nameSim
+                + (priceMatch ? 0.25 : 0) + (stockMatch ? 0.15 : 0) + (catMatch ? 0.1 : 0);
+    if (!barcodeMatch && !imageMatch && !(nameSim >= 0.55 && score >= 0.55)) return;
 
     const signals = [];
     if (barcodeMatch) signals.push('mismo código de barras');
+    if (imageMatch)   signals.push('misma imagen');
     if (exact) signals.push('nombre idéntico');
     else if (nameSim >= 0.55) signals.push('nombre similar');
     if (priceMatch) signals.push(`precio $${a.price.toLocaleString('es-MX')}`);
@@ -4320,6 +4333,16 @@ function _findDuplicatePairs() {
 
   // Barcodes iguales (aunque no compartan palabras en el nombre)
   Object.values(barcodeIndex).forEach(ids => {
+    if (ids.length < 2) return;
+    for (let i = 0; i < ids.length; i++)
+      for (let j = i + 1; j < ids.length; j++) {
+        const a = productMap.get(ids[i]), b = productMap.get(ids[j]);
+        if (a && b) evalPair(a, b);
+      }
+  });
+
+  // Imágenes iguales (aunque no compartan palabras ni barcode)
+  Object.values(imageIndex).forEach(ids => {
     if (ids.length < 2) return;
     for (let i = 0; i < ids.length; i++)
       for (let j = i + 1; j < ids.length; j++) {
