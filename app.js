@@ -412,7 +412,7 @@ function isOos(p) {
 
 function cardHTML(p) {
   const oos = isOos(p);
-  const apt = p.isApartado;
+  const apt = p.isApartado && p.stock <= 1;
   const pct = discountPct(p);
   const oosTag = apt
     ? `<span class="product-badge badge-apartado">📌 Apartado</span>`
