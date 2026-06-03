@@ -50,6 +50,7 @@ const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd
 let products = [];
 let _kitItemsEdit = [];
 let _additionalImagesEdit = [];
+let _returnToDupReview = false;
 let deleteTargetId = null;
 let selectedIds = new Set();
 let dragSrcId = null;
@@ -2602,6 +2603,7 @@ function closeForm() {
   document.body.style.overflow = '';
   setBtn(document.getElementById('save-btn'), false);
   _clearDupWarnings();
+  if (_returnToDupReview) { _returnToDupReview = false; setTimeout(openDupReview, 80); }
 }
 
 
@@ -4349,6 +4351,12 @@ function closeDupReview() {
   document.body.style.overflow = '';
 }
 
+function _openFormFromDup(id) {
+  _returnToDupReview = true;
+  closeDupReview();
+  openForm(id);
+}
+
 function _dupThumb(img, name) {
   return img
     ? `<img src="${img}" alt="${name}" loading="lazy">`
@@ -4366,7 +4374,7 @@ function _dupCard(p, pairKey, isMed) {
       <div class="dup-prod-meta">${p.categoryLabel || '—'} · $${(p.price||0).toLocaleString('es-MX')} · Stock ${p.stock}${p.createdBy ? `<span style="margin-left:6px;color:var(--muted);font-size:.78em">· 👤 ${_userNames[p.createdBy] || p.createdBy.split('@')[0]}</span>` : ''}</div>
       ${(p.barcode || createdStr) ? `<div class="dup-prod-meta" style="margin-top:2px">${p.barcode ? `<span>🔲 ${p.barcode}</span>` : ''}${p.barcode && createdStr ? ' · ' : ''}${createdStr ? `<span>📅 ${createdStr}</span>` : ''}</div>` : ''}
       <div class="dup-prod-actions">
-        <button class="btn btn-outline btn-sm" onclick="closeDupReview();openForm(${p.id})">${isMed ? 'Renombrar →' : 'Editar →'}</button>
+        <button class="btn btn-outline btn-sm" onclick="_openFormFromDup(${p.id})">${isMed ? 'Renombrar →' : 'Editar →'}</button>
         ${(!isMed && can.deleteProduct) ? `<button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="_deleteDupProduct(${p.id},'${pairKey}')">Eliminar</button>` : ''}
       </div>
     </div>`;
