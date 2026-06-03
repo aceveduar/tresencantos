@@ -2539,9 +2539,7 @@ function _takeFormSnapshot() {
 function _formIsDirty() {
   if (!_formSnapshot) return false;
   const cur = _takeFormSnapshot();
-  const dirty = Object.keys(_formSnapshot).filter(k => _formSnapshot[k] !== cur[k]);
-  if (dirty.length) console.warn('[dirty]', dirty.map(k => `${k}: ${JSON.stringify(_formSnapshot[k])} → ${JSON.stringify(cur[k])}`));
-  return dirty.length > 0;
+  return Object.keys(_formSnapshot).some(k => _formSnapshot[k] !== cur[k]);
 }
 
 function openForm(id) {
@@ -2634,6 +2632,9 @@ function openForm(id) {
     } else {
       document.querySelector('#form-overlay .modal-body').scrollTop = 0;
     }
+    // Normalizar antes del snapshot: title case y categoría sugerida se aplican en onblur
+    // Si no lo hacemos aquí, el primer blur del usuario rompe la comparación (falso positivo)
+    if (id) { applyTitleCase('f-name'); suggestCategoryFromName(); }
     _formSnapshot = _takeFormSnapshot();
   }, 150);
 }
