@@ -4423,6 +4423,20 @@ function _openFormFromDup(id) {
   openForm(id);
 }
 
+function _backToKit() {
+  if (_formIsDirty()) {
+    if (!confirm('Tienes cambios sin guardar en el componente. ¿Volver al kit sin guardar?')) return;
+  }
+  _formSnapshot = null;
+  document.getElementById('form-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  setBtn(document.getElementById('save-btn'), false);
+  _clearDupWarnings();
+  const b = document.getElementById('form-kit-banner'); if (b) b.style.display = 'none';
+  const id = _returnToKitId; _returnToKitId = null;
+  if (id) setTimeout(() => openForm(id), 80);
+}
+
 function _openFormFromKit(compId) {
   const kitId = parseInt(document.getElementById('f-id')?.value) || null;
   _returnToKitId = kitId;
