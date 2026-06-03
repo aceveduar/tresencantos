@@ -4380,19 +4380,15 @@ function _dupCard(p, pairKey, isMed) {
     </div>`;
 }
 
-function _dupRenderPair({ a, b, signals, pairKey, score, imgDetected }) {
-  const isMed = score < 0.75 && !imgDetected;
+function _dupRenderPair({ a, b, signals, pairKey, score }) {
+  const isMed = score < 0.75;
   const cls   = isMed ? 'dup-med' : 'dup-high';
-  const dot   = isMed ? 'amber' : (imgDetected ? 'purple' : 'red');
-  const dotStyle = imgDetected ? 'style="background:#8B5CF6"' : '';
-  const signalBadge = imgDetected ? `<span class="dup-visual-badge">📷 IA visual</span>` : '';
+  const dot   = isMed ? 'amber' : 'red';
   return `
     <div class="dup-pair" id="dup-pair-${pairKey}">
       <div class="dup-signals-row">
-        <div class="dup-signals ${cls}"><span class="dup-dot ${dot}" ${dotStyle}></span>${signals.join(' · ')}${signalBadge}</div>
-        <button class="dup-pair-ai-btn" id="dup-ai-btn-${pairKey}" onclick="_dupAnalyzePair('${pairKey}',${a.id},${b.id})">🤖 Ver imágenes</button>
+        <div class="dup-signals ${cls}"><span class="dup-dot ${dot}"></span>${signals.join(' · ')}</div>
       </div>
-      <div class="dup-pair-ai-result" id="dup-ai-${pairKey}"></div>
       <div class="dup-pair-cols">${_dupCard(a, pairKey, isMed)}${_dupCard(b, pairKey, isMed)}</div>
       <button class="dup-dismiss" onclick="_dismissDupPair('${pairKey}')">
         ${isMed ? '✓ Los nombres ya son distintos — no volver a avisar' : '✓ Son productos distintos — no volver a avisar'}
@@ -7356,151 +7352,6 @@ async function compareWithAI() {
   }
 }
 
-/* ══════════════════════════════════════════════════════
-   DUPLICADOS — análisis visual con IA
-   ══════════════════════════════════════════════════════ */
-
-async function _dupAnalyzePair(pairKey, idA, idB) {
-  if (!groqApiKey) { toast('Configura Groq en Configuración → Integraciones', 'error'); return; }
-  const a = products.find(p => p.id === idA);
-  const b = products.find(p => p.id === idB);
-  if (!a || !b) return;
-
-  const btn    = document.getElementById(`dup-ai-btn-${pairKey}`);
-  const result = document.getElementById(`dup-ai-${pairKey}`);
-  if (btn) { btn.disabled = true; btn.textContent = '🤖 Analizando…'; }
-  if (result) { result.className = 'dup-pair-ai-result'; result.style.display = 'none'; }
-
-  try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
-      body: JSON.stringify({
-        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'text', text: `Analiza estas dos imágenes de productos de una boutique. ¿Son el mismo artículo físico aunque tengan nombres o fondos diferentes? Nombres: "${a.name}" y "${b.name}". Responde en español: SÍ, NO o PROBABLEMENTE, seguido de una sola oración de justificación visual. Sé muy conciso.` },
-            { type: 'image_url', image_url: { url: await _urlToBase64(a.image || DEFAULT_IMG) } },
-            { type: 'image_url', image_url: { url: await _urlToBase64(b.image || DEFAULT_IMG) } }
-          ]
-        }],
-        max_tokens: 100,
-        temperature: 0.1
-      })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
-    const text = data.choices?.[0]?.message?.content?.trim() || 'Sin respuesta';
-    if (result) {
-      result.textContent = '🤖 ' + text;
-      result.style.display = 'block';
-      result.classList.add('show');
-    }
-  } catch (e) {
-    toast('Error al consultar IA: ' + e.message, 'error');
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '🤖 Ver imágenes'; }
-  }
-}
-
-async function _scanImageDuplicates() {
-  if (!groqApiKey) { toast('Configura Groq en Configuración → Integraciones', 'error'); return; }
-
-  const btn    = document.getElementById('dup-img-scan-btn');
-  const status = document.getElementById('dup-img-scan-status');
-  if (btn) { btn.disabled = true; btn.textContent = '🔍 Escaneando…'; }
-  if (status) { status.textContent = 'Preparando…'; status.style.display = 'inline'; }
-
-  const dismissed = _getDismissedDups();
-
-  // Agrupar por categoría raíz (ignora subcategorías)
-  const byCat = {};
-  products.forEach(p => {
-    const root = (p.category || 'sin_cat').split('_')[0];
-    if (!byCat[root]) byCat[root] = [];
-    byCat[root].push(p);
-  });
-
-  // Solo categorías con 2+ productos
-  const cats = Object.entries(byCat).filter(([, ps]) => ps.length >= 2);
-  const foundPairs = [];
-
-  let processed = 0;
-  for (const [catCode, catProducts] of cats) {
-    if (status) status.textContent = `Analizando "${catCode}" (${processed + 1}/${cats.length})…`;
-
-    // Batches de 8 imágenes máx (límite práctico Groq Vision)
-    for (let start = 0; start < catProducts.length; start += 8) {
-      const batch = catProducts.slice(start, start + 8);
-      if (batch.length < 2) continue;
-
-      const listing = batch.map((p, i) => `${i + 1}. ${p.name} (ID:${p.id})`).join('\n');
-      const content = [
-        {
-          type: 'text',
-          text: `Eres un auditor de inventario. Analiza las imágenes de estos ${batch.length} productos de la categoría "${catCode}" y detecta cuáles parecen ser el MISMO artículo físico aunque sus nombres sean diferentes o sus fotos tengan fondos distintos.\n\nProductos:\n${listing}\n\nResponde SOLO con pares de números (1-based) en el formato "X,Y" — un par por línea. Si no hay similares visuales responde exactamente: ninguno`
-        },
-        ...batch.map(p => ({ type: 'image_url', image_url: { url: p.image || DEFAULT_IMG } }))
-      ];
-
-      try {
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
-          body: JSON.stringify({
-            model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-            messages: [{ role: 'user', content }],
-            max_tokens: 80,
-            temperature: 0.1
-          })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
-        const text = data.choices?.[0]?.message?.content?.trim() || 'ninguno';
-
-        if (!/^ninguno$/i.test(text)) {
-          const lines = text.split('\n').map(l => l.trim()).filter(l => /^\d+[,\s]\d+$/.test(l));
-          for (const line of lines) {
-            const parts = line.split(/[,\s]+/).map(n => parseInt(n) - 1);
-            const [iA, iB] = parts;
-            if (iA >= 0 && iB >= 0 && iA < batch.length && iB < batch.length && iA !== iB) {
-              const a = batch[iA], b = batch[iB];
-              const pairKey = `${Math.min(a.id, b.id)}_${Math.max(a.id, b.id)}`;
-              if (!dismissed.has(pairKey) && !document.getElementById(`dup-pair-${pairKey}`)) {
-                foundPairs.push({ a, b, score: 0.9, signals: ['imagen similar'], pairKey, imgDetected: true });
-              }
-            }
-          }
-        }
-      } catch (e) {
-        console.warn('Image scan error for category', catCode, ':', e.message);
-      }
-
-      if (start + 8 < catProducts.length) await new Promise(r => setTimeout(r, 1200));
-    }
-
-    processed++;
-    if (processed < cats.length) await new Promise(r => setTimeout(r, 800));
-  }
-
-  if (btn) { btn.disabled = false; btn.textContent = '🔍 Buscar por imagen (IA)'; }
-  if (status) { status.textContent = ''; status.style.display = 'none'; }
-
-  if (!foundPairs.length) {
-    toast('✓ IA no encontró más duplicados visuales en el catálogo');
-    return;
-  }
-
-  // Insertar sección al inicio del cuerpo
-  const body = document.getElementById('dup-review-body');
-  const section = document.createElement('div');
-  section.innerHTML =
-    `<div class="dup-section-title"><span class="dup-dot" style="background:#8B5CF6"></span>Detectados por imagen (IA) — verifica y decide</div>` +
-    foundPairs.map(_dupRenderPair).join('');
-  body.prepend(section);
-  toast(`🔍 ${foundPairs.length} par${foundPairs.length !== 1 ? 'es' : ''} con imagen similar detectado${foundPairs.length !== 1 ? 's' : ''}`, 'success');
-}
 
 // --- Interceptor global de escáner USB ---
 // Detecta ráfagas de caracteres (< 50ms entre cada uno) = escáner, no teclado humano
