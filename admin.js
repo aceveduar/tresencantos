@@ -4356,11 +4356,15 @@ function _dupThumb(img, name) {
 }
 
 function _dupCard(p, pairKey, isMed) {
+  const createdStr = p.created_at
+    ? new Date(p.created_at).toLocaleDateString('es-MX', {day:'numeric', month:'short', year:'numeric'})
+    : null;
   return `
     <div class="dup-prod">
       ${_dupThumb(p.image, p.name)}
       <div class="dup-prod-name">${p.name}</div>
       <div class="dup-prod-meta">${p.categoryLabel || '—'} · $${(p.price||0).toLocaleString('es-MX')} · Stock ${p.stock}${p.createdBy ? `<span style="margin-left:6px;color:var(--muted);font-size:.78em">· 👤 ${_userNames[p.createdBy] || p.createdBy.split('@')[0]}</span>` : ''}</div>
+      ${(p.barcode || createdStr) ? `<div class="dup-prod-meta" style="margin-top:2px">${p.barcode ? `<span>🔲 ${p.barcode}</span>` : ''}${p.barcode && createdStr ? ' · ' : ''}${createdStr ? `<span>📅 ${createdStr}</span>` : ''}</div>` : ''}
       <div class="dup-prod-actions">
         <button class="btn btn-outline btn-sm" onclick="closeDupReview();openForm(${p.id})">${isMed ? 'Renombrar →' : 'Editar →'}</button>
         ${(!isMed && can.deleteProduct) ? `<button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="_deleteDupProduct(${p.id},'${pairKey}')">Eliminar</button>` : ''}
