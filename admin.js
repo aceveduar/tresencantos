@@ -844,7 +844,8 @@ function mapProduct(p) {
     kitItems: p.kit_items || null,
     images: p.images || null,
     isApartado: p.is_apartado || false,
-    createdBy: p.created_by || null
+    createdBy: p.created_by || null,
+    createdAt: p.created_at || null
   };
 }
 
@@ -4423,8 +4424,8 @@ function _dupThumb(img, name) {
 }
 
 function _dupCard(p, pairKey, isMed) {
-  const createdStr = p.created_at
-    ? new Date(p.created_at).toLocaleDateString('es-MX', {day:'numeric', month:'short', year:'numeric'})
+  const createdStr = p.createdAt
+    ? new Date(p.createdAt).toLocaleDateString('es-MX', {day:'numeric', month:'short', year:'numeric'})
     : null;
   return `
     <div class="dup-prod">
