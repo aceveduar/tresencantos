@@ -6720,10 +6720,11 @@ function _renderQV(p) {
       stockChipQV = `<span class="qv-chip qv-chip-ok">🎁 ${n} kit${n !== 1 ? 's' : ''}</span>`;
     }
   } else {
-    stockChipQV = `<span class="qv-chip ${stockCls} qv-editable" onclick="editStockInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar stock" style="cursor:pointer">📦 ${p.stock}</span>`;
+    const stockLbl = p.stock === 0 ? 'Sin stock' : p.stock === 1 ? '1 · Última' : `${p.stock} en stock`;
+    stockChipQV = `<span class="qv-chip ${stockCls} qv-editable" onclick="editStockInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar stock" style="cursor:pointer">${stockLbl}</span>`;
   }
   document.getElementById('qv-chips').innerHTML =
-    oosChip + pubChip + stockChipQV + featChip + barcodeChip + marginChip;
+    oosChip + pubChip + stockChipQV + featChip + marginChip;
 
   // Descripción
   const descEl = document.getElementById('qv-desc');
@@ -6775,8 +6776,9 @@ function _renderQV(p) {
     }
   }
 
-  // ID
-  document.getElementById('qv-id').textContent = `ID #${p.id}`;
+  // ID + barcode en una línea
+  const idEl = document.getElementById('qv-id');
+  idEl.innerHTML = `<span style="font-family:monospace">ID #${p.id}</span>${p.barcode ? `<span style="font-family:monospace;color:var(--muted)">· 🔲 ${p.barcode}</span>` : ''}`;
 
   // Botones de acción
   const btnEdit = can.editProduct
