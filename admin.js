@@ -1265,14 +1265,20 @@ async function editStockInline(e, id) {
   btnPlus.onclick    = () => { input.value = (parseInt(input.value)||0) + 1; };
 
   const btnSave = document.createElement('button');
-  btnSave.type = 'button'; btnSave.textContent = '✓ Guardar';
-  btnSave.style.cssText = 'margin-left:auto;background:var(--gold);border:none;color:#fff;border-radius:20px;padding:8px 16px;font-size:.82rem;font-weight:700;cursor:pointer;touch-action:manipulation;font-family:inherit;white-space:nowrap';
+  btnSave.type = 'button'; btnSave.textContent = '✓';
+  btnSave.style.cssText = 'background:var(--gold);border:none;color:#fff;border-radius:50%;width:36px;height:36px;font-size:1rem;font-weight:700;cursor:pointer;touch-action:manipulation;font-family:inherit;flex-shrink:0;display:flex;align-items:center;justify-content:center';
   btnSave.ontouchend = e2 => { e2.preventDefault(); save(); };
   btnSave.onclick    = () => save();
 
+  const btnCancel = document.createElement('button');
+  btnCancel.type = 'button'; btnCancel.textContent = '✕';
+  btnCancel.style.cssText = 'background:none;border:1.5px solid var(--border);color:var(--muted);border-radius:50%;width:32px;height:32px;font-size:.85rem;cursor:pointer;touch-action:manipulation;font-family:inherit;flex-shrink:0;display:flex;align-items:center;justify-content:center';
+  btnCancel.ontouchend = e2 => { e2.preventDefault(); saved = true; renderTable(); _qvRefresh(id); };
+  btnCancel.onclick    = () => { saved = true; renderTable(); _qvRefresh(id); };
+
   const container = document.createElement('span');
   container.style.cssText = 'display:flex;align-items:center;gap:6px;width:100%;padding:2px 0';
-  container.append(btnMinus, input, btnPlus, btnSave);
+  container.append(btnMinus, input, btnPlus, btnSave, btnCancel);
   chip.replaceWith(container);
 
   let saved = false;
@@ -1312,11 +1318,15 @@ async function editStockInline(e, id) {
   setTimeout(() => {
     input.focus();
     if (!mobile) input.select();
-    // Desktop: blur guarda con timeout generoso para evitar blur espurio
-    // Mobile: NO usar blur — el botón ✓ es el único trigger de guardado
-    if (!mobile) {
-      setTimeout(() => { if (!saved) input.addEventListener('blur', save); }, 500);
-    }
+    // Blur: si no hay cambios → cancelar silencioso; si hay cambios → guardar (solo desktop)
+    setTimeout(() => {
+      if (!saved) input.addEventListener('blur', () => {
+        if (!saved) {
+          if (parseInt(input.value) === p.stock) { saved = true; renderTable(); _qvRefresh(id); }
+          else if (!mobile) save();
+        }
+      });
+    }, 500);
   }, 50);
 }
 
