@@ -3209,6 +3209,9 @@ async function saveProduct() {
     TE?.track('product_saved', { action: 'add', name });
   }
   _formSnapshot = null;
+  // Ir a "Recientes" para que el producto guardado aparezca al inicio
+  const _sortSel = document.getElementById('sort-select');
+  if (_sortSel) { _sortSel.value = 'recent'; currentSort = 'recent'; }
   closeForm();
   renderTable();
   renderStats();
