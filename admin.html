@@ -1979,40 +1979,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       <button class="btn btn-red btn-sm" onclick="bulkDelete()">Eliminar ✕</button>
     </div>
 
-    <!-- SCAN RESULT PANEL — bottom sheet overlay -->
-    <div id="srp-overlay" onclick="if(event.target===this)clearScanResult()">
-      <div id="scan-result-panel" style="width:100%;max-width:560px;background:#fff;border-radius:20px 20px 0 0;max-height:92dvh;display:flex;flex-direction:column;overflow:hidden">
-        <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0;flex-shrink:0"></div>
-        <div class="srp-nav">
-          <button class="srp-back" onclick="clearScanResult()">← Volver al catálogo</button>
-          <button class="srp-btn-scan" onclick="clearScanResult();openSearchScanner()">📷 Escanear otro</button>
-        </div>
-        <div id="srp-card" style="overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch">
-          <div class="srp-header">
-            <div class="srp-img-zone" id="srp-img-zone">
-              <img class="srp-thumb" id="srp-img" src="" alt="" onclick="_srpImgClick(event)" ondblclick="_srpImgDblClick(event)" title="Clic: ver completa · Doble clic: cambiar imagen">
-            </div>
-            <input type="file" id="srp-img-file" accept="image/*" style="display:none" onchange="_srpHandleImgUpload(this)">
-            <div class="srp-header-body">
-              <div class="srp-cat-row">
-                <span class="srp-cat-dot" id="srp-cat-dot"></span>
-                <span class="srp-cat-label" id="srp-cat-label"></span>
-              </div>
-              <div class="srp-name" id="srp-name"></div>
-              <div class="srp-price-row" id="srp-price-row"></div>
-            </div>
-          </div>
-          <div id="srp-stock-hero" style="display:none"></div>
-          <div class="srp-meta">
-            <div class="srp-chips" id="srp-chips"></div>
-            <div class="srp-desc" id="srp-desc"></div>
-            <button class="srp-desc-toggle" id="srp-desc-toggle" onclick="_srpToggleDesc()">Ver más ↓</button>
-            <div class="srp-barcode" id="srp-barcode"></div>
-          </div>
-        </div>
-        <div class="srp-actions" id="srp-actions"></div>
-      </div>
-    </div>
+    <!-- SRP eliminado — escanear barcode abre el QV directamente -->
 
     <!-- PRODUCTS TABLE / CARD GRID -->
     <div class="table-wrap" id="products-view-wrap">

@@ -547,7 +547,7 @@ function setBtn(el, loading, text) {
 /* ── INIT ── */
 window.addEventListener('pageshow', () => {
   const srp = document.getElementById('scan-result-panel');
-  const _srpOvl = document.getElementById('srp-overlay'); if (_srpOvl) _srpOvl.style.display = 'none';
+  closeQV();
 });
 
 // Advertir si navegan a otro módulo con cambios sin guardar
@@ -1600,11 +1600,11 @@ function renderTable() {
       if (tbody) tbody.innerHTML = `<tr><td colspan="5">${emptyHTML}</td></tr>`;
     }
     updateBulkBar();
-    if (document.getElementById('srp-overlay')?.style.display !== 'flex') _updateActiveFiltersBar();
+    if (!document.getElementById('qv-overlay')?.classList.contains('open')) _updateActiveFiltersBar();
     return;
   }
 
-  if (document.getElementById('srp-overlay')?.style.display !== 'flex') _updateActiveFiltersBar();
+  if (!document.getElementById('qv-overlay')?.classList.contains('open')) _updateActiveFiltersBar();
 
   const visible  = filtered.slice(0, _adminPage * ADMIN_PAGE_SIZE);
   const hasMore  = visible.length < filtered.length;
@@ -4696,10 +4696,19 @@ async function _deleteDupProduct(id, pairKey) {
   });
 }
 
+// SRP unificado con QV — el escaneo abre el mismo Quick View
 function showScanResult(id) {
+  TE?.track('scan_result', { id });
+  openQV(id);
+}
+function clearScanResult() { closeQV(); }
+function _srpRefresh(id)   { _qvRefresh(id); }
+
+/* ── CÓDIGO LEGADO SRP — conservado por si se re-activa ── */
+function _showScanResultLegacy(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
-  TE?.track('scan_result', { id: p.id, name: p.name });
+  TE?.track('scan_result_legacy', { id: p.id, name: p.name });
   const fallback = DEFAULT_IMG;
   const oos = p.kitItems?.length ? false : (p.outOfStock || p.stock === 0);
   const catColor = getCatColor(p.category);
@@ -4827,15 +4836,6 @@ function showScanResult(id) {
   document.getElementById('scroll-top-btn')?.classList.remove('show');
 }
 
-function clearScanResult() {
-  document.getElementById('srp-overlay').style.display = 'none';
-  document.body.style.overflow = '';
-  _updateActiveFiltersBar();
-}
-
-function _srpRefresh(id) {
-  if (document.getElementById('srp-overlay')?.style.display === 'flex') showScanResult(id);
-}
 
 let _srpPendingStock = null;
 
