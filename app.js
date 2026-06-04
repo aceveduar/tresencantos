@@ -20,7 +20,10 @@ let _catalogShowAll = false;
 
 function _descHtml(desc) {
   if (!desc) return '';
-  return desc.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  return desc
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\n/g,'<br>');
 }
 
 /* ── CARRITO ── */

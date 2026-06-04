@@ -2943,7 +2943,31 @@ function handleDescPaste(e) {
 /* Escapa HTML y convierte \n en <br> para renderizado seguro de descripciones */
 function _descHtml(desc) {
   if (!desc) return '';
-  return desc.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  return desc
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\n/g,'<br>');
+}
+
+function toggleBoldDesc() {
+  const ta = document.getElementById('f-description');
+  if (!ta) return;
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const val = ta.value;
+  if (s === e) return; // nada seleccionado
+  const sel = val.slice(s, e);
+  // Toggle: si ya está en negrita, quitar; si no, poner
+  let newSel, newS, newE;
+  if (sel.startsWith('**') && sel.endsWith('**') && sel.length > 4) {
+    newSel = sel.slice(2, -2);
+    newS = s; newE = s + newSel.length;
+  } else {
+    newSel = '**' + sel + '**';
+    newS = s; newE = s + newSel.length;
+  }
+  ta.value = val.slice(0, s) + newSel + val.slice(e);
+  ta.setSelectionRange(newS, newE);
+  ta.focus();
 }
 
 /* Formatea descripción: primera letra mayúscula + punto al final (preserva saltos de línea) */
