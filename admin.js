@@ -4764,14 +4764,13 @@ function showScanResult(id) {
     heroEl.className = 'srp-stock-hero';
     heroEl.onclick = null;
     heroEl.innerHTML = `
-      <div class="srp-stock-lbl">STOCK</div>
       <div class="srp-stepper-row">
         <button class="srp-step-btn" onclick="_srpStep(-1,${p.id})" ontouchstart="event.stopPropagation()">−</button>
         <span class="srp-stock-num" id="srp-stock-val" style="color:${stockColor}">${p.stock}</span>
         <button class="srp-step-btn" onclick="_srpStep(1,${p.id})" ontouchstart="event.stopPropagation()">+</button>
+        <span class="srp-stock-status" id="srp-stock-status" style="margin-left:4px">${stockStatus}</span>
         <button class="srp-step-save" id="srp-step-save" onclick="_srpSaveStep(${p.id})" ontouchstart="event.stopPropagation()">Guardar</button>
-      </div>
-      <div class="srp-stock-status" id="srp-stock-status">${stockStatus}</div>`;
+      </div>`;
   }
 
   // Descripción editable
@@ -4797,7 +4796,7 @@ function showScanResult(id) {
   const btnDel  = can.deleteProduct  ? `<button class="qv-btn qv-btn-del" onclick="clearScanResult();askDelete(${p.id})">✕ Eliminar</button>` : '';
   document.getElementById('srp-actions').innerHTML = btnEdit + btnTop + btnDup + btnPub + btnDel;
 
-  // Mostrar panel, ocultar lista y elementos irrelevantes
+  // Mostrar panel, ocultar lista y FABs
   const srpPanel = document.getElementById('scan-result-panel');
   srpPanel.style.display = 'block';
   srpPanel.dataset.srpId = p.id;
@@ -4806,11 +4805,15 @@ function showScanResult(id) {
   if (bulkBar) bulkBar.style.display = 'none';
   const filterBar = document.getElementById('filter-active-bar');
   if (filterBar) filterBar.classList.remove('visible');
+  document.querySelector('.fab-add')?.style.setProperty('display','none');
+  document.getElementById('fab-kit')?.style.setProperty('display','none');
 }
 
 function clearScanResult() {
   document.getElementById('scan-result-panel').style.display = 'none';
   document.getElementById('products-view-wrap').style.display = '';
+  document.querySelector('.fab-add')?.style.removeProperty('display');
+  document.getElementById('fab-kit')?.style.removeProperty('display');
   _updateActiveFiltersBar();
 }
 
