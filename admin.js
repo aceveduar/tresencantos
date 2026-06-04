@@ -4750,7 +4750,15 @@ function showScanResult(id) {
   const oosChip = oos
     ? `<span class="qv-chip qv-chip-sold">⊘ Agotado</span>`
     : `<span class="qv-chip qv-chip-ok">✓ Disponible</span>`;
-  document.getElementById('srp-chips').innerHTML = oosChip + pubChip;
+  // Chips adicionales — igual que QV
+  const featChipSrp  = p.featured ? `<span class="qv-chip">⭐ Destacado</span>` : '';
+  let marginChipSrp = '';
+  if (p.cost && p.price > 0) {
+    const m = Math.round((1 - p.cost / p.price) * 100);
+    const mc = m >= 30 ? 'qv-chip-ok' : m >= 10 ? '' : 'qv-chip-sold';
+    marginChipSrp = `<span class="qv-chip ${mc}">Margen ${m}%</span>`;
+  }
+  document.getElementById('srp-chips').innerHTML = oosChip + pubChip + featChipSrp + marginChipSrp;
 
   // Stock stepper
   _srpPendingStock = null;
@@ -4793,18 +4801,22 @@ function showScanResult(id) {
     }, 50);
   }
 
-  // Código de barras — sin emoji problemático
+  // ID + barcode en una línea — igual que QV
   const bcEl = document.getElementById('srp-barcode');
-  bcEl.textContent = p.barcode || '';
-  bcEl.style.display = p.barcode ? '' : 'none';
+  bcEl.style.display = '';
+  bcEl.innerHTML = `<span style="font-family:monospace">ID #${p.id}</span>${p.barcode ? `<span style="font-family:monospace;color:var(--muted)"> · ${p.barcode}</span>` : ''}`;
 
-  // Acciones — grid 3 columnas consistente con QV
+  // Acciones — 6 botones igual que QV
+  const flagDataSrp = _flagItem(p.id);
   const btnEdit = can.editProduct ? `<button class="qv-btn qv-btn-edit" onclick="clearScanResult();openForm(${p.id})">${ICON_EDIT} Más campos</button>` : '';
   const btnTop  = can.editProduct ? `<button class="qv-btn qv-btn-dup" onclick="clearScanResult();moveToTop(${p.id})">📌 Al inicio</button>` : '';
   const btnDup  = `<button class="qv-btn qv-btn-dup" onclick="clearScanResult();duplicateProduct(${p.id})">⧉ Duplicar</button>`;
   const btnPub  = can.publishProduct ? `<button class="qv-btn qv-btn-pub" onclick="_qvTogglePublished(${p.id})">${p.isPublished === false ? '🌐 Publicar' : '🙈 Ocultar'}</button>` : '';
-  const btnDel  = can.deleteProduct  ? `<button class="qv-btn qv-btn-del" onclick="clearScanResult();askDelete(${p.id})">✕ Eliminar</button>` : '';
-  document.getElementById('srp-actions').innerHTML = btnEdit + btnTop + btnDup + btnPub + btnDel;
+  const btnFlag = flagDataSrp
+    ? `<button class="qv-btn qv-btn-flagdone" onclick="clearScanResult();unflagProduct(${p.id})">✓ Revisado</button>`
+    : `<button class="qv-btn qv-btn-flag" onclick="_qvShowFlagForm(${p.id})">🚩 Revisar</button>`;
+  const btnDel  = can.deleteProduct ? `<button class="qv-btn qv-btn-del" onclick="clearScanResult();askDelete(${p.id})">✕ Eliminar</button>` : '';
+  document.getElementById('srp-actions').innerHTML = btnEdit + btnTop + btnDup + btnPub + btnFlag + btnDel;
 
   // Mostrar como bottom sheet overlay
   const srpPanel = document.getElementById('scan-result-panel');
