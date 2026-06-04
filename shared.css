@@ -60,7 +60,18 @@ a{text-decoration:none}
    Íconos de módulo compartidos por todos los módulos admin.
    Cambiar aquí aplica a Caja, Inventario, Reportes, Actividad, Config.
    ══════════════════════════════════════════════════════════════════ */
-.topbar-nav-mobile{display:flex;align-items:center;gap:1px}
+/* ── Layout topbar base ────────────────────────────────────────────── */
+.topbar{position:relative;display:flex;align-items:center;justify-content:space-between}
+
+/* ── Layout topbar: nav centrado, avatar a la derecha ──────────────── */
+/* El topbar usa position:relative para centrar el nav con absolute */
+/* topbar-left: spacer flex:1 | nav: centrado absoluto | topbar-right: avatar */
+.topbar-left{flex:1}
+.topbar-right{flex:1;display:flex;align-items:center;justify-content:flex-end}
+.topbar-nav-mobile{
+  display:flex;align-items:center;gap:1px;
+  position:absolute;left:50%;transform:translateX(-50%);
+}
 
 .tbn-icon{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
