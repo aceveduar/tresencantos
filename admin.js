@@ -4693,17 +4693,17 @@ function showScanResult(id) {
   // Imagen / galería
   const allImgs = [p.image || fallback, ...(p.images || [])].filter(Boolean);
   const imgZone = document.getElementById('srp-img-zone');
-  const oosImgStyle = oos ? 'opacity:.5;filter:grayscale(.4)' : '';
+  // Sin opacidad en SRP — aquí se gestiona el producto, el estado lo muestran los chips
   if (allImgs.length > 1) {
     imgZone.innerHTML =
       `<div class="srp-gallery" id="srp-gallery" onscroll="_srpGalleryScroll(this)">
-        ${allImgs.map((src, i) => `<img class="srp-gallery-img" src="${src}" alt="${p.name} ${i+1}" onerror="this.onerror=null;this.src='${fallback}'" onclick="_srpImgClick(event)" style="${oosImgStyle}">`).join('')}
+        ${allImgs.map((src, i) => `<img class="srp-gallery-img" src="${src}" alt="${p.name} ${i+1}" onerror="this.onerror=null;this.src='${fallback}'" onclick="_srpImgClick(event)">`).join('')}
       </div>
       <div class="srp-gallery-dots" id="srp-gallery-dots">
         ${allImgs.map((_,i) => `<span class="srp-gd${i===0?' active':''}" onclick="_srpGoTo(${i})"></span>`).join('')}
       </div>`;
   } else {
-    imgZone.innerHTML = `<img class="srp-thumb" id="srp-img" src="${allImgs[0]}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'" onclick="_srpImgClick(event)" ondblclick="_srpImgDblClick(event)" style="${oosImgStyle}" title="Clic: ver completa · Doble clic: cambiar imagen">`;
+    imgZone.innerHTML = `<img class="srp-thumb" id="srp-img" src="${allImgs[0]}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'" onclick="_srpImgClick(event)" ondblclick="_srpImgDblClick(event)" title="Clic: ver completa · Doble clic: cambiar imagen">`;
   }
   document.getElementById('srp-cat-dot').style.background = catColor;
   document.getElementById('srp-cat-label').textContent = p.categoryLabel || '';
