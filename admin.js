@@ -404,7 +404,8 @@ function getFilteredProducts() {
       (_statFilter === 'sin-precio'   && (!p.price || p.price === 0)) ||
       (_statFilter === 'imagen-base64' && p.image?.startsWith('data:')) ||
       (_statFilter === 'kits'         && !!p.kitItems?.length) ||
-      (_statFilter === 'vendidos'     && (_salesCountMap.get(p.id) || 0) > 0);
+      (_statFilter === 'vendidos'     && (_salesCountMap.get(p.id) || 0) > 0) ||
+      (_statFilter === 'borradores');
     const isKit      = !!p.kitItems?.length;
     const isBorrador = !isKit && !p.isPublished && (!p.price || p.price === 0);
     const matchKit      = _statFilter === 'kits'      ? isKit      : !isKit;
