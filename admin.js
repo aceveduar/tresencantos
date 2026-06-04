@@ -4775,6 +4775,8 @@ function showScanResult(id) {
 
   // Descripción editable
   const descEl = document.getElementById('srp-desc');
+  const descToggleSrp = document.getElementById('srp-desc-toggle');
+  descEl.classList.remove('expanded');
   if (can.editProduct) {
     descEl.style.display = '';
     descEl.innerHTML = `<span class="qv-editable" onclick="_qvEditDesc(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar">${_descHtml(p.description) || '<em style="color:var(--muted);font-style:normal;font-size:.82rem">+ Agregar descripción</em>'}</span>`;
@@ -4782,15 +4784,23 @@ function showScanResult(id) {
     descEl.innerHTML = _descHtml(p.description);
     descEl.style.display = p.description ? '' : 'none';
   }
+  if (descToggleSrp) {
+    setTimeout(() => {
+      const overflows = descEl.scrollHeight > 84;
+      descToggleSrp.style.display = overflows ? 'block' : 'none';
+      descToggleSrp.textContent   = 'Ver más ↓';
+      descEl.classList.toggle('expanded', !overflows);
+    }, 50);
+  }
 
-  // Código de barras
+  // Código de barras — sin emoji problemático
   const bcEl = document.getElementById('srp-barcode');
-  bcEl.textContent = p.barcode ? `🔲 ${p.barcode}` : '';
+  bcEl.textContent = p.barcode || '';
   bcEl.style.display = p.barcode ? '' : 'none';
 
-  // Acciones
+  // Acciones — grid 3 columnas consistente con QV
   const btnEdit = can.editProduct ? `<button class="qv-btn qv-btn-edit" onclick="clearScanResult();openForm(${p.id})">${ICON_EDIT} Más campos</button>` : '';
-  const btnTop  = can.editProduct ? `<button class="qv-btn" style="background:var(--gold-light);color:var(--gold-dark);border-color:rgba(201,164,98,.4)" onclick="clearScanResult();moveToTop(${p.id})">📌 Al inicio</button>` : '';
+  const btnTop  = can.editProduct ? `<button class="qv-btn qv-btn-dup" onclick="clearScanResult();moveToTop(${p.id})">📌 Al inicio</button>` : '';
   const btnDup  = `<button class="qv-btn qv-btn-dup" onclick="clearScanResult();duplicateProduct(${p.id})">⧉ Duplicar</button>`;
   const btnPub  = can.publishProduct ? `<button class="qv-btn qv-btn-pub" onclick="_qvTogglePublished(${p.id})">${p.isPublished === false ? '🌐 Publicar' : '🙈 Ocultar'}</button>` : '';
   const btnDel  = can.deleteProduct  ? `<button class="qv-btn qv-btn-del" onclick="clearScanResult();askDelete(${p.id})">✕ Eliminar</button>` : '';
@@ -4807,6 +4817,7 @@ function showScanResult(id) {
   if (filterBar) filterBar.classList.remove('visible');
   document.querySelector('.fab-add')?.style.setProperty('display','none');
   document.getElementById('fab-kit')?.style.setProperty('display','none');
+  document.getElementById('scroll-top-btn')?.classList.remove('show');
 }
 
 function clearScanResult() {
@@ -6823,6 +6834,15 @@ async function _qvTogglePublished(id) {
 function _qvToggleDesc() {
   const descEl = document.getElementById('qv-desc');
   const btn    = document.getElementById('qv-desc-toggle');
+  if (!descEl || !btn) return;
+  const expanding = !descEl.classList.contains('expanded');
+  descEl.classList.toggle('expanded', expanding);
+  btn.textContent = expanding ? 'Ver menos ↑' : 'Ver más ↓';
+}
+
+function _srpToggleDesc() {
+  const descEl = document.getElementById('srp-desc');
+  const btn    = document.getElementById('srp-desc-toggle');
   if (!descEl || !btn) return;
   const expanding = !descEl.classList.contains('expanded');
   descEl.classList.toggle('expanded', expanding);

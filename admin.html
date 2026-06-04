@@ -156,9 +156,17 @@ main{max-width:1080px;margin:0 auto;padding:28px 32px}
 .srp-step-save.visible{display:block}
 .srp-meta{padding:12px 16px 6px}
 .srp-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}
-.srp-desc{font-size:.85rem;color:var(--muted);line-height:1.6;margin-bottom:8px}
+.srp-desc{font-size:.85rem;color:var(--muted);line-height:1.6;margin-bottom:4px;
+  max-height:80px;overflow:hidden;position:relative}
+.srp-desc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:28px;
+  background:linear-gradient(transparent,#fff);pointer-events:none}
+.srp-desc.expanded{max-height:none;overflow:visible}
+.srp-desc.expanded::after{display:none}
+.srp-desc-toggle{font-size:.72rem;color:var(--gold-dark);font-weight:600;cursor:pointer;
+  display:none;margin-bottom:6px;background:none;border:none;padding:0;font-family:inherit}
 .srp-barcode{font-size:.72rem;color:var(--muted-light);margin-bottom:2px;font-family:monospace}
-.srp-actions{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px 16px;
+.srp-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;
+  padding:12px 16px calc(14px + env(safe-area-inset-bottom));
   border-top:1px solid var(--border);background:#FDFAF7}
 
 /* ── CATEGORY BOTTOM SHEET ─────────────────────────────────────────── */
@@ -1991,6 +1999,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         <div class="srp-meta">
           <div class="srp-chips" id="srp-chips"></div>
           <div class="srp-desc" id="srp-desc"></div>
+          <button class="srp-desc-toggle" id="srp-desc-toggle" onclick="_srpToggleDesc()">Ver más ↓</button>
           <div class="srp-barcode" id="srp-barcode"></div>
         </div>
         <div class="srp-actions" id="srp-actions"></div>
