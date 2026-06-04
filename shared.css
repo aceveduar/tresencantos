@@ -90,19 +90,19 @@ a{text-decoration:none}
 
 .tbn-icon{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:2px;padding:5px 10px;border-radius:9px;min-width:44px;
+  gap:2px;padding:5px 14px;border-radius:9px;min-width:48px;
   text-decoration:none;background:transparent;color:rgba(255,255,255,.55);
   transition:all .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
   border:none;cursor:pointer;font-family:inherit;
 }
 .tbn-icon svg{
-  width:18px;height:18px;stroke:currentColor;fill:none;
+  width:20px;height:20px;stroke:currentColor;fill:none;
   stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
   display:block;flex-shrink:0;
 }
 .tbn-label{
-  display:none;font-size:.57rem;font-weight:600;
-  letter-spacing:.02em;line-height:1;white-space:nowrap;
+  display:none;font-size:.5rem;font-weight:600;
+  letter-spacing:.03em;line-height:1;white-space:nowrap;
 }
 .tbn-sep{display:none}
 
@@ -115,25 +115,25 @@ a{text-decoration:none}
 /* Mobile ≤640px — touch targets + labels */
 @media(max-width:640px){
   .tbn-icon{padding:5px 8px;min-width:44px}
-  .tbn-icon svg{width:17px;height:17px}
-  .tbn-label{display:block;font-size:.46rem;letter-spacing:.01em}
+  .tbn-icon svg{width:20px;height:20px}
+  .tbn-label{display:block;font-size:.5rem;letter-spacing:.02em}
   .topbar-nav-mobile{gap:0}
 }
 /* Teléfonos muy chicos ≤380px */
 @media(max-width:380px){
-  .tbn-icon{min-width:34px;padding:5px 3px}
-  .tbn-icon svg{width:16px;height:16px}
-  .tbn-label{font-size:.42rem}
+  .tbn-icon{min-width:38px;padding:5px 6px}
+  .tbn-icon svg{width:18px;height:18px}
+  .tbn-label{font-size:.44rem}
 }
 /* Tableta y desktop ≥641px — separador visible */
 @media(min-width:641px){
   .tbn-sep{display:block;width:1px;height:20px;background:rgba(255,255,255,.2);align-self:center;flex-shrink:0;margin:0 4px}
   .tbn-label{display:block}
-  .tbn-icon{padding:5px 9px;gap:2px}
-  .tbn-icon svg{width:15px;height:15px}
+  .tbn-icon{padding:5px 12px;gap:2px}
+  .tbn-icon svg{width:18px;height:18px}
 }
 @media(min-width:1025px){
-  .tbn-icon{padding:6px 11px}
-  .tbn-icon svg{width:16px;height:16px}
+  .tbn-icon{padding:6px 14px}
+  .tbn-icon svg{width:20px;height:20px}
   .topbar-nav-mobile{gap:2px}
 }
