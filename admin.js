@@ -6727,13 +6727,24 @@ function _renderQV(p) {
     oosChip + pubChip + stockChipQV + featChip + marginChip;
 
   // Descripción
-  const descEl = document.getElementById('qv-desc');
+  const descEl   = document.getElementById('qv-desc');
+  const descToggle = document.getElementById('qv-desc-toggle');
+  descEl.classList.remove('expanded');
   if (can.editProduct) {
     descEl.style.display = '';
     descEl.innerHTML = `<span class="qv-editable" onclick="_qvEditDesc(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar descripción" style="display:block;min-height:1.4em">${_descHtml(p.description) || '<em style="color:var(--muted);font-style:normal;font-size:.82rem">+ Agregar descripción</em>'}</span>`;
   } else {
     descEl.innerHTML = _descHtml(p.description);
     descEl.style.display = p.description ? '' : 'none';
+  }
+  // Mostrar "Ver más" solo si la descripción desborda los 80px
+  if (descToggle) {
+    setTimeout(() => {
+      const overflows = descEl.scrollHeight > 84;
+      descToggle.style.display = overflows ? 'block' : 'none';
+      descToggle.textContent   = 'Ver más ↓';
+      descEl.classList.toggle('expanded', !overflows);
+    }, 50);
   }
 
   // Componentes del kit
@@ -6778,7 +6789,7 @@ function _renderQV(p) {
 
   // ID + barcode en una línea
   const idEl = document.getElementById('qv-id');
-  idEl.innerHTML = `<span style="font-family:monospace">ID #${p.id}</span>${p.barcode ? `<span style="font-family:monospace;color:var(--muted)">· 🔲 ${p.barcode}</span>` : ''}`;
+  idEl.innerHTML = `<span style="font-family:monospace">ID #${p.id}</span>${p.barcode ? `<span style="font-family:monospace;color:var(--muted)">· ${p.barcode}</span>` : ''}`;
 
   // Botones de acción
   const btnEdit = can.editProduct
@@ -6807,6 +6818,15 @@ async function _qvTogglePublished(id) {
   if (p && _qvCurrentId === id && document.getElementById('qv-overlay').classList.contains('open')) {
     _renderQV(p);
   }
+}
+
+function _qvToggleDesc() {
+  const descEl = document.getElementById('qv-desc');
+  const btn    = document.getElementById('qv-desc-toggle');
+  if (!descEl || !btn) return;
+  const expanding = !descEl.classList.contains('expanded');
+  descEl.classList.toggle('expanded', expanding);
+  btn.textContent = expanding ? 'Ver menos ↑' : 'Ver más ↓';
 }
 
 // Cerrar QV con Escape

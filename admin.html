@@ -638,7 +638,14 @@ tr:hover .drag-handle{opacity:1}
 .qv-chip-web{background:#e8f5e9;border-color:#81c784;color:#2D6A4F}
 .qv-chip-hidden{background:#fff3e0;border-color:#ffb74d;color:#e65100}
 .qv-chip-warn{background:#FFFBEB;border-color:#FCD34D;color:#92400E}
-.qv-desc{font-size:.82rem;color:var(--muted);line-height:1.65;margin-top:4px}
+.qv-desc{font-size:.82rem;color:var(--muted);line-height:1.65;margin-top:4px;
+  max-height:80px;overflow:hidden;position:relative}
+.qv-desc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:28px;
+  background:linear-gradient(transparent,#fff);pointer-events:none}
+.qv-desc.expanded{max-height:none;overflow:visible}
+.qv-desc.expanded::after{display:none}
+.qv-desc-toggle{font-size:.72rem;color:var(--gold-dark);font-weight:600;cursor:pointer;
+  display:none;margin-top:3px;background:none;border:none;padding:0;font-family:inherit}
 .qv-id-hint{font-size:.68rem;color:var(--muted-light);margin-top:10px}
 .qv-actions{flex-shrink:0;padding:12px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--border);background:#fff;display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
 .qv-btn{display:flex;align-items:center;justify-content:center;gap:5px;padding:10px 6px;border-radius:10px;border:none;cursor:pointer;font-size:.78rem;font-weight:600;font-family:inherit;transition:.15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;min-height:42px;white-space:nowrap}
@@ -2553,6 +2560,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       <div class="qv-price-row" id="qv-price-row"></div>
       <div class="qv-chips" id="qv-chips"></div>
       <div class="qv-desc" id="qv-desc"></div>
+      <button class="qv-desc-toggle" id="qv-desc-toggle" onclick="_qvToggleDesc()">Ver más ↓</button>
       <div id="qv-kit-components" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border-light)"></div>
       <div id="qv-flag-zone"></div>
       <div class="qv-id-hint" id="qv-id" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"></div>
