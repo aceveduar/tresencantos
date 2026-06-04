@@ -21,6 +21,24 @@ button,input,select,textarea{font-family:inherit}
 a{text-decoration:none}
 *,*::before,*::after{box-sizing:border-box}
 
+/* ── Dropdown de usuario ───────────────────────────────────────────── */
+#ud-pop{
+  position:fixed;z-index:99999;
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:14px;min-width:210px;
+  box-shadow:0 8px 32px rgba(28,24,23,.18);
+  animation:ud-in .15s ease;
+}
+@keyframes ud-in{from{opacity:0;transform:scale(.92) translateY(-6px)}to{opacity:1;transform:scale(1)}}
+.ud-info{margin-bottom:10px}
+.ud-name{font-weight:700;font-size:.88rem;color:var(--charcoal);margin-bottom:2px}
+.ud-email{font-size:.72rem;color:var(--muted);margin-bottom:6px;word-break:break-all}
+.ud-role{display:inline-block;font-size:.62rem;font-weight:700;background:rgba(201,164,98,.15);color:var(--gold-dark);border-radius:50px;padding:2px 8px;text-transform:uppercase;letter-spacing:.05em}
+.ud-divider{height:1px;background:var(--border);margin:0 -14px 10px}
+.ud-logout{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:none;border-radius:8px;background:transparent;color:var(--red);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s}
+.ud-logout:hover{background:#FFF5F5}
+.ud-logout svg{flex-shrink:0}
+
 /* ── Avatar de usuario ─────────────────────────────────────────────── */
 .user-avatar{
   width:28px;height:28px;border-radius:50%;
