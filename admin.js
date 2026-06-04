@@ -2446,7 +2446,7 @@ Español de México. Responde SOLO con JSON válido, sin markdown.`;
 Devuelve ÚNICAMENTE JSON válido, sin markdown.
 
 OBLIGATORIOS:
-• "name": 45-70 chars. Natura → fórmula Natura completa. Otros → marca+tipo+material+color. Cero adjetivos genéricos.
+• "name": 45-70 chars. Natura → fórmula Natura completa. Otros → marca+tipo+material+color. Cero adjetivos genéricos. NUNCA uses siglas de concentración (EDP/EDT/EDC/EDP) — di "Perfume", "Colonia" o "Eau de Parfum" completo si aplica.
 • "description": copy listo para publicar, máximo 160 chars. Sigue la fórmula exacta del sistema según el tipo de producto. Empieza con verbo activo o ingrediente estrella — nunca con "Este es...".
 
 OPCIONALES:
@@ -2479,7 +2479,7 @@ Formato: {"name":"...","description":"...","category":"","price":null}`;
     if (!jsonMatch) throw new Error('La IA no devolvió un formato reconocible');
     const parsed = JSON.parse(jsonMatch[0]);
     const flash = el => { el.classList.add('ai-filled'); setTimeout(() => el.classList.remove('ai-filled'), 1600); };
-    if (parsed.name)        { const el = document.getElementById('f-name');        el.value = toTitleCase(parsed.name);  flash(el); }
+    if (parsed.name)        { const el = document.getElementById('f-name');        el.value = toTitleCase(_cleanAiName(parsed.name));  flash(el); }
     if (parsed.description) { const el = document.getElementById('f-description'); el.value = formatDescription(parsed.description); flash(el); }
     {
       const match = parsed.category
@@ -2915,6 +2915,18 @@ function toTitleCase(str) {
 function applyTitleCase(fieldId) {
   const el = document.getElementById(fieldId);
   if (el && el.value.trim()) el.value = toTitleCase(el.value);
+}
+
+// Limpia siglas técnicas de concentración de perfumes que confunden al cliente
+function _cleanAiName(name) {
+  if (!name) return name;
+  return name
+    .replace(/\bEDP\b/g, 'Eau de Parfum')
+    .replace(/\bEDT\b/g, 'Eau de Toilette')
+    .replace(/\bEDC\b/g, 'Eau de Cologne')
+    .replace(/\bedp\b/gi, 'Eau de Parfum')
+    .replace(/\bedt\b/gi, 'Eau de Toilette')
+    .replace(/\bedc\b/gi, 'Eau de Cologne');
 }
 
 /* Convierte HTML del portapapeles a texto limpio con bullets y saltos de línea */
@@ -5867,7 +5879,7 @@ async function runCaptureAI() {
   try {
     const catList = categories.map(c => '"' + c.code + '" (' + c.label + ')').join(', ');
     const sysP = 'Eres copywriter senior para Tres Encantos. Copy listo para publicar, nivel Sephora/Liverpool/Amazon MX.\n\nPASO 0: lee TODO el texto del empaque (marca, línea, concentración, variante, ml/g, género) antes de escribir.\n\nTÍTULO NATURA: Natura [Línea] [Tipo] [Variante] [ml/g] [Género]. Líneas: Kaiak, Essencial, Una, Humor, Nativa, Plant, Tododia, Ekos, Chronos, Mamá Terra, Lumina, Luna, Faces, Amó. Ej: "Natura Kaiak Desodorante Colônia Clásico 100ml Masculino".\n\nTÍTULO AVON: Avon [Línea] [Tipo] [Variante] [ml/g]. Líneas: Anew, Skin So Soft, Far Away, Black Suede, Luck, Perceive, True Color. Ej: "Avon Far Away Eau de Parfum 50ml Femenino", "Avon Anew Sérum Retinol 30ml".\n\nTÍTULO GENERAL: [Marca] + [Tipo] + [Material/Acabado] + [Color].\n\nDESCRIPCIÓN PREMIUM — empieza con verbo activo o ingrediente, nunca "Este es...":\n• Perfume/Colonia Natura o Avon → "[Familia olfativa] de [notas] que [efecto]."\n• Crema/Loción Natura o Avon → "[Ingrediente] que [beneficio]. [Textura/resultado]."\n• Maquillaje → "[Acabado] que [beneficio extra]. [Tono/look ideal]."\n• Bolso/Cartera → "[Material] que [funcionalidad]. [Ocasión]."\n\nCATEGORÍA — si ves marca Avon o líneas Avon → avon_perfumes/avon_cuerpo/avon_facial/avon_maquillaje. Si ves Natura → natura_perfumes/natura_cuerpo/natura_facial/natura_cabello/natura_maquillaje. Bolso grande → bolsos; cartera → accesorios; labial/sombra → maquillaje. "" si duda.\n\nPROHIBIDO: "bonito","elegante","especial","hermoso". Sin SKUs. Español de México.';
-    const usrP = 'PASO 0: escanea la imagen — marca, línea, concentración, variante, ml/g, género. Devuelve SOLO JSON válido sin markdown.\n\nOBLIGATORIOS:\n- "name": 45-70 chars. Natura: línea+tipo+variante+ml+género. Otros: marca+tipo+material+color.\n- "description": copy listo para publicar, máx 160 chars. Fórmula según tipo. Empieza con verbo o ingrediente, nunca "Este es...".\n\nOPCIONALES (null o "" si dudas):\n- "category": código exacto según mapeo del sistema. Opciones: ' + catList + '\n- "price": número de etiqueta/plumón/empaque (ej: 350). Solo dígitos. NO confundas con ml, oz, g, tallas, %, códigos. null si duda.\n\n{"name":"...","description":"...","category":"","price":null}';
+    const usrP = 'PASO 0: escanea la imagen — marca, línea, concentración, variante, ml/g, género. Devuelve SOLO JSON válido sin markdown.\n\nOBLIGATORIOS:\n- "name": 45-70 chars. Natura: línea+tipo+variante+ml+género. Otros: marca+tipo+material+color. NUNCA uses EDP/EDT/EDC — escribe "Perfume", "Colonia" o "Eau de Parfum" completo.\n- "description": copy listo para publicar, máx 160 chars. Fórmula según tipo. Empieza con verbo o ingrediente, nunca "Este es...".\n\nOPCIONALES (null o "" si dudas):\n- "category": código exacto según mapeo del sistema. Opciones: ' + catList + '\n- "price": número de etiqueta/plumón/empaque (ej: 350). Solo dígitos. NO confundas con ml, oz, g, tallas, %, códigos. null si duda.\n\n{"name":"...","description":"...","category":"","price":null}';
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + groqApiKey },
@@ -7316,7 +7328,7 @@ async function _batchAnalyzeOne(idx) {
   _batchRenderCards();
   try {
     const parsed = await _batchCallGroq(_batchItems[idx].dataUrl);
-    _batchItems[idx].name        = toTitleCase(parsed.name || '');
+    _batchItems[idx].name        = toTitleCase(_cleanAiName(parsed.name || ''));
     _batchItems[idx].description = formatDescription(parsed.description || '') || '';
     const match = parsed.category ? categories.find(c => c.code === parsed.category) : null;
     _batchItems[idx].category    = match ? match.code : '';
@@ -7338,7 +7350,7 @@ async function _batchAnalyzeAll() {
     _batchRenderCards();
     try {
       const parsed = await _batchCallGroq(_batchItems[i].dataUrl);
-      _batchItems[i].name        = toTitleCase(parsed.name || '');
+      _batchItems[i].name        = toTitleCase(_cleanAiName(parsed.name || ''));
       _batchItems[i].description = formatDescription(parsed.description || '') || '';
       const match = parsed.category ? categories.find(c => c.code === parsed.category) : null;
       _batchItems[i].category    = match ? match.code : '';
