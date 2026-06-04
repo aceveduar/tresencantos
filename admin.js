@@ -4741,8 +4741,11 @@ function showScanResult(id) {
   document.getElementById('srp-price-row').innerHTML = priceHTML;
 
   // Chips
+  const _isBorrador = !p.kitItems?.length && !p.isPublished && (!p.price || p.price === 0);
   const _pubClick = can.publishProduct ? `onclick="_qvTogglePublished(${p.id})" ontouchstart="event.stopPropagation()" style="cursor:pointer" title="Toca para cambiar visibilidad"` : '';
-  const pubChip = p.isPublished === false
+  const pubChip = _isBorrador
+    ? `<span class="qv-chip" style="background:#F3F4F6;color:#374151;border-color:#D1D5DB">📝 Borrador — sin precio</span>`
+    : p.isPublished === false
     ? `<span class="qv-chip qv-chip-hidden" ${_pubClick}>🙈 Oculto</span>`
     : p.outOfStock ? `<span class="qv-chip qv-chip-warn">⚠️ Agotado</span>`
     : `<span class="qv-chip qv-chip-web" ${_pubClick}>🌐 Web</span>`;
