@@ -7,18 +7,10 @@
 <title>Configuración — Tres Encantos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --cream:#FAF5EE;--gold:#C9A462;--gold-dark:#A67C3A;--gold-light:#FFF8EE;
-  --charcoal:#1C1817;--red:#E85D5D;--green:#2D6A4F;
-  --border:#EAE0D4;--muted:#8A7564;--muted-light:#B5A696;--r:12px;
-}
-html{-webkit-text-size-adjust:100%}
 body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal);min-height:100dvh;display:flex;flex-direction:column;scrollbar-width:none}
 body::-webkit-scrollbar{display:none}
-button,input,select,textarea{font-family:inherit}
-a{text-decoration:none}
 *{-webkit-tap-highlight-color:transparent}
 button,a,[onclick]{touch-action:manipulation}
 
@@ -27,72 +19,10 @@ button,a,[onclick]{touch-action:manipulation}
 .topbar-left{display:flex;align-items:center;gap:10px}
 .topbar-title{font-family:'Playfair Display',serif;font-size:1rem;color:#fff}
 .topbar-right{display:flex;gap:8px;align-items:center}
-.user-avatar{width:28px;height:28px;border-radius:50%;background:rgba(201,164,98,.25);color:var(--gold);font-size:.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1.5px solid rgba(201,164,98,.5);user-select:none}
 .user-name-lbl{font-size:.75rem;color:rgba(255,255,255,.6);white-space:nowrap}
-.btn-back{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:50px;font-size:.8rem;font-weight:600;border:1.5px solid rgba(255,255,255,.3);color:#fff;transition:.15s;white-space:nowrap}
-.btn-back:hover{background:rgba(255,255,255,.1)}
-
-/* ══ TOPBAR NAV ══════════════════════════════════════════════════════ */
-.topbar-nav-mobile{display:flex;align-items:center;gap:1px}
-.btn-back{display:none}
-.tbn-icon{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:2px;padding:5px 7px;border-radius:9px;min-width:34px;
-  text-decoration:none;background:transparent;color:rgba(255,255,255,.55);
-  transition:all .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
-  border:none;cursor:pointer;font-family:inherit;
-}
-.tbn-icon svg{
-  width:18px;height:18px;stroke:currentColor;fill:none;
-  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block;flex-shrink:0;
-}
-.tbn-label{
-  display:none;font-size:.57rem;font-weight:600;
-  letter-spacing:.02em;line-height:1;white-space:nowrap;
-}
-.tbn-icon.tbn-active{color:#C9A462;background:rgba(201,164,98,.22);border-radius:10px;outline:1.5px solid rgba(201,164,98,.35)}
-.tbn-icon.tbn-active svg{stroke-width:2.5}
-.tbn-icon:not(.tbn-active):hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.09)}
-.tbn-icon:active{opacity:.6;transform:scale(.88)}
-.tbn-icon.tbn-logout:hover{color:#E85D5D;background:rgba(232,93,93,.12)}
-.tbn-sep{display:none}
-@media(min-width:641px){
-  .tbn-sep{display:block;width:1px;height:20px;background:rgba(255,255,255,.2);align-self:center;flex-shrink:0;margin:0 4px}
-}
-@media(max-width:640px){
-  .tbn-icon{padding:5px 5px;min-width:40px}
-  .tbn-icon svg{width:17px;height:17px}
-  .tbn-label{display:block;font-size:.46rem;letter-spacing:.01em}
-  .topbar-nav-mobile{gap:0}
-}
-@media(max-width:380px){
-  .tbn-icon{min-width:34px;padding:5px 3px}
-  .tbn-icon svg{width:16px;height:16px}
-  .tbn-label{font-size:.42rem}
-}
-@media(min-width:641px){
-  .tbn-label{display:block}
-  .tbn-icon{padding:5px 9px;gap:2px}
-  .tbn-icon svg{width:15px;height:15px}
-}
-@media(min-width:1025px){
-  .topbar{background:var(--charcoal)}
-  .tbn-icon{padding:6px 11px}
-  .tbn-icon svg{width:16px;height:16px}
-  .topbar-nav-mobile{gap:2px}
-}
-@media(max-width:1024px){
-  .topbar{padding:0 12px;background:var(--charcoal)}
-  .main{padding:16px 16px 48px}
-  .scard-row{padding:14px 16px}
-}
-@media(max-width:640px){
-  .user-name-lbl{display:none}
-  .user-avatar{width:24px;height:24px;font-size:.68rem}
-  .modal{border-radius:20px 20px 0 0;max-width:100%;position:fixed;bottom:0;left:0;right:0}
-  .overlay{align-items:flex-end;padding:0}
-  .btn-row{gap:6px}
-}
+@media(max-width:1024px){.topbar{padding:0 12px}.main{padding:16px 16px 48px}.scard-row{padding:14px 16px}}
+@media(max-width:640px){.user-name-lbl{display:none}.modal{border-radius:20px 20px 0 0;max-width:100%;position:fixed;bottom:0;left:0;right:0}.overlay{align-items:flex-end;padding:0}.btn-row{gap:6px}}
+@media(min-width:1025px){.topbar{background:var(--charcoal)}}
 
 /* ── MAIN ── */
 .main{flex:1;max-width:680px;width:100%;margin:0 auto;padding:24px 16px 56px}

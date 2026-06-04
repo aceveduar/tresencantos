@@ -7,6 +7,7 @@
 <title>Caja — Tres Encantos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -871,63 +872,19 @@ button,a{touch-action:manipulation}
   }
 }
 
-/* Pantallas muy pequeñas */
-@media(max-width:640px){
-  .tbn-icon{padding:5px 5px;min-width:40px}
-  .tbn-icon svg{width:17px;height:17px}
-  .tbn-label{display:block;font-size:.46rem;letter-spacing:.01em}
-  .topbar-nav-mobile{gap:0}
-}
 @media(max-width:380px){
   .pos-grid{grid-template-columns:1fr 1fr;gap:6px;padding:6px}
   .cat-chip{padding:5px 9px;font-size:.68rem}
   .cash-quick button{font-size:.72rem;padding:6px 1px}
-  .tbn-icon{min-width:34px;padding:5px 3px}
-  .tbn-icon svg{width:16px;height:16px}
-  .tbn-label{font-size:.42rem}
 }
-
-/* ══ TOPBAR NAV ══════════════════════════════════════════════════════ */
-.topbar-nav-mobile{display:flex;align-items:center;gap:1px}
-.tbn-icon{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:2px;padding:5px 7px;border-radius:9px;min-width:34px;
-  text-decoration:none;background:transparent;color:rgba(255,255,255,.55);
-  transition:all .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
-  border:none;cursor:pointer;font-family:inherit;
-}
-.tbn-icon svg{
-  width:18px;height:18px;stroke:currentColor;fill:none;
-  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block;flex-shrink:0;
-}
-.tbn-label{
-  display:none;font-size:.57rem;font-weight:600;
-  letter-spacing:.02em;line-height:1;white-space:nowrap;
-}
-.tbn-icon.tbn-active{color:#C9A462;background:rgba(201,164,98,.22);border-radius:10px;outline:1.5px solid rgba(201,164,98,.35)}
-.tbn-icon.tbn-active svg{stroke-width:2.5}
-.tbn-icon:not(.tbn-active):hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.09)}
-.tbn-icon:active{opacity:.6;transform:scale(.88)}
-.tbn-icon.tbn-logout:hover{color:#E85D5D;background:rgba(232,93,93,.12)}
-.tbn-sep{display:none}
-/* Tablet (≥641px): etiquetas visibles — igual que el resto de módulos */
-@media(min-width:641px){
-  .tbn-label{display:block}
-  .tbn-icon{padding:5px 9px;gap:2px}
-  .tbn-icon svg{width:15px;height:15px}
-  .tbn-sep{display:block;width:1px;height:20px;background:rgba(255,255,255,.2);align-self:center;flex-shrink:0;margin:0 4px}
-  /* En tablet/desktop el carrito es el panel derecho — el botón en topbar es redundante */
-  #cart-topbar-btn{display:none}
-}
-/* Desktop (≥1025px): 3 zonas — [Caja] [nav centrado] [botones acción] */
+/* Tablet (≥641px): carrito en panel — botón topbar redundante */
+@media(min-width:641px){#cart-topbar-btn{display:none}}
+/* Desktop: nav centrada */
 @media(min-width:1025px){
   .topbar{background:var(--charcoal);justify-content:space-between}
   .topbar-left{flex:1;display:flex;align-items:center}
   .topbar-right{flex:1;justify-content:flex-end}
-  .topbar-nav-mobile{position:absolute;left:50%;transform:translateX(-50%);gap:2px}
-  .tbn-icon{padding:6px 11px}
-  .tbn-icon svg{width:16px;height:16px}
-  /* Botones de acción: solo ícono en desktop estándar para no chocar con nav centrada */
+  .topbar-nav-mobile{position:absolute;left:50%;transform:translateX(-50%)}
   #btn-corte-pos .btn-label,#btn-apt-pos .btn-label,#btn-history-pos .btn-label{display:none}
   #btn-corte-pos,#btn-apt-pos,#btn-history-pos{padding:6px 10px!important;gap:0!important;}
 }
