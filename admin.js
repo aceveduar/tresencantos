@@ -549,6 +549,14 @@ window.addEventListener('pageshow', () => {
   if (srp) srp.style.display = 'none';
 });
 
+// Advertir si navegan a otro módulo con cambios sin guardar
+window.addEventListener('beforeunload', e => {
+  if (_formIsDirty() || _capIsDirty()) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
   if (isAuthenticated()) {
     await showApp();
@@ -5789,10 +5797,25 @@ function openCaptureMode() {
   document.body.style.overflow = 'hidden';
 }
 
-function closeCaptureMode() {
+function _capIsDirty() {
+  const name  = document.getElementById('cap-name')?.value.trim();
+  const price = document.getElementById('cap-price')?.value.trim();
+  return !!(captureImageDataUrl || name || price);
+}
+
+function closeCaptureMode(force) {
+  if (!force && _capIsDirty()) {
+    if (!confirm('Tienes datos sin guardar en captura rápida. ¿Salir de todas formas?')) return;
+  }
   document.getElementById('cap-overlay').style.display = 'none';
   document.body.style.overflow = '';
-  if (captureCount > 0) renderTable();
+  if (captureCount > 0) {
+    // Cambiar a Recientes para ver los productos recién capturados
+    const sortSel = document.getElementById('sort-select');
+    if (sortSel) { sortSel.value = 'recent'; currentSort = 'recent'; }
+    renderTable();
+    renderStats();
+  }
   captureCount = 0;
 }
 
@@ -5982,6 +6005,7 @@ async function saveCaptureProduct() {
       throw new Error(msg);
     }
     products.unshift({ ...payload, originalPrice: null, badge: null, badgeType: null, barcode, cost: null, createdBy: payload.created_by });
+    _trackEdit(newId);
     logActivity('producto_creado', `Creó "${name}" — $${(price||0).toLocaleString('es-MX')}`, { id: newId, name, price });
     captureCount++;
     const counter = document.getElementById('cap-counter');
@@ -6028,7 +6052,9 @@ async function saveCaptureProduct() {
     });
   }
   document.addEventListener('DOMContentLoaded', () => {
-    swipeDown(document.querySelector('.cap-modal'), closeCaptureMode, document.getElementById('cap-overlay'));
+    swipeDown(document.querySelector('.cap-modal'),
+      () => { if (!_capIsDirty() || confirm('Tienes datos sin guardar. ¿Salir de todas formas?')) closeCaptureMode(true); },
+      document.getElementById('cap-overlay'));
   });
 })();
 
