@@ -6795,7 +6795,7 @@ function _renderQV(p) {
     ? `<button class="qv-btn qv-btn-flagdone" onclick="unflagProduct(${p.id})">✓ Revisado</button>`
     : `<button class="qv-btn qv-btn-flag"    onclick="_qvShowFlagForm(${p.id})">🚩 Revisar</button>`;
   const btnTop = can.editProduct
-    ? `<button class="qv-btn" onclick="moveToTop(${p.id})" style="border-color:#C9A462;color:#A67C3A">📌 Al inicio</button>`
+    ? `<button class="qv-btn qv-btn-dup" onclick="moveToTop(${p.id})">📌 Al inicio</button>`
     : '';
   document.getElementById('qv-actions').innerHTML = btnEdit + btnPub + btnTop + btnDup + btnFlag + btnDel;
 }
