@@ -106,7 +106,7 @@ let currentSort = 'recent';
 let _adminPage = 1;
 const ADMIN_PAGE_SIZE = 50;
 let _realtimeChannel = null;
-let _statFilter = null; // 'con-stock' | 'sin-stock' | 'sin-publicar' | 'sin-codigo' | 'ultima-pieza' | 'kits'
+let _statFilter = null; // 'con-stock' | 'sin-stock' | 'sin-publicar' | 'sin-codigo' | 'ultima-pieza' | 'kits' | 'borradores'
 
 /* Categorías — cargadas dinámicamente desde config.categories */
 let categories = []; // [{code, label, color}]
@@ -405,9 +405,11 @@ function getFilteredProducts() {
       (_statFilter === 'imagen-base64' && p.image?.startsWith('data:')) ||
       (_statFilter === 'kits'         && !!p.kitItems?.length) ||
       (_statFilter === 'vendidos'     && (_salesCountMap.get(p.id) || 0) > 0);
-    const isKit = !!p.kitItems?.length;
-    const matchKit = _statFilter === 'kits' ? isKit : !isKit;
-    return matchCat && matchQ && matchFlag && matchStat && matchKit && matchCreator;
+    const isKit      = !!p.kitItems?.length;
+    const isBorrador = !isKit && !p.isPublished && (!p.price || p.price === 0);
+    const matchKit      = _statFilter === 'kits'      ? isKit      : !isKit;
+    const matchBorrador = _statFilter === 'borradores' ? isBorrador : !isBorrador;
+    return matchCat && matchQ && matchFlag && matchStat && matchKit && matchBorrador && matchCreator;
   });
 
   switch (currentSort) {
@@ -894,13 +896,14 @@ async function loadProductsFromSupabase() {
 
 /* ── STATS ── */
 function renderStats() {
-  const total       = products.filter(p => !p.kitItems?.length).length;
-  const conStock    = products.filter(p => p.stock > 0 && !p.outOfStock).length;
-  const sinStock    = products.filter(p => p.stock === 0 || p.outOfStock).length;
+  const nBorradores = products.filter(p => !p.kitItems?.length && !p.isPublished && (!p.price || p.price === 0)).length;
+  const total       = products.filter(p => !p.kitItems?.length).length - nBorradores;
+  const conStock    = products.filter(p => p.stock > 0 && !p.outOfStock && !(!p.kitItems?.length && !p.isPublished && (!p.price || p.price === 0))).length;
+  const sinStock    = products.filter(p => (p.stock === 0 || p.outOfStock) && !(!p.kitItems?.length && !p.isPublished && (!p.price || p.price === 0))).length;
   const ultimaPieza = products.filter(p => p.stock === 1 && !p.outOfStock).length;
-  const sinPublicar = products.filter(p => p.isPublished === false).length;
+  const sinPublicar = products.filter(p => p.isPublished === false && !(!p.price || p.price === 0)).length;
   const nKits       = products.filter(p => !!p.kitItems?.length).length;
-  const sinCodigo   = products.filter(p => !p.barcode).length;
+  const sinCodigo   = products.filter(p => !p.barcode && !(!p.kitItems?.length && !p.isPublished && (!p.price || p.price === 0))).length;
   const sinCateg    = products.filter(p => p.category === 'por_revisar').length;
   const nFlag       = _flagged.length;
   const anyFilter   = _statFilter || _showOnlyFlagged;
@@ -929,6 +932,7 @@ function renderStats() {
        <span class="sc-lbl">Todos</span>
      </button>` +
     chip('con-stock',   '✅', conStock,    'Con stock',    '#059669') +
+    (nBorradores > 0 ? chip('borradores', '📝', nBorradores, 'Borradores', '#6B7280', '#fff') : '') +
     (nKits > 0 ? chip('kits', '🎁', nKits, 'Kits', '#C9A462', '#fff') : '') +
     (_salesCountMap.size > 0 ? chip('vendidos', '🔥', _salesCountMap.size, 'Vendidos', '#B45309', '#fff') : '') +
     (sinStock > 0 ? chip('sin-stock', '🚫', sinStock, 'Sin stock', '#dc2626') : '') +
