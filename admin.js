@@ -2952,7 +2952,11 @@ function formatDescription(str) {
   const lines = str.split('\n').map(l => l.replace(/ +/g, ' ').trim());
   let s = lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
   if (!s) return s;
+  // Capitalizar primera letra
   s = s.charAt(0).toUpperCase() + s.slice(1);
+  // Capitalizar letra tras punto, !, ? o … seguido de espacio
+  s = s.replace(/([.!?…][ \t]+)([a-záéíóúàèìòùäëïöüñ])/g,
+    (_, punct, letter) => punct + letter.toUpperCase());
   if (!/[.!?…]$/.test(s)) s += '.';
   return s;
 }
@@ -5217,7 +5221,10 @@ function dictate(fieldId) {
     } else {
       // Grabación terminada — limpiar estado visual
       const sep   = startValue && committedText ? ' ' : '';
-      field.value = (startValue + sep + committedText).trim();
+      let finalVal = (startValue + sep + committedText).trim();
+      // Aplicar formato de oraciones solo en el campo descripción
+      if (field.id === 'f-description') finalVal = formatDescription(finalVal);
+      field.value = finalVal;
       field.dispatchEvent(new Event('input'));
       if (!btn.dataset.iconOnly) btn.textContent = origLabel;
       btn.classList.remove('recording');
