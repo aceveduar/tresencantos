@@ -3140,6 +3140,13 @@ async function saveProduct() {
     images: _additionalImagesEdit.length ? _additionalImagesEdit : null
   };
 
+  // Auto-sincronizar out_of_stock con stock — el checkbox oculto puede quedar
+  // desincronizado si el usuario sólo edita el campo stock sin tocar ese campo
+  if (!data.kitItems) {
+    if (data.stock > 0) data.outOfStock = false;
+    else data.outOfStock = true;
+  }
+
   const dbPayload = {
     name: data.name,
     category: data.category,
