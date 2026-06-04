@@ -962,7 +962,7 @@ function renderStats() {
     const alertTxt  = document.getElementById('no-price-alert-text');
     if (alertEl && alertTxt) {
       if (sinPrecio.length > 0) {
-        alertTxt.textContent = `${sinPrecio.length} producto${sinPrecio.length > 1 ? 's' : ''} sin precio — pendiente de revisión antes de publicar`;
+        alertTxt.textContent = `${sinPrecio.length} producto${sinPrecio.length > 1 ? 's' : ''} sin precio — pendiente de revisión`;
         const dismissed = sessionStorage.getItem('te_no_price_dismissed') === 'true';
         alertEl.style.display = dismissed ? 'none' : 'flex';
       } else {
