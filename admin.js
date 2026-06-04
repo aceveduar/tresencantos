@@ -547,7 +547,7 @@ function setBtn(el, loading, text) {
 /* ── INIT ── */
 window.addEventListener('pageshow', () => {
   const srp = document.getElementById('scan-result-panel');
-  if (srp) srp.style.display = 'none';
+  document.getElementById('srp-overlay')?.classList.remove('open');
 });
 
 // Advertir si navegan a otro módulo con cambios sin guardar
@@ -1600,11 +1600,11 @@ function renderTable() {
       if (tbody) tbody.innerHTML = `<tr><td colspan="5">${emptyHTML}</td></tr>`;
     }
     updateBulkBar();
-    if (document.getElementById('scan-result-panel')?.style.display !== 'block') _updateActiveFiltersBar();
+    if (!document.getElementById('srp-overlay')?.classList.contains('open')) _updateActiveFiltersBar();
     return;
   }
 
-  if (document.getElementById('scan-result-panel')?.style.display !== 'block') _updateActiveFiltersBar();
+  if (!document.getElementById('srp-overlay')?.classList.contains('open')) _updateActiveFiltersBar();
 
   const visible  = filtered.slice(0, _adminPage * ADMIN_PAGE_SIZE);
   const hasMore  = visible.length < filtered.length;
@@ -4806,30 +4806,23 @@ function showScanResult(id) {
   const btnDel  = can.deleteProduct  ? `<button class="qv-btn qv-btn-del" onclick="clearScanResult();askDelete(${p.id})">✕ Eliminar</button>` : '';
   document.getElementById('srp-actions').innerHTML = btnEdit + btnTop + btnDup + btnPub + btnDel;
 
-  // Mostrar panel, ocultar lista y FABs
+  // Mostrar como bottom sheet overlay
   const srpPanel = document.getElementById('scan-result-panel');
-  srpPanel.style.display = 'block';
   srpPanel.dataset.srpId = p.id;
-  document.getElementById('products-view-wrap').style.display = 'none';
-  const bulkBar = document.getElementById('bulk-bar');
-  if (bulkBar) bulkBar.style.display = 'none';
-  const filterBar = document.getElementById('filter-active-bar');
-  if (filterBar) filterBar.classList.remove('visible');
-  document.querySelector('.fab-add')?.style.setProperty('display','none');
-  document.getElementById('fab-kit')?.style.setProperty('display','none');
+  const overlay = document.getElementById('srp-overlay');
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
   document.getElementById('scroll-top-btn')?.classList.remove('show');
 }
 
 function clearScanResult() {
-  document.getElementById('scan-result-panel').style.display = 'none';
-  document.getElementById('products-view-wrap').style.display = '';
-  document.querySelector('.fab-add')?.style.removeProperty('display');
-  document.getElementById('fab-kit')?.style.removeProperty('display');
+  document.getElementById('srp-overlay').classList.remove('open');
+  document.body.style.overflow = '';
   _updateActiveFiltersBar();
 }
 
 function _srpRefresh(id) {
-  if (document.getElementById('scan-result-panel').style.display !== 'none') showScanResult(id);
+  if (document.getElementById('srp-overlay')?.classList.contains('open')) showScanResult(id);
 }
 
 let _srpPendingStock = null;
