@@ -6333,6 +6333,11 @@ async function _qvEditDesc(e, id) {
   e.stopPropagation();
   const p = products.find(x => x.id === id);
   if (!p) return;
+  // Expandir el contenedor para que el botón Guardar quede visible
+  const descContainer = document.getElementById('qv-desc');
+  if (descContainer) descContainer.classList.add('expanded');
+  const descToggleBtn = document.getElementById('qv-desc-toggle');
+  if (descToggleBtn) descToggleBtn.style.display = 'none';
   const el = e.currentTarget;
   const wrap = document.createElement('div');
   const ta = document.createElement('textarea');
