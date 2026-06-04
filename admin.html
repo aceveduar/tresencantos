@@ -1638,15 +1638,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 <!-- APP SCREEN -->
 <div id="app-screen">
   <div class="topbar">
-    <div class="topbar-left">
-      <div class="topbar-title-group">
-        <h2><span class="th-long">Inventario</span><span class="th-short" style="display:none">Inventario</span></h2>
-        <div class="user-display" id="user-display">
-          <span class="user-avatar" id="user-avatar">?</span>
-          <span class="user-name" id="user-name"></span>
-        </div>
-      </div>
-    </div>
+    <div class="topbar-left"></div>
     <div class="topbar-right">
       <button id="dup-badge-btn" onclick="openDupReview()" title="Revisar posibles duplicados"><span id="dup-badge-count">0</span><span class="dup-badge-label" id="dup-badge-label"> duplicados</span></button>
       <a id="btn-tracker" href="stats.html#uso" class="btn btn-outline btn-sm btn-stats-admin" title="Ver uso de funciones" style="display:none">📈</a>
@@ -1685,6 +1677,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         </a>
         
       </nav>
+      <span class="tbn-sep"></span>
+      <span class="user-avatar" id="user-avatar" style="cursor:pointer" title="Mi cuenta">?</span>
     </div>
   </div>
 
