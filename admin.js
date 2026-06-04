@@ -1246,32 +1246,34 @@ async function editStockInline(e, id) {
   const chip   = e.currentTarget || e.target.closest('.stock-chip');
   const mobile = isMobile();
 
-  // type="text" + inputMode="numeric" es más fiable que type="number" en Android
+  // Stepper táctil — reemplaza el chip con [−] N [+] + botón Guardar
   const input = document.createElement('input');
-  input.type       = 'text';
-  input.inputMode  = 'numeric';
-  input.pattern    = '[0-9]*';
-  input.autocomplete = 'off';
-  input.value = p.stock;
-  input.style.cssText = 'width:52px;padding:3px 7px;border:2px solid var(--gold);border-radius:6px;font-size:16px;outline:none;font-family:inherit;font-weight:600;text-align:center';
+  input.type = 'text'; input.inputMode = 'numeric'; input.pattern = '[0-9]*';
+  input.autocomplete = 'off'; input.value = p.stock;
+  input.style.cssText = 'width:52px;padding:4px 6px;border:2px solid var(--gold);border-radius:8px;font-size:1.1rem;font-weight:700;text-align:center;outline:none;font-family:inherit;color:var(--charcoal)';
 
-  // En mobile: envolver input + botón ✓ explícito (evita depender de blur en Android)
-  let container;
-  if (mobile) {
-    container = document.createElement('span');
-    container.style.cssText = 'display:inline-flex;align-items:center;gap:4px;vertical-align:middle';
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = '✓';
-    btn.style.cssText = 'background:var(--gold);border:none;color:#fff;border-radius:6px;padding:4px 7px;font-size:.82rem;cursor:pointer;font-family:inherit;line-height:1;touch-action:manipulation';
-    btn.ontouchend = e2 => { e2.preventDefault(); save(); };
-    btn.onclick = () => save();
-    container.appendChild(input);
-    container.appendChild(btn);
-    chip.replaceWith(container);
-  } else {
-    chip.replaceWith(input);
-  }
+  const btnMinus = document.createElement('button');
+  btnMinus.type = 'button'; btnMinus.textContent = '−';
+  btnMinus.style.cssText = 'width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:#fff;font-size:1.2rem;font-weight:700;cursor:pointer;touch-action:manipulation;font-family:inherit;display:flex;align-items:center;justify-content:center;flex-shrink:0';
+  btnMinus.ontouchend = e2 => { e2.preventDefault(); input.value = Math.max(0, parseInt(input.value)||0) - 1; };
+  btnMinus.onclick    = () => { input.value = Math.max(0, parseInt(input.value)||0) - 1; };
+
+  const btnPlus = document.createElement('button');
+  btnPlus.type = 'button'; btnPlus.textContent = '+';
+  btnPlus.style.cssText = btnMinus.style.cssText;
+  btnPlus.ontouchend = e2 => { e2.preventDefault(); input.value = (parseInt(input.value)||0) + 1; };
+  btnPlus.onclick    = () => { input.value = (parseInt(input.value)||0) + 1; };
+
+  const btnSave = document.createElement('button');
+  btnSave.type = 'button'; btnSave.textContent = '✓ Guardar';
+  btnSave.style.cssText = 'margin-left:auto;background:var(--gold);border:none;color:#fff;border-radius:20px;padding:8px 16px;font-size:.82rem;font-weight:700;cursor:pointer;touch-action:manipulation;font-family:inherit;white-space:nowrap';
+  btnSave.ontouchend = e2 => { e2.preventDefault(); save(); };
+  btnSave.onclick    = () => save();
+
+  const container = document.createElement('span');
+  container.style.cssText = 'display:flex;align-items:center;gap:6px;width:100%;padding:2px 0';
+  container.append(btnMinus, input, btnPlus, btnSave);
+  chip.replaceWith(container);
 
   let saved = false;
   const save = async () => {
@@ -6339,8 +6341,8 @@ async function _qvEditDesc(e, id) {
   ta.placeholder = 'Descripción del producto…';
   ta.style.cssText = 'width:100%;padding:6px 8px;border:2px solid var(--gold);border-radius:6px;font-size:.85rem;font-family:inherit;outline:none;color:var(--charcoal);resize:vertical;box-sizing:border-box;display:block';
   const btn = document.createElement('button');
-  btn.textContent = '✓ Guardar';
-  btn.style.cssText = 'margin-top:6px;padding:5px 16px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;display:block';
+  btn.textContent = '✓ Guardar descripción';
+  btn.style.cssText = 'margin-top:8px;padding:11px;background:var(--gold);color:#fff;border:none;border-radius:10px;font-size:.84rem;font-weight:700;cursor:pointer;font-family:inherit;display:block;width:100%;touch-action:manipulation';
   wrap.appendChild(ta);
   wrap.appendChild(btn);
   el.replaceWith(wrap);
