@@ -1197,7 +1197,6 @@ function adminCard(p, editable = false) {
       <div style="display:flex;align-items:center;gap:6px">
         ${stockChip(p, editable)}
         ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip" title="${_apartadosMap[p.id] || ''} unidad(es) en apartado">📌 Apartado</span>` : ''}
-        ${(_salesCountMap.get(p.id) || 0) > 0 ? `<span class="apt-chip" style="background:#FFF7ED;color:#B45309;border-color:#FED7AA" title="${_salesCountMap.get(p.id)} vendidos">🔥 ${_salesCountMap.get(p.id)}</span>` : ''}
         <button class="ac-pub-dot" onclick="togglePublished(${p.id})"
                 ontouchstart="event.stopPropagation()"
                 title="${pubTitle}">
@@ -1542,7 +1541,6 @@ function mobileCard(p) {
           <div class="mpc-price-row">
             ${priceHTML}${stockInfo}
             ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip">📌 Apartado</span>` : ''}
-            ${(_salesCountMap.get(p.id) || 0) > 0 ? `<span class="apt-chip" style="background:#FFF7ED;color:#B45309;border-color:#FED7AA" title="${_salesCountMap.get(p.id)} vendidos">🔥 ${_salesCountMap.get(p.id)}</span>` : ''}
             <button class="ac-pub-dot"
                     onclick="togglePublished(${p.id})"
                     ontouchstart="event.stopPropagation()"
