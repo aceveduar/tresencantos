@@ -5843,6 +5843,7 @@ function resetCaptureForm(keepCount) {
   const stockEl = document.getElementById('cap-stock');
   if (stockEl) stockEl.value = '1';
   const capBarcode = document.getElementById('cap-barcode'); if (capBarcode) capBarcode.value = '';
+  const capCat = document.getElementById('cap-category'); if (capCat) capCat.value = 'por_revisar';
   const saveBtn = document.getElementById('cap-save-btn');
   if (saveBtn) saveBtn.textContent = 'Guardar y siguiente →';
   updateCapSaveBtn();
@@ -5986,11 +5987,13 @@ async function saveCaptureProduct() {
     const maxResult = await supabaseApi('products?select=id&order=id.desc&limit=1');
     const maxId = (maxResult.ok && maxResult.data?.length) ? maxResult.data[0].id : 0;
     const newId = maxId + 1;
+    const capCatCode  = document.getElementById('cap-category')?.value || 'por_revisar';
+    const capCatMatch = categories.find(c => c.code === capCatCode);
     const payload = {
       id: newId, name, price,
       description: '',
-      category: 'por_revisar',
-      category_label: 'Por revisar',
+      category: capCatMatch ? capCatMatch.code : 'por_revisar',
+      category_label: capCatMatch ? capCatMatch.label : 'Por revisar',
       image: captureImageDataUrl || '',
       is_published: false, out_of_stock: false,
       stock, featured: false, position: newId,
