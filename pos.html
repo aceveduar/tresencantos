@@ -24,7 +24,7 @@ button,a{touch-action:manipulation}
 @media(max-width:768px){
   input,select{font-size:16px!important;-webkit-appearance:none}
   /* Safe area topbar */
-  .topbar{padding-top:env(safe-area-inset-top);height:calc(54px + env(safe-area-inset-top))}
+
   /* Safe area inferior (home indicator iPhone X+) */
   .pos-checkout{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
   /* Targets táctiles */
@@ -33,7 +33,7 @@ button,a{touch-action:manipulation}
 }
 
 /* TOPBAR */
-.topbar{background:var(--charcoal);color:#fff;padding:0 16px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;position:relative}
+.topbar{position:relative}
 .topbar-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
 .topbar-left img{height:30px;border-radius:5px}
 .topbar-title{font-family:'Playfair Display',serif;font-size:1rem;color:#fff;white-space:nowrap;padding-right:8px;border-right:1px solid rgba(255,255,255,.18);margin-right:2px}
@@ -936,21 +936,16 @@ button,a{touch-action:manipulation}
         <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         <span class="tbn-label">Reportes</span>
       </a>
-      <a href="activity.html" class="tbn-icon" title="Actividad">
-        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        <span class="tbn-label">Actividad</span>
-      </a>
       
+      
+      <span class="tbn-sep"></span>
       <a href="index.html" class="tbn-icon" title="Tienda">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
         <span class="tbn-label">Tienda</span>
       </a>
     </nav>
-    <span class="tbn-sep topbar-sep-user"></span>
-    <div class="user-display" id="user-display">
-      <span class="user-avatar" id="user-avatar">?</span>
-      <span class="user-name-label" id="user-name-label"></span>
-    </div>
+    <span class="tbn-sep"></span>
+    <span class="user-avatar" id="user-avatar" style="cursor:pointer" title="Mi cuenta">?</span>
     
   </div>
 </div>
