@@ -547,7 +547,7 @@ function setBtn(el, loading, text) {
 /* ── INIT ── */
 window.addEventListener('pageshow', () => {
   const srp = document.getElementById('scan-result-panel');
-  document.getElementById('srp-overlay')?.classList.remove('open');
+  const _srpOvl = document.getElementById('srp-overlay'); if (_srpOvl) _srpOvl.style.display = 'none';
 });
 
 // Advertir si navegan a otro módulo con cambios sin guardar
@@ -1600,11 +1600,11 @@ function renderTable() {
       if (tbody) tbody.innerHTML = `<tr><td colspan="5">${emptyHTML}</td></tr>`;
     }
     updateBulkBar();
-    if (!document.getElementById('srp-overlay')?.classList.contains('open')) _updateActiveFiltersBar();
+    if (document.getElementById('srp-overlay')?.style.display !== 'flex') _updateActiveFiltersBar();
     return;
   }
 
-  if (!document.getElementById('srp-overlay')?.classList.contains('open')) _updateActiveFiltersBar();
+  if (document.getElementById('srp-overlay')?.style.display !== 'flex') _updateActiveFiltersBar();
 
   const visible  = filtered.slice(0, _adminPage * ADMIN_PAGE_SIZE);
   const hasMore  = visible.length < filtered.length;
@@ -4810,19 +4810,19 @@ function showScanResult(id) {
   const srpPanel = document.getElementById('scan-result-panel');
   srpPanel.dataset.srpId = p.id;
   const overlay = document.getElementById('srp-overlay');
-  overlay.classList.add('open');
+  overlay.style.display = 'flex';
   document.body.style.overflow = 'hidden';
   document.getElementById('scroll-top-btn')?.classList.remove('show');
 }
 
 function clearScanResult() {
-  document.getElementById('srp-overlay').classList.remove('open');
+  document.getElementById('srp-overlay').style.display = 'none';
   document.body.style.overflow = '';
   _updateActiveFiltersBar();
 }
 
 function _srpRefresh(id) {
-  if (document.getElementById('srp-overlay')?.classList.contains('open')) showScanResult(id);
+  if (document.getElementById('srp-overlay')?.style.display === 'flex') showScanResult(id);
 }
 
 let _srpPendingStock = null;
