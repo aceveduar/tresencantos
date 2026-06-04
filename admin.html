@@ -110,11 +110,24 @@ main{max-width:1080px;margin:0 auto;padding:28px 32px}
   font-weight:700;cursor:pointer;touch-action:manipulation;font-family:inherit}
 .srp-card{background:#fff;border-radius:16px;border:1px solid var(--border);
   box-shadow:var(--shadow-sm);overflow:hidden}
-.srp-header{display:flex;gap:14px;padding:16px;align-items:flex-start;
-  border-bottom:1px solid var(--border)}
-.srp-thumb{width:88px;height:88px;object-fit:contain;background:#FAF7F3;
-  border-radius:10px;flex-shrink:0;cursor:zoom-in}
-.srp-header-body{flex:1;min-width:0}
+/* Layout vertical: imagen arriba, info abajo */
+.srp-header{display:block;border-bottom:none}
+.srp-img-zone{position:relative;width:100%;aspect-ratio:4/3;background:#FAF7F3;
+  border-radius:16px 16px 0 0;overflow:hidden}
+.srp-thumb{width:100%;height:100%;object-fit:contain;display:block;cursor:zoom-in}
+/* Galería en SRP */
+.srp-gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
+  scroll-behavior:smooth;width:100%;height:100%;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none}
+.srp-gallery::-webkit-scrollbar{display:none}
+.srp-gallery-img{scroll-snap-align:start;flex-shrink:0;width:100%;height:100%;
+  object-fit:contain;cursor:zoom-in}
+.srp-gallery-dots{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+  display:flex;gap:5px;pointer-events:none}
+.srp-gd{width:7px;height:7px;border-radius:50%;background:rgba(201,164,98,.4);
+  cursor:pointer;transition:.15s;pointer-events:auto}
+.srp-gd.active{background:var(--gold);transform:scale(1.2)}
+.srp-header-body{padding:14px 16px 10px;border-bottom:1px solid var(--border)}
 .srp-cat-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
 .srp-cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .srp-cat-label{font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-dark)}
@@ -1954,7 +1967,9 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
       </div>
       <div class="srp-card" id="srp-card">
         <div class="srp-header">
-          <img class="srp-thumb" id="srp-img" src="" alt="" onclick="_srpImgClick(event)" ondblclick="_srpImgDblClick(event)" title="Clic: ver completa · Doble clic: cambiar imagen">
+          <div class="srp-img-zone" id="srp-img-zone">
+            <img class="srp-thumb" id="srp-img" src="" alt="" onclick="_srpImgClick(event)" ondblclick="_srpImgDblClick(event)" title="Clic: ver completa · Doble clic: cambiar imagen">
+          </div>
           <input type="file" id="srp-img-file" accept="image/*" style="display:none" onchange="_srpHandleImgUpload(this)">
           <div class="srp-header-body">
             <div class="srp-cat-row">

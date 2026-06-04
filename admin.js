@@ -4690,8 +4690,21 @@ function showScanResult(id) {
   const oos = p.kitItems?.length ? false : (p.outOfStock || p.stock === 0);
   const catColor = getCatColor(p.category);
 
-  document.getElementById('srp-img').src = p.image || fallback;
-  document.getElementById('srp-img').onerror = function(){ this.src = fallback; };
+  // Imagen / galería
+  const allImgs = [p.image || fallback, ...(p.images || [])].filter(Boolean);
+  const imgZone = document.getElementById('srp-img-zone');
+  const oosImgStyle = oos ? 'opacity:.5;filter:grayscale(.4)' : '';
+  if (allImgs.length > 1) {
+    imgZone.innerHTML =
+      `<div class="srp-gallery" id="srp-gallery" onscroll="_srpGalleryScroll(this)">
+        ${allImgs.map((src, i) => `<img class="srp-gallery-img" src="${src}" alt="${p.name} ${i+1}" onerror="this.onerror=null;this.src='${fallback}'" onclick="_srpImgClick(event)" style="${oosImgStyle}">`).join('')}
+      </div>
+      <div class="srp-gallery-dots" id="srp-gallery-dots">
+        ${allImgs.map((_,i) => `<span class="srp-gd${i===0?' active':''}" onclick="_srpGoTo(${i})"></span>`).join('')}
+      </div>`;
+  } else {
+    imgZone.innerHTML = `<img class="srp-thumb" id="srp-img" src="${allImgs[0]}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'" onclick="_srpImgClick(event)" ondblclick="_srpImgDblClick(event)" style="${oosImgStyle}" title="Clic: ver completa · Doble clic: cambiar imagen">`;
+  }
   document.getElementById('srp-cat-dot').style.background = catColor;
   document.getElementById('srp-cat-label').textContent = p.categoryLabel || '';
 
@@ -4761,10 +4774,11 @@ function showScanResult(id) {
 
   // Acciones
   const btnEdit = can.editProduct ? `<button class="qv-btn qv-btn-edit" onclick="clearScanResult();openForm(${p.id})">${ICON_EDIT} Más campos</button>` : '';
+  const btnTop  = can.editProduct ? `<button class="qv-btn" style="background:var(--gold-light);color:var(--gold-dark);border-color:rgba(201,164,98,.4)" onclick="clearScanResult();moveToTop(${p.id})">📌 Al inicio</button>` : '';
   const btnDup  = `<button class="qv-btn qv-btn-dup" onclick="clearScanResult();duplicateProduct(${p.id})">⧉ Duplicar</button>`;
   const btnPub  = can.publishProduct ? `<button class="qv-btn qv-btn-pub" onclick="_qvTogglePublished(${p.id})">${p.isPublished === false ? '🌐 Publicar' : '🙈 Ocultar'}</button>` : '';
   const btnDel  = can.deleteProduct  ? `<button class="qv-btn qv-btn-del" onclick="clearScanResult();askDelete(${p.id})">✕ Eliminar</button>` : '';
-  document.getElementById('srp-actions').innerHTML = btnEdit + btnDup + btnPub + btnDel;
+  document.getElementById('srp-actions').innerHTML = btnEdit + btnTop + btnDup + btnPub + btnDel;
 
   // Mostrar panel, ocultar lista y elementos irrelevantes
   const srpPanel = document.getElementById('scan-result-panel');
@@ -6452,6 +6466,15 @@ function _qvOpenZoom() {
 }
 
 let _srpClickTimer = null;
+function _srpGalleryScroll(gallery) {
+  const idx = Math.round(gallery.scrollLeft / gallery.clientWidth);
+  document.querySelectorAll('#srp-gallery-dots .srp-gd').forEach((d, i) => d.classList.toggle('active', i === idx));
+}
+function _srpGoTo(idx) {
+  const g = document.getElementById('srp-gallery');
+  if (g) g.scrollTo({ left: idx * g.clientWidth, behavior: 'smooth' });
+}
+
 function _srpImgClick(e) {
   clearTimeout(_srpClickTimer);
   _srpClickTimer = setTimeout(() => _srpOpenZoom(), 220);
