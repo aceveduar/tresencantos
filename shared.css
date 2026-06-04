@@ -35,6 +35,8 @@ a{text-decoration:none}
 
 /* ── Título de módulo — oculto cuando los íconos ya tienen label ───── */
 .topbar-title{display:none}
+.topbar-left h2{display:none}
+.topbar-title-group{display:none}
 
 /* ══ TOPBAR NAVEGACIÓN ═══════════════════════════════════════════════
    Íconos de módulo compartidos por todos los módulos admin.
