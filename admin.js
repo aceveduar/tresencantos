@@ -6338,112 +6338,98 @@ async function _qvEditName(e, id) {
   e.stopPropagation();
   const p = products.find(x => x.id === id);
   if (!p) return;
-  // Cerrar cualquier otro editor inline abierto
-  if (_qvDismissEditor) { _qvDismissEditor(); _qvDismissEditor = null; }
   const el = e.currentTarget;
-  const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex;align-items:flex-start;gap:6px';
-  // Textarea en lugar de input: muestra el nombre completo aunque sea largo
-  const input = document.createElement('textarea');
-  input.rows = 2;
-  input.value = p.name;
-  input.style.cssText = 'flex:1;min-width:0;padding:6px 8px;border:2px solid var(--gold);border-radius:8px;font-size:1.05rem;font-weight:700;font-family:inherit;outline:none;color:var(--charcoal);box-sizing:border-box;resize:none;line-height:1.3';
-  const btn = document.createElement('button');
-  btn.textContent = '✓';
-  btn.style.cssText = 'flex-shrink:0;width:34px;height:34px;border-radius:50%;background:var(--gold);color:#fff;border:none;cursor:pointer;font-size:1rem;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:2px';
-  wrap.appendChild(input);
-  wrap.appendChild(btn);
+
+  const wrap  = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-direction:column;gap:6px';
+
+  const ta = document.createElement('textarea');
+  ta.rows = 2; ta.value = p.name;
+  ta.style.cssText = 'width:100%;padding:8px 10px;border:2px solid var(--gold);border-radius:8px;font-size:1.05rem;font-weight:700;font-family:inherit;outline:none;color:var(--charcoal);box-sizing:border-box;resize:none;line-height:1.3';
+
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:6px';
+
+  const btnSave = document.createElement('button');
+  btnSave.type = 'button'; btnSave.textContent = '✓ Guardar';
+  btnSave.style.cssText = 'flex:1;padding:9px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;touch-action:manipulation;font-family:inherit';
+
+  const btnCancel = document.createElement('button');
+  btnCancel.type = 'button'; btnCancel.textContent = '✕';
+  btnCancel.style.cssText = 'padding:9px 14px;background:#fff;color:var(--muted);border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;touch-action:manipulation;font-family:inherit';
+
+  row.append(btnSave, btnCancel);
+  wrap.append(ta, row);
   el.replaceWith(wrap);
-  input.focus();
-  input.setSelectionRange(input.value.length, input.value.length);
+  ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+
   let saved = false;
-  const save = async () => {
+  const doSave = async () => {
     if (saved) return; saved = true;
-    const newName = input.value.trim();
+    const newName = ta.value.trim();
     if (!newName || newName === p.name) { _qvRefresh(id); renderTable(); return; }
-    const result = await supabaseApi(`products?id=eq.${id}`, {
-      method: 'PATCH', body: JSON.stringify({ name: newName })
-    });
+    const result = await supabaseApi(`products?id=eq.${id}`, { method:'PATCH', body:JSON.stringify({ name: newName }) });
     if (result.ok) { p.name = newName; toast('Nombre actualizado'); TE?.track('inline_name'); }
-    else toast('Error al actualizar nombre', 'error');
+    else { toast('Error', 'error'); saved = false; }
     _qvRefresh(id); renderTable();
   };
-  btn.addEventListener('mousedown', e => e.preventDefault());
-  btn.addEventListener('click', () => { saved = false; save(); });
-  input.addEventListener('keydown', ev => {
-    if (ev.key === 'Enter') save();
-    if (ev.key === 'Escape') { saved = true; _qvRefresh(id); renderTable(); }
-  });
-  // Registrar dismiss para que otro editor pueda cerrar este
-  _qvDismissEditor = () => { if (!saved) save(); };
-  setTimeout(() => {
-    const dismiss = ev => {
-      if (saved || wrap.contains(ev.target)) return;
-      document.removeEventListener('click', dismiss, true);
-      document.removeEventListener('touchend', dismiss, true);
-      _qvDismissEditor = null;
-      if (!saved) save();
-    };
-    document.addEventListener('click', dismiss, true);
-    document.addEventListener('touchend', dismiss, true);
-  }, 300);
+  const doCancel = () => { saved = true; _qvRefresh(id); renderTable(); };
+
+  btnSave.ontouchend   = e2 => { e2.preventDefault(); doSave(); };
+  btnSave.onclick      = doSave;
+  btnCancel.ontouchend = e2 => { e2.preventDefault(); doCancel(); };
+  btnCancel.onclick    = doCancel;
+  ta.addEventListener('keydown', ev => { if (ev.key === 'Escape') doCancel(); });
 }
 
 async function _qvEditDesc(e, id) {
   e.stopPropagation();
   const p = products.find(x => x.id === id);
   if (!p) return;
-  // Cerrar cualquier otro editor inline abierto
-  if (_qvDismissEditor) { _qvDismissEditor(); _qvDismissEditor = null; }
-  // Expandir el contenedor para que el botón Guardar quede visible
   const descContainer = document.getElementById('qv-desc');
   if (descContainer) descContainer.classList.add('expanded');
-  const descToggleBtn = document.getElementById('qv-desc-toggle');
-  if (descToggleBtn) descToggleBtn.style.display = 'none';
+  document.getElementById('qv-desc-toggle')?.style.setProperty('display','none');
   const el = e.currentTarget;
+
   const wrap = document.createElement('div');
   const ta = document.createElement('textarea');
-  ta.value = p.description || '';
-  ta.rows = 3;
+  ta.value = p.description || ''; ta.rows = 4;
   ta.placeholder = 'Descripción del producto…';
-  ta.style.cssText = 'width:100%;padding:6px 8px;border:2px solid var(--gold);border-radius:6px;font-size:.85rem;font-family:inherit;outline:none;color:var(--charcoal);resize:vertical;box-sizing:border-box;display:block';
-  const btn = document.createElement('button');
-  btn.textContent = '✓ Guardar descripción';
-  btn.style.cssText = 'margin-top:8px;padding:11px;background:var(--gold);color:#fff;border:none;border-radius:10px;font-size:.84rem;font-weight:700;cursor:pointer;font-family:inherit;display:block;width:100%;touch-action:manipulation';
-  wrap.appendChild(ta);
-  wrap.appendChild(btn);
+  ta.style.cssText = 'width:100%;padding:8px 10px;border:2px solid var(--gold);border-radius:8px;font-size:.85rem;font-family:inherit;outline:none;color:var(--charcoal);resize:vertical;box-sizing:border-box;display:block;line-height:1.6';
+
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:6px;margin-top:6px';
+
+  const btnSave = document.createElement('button');
+  btnSave.type = 'button'; btnSave.textContent = '✓ Guardar';
+  btnSave.style.cssText = 'flex:1;padding:10px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-size:.84rem;font-weight:700;cursor:pointer;touch-action:manipulation;font-family:inherit';
+
+  const btnCancel = document.createElement('button');
+  btnCancel.type = 'button'; btnCancel.textContent = '✕';
+  btnCancel.style.cssText = 'padding:10px 14px;background:#fff;color:var(--muted);border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;cursor:pointer;touch-action:manipulation;font-family:inherit';
+
+  row.append(btnSave, btnCancel);
+  wrap.append(ta, row);
   el.replaceWith(wrap);
-  ta.focus();
-  ta.addEventListener('paste', handleDescPaste);
+  ta.focus(); ta.addEventListener('paste', handleDescPaste);
+
   let saved = false;
-  const save = async () => {
+  const doSave = async () => {
     if (saved) return; saved = true;
     const newDesc = ta.value.trim();
     if (newDesc === (p.description || '').trim()) { _qvRefresh(id); return; }
-    const result = await supabaseApi(`products?id=eq.${id}`, {
-      method: 'PATCH', body: JSON.stringify({ description: newDesc || null })
-    });
+    const result = await supabaseApi(`products?id=eq.${id}`, { method:'PATCH', body:JSON.stringify({ description: newDesc || null }) });
     if (result.ok) { p.description = newDesc || null; toast('Descripción actualizada'); TE?.track('inline_desc'); }
-    else toast('Error al actualizar descripción', 'error');
+    else { toast('Error', 'error'); saved = false; }
     _qvRefresh(id);
   };
-  btn.addEventListener('mousedown', e => e.preventDefault());
-  btn.addEventListener('click', () => { saved = false; save(); });
-  ta.addEventListener('keydown', ev => {
-    if (ev.key === 'Escape') { saved = true; _qvRefresh(id); }
-  });
-  _qvDismissEditor = () => { if (!saved) save(); };
-  setTimeout(() => {
-    const dismiss = ev => {
-      if (saved || wrap.contains(ev.target)) return;
-      document.removeEventListener('click', dismiss, true);
-      document.removeEventListener('touchend', dismiss, true);
-      _qvDismissEditor = null;
-      if (!saved) save();
-    };
-    document.addEventListener('click', dismiss, true);
-    document.addEventListener('touchend', dismiss, true);
-  }, 300);
+  const doCancel = () => { saved = true; _qvRefresh(id); };
+
+  btnSave.ontouchend   = e2 => { e2.preventDefault(); doSave(); };
+  btnSave.onclick      = doSave;
+  btnCancel.ontouchend = e2 => { e2.preventDefault(); doCancel(); };
+  btnCancel.onclick    = doCancel;
+  ta.addEventListener('keydown', ev => { if (ev.key === 'Escape') doCancel(); });
 }
 
 let _qvSwipeX = null, _qvSwipeY = null, _qvSwipeDir = null;
