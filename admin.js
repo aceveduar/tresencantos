@@ -6234,6 +6234,7 @@ function _qvShowFlagForm(id) {
 
 /* ── QUICK VIEW ── */
 let _qvCurrentId = null;
+let _qvDismissEditor = null; // cierra el editor inline activo antes de abrir otro
 
 function openQV(id) {
   const p = products.find(x => x.id === id);
@@ -6309,20 +6310,24 @@ async function _qvEditName(e, id) {
   e.stopPropagation();
   const p = products.find(x => x.id === id);
   if (!p) return;
+  // Cerrar cualquier otro editor inline abierto
+  if (_qvDismissEditor) { _qvDismissEditor(); _qvDismissEditor = null; }
   const el = e.currentTarget;
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex;align-items:center;gap:6px';
-  const input = document.createElement('input');
-  input.type = 'text';
+  wrap.style.cssText = 'display:flex;align-items:flex-start;gap:6px';
+  // Textarea en lugar de input: muestra el nombre completo aunque sea largo
+  const input = document.createElement('textarea');
+  input.rows = 2;
   input.value = p.name;
-  input.style.cssText = 'flex:1;min-width:0;padding:4px 8px;border:2px solid var(--gold);border-radius:6px;font-size:1.1rem;font-weight:700;font-family:inherit;outline:none;color:var(--charcoal);box-sizing:border-box';
+  input.style.cssText = 'flex:1;min-width:0;padding:6px 8px;border:2px solid var(--gold);border-radius:8px;font-size:1.05rem;font-weight:700;font-family:inherit;outline:none;color:var(--charcoal);box-sizing:border-box;resize:none;line-height:1.3';
   const btn = document.createElement('button');
   btn.textContent = '✓';
-  btn.style.cssText = 'flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--gold);color:#fff;border:none;cursor:pointer;font-size:1rem;font-weight:700;display:flex;align-items:center;justify-content:center';
+  btn.style.cssText = 'flex-shrink:0;width:34px;height:34px;border-radius:50%;background:var(--gold);color:#fff;border:none;cursor:pointer;font-size:1rem;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:2px';
   wrap.appendChild(input);
   wrap.appendChild(btn);
   el.replaceWith(wrap);
-  input.focus(); input.select();
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
   let saved = false;
   const save = async () => {
     if (saved) return; saved = true;
@@ -6341,12 +6346,14 @@ async function _qvEditName(e, id) {
     if (ev.key === 'Enter') save();
     if (ev.key === 'Escape') { saved = true; _qvRefresh(id); renderTable(); }
   });
-  // Tocar fuera → guardar (save detecta si hubo cambios)
+  // Registrar dismiss para que otro editor pueda cerrar este
+  _qvDismissEditor = () => { if (!saved) save(); };
   setTimeout(() => {
     const dismiss = ev => {
       if (saved || wrap.contains(ev.target)) return;
       document.removeEventListener('click', dismiss, true);
       document.removeEventListener('touchend', dismiss, true);
+      _qvDismissEditor = null;
       if (!saved) save();
     };
     document.addEventListener('click', dismiss, true);
@@ -6358,6 +6365,8 @@ async function _qvEditDesc(e, id) {
   e.stopPropagation();
   const p = products.find(x => x.id === id);
   if (!p) return;
+  // Cerrar cualquier otro editor inline abierto
+  if (_qvDismissEditor) { _qvDismissEditor(); _qvDismissEditor = null; }
   // Expandir el contenedor para que el botón Guardar quede visible
   const descContainer = document.getElementById('qv-desc');
   if (descContainer) descContainer.classList.add('expanded');
@@ -6395,12 +6404,13 @@ async function _qvEditDesc(e, id) {
   ta.addEventListener('keydown', ev => {
     if (ev.key === 'Escape') { saved = true; _qvRefresh(id); }
   });
-  // Tocar fuera → guardar (save detecta si hubo cambios)
+  _qvDismissEditor = () => { if (!saved) save(); };
   setTimeout(() => {
     const dismiss = ev => {
       if (saved || wrap.contains(ev.target)) return;
       document.removeEventListener('click', dismiss, true);
       document.removeEventListener('touchend', dismiss, true);
+      _qvDismissEditor = null;
       if (!saved) save();
     };
     document.addEventListener('click', dismiss, true);
