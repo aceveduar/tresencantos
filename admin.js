@@ -905,16 +905,23 @@ async function loadProductsFromSupabase() {
 
 /* ── STATS ── */
 function renderStats() {
-  const nBorradores = products.filter(p => !p.kitItems?.length && !p.isPublished && (!p.price || p.price === 0)).length;
-  const total       = products.filter(p => !p.kitItems?.length).length - nBorradores;
-  const conStock    = products.filter(p => p.stock > 0 && !p.outOfStock && !(!p.kitItems?.length && !p.isPublished && (!p.price || p.price === 0))).length;
-  const sinStock    = products.filter(p => (p.stock === 0 || p.outOfStock) && !(!p.kitItems?.length && !p.isPublished && (!p.price || p.price === 0))).length;
-  const ultimaPieza = products.filter(p => p.stock === 1 && !p.outOfStock).length;
-  const sinPublicar = products.filter(p => p.isPublished === false && !(!p.price || p.price === 0)).length;
+  // Helper: define borrador igual que getFilteredProducts para que contador = lo que se ve al filtrar
+  const _ib = p => !p.kitItems?.length && !p.isPublished && (!p.price || p.price === 0);
+
+  const nBorradores = products.filter(_ib).length;
+  const visible     = p => !_ib(p) && !p.kitItems?.length; // no borrador, no kit
+  const total       = products.filter(visible).length;
+  const conStock    = products.filter(p => visible(p) && p.stock > 0 && !p.outOfStock).length;
+  const sinStock    = products.filter(p => visible(p) && (p.stock === 0 || p.outOfStock)).length;
+  const ultimaPieza = products.filter(p => visible(p) && p.stock === 1 && !p.outOfStock).length;
+  const sinPublicar = products.filter(p => visible(p) && p.isPublished === false).length;
   const nKits       = products.filter(p => !!p.kitItems?.length).length;
-  const sinCodigo   = products.filter(p => !p.barcode && !(!p.kitItems?.length && !p.isPublished && (!p.price || p.price === 0))).length;
-  const sinCateg    = products.filter(p => p.category === 'por_revisar').length;
-  const nFlag       = _flagged.length;
+  const sinCodigo   = products.filter(p => visible(p) && !p.barcode).length;
+  const sinCateg    = products.filter(p => visible(p) && p.category === 'por_revisar').length;
+  const nFlag = _flagged.filter(f => {
+    const p = products.find(x => x.id === f.id);
+    return p && !_ib(p);
+  }).length;
   const anyFilter   = _statFilter || _showOnlyFlagged;
 
   const chip = (key, icon, count, label, activeColor, activeTextColor='#fff') => {
@@ -952,12 +959,12 @@ function renderStats() {
     (nFlag        > 0 ? chip('revisar',     '🚩', nFlag,       'Por revisar',  '#dc2626') : '') +
     (() => {
       if (ROLE !== 'superadmin') return '';
-      const nBase64 = products.filter(p => p.image?.startsWith('data:')).length;
+      const nBase64 = products.filter(p => !_ib(p) && p.image?.startsWith('data:')).length;
       return nBase64 > 0 ? chip('imagen-base64', '🗄', nBase64, 'Imagen base64', '#7C3AED') : '';
     })() +
     (() => {
       if (!can.publishProduct) return '';
-      const sinPrecio = products.filter(p => !p.price || p.price === 0);
+      const sinPrecio = products.filter(p => !_ib(p) && (!p.price || p.price === 0));
       if (!sinPrecio.length) return '';
       const dismissed = sessionStorage.getItem('te_no_price_dismissed') === 'true';
       if (!dismissed) return '';
@@ -970,7 +977,7 @@ function renderStats() {
 
   // Alerta de productos sin precio — solo visible para superadmin
   if (can.publishProduct) {
-    const sinPrecio = products.filter(p => !p.price || p.price === 0);
+    const sinPrecio = products.filter(p => !_ib(p) && (!p.price || p.price === 0));
     const alertEl   = document.getElementById('no-price-alert');
     const alertTxt  = document.getElementById('no-price-alert-text');
     if (alertEl && alertTxt) {
