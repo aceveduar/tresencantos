@@ -431,6 +431,16 @@ function getFilteredProducts() {
     case 'price-desc': return [...filtered].sort((a, b) => b.price - a.price);
     case 'stock-asc':  return [...filtered].sort((a, b) => a.stock - b.stock);
     case 'stock-desc': return [...filtered].sort((a, b) => b.stock - a.stock);
+    case 'created-new': return [...filtered].sort((a, b) => {
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : a.id;
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : b.id;
+      return tb - ta;
+    });
+    case 'created-old': return [...filtered].sort((a, b) => {
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : a.id;
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : b.id;
+      return ta - tb;
+    });
     default:           return filtered; // position (orden del drag & drop)
   }
 }
