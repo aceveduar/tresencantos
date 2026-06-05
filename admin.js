@@ -3533,14 +3533,15 @@ function renderAdditionalImages() {
       : `<span style="width:22px;flex-shrink:0"></span>`;
     return `
 <div draggable="true" data-ai="${i}"
-  style="position:relative;flex-shrink:0;transition:opacity .15s,outline .15s;display:flex;flex-direction:column;align-items:center;gap:4px"
+  style="position:relative;flex-shrink:0;transition:opacity .15s,outline .15s;display:flex;flex-direction:column;align-items:center;gap:4px;touch-action:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none"
   ondragstart="_aiDragStart(event,${i})"
   ondragover="_aiDragOver(event,${i})"
   ondrop="_aiDrop(event,${i})"
-  ondragend="_aiDragEnd()">
+  ondragend="_aiDragEnd()"
+  ontouchstart="event.stopPropagation()">
   <div style="position:relative">
-    <img src="${url}" style="width:68px;height:68px;object-fit:contain;border-radius:8px;border:1px solid var(--border);background:#F7F2EB;display:block;pointer-events:none;cursor:grab" onerror="this.style.opacity='.3'">
-    <button type="button" onclick="removeAdditionalImage(${i})" ontouchend="event.preventDefault();removeAdditionalImage(${i})" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;cursor:pointer;font-size:.65rem;display:flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.25)">✕</button>
+    <img src="${url}" style="width:68px;height:68px;object-fit:contain;border-radius:8px;border:1px solid var(--border);background:#F7F2EB;display:block;pointer-events:none;cursor:grab;-webkit-touch-callout:none;-webkit-user-drag:none" onerror="this.style.opacity='.3'">
+    <button type="button" onclick="removeAdditionalImage(${i})" ontouchend="event.preventDefault();removeAdditionalImage(${i})" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;cursor:pointer;font-size:.65rem;display:flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.25);touch-action:manipulation">✕</button>
     ${badge}
   </div>
   <div style="display:flex;gap:3px">${btnLeft}${btnRight}</div>
@@ -3569,6 +3570,7 @@ function _aiDragStart(e, idx) {
 }
 function _aiDragOver(e, idx) {
   e.preventDefault();
+  if (_aiDragSrc === null) return;
   e.dataTransfer.dropEffect = 'move';
   document.querySelectorAll('[data-ai]').forEach(el => el.style.outline = '');
   if (idx !== _aiDragSrc) {
