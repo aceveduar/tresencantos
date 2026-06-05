@@ -6060,12 +6060,18 @@ async function saveCaptureProduct() {
     const newId = maxId + 1;
     const capCatCode  = document.getElementById('cap-category')?.value || 'por_revisar';
     const capCatMatch = categories.find(c => c.code === capCatCode);
+    // Subir imagen a Drive antes de guardar
+    let captureImgFinal = captureImageDataUrl || '';
+    if (captureImgFinal && driveEp && driveSecret) {
+      const driveUrl = await uploadToDrive(captureImgFinal);
+      if (driveUrl) captureImgFinal = driveUrl;
+    }
     const payload = {
       id: newId, name, price,
       description: '',
       category: capCatMatch ? capCatMatch.code : 'por_revisar',
       category_label: capCatMatch ? capCatMatch.label : 'Por revisar',
-      image: captureImageDataUrl || '',
+      image: captureImgFinal,
       is_published: false, out_of_stock: false,
       stock, featured: false, position: newId,
       barcode, created_by: getCurrentUserEmail()
@@ -6905,11 +6911,7 @@ function _renderQV(p) {
 
 async function _qvTogglePublished(id) {
   await togglePublished(id);
-  const p = products.find(x => x.id === id);
-  _srpRefresh(id);
-  if (p && _qvCurrentId === id && document.getElementById('qv-overlay').classList.contains('open')) {
-    _renderQV(p);
-  }
+  _qvRefresh(id);
 }
 
 function _qvToggleDesc() {
