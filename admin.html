@@ -872,6 +872,25 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   transition:.15s;white-space:nowrap;flex-shrink:0;
 }
 .dictate-btn:hover{border-color:var(--gold);color:var(--gold-dark);background:var(--gold-light)}
+/* ── Editor de descripción ──────────────────────────────── */
+.desc-editor-wrap{border:1.5px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .15s}
+.desc-editor-wrap:focus-within{border-color:var(--gold)}
+.desc-toolbar{display:flex;align-items:center;gap:2px;padding:5px 8px;background:#FAFAF8;border-bottom:1px solid var(--border)}
+.dtb-btn{display:flex;align-items:center;gap:4px;padding:5px 7px;border-radius:6px;border:none;background:transparent;color:var(--charcoal);cursor:pointer;font-family:inherit;font-size:.78rem;font-weight:600;transition:.12s;touch-action:manipulation;white-space:nowrap}
+.dtb-btn:hover{background:var(--border);color:var(--gold-dark)}
+.dtb-btn:active{opacity:.6}
+.dtb-btn b{font-size:.9rem;font-weight:900;letter-spacing:-.5px}
+.dtb-btn i{font-size:.9rem;font-style:italic;font-weight:700}
+.dtb-btn svg{flex-shrink:0}
+.dtb-label{font-size:.7rem;font-weight:600}
+.dtb-sep{width:1px;height:18px;background:var(--border);margin:0 3px;flex-shrink:0}
+.dtb-clear{color:var(--muted);margin-left:auto}
+.desc-editor-ta{width:100%;min-height:90px;padding:10px 12px;border:none;outline:none;font-family:inherit;font-size:.88rem;color:var(--charcoal);line-height:1.65;resize:vertical;background:#fff;box-sizing:border-box}
+/* Mobile: ocultar B, I, separador de formato */
+@media(max-width:640px){
+  .dtb-fmt{display:none}
+  .dtb-label{display:none}
+}
 .dictate-btn.recording{
   background:#FEE2E2;border-color:var(--red);color:var(--red);
   animation:pulse-rec 1.1s ease-in-out infinite;
@@ -2278,17 +2297,26 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
         </div>
       </div>
       <div class="field">
-        <div class="field-label-row">
-          <label>Descripción <span style="font-weight:400;color:var(--muted-light)">(opcional)</span></label>
-          <div style="display:flex;gap:5px">
-            <button type="button" class="dictate-btn" id="dictate-f-description" onclick="dictate('f-description')">🎤 Dictar</button>
-            <button type="button" class="dictate-btn" onclick="toggleBoldDesc()" title="Negrita (**texto**)" style="font-weight:800;font-size:.8rem;letter-spacing:-.5px">B</button>
-            <button type="button" class="dictate-btn" onclick="toggleItalicDesc()" title="Cursiva (*texto*)" style="font-style:italic;font-weight:600;font-size:.8rem">I</button>
-            <button type="button" class="dictate-btn" onclick="addBulletDesc()" title="Viñeta">•</button>
-            <button type="button" class="dictate-btn btn-clear-field" onclick="clearField('f-description')" title="Limpiar descripción" aria-label="Limpiar descripción">⌫</button>
+        <label>Descripción <span style="font-weight:400;color:var(--muted-light)">(opcional)</span></label>
+        <div class="desc-editor-wrap">
+          <div class="desc-toolbar">
+            <!-- Formato: solo desktop -->
+            <button type="button" class="dtb-btn dtb-fmt" onclick="toggleBoldDesc()" title="Negrita"><b>B</b></button>
+            <button type="button" class="dtb-btn dtb-fmt" onclick="toggleItalicDesc()" title="Cursiva"><i>I</i></button>
+            <span class="dtb-sep dtb-fmt"></span>
+            <button type="button" class="dtb-btn dtb-fmt" onclick="addBulletDesc()" title="Lista de viñetas">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1.5" fill="currentColor" stroke="none"/></svg>
+            </button>
+            <span class="dtb-sep"></span>
+            <!-- Utilidades: mobile + desktop -->
+            <button type="button" class="dtb-btn" id="dictate-f-description" onclick="dictate('f-description')" title="Dictar con micrófono">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+              <span class="dtb-label">Dictar</span>
+            </button>
+            <button type="button" class="dtb-btn dtb-clear" onclick="clearField('f-description')" title="Limpiar">⌫</button>
           </div>
+          <textarea id="f-description" class="desc-editor-ta" placeholder="Describe el producto: materiales, uso, características…" onblur="applyDescriptionFormat('f-description')" onpaste="handleDescPaste(event)"></textarea>
         </div>
-        <textarea id="f-description" placeholder="Describe el producto: materiales, uso, características…" onblur="applyDescriptionFormat('f-description')" onpaste="handleDescPaste(event)"></textarea>
       </div>
       <p class="form-section">🏷 Detalles</p>
       <div class="form-row">
