@@ -6335,13 +6335,23 @@ async function _qvEditName(e, id) {
     else toast('Error al actualizar nombre', 'error');
     _qvRefresh(id); renderTable();
   };
-  btn.addEventListener('mousedown', e => e.preventDefault()); // evita blur antes del click
+  btn.addEventListener('mousedown', e => e.preventDefault());
   btn.addEventListener('click', () => { saved = false; save(); });
-  input.addEventListener('blur', e => { if (e.relatedTarget !== btn) save(); });
   input.addEventListener('keydown', ev => {
     if (ev.key === 'Enter') save();
-    if (ev.key === 'Escape') { saved = true; _qvRefresh(id); }
+    if (ev.key === 'Escape') { saved = true; _qvRefresh(id); renderTable(); }
   });
+  // Tocar fuera → guardar (save detecta si hubo cambios)
+  setTimeout(() => {
+    const dismiss = ev => {
+      if (saved || wrap.contains(ev.target)) return;
+      document.removeEventListener('click', dismiss, true);
+      document.removeEventListener('touchend', dismiss, true);
+      if (!saved) save();
+    };
+    document.addEventListener('click', dismiss, true);
+    document.addEventListener('touchend', dismiss, true);
+  }, 300);
 }
 
 async function _qvEditDesc(e, id) {
@@ -6382,10 +6392,20 @@ async function _qvEditDesc(e, id) {
   };
   btn.addEventListener('mousedown', e => e.preventDefault());
   btn.addEventListener('click', () => { saved = false; save(); });
-  ta.addEventListener('blur', e => { if (e.relatedTarget !== btn) save(); });
   ta.addEventListener('keydown', ev => {
     if (ev.key === 'Escape') { saved = true; _qvRefresh(id); }
   });
+  // Tocar fuera → guardar (save detecta si hubo cambios)
+  setTimeout(() => {
+    const dismiss = ev => {
+      if (saved || wrap.contains(ev.target)) return;
+      document.removeEventListener('click', dismiss, true);
+      document.removeEventListener('touchend', dismiss, true);
+      if (!saved) save();
+    };
+    document.addEventListener('click', dismiss, true);
+    document.addEventListener('touchend', dismiss, true);
+  }, 300);
 }
 
 let _qvSwipeX = null, _qvSwipeY = null, _qvSwipeDir = null;
