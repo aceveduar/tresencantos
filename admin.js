@@ -102,7 +102,7 @@ function _doMultiDrop(targetId, insertBefore) {
   products.splice(0, products.length, ...rest);
   return true;
 }
-let currentSort = 'recent';
+let currentSort = localStorage.getItem('te_admin_sort') || 'recent';
 let _adminPage = 1;
 const ADMIN_PAGE_SIZE = 50;
 let _realtimeChannel = null;
@@ -844,6 +844,9 @@ async function showApp() {
   _syncFlagFilter();
   renderStats();
   _refreshCreatorFilter();
+  // Restaurar sort guardado
+  const sortSel = document.getElementById('sort-select');
+  if (sortSel) sortSel.value = currentSort;
   setAdminView(currentAdminView);
   initRealtime();
   if (location.hash === '#dup-review') {
@@ -3757,6 +3760,7 @@ async function bulkMoveToTop() {
 
 function _forcePositionSort() {
   currentSort = 'position';
+  localStorage.setItem('te_admin_sort', 'position');
   const sel = document.getElementById('sort-select');
   if (sel) sel.value = 'position';
 }

@@ -1975,7 +1975,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           <span id="cat-filter-btn-label">Categoría</span>
           <span id="cat-filter-btn-arrow">▾</span>
         </button>
-        <select class="filter-select" id="sort-select" onchange="currentSort=this.value;_adminPage=1;renderTable();TE?.track('filter_sort',{sort:this.value})">
+        <select class="filter-select" id="sort-select" onchange="currentSort=this.value;localStorage.setItem('te_admin_sort',this.value);_adminPage=1;renderTable();TE?.track('filter_sort',{sort:this.value})">
           <option value="position">Mi orden</option>
           <option value="recent" selected>Recientes</option>
           <option value="name-az">A → Z</option>
