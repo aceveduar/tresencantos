@@ -4310,7 +4310,8 @@ async function _launchScanner() {
   document.getElementById('scanner-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   if (isIOS) {
     if (_scanInst) { _scanInst.stop().catch(() => {}); _scanInst = null; }
