@@ -6297,12 +6297,15 @@ function qvNavigate(dir) {
 }
 
 function _qvRefresh(id) {
-  _srpRefresh(id);
-  if (_qvCurrentId !== id) return;
-  if (!document.getElementById('qv-overlay')?.classList.contains('open')) return;
+  const overlay = document.getElementById('qv-overlay');
+  if (!overlay) return;
+  const isOpen = overlay.classList.contains('open') || overlay.style.display === 'flex';
+  if (!isOpen) return;
   const p = products.find(x => x.id === id);
   if (p) _renderQV(p);
 }
+// Alias — antes era el SRP, ahora ambos usan el mismo QV. Sin llamada circular.
+function _srpRefresh(id) {}
 
 async function _qvEditPrice(e, id) {
   e.stopPropagation();
