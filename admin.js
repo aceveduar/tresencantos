@@ -3515,27 +3515,44 @@ function renderAdditionalImages() {
     strip.innerHTML = '<span style="font-size:.73rem;color:var(--muted-light);line-height:1.4;align-self:center;padding-left:2px">Sin imágenes adicionales</span>';
     return;
   }
+  const total = _additionalImagesEdit.length;
   strip.innerHTML = _additionalImagesEdit.map((url, i) => {
     const isDrive  = url.includes('drive.google.com');
     const isBase64 = url.startsWith('data:');
     const badge = isDrive
-      ? `<span title="Guardada en Drive" style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);background:#34a853;color:#fff;font-size:.5rem;font-weight:700;padding:1px 5px;border-radius:4px;white-space:nowrap;pointer-events:none">Drive</span>`
+      ? `<span title="Drive" style="position:absolute;bottom:22px;left:50%;transform:translateX(-50%);background:#34a853;color:#fff;font-size:.45rem;font-weight:700;padding:1px 4px;border-radius:3px;white-space:nowrap;pointer-events:none">Drive</span>`
       : isBase64
-      ? `<span title="Base64 — no subida a Drive" style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);background:#e67e22;color:#fff;font-size:.5rem;font-weight:700;padding:1px 5px;border-radius:4px;white-space:nowrap;pointer-events:none">Base64</span>`
+      ? `<span title="Base64" style="position:absolute;bottom:22px;left:50%;transform:translateX(-50%);background:#e67e22;color:#fff;font-size:.45rem;font-weight:700;padding:1px 4px;border-radius:3px;white-space:nowrap;pointer-events:none">Base64</span>`
       : '';
+    const btnStyle = 'width:22px;height:22px;border-radius:6px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center;color:var(--charcoal);flex-shrink:0;touch-action:manipulation';
+    const btnLeft  = i > 0
+      ? `<button type="button" onclick="event.stopPropagation();_aiMove(${i},-1)" ontouchend="event.preventDefault();event.stopPropagation();_aiMove(${i},-1)" style="${btnStyle}">‹</button>`
+      : `<span style="width:22px;flex-shrink:0"></span>`;
+    const btnRight = i < total - 1
+      ? `<button type="button" onclick="event.stopPropagation();_aiMove(${i},1)" ontouchend="event.preventDefault();event.stopPropagation();_aiMove(${i},1)" style="${btnStyle}">›</button>`
+      : `<span style="width:22px;flex-shrink:0"></span>`;
     return `
 <div draggable="true" data-ai="${i}"
-  style="position:relative;flex-shrink:0;margin-bottom:8px;cursor:grab;transition:opacity .15s,outline .15s"
+  style="position:relative;flex-shrink:0;transition:opacity .15s,outline .15s;display:flex;flex-direction:column;align-items:center;gap:4px"
   ondragstart="_aiDragStart(event,${i})"
   ondragover="_aiDragOver(event,${i})"
-  ondragleave="_aiDragLeave(event)"
   ondrop="_aiDrop(event,${i})"
   ondragend="_aiDragEnd()">
-  <img src="${url}" style="width:72px;height:72px;object-fit:contain;border-radius:8px;border:1px solid var(--border);background:#F7F2EB;display:block;pointer-events:none" onerror="this.style.opacity='.3'">
-  <button type="button" onclick="removeAdditionalImage(${i})" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;cursor:pointer;font-size:.65rem;display:flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.25)">✕</button>
-  ${badge}
+  <div style="position:relative">
+    <img src="${url}" style="width:68px;height:68px;object-fit:contain;border-radius:8px;border:1px solid var(--border);background:#F7F2EB;display:block;pointer-events:none;cursor:grab" onerror="this.style.opacity='.3'">
+    <button type="button" onclick="removeAdditionalImage(${i})" ontouchend="event.preventDefault();removeAdditionalImage(${i})" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;cursor:pointer;font-size:.65rem;display:flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.25)">✕</button>
+    ${badge}
+  </div>
+  <div style="display:flex;gap:3px">${btnLeft}${btnRight}</div>
 </div>`;
   }).join('');
+}
+
+function _aiMove(idx, dir) {
+  const target = idx + dir;
+  if (target < 0 || target >= _additionalImagesEdit.length) return;
+  [_additionalImagesEdit[idx], _additionalImagesEdit[target]] = [_additionalImagesEdit[target], _additionalImagesEdit[idx]];
+  renderAdditionalImages();
 }
 
 function removeAdditionalImage(idx) {
@@ -3543,6 +3560,7 @@ function removeAdditionalImage(idx) {
   renderAdditionalImages();
 }
 
+// Drag & drop desktop para imágenes adicionales (mobile usa botones ‹ ›)
 let _aiDragSrc = null;
 function _aiDragStart(e, idx) {
   _aiDragSrc = idx;
@@ -3557,9 +3575,6 @@ function _aiDragOver(e, idx) {
     const el = document.querySelector(`[data-ai="${idx}"]`);
     if (el) el.style.outline = '2px solid var(--gold)';
   }
-}
-function _aiDragLeave(e) {
-  e.currentTarget.style.outline = '';
 }
 function _aiDrop(e, idx) {
   e.preventDefault();
