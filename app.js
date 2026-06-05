@@ -20,10 +20,16 @@ let _catalogShowAll = false;
 
 function _descHtml(desc) {
   if (!desc) return '';
-  return desc
+  let s = desc
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-    .replace(/\n/g,'<br>');
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g,'<em>$1</em>');
+  s = s.replace(/((?:• .+\n?)+)/g, match => {
+    const items = match.trim().split('\n').map(l => `<li>${l.replace(/^• /,'').trim()}</li>`).join('');
+    return `<ul style="margin:4px 0 4px 16px;padding:0;list-style:disc">${items}</ul>`;
+  });
+  s = s.replace(/\n/g,'<br>');
+  return s;
 }
 
 /* ── CARRITO ── */

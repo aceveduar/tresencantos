@@ -2983,30 +2983,58 @@ function handleDescPaste(e) {
 /* Escapa HTML y convierte \n en <br> para renderizado seguro de descripciones */
 function _descHtml(desc) {
   if (!desc) return '';
-  return desc
+  let s = desc
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-    .replace(/\n/g,'<br>');
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g,'<em>$1</em>');
+  // Agrupar líneas con viñeta en lista
+  s = s.replace(/((?:• .+\n?)+)/g, match => {
+    const items = match.trim().split('\n').map(l => `<li>${l.replace(/^• /,'').trim()}</li>`).join('');
+    return `<ul style="margin:4px 0 4px 16px;padding:0;list-style:disc">${items}</ul>`;
+  });
+  s = s.replace(/\n/g,'<br>');
+  return s;
 }
 
-function toggleBoldDesc() {
+function _descWrapToggle(marker) {
   const ta = document.getElementById('f-description');
   if (!ta) return;
   const s = ta.selectionStart, e = ta.selectionEnd;
   const val = ta.value;
-  if (s === e) return; // nada seleccionado
-  const sel = val.slice(s, e);
-  // Toggle: si ya está en negrita, quitar; si no, poner
-  let newSel, newS, newE;
-  if (sel.startsWith('**') && sel.endsWith('**') && sel.length > 4) {
-    newSel = sel.slice(2, -2);
-    newS = s; newE = s + newSel.length;
+  const sel = s === e ? '' : val.slice(s, e);
+  if (!sel) { ta.focus(); return; }
+  let newSel;
+  if (sel.startsWith(marker) && sel.endsWith(marker) && sel.length > marker.length * 2) {
+    newSel = sel.slice(marker.length, -marker.length);
   } else {
-    newSel = '**' + sel + '**';
-    newS = s; newE = s + newSel.length;
+    newSel = marker + sel + marker;
   }
   ta.value = val.slice(0, s) + newSel + val.slice(e);
-  ta.setSelectionRange(newS, newE);
+  ta.setSelectionRange(s, s + newSel.length);
+  ta.focus();
+}
+
+function toggleBoldDesc()   { _descWrapToggle('**'); }
+function toggleItalicDesc() { _descWrapToggle('*');  }
+
+function addBulletDesc() {
+  const ta = document.getElementById('f-description');
+  if (!ta) return;
+  const s = ta.selectionStart;
+  const val = ta.value;
+  // Insertar "• " al inicio de la línea actual
+  const lineStart = val.lastIndexOf('\n', s - 1) + 1;
+  const lineText  = val.slice(lineStart, s);
+  let insert, newCursor;
+  if (lineText.startsWith('• ')) {
+    // Ya tiene viñeta → quitar
+    ta.value = val.slice(0, lineStart) + lineText.slice(2) + val.slice(s);
+    newCursor = s - 2;
+  } else {
+    ta.value = val.slice(0, lineStart) + '• ' + val.slice(lineStart);
+    newCursor = s + 2;
+  }
+  ta.setSelectionRange(newCursor, newCursor);
   ta.focus();
 }
 
