@@ -1856,11 +1856,6 @@ function initDragDrop() {
     row.addEventListener('dragstart', e => {
       dragSrcId = parseInt(row.dataset.id);
       e.dataTransfer.effectAllowed = 'move';
-      if (currentSort !== 'position') {
-        currentSort = 'position';
-        const sortSel = document.getElementById('sort-select');
-        if (sortSel) sortSel.value = 'position';
-      }
       if (selectedIds.has(dragSrcId) && selectedIds.size > 1) {
         _startMultiDrag(e);
       } else {
@@ -1899,6 +1894,7 @@ function initDragDrop() {
         const insertAt = isAbove ? (srcIdx < tgtIdx ? tgtIdx - 1 : tgtIdx) : (srcIdx < tgtIdx ? tgtIdx : tgtIdx + 1);
         products.splice(insertAt, 0, item);
       }
+      _forcePositionSort();
       renderTable();
       save().then(ok => toast(ok ? 'Orden guardado ✓' : 'Error al guardar orden', ok ? '' : 'error'));
     });
@@ -1909,11 +1905,6 @@ function initDragDrop() {
 function _cardDragStart(e, id) {
   dragSrcId = id;
   e.dataTransfer.effectAllowed = 'move';
-  if (currentSort !== 'position') {
-    currentSort = 'position';
-    const sortSel = document.getElementById('sort-select');
-    if (sortSel) sortSel.value = 'position';
-  }
   if (selectedIds.has(id) && selectedIds.size > 1) {
     _startMultiDrag(e);
   } else {
@@ -1957,6 +1948,7 @@ function _cardDrop(e, targetId) {
       : (srcIdx < tgtIdx ? tgtIdx : tgtIdx + 1);
     products.splice(insertAt, 0, item);
   }
+  _forcePositionSort();
   renderTable();
   save().then(ok => toast(ok ? 'Orden guardado ✓' : 'Error al guardar orden', ok ? '' : 'error'));
 }
