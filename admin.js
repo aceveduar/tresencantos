@@ -1233,17 +1233,17 @@ function stockChip(p, editable = false) {
   }
   const cls = p.stock === 0 ? 'sold' : p.stock === 1 ? 'one' : 'ok';
   if (editable) {
-    return `<span class="stock-chip stock-${cls}" onclick="editStockInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Clic para editar stock" style="cursor:pointer">${p.stock}</span>`;
+    return `<span class="stock-chip stock-${cls}" onclick="editStockInline(event,${p.id},this)" ontouchstart="event.stopPropagation()" title="Clic para editar stock" style="cursor:pointer">${p.stock}</span>`;
   }
   return `<span class="stock-chip stock-${cls}" style="cursor:default">${p.stock}</span>`;
 }
 
-async function editStockInline(e, id) {
+async function editStockInline(e, id, chipEl) {
   e.stopPropagation();
   const p = products.find(x => x.id === id);
   if (!p) return;
 
-  const chip   = e.currentTarget || e.target.closest('.stock-chip,.qv-chip') || e.target;
+  const chip = chipEl || e.currentTarget || e.target.closest('.stock-chip,.qv-chip') || e.target;
   const mobile = isMobile();
 
   // Stepper táctil — reemplaza el chip con [−] N [+] + botón Guardar
@@ -1314,19 +1314,24 @@ async function editStockInline(e, id) {
     if (ev.key === 'Escape') { saved = true; renderTable(); _qvRefresh(id); }
   });
 
-  // setTimeout más fiable que rAF en Android para que el teclado no se cierre
   setTimeout(() => {
     input.focus();
     if (!mobile) input.select();
-    // Blur: si no hay cambios → cancelar silencioso; si hay cambios → guardar (solo desktop)
+    // Click fuera del stepper → cancelar si sin cambios, guardar si hay cambios
     setTimeout(() => {
-      if (!saved) input.addEventListener('blur', () => {
+      if (saved) return;
+      const dismiss = (ev) => {
+        if (saved || container.contains(ev.target)) return;
+        document.removeEventListener('click', dismiss, true);
+        document.removeEventListener('touchend', dismiss, true);
         if (!saved) {
           if (parseInt(input.value) === p.stock) { saved = true; renderTable(); _qvRefresh(id); }
-          else if (!mobile) save();
+          else save();
         }
-      });
-    }, 500);
+      };
+      document.addEventListener('click', dismiss, true);
+      document.addEventListener('touchend', dismiss, true);
+    }, 300);
   }, 50);
 }
 
@@ -6754,7 +6759,7 @@ function _renderQV(p) {
     }
   } else {
     const stockLbl = p.stock === 0 ? 'Sin stock' : p.stock === 1 ? '1 · Última' : `${p.stock} en stock`;
-    stockChipQV = `<span class="qv-chip ${stockCls} qv-editable" onclick="editStockInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar stock" style="cursor:pointer">${stockLbl}</span>`;
+    stockChipQV = `<span class="qv-chip ${stockCls} qv-editable" onclick="editStockInline(event,${p.id},this)" ontouchstart="event.stopPropagation()" title="Toca para editar stock" style="cursor:pointer">${stockLbl}</span>`;
   }
   document.getElementById('qv-chips').innerHTML =
     oosChip + pubChip + stockChipQV + featChip + marginChip;
