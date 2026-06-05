@@ -1243,7 +1243,7 @@ async function editStockInline(e, id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
 
-  const chip   = e.currentTarget || e.target.closest('.stock-chip');
+  const chip   = e.currentTarget || e.target.closest('.stock-chip,.qv-chip') || e.target;
   const mobile = isMobile();
 
   // Stepper táctil — reemplaza el chip con [−] N [+] + botón Guardar
