@@ -49,7 +49,7 @@ const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd
 
 let products = [];
 let _kitItemsEdit = [];
-let _additionalImagesEdit = [];
+let _allImagesEdit = []; // array unificado: [0]=principal, [1..n]=adicionales
 let _returnToDupReview = false;
 let _returnToKitId = null;     // ID del kit cuyo formulario se debe reabrir al cerrar un componente
 let _returnToKitQVId = null;   // ID del kit cuyo QV se debe reabrir al cerrar un componente
@@ -409,7 +409,6 @@ function getFilteredProducts() {
       (_statFilter === 'sin-precio'   && (!p.price || p.price === 0)) ||
       (_statFilter === 'imagen-base64' && p.image?.startsWith('data:')) ||
       (_statFilter === 'kits'         && !!p.kitItems?.length) ||
-      (_statFilter === 'vendidos'     && (_salesCountMap.get(p.id) || 0) > 0) ||
       (_statFilter === 'borradores');
     const isKit      = !!p.kitItems?.length;
     const isBorrador = !isKit && !p.isPublished && (!p.price || p.price === 0);
@@ -965,16 +964,15 @@ function renderStats() {
        <span class="sc-num">${total}</span>
        <span class="sc-lbl">Todos</span>
      </button>` +
-    chip('con-stock',   '✅', conStock,    'Con stock',    '#059669') +
-    (nBorradores > 0 ? chip('borradores', '📝', nBorradores, 'Borradores', '#6B7280', '#fff') : '') +
     (nKits > 0 ? chip('kits', '🎁', nKits, 'Kits', '#C9A462', '#fff') : '') +
-    (_salesCountMap.size > 0 ? chip('vendidos', '🔥', _salesCountMap.size, 'Vendidos', '#B45309', '#fff') : '') +
+    chip('con-stock',   '✅', conStock,    'Con stock',    '#059669') +
     (sinStock > 0 ? chip('sin-stock', '🚫', sinStock, 'Sin stock', '#dc2626') : '') +
     (ultimaPieza > 0 ? chip('ultima-pieza','⚡', ultimaPieza, 'Última pieza', '#B45309') : '') +
     (sinPublicar  > 0 ? chip('sin-publicar','🙈', sinPublicar, 'Sin publicar', '#C2410C') : '') +
+    (nBorradores > 0 ? chip('borradores', '📝', nBorradores, 'Borradores', '#6B7280', '#fff') : '') +
+    (nFlag        > 0 ? chip('revisar',     '🚩', nFlag,       'Por revisar',  '#dc2626') : '') +
     (sinCodigo    > 0 ? chip('sin-codigo',  '🔲', sinCodigo,   'Sin código',   '#4B5563') : '') +
     (sinCateg     > 0 ? chip('sin-categ',   '⚠️', sinCateg,    'Sin categoría','#B45309') : '') +
-    (nFlag        > 0 ? chip('revisar',     '🚩', nFlag,       'Por revisar',  '#dc2626') : '') +
     (() => {
       if (ROLE !== 'superadmin') return '';
       const nBase64 = products.filter(p => !_ib(p) && p.image?.startsWith('data:')).length;
@@ -1846,6 +1844,7 @@ async function duplicateProduct(id) {
       toast('Error al duplicar en Supabase', 'error');
       return;
     }
+    _trackEdit(copy.id);
   }
 
   renderTable();
@@ -2318,6 +2317,8 @@ function compressAndPreview(file) {
       preview.classList.add('show');
       currentFormImageDataUrl = b64;
       showAiFormBtn();
+      _allImagesEdit[0] = b64;
+      renderAdditionalImages();
 
       // Intentar subir a Drive; si no hay Drive o falla → usar base64
       (async () => {
@@ -2325,7 +2326,10 @@ function compressAndPreview(file) {
         if (hasDrive) toast('Subiendo imagen a Drive…', '');
         const driveUrl = await uploadToDrive(b64);
         if (controller.signal.aborted) return;
-        document.getElementById('f-image').value = driveUrl || b64;
+        const finalUrl = driveUrl || b64;
+        document.getElementById('f-image').value = finalUrl;
+        _allImagesEdit[0] = finalUrl;
+        renderAdditionalImages();
         document.getElementById('save-btn').disabled = false;
         if (driveUrl) toast('Imagen guardada en Drive ✓', 'success');
       })();
@@ -2373,7 +2377,6 @@ function showAiFormBtn() {
   wrap.style.display = '';
   wrap.style.opacity = '0';
   requestAnimationFrame(() => { wrap.style.transition = 'opacity .3s'; wrap.style.opacity = '1'; });
-  // Restablecer estado del botón
   const btn = document.getElementById('ai-form-btn');
   if (btn) { btn.disabled = false; btn.style.borderColor = ''; btn.style.color = ''; }
   const icon = document.querySelector('#ai-form-btn .ai-form-icon');
@@ -2651,7 +2654,7 @@ function openForm(id) {
     document.getElementById('f-is-kit').checked = isKit;
     _kitItemsEdit = isKit ? JSON.parse(JSON.stringify(p.kitItems)) : [];
     toggleKitMode();
-    _additionalImagesEdit = p.images ? [...p.images] : [];
+    _allImagesEdit = [p.image, ...(p.images || [])].filter(url => url && url.trim());
     renderAdditionalImages();
   } else {
     document.getElementById('f-id').value = '';
@@ -2682,7 +2685,7 @@ function openForm(id) {
     document.getElementById('f-is-kit').checked = false;
     _kitItemsEdit = [];
     document.getElementById('kit-editor').style.display = 'none';
-    _additionalImagesEdit = [];
+    _allImagesEdit = [];
     renderAdditionalImages();
   }
 
@@ -3180,6 +3183,29 @@ function previewImg() {
     preview.classList.remove('show');
     zone?.classList.remove('has-image');
   }
+  _allImagesEdit[0] = url || '';
+  if (!url && _allImagesEdit[0] === '') _allImagesEdit = _allImagesEdit.filter((_, i) => i !== 0);
+  renderAdditionalImages();
+}
+
+function _syncMainFromStrip() {
+  const url = _allImagesEdit[0] || '';
+  const inp = document.getElementById('f-image');
+  const preview = document.getElementById('f-img-preview');
+  const zone = document.getElementById('img-upload-zone');
+  const urlWrap = document.getElementById('f-img-url-wrap');
+  if (inp) inp.value = url;
+  if (preview) {
+    if (url) {
+      preview.src = url;
+      preview.classList.add('show');
+      zone?.classList.add('has-image');
+      if (urlWrap) urlWrap.style.display = 'block';
+    } else {
+      preview.classList.remove('show');
+      zone?.classList.remove('has-image');
+    }
+  }
 }
 
 /* ── SAVE PRODUCT — targeted PATCH or single POST ── */
@@ -3200,7 +3226,7 @@ async function saveProduct() {
 
   const name = document.getElementById('f-name').value.trim();
   const price = parseFloat(document.getElementById('f-price').value) || 0;
-  const image = document.getElementById('f-image').value.trim();
+  const image = _allImagesEdit[0] || document.getElementById('f-image').value.trim();
   const description = document.getElementById('f-description').value.trim();
 
   if (!name) {
@@ -3248,7 +3274,7 @@ async function saveProduct() {
           return { ...item, name: prod?.name || item.name, image: prod?.image || item.image || null };
         })
       : null,
-    images: _additionalImagesEdit.length ? _additionalImagesEdit : null
+    images: _allImagesEdit.length > 1 ? _allImagesEdit.slice(1) : null
   };
 
   // Auto-sincronizar out_of_stock con stock — el checkbox oculto puede quedar
@@ -3398,19 +3424,21 @@ function _kitCompPopover(id, event) {
   document.getElementById('kit-comp-popover')?.remove();
   const pop = document.createElement('div');
   pop.id = 'kit-comp-popover';
-  pop.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:14px;padding:16px;z-index:99999;box-shadow:0 8px 40px rgba(0,0,0,.28);width:240px;text-align:center';
+  pop.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:14px;padding:0;z-index:99999;box-shadow:0 8px 40px rgba(0,0,0,.28);width:250px;overflow:hidden';
   const stockTxt = (p.outOfStock || p.stock === 0)
-    ? '<span style="color:var(--red)">Agotado</span>'
-    : `<span style="color:var(--green)">${p.stock} en stock</span>`;
+    ? '<span style="color:var(--red)">⚠️ Agotado</span>'
+    : `<span style="color:var(--green)">● ${p.stock} en stock</span>`;
   pop.innerHTML = `
-    <button onclick="document.getElementById('kit-comp-popover')?.remove()" style="position:absolute;top:8px;right:10px;background:none;border:none;font-size:1.1rem;color:var(--muted);cursor:pointer;line-height:1">✕</button>
-    <img src="${p.image || DEFAULT_IMG}" onerror="this.src='${DEFAULT_IMG}'" style="width:100%;max-height:180px;object-fit:contain;border-radius:9px;background:#F9F5EF">
-    <div style="font-weight:700;margin-top:10px;font-size:.9rem;line-height:1.3">${p.name}</div>
-    <div style="font-size:.76rem;margin-top:5px;display:flex;justify-content:center;gap:10px">
-      ${stockTxt}
-      <span style="color:var(--muted)">$${(p.price||0).toLocaleString('es-MX')}</span>
-    </div>
-    <button onclick="_openFormFromKit(${p.id})" style="margin-top:12px;width:100%;padding:8px;border:none;border-radius:8px;background:var(--gold);color:#fff;font-size:.82rem;font-weight:600;cursor:pointer">✏️ Editar producto</button>`;
+    <button onclick="document.getElementById('kit-comp-popover')?.remove()" style="position:absolute;top:8px;right:8px;width:28px;height:28px;background:rgba(0,0,0,.45);border:none;border-radius:50%;font-size:.85rem;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:1">✕</button>
+    <img src="${p.image || DEFAULT_IMG}" onerror="this.src='${DEFAULT_IMG}'" style="width:100%;height:230px;object-fit:contain;background:#F9F5EF;display:block">
+    <div style="padding:8px 12px 12px">
+      <div style="font-weight:700;font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px">${p.name}</div>
+      <div style="font-size:.75rem;display:flex;align-items:center;justify-content:space-between">
+        ${stockTxt}
+        <span style="color:var(--muted)">$${(p.price||0).toLocaleString('es-MX')}</span>
+      </div>
+      ${can.editProduct ? `<a href="#" onclick="event.preventDefault();_openFormFromKit(${p.id})" style="display:block;margin-top:8px;font-size:.73rem;color:var(--gold);text-align:center;text-decoration:none;font-weight:600">✏️ Editar producto →</a>` : ''}
+    </div>`;
   document.body.appendChild(pop);
   setTimeout(() => {
     const close = e => { if (!pop.contains(e.target)) { pop.remove(); document.removeEventListener('click', close); } };
@@ -3545,6 +3573,18 @@ function changeKitQty(productId, delta) {
 }
 
 /* ── ADDITIONAL IMAGES ── */
+async function _urlToBase64(url) {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('fetch failed');
+  const blob = await resp.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = e => resolve(e.target.result);
+    reader.readAsDataURL(blob);
+  });
+}
+
 function _fileToBase64Resized(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -3571,25 +3611,30 @@ function _fileToBase64Resized(file) {
 function renderAdditionalImages() {
   const strip = document.getElementById('additional-images-strip');
   if (!strip) return;
-  if (!_additionalImagesEdit.length) {
-    strip.innerHTML = '<span style="font-size:.73rem;color:var(--muted-light);line-height:1.4;align-self:center;padding-left:2px">Sin imágenes adicionales</span>';
+  if (!_allImagesEdit.length) {
+    strip.innerHTML = '<span style="font-size:.73rem;color:var(--muted-light);line-height:1.4;align-self:center;padding-left:2px">Sin imágenes — sube una arriba</span>';
     return;
   }
-  const total = _additionalImagesEdit.length;
-  strip.innerHTML = _additionalImagesEdit.map((url, i) => {
+  const total = _allImagesEdit.length;
+  strip.innerHTML = _allImagesEdit.map((url, i) => {
+    const isMain   = i === 0;
     const isDrive  = url.includes('drive.google.com');
     const isBase64 = url.startsWith('data:');
-    const badge = isDrive
-      ? `<span title="Drive" style="position:absolute;bottom:22px;left:50%;transform:translateX(-50%);background:#34a853;color:#fff;font-size:.45rem;font-weight:700;padding:1px 4px;border-radius:3px;white-space:nowrap;pointer-events:none">Drive</span>`
+    const storageBadge = isDrive
+      ? `<span style="position:absolute;bottom:22px;left:50%;transform:translateX(-50%);background:#34a853;color:#fff;font-size:.42rem;font-weight:700;padding:1px 4px;border-radius:3px;white-space:nowrap;pointer-events:none">Drive</span>`
       : isBase64
-      ? `<span title="Base64" style="position:absolute;bottom:22px;left:50%;transform:translateX(-50%);background:#e67e22;color:#fff;font-size:.45rem;font-weight:700;padding:1px 4px;border-radius:3px;white-space:nowrap;pointer-events:none">Base64</span>`
+      ? `<span style="position:absolute;bottom:22px;left:50%;transform:translateX(-50%);background:#e67e22;color:#fff;font-size:.42rem;font-weight:700;padding:1px 4px;border-radius:3px;white-space:nowrap;pointer-events:none">B64</span>`
       : '';
+    const mainBadge = isMain
+      ? `<span style="position:absolute;top:-7px;left:50%;transform:translateX(-50%);background:var(--gold);color:#fff;font-size:.42rem;font-weight:700;padding:1px 5px;border-radius:10px;white-space:nowrap;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.18)">⭐ Principal</span>`
+      : '';
+    const border = isMain ? '2px solid var(--gold)' : '1px solid var(--border)';
     const btnStyle = 'width:22px;height:22px;border-radius:6px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center;color:var(--charcoal);flex-shrink:0;touch-action:manipulation';
     const btnLeft  = i > 0
-      ? `<button type="button" onclick="event.stopPropagation();_aiMove(${i},-1)" ontouchend="event.preventDefault();event.stopPropagation();_aiMove(${i},-1)" style="${btnStyle}">‹</button>`
+      ? `<button type="button" onclick="event.stopPropagation();_aiMove(${i},-1)" ontouchend="event.preventDefault();event.stopPropagation();_aiMove(${i},-1)" style="${btnStyle}" title="Mover a la izquierda${i===1?' (→ Principal)':''}">‹</button>`
       : `<span style="width:22px;flex-shrink:0"></span>`;
     const btnRight = i < total - 1
-      ? `<button type="button" onclick="event.stopPropagation();_aiMove(${i},1)" ontouchend="event.preventDefault();event.stopPropagation();_aiMove(${i},1)" style="${btnStyle}">›</button>`
+      ? `<button type="button" onclick="event.stopPropagation();_aiMove(${i},1)" ontouchend="event.preventDefault();event.stopPropagation();_aiMove(${i},1)" style="${btnStyle}" title="${i===0?'Quitar de principal':'Mover a la derecha'}">›</button>`
       : `<span style="width:22px;flex-shrink:0"></span>`;
     return `
 <div draggable="true" data-ai="${i}"
@@ -3599,10 +3644,10 @@ function renderAdditionalImages() {
   ondrop="_aiDrop(event,${i})"
   ondragend="_aiDragEnd()"
   ontouchstart="event.stopPropagation()">
-  <div style="position:relative">
-    <img src="${url}" style="width:68px;height:68px;object-fit:contain;border-radius:8px;border:1px solid var(--border);background:#F7F2EB;display:block;pointer-events:none;cursor:grab;-webkit-touch-callout:none;-webkit-user-drag:none" onerror="this.style.opacity='.3'">
+  <div style="position:relative;margin-top:${isMain?'8':'2'}px">
+    <img src="${url}" style="width:68px;height:68px;object-fit:contain;border-radius:8px;border:${border};background:#F7F2EB;display:block;pointer-events:none;cursor:grab;-webkit-touch-callout:none;-webkit-user-drag:none" onerror="this.style.opacity='.3'">
     <button type="button" onclick="removeAdditionalImage(${i})" ontouchend="event.preventDefault();removeAdditionalImage(${i})" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;cursor:pointer;font-size:.65rem;display:flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.25);touch-action:manipulation">✕</button>
-    ${badge}
+    ${mainBadge}${storageBadge}
   </div>
   <div style="display:flex;gap:3px">${btnLeft}${btnRight}</div>
 </div>`;
@@ -3611,13 +3656,15 @@ function renderAdditionalImages() {
 
 function _aiMove(idx, dir) {
   const target = idx + dir;
-  if (target < 0 || target >= _additionalImagesEdit.length) return;
-  [_additionalImagesEdit[idx], _additionalImagesEdit[target]] = [_additionalImagesEdit[target], _additionalImagesEdit[idx]];
+  if (target < 0 || target >= _allImagesEdit.length) return;
+  [_allImagesEdit[idx], _allImagesEdit[target]] = [_allImagesEdit[target], _allImagesEdit[idx]];
+  if (idx === 0 || target === 0) _syncMainFromStrip();
   renderAdditionalImages();
 }
 
 function removeAdditionalImage(idx) {
-  _additionalImagesEdit.splice(idx, 1);
+  _allImagesEdit.splice(idx, 1);
+  if (idx === 0) _syncMainFromStrip();
   renderAdditionalImages();
 }
 
@@ -3641,8 +3688,10 @@ function _aiDragOver(e, idx) {
 function _aiDrop(e, idx) {
   e.preventDefault();
   if (_aiDragSrc === null || _aiDragSrc === idx) return;
-  const moved = _additionalImagesEdit.splice(_aiDragSrc, 1)[0];
-  _additionalImagesEdit.splice(idx, 0, moved);
+  const srcWasMain = _aiDragSrc === 0;
+  const moved = _allImagesEdit.splice(_aiDragSrc, 1)[0];
+  _allImagesEdit.splice(idx, 0, moved);
+  if (srcWasMain || idx === 0) _syncMainFromStrip();
   renderAdditionalImages();
 }
 function _aiDragEnd() {
@@ -3654,8 +3703,8 @@ async function addAdditionalImageUrl() {
   const inp = document.getElementById('add-img-url-input');
   const url = inp?.value.trim();
   if (!url) return;
-  if (_additionalImagesEdit.length >= 5) { toast('Máximo 5 imágenes adicionales', ''); return; }
-  _additionalImagesEdit.push(url);
+  if (_allImagesEdit.length >= 6) { toast('Máximo 6 imágenes en total', ''); return; }
+  _allImagesEdit.push(url);
   inp.value = '';
   renderAdditionalImages();
 }
@@ -3665,7 +3714,7 @@ async function handleAdditionalImageFile(input) {
   if (!file) return;
   const addBtn = document.getElementById('add-img-file-btn');
   if (addBtn) { addBtn.textContent = '⏳ Subiendo…'; addBtn.disabled = true; }
-  if (_additionalImagesEdit.length >= 5) { toast('Máximo 5 imágenes adicionales', ''); input.value = ''; return; }
+  if (_allImagesEdit.length >= 6) { toast('Máximo 6 imágenes en total', ''); input.value = ''; return; }
   try {
     const base64 = await _fileToBase64Resized(file);
     let url = base64;
@@ -3673,7 +3722,7 @@ async function handleAdditionalImageFile(input) {
       const driveResult = await uploadToDrive(base64);
       if (driveResult) url = driveResult;
     }
-    _additionalImagesEdit.push(url);
+    _allImagesEdit.push(url);
     renderAdditionalImages();
   } catch {
     toast('Error al procesar la imagen', 'error');
@@ -3872,10 +3921,11 @@ function _closeAddToKit() {
 async function _confirmAddToKit(kitId) {
   const kit = products.find(p => p.id === kitId);
   if (!kit) return;
+  const idsToAdd = [..._addToKitIds]; // guardar antes de que _closeAddToKit limpie el array
   _closeAddToKit();
 
   const existing = new Set((kit.kitItems || []).map(i => i.id));
-  const toAdd = _addToKitIds
+  const toAdd = idsToAdd
     .filter(id => !existing.has(id))
     .map(id => {
       const p = products.find(x => x.id === id);
@@ -3899,7 +3949,7 @@ async function _confirmAddToKit(kitId) {
 
   if (!result.ok) { toast('Error al actualizar el kit', 'error'); kit.kitItems = kit.kitItems.filter(i => !toAdd.find(a => a.id === i.id)); return; }
 
-  const skipped = _addToKitIds.length - toAdd.length;
+  const skipped = idsToAdd.length - toAdd.length;
   const msg = skipped
     ? `${toAdd.length} agregado${toAdd.length>1?'s':''} a "${kit.name}" · ${skipped} ya estaba${skipped>1?'n':''}`
     : `${toAdd.length} agregado${toAdd.length>1?'s':''} a "${kit.name}"`;
@@ -3908,6 +3958,26 @@ async function _confirmAddToKit(kitId) {
 }
 
 /* ── BULK ACTIONS ── */
+
+async function bulkFlag() {
+  if (!selectedIds.size) return;
+  const ids = [...selectedIds];
+  const ts = new Date().toISOString();
+  for (const id of ids) {
+    _flagged = _flagged.filter(x => x.id !== id);
+    _flagged.unshift({ id, note: '', ts });
+  }
+  await _saveFlagged();
+  localStorage.setItem('te_flag_filter', _showOnlyFlagged ? '1' : '0');
+  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+  const savedPage = _adminPage;
+  renderStats();
+  renderTable();
+  _adminPage = savedPage;
+  requestAnimationFrame(() => window.scrollTo({ top: scrollTop, behavior: 'instant' }));
+  clearBulkSelection();
+  toast(`🚩 ${ids.length} producto${ids.length > 1 ? 's' : ''} marcado${ids.length > 1 ? 's' : ''} para revisar`);
+}
 
 async function bulkRestock() {
   if (!selectedIds.size) return;
@@ -5035,7 +5105,7 @@ function _showScanResultLegacy(id) {
 
   // Acciones — 6 botones igual que QV
   const flagDataSrp = _flagItem(p.id);
-  const btnEdit = can.editProduct ? `<button class="qv-btn qv-btn-edit" onclick="clearScanResult();openForm(${p.id})">${ICON_EDIT} Más campos</button>` : '';
+  const btnEdit = can.editProduct ? `<button class="qv-btn qv-btn-edit" onclick="clearScanResult();openForm(${p.id})">${ICON_EDIT} Editar</button>` : '';
   const btnTop  = can.editProduct ? `<button class="qv-btn qv-btn-dup" onclick="clearScanResult();moveToTop(${p.id})">📌 Al inicio</button>` : '';
   const btnDup  = `<button class="qv-btn qv-btn-dup" onclick="clearScanResult();duplicateProduct(${p.id})">⧉ Duplicar</button>`;
   const btnPub  = can.publishProduct ? `<button class="qv-btn qv-btn-pub" onclick="_qvTogglePublished(${p.id})">${p.isPublished === false ? '🌐 Publicar' : '🙈 Ocultar'}</button>` : '';
@@ -6373,23 +6443,29 @@ async function flagProduct(id, note) {
   _flagged = _flagged.filter(x => x.id !== id);
   _flagged.unshift({ id, note: (note || '').trim(), ts: new Date().toISOString() });
   await _saveFlagged();
-  _syncFlagFilter();
-  renderTable();
-  const p = products.find(x => x.id === id);
-  if (p && _qvCurrentId === id) _renderQV(p);
+  _flagAndRender(id);
   toast('🚩 Marcado para revisar', 'success');
 }
 
 async function unflagProduct(id) {
   _flagged = _flagged.filter(x => x.id !== id);
   await _saveFlagged();
-  // Si ya no quedan pendientes, salir del filtro automáticamente
   if (_flagged.length === 0) _showOnlyFlagged = false;
-  _syncFlagFilter();
+  _flagAndRender(id);
+  toast('✓ Revisión completada');
+}
+
+function _flagAndRender(id) {
+  // Actualiza chips/stats pero preserva la página y el scroll para no perder el lugar
+  localStorage.setItem('te_flag_filter', _showOnlyFlagged ? '1' : '0');
+  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+  const savedPage = _adminPage;
+  renderStats();
   renderTable();
+  _adminPage = savedPage;        // re-renderizar no cambia el estado de página
+  requestAnimationFrame(() => { window.scrollTo({ top: scrollTop, behavior: 'instant' }); });
   const p = products.find(x => x.id === id);
   if (p && _qvCurrentId === id) _renderQV(p);
-  toast('✓ Revisión completada');
 }
 
 function toggleFlagFilter() {
@@ -6424,18 +6500,20 @@ function _syncFlagFilter() {
 }
 
 function _qvShowFlagForm(id) {
-  const zone = document.getElementById('qv-flag-zone');
-  if (!zone) return;
-  zone.innerHTML = `
-    <div class="qv-flag-form">
-      <label>Nota para recordar qué revisar:</label>
-      <textarea class="qv-flag-textarea" id="qv-flag-ta" rows="3"
-        placeholder="Ej: imagen dice 6 piezas, descripción dice 4…"></textarea>
-      <div class="qv-flag-btns">
-        <button class="qv-btn qv-btn-flag" onclick="flagProduct(${id},document.getElementById('qv-flag-ta').value)">🚩 Marcar</button>
-        <button class="qv-btn qv-btn-dup" onclick="(p=>p?_renderQV(p):closeQV())(products.find(x=>x.id===${id}))">Cancelar</button>
-      </div>
+  // Mostrar el formulario en el área de acciones (siempre visible, sin scroll)
+  const actions = document.getElementById('qv-actions');
+  if (!actions) return;
+  actions.style.cssText = 'display:block;padding:10px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--border);background:#fff';
+  actions.innerHTML = `
+    <div style="font-size:.72rem;font-weight:600;color:var(--charcoal);margin-bottom:5px">Nota para recordar qué revisar:</div>
+    <textarea class="qv-flag-textarea" id="qv-flag-ta" rows="2"
+      placeholder="Ej: imagen dice 6 piezas, descripción dice 4…" style="margin-bottom:7px"></textarea>
+    <div style="display:flex;gap:7px">
+      <button class="qv-btn qv-btn-flag" style="flex:1" onclick="flagProduct(${id},document.getElementById('qv-flag-ta').value)">🚩 Marcar para revisión</button>
+      <button class="qv-btn qv-btn-dup" onclick="(p=>p?_renderQV(p):closeQV())(products.find(x=>x.id===${id}))">Cancelar</button>
     </div>`;
+  const zone = document.getElementById('qv-flag-zone');
+  if (zone) zone.innerHTML = '';
   document.getElementById('qv-flag-ta')?.focus();
 }
 
@@ -6834,34 +6912,68 @@ function _srpOpenZoom() {
 function _kitCompPopup(id, triggerEl) {
   const existing = document.getElementById('kit-comp-popup');
   if (existing) { existing.remove(); if (existing.dataset.forId == id) return; }
-  const comp = products.find(x => x.id === id);
-  if (!comp) return;
-  const stockTxt = comp.outOfStock || comp.stock === 0
-    ? '<span style="color:#E85D5D;font-size:.72rem;font-weight:600">● Agotado</span>'
-    : `<span style="color:#2D6A4F;font-size:.72rem;font-weight:600">● ${comp.stock} en stock</span>`;
   const popup = document.createElement('div');
   popup.id = 'kit-comp-popup';
-  popup.dataset.forId = id;
-  popup.style.cssText = 'position:fixed;z-index:9999;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.22);padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px;width:230px;animation:kcp-in .18s ease';
-  popup.innerHTML = `
-    <style>@keyframes kcp-in{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}</style>
-    <button onclick="document.getElementById('kit-comp-popup').remove()" style="position:absolute;top:8px;right:8px;background:none;border:none;font-size:1rem;cursor:pointer;color:#8A7564;line-height:1;padding:2px">✕</button>
-    <img src="${comp.image || DEFAULT_IMG}" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'" style="width:190px;height:190px;object-fit:contain;border-radius:8px;background:#F7F2EB">
-    <div style="font-size:.86rem;font-weight:600;color:#1C1817;text-align:center;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;width:100%">${comp.name}</div>
-    ${stockTxt}
-    ${can.editProduct ? `<button onclick="_openFormFromKitQV(${comp.id})" style="width:100%;padding:8px;border:none;border-radius:8px;background:var(--gold);color:#fff;font-size:.82rem;font-weight:600;cursor:pointer">✏️ Editar producto</button>` : ''}`;
-  // Posicionar junto al elemento que se clickeó
+  popup.style.cssText = 'position:fixed;z-index:9999;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.22);padding:0;overflow:hidden;width:250px;animation:kcp-in .18s ease';
+  popup.innerHTML = '<style>@keyframes kcp-in{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}</style>';
   document.body.appendChild(popup);
+  // Posicionar junto al elemento que se clickeó
   const r = triggerEl.getBoundingClientRect();
-  const pw = 230, ph = popup.offsetHeight || 260;
+  const pw = 250, ph = 320;
   let top = r.top + window.scrollY - ph - 8;
   let left = r.left + window.scrollX + r.width / 2 - pw / 2;
   if (top < 8) top = r.bottom + window.scrollY + 8;
   left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
   popup.style.top = top + 'px';
   popup.style.left = left + 'px';
+  _kitCompPopupRender(id);
   const close = e => { if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('pointerdown', close); } };
   setTimeout(() => document.addEventListener('pointerdown', close), 10);
+}
+
+function _kitCompPopupRender(id) {
+  const popup = document.getElementById('kit-comp-popup');
+  if (!popup) return;
+  const comp = products.find(x => x.id === id);
+  if (!comp) return;
+  popup.dataset.forId = id;
+  const kit = products.find(x => x.id === _qvCurrentId);
+  const kitComps = kit?.kitItems || [];
+  const idx = kitComps.findIndex(c => c.id === id);
+  const total = kitComps.length;
+  const hasPrev = idx > 0;
+  const hasNext = idx < total - 1;
+  const stockTxt = comp.outOfStock || comp.stock === 0
+    ? '<span style="color:#E85D5D;font-size:.72rem;font-weight:600">● Agotado</span>'
+    : `<span style="color:#2D6A4F;font-size:.72rem;font-weight:600">● ${comp.stock} en stock</span>`;
+  const navBtn = s => `width:28px;height:28px;background:rgba(0,0,0,.45);border:none;border-radius:50%;font-size:.9rem;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;line-height:1;z-index:1;position:absolute;top:50%;margin-top:-14px;${s}`;
+  popup.innerHTML = `
+    <style>@keyframes kcp-in{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}</style>
+    <button onclick="document.getElementById('kit-comp-popup')?.remove()" style="${navBtn('right:8px;top:8px;margin-top:0')}">✕</button>
+    ${hasPrev ? `<button onclick="event.stopPropagation();_kitCompPopupNav(-1)" style="${navBtn('left:6px')}">‹</button>` : ''}
+    ${hasNext ? `<button onclick="event.stopPropagation();_kitCompPopupNav(1)"  style="${navBtn('right:6px')}">›</button>` : ''}
+    <img src="${comp.image || DEFAULT_IMG}" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'" style="width:100%;height:230px;object-fit:contain;background:#F7F2EB;display:block">
+    <div style="padding:8px 12px 12px;display:flex;flex-direction:column;gap:5px">
+      <div style="font-size:.84rem;font-weight:700;color:#1C1817;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${comp.name}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        ${stockTxt}
+        <span style="font-size:.75rem;color:var(--muted)">$${(comp.price||0).toLocaleString('es-MX')}</span>
+      </div>
+      ${total > 1 ? `<div style="text-align:center;font-size:.7rem;color:var(--muted-light);margin-top:1px">${idx+1} / ${total}</div>` : ''}
+      ${can.editProduct ? `<a href="#" onclick="event.preventDefault();_openFormFromKitQV(${comp.id})" style="font-size:.73rem;color:var(--gold);text-align:center;text-decoration:none;font-weight:600">✏️ Editar producto →</a>` : ''}
+    </div>`;
+}
+
+function _kitCompPopupNav(dir) {
+  const popup = document.getElementById('kit-comp-popup');
+  if (!popup) return;
+  const kit = products.find(x => x.id === _qvCurrentId);
+  if (!kit?.kitItems?.length) return;
+  const currentId = parseInt(popup.dataset.forId);
+  const idx = kit.kitItems.findIndex(c => c.id === currentId);
+  const next = idx + dir;
+  if (next < 0 || next >= kit.kitItems.length) return;
+  _kitCompPopupRender(kit.kitItems[next].id);
 }
 
 // Teclado: ← → Esc cuando el QV está abierto
@@ -6869,6 +6981,12 @@ document.addEventListener('keydown', e => {
   if (!_qvCurrentId) return;
   const tag = document.activeElement?.tagName;
   const isEditing = tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable;
+  // Si el popup de componente está abierto, las flechas navegan entre componentes del kit
+  if (document.getElementById('kit-comp-popup')) {
+    if (e.key === 'ArrowRight' && !isEditing) { e.stopImmediatePropagation(); _kitCompPopupNav(1); return; }
+    if (e.key === 'ArrowLeft'  && !isEditing) { e.stopImmediatePropagation(); _kitCompPopupNav(-1); return; }
+    if (e.key === 'Escape') { document.getElementById('kit-comp-popup')?.remove(); return; }
+  }
   if (e.key === 'ArrowRight' && !isEditing) qvNavigate(1);
   if (e.key === 'ArrowLeft'  && !isEditing) qvNavigate(-1);
   if (e.key === 'Escape' && !document.getElementById('form-overlay')?.classList.contains('open')) closeQV();
@@ -7057,7 +7175,7 @@ function _renderQV(p) {
 
   // Botones de acción
   const btnEdit = can.editProduct
-    ? `<button class="qv-btn qv-btn-edit" onclick="closeQV();openForm(${p.id})">${ICON_EDIT} Más campos</button>`
+    ? `<button class="qv-btn qv-btn-edit" onclick="closeQV();openForm(${p.id})">${ICON_EDIT} Editar</button>`
     : '';
   const btnDup  = `<button class="qv-btn qv-btn-dup" onclick="closeQV();duplicateProduct(${p.id})">⧉ Duplicar</button>`;
   const btnPub  = can.publishProduct
@@ -7075,7 +7193,10 @@ function _renderQV(p) {
   const btnAddKit = can.editProduct && !p.kitItems?.length
     ? `<button class="qv-btn qv-btn-dup" onclick="_openAddToKit([${p.id}])">🎁 A un kit</button>`
     : '';
-  document.getElementById('qv-actions').innerHTML = btnEdit + btnPub + btnTop + btnDup + btnAddKit + btnFlag + btnDel;
+  const actionsEl = document.getElementById('qv-actions');
+  actionsEl.removeAttribute('style');
+  // Orden: Editar · Duplicar · Ocultar/Publicar / Al inicio · A un kit · Revisar / Eliminar
+  actionsEl.innerHTML = btnEdit + btnDup + btnPub + btnTop + btnAddKit + btnFlag + btnDel;
 }
 
 async function _qvTogglePublished(id) {
@@ -7217,6 +7338,14 @@ function closeKitBuilder() {
   el.classList.remove('kb-open');
   el.style.display = 'none';
   document.body.style.overflow = '';
+}
+
+function _closeKitBuilderSafe() {
+  const name  = document.getElementById('kb-name')?.value.trim();
+  const price = document.getElementById('kb-price')?.value.trim();
+  const hasData = name || price || _kbComponents.length > 0 || _kbImageDataUrl;
+  if (hasData && !confirm('¿Descartar el kit? Perderás lo que llevas ingresado.')) return;
+  closeKitBuilder();
 }
 
 function _kbPopulateCategories() {

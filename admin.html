@@ -1807,11 +1807,11 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   </div>
 
   <!-- KIT BUILDER -->
-  <div id="kit-builder-overlay" style="position:fixed;inset:0;z-index:250;background:rgba(0,0,0,.45);align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeKitBuilder()">
+  <div id="kit-builder-overlay" style="position:fixed;inset:0;z-index:250;background:rgba(0,0,0,.45);align-items:flex-end;justify-content:center" onclick="if(event.target===this)_closeKitBuilderSafe()">
     <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:600px;max-height:92dvh;display:flex;flex-direction:column;box-shadow:0 -8px 32px rgba(0,0,0,.18)">
       <div style="padding:20px 20px 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
         <span style="font-weight:700;font-size:1rem;font-family:'Playfair Display',serif;color:var(--charcoal)">🎁 Armar Kit</span>
-        <button onclick="closeKitBuilder()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted);touch-action:manipulation;padding:4px 8px">✕</button>
+        <button onclick="_closeKitBuilderSafe()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted);touch-action:manipulation;padding:4px 8px">✕</button>
       </div>
       <div style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px;overscroll-behavior:contain">
         <div>
@@ -2015,8 +2015,6 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           <option value="name-za">Z → A</option>
           <option value="price-desc">$ Mayor</option>
           <option value="price-asc">$ Menor</option>
-          <option value="stock-asc">Agotados</option>
-          <option value="stock-desc">Con stock</option>
           <option value="created-new">Más nuevos</option>
           <option value="created-old">Más antiguos</option>
         </select>
@@ -2040,18 +2038,16 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     <div class="bulk-bar" id="bulk-bar" style="display:none">
       <button class="btn btn-sm" onclick="clearBulkSelection()" style="border-color:rgba(255,255,255,.4);opacity:.8" title="Deseleccionar todo">✕</button>
       <span id="bulk-count">0 seleccionados</span>
-      <button class="btn btn-sm" id="bulk-select-all-btn" onclick="selectAllVisible()" style="border-color:rgba(255,255,255,.4);opacity:.8" title="Seleccionar todos los visibles">Todos</button>
-      <button class="btn btn-sm" id="bulk-compare-btn" onclick="openCompareModal()" style="display:none">⚖️ Comparar</button>
-      <button class="btn btn-sm" onclick="bulkSetCategory()">Cambiar categoría</button>
-      <button class="btn btn-sm" onclick="bulkToggleFeatured()">⭐ Destacar / Quitar</button>
-      <button class="btn btn-sm" onclick="bulkToggleOOS()">Agotado / Disponible</button>
-      <button class="btn btn-sm" onclick="bulkSetBadge()">Etiqueta</button>
-      <button class="btn btn-sm" id="bulk-publish-btn" onclick="bulkTogglePublish()">🌐 Publicar / Ocultar</button>
-      <button class="btn btn-sm" onclick="bulkExport()">Exportar</button>
-      <button class="btn btn-sm" onclick="_openAddToKit([...selectedIds])">🎁 A un kit</button>
+      <button class="btn btn-sm" id="bulk-publish-btn" onclick="bulkTogglePublish()">🌐 Visibilidad</button>
+      <button class="btn btn-sm" onclick="bulkToggleOOS()">📦 Disponibilidad</button>
+      <button class="btn btn-sm" onclick="bulkSetCategory()">🗂️ Cambiar categoría</button>
+      <button class="btn btn-sm" onclick="bulkFlag()">🚩 Revisar</button>
+      <button class="btn btn-sm" onclick="bulkToggleFeatured()">⭐ Destacar</button>
       <button class="btn btn-sm" onclick="bulkMoveToTop()">📌 Al inicio</button>
-      <button class="btn btn-sm" onclick="bulkRestock()">📦 Reabastecer</button>
-      <button class="btn btn-red btn-sm" onclick="bulkDelete()">Eliminar ✕</button>
+      <button class="btn btn-sm" onclick="_openAddToKit([...selectedIds])">🎁 A un kit</button>
+      <button class="btn btn-sm" onclick="bulkSetBadge()">🏷️ Asignar etiqueta</button>
+      <button class="btn btn-sm" id="bulk-compare-btn" onclick="openCompareModal()" style="display:none">⚖️ Comparar</button>
+      <button class="btn btn-red btn-sm" onclick="bulkDelete()">🗑️ Eliminar</button>
     </div>
 
     <!-- SRP eliminado — escanear barcode abre el QV directamente -->
@@ -2235,7 +2231,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           </div>
         </div>
       </div>
-      <p style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px">Imágenes adicionales <span style="font-weight:400;letter-spacing:0;text-transform:none">(opcional)</span></p>
+      <p style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px">Galería de imágenes <span style="font-weight:400;letter-spacing:0;text-transform:none">(la primera = principal)</span></p>
       <div style="margin-bottom:4px">
         <div id="additional-images-strip" style="display:flex;gap:8px;flex-wrap:wrap;min-height:32px;margin-bottom:10px;align-items:flex-start"></div>
         <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
@@ -2249,7 +2245,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
           <input type="url" id="add-img-url-input" class="form-input" placeholder="Pega una URL de imagen…" style="flex:1">
           <button type="button" class="btn btn-outline btn-sm" onclick="addAdditionalImageUrl()">+ Agregar</button>
         </div>
-        <p style="font-size:.73rem;color:var(--muted-light);margin-top:5px;line-height:1.4">Máx. 5 · galería deslizable en el sitio</p>
+        <p style="font-size:.73rem;color:var(--muted-light);margin-top:5px;line-height:1.4">Máx. 6 en total · arrastra o usa ‹ › para reordenar · galería deslizable en el sitio</p>
       </div>
       <p class="form-section">📋 Información básica</p>
       <div class="form-row">
