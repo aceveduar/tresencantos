@@ -173,8 +173,8 @@ section{padding:80px 20px}
 /* ── PRODUCT CARD ── */
 .product-card{background:#fff;border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--border);transition:var(--ease);display:flex;flex-direction:column;cursor:pointer}
 .product-card:hover{transform:translateY(-6px);box-shadow:var(--shadow-lg);border-color:var(--gold)}
-.product-img-wrap{position:relative;padding-top:100%;overflow:hidden;background:var(--cream)}
-.product-img-wrap img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
+.product-img-wrap{position:relative;padding-top:100%;overflow:hidden;background:#fff}
+.product-img-wrap img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transition:transform .5s ease}
 .product-card:hover .product-img-wrap img{transform:scale(1.06)}
 .product-badge{position:absolute;top:10px;left:10px;font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:4px 10px;border-radius:50px;color:#fff}
 .badge-best{background:var(--gold)}

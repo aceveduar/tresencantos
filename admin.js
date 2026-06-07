@@ -80,16 +80,21 @@ document.addEventListener('dragend', () => { cancelAnimationFrame(_dragScrollRaf
 
 function _startMultiDrag(e) {
   _multiDrag = true;
+  document.getElementById('products-card-grid')?.classList.add('multi-dragging');
   const ghost = document.createElement('div');
   ghost.textContent = `${selectedIds.size} productos`;
   ghost.style.cssText = 'position:fixed;left:-9999px;top:0;background:var(--charcoal);color:#fff;padding:7px 16px;border-radius:50px;font-weight:700;font-size:.82rem;white-space:nowrap';
   document.body.appendChild(ghost);
   e.dataTransfer.setDragImage(ghost, 70, 18);
-  setTimeout(() => ghost.remove(), 0);
-  selectedIds.forEach(sid => {
-    document.querySelector(`tr[data-id="${sid}"]`)?.classList.add('dragging');
-    document.querySelector(`.admin-card[data-id="${sid}"]`)?.classList.add('card-dragging');
-  });
+  requestAnimationFrame(() => ghost.remove());
+  // setTimeout = igual que single drag: aplicar DESPUÉS de que dragstart termine
+  // Si se aplica card-dragging síncronamente, pointer-events:none cancela el drag en Chrome
+  setTimeout(() => {
+    selectedIds.forEach(sid => {
+      document.querySelector(`tr[data-id="${sid}"]`)?.classList.add('dragging');
+      document.querySelector(`.admin-card[data-id="${sid}"]`)?.classList.add('card-dragging');
+    });
+  }, 0);
 }
 
 function _doMultiDrop(targetId, insertBefore) {
@@ -102,7 +107,7 @@ function _doMultiDrop(targetId, insertBefore) {
   products.splice(0, products.length, ...rest);
   return true;
 }
-let currentSort = localStorage.getItem('te_admin_sort') || 'recent';
+let currentSort = localStorage.getItem('te_admin_sort') || 'created-new';
 let _adminPage = 1;
 const ADMIN_PAGE_SIZE = 50;
 let _realtimeChannel = null;
@@ -1130,6 +1135,15 @@ function _cardTap(e, id) {
   if (_catEditActive) return;
   if (e.target.closest('button,input,select,a,.stock-chip,.cat-label-inline,.drag-handle')) return;
 
+  // Ctrl/Cmd+clic → toggle selección directa en desktop
+  if (e.ctrlKey || e.metaKey) {
+    const newVal = !selectedIds.has(id);
+    const cb = document.querySelector(`[data-id="${id}"] .row-check`);
+    if (cb) cb.checked = newVal;
+    toggleRowSelect(id, newVal);
+    return;
+  }
+
   if (selectedIds.size > 0) {
     // Modo selección activo → tap alterna selección de esta card
     const newVal = !selectedIds.has(id);
@@ -1185,7 +1199,7 @@ function adminCard(p, editable = false) {
      ondrop="_cardDrop(event,${p.id})"
      style="cursor:pointer">
   <div class="ac-img-wrap">
-    <img class="ac-img" src="${p.image}" alt="${p.name}"
+    <img class="ac-img" src="${p.image}" alt="${p.name}" draggable="false"
          onerror="this.onerror=null;this.src='${fallback}'">
     <input type="checkbox" class="ac-check row-check"
            ${sel?'checked':''} onchange="toggleRowSelect(${p.id},this.checked)">
@@ -1868,15 +1882,16 @@ function initDragDrop() {
     });
     row.addEventListener('dragend', () => {
       _multiDrag = false;
+      document.getElementById('products-card-grid')?.classList.remove('multi-dragging');
       document.querySelectorAll('tr.dragging,.admin-card.card-dragging').forEach(el =>
         el.classList.remove('dragging','card-dragging'));
       document.querySelectorAll('tr.drop-above,tr.drop-below').forEach(r =>
         r.classList.remove('drop-above','drop-below'));
     });
     row.addEventListener('dragover', e => {
-      e.preventDefault();
       const tid = parseInt(row.dataset.id);
-      if (tid === dragSrcId || selectedIds.has(tid) && _multiDrag) return;
+      if (tid === dragSrcId || (_multiDrag && selectedIds.has(tid))) return; // sin preventDefault → cursor "no-drop"
+      e.preventDefault();
       const rect = row.getBoundingClientRect();
       const mid = rect.top + rect.height / 2;
       document.querySelectorAll('tr.drop-above,tr.drop-below').forEach(r =>
@@ -1887,6 +1902,7 @@ function initDragDrop() {
       e.preventDefault();
       const targetId = parseInt(row.dataset.id);
       if (targetId === dragSrcId) return;
+      if (_multiDrag && selectedIds.has(targetId)) return; // soltar sobre seleccionado = no-op real
       const isAbove = row.classList.contains('drop-above');
       if (_multiDrag) {
         _doMultiDrop(targetId, isAbove);
@@ -1918,6 +1934,7 @@ function _cardDragStart(e, id) {
 
 function _cardDragEnd(e) {
   _multiDrag = false;
+  document.getElementById('products-card-grid')?.classList.remove('multi-dragging');
   document.querySelectorAll('tr.dragging,.admin-card.card-dragging').forEach(el =>
     el.classList.remove('dragging','card-dragging'));
   document.querySelectorAll('.card-drop-before,.card-drop-after').forEach(c =>
@@ -1925,8 +1942,8 @@ function _cardDragEnd(e) {
 }
 
 function _cardDragOver(e, id) {
+  if (id === dragSrcId || (_multiDrag && selectedIds.has(id))) return; // sin preventDefault → cursor "no-drop"
   e.preventDefault();
-  if (id === dragSrcId || (_multiDrag && selectedIds.has(id))) return;
   document.querySelectorAll('.card-drop-before,.card-drop-after').forEach(c =>
     c.classList.remove('card-drop-before','card-drop-after'));
   const card = e.currentTarget;
@@ -1937,6 +1954,7 @@ function _cardDragOver(e, id) {
 function _cardDrop(e, targetId) {
   e.preventDefault();
   if (targetId === dragSrcId) return;
+  if (_multiDrag && selectedIds.has(targetId)) return; // soltar sobre seleccionado = no-op real
   const card = e.currentTarget;
   const isBefore = card.classList.contains('card-drop-before');
   card.classList.remove('card-drop-before','card-drop-after');
@@ -2526,7 +2544,7 @@ Formato: {"name":"...","description":"...","category":"","price":null}`;
         : null;
       const el = document.getElementById('f-category');
       el.value = match ? match.code : 'por_revisar';
-      el.dispatchEvent(new Event('change'));
+      syncCategoryLabel();
       if (match) flash(el);
     }
     // Precio detectado en imagen (plumón, etiqueta, impreso)
@@ -2639,7 +2657,7 @@ function openForm(id) {
     document.getElementById('f-id').value = '';
     document.getElementById('f-name').value = '';
     document.getElementById('f-category').value = 'por_revisar';
-    document.getElementById('f-category-label').value = categories[0]?.label || '';
+    document.getElementById('f-category-label').value = getCatLabel('por_revisar') || 'Por revisar';
     _updateFormCatBtn('por_revisar');
     document.getElementById('f-price').value = '';
     document.getElementById('f-original-price').value = '';
@@ -2736,40 +2754,69 @@ function _updateActiveFiltersBar() {
   if (!bar || !chipsEl) return;
 
   const chips = [];
-  const catVal = document.getElementById('cat-filter')?.value || 'all';
-  const sortVal = document.getElementById('sort-select')?.value || 'recent';
+  const catVal    = document.getElementById('cat-filter')?.value || 'all';
+  const sortVal   = document.getElementById('sort-select')?.value || 'recent';
   const searchVal = document.getElementById('search-input')?.value?.trim() || '';
 
-  if (searchVal) chips.push(`🔍 "${searchVal.length > 20 ? searchVal.slice(0,20)+'…' : searchVal}"`);
+  if (searchVal) chips.push({ label: `🔍 "${searchVal.length > 20 ? searchVal.slice(0,20)+'…' : searchVal}"`, type: 'search' });
 
   if (catVal !== 'all') {
     const cat = categories.find(c => c.code === catVal);
-    chips.push(`📂 ${cat?.label || catVal}`);
+    chips.push({ label: `📂 ${cat?.label || catVal}`, type: 'cat' });
   }
+
   const sortLabels = { 'name-az':'A→Z','name-za':'Z→A','price-desc':'$ Mayor','price-asc':'$ Menor','stock-asc':'Agotados primero','stock-desc':'En stock primero' };
-  if (sortLabels[sortVal]) chips.push(`↕ ${sortLabels[sortVal]}`);
+  if (sortLabels[sortVal]) chips.push({ label: `↕ ${sortLabels[sortVal]}`, type: 'sort' });
 
   if (_statFilter) {
     const statLabels = { 'con-stock':'Con stock','sin-stock':'Sin stock','ultima-pieza':'Última pieza','sin-publicar':'Sin publicar','sin-codigo':'Sin código','sin-categ':'Sin categoría','sin-precio':'Sin precio','imagen-base64':'Imagen base64' };
-    chips.push(statLabels[_statFilter] || _statFilter);
-    if (_statFilter === 'imagen-base64' && ROLE === 'superadmin') {
-      chips.push(`<button class="fac-chip fac-chip-action" onclick="migrateBase64ToDrive()">🚀 Migrar todas a Drive</button>`);
-    }
+    chips.push({ label: statLabels[_statFilter] || _statFilter, type: 'stat' });
   }
-  if (_showOnlyFlagged) chips.push('🚩 Por revisar');
+
+  if (_showOnlyFlagged) chips.push({ label: '🚩 Por revisar', type: 'flag' });
 
   const creatorVal = document.getElementById('creator-filter')?.value || 'all';
   if (creatorVal !== 'all') {
     const label = creatorVal === '__none__' ? 'Sin registro' : (_userNames[creatorVal] || creatorVal.split('@')[0]);
-    chips.push(`👤 ${label}`);
+    chips.push({ label: `👤 ${label}`, type: 'creator' });
   }
 
   if (chips.length > 0) {
-    chipsEl.innerHTML = chips.map(t => `<span class="fac-chip">${t}</span>`).join('');
+    chipsEl.innerHTML = chips.map(c =>
+      `<span class="fac-chip">${c.label}<button class="fac-chip-x" onclick="event.stopPropagation();_clearFilter('${c.type}')" title="Quitar filtro">×</button></span>`
+    ).join('') +
+    (_statFilter === 'imagen-base64' && ROLE === 'superadmin'
+      ? `<button class="fac-chip fac-chip-action" onclick="migrateBase64ToDrive()">🚀 Migrar todas a Drive</button>`
+      : '');
     bar.classList.add('visible');
   } else {
     bar.classList.remove('visible');
   }
+}
+
+function _clearFilter(type) {
+  _adminPage = 1;
+  if (type === 'search') {
+    const s = document.getElementById('search-input');
+    if (s) s.value = '';
+    _toggleSearchClear();
+  } else if (type === 'cat') {
+    const c = document.getElementById('cat-filter');
+    if (c) { c.value = 'all'; _updateCatFilterBtn(); }
+  } else if (type === 'sort') {
+    const sortSel = document.getElementById('sort-select');
+    if (sortSel) { sortSel.value = 'created-new'; currentSort = 'created-new'; localStorage.setItem('te_admin_sort','created-new'); }
+  } else if (type === 'stat') {
+    _statFilter = null;
+  } else if (type === 'flag') {
+    _showOnlyFlagged = false;
+    _syncFlagFilter();
+  } else if (type === 'creator') {
+    const creatorSel = document.getElementById('creator-filter');
+    if (creatorSel) creatorSel.value = 'all';
+  }
+  renderTable();
+  renderStats();
 }
 
 function clearAdminFilters() {
@@ -3198,7 +3245,7 @@ async function saveProduct() {
     kitItems: document.getElementById('f-is-kit').checked && _kitItemsEdit.length
       ? _kitItemsEdit.map(item => {
           const prod = products.find(x => x.id === item.id);
-          return { ...item, image: prod?.image || item.image || null };
+          return { ...item, name: prod?.name || item.name, image: prod?.image || item.image || null };
         })
       : null,
     images: _additionalImagesEdit.length ? _additionalImagesEdit : null
@@ -3296,6 +3343,8 @@ async function saveProduct() {
     TE?.track('product_saved', { action: 'add', name });
   }
   _formSnapshot = null;
+  // Sync: si editamos un producto que es componente de algún kit, actualizar nombre/imagen en esos kits
+  if (idVal) _syncKitRefs(parseInt(idVal), name, data.image);
   // Ir a "Recientes" para que el producto guardado aparezca al inicio
   const _sortSel = document.getElementById('sort-select');
   if (_sortSel) { _sortSel.value = 'recent'; currentSort = 'recent'; }
@@ -3306,6 +3355,22 @@ async function saveProduct() {
     toast('Producto guardado sin precio — asígnalo antes de publicar en la tienda', 'warn');
   } else {
     toast(idVal ? 'Guardado ✓' : 'Producto agregado ✓');
+  }
+}
+
+async function _syncKitRefs(productId, newName, newImage) {
+  const kits = products.filter(p => p.kitItems?.some(item => item.id === productId));
+  if (!kits.length) return;
+  for (const kit of kits) {
+    const updated = kit.kitItems.map(item =>
+      item.id === productId ? { ...item, name: newName, image: newImage || item.image } : item
+    );
+    kit.kitItems = updated;
+    await supabaseApi(`products?id=eq.${kit.id}`, {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ kit_items: updated })
+    });
   }
 }
 
@@ -3366,7 +3431,7 @@ function renderKitEditor() {
     return `
 <div class="kit-comp-row">
   ${p?.image ? `<img src="${p.image}" class="kit-comp-img" onerror="this.style.display='none'" onclick="_kitCompPopover(${item.id},event)" style="cursor:zoom-in" title="Ver producto">` : '<div class="kit-comp-img"></div>'}
-  <span class="kit-comp-name" onclick="_kitCompPopover(${item.id},event)" style="cursor:pointer" title="Ver producto">${item.name}</span>
+  <span class="kit-comp-name" onclick="_kitCompPopover(${item.id},event)" style="cursor:pointer" title="Ver producto">${p?.name || item.name}</span>
   <span class="kit-comp-stock">${stock}</span>
   <div class="kit-comp-qty">
     <button type="button" onclick="changeKitQty(${item.id},-1)">−</button>
@@ -3621,6 +3686,11 @@ async function handleAdditionalImageFile(input) {
 /* ── DELETE ── */
 function askDelete(id) {
   if (!can.deleteProduct) { toast('Solo el administrador puede eliminar productos', 'error'); return; }
+  const kitsAfectados = products.filter(p => p.kitItems?.some(item => item.id === id));
+  if (kitsAfectados.length) {
+    const nombres = kitsAfectados.map(k => `"${k.name}"`).join(', ');
+    if (!confirm(`Este producto es componente de ${kitsAfectados.length === 1 ? 'el kit' : 'los kits'} ${nombres}.\n\nAl eliminarlo esos kits quedarán sin stock. ¿Continuar?`)) return;
+  }
   deleteTargetId = id;
   document.getElementById('del-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -3763,6 +3833,78 @@ function _forcePositionSort() {
   localStorage.setItem('te_admin_sort', 'position');
   const sel = document.getElementById('sort-select');
   if (sel) sel.value = 'position';
+}
+
+/* ── ADD TO KIT ── */
+let _addToKitIds = [];
+
+function _openAddToKit(ids) {
+  const kits = products.filter(p => p.kitItems?.length).sort((a, b) => b.id - a.id);
+  if (!kits.length) { toast('No hay kits en el catálogo — crea uno primero con el botón 🎁', ''); return; }
+  _addToKitIds = ids;
+  const sub = document.getElementById('atk-sub');
+  if (sub) {
+    const names = ids.slice(0, 3).map(id => products.find(p => p.id === id)?.name || '').filter(Boolean);
+    sub.textContent = names.join(', ') + (ids.length > 3 ? ` y ${ids.length - 3} más` : '');
+  }
+  const list = document.getElementById('atk-list');
+  if (list) {
+    list.innerHTML = kits.map(kit => {
+      const compNames = (kit.kitItems || []).map(i => products.find(p => p.id === i.id)?.name || i.name).join(', ');
+      return `<div class="atk-kit-row" onclick="_confirmAddToKit(${kit.id})">
+        <img class="atk-kit-img" src="${kit.image || DEFAULT_IMG}" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
+        <div class="atk-kit-info">
+          <div class="atk-kit-name">${kit.name}</div>
+          <div class="atk-kit-comps">${kit.kitItems?.length || 0} componentes · ${compNames.slice(0,60)}${compNames.length>60?'…':''}</div>
+        </div>
+        <button class="atk-kit-add" onclick="event.stopPropagation();_confirmAddToKit(${kit.id})">Agregar</button>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('atk-overlay').classList.add('open');
+}
+
+function _closeAddToKit() {
+  document.getElementById('atk-overlay').classList.remove('open');
+  _addToKitIds = [];
+}
+
+async function _confirmAddToKit(kitId) {
+  const kit = products.find(p => p.id === kitId);
+  if (!kit) return;
+  _closeAddToKit();
+
+  const existing = new Set((kit.kitItems || []).map(i => i.id));
+  const toAdd = _addToKitIds
+    .filter(id => !existing.has(id))
+    .map(id => {
+      const p = products.find(x => x.id === id);
+      return p ? { id: p.id, name: p.name, qty: 1, image: p.image || null } : null;
+    })
+    .filter(Boolean);
+
+  if (!toAdd.length) {
+    toast('Todos los productos seleccionados ya están en ese kit', '');
+    return;
+  }
+
+  const updated = [...(kit.kitItems || []), ...toAdd];
+  kit.kitItems = updated;
+
+  const result = await supabaseApi(`products?id=eq.${kitId}`, {
+    method: 'PATCH',
+    headers: { 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ kit_items: updated })
+  });
+
+  if (!result.ok) { toast('Error al actualizar el kit', 'error'); kit.kitItems = kit.kitItems.filter(i => !toAdd.find(a => a.id === i.id)); return; }
+
+  const skipped = _addToKitIds.length - toAdd.length;
+  const msg = skipped
+    ? `${toAdd.length} agregado${toAdd.length>1?'s':''} a "${kit.name}" · ${skipped} ya estaba${skipped>1?'n':''}`
+    : `${toAdd.length} agregado${toAdd.length>1?'s':''} a "${kit.name}"`;
+  toast(msg);
+  logActivity('producto_editado', `Agregó ${toAdd.length} producto(s) al kit "${kit.name}"`, { id: kitId, name: kit.name });
 }
 
 /* ── BULK ACTIONS ── */
@@ -6880,7 +7022,7 @@ function _renderQV(p) {
           const clickable = comp ? `onclick="_kitCompPopup(${comp.id},this)" style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-light);cursor:pointer;border-radius:6px;transition:background .15s" onmouseenter="this.style.background='var(--gold-light)'" onmouseleave="this.style.background=''"` : `style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-light)"`;
           return `<div ${clickable}>
             <img src="${comp?.image || DEFAULT_IMG}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0;background:#F0EBE3" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
-            <span style="flex:1;font-size:.82rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${item.name}</span>
+            <span style="flex:1;font-size:.82rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${comp?.name || item.name}</span>
             <span style="font-size:.75rem;color:var(--muted);font-weight:600;flex-shrink:0">×${item.qty}</span>
           </div>`;
         }).join('');
@@ -6930,7 +7072,10 @@ function _renderQV(p) {
   const btnTop = can.editProduct
     ? `<button class="qv-btn qv-btn-dup" onclick="moveToTop(${p.id})">📌 Al inicio</button>`
     : '';
-  document.getElementById('qv-actions').innerHTML = btnEdit + btnPub + btnTop + btnDup + btnFlag + btnDel;
+  const btnAddKit = can.editProduct && !p.kitItems?.length
+    ? `<button class="qv-btn qv-btn-dup" onclick="_openAddToKit([${p.id}])">🎁 A un kit</button>`
+    : '';
+  document.getElementById('qv-actions').innerHTML = btnEdit + btnPub + btnTop + btnDup + btnAddKit + btnFlag + btnDel;
 }
 
 async function _qvTogglePublished(id) {
@@ -7340,54 +7485,6 @@ async function _saveKit() {
   toast(`🎁 Kit "${name}" creado`, '');
 }
 
-async function _dismantleKit(id) {
-  const p = products.find(x => x.id === id);
-  if (!p?.kitItems?.length) return;
-
-  if (!confirm(`¿Desarmar el kit "${p.name}"?\n\nSe convertirá en un producto individual. Tendrás que asignarle stock manualmente.`)) return;
-
-  const restoreStock = confirm(`¿Devolver stock a los componentes?\n\nSe sumará 1 unidad de cada componente al stock actual.`);
-  const kitBackup = JSON.parse(JSON.stringify(p.kitItems));
-
-  const patches = [
-    supabaseApi(`products?id=eq.${id}`, {
-      method: 'PATCH',
-      headers: { 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ kit_items: null, stock: 0, out_of_stock: true })
-    })
-  ];
-
-  if (restoreStock) {
-    kitBackup.forEach(comp => {
-      const compProd = products.find(x => x.id === comp.id);
-      if (!compProd) return;
-      const newStock = (compProd.stock || 0) + comp.qty;
-      patches.push(supabaseApi(`products?id=eq.${comp.id}`, {
-        method: 'PATCH',
-        headers: { 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ stock: newStock, out_of_stock: false })
-      }));
-    });
-  }
-
-  const results = await Promise.all(patches);
-  if (!results[0].ok) { toast('Error al desarmar el kit', 'error'); return; }
-
-  // Actualizar array local
-  p.kitItems = null; p.stock = 0; p.outOfStock = true;
-  if (restoreStock) {
-    kitBackup.forEach(comp => {
-      const compProd = products.find(x => x.id === comp.id);
-      if (compProd) { compProd.stock = (compProd.stock || 0) + comp.qty; compProd.outOfStock = false; }
-    });
-  }
-
-  closeQV();
-  renderTable();
-  renderStats();
-  logActivity('producto_editado', `Desarmó kit "${p.name}"${restoreStock ? ' — stock devuelto a componentes' : ''}`, { id, name: p.name });
-  toast(`📦 Kit "${p.name}" desarmado${restoreStock ? ' · stock devuelto a componentes' : ''}`, '');
-}
 
 /* ══════════════════════════════════════════════════════════════════
    CARGA MASIVA CON IA — solo superadmin

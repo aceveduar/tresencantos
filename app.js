@@ -32,6 +32,15 @@ function _descHtml(desc) {
   return s;
 }
 
+function _descText(desc) {
+  if (!desc) return '';
+  return desc
+    .replace(/\*\*/g, '').replace(/\*/g, '')
+    .replace(/^[•\-]\s*/gm, '')
+    .replace(/\n+/g, ' ')
+    .trim();
+}
+
 /* ── CARRITO ── */
 let cart = JSON.parse(localStorage.getItem('te_cart') || '[]');
 
@@ -458,7 +467,7 @@ function cardHTML(p) {
   <div class="product-body">
     <p class="product-cat">${p.categoryLabel}</p>
     <h3>${p.name}</h3>
-    <p class="product-desc">${_descHtml(p.description)}</p>
+    <p class="product-desc">${_descText(p.description)}</p>
     <div class="product-footer">
       ${priceHTML}
       ${buyBtn}

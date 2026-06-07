@@ -46,16 +46,17 @@ button,a{touch-action:manipulation}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:50px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;transition:.15s;white-space:nowrap}
 .btn-outline-white{background:transparent;border:1.5px solid rgba(255,255,255,.35);color:#fff}
 /* Historial y Corte en topbar — estilo tbn-icon */
-#btn-history-pos,#btn-corte-pos{
+#btn-history-pos,#btn-corte-pos,#btn-apt-pos{
   display:flex;flex-direction:column;align-items:center;gap:2px;
   padding:5px 11px;border-radius:9px;border:none;
   background:transparent;color:rgba(255,255,255,.6);
   cursor:pointer;font-family:inherit;font-size:.52rem;font-weight:600;
   letter-spacing:.03em;transition:color .15s,background .15s;
-  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;position:relative;
 }
-#btn-history-pos:hover,#btn-corte-pos:hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.09)}
-#btn-history-pos:active,#btn-corte-pos:active{opacity:.6;transform:scale(.9)}
+#btn-history-pos:hover,#btn-corte-pos:hover,#btn-apt-pos:hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.09)}
+#btn-history-pos:active,#btn-corte-pos:active,#btn-apt-pos:active{opacity:.6;transform:scale(.9)}
+#btn-apt-badge{position:absolute;top:2px;right:4px;background:var(--gold);color:#fff;font-size:.48rem;font-weight:800;min-width:14px;height:14px;border-radius:50%;display:none;align-items:center;justify-content:center;border:1.5px solid var(--charcoal)}
 .btn-outline-white:hover{background:rgba(255,255,255,.1)}
 .btn-gold{background:var(--gold);color:#fff}
 .btn-gold:hover{background:var(--gold-dark)}
@@ -898,8 +899,8 @@ button,a{touch-action:manipulation}
   .topbar-left{flex:1;display:flex;align-items:center}
   .topbar-right{flex:1;justify-content:flex-end}
   .topbar-nav-mobile{position:absolute;left:50%;transform:translateX(-50%)}
-  #btn-corte-pos .btn-label,#btn-history-pos .btn-label{display:inline;font-size:.52rem}
-  #btn-corte-pos,#btn-history-pos{padding:5px 12px!important;gap:3px!important;}
+  #btn-corte-pos .btn-label,#btn-history-pos .btn-label,#btn-apt-pos .btn-label{display:inline;font-size:.52rem}
+  #btn-corte-pos,#btn-history-pos,#btn-apt-pos{padding:5px 12px!important;gap:3px!important;}
 }
 </style>
 </head>
@@ -919,6 +920,11 @@ button,a{touch-action:manipulation}
   <!-- DERECHA: acciones de Caja + nav de módulos + usuario + salir -->
   <div class="topbar-right">
     <button id="apt-vencidos-alert" style="display:none;background:#FEE2E2;color:#E85D5D;border:1.5px solid #FECACA;border-radius:50px;padding:4px 12px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s" onclick="openApartados()" title="Ver apartados vencidos">⚠️ <span id="apt-vencidos-count"></span></button>
+    <button id="btn-apt-pos" onclick="openApartados()" title="Apartados">
+      <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+      <span class="btn-label">Apartados</span>
+      <span id="btn-apt-badge"></span>
+    </button>
     <button id="btn-history-pos" onclick="openHistory()" title="Historial de ventas">
       <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       <span class="btn-label">Historial</span>
