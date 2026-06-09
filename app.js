@@ -5,6 +5,7 @@ const SUPABASE_URL = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjYyMjYsImV4cCI6MjA5NDEwMjIyNn0.irCFwOR5HL_ZOVjFGVw9LqmzYicDZTNEmxcknu_j6cI';
 
 const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const PROD_PLACEHOLDER = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22400%22%20viewBox%3D%220%200%20400%20400%22%3E%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22%23F7F2EB%22%2F%3E%3Crect%20x%3D%22130%22%20y%3D%22100%22%20width%3D%22140%22%20height%3D%22140%22%20rx%3D%2210%22%20fill%3D%22none%22%20stroke%3D%22%23D4BC94%22%20stroke-width%3D%223%22%2F%3E%3Ccircle%20cx%3D%22158%22%20cy%3D%22127%22%20r%3D%2214%22%20fill%3D%22%23D4BC94%22%2F%3E%3Cpath%20d%3D%22M130%20210%20L175%20165%20L210%20195%20L255%20150%20L280%20180%20L280%20240%20L130%20240Z%22%20fill%3D%22%23D4BC94%22%20fill-opacity%3D%22.4%22%2F%3E%3C%2Fsvg%3E';
 
 let products = [];
 let publicCategories = [];
@@ -44,7 +45,7 @@ function _descText(desc) {
 }
 
 /* ── CARRITO ── */
-let cart = JSON.parse(localStorage.getItem('te_cart') || '[]');
+let cart; try { cart = JSON.parse(localStorage.getItem('te_cart') || '[]'); } catch { cart = []; }
 
 function saveCart() { localStorage.setItem('te_cart', JSON.stringify(cart)); }
 
@@ -120,7 +121,7 @@ function renderCartBody() {
   }
   body.innerHTML = cart.map(item => `
 <div class="cart-item">
-  <img class="cart-item-img" src="${item.image}" alt="${item.name}" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22400%22%20viewBox%3D%220%200%20400%20400%22%3E%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22%23F7F2EB%22%2F%3E%3Crect%20x%3D%22130%22%20y%3D%22100%22%20width%3D%22140%22%20height%3D%22140%22%20rx%3D%2210%22%20fill%3D%22none%22%20stroke%3D%22%23D4BC94%22%20stroke-width%3D%223%22%2F%3E%3Ccircle%20cx%3D%22158%22%20cy%3D%22127%22%20r%3D%2214%22%20fill%3D%22%23D4BC94%22%2F%3E%3Cpath%20d%3D%22M130%20210%20L175%20165%20L210%20195%20L255%20150%20L280%20180%20L280%20240%20L130%20240Z%22%20fill%3D%22%23D4BC94%22%20fill-opacity%3D%22.4%22%2F%3E%3C%2Fsvg%3E'">
+  <img class="cart-item-img" src="${item.image}" alt="${item.name}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
   <div class="cart-item-info">
     <div class="cart-item-name">${item.name}</div>
     <div class="cart-item-price">$${item.price.toLocaleString('es-MX')} MXN</div>
@@ -451,8 +452,7 @@ function cardHTML(p) {
     badgeArea = `<span class="product-badge badge-${p.badgeType||'best'}">${_esc(p.badge)}</span>`;
   }
 
-  const urgencyTag = '';
-  const fallback = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22400%22%20viewBox%3D%220%200%20400%20400%22%3E%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22%23F7F2EB%22%2F%3E%3Crect%20x%3D%22130%22%20y%3D%22100%22%20width%3D%22140%22%20height%3D%22140%22%20rx%3D%2210%22%20fill%3D%22none%22%20stroke%3D%22%23D4BC94%22%20stroke-width%3D%223%22%2F%3E%3Ccircle%20cx%3D%22158%22%20cy%3D%22127%22%20r%3D%2214%22%20fill%3D%22%23D4BC94%22%2F%3E%3Cpath%20d%3D%22M130%20210%20L175%20165%20L210%20195%20L255%20150%20L280%20180%20L280%20240%20L130%20240Z%22%20fill%3D%22%23D4BC94%22%20fill-opacity%3D%22.4%22%2F%3E%3C%2Fsvg%3E';
+  const urgencyTag = '';
   const priceHTML = pct > 0
     ? `<div class="product-price"><s class="price-before">$${p.originalPrice.toLocaleString('es-MX')}</s> $${p.price.toLocaleString('es-MX')}</div>`
     : `<div class="product-price">$${p.price.toLocaleString('es-MX')}</div>`;
@@ -463,7 +463,7 @@ function cardHTML(p) {
   return `
 <article class="product-card reveal${oos ? ' card-oos' : ''}" onclick="openModal(${p.id})">
   <div class="product-img-wrap">
-    <img src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${fallback}'">
+    <img src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
     ${oosTag}${badgeArea}${urgencyTag}
   </div>
   <div class="product-body">
@@ -483,11 +483,10 @@ function renderHeroMobileStrip() {
   const container = document.getElementById('hero-mobile-strip');
   if (!container) return;
   const items = products.filter(p => p.featured);
-  if (!items.length) return;
-  const fallback = () => 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22400%22%20viewBox%3D%220%200%20400%20400%22%3E%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22%23F7F2EB%22%2F%3E%3Crect%20x%3D%22130%22%20y%3D%22100%22%20width%3D%22140%22%20height%3D%22140%22%20rx%3D%2210%22%20fill%3D%22none%22%20stroke%3D%22%23D4BC94%22%20stroke-width%3D%223%22%2F%3E%3Ccircle%20cx%3D%22158%22%20cy%3D%22127%22%20r%3D%2214%22%20fill%3D%22%23D4BC94%22%2F%3E%3Cpath%20d%3D%22M130%20210%20L175%20165%20L210%20195%20L255%20150%20L280%20180%20L280%20240%20L130%20240Z%22%20fill%3D%22%23D4BC94%22%20fill-opacity%3D%22.4%22%2F%3E%3C%2Fsvg%3E';
+  if (!items.length) return;
   const cardHTML = p => `
 <div class="hms-card" onclick="openModal(${p.id})">
-  <img src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${fallback(p.id)}'">
+  <img src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
   <div class="hms-info">
     <div class="hms-name">${_esc(p.name)}</div>
     <div class="hms-price">$${p.price.toLocaleString('es-MX')}</div>
@@ -505,11 +504,10 @@ function renderHeroVisual() {
   const container = document.getElementById('hero-visual');
   if (!container) return;
   const items = products.filter(p => p.featured).slice(0, 3);
-  if (!items.length) return;
-  const fallback = () => 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22400%22%20viewBox%3D%220%200%20400%20400%22%3E%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22%23F7F2EB%22%2F%3E%3Crect%20x%3D%22130%22%20y%3D%22100%22%20width%3D%22140%22%20height%3D%22140%22%20rx%3D%2210%22%20fill%3D%22none%22%20stroke%3D%22%23D4BC94%22%20stroke-width%3D%223%22%2F%3E%3Ccircle%20cx%3D%22158%22%20cy%3D%22127%22%20r%3D%2214%22%20fill%3D%22%23D4BC94%22%2F%3E%3Cpath%20d%3D%22M130%20210%20L175%20165%20L210%20195%20L255%20150%20L280%20180%20L280%20240%20L130%20240Z%22%20fill%3D%22%23D4BC94%22%20fill-opacity%3D%22.4%22%2F%3E%3C%2Fsvg%3E';
+  if (!items.length) return;
   container.innerHTML = items.map(p => `
 <div class="hc" onclick="openModal(${p.id})">
-  <img src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${fallback(p.id)}'">
+  <img src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
   <div class="hc-info">
     <div class="hc-name">${_esc(p.name)}</div>
     <div class="hc-price">$${p.price.toLocaleString('es-MX')}</div>
@@ -535,12 +533,11 @@ function renderNatura() {
   if (!list.length) {
     document.querySelector('.natura-carousel')?.style.setProperty('display','none');
     return;
-  }
-  const fb = () => 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22400%22%20viewBox%3D%220%200%20400%20400%22%3E%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22%23F7F2EB%22%2F%3E%3Crect%20x%3D%22130%22%20y%3D%22100%22%20width%3D%22140%22%20height%3D%22140%22%20rx%3D%2210%22%20fill%3D%22none%22%20stroke%3D%22%23D4BC94%22%20stroke-width%3D%223%22%2F%3E%3Ccircle%20cx%3D%22158%22%20cy%3D%22127%22%20r%3D%2214%22%20fill%3D%22%23D4BC94%22%2F%3E%3Cpath%20d%3D%22M130%20210%20L175%20165%20L210%20195%20L255%20150%20L280%20180%20L280%20240%20L130%20240Z%22%20fill%3D%22%23D4BC94%22%20fill-opacity%3D%22.4%22%2F%3E%3C%2Fsvg%3E';
+  }
   wrap.innerHTML = list.map(p => `
 <div class="nc-card" onclick="openModal(${p.id})">
   <div class="nc-img-wrap">
-    <img src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${fb(p.id)}'">
+    <img src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
     <div class="nc-overlay"><span>Ver producto →</span></div>
   </div>
   <div class="nc-info">
@@ -825,8 +822,7 @@ function openModal(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   activeProduct = p;
-  _modalQty = 1;
-  const fallback = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22400%22%20viewBox%3D%220%200%20400%20400%22%3E%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22%23F7F2EB%22%2F%3E%3Crect%20x%3D%22130%22%20y%3D%22100%22%20width%3D%22140%22%20height%3D%22140%22%20rx%3D%2210%22%20fill%3D%22none%22%20stroke%3D%22%23D4BC94%22%20stroke-width%3D%223%22%2F%3E%3Ccircle%20cx%3D%22158%22%20cy%3D%22127%22%20r%3D%2214%22%20fill%3D%22%23D4BC94%22%2F%3E%3Cpath%20d%3D%22M130%20210%20L175%20165%20L210%20195%20L255%20150%20L280%20180%20L280%20240%20L130%20240Z%22%20fill%3D%22%23D4BC94%22%20fill-opacity%3D%22.4%22%2F%3E%3C%2Fsvg%3E';
+  _modalQty = 1;
   const oos = isOos(p);
   const pct = discountPct(p);
 
@@ -894,12 +890,12 @@ function openModal(id) {
   const hasGallery = allImgs.length > 1;
   const galleryHTML = hasGallery
     ? `<div class="modal-gallery" id="modal-gallery" onscroll="_updateGalleryDots(this)">
-        ${allImgs.map((src, i) => `<img class="modal-gallery-img" src="${src}" alt="${_esc(p.name)} ${i+1}" onerror="this.onerror=null;this.src='${fallback}'"${oos && i===0 ? ' style="filter:grayscale(.4)"' : ''}>`).join('')}
+        ${allImgs.map((src, i) => `<img class="modal-gallery-img" src="${src}" alt="${_esc(p.name)} ${i+1}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'"${oos && i===0 ? ' style="filter:grayscale(.4)"' : ''}>`).join('')}
        </div>
        <div class="modal-gallery-dots" id="modal-gallery-dots">
          ${allImgs.map((_,i) => `<span class="mgd${i===0?' mgd-active':''}" onclick="_goToGalleryImg(${i})"></span>`).join('')}
        </div>`
-    : `<img class="modal-img" src="${p.image}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${fallback}'"${oos ? ' style="filter:grayscale(.4)"' : ''}>`;
+    : `<img class="modal-img" src="${p.image}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'"${oos ? ' style="filter:grayscale(.4)"' : ''}>`;
 
   const overlay = document.getElementById('modal-overlay');
   overlay.innerHTML = `

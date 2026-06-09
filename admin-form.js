@@ -1,5 +1,6 @@
 /* ── FORM ── */
 let _formSnapshot = null;
+let _savingProduct = false;
 
 function _takeFormSnapshot() {
   const ids = ['f-name','f-price','f-original-price','f-description','f-image','f-category','f-badge','f-badge-type','f-barcode','f-stock','f-cost'];
@@ -707,6 +708,8 @@ async function saveProduct() {
     ...(!idVal ? { created_by: getCurrentUserEmail() } : {})
   };
 
+  if (_savingProduct) return;
+  _savingProduct = true;
   const saveBtn = document.getElementById('save-btn');
   setBtn(saveBtn, true, idVal ? 'Actualizando...' : 'Guardando...');
 
@@ -724,6 +727,7 @@ async function saveProduct() {
         body: JSON.stringify(dbPayload)
       });
       if (!result.ok) {
+        _savingProduct = false;
         setBtn(saveBtn, false);
         const errMsg = result.data?.message || result.data?.hint || `HTTP ${result.status}`;
         toast(`Error al actualizar: ${errMsg}`, 'error');
@@ -747,12 +751,14 @@ async function saveProduct() {
       });
     } catch (err) {
       products.pop();
+      _savingProduct = false;
       setBtn(saveBtn, false);
       toast(`Error de red al guardar: sin conexión o tiempo de espera agotado`, 'error');
       return;
     }
     if (!result.ok) {
       products.pop();
+      _savingProduct = false;
       setBtn(saveBtn, false);
       const errMsg = result.data?.message || result.data?.hint || `HTTP ${result.status}`;
       toast(`Error al guardar: ${errMsg}`, 'error');
@@ -771,6 +777,7 @@ async function saveProduct() {
     TE?.track('product_saved', { action: 'add', name });
   }
   _formSnapshot = null;
+  _savingProduct = false;
   // Sync: si editamos un producto que es componente de algún kit, actualizar nombre/imagen en esos kits
   if (idVal) _syncKitRefs(parseInt(idVal), name, data.image);
   // Ir a "Recientes" para que el producto guardado aparezca al inicio
