@@ -318,7 +318,7 @@ function _renderApartadoCards(data) {
     <div class="apt-btns">
       <button class="btn-wa-reminder" onclick="event.stopPropagation();sendApartadoReminder(${s.id})" title="Recordatorio WhatsApp">💬</button>
       ${canEditApartado() ? `<button class="btn-wa-reminder" onclick="event.stopPropagation();openEditApartado(${s.id})" title="Editar" style="background:#F7F2EB;color:var(--charcoal);border:1.5px solid var(--border)">✏️</button>` : ''}
-      <button class="btn-abonar" onclick="event.stopPropagation();abonarApartado('${s.id}','${total}','${pagado}','${nombre.replace(/'/g,"\\'")}')">+ Abonar</button>
+      <button class="btn-abonar" onclick="event.stopPropagation();abonarApartado('${s.id}','${total}','${pagado}','${_esc(nombre).replace(/'/g,"\\'")}')">+ Abonar</button>
       <button class="btn-liquidar" onclick="event.stopPropagation();openLiqModal(${s.id})">✓ Liquidar</button>
       ${canEditApartado() ? `<button class="btn-cancelar-apt" onclick="event.stopPropagation();cancelApartado(${s.id})" title="Cancelar apartado">✕</button>` : ''}
     </div>
@@ -610,7 +610,7 @@ function searchEditApt(q) {
     const oos = p.outOfStock || p.stock === 0;
     return `<div onclick="_editAptAddProduct(${p.id})" style="cursor:pointer;padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:.82rem;border-bottom:1px solid var(--border);${oos?'opacity:.65':''}">
       <img src="${p.image}" style="width:28px;height:28px;object-fit:cover;border-radius:5px;flex-shrink:0" onerror="this.style.display='none'">
-      <span style="flex:1;font-weight:600">${p.name}</span>
+      <span style="flex:1;font-weight:600">${_esc(p.name)}</span>
       <span style="color:${oos?'var(--red)':'var(--muted)'};font-size:.74rem">${oos?'Sin stock':'$'+p.price.toLocaleString('es-MX')}</span>
     </div>`;
   }).join('');

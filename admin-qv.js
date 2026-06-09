@@ -565,7 +565,7 @@ function _renderQV(p) {
     : `<span class="qv-chip qv-chip-ok">✓ Disponible</span>`;
   const stockCls = p.stock === 0 ? 'qv-chip-sold' : p.stock === 1 ? '' : 'qv-chip-ok';
   const featChip    = p.featured ? `<span class="qv-chip">⭐ Destacado</span>` : '';
-  const barcodeChip = p.barcode  ? `<span class="qv-chip">🔲 ${p.barcode}</span>` : '';
+  const barcodeChip = p.barcode  ? `<span class="qv-chip">🔲 ${_esc(p.barcode)}</span>` : '';
   let marginChip = '';
   if (p.cost && p.price > 0) {
     const m = Math.round((1 - p.cost / p.price) * 100);
@@ -652,7 +652,7 @@ function _renderQV(p) {
 
   // ID + barcode en una línea
   const idEl = document.getElementById('qv-id');
-  idEl.innerHTML = `<span style="font-family:monospace">ID #${p.id}</span>${p.barcode ? `<span style="font-family:monospace;color:var(--muted)">· ${p.barcode}</span>` : ''}`;
+  idEl.innerHTML = `<span style="font-family:monospace">ID #${p.id}</span>${p.barcode ? `<span style="font-family:monospace;color:var(--muted)">· ${_esc(p.barcode)}</span>` : ''}`;
 
   // Botones de acción
   const btnEdit = can.editProduct

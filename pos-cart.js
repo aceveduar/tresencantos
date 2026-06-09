@@ -28,12 +28,12 @@ function renderFrecuentes(hide) {
   if (top.length < 3) { el.classList.remove('visible'); return; }
   el.innerHTML = `<span class="pos-freq-label">Freq.</span>` +
     top.map(p => `
-<div class="pos-freq-card" onclick="addToCart(${p.id})" title="${p.name}">
+<div class="pos-freq-card" onclick="addToCart(${p.id})" title="${_esc(p.name)}">
   <div class="pos-freq-img-wrap">
-    <img class="pos-freq-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
+    <img class="pos-freq-img" src="${p.image}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
     <div class="pos-freq-add"><span class="pos-freq-add-icon">+</span></div>
   </div>
-  <span class="pos-freq-name">${p.name}</span>
+  <span class="pos-freq-name">${_esc(p.name)}</span>
   <span class="pos-freq-price">$${p.price.toLocaleString('es-MX')}</span>
 </div>`).join('');
   el.classList.add('visible');
@@ -274,8 +274,8 @@ function renderCartPreview() {
     const effPrice = customPrice ?? p.price;
     return `
 <div class="cp-item">
-  <img class="cp-item-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
-  <span class="cp-item-name" title="${p.name}">${p.name}</span>
+  <img class="cp-item-img" src="${p.image}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
+  <span class="cp-item-name" title="${_esc(p.name)}">${_esc(p.name)}</span>
   <span class="cp-item-qty">×${qty}</span>
   <span class="cp-item-sub">$${(effPrice*qty).toLocaleString('es-MX')}</span>
 </div>`;
@@ -329,13 +329,13 @@ function renderCart() {
       ? `<span style="text-decoration:line-through;opacity:.45;font-size:.65rem;margin-right:3px">$${p.price.toLocaleString('es-MX')}</span>$${effPrice.toLocaleString('es-MX')}`
       : `$${effPrice.toLocaleString('es-MX')}`;
     const kitSub = p.kitItems?.length
-      ? `<div style="font-size:.7rem;color:#9B8B78;margin-top:1px">🎁 ${p.kitItems.map(c=>`${c.qty>1?c.qty+'× ':''}${c.name}`).join(', ')}</div>`
+      ? `<div style="font-size:.7rem;color:#9B8B78;margin-top:1px">🎁 ${_esc(p.kitItems.map(c=>`${c.qty>1?c.qty+'× ':''}${c.name}`).join(', '))}</div>`
       : '';
     return `
 <div class="cart-item" data-pid="${p.id}">
-  <img class="ci-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
+  <img class="ci-img" src="${p.image}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
   <div class="ci-info">
-    <div class="ci-name">${p.name}</div>
+    <div class="ci-name">${_esc(p.name)}</div>
     ${kitSub}
     <span class="ci-price${isCustom?' ci-price-custom':''}" onclick="editPriceInline(${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar precio">${priceLabel} c/u</span>
     <div class="ci-row2">

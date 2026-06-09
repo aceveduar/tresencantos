@@ -127,7 +127,7 @@ function _kbSearch(q) {
     <div class="kb-result-item" onclick="_kbAddComponent(${p.id})" style="${isOos ? 'opacity:.75' : ''}">
       <img src="${p.image}" style="width:36px;height:36px;object-fit:cover;border-radius:7px;flex-shrink:0;background:#F0EBE3" onerror="this.src='${DEFAULT_IMG}'">
       <div style="flex:1;min-width:0">
-        <div style="font-size:.84rem;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${p.name}</div>
+        <div style="font-size:.84rem;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${_esc(p.name)}</div>
         <div style="font-size:.72rem;color:var(--muted);margin-top:1px">${stockTxt}</div>
       </div>
       <span style="font-size:.75rem;color:var(--gold);font-weight:700;flex-shrink:0">+ agregar</span>
@@ -259,7 +259,7 @@ function _kbRenderComponents() {
     <div class="kb-comp">
       <img src="${c.image || DEFAULT_IMG}" style="width:44px;height:44px;object-fit:cover;border-radius:9px;flex-shrink:0;cursor:zoom-in" onerror="this.src='${DEFAULT_IMG}'" onclick="_kitCompPopover(${c.id},event)" title="Ver producto">
       <div style="flex:1;min-width:0;cursor:pointer" onclick="_kitCompPopover(${c.id},event)" title="Ver producto">
-        <div style="font-size:.84rem;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${c.name}</div>
+        <div style="font-size:.84rem;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${_esc(c.name)}</div>
         ${c.oos ? `<div style="font-size:.7rem;color:var(--red);margin-top:2px">⚠️ Agotado — disponibilidad calculada cuando haya stock</div>` : ''}
       </div>
       <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">

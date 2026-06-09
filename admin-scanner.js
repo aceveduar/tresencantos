@@ -478,7 +478,7 @@ function _dupCard(p, pairKey, isMed, otherImg) {
       ${_dupThumb(p.image, p.name, otherImg)}
       <div class="dup-prod-name">${_esc(p.name)}</div>
       <div class="dup-prod-meta">${_esc(p.categoryLabel || '—')} · $${(p.price||0).toLocaleString('es-MX')} · Stock ${p.stock}${p.createdBy ? `<span style="margin-left:6px;color:var(--muted);font-size:.78em">· 👤 ${_esc(_userNames[p.createdBy] || p.createdBy.split('@')[0])}</span>` : ''}</div>
-      ${(p.barcode || createdStr) ? `<div class="dup-prod-meta" style="margin-top:2px">${p.barcode ? `<span>🔲 ${p.barcode}</span>` : ''}${p.barcode && createdStr ? ' · ' : ''}${createdStr ? `<span>📅 ${createdStr}</span>` : ''}</div>` : ''}
+      ${(p.barcode || createdStr) ? `<div class="dup-prod-meta" style="margin-top:2px">${p.barcode ? `<span>🔲 ${_esc(p.barcode)}</span>` : ''}${p.barcode && createdStr ? ' · ' : ''}${createdStr ? `<span>📅 ${createdStr}</span>` : ''}</div>` : ''}
       <div class="dup-prod-actions">
         <button class="btn btn-outline btn-sm" onclick="_openFormFromDup(${p.id})">${isMed ? 'Renombrar →' : 'Editar →'}</button>
         ${(!isMed && can.deleteProduct) ? `<button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="_deleteDupProduct(${p.id},'${pairKey}')">Eliminar</button>` : ''}

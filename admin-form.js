@@ -841,7 +841,7 @@ function _kitCompPopover(id, event) {
     <button onclick="document.getElementById('kit-comp-popover')?.remove()" style="position:absolute;top:8px;right:8px;width:28px;height:28px;background:rgba(0,0,0,.45);border:none;border-radius:50%;font-size:.85rem;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:1">✕</button>
     <img src="${p.image || DEFAULT_IMG}" onerror="this.src='${DEFAULT_IMG}'" style="width:100%;height:230px;object-fit:contain;background:#F9F5EF;display:block">
     <div style="padding:8px 12px 12px">
-      <div style="font-weight:700;font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px">${p.name}</div>
+      <div style="font-weight:700;font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px">${_esc(p.name)}</div>
       <div style="font-size:.75rem;display:flex;align-items:center;justify-content:space-between">
         ${stockTxt}
         <span style="color:var(--muted)">$${(p.price||0).toLocaleString('es-MX')}</span>
@@ -915,7 +915,7 @@ function searchKitProducts(query) {
 <div onclick="_kitFormCreateDraft(decodeURIComponent('${termEncoded}'))" style="cursor:pointer;padding:7px 10px;display:flex;align-items:center;gap:8px;font-size:.82rem;border-bottom:1px solid var(--border);transition:.1s" onmouseenter="this.style.background='#FFF8EE'" onmouseleave="this.style.background=''">
   <div style="width:28px;height:28px;border-radius:5px;background:var(--gold-light);display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0">➕</div>
   <div style="flex:1;min-width:0">
-    <div style="font-weight:600;color:var(--gold-dark)">Crear "${query.trim()}" como borrador</div>
+    <div style="font-weight:600;color:var(--gold-dark)">Crear "${_esc(query.trim())}" como borrador</div>
     <div style="color:var(--muted);font-size:.74rem">Stock 0 · Sin publicar · editar después</div>
   </div>
 </div>`;
@@ -928,7 +928,7 @@ function searchKitProducts(query) {
   resultsEl.innerHTML = matches.map(p => `
 <div onclick="addKitComponent(${p.id})" style="cursor:pointer;padding:7px 10px;display:flex;align-items:center;gap:8px;font-size:.82rem;border-bottom:1px solid var(--border);transition:.1s" onmouseenter="this.style.background='#FFF8EE'" onmouseleave="this.style.background=''">
   <img src="${p.image}" style="width:28px;height:28px;object-fit:cover;border-radius:5px;flex-shrink:0" onerror="this.style.display='none'">
-  <span style="flex:1;font-weight:600">${p.name}</span>
+  <span style="flex:1;font-weight:600">${_esc(p.name)}</span>
   <span style="color:var(--muted);font-size:.74rem">${p.stock > 0 && !p.outOfStock ? p.stock+' uds' : 'Agotado'}</span>
 </div>`).join('') + createBtn;
 }

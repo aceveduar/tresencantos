@@ -335,7 +335,7 @@ function _renderAptPageCards(data) {
     }
     return `<div class="apc-card${isOverdue ? ' apt-overdue' : ''}" onclick="openAptDetail(${s.id})">
   <div class="apc-top">
-    <span class="apc-name">👤 ${nombre}</span>
+    <span class="apc-name">👤 ${_esc(nombre)}</span>
     <span class="apc-pending${pendiente === 0 ? ' zero' : ''}">${pendiente === 0 ? '✓ Listo' : '$' + pendiente.toLocaleString('es-MX')}</span>
   </div>
   <div class="apc-meta">${t} · ${nItems} prod.${telNum ? ' · 📱 ' + telNum : ''}</div>

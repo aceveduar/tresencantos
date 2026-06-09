@@ -219,7 +219,7 @@ function renderTodaySales() {
         : `$${parseFloat(i.price).toLocaleString('es-MX',{maximumFractionDigits:0})}`;
       const stockInfo = prod ? (prod.out_of_stock || prod.stock === 0 ? '● Agotado' : `● ${prod.stock} en stock`) : '';
       const stockColor = prod && !prod.out_of_stock && prod.stock > 0 ? '#2D6A4F' : '#E85D5D';
-      const nameEsc = i.name.replace(/'/g, "\\'");
+      const nameEsc = _esc(i.name).replace(/'/g, "\\'");
       return `<div class="dv-item">
   <img class="dv-thumb" src="${img}" alt="${_esc(i.name)}" onerror="_dvImgErr(this)" style="cursor:pointer" onclick="event.stopPropagation();_dvImgPopup(this,this.src,'${nameEsc}',${parseFloat(i.price)},${qty},'${stockInfo}','${stockColor}')">
   <div style="flex:1;min-width:0"><div class="dv-item-name">${_esc(i.name)}</div><div class="dv-item-meta">${meta}</div></div>
@@ -228,13 +228,13 @@ function renderTodaySales() {
     }).join('');
     const discRow = s.discount>0
       ? `<div style="font-size:.7rem;color:var(--muted);text-align:right;padding-top:4px">Descuento −$${parseFloat(s.discount).toLocaleString('es-MX',{maximumFractionDigits:0})}</div>` : '';
-    const custRow = isAp && s.customer ? `<div style="font-size:.7rem;color:var(--muted);padding-top:2px">Cliente: ${s.customer}</div>` : '';
+    const custRow = isAp && s.customer ? `<div style="font-size:.7rem;color:var(--muted);padding-top:2px">Cliente: ${_esc(s.customer)}</div>` : '';
     return `<div class="dv-sale" id="dv-${idx}">
   <div class="dv-sale-head" onclick="dvToggle(${idx})">
     <span class="dv-sale-time">${time}</span>
     ${payIcon}
     ${apTag}
-    <span class="dv-sale-names">${names}</span>
+    <span class="dv-sale-names">${_esc(names)}</span>
     <span class="dv-sale-total">${totalHtml}</span>
     <span class="dv-sale-arrow">›</span>
   </div>
@@ -334,7 +334,7 @@ function renderVendedores() {
     const nameStyle = isSinSesion ? 'color:var(--muted);font-weight:500' : 'font-weight:600';
     return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:.84rem;${nameStyle}">${icon} ${name}</span>
+        <span style="font-size:.84rem;${nameStyle}">${icon} ${_esc(name)}</span>
         <span style="font-weight:700;font-size:.88rem;${isSinSesion?'color:var(--muted)':''}">${fmt(d.total)}</span>
       </div>
       <div style="background:var(--border);border-radius:50px;height:5px;overflow:hidden;margin-bottom:4px">
@@ -810,8 +810,8 @@ function openSaleDetail(idx) {
   footer += `<div class="sd-footer-row total"><span class="sd-label">Total</span><span class="sd-val">$${parseFloat(s.total).toLocaleString('es-MX',{maximumFractionDigits:0})}</span></div>`;
   footer += `<div class="sd-footer-row" style="margin-top:6px"><span class="sd-label">Pago</span>${payBadge}</div>`;
   if (isApartado && s.paid_amount > 0) footer += `<div class="sd-footer-row"><span class="sd-label">Anticipo</span><span class="sd-val">$${parseFloat(s.paid_amount).toLocaleString('es-MX',{maximumFractionDigits:0})}</span></div>`;
-  if (s.note) footer += `<div class="sd-footer-row" style="margin-top:8px;align-items:flex-start"><span class="sd-label">Nota</span><span class="sd-val" style="text-align:right;max-width:60%">${s.note}</span></div>`;
-  if (s.seller_email) footer += `<div class="sd-footer-row" style="margin-top:4px"><span class="sd-label">Vendedor</span><span class="sd-val" style="font-size:.74rem">${s.seller_email}</span></div>`;
+  if (s.note) footer += `<div class="sd-footer-row" style="margin-top:8px;align-items:flex-start"><span class="sd-label">Nota</span><span class="sd-val" style="text-align:right;max-width:60%">${_esc(s.note)}</span></div>`;
+  if (s.seller_email) footer += `<div class="sd-footer-row" style="margin-top:4px"><span class="sd-label">Vendedor</span><span class="sd-val" style="font-size:.74rem">${_esc(s.seller_email)}</span></div>`;
   document.getElementById('sd-footer').innerHTML = footer;
 
   document.getElementById('sd-overlay').classList.add('open');
@@ -1028,8 +1028,8 @@ async function loadApartadosPendientes() {
     return `<div style="display:flex;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div>
-          <div style="font-weight:600;font-size:.84rem">👤 ${nombre}</div>
-          <div style="font-size:.72rem;color:var(--muted);margin-top:2px">${fecha} · ${summary.substring(0,50)}${summary.length>50?'…':''}</div>
+          <div style="font-weight:600;font-size:.84rem">👤 ${_esc(nombre)}</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:2px">${_esc(fecha + ' · ' + summary.substring(0,50) + (summary.length>50?'…':''))}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-weight:700;font-size:.88rem;color:var(--red)">$${pendiente.toLocaleString('es-MX')}</div>
@@ -1082,9 +1082,9 @@ async function loadClientas() {
       ? `<span style="font-size:.68rem;font-weight:700;color:#E85D5D">⏳ $${c.totalPendiente.toLocaleString('es-MX')} pendiente</span>`
       : `<span style="font-size:.68rem;color:var(--green);font-weight:600">✓ Sin deuda</span>`;
     return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="width:36px;height:36px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.9rem;flex-shrink:0">${c.nombre.charAt(0).toUpperCase()}</div>
+      <div style="width:36px;height:36px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.9rem;flex-shrink:0">${_esc(c.nombre.charAt(0).toUpperCase())}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-weight:600;font-size:.86rem">${c.nombre}</div>
+        <div style="font-weight:600;font-size:.86rem">${_esc(c.nombre)}</div>
         <div style="font-size:.72rem;color:var(--muted);margin-top:1px">${c.compras} apartado${c.compras>1?'s':''} · última visita ${fecha}</div>
         <div style="margin-top:3px">${pendHTML}</div>
       </div>
@@ -1156,7 +1156,7 @@ function renderInsights() {
     });
   });
   const bestCat = Object.entries(catMap).sort((a,b)=>b[1]-a[1])[0];
-  if (bestCat) pills.push(`<div class="insight-pill">📦 <small>Top categoría</small> <b>${bestCat[0]}</b></div>`);
+  if (bestCat) pills.push(`<div class="insight-pill">📦 <small>Top categoría</small> <b>${_esc(bestCat[0])}</b></div>`);
 
   // Daily average
   const msRange = new Date(toIso)-new Date(fromIso);
@@ -1305,8 +1305,8 @@ function _dvImgPopup(trigger, img, name, price, qty, stockInfo, stockColor) {
     <style>@keyframes dvp-in{from{opacity:0}to{opacity:1}}</style>
     <div onclick="event.stopPropagation()" style="background:#fff;border-radius:18px;padding:18px;max-width:280px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,.28);text-align:center;position:relative">
       <button onclick="document.getElementById('dv-img-pop').remove()" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:1.1rem;cursor:pointer;color:#8A7564;line-height:1">✕</button>
-      <img src="${img}" alt="${name}" onerror="this.style.display='none'" style="width:100%;max-height:220px;object-fit:contain;border-radius:10px;background:#F7F2EB;margin-bottom:12px">
-      <div style="font-size:.9rem;font-weight:700;color:#1C1817;line-height:1.35;margin-bottom:6px">${name}</div>
+      <img src="${img}" alt="${_esc(name)}" onerror="this.style.display='none'" style="width:100%;max-height:220px;object-fit:contain;border-radius:10px;background:#F7F2EB;margin-bottom:12px">
+      <div style="font-size:.9rem;font-weight:700;color:#1C1817;line-height:1.35;margin-bottom:6px">${_esc(name)}</div>
       <div style="font-size:1rem;font-weight:700;font-family:'Playfair Display',serif;color:#C9A462;margin-bottom:${stockInfo?'6px':'0'}">${priceStr}</div>
       ${stockInfo ? `<div style="font-size:.72rem;font-weight:600;color:${stockColor}">${stockInfo}</div>` : ''}
     </div>`;
