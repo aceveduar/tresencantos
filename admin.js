@@ -356,6 +356,8 @@ function adminCatMatches(productCat, filterCat) {
   return false;
 }
 
+const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
 const _normCache = new Map();
 const _norm = s => {
   const k = s || '';

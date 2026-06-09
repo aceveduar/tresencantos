@@ -293,7 +293,7 @@ function adminCard(p, editable = false) {
      ondrop="_cardDrop(event,${p.id})"
      style="cursor:pointer">
   <div class="ac-img-wrap">
-    <img class="ac-img" src="${p.image}" alt="${p.name}" draggable="false"
+    <img class="ac-img" src="${p.image}" alt="${_esc(p.name)}" draggable="false" loading="lazy"
          onerror="this.onerror=null;this.src='${fallback}'">
     <input type="checkbox" class="ac-check row-check"
            ${sel?'checked':''} onchange="toggleRowSelect(${p.id},this.checked)">
@@ -310,13 +310,13 @@ function adminCard(p, editable = false) {
     </div>
   </div>
   <div class="ac-body">
-    <div class="ac-name" title="${p.name}">${p.name}</div>
-    ${flagData?.note ? `<div class="flag-note-line">🚩 "${flagData.note}"</div>` : ''}
+    <div class="ac-name" title="${_esc(p.name)}">${_esc(p.name)}</div>
+    ${flagData?.note ? `<div class="flag-note-line">🚩 "${_esc(flagData.note)}"</div>` : ''}
     <div class="ac-meta">
       <span class="cat-dot" style="background:${catColor}"></span>
       ${editable
-        ? `<span class="cat-label-inline${isSinCat?' cat-label-sin-cat':''}" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Clic para cambiar categoría" style="${isSinCat?'':'overflow:hidden;text-overflow:ellipsis;white-space:nowrap'}">${isSinCat ? 'Sin categoría' : p.categoryLabel}</span>`
-        : `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.72rem;color:var(--muted)">${p.categoryLabel}</span>`
+        ? `<span class="cat-label-inline${isSinCat?' cat-label-sin-cat':''}" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Clic para cambiar categoría" style="${isSinCat?'':'overflow:hidden;text-overflow:ellipsis;white-space:nowrap'}">${isSinCat ? 'Sin categoría' : _esc(p.categoryLabel)}</span>`
+        : `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.72rem;color:var(--muted)">${_esc(p.categoryLabel)}</span>`
       }
       ${_showCreator && ROLE === 'superadmin' && p.createdBy ? `<span class="creator-chip" title="${p.createdBy}">👤 ${_creatorName(p.createdBy)}</span>` : ''}
     </div>
@@ -597,13 +597,13 @@ function desktopRow(p) {
   <td class="col-product">
     <div style="display:flex;align-items:center;gap:10px;min-width:0">
       <span class="drag-handle" title="Arrastrar para reordenar">⠿</span>
-      <img class="prod-thumb" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'" onclick="event.stopPropagation();openQV(${p.id})" style="cursor:pointer${oos ? ';opacity:.5;filter:grayscale(.5)' : ''}" title="Ver detalle rápido">
+      <img class="prod-thumb" src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${fallback}'" onclick="event.stopPropagation();openQV(${p.id})" style="cursor:pointer${oos ? ';opacity:.5;filter:grayscale(.5)' : ''}" title="Ver detalle rápido">
       <div style="min-width:0;flex:1">
-        <div class="prod-name" title="${p.name}">${p.name}</div>
-        ${flagDataDR?.note ? `<div class="flag-note-line">🚩 "${flagDataDR.note}"</div>` : ''}
+        <div class="prod-name" title="${_esc(p.name)}">${_esc(p.name)}</div>
+        ${flagDataDR?.note ? `<div class="flag-note-line">🚩 "${_esc(flagDataDR.note)}"</div>` : ''}
         <div class="prod-meta">
           ${catDot}
-          <span class="prod-meta-text"><span class="cat-label-inline${isSinCatDR ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${isSinCatDR ? 'Sin categoría' : p.categoryLabel}</span> · #${p.id}${_showCreator && ROLE === 'superadmin' && p.createdBy ? ` · <span class="creator-chip" title="${p.createdBy}">👤 ${_creatorName(p.createdBy)}</span>` : ''}</span>
+          <span class="prod-meta-text"><span class="cat-label-inline${isSinCatDR ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${isSinCatDR ? 'Sin categoría' : _esc(p.categoryLabel)}</span> · #${p.id}${_showCreator && ROLE === 'superadmin' && p.createdBy ? ` · <span class="creator-chip" title="${p.createdBy}">👤 ${_creatorName(p.createdBy)}</span>` : ''}</span>
           ${featStar}${publishedToggle(p)}${flagDotRow}
         </div>
       </div>
@@ -663,7 +663,7 @@ function mobileCard(p) {
            ontouchmove="_lpMove(${p.id})"
            style="cursor:pointer">
         <div class="mpc-img-wrap">
-          <img class="mpc-img" src="${p.image}" alt="${p.name}"
+          <img class="mpc-img" src="${p.image}" alt="${_esc(p.name)}" loading="lazy"
                onerror="this.onerror=null;this.src='${fallback}'"
                ${oos ? 'style="opacity:.5;filter:grayscale(.4)"' : ''}>
           <input type="checkbox" class="row-check mpc-check-over"
@@ -676,11 +676,11 @@ function mobileCard(p) {
           </button>
         </div>
         <div class="mpc-info">
-          <div class="mpc-name">${p.name}${flagDataMC ? ' <span class="flag-dot-row" title="'+(flagDataMC.note||'Pendiente de revisión')+'">🚩</span>' : ''}</div>
-          ${flagDataMC?.note ? `<div class="flag-note-line">🚩 "${flagDataMC.note}"</div>` : ''}
+          <div class="mpc-name">${_esc(p.name)}${flagDataMC ? ' <span class="flag-dot-row" title="'+_esc(flagDataMC.note||'Pendiente de revisión')+'">🚩</span>' : ''}</div>
+          ${flagDataMC?.note ? `<div class="flag-note-line">🚩 "${_esc(flagDataMC.note)}"</div>` : ''}
           <div class="mpc-cat-tag">
             <span class="cat-dot" style="background:${catColor}"></span>
-            <span class="${isSinCatMC ? 'cat-label-sin-cat' : ''}" style="font-size:.72rem;color:${isSinCatMC ? '' : 'var(--muted)'};font-weight:400">${isSinCatMC ? 'Sin categoría' : p.categoryLabel}</span>
+            <span class="${isSinCatMC ? 'cat-label-sin-cat' : ''}" style="font-size:.72rem;color:${isSinCatMC ? '' : 'var(--muted)'};font-weight:400">${isSinCatMC ? 'Sin categoría' : _esc(p.categoryLabel)}</span>
             ${_showCreator && ROLE === 'superadmin' && p.createdBy ? `<span class="creator-chip" title="${p.createdBy}">👤 ${_creatorName(p.createdBy)}</span>` : ''}
           </div>
           <div class="mpc-price-row">

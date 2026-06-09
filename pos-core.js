@@ -278,21 +278,20 @@ function posCard(p) {
     ? (oos ? 'Sin stock' : `🎁 ${effStock} kit${effStock!==1?'s':''}`)
     : (effStock === 0 ? 'Sin stock' : `${effStock} ud${effStock!==1?'s':''}`);
   const kitComps = isKit && p.kitItems?.length
-    ? p.kitItems.map(c => `<div style="font-size:.6rem;color:#9B8B78;line-height:1.3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.qty > 1 ? c.qty + '× ' : ''}${c.name}</div>`).join('')
+    ? p.kitItems.map(c => `<div style="font-size:.6rem;color:#9B8B78;line-height:1.3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.qty > 1 ? c.qty + '× ' : ''}${_esc(c.name)}</div>`).join('')
     : '';
-  const fallback  = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22400%22%20viewBox%3D%220%200%20400%20400%22%3E%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22%23F7F2EB%22%2F%3E%3Crect%20x%3D%22130%22%20y%3D%22100%22%20width%3D%22140%22%20height%3D%22140%22%20rx%3D%2210%22%20fill%3D%22none%22%20stroke%3D%22%23D4BC94%22%20stroke-width%3D%223%22%2F%3E%3Ccircle%20cx%3D%22158%22%20cy%3D%22127%22%20r%3D%2214%22%20fill%3D%22%23D4BC94%22%2F%3E%3Cpath%20d%3D%22M130%20210%20L175%20165%20L210%20195%20L255%20150%20L280%20180%20L280%20240%20L130%20240Z%22%20fill%3D%22%23D4BC94%22%20fill-opacity%3D%22.4%22%2F%3E%3C%2Fsvg%3E';
   return `
 <div class="pos-card${oos?' card-sold':''}" onclick="${oos?`_showRestockPrompt(${p.id})`:` addToCart(${p.id},this.querySelector('.pos-card-add-icon'),event)`}">
   <div class="pos-card-img-wrap">
-    <img class="pos-card-img" src="${p.image}" alt="${p.name}"
-         onerror="this.onerror=null;this.src='${fallback}'"
+    <img class="pos-card-img" src="${p.image}" alt="${_esc(p.name)}" loading="lazy"
+         onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'"
          onclick="event.stopPropagation();openPosPreview(${p.id})" style="cursor:zoom-in">
     <div class="pos-card-add">
       <div class="pos-card-add-icon">+</div>
     </div>
   </div>
   <div class="pos-card-body">
-    <div class="pos-card-name">${isKit ? '🎁 ' : ''}${p.name}</div>
+    <div class="pos-card-name">${isKit ? '🎁 ' : ''}${_esc(p.name)}</div>
     ${kitComps}
     <div class="pos-card-price">$${p.price.toLocaleString('es-MX')}</div>
     <span class="pos-card-stock ${stockCls}">${stockTxt}</span>
@@ -318,6 +317,8 @@ function setCategory(cat) {
   const q = document.getElementById('pos-search').value;
   searchProducts(q);
 }
+
+const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 const _normCache = new Map();
 const _norm = s => {
@@ -413,6 +414,13 @@ function clearPosSearch() {
   searchProducts('');
 }
 
+let _posSearchDebTimer = null;
+function _posSearchDebounce(q) {
+  _togglePosSearchClear();
+  clearTimeout(_posSearchDebTimer);
+  _posSearchDebTimer = setTimeout(() => searchProducts(q), 180);
+}
+
 function searchProducts(q) {
   renderFrecuentes(!!q.trim());
   const el = document.getElementById('pos-results');
@@ -433,7 +441,7 @@ function productCard(p) {
   const oos      = isKit ? effStock === 0 : (effStock === 0 || p.outOfStock);
   const disabled = oos ? 'style="opacity:.5;cursor:not-allowed"' : '';
   const kitCompsLine = isKit && p.kitItems?.length
-    ? p.kitItems.map(c => `<div style="font-size:.7rem;color:#9B8B78;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.qty > 1 ? c.qty + '× ' : ''}${c.name}</div>`).join('')
+    ? p.kitItems.map(c => `<div style="font-size:.7rem;color:#9B8B78;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.qty > 1 ? c.qty + '× ' : ''}${_esc(c.name)}</div>`).join('')
     : '';
   const stockSub = isKit
     ? (oos ? ' · <span style="color:var(--red)">Sin stock</span>' : ` · <span style="color:#6B9E78;font-weight:600">🎁 ${effStock} kit${effStock!==1?'s':''}</span>`)
@@ -446,11 +454,11 @@ function productCard(p) {
           : '';
   return `
 <div class="pos-prod" onclick="${oos ? `_showRestockPrompt(${p.id})` : `addToCart(${p.id},null,event)`}" ${oos ? '' : ''}>
-  <img class="pos-prod-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'" onclick="event.stopPropagation();${oos ? `_showRestockPrompt(${p.id})` : `openPosPreview(${p.id})`}" style="cursor:${oos?'pointer':'zoom-in'}">
+  <img class="pos-prod-img" src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'" onclick="event.stopPropagation();${oos ? `_showRestockPrompt(${p.id})` : `openPosPreview(${p.id})`}" style="cursor:${oos?'pointer':'zoom-in'}">
   <div class="pos-prod-info">
-    <div class="pos-prod-name">${isKit ? '🎁 ' : ''}${p.name}</div>
+    <div class="pos-prod-name">${isKit ? '🎁 ' : ''}${_esc(p.name)}</div>
     ${kitCompsLine}
-    <div class="pos-prod-sub"${kitCompsLine ? ' style="margin-top:5px;padding-top:4px;border-top:1px solid #EDE0CF"' : ''}>${p.categoryLabel}${stockSub}</div>
+    <div class="pos-prod-sub"${kitCompsLine ? ' style="margin-top:5px;padding-top:4px;border-top:1px solid #EDE0CF"' : ''}>${_esc(p.categoryLabel)}${stockSub}</div>
   </div>
   <div class="pos-prod-right">
     <div class="pos-prod-price">$${p.price.toLocaleString('es-MX')}</div>
