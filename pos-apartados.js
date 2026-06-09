@@ -278,7 +278,7 @@ function _renderApartadoCards(data) {
       const price = (i.subtotal ?? i.price*(i.qty||1)).toLocaleString('es-MX');
       return `<div class="apt-item-row" onclick="event.stopPropagation();_aptItemPopup(${i.id},this)">
         <img class="apt-item-thumb" src="${img}" onerror="this.style.visibility='hidden'" alt="">
-        <div class="apt-item-info"><div class="apt-item-name">${i.name}</div></div>
+        <div class="apt-item-info"><div class="apt-item-name">${_esc(i.name)}</div></div>
         <div class="apt-item-right">
           <span class="apt-item-price">$${price}</span>
           <span class="apt-item-qty">×${i.qty||1}</span>
@@ -292,7 +292,7 @@ function _renderApartadoCards(data) {
 <div class="apartado-item${isOverdue ? ' apt-overdue' : ''}" onclick="_toggleApt(this,${s.id})">
   <div class="apt-header">
     <div class="apt-header-r1">
-      <span class="apt-h-name">👤 ${nombre}</span>
+      <span class="apt-h-name">👤 ${_esc(nombre)}</span>
       <div class="apt-h-right">
         <span class="apt-h-pending${pendiente===0?' zero':''}">${pendiente===0?'✓ Pagado':'$'+pendiente.toLocaleString('es-MX')}</span>
         <span class="apt-chevron">›</span>
@@ -358,7 +358,7 @@ function _aptItemPopup(productId, triggerEl) {
     <style>@keyframes apt-pop-in{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}</style>
     <button onclick="document.getElementById('apt-item-popup').remove()" style="position:absolute;top:8px;right:8px;background:none;border:none;font-size:1rem;cursor:pointer;color:#8A7564;line-height:1;padding:2px">✕</button>
     <img src="${prod.image}" onerror="this.onerror=null;this.src=''" style="width:190px;height:190px;object-fit:contain;border-radius:8px;background:#F7F2EB">
-    <div style="font-size:.86rem;font-weight:600;color:#1C1817;text-align:center;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;width:100%">${prod.name}</div>`;
+    <div style="font-size:.86rem;font-weight:600;color:#1C1817;text-align:center;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;width:100%">${_esc(prod.name)}</div>`;
   document.body.appendChild(popup);
   const r = triggerEl.getBoundingClientRect();
   const pw = 230, ph = popup.offsetHeight || 280;

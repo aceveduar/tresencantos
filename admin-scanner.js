@@ -139,7 +139,7 @@ function checkBarcodeConflict() {
   const conflict = products.find(p => p.barcode === code && p.id !== editingId);
   if (!conflict) return;
   warn.className = 'dup-warn error';
-  warn.innerHTML = `⛔ Este código ya está en <strong>${conflict.name}</strong> — <button type="button" class="dup-link" onclick="closeForm();openForm(${conflict.id})">Ver producto →</button>`;
+  warn.innerHTML = `⛔ Este código ya está en <strong>${_esc(conflict.name)}</strong> — <button type="button" class="dup-link" onclick="closeForm();openForm(${conflict.id})">Ver producto →</button>`;
   warn.style.display = 'block';
 }
 
@@ -176,7 +176,7 @@ function checkNameSimilarity() {
   if (stockMatch) signals.push(`mismo stock (${top.stock})`);
   window._simIds = scored.map(({p}) => p.id);
   const links = scored.map(({p}, i) =>
-    `<button type="button" class="dup-link" onclick="openSimilarModal(${i})">${p.name} →</button>`
+    `<button type="button" class="dup-link" onclick="openSimilarModal(${i})">${_esc(p.name)} →</button>`
   ).join('  ');
   const signalText = signals.length
     ? ` <span style="opacity:.75;font-size:.85em">(${signals.join(', ')})</span>` : '';
@@ -442,7 +442,7 @@ function _openFormFromKit(compId) {
 function _dupThumb(img, name, otherImg) {
   if (!img) return `<div class="dup-prod-ph">📦</div>`;
   const otherEsc = (otherImg || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-  return `<img src="${img}" alt="${name}" loading="lazy" style="cursor:zoom-in" data-other="${otherEsc}" data-name="${name.replace(/"/g,'&quot;')}" onclick="_dupOpenZoom(this)">`;
+  return `<img src="${img}" alt="${_esc(name)}" loading="lazy" style="cursor:zoom-in" data-other="${otherEsc}" data-name="${_esc(name)}" onclick="_dupOpenZoom(this)">`;
 }
 
 function _dupOpenZoom(el) {
@@ -476,8 +476,8 @@ function _dupCard(p, pairKey, isMed, otherImg) {
   return `
     <div class="dup-prod">
       ${_dupThumb(p.image, p.name, otherImg)}
-      <div class="dup-prod-name">${p.name}</div>
-      <div class="dup-prod-meta">${p.categoryLabel || '—'} · $${(p.price||0).toLocaleString('es-MX')} · Stock ${p.stock}${p.createdBy ? `<span style="margin-left:6px;color:var(--muted);font-size:.78em">· 👤 ${_userNames[p.createdBy] || p.createdBy.split('@')[0]}</span>` : ''}</div>
+      <div class="dup-prod-name">${_esc(p.name)}</div>
+      <div class="dup-prod-meta">${_esc(p.categoryLabel || '—')} · $${(p.price||0).toLocaleString('es-MX')} · Stock ${p.stock}${p.createdBy ? `<span style="margin-left:6px;color:var(--muted);font-size:.78em">· 👤 ${_esc(_userNames[p.createdBy] || p.createdBy.split('@')[0])}</span>` : ''}</div>
       ${(p.barcode || createdStr) ? `<div class="dup-prod-meta" style="margin-top:2px">${p.barcode ? `<span>🔲 ${p.barcode}</span>` : ''}${p.barcode && createdStr ? ' · ' : ''}${createdStr ? `<span>📅 ${createdStr}</span>` : ''}</div>` : ''}
       <div class="dup-prod-actions">
         <button class="btn btn-outline btn-sm" onclick="_openFormFromDup(${p.id})">${isMed ? 'Renombrar →' : 'Editar →'}</button>

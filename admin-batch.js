@@ -263,8 +263,8 @@ function openCompareModal() {
   const actions = document.getElementById('compare-actions');
   if (can.deleteProduct) {
     actions.innerHTML = `
-      <button class="cmp-keep-btn" onclick="_cmpKeep(${a.id},${b.id})">✓ Quedarme con <b>${_truncate(a.name,22)}</b><br><small style="font-weight:400;opacity:.7">Eliminar el otro</small></button>
-      <button class="cmp-keep-btn" onclick="_cmpKeep(${b.id},${a.id})">✓ Quedarme con <b>${_truncate(b.name,22)}</b><br><small style="font-weight:400;opacity:.7">Eliminar el otro</small></button>`;
+      <button class="cmp-keep-btn" onclick="_cmpKeep(${a.id},${b.id})">✓ Quedarme con <b>${_esc(_truncate(a.name,22))}</b><br><small style="font-weight:400;opacity:.7">Eliminar el otro</small></button>
+      <button class="cmp-keep-btn" onclick="_cmpKeep(${b.id},${a.id})">✓ Quedarme con <b>${_esc(_truncate(b.name,22))}</b><br><small style="font-weight:400;opacity:.7">Eliminar el otro</small></button>`;
   } else {
     actions.innerHTML = `<div style="font-size:.8rem;color:var(--muted);grid-column:1/-1;text-align:center">Solo el administrador puede eliminar productos</div>`;
   }
@@ -285,8 +285,8 @@ function openCmpZoom() {
   const b = products.find(p => p.id === idB);
   if (!a || !b) return;
   const fill = (el, prod) => {
-    el.innerHTML = `<img src="${prod.image || DEFAULT_IMG}" onerror="this.src='${DEFAULT_IMG}'" alt="${prod.name}">
-      <div class="cmp-zoom-label">${prod.name}</div>`;
+    el.innerHTML = `<img src="${prod.image || DEFAULT_IMG}" onerror="this.src='${DEFAULT_IMG}'" alt="${_esc(prod.name)}">
+      <div class="cmp-zoom-label">${_esc(prod.name)}</div>`;
   };
   fill(document.getElementById('cmp-zoom-a'), a);
   fill(document.getElementById('cmp-zoom-b'), b);
@@ -312,16 +312,16 @@ function _renderCmpCol(p, otherId) {
   if (p.featured) chips.push('<span class="cmp-chip amber">⭐ Destacado</span>');
   if (p.outOfStock || p.stock === 0) chips.push('<span class="cmp-chip red">Agotado</span>');
   else chips.push(`<span class="cmp-chip green">Stock: ${p.stock}</span>`);
-  if (p.barcode) chips.push(`<span class="cmp-chip">🔲 ${p.barcode}</span>`);
+  if (p.barcode) chips.push(`<span class="cmp-chip">🔲 ${_esc(p.barcode)}</span>`);
 
   return `
     <img class="cmp-img" src="${p.image || DEFAULT_IMG}" onerror="this.src='${DEFAULT_IMG}'" loading="lazy" onclick="openCmpZoom()" style="cursor:zoom-in" title="Ver ambas imágenes en grande">
-    <div class="cmp-name">${p.name}</div>
-    <div class="cmp-meta">${p.categoryLabel || '—'}${p.createdBy ? ` · 👤 ${_creatorName(p.createdBy)}` : ''} · #${p.id}</div>
+    <div class="cmp-name">${_esc(p.name)}</div>
+    <div class="cmp-meta">${_esc(p.categoryLabel || '—')}${p.createdBy ? ` · 👤 ${_esc(_creatorName(p.createdBy))}` : ''} · #${p.id}</div>
     <div class="cmp-price">$${(p.price || 0).toLocaleString('es-MX')} <span style="font-size:.75rem;font-weight:400;color:var(--muted)">MXN</span>${p.originalPrice ? `<s>$${p.originalPrice.toLocaleString('es-MX')}</s>` : ''}</div>
     ${margin !== null ? `<div class="cmp-meta"><span class="cmp-chip ${marginClass}">Costo $${p.cost.toLocaleString('es-MX')} · Margen ${margin}%</span></div>` : ''}
     <div>${chips.join('')}</div>
-    ${p.description ? `<div class="cmp-desc">${p.description}</div>` : ''}
+    ${p.description ? `<div class="cmp-desc">${_esc(p.description)}</div>` : ''}
   `;
 }
 

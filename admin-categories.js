@@ -4,7 +4,7 @@ function populateCatParentSelect() {
   const sel = document.getElementById('new-cat-parent');
   if (!sel) return;
   sel.innerHTML = `<option value="">— Es categoría raíz —</option>` +
-    rootCats().map(r => `<option value="${r.code}">${r.label}</option>`).join('');
+    rootCats().map(r => `<option value="${r.code}">${_esc(r.label)}</option>`).join('');
 }
 
 function openCatManager() {
@@ -31,7 +31,7 @@ function renderCatManagerList() {
   roots.forEach(r => {
     const ri = categories.indexOf(r);
     const subs = subCats(r.code);
-    const parentOpts = roots.map(x => `<option value="${x.code}"${x.code===r.code?' selected':''}>${x.label}</option>`).join('');
+    const parentOpts = roots.map(x => `<option value="${x.code}"${x.code===r.code?' selected':''}>${_esc(x.label)}</option>`).join('');
     html += `
 <div class="cat-mgr-root" draggable="true" data-code="${r.code}"
      ondragstart="_catDragStart(event,'root','${r.code}')"
@@ -39,7 +39,7 @@ function renderCatManagerList() {
      ondrop="_catDrop(event,'root','${r.code}')">
   <span class="cat-mgr-handle" title="Arrastrar para reordenar">⠿</span>
   <span class="cat-mgr-dot" style="background:${r.color||'#9B8B78'}"></span>
-  <input class="cat-mgr-root-name" type="text" value="${r.label}"
+  <input class="cat-mgr-root-name" type="text" value="${_esc(r.label)}"
          onblur="updateCatLabel(${ri},this.value)"
          onkeydown="if(event.key==='Enter')this.blur()" title="Editar nombre">
   <button class="cat-mgr-add-sub" onclick="_catAddSubInline('${r.code}')" title="Agregar subcategoría">+ Sub</button>
@@ -49,7 +49,7 @@ function renderCatManagerList() {
       html += `<div class="cat-mgr-subs" data-parent="${r.code}">`;
       subs.forEach(s => {
         const si = categories.indexOf(s);
-        const pOpts = roots.filter(x=>x.code!==r.code).map(x=>`<option value="${x.code}">${x.label}</option>`).join('');
+        const pOpts = roots.filter(x=>x.code!==r.code).map(x=>`<option value="${x.code}">${_esc(x.label)}</option>`).join('');
         html += `
 <div class="cat-mgr-sub-row" draggable="true" data-code="${s.code}"
      ondragstart="_catDragStart(event,'sub','${s.code}')"
@@ -57,12 +57,12 @@ function renderCatManagerList() {
      ondrop="_catDrop(event,'sub','${s.code}')">
   <span class="cat-mgr-handle">⠿</span>
   <span class="cat-mgr-dot" style="background:${s.color||r.color||'#9B8B78'}"></span>
-  <input class="cat-mgr-sub-name" type="text" value="${s.label}"
+  <input class="cat-mgr-sub-name" type="text" value="${_esc(s.label)}"
          onblur="updateCatLabel(${si},this.value)"
          onkeydown="if(event.key==='Enter')this.blur()" title="Editar nombre">
   <select title="Mover a otra categoría" onchange="_catChangeParent('${s.code}',this.value)"
     style="font-size:.7rem;border:1.5px solid var(--border);border-radius:7px;padding:2px 4px;color:var(--muted);background:#fff;cursor:pointer;max-width:90px;font-family:inherit">
-    <option value="${r.code}" selected>↳ ${r.label}</option>
+    <option value="${r.code}" selected>↳ ${_esc(r.label)}</option>
     ${pOpts}
   </select>
   <button class="cat-mgr-del" onclick="deleteCategoryAt(${si})" title="Eliminar">✕</button>

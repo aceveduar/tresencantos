@@ -1,6 +1,7 @@
 const SUPABASE_URL         = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
 const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUyNjIyNiwiZXhwIjoyMDk0MTAyMjI2fQ.B9nZ1KENDQsUtn9PFwiMTrXuMZuWWIphGnH8XPfeJjQ';
 const SESSION_KEY          = 'te_admin_session';
+const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 /* ── AUTH + ROL ── */
 (function(){
@@ -223,10 +224,10 @@ function render(data) {
   <div class="act-body">
     <div class="act-top">
       <span class="act-badge badge-${cfg.badge}">${cfg.icon} ${cfg.label}</span>
-      <span class="act-user">${name}</span>
+      <span class="act-user">${_esc(name)}</span>
       <span class="act-time">${time}</span>
     </div>
-    <div class="act-summary">${item.summary}</div>
+    <div class="act-summary">${_esc(item.summary)}</div>
     ${detail ? `<div class="act-detail">${detail}</div>` : ''}
   </div>
 </div>`;
@@ -258,7 +259,7 @@ function _actPopup(idx) {
     const p = _prodMap[meta.id];
     const img = p?.image || DEFAULT_IMG;
     imgHtml = `<img src="${img}" onerror="this.src='${DEFAULT_IMG}'" style="width:100%;max-height:200px;object-fit:contain;border-radius:10px;background:#F7F2EB;margin-bottom:12px">`;
-    bodyHtml = `<div style="font-size:.9rem;font-weight:700;line-height:1.35;margin-bottom:4px">${meta.name || p?.name || '—'}</div>`;
+    bodyHtml = `<div style="font-size:.9rem;font-weight:700;line-height:1.35;margin-bottom:4px">${_esc(meta.name || p?.name || '—')}</div>`;
     if (meta.price != null) bodyHtml += `<div style="font-size:1rem;font-weight:700;font-family:'Playfair Display',serif;color:#C9A462">$${parseFloat(meta.price).toLocaleString('es-MX')} MXN</div>`;
     if (p?.price != null && p.price !== meta.price) bodyHtml += `<div style="font-size:.72rem;color:#8A7564;margin-top:2px">Precio actual: $${parseFloat(p.price).toLocaleString('es-MX')}</div>`;
   } else if (isSale) {
@@ -268,7 +269,7 @@ function _actPopup(idx) {
       const thumbs = ids.slice(0, 5).map(id => {
         const p = _prodMap[id];
         const src = p?.image || DEFAULT_IMG;
-        return `<img src="${src}" onerror="this.src='${DEFAULT_IMG}'" title="${p?.name||''}" style="width:52px;height:52px;object-fit:cover;border-radius:8px;background:#F7F2EB;flex-shrink:0">`;
+        return `<img src="${src}" onerror="this.src='${DEFAULT_IMG}'" title="${_esc(p?.name||'')}" style="width:52px;height:52px;object-fit:cover;border-radius:8px;background:#F7F2EB;flex-shrink:0">`;
       }).join('');
       imgHtml = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${thumbs}</div>`;
     }
@@ -277,13 +278,13 @@ function _actPopup(idx) {
     bodyHtml += `<div style="font-size:.82rem;color:#8A7564">${meta.method==='transferencia'?'📱 Transferencia':'💵 Efectivo'}</div>`;
     if (meta.discount > 0) bodyHtml += `<div style="font-size:.78rem;color:#059669;margin-top:4px">Descuento −$${parseFloat(meta.discount).toLocaleString('es-MX')}</div>`;
   } else if (isApt) {
-    bodyHtml = `<div style="font-size:.9rem;font-weight:700;margin-bottom:6px">${meta.customer || item.summary}</div>`;
+    bodyHtml = `<div style="font-size:.9rem;font-weight:700;margin-bottom:6px">${_esc(meta.customer || item.summary)}</div>`;
     if (meta.total != null)    bodyHtml += `<div style="font-size:.82rem;color:#8A7564">Total: $${parseFloat(meta.total).toLocaleString('es-MX')}</div>`;
     if (meta.anticipo != null) bodyHtml += `<div style="font-size:.82rem;color:#059669;margin-top:2px">Anticipo: $${parseFloat(meta.anticipo).toLocaleString('es-MX')}</div>`;
     if (meta.pendiente != null) bodyHtml += `<div style="font-size:.82rem;color:#B45309;margin-top:2px">Pendiente: $${parseFloat(meta.pendiente).toLocaleString('es-MX')}</div>`;
     if (meta.amount != null)   bodyHtml += `<div style="font-size:.82rem;color:#059669;margin-top:2px">Abono: $${parseFloat(meta.amount).toLocaleString('es-MX')}</div>`;
   } else {
-    bodyHtml = `<div style="font-size:.85rem;color:#1C1817">${item.summary}</div>`;
+    bodyHtml = `<div style="font-size:.85rem;color:#1C1817">${_esc(item.summary)}</div>`;
   }
 
   const pop = document.createElement('div');

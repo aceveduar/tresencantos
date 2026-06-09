@@ -753,8 +753,8 @@ async function openNamesModal() {
   if (!emails.length) { toast('Sin usuarios registrados aún'); return; }
   document.getElementById('names-list').innerHTML = emails.map(e => `
     <div class="name-pair">
-      <div class="name-email" title="${e}">${e}</div>
-      <input class="field-input" data-email="${e}" placeholder="Nombre visible" value="${nameMap[e]||''}"
+      <div class="name-email" title="${escH(e)}">${escH(e)}</div>
+      <input class="field-input" data-email="${escH(e)}" placeholder="Nombre visible" value="${escH(nameMap[e]||'')}"
              style="padding:8px 12px">
     </div>`).join('');
   document.getElementById('names-overlay').classList.add('open');

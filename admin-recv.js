@@ -45,11 +45,11 @@ function recvSearch(q) {
   const matches = products.filter(p => _norm(p.name).includes(_norm(val))).slice(0, 8);
   resultsEl.style.display = 'block';
   if (!matches.length) {
-    const safeVal = val.replace(/'/g, "\\'");
+    const safeVal = _esc(val).replace(/'/g, "\\'");
     resultsEl.innerHTML = `<div class="recv-no-found" style="padding:18px 16px;text-align:center">
       <div style="font-size:1.6rem;margin-bottom:6px">🔍</div>
       <div style="font-weight:600;color:var(--charcoal);font-size:.88rem;margin-bottom:4px">Producto no encontrado</div>
-      <div style="font-size:.76rem;color:var(--muted);margin-bottom:14px;word-break:break-all;max-width:260px;margin-left:auto;margin-right:auto">${val}</div>
+      <div style="font-size:.76rem;color:var(--muted);margin-bottom:14px;word-break:break-all;max-width:260px;margin-left:auto;margin-right:auto">${_esc(val)}</div>
       <button onclick="recvCreateProduct('${safeVal}')" style="width:100%;padding:11px 16px;background:var(--charcoal);color:#fff;border:none;border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">+ Crear producto →</button>
     </div>`;
     return;
@@ -59,7 +59,7 @@ function recvSearch(q) {
 <div class="recv-result-item" onclick="recvConfirmAdd(${p.id})">
   <img class="recv-result-img" src="${p.image}" onerror="this.src='${PH}'" alt="">
   <div style="flex:1;min-width:0">
-    <div class="recv-result-name">${p.name}</div>
+    <div class="recv-result-name">${_esc(p.name)}</div>
     <div class="recv-result-stock">Stock actual: ${p.stock}</div>
   </div>
   <span class="recv-result-add">+ Recibir</span>
@@ -143,7 +143,7 @@ function _showRecvFeedback(p, totalQty) {
 <div class="recv-fb-inner">
   <img class="recv-fb-img" src="${p.image}" onerror="this.style.display='none'" alt="">
   <div class="recv-fb-info">
-    <div class="recv-fb-name">${p.name}</div>
+    <div class="recv-fb-name">${_esc(p.name)}</div>
     <div class="recv-fb-arrow">${p.stock - totalQty} → <strong>+${totalQty} = ${p.stock}</strong> unidades</div>
     <div class="recv-fb-controls">
       <button class="recv-fb-btn" onclick="recvFbAdjust(-1)">−</button>
@@ -198,7 +198,7 @@ function _renderRecvList() {
 <div class="recv-item">
   <img class="recv-item-img" src="${p.image}" onerror="this.src='${PH}'" alt="">
   <div class="recv-item-info">
-    <div class="recv-item-name">${p.name}</div>
+    <div class="recv-item-name">${_esc(p.name)}</div>
     <div class="recv-item-arrow">${prevStock} → <strong>+${qtyAdded} = ${p.stock}</strong> uds.</div>
   </div>
   <span class="recv-badge">+${qtyAdded}</span>

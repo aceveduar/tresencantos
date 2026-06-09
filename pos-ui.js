@@ -368,11 +368,11 @@ function openAptDetail(id) {
     const price    = (i.subtotal ?? i.price * (i.qty || 1)).toLocaleString('es-MX');
     const kitComps = prod?.kitItems || i.kit_items;
     const kitHTML  = Array.isArray(kitComps) && kitComps.length
-      ? kitComps.map(c => `<div style="font-size:.68rem;color:#9B8B78;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${c.name}${c.qty > 1 ? ' ×' + c.qty : ''}</div>`).join('')
+      ? kitComps.map(c => `<div style="font-size:.68rem;color:#9B8B78;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${_esc(c.name)}${c.qty > 1 ? ' ×' + c.qty : ''}</div>`).join('')
       : '';
     return `<div class="apt-item-row" onclick="_aptItemPopup(${i.id},this)">
       <img class="apt-item-thumb" src="${img}" onerror="this.style.visibility='hidden'" alt="">
-      <div class="apt-item-info"><div class="apt-item-name">${i.name}</div>${kitHTML}</div>
+      <div class="apt-item-info"><div class="apt-item-name">${_esc(i.name)}</div>${kitHTML}</div>
       <div class="apt-item-right">
         <span class="apt-item-price">$${price}</span>
         <span class="apt-item-qty">×${i.qty || 1}</span>
@@ -426,7 +426,7 @@ function openAptDetail(id) {
   document.getElementById('adm-footer').innerHTML = `
     <button class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" title="Recordatorio WhatsApp">💬</button>
     ${editBtn}
-    <button class="btn-abonar" onclick="closeAptDetail();abonarApartado('${id}','${total}','${pagado}','${nombre.replace(/'/g,"\\'")}')">+ Abonar</button>
+    <button class="btn-abonar" onclick="closeAptDetail();abonarApartado('${id}','${total}','${pagado}','${_esc(nombre).replace(/'/g,"\\'")}')">+ Abonar</button>
     <button class="btn-liquidar" onclick="closeAptDetail();openLiqModal(${id})">✓ Liquidar</button>
     ${cancelBtn}`;
 
@@ -522,10 +522,10 @@ async function loadHistory() {
       const itemsHTML = items.map(i => {
         const cur = products.find(p => p.id === i.id);
         const img = cur?.image || THUMB_PH;
-        const displayName = cur?.name || i.name;
+        const displayName = _esc(cur?.name || i.name);
         return `
 <div class="hi-item">
-  <img class="hi-item-thumb" src="${img}" alt="${displayName}" onerror="this.src='${THUMB_PH}'" data-name="${displayName.replace(/"/g,'&quot;')}" data-price="${i.price}" data-qty="${i.qty||1}" data-seller="${s.seller_email||''}" onclick="event.stopPropagation();openLightbox(this)" style="cursor:zoom-in">
+  <img class="hi-item-thumb" src="${img}" alt="${displayName}" onerror="this.src='${THUMB_PH}'" data-name="${displayName}" data-price="${i.price}" data-qty="${i.qty||1}" data-seller="${s.seller_email||''}" onclick="event.stopPropagation();openLightbox(this)" style="cursor:zoom-in">
   <span class="hi-item-name">${displayName}</span>
   <span class="hi-item-qty">×${i.qty || 1}</span>
   <span class="hi-item-sub">$${((i.subtotal ?? i.price * (i.qty || 1))).toLocaleString('es-MX')}</span>
@@ -544,8 +544,8 @@ async function loadHistory() {
 
       const tags = [];
       if (disc > 0)   tags.push(`<span class="hi-tag discount">🏷 −$${disc.toLocaleString('es-MX')}</span>`);
-      if (s.note)     tags.push(`<span class="hi-tag note">📝 ${s.note}</span>`);
-      if (s.customer) tags.push(`<span class="hi-tag customer">👤 ${(s.customer||'').split(' · 📱 ')[0]}</span>`);
+      if (s.note)     tags.push(`<span class="hi-tag note">📝 ${_esc(s.note)}</span>`);
+      if (s.customer) tags.push(`<span class="hi-tag customer">👤 ${_esc((s.customer||'').split(' · 📱 ')[0])}</span>`);
       const footerHTML = tags.length ? `<div class="hi-footer">${tags.join('')}</div>` : '';
 
       return `
