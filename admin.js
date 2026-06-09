@@ -112,38 +112,11 @@ let _adminPage = 1;
 const ADMIN_PAGE_SIZE = 50;
 let _realtimeChannel = null;
 let _statFilter = null; // 'con-stock' | 'sin-stock' | 'sin-publicar' | 'sin-codigo' | 'ultima-pieza' | 'kits' | 'borradores'
+let _showingArchived = false;
 
 /* Categorías — cargadas dinámicamente desde config.categories */
 let categories = []; // [{code, label, color}]
 
-/* ── USAGE TRACKER (TE) ─────────────────────────────────────────────── */
-const TE = (() => {
-  const _q = [];
-  let _timer = null;
-  const _email = () => { try { return JSON.parse(localStorage.getItem(SESSION_KEY))?.user?.email || ''; } catch { return ''; } };
-  const _flush = () => {
-    const items = _q.splice(0);
-    if (!items.length) return;
-    // supabaseApi disponible en tiempo de ejecución
-    fetch(`${SUPABASE_URL}/rest/v1/usage_log`, {
-      method: 'POST',
-      headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify(items)
-    }).catch(() => {});
-  };
-  return {
-    track(event, payload = {}) {
-      _q.push({ event, user_email: _email(), payload });
-      clearTimeout(_timer);
-      _timer = setTimeout(_flush, 5000);
-    },
-    trackSearch(q, found) {
-      if ((q || '').length < 3) return;
-      this.track('search', { found });
-    },
-    report() {}  // reportes en stats.html
-  };
-})();
 
 const CAT_DEFAULTS = [
   // ── BOLSOS ──────────────────────────────────────────────
@@ -389,6 +362,7 @@ function getFilteredProducts() {
   const cat         = document.getElementById('cat-filter')?.value || 'all';
   const creatorVal  = document.getElementById('creator-filter')?.value || 'all';
   const filtered = products.filter(p => {
+    if (_showingArchived ? !p.isArchived : p.isArchived) return false;
     const matchCat = adminCatMatches(p.category, cat);
     const groups = q ? q.split(',').map(g => g.trim().split(/\s+/).filter(Boolean)).filter(g => g.length) : [];
     const matchQ = !groups.length || groups.some(g => g.every(t =>
@@ -754,9 +728,6 @@ function _applyRoleUI() {
   if (!can.manageSettings) {
     document.querySelectorAll('a[href="settings.html"]').forEach(a => a.style.setProperty('display', 'none'));
   }
-  // Tracker — visible para todos los admins autenticados
-  const btnTracker = document.getElementById('btn-tracker');
-  if (btnTracker) btnTracker.style.removeProperty('display');
   // Botones de agregar producto — solo si puede
   if (!can.addProduct) {
     document.querySelectorAll('[onclick="openForm()"]').forEach(b => b.style.setProperty('display', 'none'));
@@ -821,7 +792,6 @@ function _getUserDisplay() {
 
 async function showApp() {
   if (!await requireAuth()) return;
-  TE.track('module_inventario');
   try {
     const { name, initial } = _getUserDisplay();
     const avatarEl = document.getElementById('user-avatar');
@@ -882,7 +852,8 @@ function mapProduct(p) {
     images: p.images || null,
     isApartado: p.is_apartado || false,
     createdBy: p.created_by || null,
-    createdAt: p.created_at || null
+    createdAt: p.created_at || null,
+    isArchived: p.is_archived || false
   };
 }
 
@@ -922,11 +893,24 @@ async function loadProductsFromSupabase() {
 
 /* ── STATS ── */
 function renderStats() {
+  const nArchivados = products.filter(p => p.isArchived).length;
+
+  if (_showingArchived) {
+    document.getElementById('stats').innerHTML =
+      `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button class="stat-chip stat-chip-filter sc-active" onclick="toggleArchivedView()" style="background:var(--charcoal);border-color:var(--charcoal);color:#fff;gap:6px">
+          <span class="sc-icon">←</span><span class="sc-lbl">Volver al inventario</span>
+        </button>
+        <span style="font-size:.82rem;color:var(--muted)">${nArchivados} producto${nArchivados !== 1 ? 's' : ''} archivado${nArchivados !== 1 ? 's' : ''}</span>
+      </div>`;
+    return;
+  }
+
   // Helper: define borrador igual que getFilteredProducts para que contador = lo que se ve al filtrar
   const _ib = p => !p.kitItems?.length && !p.isPublished && (!p.price || p.price === 0);
 
-  const nBorradores = products.filter(_ib).length;
-  const visible     = p => !_ib(p) && !p.kitItems?.length; // no borrador, no kit
+  const nBorradores = products.filter(p => !p.isArchived && _ib(p)).length;
+  const visible     = p => !p.isArchived && !_ib(p) && !p.kitItems?.length; // no archivado, no borrador, no kit
   const total       = products.filter(visible).length;
   const conStock    = products.filter(p => visible(p) && p.stock > 0 && !p.outOfStock).length;
   const sinStock    = products.filter(p => visible(p) && (p.stock === 0 || p.outOfStock)).length;
@@ -975,7 +959,7 @@ function renderStats() {
     (sinCateg     > 0 ? chip('sin-categ',   '⚠️', sinCateg,    'Sin categoría','#B45309') : '') +
     (() => {
       if (ROLE !== 'superadmin') return '';
-      const nBase64 = products.filter(p => !_ib(p) && p.image?.startsWith('data:')).length;
+      const nBase64 = products.filter(p => !p.isArchived && !_ib(p) && p.image?.startsWith('data:')).length;
       return nBase64 > 0 ? chip('imagen-base64', '🗄', nBase64, 'Imagen base64', '#7C3AED') : '';
     })() +
     (() => {
@@ -989,11 +973,16 @@ function renderStats() {
         <span class="sc-num">${sinPrecio.length}</span>
         <span class="sc-lbl">Sin precio</span>
       </button>`;
-    })();
+    })() +
+    (nArchivados > 0 && can.deleteProduct ? `<button class="stat-chip" onclick="toggleArchivedView()" title="Ver productos archivados" style="border-color:var(--muted-light);color:var(--muted)">
+      <span class="sc-icon">🗄</span>
+      <span class="sc-num">${nArchivados}</span>
+      <span class="sc-lbl">Archivados</span>
+    </button>` : '');
 
   // Alerta de productos sin precio — solo visible para superadmin
   if (can.publishProduct) {
-    const sinPrecio = products.filter(p => !_ib(p) && (!p.price || p.price === 0));
+    const sinPrecio = products.filter(p => !p.isArchived && !_ib(p) && (!p.price || p.price === 0));
     const alertEl   = document.getElementById('no-price-alert');
     const alertTxt  = document.getElementById('no-price-alert-text');
     if (alertEl && alertTxt) {
@@ -3302,6 +3291,7 @@ async function saveProduct() {
     is_published: data.isPublished,
     kit_items: data.kitItems,
     images: data.images,
+    is_archived: data.isArchived || false,
     ...(!idVal ? { created_by: getCurrentUserEmail() } : {})
   };
 
@@ -4796,6 +4786,62 @@ function _findDuplicatePairs() {
 
 function _updateDupBadge() { /* desactivado — solo corre al abrir Revisión de duplicados */ }
 
+/* ── ARCHIVAR / RESTAURAR ── */
+async function archiveProduct(id) {
+  if (!can.deleteProduct) return;
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  if (!confirm(`¿Archivar "${p.name}"?\nDesaparecerá del inventario y la caja. Podrás restaurarlo desde "Archivados".`)) return;
+  const result = await supabaseApi(`products?id=eq.${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ is_archived: true, is_published: false, out_of_stock: true })
+  });
+  if (!result.ok) { toast('Error al archivar', 'error'); return; }
+  const idx = products.findIndex(x => x.id === id);
+  if (idx > -1) products[idx] = { ...products[idx], isArchived: true, isPublished: false, outOfStock: true };
+  closeQV();
+  renderTable();
+  renderStats();
+  logActivity('producto_editado', `Archivó "${p.name}"`, { id, name: p.name });
+  toastUndo(`"${truncName(p.name)}" archivado`, async () => {
+    const r = await supabaseApi(`products?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_archived: false })
+    });
+    if (!r.ok) { toast('No se pudo restaurar', 'error'); return; }
+    const i = products.findIndex(x => x.id === id);
+    if (i > -1) products[i] = { ...products[i], isArchived: false };
+    renderTable(); renderStats();
+    toast(`"${truncName(p.name)}" restaurado ✓`, 'success');
+  });
+}
+
+async function restoreProduct(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const result = await supabaseApi(`products?id=eq.${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ is_archived: false })
+  });
+  if (!result.ok) { toast('Error al restaurar', 'error'); return; }
+  const idx = products.findIndex(x => x.id === id);
+  if (idx > -1) products[idx] = { ...products[idx], isArchived: false };
+  closeQV();
+  renderTable();
+  renderStats();
+  logActivity('producto_editado', `Restauró "${p.name}" del archivo`, { id, name: p.name });
+  toast(`"${truncName(p.name)}" restaurado al inventario ✓`, 'success');
+}
+
+function toggleArchivedView() {
+  _showingArchived = !_showingArchived;
+  _statFilter = null;
+  _showOnlyFlagged = false;
+  _adminPage = 1;
+  renderTable();
+  renderStats();
+}
+
 function _dismissDupBanner() {
   const pairs = _findDuplicatePairs();
   localStorage.setItem('te_dup_dismiss', pairs.length);
@@ -4861,8 +4907,17 @@ function _openFormFromKit(compId) {
 
 function _dupThumb(img, name) {
   return img
-    ? `<img src="${img}" alt="${name}" loading="lazy">`
+    ? `<img src="${img}" alt="${name}" loading="lazy" style="cursor:zoom-in" onclick="_dupOpenZoom(this.src)">`
     : `<div class="dup-prod-ph">📦</div>`;
+}
+
+function _dupOpenZoom(src) {
+  const fs = document.createElement('div');
+  fs.id = 'qv-zoom';
+  fs.innerHTML = `<img src="${src}" alt=""><button onclick="document.getElementById('qv-zoom').remove()" title="Cerrar">✕</button>`;
+  fs.onclick = e => { if (e.target === fs) fs.remove(); };
+  document.body.appendChild(fs);
+  requestAnimationFrame(() => fs.classList.add('open'));
 }
 
 function _dupCard(p, pairKey, isMed) {
@@ -4953,7 +5008,6 @@ async function _deleteDupProduct(id, pairKey) {
   if (deleted) logActivity('producto_eliminado', `Eliminó "${deleted.name}" (duplicado)`, { id, name: deleted.name, price: deleted.price });
   products = products.filter(p => p.id !== id);
   selectedIds.delete(id);
-  closeDupReview();
   renderTable();
   renderStats();
   _dismissDupPair(pairKey);
@@ -7193,10 +7247,15 @@ function _renderQV(p) {
   const btnAddKit = can.editProduct && !p.kitItems?.length
     ? `<button class="qv-btn qv-btn-dup" onclick="_openAddToKit([${p.id}])">🎁 A un kit</button>`
     : '';
+  const btnArchive = can.deleteProduct
+    ? (_showingArchived
+        ? `<button class="qv-btn qv-btn-archive" onclick="restoreProduct(${p.id})">↩ Restaurar</button>`
+        : `<button class="qv-btn qv-btn-archive" onclick="archiveProduct(${p.id})">🗄 Archivar</button>`)
+    : '';
   const actionsEl = document.getElementById('qv-actions');
   actionsEl.removeAttribute('style');
-  // Orden: Editar · Duplicar · Ocultar/Publicar / Al inicio · A un kit · Revisar / Eliminar
-  actionsEl.innerHTML = btnEdit + btnDup + btnPub + btnTop + btnAddKit + btnFlag + btnDel;
+  // Orden: Editar · Duplicar · Ocultar/Publicar / Al inicio · A un kit · Revisar · Archivar / Eliminar
+  actionsEl.innerHTML = btnEdit + btnDup + btnPub + btnTop + btnAddKit + btnFlag + btnArchive + btnDel;
 }
 
 async function _qvTogglePublished(id) {

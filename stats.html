@@ -307,20 +307,18 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 
 <main>
 
-  <!-- RESUMEN WA -->
-  <div style="text-align:right;margin-bottom:10px">
-    <button onclick="sendDailySummaryWA()" style="background:#25D366;color:#fff;border:none;border-radius:50px;padding:8px 18px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px">
-      <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.374 0 0 5.373 0 12c0 2.124.553 4.118 1.522 5.85L.057 23.499l5.772-1.513A11.94 11.94 0 0012 24c6.626 0 12-5.373 12-12S18.626 0 12 0z"/></svg>
-      Enviar resumen por WA
+  <!-- PERÍODO + WA -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+    <div class="period-bar" style="margin-bottom:0;flex:1;min-width:0">
+      <button class="period-btn active" data-period="today" onclick="setPeriod('today')">Hoy</button>
+      <button class="period-btn" data-period="week" onclick="setPeriod('week')">7 días</button>
+      <button class="period-btn" data-period="month" onclick="setPeriod('month')">30 días</button>
+      <button class="period-btn" data-period="all" onclick="setPeriod('all')">Todo</button>
+    </div>
+    <button onclick="sendDailySummaryWA()" style="background:#25D366;color:#fff;border:none;border-radius:50px;padding:7px 14px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0">
+      <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.374 0 0 5.373 0 12c0 2.124.553 4.118 1.522 5.85L.057 23.499l5.772-1.513A11.94 11.94 0 0012 24c6.626 0 12-5.373 12-12S18.626 0 12 0z"/></svg>
+      Resumen WA
     </button>
-  </div>
-
-  <!-- PERÍODO -->
-  <div class="period-bar">
-    <button class="period-btn active" data-period="today" onclick="setPeriod('today')">Hoy</button>
-    <button class="period-btn" data-period="week" onclick="setPeriod('week')">7 días</button>
-    <button class="period-btn" data-period="month" onclick="setPeriod('month')">30 días</button>
-    <button class="period-btn" data-period="all" onclick="setPeriod('all')">Todo</button>
   </div>
 
   <!-- RESUMEN DEL DÍA -->
@@ -353,10 +351,21 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
       <div class="kpi-sub" id="kpi-avg-sub"></div>
     </div>
     <div class="kpi-card">
-      <span class="kpi-icon si-red">📦</span>
-      <div class="kpi-value" id="kpi-stock">—</div>
-      <div class="kpi-label">Productos en stock</div>
-      <div class="kpi-sub" id="kpi-stock-sub"></div>
+      <span class="kpi-icon si-red">📌</span>
+      <div class="kpi-value" id="kpi-apt">—</div>
+      <div class="kpi-label">Por cobrar</div>
+      <div class="kpi-sub" id="kpi-apt-sub"></div>
+    </div>
+  </div>
+
+  <!-- APARTADOS PENDIENTES -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <h2>📌 Apartados pendientes</h2>
+      <span id="apt-summary-label" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body" id="apt-pending-body">
+      <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
     </div>
   </div>
 
@@ -386,7 +395,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
     </div>
   </div>
 
-  <!-- FILA 2: Top Productos + Ventas Recientes -->
+  <!-- TOP PRODUCTOS -->
   <div class="bottom-row">
     <div class="card">
       <div class="card-head">
@@ -399,128 +408,10 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
         </div>
       </div>
     </div>
-
-
-  </div>
-
-  <!-- HORA PICO -->
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-head">
-      <h2>Hora pico</h2>
-      <span id="hour-period-label"></span>
-    </div>
-    <div class="card-body">
-      <div class="chart-canvas-wrap" style="height:200px">
-        <canvas id="hour-chart"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- RENTABILIDAD -->
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-head">
-      <h2>Rentabilidad</h2>
-      <span id="rent-label" style="font-size:.75rem;color:var(--muted)"></span>
-    </div>
-    <div class="card-body">
-      <div class="inv-summary">
-        <div class="inv-stat green">
-          <div class="n" id="rent-high">—</div>
-          <div class="l">Alta ≥30%</div>
-        </div>
-        <div class="inv-stat amber">
-          <div class="n" id="rent-mid">—</div>
-          <div class="l">Media 10–29%</div>
-        </div>
-        <div class="inv-stat red">
-          <div class="n" id="rent-low">—</div>
-          <div class="l">Baja &lt;10%</div>
-        </div>
-      </div>
-      <div id="rent-no-cost" style="display:none;margin-bottom:10px;padding:8px 10px;background:#F9F4EE;border-radius:8px;font-size:.78rem;color:#8A7564">
-        ⚪ <strong id="rent-no-cost-n">0</strong> productos sin costo registrado — edítalos en Inventario para ver su margen
-      </div>
-      <div id="rent-list"></div>
-    </div>
-  </div>
-
-  <!-- APARTADOS PENDIENTES -->
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-head">
-      <h2>📌 Apartados pendientes</h2>
-      <span id="apt-summary-label" style="font-size:.75rem;color:var(--muted)"></span>
-    </div>
-    <div class="card-body" id="apt-pending-body">
-      <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
-    </div>
-  </div>
-
-  <!-- CLIENTAS -->
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-head">
-      <h2>👤 Clientas frecuentes</h2>
-      <span id="clientas-label" style="font-size:.75rem;color:var(--muted)"></span>
-    </div>
-    <div class="card-body" id="clientas-body">
-      <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
-    </div>
-  </div>
-
-  <!-- VENDEDORES -->
-  <div class="card" id="vendedores-card" style="display:none;margin-bottom:16px">
-    <div class="card-head">
-      <h2>👥 Por vendedor</h2>
-      <span id="vendedores-label" style="font-size:.75rem;color:var(--muted)"></span>
-    </div>
-    <div class="card-body" id="vendedores-body">
-      <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
-    </div>
-  </div>
-
-  <!-- VENTAS DEL DÍA -->
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-head">
-      <h2>Ventas de hoy</h2>
-      <span id="today-sales-count" style="font-size:.75rem;color:var(--muted)"></span>
-    </div>
-    <div class="card-body" style="padding-top:8px;padding-bottom:8px">
-      <div id="today-sales-list" style="max-height:400px;overflow-y:auto;overscroll-behavior:contain">
-        <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- GOOGLE ANALYTICS — solo Eduardo -->
-  <div id="ga4-link-card" style="display:none;margin-bottom:16px">
-    <a href="https://analytics.google.com/analytics/web/#/p484989597/reports/intelligenthome" target="_blank" rel="noopener"
-      style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;text-decoration:none;color:var(--charcoal);transition:.15s;box-shadow:0 2px 8px rgba(28,24,23,.06)"
-      onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">
-      <span style="font-size:1.3rem">📊</span>
-      <div style="flex:1">
-        <div style="font-size:.85rem;font-weight:600">Google Analytics</div>
-        <div style="font-size:.74rem;color:var(--muted)">Tráfico de la Tienda</div>
-      </div>
-      <span style="font-size:.75rem;color:var(--muted)">↗</span>
-    </a>
-  </div>
-
-  <!-- USO DE FUNCIONES — solo superadmin -->
-  <div class="card" id="uso-card" style="margin-bottom:16px;display:none">
-    <div class="card-head" style="flex-wrap:wrap;gap:8px">
-      <h2 style="flex:1;min-width:0">🔧 Uso de funciones</h2>
-      <select id="uso-user-filter" onchange="renderUsage()"
-        style="font-size:.75rem;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--charcoal);font-family:inherit;cursor:pointer">
-        <option value="">Todos los usuarios</option>
-      </select>
-      <span id="uso-label" style="font-size:.75rem;color:var(--muted);white-space:nowrap;align-self:center"></span>
-    </div>
-    <div class="card-body" id="uso-body">
-      <div class="loading-state">Cargando…</div>
-    </div>
   </div>
 
   <!-- INVENTARIO -->
-  <div class="card">
+  <div class="card" style="margin-bottom:16px">
     <div class="card-head">
       <h2>Estado del inventario</h2>
       <span id="inv-total-label"></span>
@@ -554,6 +445,96 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
     </div>
   </div>
 
+  <!-- HORA PICO -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <h2>Hora pico</h2>
+      <span id="hour-period-label"></span>
+    </div>
+    <div class="card-body">
+      <div class="chart-canvas-wrap" style="height:200px">
+        <canvas id="hour-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLIENTAS -->
+  <div id="clientas-card" class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <h2>👤 Clientas frecuentes</h2>
+      <span id="clientas-label" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body" id="clientas-body">
+      <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
+    </div>
+  </div>
+
+  <!-- RENTABILIDAD -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <h2>Rentabilidad</h2>
+      <span id="rent-label" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body">
+      <div class="inv-summary">
+        <div class="inv-stat green">
+          <div class="n" id="rent-high">—</div>
+          <div class="l">Alta ≥30%</div>
+        </div>
+        <div class="inv-stat amber">
+          <div class="n" id="rent-mid">—</div>
+          <div class="l">Media 10–29%</div>
+        </div>
+        <div class="inv-stat red">
+          <div class="n" id="rent-low">—</div>
+          <div class="l">Baja &lt;10%</div>
+        </div>
+      </div>
+      <div id="rent-no-cost" style="display:none;margin-bottom:10px;padding:8px 10px;background:#F9F4EE;border-radius:8px;font-size:.78rem;color:#8A7564">
+        ⚪ <strong id="rent-no-cost-n">0</strong> productos sin costo registrado — edítalos en Inventario para ver su margen
+      </div>
+      <div id="rent-list"></div>
+    </div>
+  </div>
+
+  <!-- VENDEDORES -->
+  <div class="card" id="vendedores-card" style="display:none;margin-bottom:16px">
+    <div class="card-head">
+      <h2>👥 Por vendedor</h2>
+      <span id="vendedores-label" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body" id="vendedores-body">
+      <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
+    </div>
+  </div>
+
+  <!-- VENTAS DEL DÍA -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <h2 id="today-sales-title">Ventas de hoy</h2>
+      <span id="today-sales-count" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body" style="padding-top:8px;padding-bottom:8px">
+      <div id="today-sales-list" style="max-height:400px;overflow-y:auto;overscroll-behavior:contain">
+        <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GOOGLE ANALYTICS — solo Eduardo -->
+  <div id="ga4-link-card" style="display:none;margin-bottom:16px">
+    <a href="https://analytics.google.com/analytics/web/#/p484989597/reports/intelligenthome" target="_blank" rel="noopener"
+      style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;text-decoration:none;color:var(--charcoal);transition:.15s;box-shadow:0 2px 8px rgba(28,24,23,.06)"
+      onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">
+      <span style="font-size:1.3rem">📊</span>
+      <div style="flex:1">
+        <div style="font-size:.85rem;font-weight:600">Google Analytics</div>
+        <div style="font-size:.74rem;color:var(--muted)">Tráfico de la Tienda</div>
+      </div>
+      <span style="font-size:.75rem;color:var(--muted)">↗</span>
+    </a>
+  </div>
+
 </main>
 
 <script>
@@ -574,14 +555,10 @@ const SESSION_KEY = 'te_admin_session';
     if (role === 'operador') window.location.href = 'admin.html';
     const userEmail = s?.user?.email ||
       (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.email; } catch{} })() || '';
-    if (role === 'superadmin') {
+    if (role === 'superadmin' && userEmail === 'eacevedo@sunname.com.mx') {
       document.addEventListener('DOMContentLoaded', () => {
-        const uc = document.getElementById('uso-card');
-        if (uc) uc.style.display = '';
-        if (userEmail === 'eacevedo@sunname.com.mx') {
-          const ga = document.getElementById('ga4-link-card');
-          if (ga) ga.style.display = '';
-        }
+        const ga = document.getElementById('ga4-link-card');
+        if (ga) ga.style.display = '';
       });
     }
     if (role !== 'superadmin' && role !== 'duena') {
@@ -650,7 +627,7 @@ async function loadNameMap() {
 async function loadSales() {
   const from = PERIODS[currentPeriod]();
   const filter = from ? `&created_at=gte.${from}` : '';
-  const r = await api(`sales?select=id,total,created_at,items,payment_method,type,seller_email,discount,customer&order=created_at.desc${filter}&limit=500`);
+  const r = await api(`sales?select=id,total,created_at,items,payment_method,type,seller_email,discount,customer,abonos&order=created_at.desc${filter}&limit=500`);
   sales = (r.ok && Array.isArray(r.data)) ? r.data.filter(s => s.type !== 'apartado') : [];
 }
 
@@ -658,7 +635,7 @@ async function loadPreviousSales() {
   const range = PREV_PERIODS[currentPeriod]?.();
   if (!range) { prevSales = []; return; }
   const [from, to] = range;
-  const r = await api(`sales?select=id,total,created_at,type&created_at=gte.${from}&created_at=lt.${to}&limit=500`);
+  const r = await api(`sales?select=id,total,created_at,type,abonos&created_at=gte.${from}&created_at=lt.${to}&limit=500`);
   prevSales = (r.ok && Array.isArray(r.data)) ? r.data.filter(s => s.type !== 'apartado') : [];
 }
 
@@ -670,22 +647,25 @@ async function loadProducts() {
 let todaySales = [];
 async function loadTodaySales() {
   const from = new Date(); from.setHours(0,0,0,0);
-  const r = await api(`sales?select=id,total,created_at,items,payment_method,type,discount,note,seller_email,customer&order=created_at.desc&created_at=gte.${from.toISOString()}&limit=200`);
+  const r = await api(`sales?select=id,total,created_at,items,payment_method,type,discount,note,seller_email,customer,abonos&order=created_at.desc&created_at=gte.${from.toISOString()}&limit=200`);
   todaySales = (r.ok && Array.isArray(r.data)) ? r.data : [];
 }
 
 function renderTodaySales() {
   const el = document.getElementById('today-sales-list');
   const countEl = document.getElementById('today-sales-count');
+  const titleEl = document.getElementById('today-sales-title');
   if (!el) return;
-  const all = [...todaySales].sort((a,b) => new Date(b.created_at)-new Date(a.created_at));
+  const isToday = currentPeriod === 'today';
+  const all = [...(isToday ? todaySales : sales)].sort((a,b) => new Date(b.created_at)-new Date(a.created_at));
+  if (titleEl) titleEl.textContent = isToday ? 'Ventas de hoy' : `Ventas — ${PERIOD_LABELS[currentPeriod]}`;
   const ventas = all.filter(s => s.type !== 'apartado');
   const apartados = all.filter(s => s.type === 'apartado');
   const hoy = new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
   if (countEl) countEl.textContent = all.length
     ? `${ventas.length} venta${ventas.length!==1?'s':''}${apartados.length?` · ${apartados.length} apt.`:''}`
-    : hoy;
-  if (!all.length) { el.innerHTML = '<p class="no-data">Sin ventas hoy</p>'; return; }
+    : isToday ? hoy : PERIOD_LABELS[currentPeriod];
+  if (!all.length) { el.innerHTML = `<p class="no-data">Sin ventas ${isToday ? 'hoy' : 'en este período'}</p>`; return; }
   const PH = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 24 24' fill='none' stroke='%23C9A462' stroke-width='1.5'%3E%3Crect x='3' y='3' width='18' height='18' rx='3'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'/%3E%3Cpolyline points='21 15 16 10 5 21'/%3E%3C/svg%3E`;
   el.innerHTML = all.map((s, idx) => {
     const t = new Date(s.created_at);
@@ -739,6 +719,12 @@ function renderAll() {
   document.getElementById('top-prod-period').textContent = lbl;
   document.getElementById('hour-period-label').textContent = lbl;
 
+  // Resumen del día: solo relevante en "Hoy" — en otros períodos los KPIs ya cubren el contexto
+  document.getElementById('day-summary').style.display = currentPeriod === 'today' ? '' : 'none';
+  // Clientas frecuentes: se basa en historial de apartados — no tiene sentido mostrarlo en vista "Hoy"
+  const clientasCard = document.getElementById('clientas-card');
+  if (clientasCard) clientasCard.style.display = currentPeriod === 'today' ? 'none' : '';
+
   renderDaySummary();
   renderKPIs();
   renderRevenueChart();
@@ -749,7 +735,6 @@ function renderAll() {
   renderInventory();
   renderRentabilidad();
   renderVendedores();
-  loadUsage().then(renderUsage);
 }
 
 function renderVendedores() {
@@ -760,11 +745,12 @@ function renderVendedores() {
 
   // Agrupar por seller_email
   const map = {};
+  const _fromIso = PERIODS[currentPeriod]();
   sales.forEach(s => {
     const key = s.seller_email || '__sin_sesion__';
     if (!map[key]) map[key] = { ventas: 0, total: 0 };
     map[key].ventas++;
-    map[key].total += parseFloat(s.total) || 0;
+    map[key].total += _abonoRevenue(s, _fromIso, null);
   });
 
   const entries = Object.entries(map).sort((a,b) => b[1].total - a[1].total);
@@ -797,6 +783,18 @@ function renderVendedores() {
   }).join('');
 }
 
+// Retorna el ingreso de una venta que cae dentro del período [fromIso, toIso].
+// Si tiene abonos, suma solo los abonos dentro del rango; si no, usa total.
+function _abonoRevenue(sale, fromIso, toIso) {
+  const abonos = Array.isArray(sale.abonos) ? sale.abonos : [];
+  if (!abonos.length) return parseFloat(sale.total || 0);
+  const from = fromIso ? new Date(fromIso).getTime() : 0;
+  const to   = toIso   ? new Date(toIso).getTime()   : Date.now() + 86400000;
+  return abonos
+    .filter(a => { const t = new Date(a.date).getTime(); return t >= from && t <= to; })
+    .reduce((s, a) => s + parseFloat(a.amount || 0), 0);
+}
+
 /* KPIs con delta vs período anterior */
 function kpiDelta(curr, prev) {
   if (!prev || currentPeriod === 'all') return '';
@@ -809,13 +807,15 @@ function kpiDelta(curr, prev) {
 }
 
 function renderKPIs() {
-  const totalRev  = sales.reduce((s,x) => s + parseFloat(x.total||0), 0);
+  const fromIso   = PERIODS[currentPeriod]();
+  const prevRange = PREV_PERIODS[currentPeriod]?.();
+  const [prevFromIso, prevToIso] = prevRange || [null, null];
+
+  const totalRev  = sales.reduce((s,x) => s + _abonoRevenue(x, fromIso, null), 0);
   const count     = sales.length;
   const avg       = count ? totalRev / count : 0;
-  const inStock   = products.filter(p => p.stock > 0 && !p.out_of_stock).length;
-  const total     = products.length;
 
-  const prevRev   = prevSales.reduce((s,x) => s + parseFloat(x.total||0), 0);
+  const prevRev   = prevSales.reduce((s,x) => s + _abonoRevenue(x, prevFromIso, prevToIso), 0);
   const prevCount = prevSales.length;
   const prevAvg   = prevCount ? prevRev / prevCount : 0;
 
@@ -827,14 +827,29 @@ function renderKPIs() {
   document.getElementById('kpi-sales-sub').textContent = prevCount > 0 ? `Período ant.: ${prevCount}` : '';
   document.getElementById('kpi-avg').innerHTML = (count ? fmt(avg) : '—') + kpiDelta(avg, prevAvg);
   document.getElementById('kpi-avg-sub').textContent = prevAvg > 0 ? `Período ant.: ${fmt(prevAvg)}` : '';
-  document.getElementById('kpi-stock').textContent = inStock;
-  document.getElementById('kpi-stock-sub').textContent = `de ${total} producto${total!==1?'s':''}`;
+
+  const aptAmt = _aptResumen.pendiente || 0;
+  document.getElementById('kpi-apt').textContent = aptAmt > 0 ? fmt(aptAmt) : '$0';
+  document.getElementById('kpi-apt-sub').textContent = _aptResumen.count > 0
+    ? `${_aptResumen.count} apartado${_aptResumen.count!==1?'s':''}${_aptResumen.vencidos ? ` · ⚠️ ${_aptResumen.vencidos} venc.` : ''}`
+    : 'Sin apartados activos';
 }
 
 /* Hora pico */
 function renderHourChart() {
-  const byHour = Array(24).fill(0);
-  sales.forEach(s => { byHour[new Date(s.created_at).getHours()] += parseFloat(s.total||0); });
+  const byHour  = Array(24).fill(0);
+  const fromMs  = PERIODS[currentPeriod]() ? new Date(PERIODS[currentPeriod]()).getTime() : 0;
+  sales.forEach(s => {
+    const abonos = Array.isArray(s.abonos) ? s.abonos : [];
+    if (abonos.length) {
+      abonos.forEach(a => {
+        const t = new Date(a.date).getTime();
+        if (t >= fromMs) byHour[new Date(a.date).getHours()] += parseFloat(a.amount || 0);
+      });
+    } else {
+      byHour[new Date(s.created_at).getHours()] += parseFloat(s.total || 0);
+    }
+  });
   const ctx = document.getElementById('hour-chart')?.getContext('2d');
   if (!ctx) return;
   if (hourChart) { hourChart.destroy(); hourChart = null; }
@@ -881,8 +896,16 @@ function renderRevenueChart() {
     byDay[key] = 0;
   }
   sales.forEach(s => {
-    const day = s.created_at.split('T')[0];
-    byDay[day] = (byDay[day]||0) + parseFloat(s.total||0);
+    const abonos = Array.isArray(s.abonos) ? s.abonos : [];
+    if (abonos.length) {
+      abonos.forEach(a => {
+        const day = a.date.split('T')[0];
+        if (byDay.hasOwnProperty(day)) byDay[day] += parseFloat(a.amount || 0);
+      });
+    } else {
+      const day = s.created_at.split('T')[0];
+      byDay[day] = (byDay[day]||0) + parseFloat(s.total||0);
+    }
   });
 
   const days = Object.keys(byDay).sort();
@@ -1205,7 +1228,20 @@ function renderDaySummary() {
   document.getElementById('ds-date').textContent = fecha.charAt(0).toUpperCase() + fecha.slice(1);
 
   const ventas = todaySales.filter(s => s.type !== 'apartado');
-  const totalHoy = ventas.reduce((s, v) => s + parseFloat(v.total || 0), 0);
+  const todayStartMs = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
+  const todayEndMs   = Date.now();
+  let totalHoy = 0;
+  ventas.forEach(v => {
+    const abonos = Array.isArray(v.abonos) ? v.abonos : [];
+    if (abonos.length) {
+      abonos.forEach(a => {
+        const t = new Date(a.date).getTime();
+        if (t >= todayStartMs && t <= todayEndMs) totalHoy += parseFloat(a.amount || 0);
+      });
+    } else {
+      totalHoy += parseFloat(v.total || 0);
+    }
+  });
   const numVentas = ventas.length;
 
   const mainEl = document.getElementById('ds-main');
@@ -1238,8 +1274,22 @@ function renderDaySummary() {
 
   // Pills
   const pills = [];
-  const efectivo = ventas.filter(v => v.payment_method !== 'transferencia').reduce((s,v) => s + parseFloat(v.total||0), 0);
-  const transfer = ventas.filter(v => v.payment_method === 'transferencia').reduce((s,v) => s + parseFloat(v.total||0), 0);
+  let efectivo = 0, transfer = 0;
+  ventas.forEach(v => {
+    const abonos = Array.isArray(v.abonos) ? v.abonos : [];
+    if (abonos.length) {
+      abonos.forEach(a => {
+        const t = new Date(a.date).getTime();
+        if (t >= todayStartMs && t <= todayEndMs) {
+          if (a.method === 'transferencia') transfer += parseFloat(a.amount || 0);
+          else efectivo += parseFloat(a.amount || 0);
+        }
+      });
+    } else {
+      if (v.payment_method === 'transferencia') transfer += parseFloat(v.total || 0);
+      else efectivo += parseFloat(v.total || 0);
+    }
+  });
   if (efectivo > 0) pills.push(`<span class="day-summary-pill">💵 $${efectivo.toLocaleString('es-MX',{maximumFractionDigits:0})} efectivo</span>`);
   if (transfer > 0) pills.push(`<span class="day-summary-pill">📱 $${transfer.toLocaleString('es-MX',{maximumFractionDigits:0})} transferencia</span>`);
   if (_aptResumen.count > 0) {
@@ -1413,95 +1463,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-/* ── USO DE FUNCIONES ─────────────────────────────────────────────────── */
-const EVENT_LABELS = {
-  // Inventario
-  'qv_open':         { label: 'Vista rápida (Inventario)', icon: '🔍' },
-  'form_open_edit':  { label: 'Editar producto',           icon: '✏️' },
-  'form_open_add':   { label: 'Agregar producto',          icon: '➕' },
-  'product_saved':   { label: 'Producto guardado',         icon: '💾' },
-  'scan_result':     { label: 'Escaneo (Inventario)',      icon: '🔲' },
-  'search':          { label: 'Búsqueda (Inventario)',     icon: '🔍' },
-  'filter_category': { label: 'Filtro por categoría',      icon: '🏷️' },
-  'filter_chip':     { label: 'Filtro de estado',          icon: '🔵' },
-  'filter_sort':     { label: 'Ordenamiento',              icon: '↕️' },
-  'inline_price':    { label: 'Precio editado inline',     icon: '💰' },
-  'inline_name':     { label: 'Nombre editado inline',     icon: '✏️' },
-  'inline_desc':     { label: 'Descripción inline',        icon: '📝' },
-  'dictate_start':   { label: 'Dictado por voz',           icon: '🎤' },
-  // Caja
-  'pos_checkout':    { label: 'Venta registrada (Caja)',   icon: '🛍️' },
-  'pos_apartado':    { label: 'Apartado creado (Caja)',    icon: '📌' },
-  'pos_search':      { label: 'Búsqueda (Caja)',           icon: '🔍' },
-  'pos_scan':        { label: 'Escaneo (Caja)',            icon: '🔲' },
-  // Módulos
-  'module_caja':     { label: 'Entró a Caja',              icon: '🏪' },
-  'module_inventario':{ label: 'Entró a Inventario',       icon: '📦' },
-  'module_reportes': { label: 'Entró a Reportes',          icon: '📊' },
-  'module_staging':  { label: 'Entró a Staging',           icon: '🗂️' },
-};
-
-let _usageData = [];
-
-async function loadUsage() {
-  try {
-    const since = PERIODS[currentPeriod]?.();
-    const filter = since ? `&created_at=gte.${since}` : '';
-    const r = await api(`usage_log?select=event,user_email,created_at${filter}&order=created_at.desc&limit=2000`);
-    _usageData = (r.ok && Array.isArray(r.data)) ? r.data : [];
-  } catch { _usageData = []; }
-  return _usageData;
-}
-
-function renderUsage() {
-  const body  = document.getElementById('uso-body');
-  const label = document.getElementById('uso-label');
-  const sel   = document.getElementById('uso-user-filter');
-  if (!body) return;
-
-  // Poblar select de usuarios con los que aparecen en los datos
-  if (sel && _usageData.length) {
-    const users = [...new Set(_usageData.map(r => r.user_email).filter(Boolean))];
-    const current = sel.value;
-    sel.innerHTML = '<option value="">Todos los usuarios</option>' +
-      users.map(u => {
-        const name = nameMap[u] || u.split('@')[0];
-        return `<option value="${u}" ${current === u ? 'selected' : ''}>${name}</option>`;
-      }).join('');
-  }
-
-  const userFilter = sel?.value || '';
-  const filtered = userFilter ? _usageData.filter(r => r.user_email === userFilter) : _usageData;
-
-  if (!filtered.length) {
-    body.innerHTML = '<p style="color:var(--muted);font-size:.85rem;text-align:center;padding:16px 0">Sin datos para este período</p>';
-    if (label) label.textContent = '';
-    return;
-  }
-
-  const counts = {};
-  filtered.forEach(row => { counts[row.event] = (counts[row.event] || 0) + 1; });
-
-  const sorted  = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 12);
-  const max     = sorted[0]?.[1] || 1;
-  const pLabel  = { today:'hoy', week:'últimos 7 días', month:'últimos 30 días', all:'total' }[currentPeriod] || '';
-  const uLabel  = userFilter ? ` · ${(nameMap[userFilter] || userFilter.split('@')[0])}` : '';
-  if (label) label.textContent = `${filtered.length} acciones — ${pLabel}${uLabel}`;
-
-  body.innerHTML = sorted.map(([event, count]) => {
-    const info = EVENT_LABELS[event] || { label: event, icon: '⚙️' };
-    const pct  = Math.round((count / max) * 100);
-    return `<div style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-        <span style="font-size:.84rem;font-weight:600;color:var(--charcoal)">${info.icon} ${info.label}</span>
-        <span style="font-size:.82rem;font-weight:700;color:var(--muted);flex-shrink:0;margin-left:8px">${count}</span>
-      </div>
-      <div style="height:6px;background:#F0EBE3;border-radius:99px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:var(--gold);border-radius:99px;transition:width .4s ease"></div>
-      </div>
-    </div>`;
-  }).join('');
-}
 
 function _dvImgPopup(trigger, img, name, price, qty, stockInfo, stockColor) {
   document.getElementById('dv-img-pop')?.remove();
