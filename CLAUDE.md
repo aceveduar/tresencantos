@@ -66,25 +66,58 @@ Usar siempre estos nombres en UI, botones, tickets y conversación. Nunca "Admin
 
 ```
 tresencantos/
-├── index.html      # Tienda: catálogo, filtros, modal, hero, Natura, about
-├── app.js          # Lógica de la Tienda
-├── style.css       # Estilos de la Tienda
-├── admin.html      # Inventario: CRUD productos, estilos inline
-├── admin.js        # Lógica del Inventario (~6600 líneas)
-├── pos.html        # Caja: carrito, cobro, apartados, historial offcanvas
-├── stats.html      # Reportes: dashboard estadísticas (Chart.js CDN)
-├── staging.html    # Staging: subida masiva + IA Groq
-├── activity.html   # Actividad: feed de auditoría (tabla activity_log)
-├── settings.html   # Configuración: ajustes globales, solo superadmin
-├── splash.js       # Transición de entrada compartida por todos los módulos admin
-├── manifest.json   # PWA manifest
-├── sw.js           # Service Worker (PWA offline)
-├── icono-192.png   # Icono PWA
-├── icono-512.png   # Icono PWA
+├── index.html           # Tienda: catálogo, filtros, modal, hero, Natura, about
+├── app.js               # Lógica de la Tienda
+├── style.css            # Estilos de la Tienda
+│
+├── admin.html           # Inventario (HTML puro, ~1000 líneas)
+├── admin.css            # Estilos del Inventario
+├── admin.js             # Core: constantes, auth, init, carga de productos (~934 líneas)
+├── admin-render.js      # Renderizado: cards, tabla, drag&drop, inline edits
+├── admin-images.js      # Config Supabase, upload Drive, IA análisis de imagen
+├── admin-form.js        # Formulario CRUD, validación, save, kit editor, imágenes adicionales
+├── admin-bulk.js        # Bulk actions, export/import JSON
+├── admin-scanner.js     # Escáner, detección de duplicados, revisión, archivar
+├── admin-categories.js  # Category manager UI + drag&drop de categorías
+├── admin-utils.js       # Voz, toast, revista, nombres de usuario, flags
+├── admin-recv.js        # Modo Recepción de inventario
+├── admin-capture.js     # Captura rápida + swipe + modal similar
+├── admin-qv.js          # Quick View con galería, gestos, inline edits
+├── admin-kit-builder.js # Kit Builder overlay
+├── admin-batch.js       # Carga masiva con IA + Compare modal
+│
+├── pos.html             # Caja (HTML puro, ~555 líneas)
+├── pos.css              # Estilos de la Caja
+├── pos-core.js          # Config, auth, estado, API, carga de productos/categorías
+├── pos-cart.js          # Carrito, frecuentes, restock, corte de caja, gastos
+├── pos-ui.js            # Gestos swipe + preview de producto
+├── pos-apartados.js     # Descuento, pago, nota, apartados CRUD completo
+├── pos-checkout.js      # Cobrar, ticket WA, escáner, toast, divisor, init
+│
+├── stats.html           # Reportes (HTML puro, ~320 líneas)
+├── stats.css            # Estilos de Reportes
+├── stats.js             # Lógica completa de Reportes
+│
+├── settings.html        # Configuración (HTML puro, ~347 líneas)
+├── settings.css         # Estilos de Configuración
+├── settings.js          # Lógica de Configuración
+│
+├── activity.html        # Actividad (HTML puro, ~91 líneas)
+├── activity.css         # Estilos de Actividad
+├── activity.js          # Lógica de Actividad
+│
+├── staging.html         # Staging: subida masiva + IA Groq (sin partir aún)
+├── shared.css           # Estilos compartidos entre módulos admin
+├── shared.js            # JS compartido entre módulos admin
+├── splash.js            # Transición de entrada compartida por todos los módulos admin
+├── manifest.json        # PWA manifest
+├── sw.js                # Service Worker (PWA offline)
+├── icono-192.png        # Icono PWA
+├── icono-512.png        # Icono PWA
 ├── logo.png
 ├── ofelia.jpeg
 ├── CLAUDE.md
-└── MANUAL.md       # Manual de usuario para Ofelia, Areli y Eduardo
+└── MANUAL.md            # Manual de usuario para Ofelia, Areli y Eduardo
 ```
 
 ### Navegación entre módulos
@@ -100,7 +133,7 @@ En mobile algunos módulos pueden ocultar ítems según rol. `settings.html` red
 | Archivo | Key | Razón |
 |---|---|---|
 | `app.js` | Anon key | Solo SELECT público — seguro |
-| `admin.js`, `pos.html`, `stats.html`, `staging.html`, `activity.html`, `settings.html` | Service role key | Bypasea RLS para escritura |
+| `admin.js` (y todos los `admin-*.js`), `pos-core.js`, `stats.js`, `staging.html`, `activity.js`, `settings.js` | Service role key | Bypasea RLS para escritura |
 
 - **Project URL:** `https://qxvrggmpaqhslgdmbhqw.supabase.co`
 - **Regla de oro:** nunca poner service role key en `app.js`
