@@ -1713,6 +1713,11 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .cmp-zoom-half{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;min-width:0;position:relative}
 .cmp-zoom-half:first-child{border-right:1px solid rgba(255,255,255,.12)}
 .cmp-zoom-half img{max-width:100%;max-height:calc(100dvh - 80px);object-fit:contain;border-radius:8px;display:block}
+@media(max-width:640px){
+  #cmp-zoom.open{flex-direction:column}
+  .cmp-zoom-half:first-child{border-right:none;border-bottom:1px solid rgba(255,255,255,.12)}
+  .cmp-zoom-half img{max-height:calc(50dvh - 50px)}
+}
 .cmp-zoom-label{color:rgba(255,255,255,.75);font-size:.82rem;text-align:center;font-family:inherit;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #cmp-zoom-close{position:fixed;top:14px;right:16px;width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);z-index:1601;transition:.15s}
 #cmp-zoom-close:hover{background:rgba(255,255,255,.28)}
