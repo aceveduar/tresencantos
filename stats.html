@@ -692,7 +692,7 @@ function renderTodaySales() {
       : `$${Math.round(fullTotal).toLocaleString('es-MX')}`;
 
     const itemsHtml = items.map(i => {
-      const prod = products.find(p => p.id === i.id);
+      const prod = products.find(p => +p.id === +i.id);
       const img = prod?.image || PH;
       const qty = i.qty || 1;
       const sub = parseFloat(i.subtotal ?? i.price * qty);
