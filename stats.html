@@ -105,6 +105,26 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .charts-row{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:16px}
 .chart-canvas-wrap{position:relative;height:240px}
 
+/* ── CALENDAR HEATMAP ── */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:6px}
+.cal-hdr{text-align:center;font-size:.65rem;font-weight:700;color:var(--muted);padding-bottom:4px;letter-spacing:.03em}
+.cal-cell{aspect-ratio:1;border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:.12s}
+.cal-cell-n{font-size:.68rem;font-weight:600;line-height:1}
+.cal-cell-amt{font-size:.52rem;line-height:1.1;opacity:.9}
+.cal-empty{background:transparent;pointer-events:none}
+.cal-zero{background:var(--cream);color:var(--muted)}
+.cal-l1{background:#FEF3CD;color:#92400E}
+.cal-l2{background:#FCD34D;color:#78350F}
+.cal-l3{background:#C9A462;color:#fff}
+.cal-l4{background:#A67C3A;color:#fff}
+.cal-today{outline:2px solid var(--gold-dark);outline-offset:1px}
+
+/* ── INSIGHT PILLS ── */
+.insight-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.insight-pill{background:#fff;border:1px solid var(--border);border-radius:50px;padding:7px 14px;font-size:.8rem;display:flex;align-items:center;gap:6px;box-shadow:0 1px 4px rgba(28,24,23,.06);white-space:nowrap}
+.insight-pill b{color:var(--charcoal);font-weight:700}
+.insight-pill small{color:var(--muted)}
+
 /* ── TOP PRODUCTOS ── */
 .top-prod-item{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)}
 .top-prod-item:last-child{border-bottom:none}
@@ -466,6 +486,24 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
     </div>
   </div>
 
+  <!-- INSIGHTS + CALENDAR + WEEKDAY — rendered by JS -->
+  <div class="insight-row" id="insights-row" style="display:none"></div>
+
+  <div class="card" id="calendar-card" style="display:none;margin-bottom:16px">
+    <div class="card-head"><h2>📅 Mapa del mes</h2></div>
+    <div class="card-body"><div id="sales-calendar"></div></div>
+  </div>
+
+  <div class="card" id="weekday-card" style="display:none;margin-bottom:16px">
+    <div class="card-head">
+      <h2>Días más rentables</h2>
+      <span id="weekday-period-label" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body">
+      <div class="chart-canvas-wrap" style="height:190px"><canvas id="weekday-chart"></canvas></div>
+    </div>
+  </div>
+
   <!-- CLIENTAS -->
   <div id="clientas-card" class="card" style="margin-bottom:16px">
     <div class="card-head">
@@ -608,6 +646,7 @@ let products = [];
 let revenueChart = null;
 let catChart = null;
 let hourChart = null;
+let weekdayChart = null;
 let nameMap = {};
 
 /* ── PERIOD NAV ── */
@@ -825,6 +864,9 @@ function renderAll() {
   renderInventory();
   renderRentabilidad();
   renderVendedores();
+  renderInsights();
+  renderCalendar();
+  renderWeekdayChart();
 }
 
 function renderVendedores() {
@@ -973,25 +1015,29 @@ function renderHourChart() {
 /* Revenue chart */
 function renderRevenueChart() {
   const byDay = {};
-  // Fill all days in range
-  const from = _currentFrom();
+  const from  = _currentFrom();
+  const to    = _currentTo();
   const start = new Date(from);
-  const end = new Date(_currentTo());
+  const end   = new Date(to);
+  const ctx   = document.getElementById('revenue-chart')?.getContext('2d');
+  if (!ctx) return;
+
   if (sales.length === 0) {
-    destroyChart('revenueChart');
+    if (revenueChart) { revenueChart.destroy(); revenueChart = null; }
     document.getElementById('revenue-chart').parentElement.innerHTML = '<p class="no-data">Sin ventas registradas</p>';
     return;
   }
+
+  // Build daily revenue map for current period
   for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
-    const key = d.toISOString().split('T')[0];
-    byDay[key] = 0;
+    byDay[d.toISOString().split('T')[0]] = 0;
   }
   sales.forEach(s => {
     const abonos = Array.isArray(s.abonos) ? s.abonos : [];
     if (abonos.length) {
       abonos.forEach(a => {
         const day = a.date.split('T')[0];
-        if (byDay.hasOwnProperty(day)) byDay[day] += parseFloat(a.amount || 0);
+        if (day in byDay) byDay[day] += parseFloat(a.amount||0);
       });
     } else {
       const day = s.created_at.split('T')[0];
@@ -999,65 +1045,141 @@ function renderRevenueChart() {
     }
   });
 
-  const days = Object.keys(byDay).sort();
-  const ctx = document.getElementById('revenue-chart').getContext('2d');
   if (revenueChart) { revenueChart.destroy(); revenueChart = null; }
 
+  if (_statsMode === 'week') {
+    _renderWeekComparison(ctx, byDay);
+    return;
+  }
+
+  // Month / Day mode: bars by day
+  const days = Object.keys(byDay).sort();
+  const isMonth = _statsMode === 'month';
+
   const barLabelPlugin = {
-    id: 'barLabels',
+    id:'barLabels',
     afterDatasetsDraw(chart) {
-      const { ctx } = chart;
-      ctx.save();
-      ctx.font = '600 9px Inter, sans-serif';
-      ctx.fillStyle = '#6B5C48';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'bottom';
-      chart.getDatasetMeta(0).data.forEach((bar, i) => {
+      const {ctx} = chart;
+      ctx.save(); ctx.font='600 9px Inter,sans-serif'; ctx.fillStyle='#6B5C48';
+      ctx.textAlign='center'; ctx.textBaseline='bottom';
+      chart.getDatasetMeta(0).data.forEach((bar,i) => {
         const val = chart.data.datasets[0].data[i];
         if (val > 0) {
-          const label = val >= 1000 ? '$' + (val/1000).toFixed(1) + 'k' : '$' + Math.round(val);
-          ctx.fillText(label, bar.x, bar.y - 3);
+          const lbl = val>=1000?'$'+(val/1000).toFixed(1)+'k':'$'+Math.round(val);
+          ctx.fillText(lbl, bar.x, bar.y-3);
         }
       });
       ctx.restore();
     }
   };
 
+  const mkLabel = d => {
+    if (isMonth) return parseInt(d.split('-')[2])+'';
+    const [,m,day] = d.split('-');
+    return parseInt(day)+'/'+parseInt(m);
+  };
+
   revenueChart = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: days.map(d => {
-        const [,m,day] = d.split('-');
-        return `${parseInt(day)}/${parseInt(m)}`;
-      }),
+      labels: days.map(mkLabel),
       datasets: [{
         data: days.map(d => byDay[d]),
         backgroundColor: 'rgba(201,164,98,.75)',
-        borderColor: '#C9A462',
-        borderWidth: 1,
-        borderRadius: 5,
-        borderSkipped: false
+        borderColor: '#C9A462', borderWidth:1,
+        borderRadius: isMonth ? 3 : 5, borderSkipped:false
       }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
-      layout: { padding: { top: 18 } },
+      responsive:true, maintainAspectRatio:false,
+      layout:{padding:{top:18}},
       plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: c => `$${c.parsed.y.toLocaleString('es-MX')}` } }
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>`$${c.parsed.y.toLocaleString('es-MX')}`}}
       },
       scales: {
-        y: {
-          beginAtZero: true,
-          ticks: { callback: v => `$${v.toLocaleString('es-MX')}`, font:{size:11} },
-          grid: { color:'#F0E8E0' }
-        },
-        x: { grid:{display:false}, ticks:{font:{size:11}} }
+        y:{beginAtZero:true, ticks:{callback:v=>`$${v>=1000?(v/1000).toFixed(0)+'k':v}`,font:{size:10}}, grid:{color:'#F0E8E0'}},
+        x:{grid:{display:false}, ticks:{font:{size: isMonth?9:11}, maxRotation:0}}
       }
     },
     plugins: [barLabelPlugin]
   });
 }
+
+function _renderWeekComparison(ctx, byDayCurr) {
+  const _DOW = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const [prevFrom, prevTo] = _prevRange();
+
+  // Map current week days to DOW index (Mon=0…Sun=6)
+  const currByDow = Array(7).fill(0);
+  Object.entries(byDayCurr).forEach(([key, val]) => {
+    const dow = (new Date(key+'T12:00:00').getDay()+6)%7;
+    currByDow[dow] = val;
+  });
+
+  // Aggregate prev week
+  const prevByDow = Array(7).fill(0);
+  prevSales.forEach(s => {
+    const dow = (new Date(s.created_at).getDay()+6)%7;
+    prevByDow[dow] += _abonoRevenue(s, prevFrom, prevTo);
+  });
+
+  const hasPrev = prevByDow.some(v=>v>0);
+
+  // Highlight best day gold, others softer
+  const maxCurr = Math.max(...currByDow, 1);
+  const currColors = currByDow.map(v => v===maxCurr&&v>0 ? '#C9A462' : 'rgba(201,164,98,.65)');
+
+  const datasets = [{
+    label: 'Esta semana',
+    data: currByDow,
+    backgroundColor: currColors,
+    borderColor: '#C9A462', borderWidth:1,
+    borderRadius:6, borderSkipped:false
+  }];
+  if (hasPrev) datasets.push({
+    label: 'Semana anterior',
+    data: prevByDow,
+    backgroundColor: 'rgba(201,164,98,.18)',
+    borderColor: 'rgba(201,164,98,.45)', borderWidth:1,
+    borderRadius:4, borderSkipped:false
+  });
+
+  // Value labels on current bars
+  const labelPlugin = {
+    id:'wkLabels',
+    afterDatasetsDraw(chart) {
+      const {ctx} = chart;
+      ctx.save(); ctx.font='600 9px Inter,sans-serif'; ctx.fillStyle='#6B5C48';
+      ctx.textAlign='center'; ctx.textBaseline='bottom';
+      chart.getDatasetMeta(0).data.forEach((bar,i) => {
+        const val = chart.data.datasets[0].data[i];
+        if (val>0) ctx.fillText(val>=1000?'$'+(val/1000).toFixed(1)+'k':'$'+Math.round(val), bar.x, bar.y-3);
+      });
+      ctx.restore();
+    }
+  };
+
+  revenueChart = new Chart(ctx, {
+    type:'bar',
+    data:{ labels:_DOW, datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      layout:{padding:{top:18}},
+      plugins:{
+        legend:{ display:hasPrev, position:'top', align:'end',
+          labels:{boxWidth:10,boxHeight:10,font:{size:10},color:'#8A7564',padding:8}},
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: $${c.parsed.y.toLocaleString('es-MX')}`}}
+      },
+      scales:{
+        y:{beginAtZero:true, ticks:{callback:v=>`$${v>=1000?(v/1000).toFixed(0)+'k':v}`,font:{size:10}}, grid:{color:'#F0E8E0'}},
+        x:{grid:{display:false}, ticks:{font:{size:12,weight:'500'}}}
+      }
+    },
+    plugins:[labelPlugin]
+  });
+}
+
 
 /* Category chart */
 function renderCatChart() {
@@ -1519,6 +1641,147 @@ function sendDailySummaryWA() {
   msg += `\n¡Hasta mañana! 🌟`;
   const WA = '5215534548417';
   window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+/* ── INSIGHTS PILLS ── */
+function renderInsights() {
+  const el = document.getElementById('insights-row');
+  if (!el) return;
+  if (_statsMode === 'day') { el.style.display='none'; return; }
+  const fromIso = _currentFrom(), toIso = _currentTo();
+
+  // Best day
+  const byDay = {};
+  sales.forEach(s => {
+    const day = s.created_at.split('T')[0];
+    byDay[day] = (byDay[day]||0) + _abonoRevenue(s, fromIso, toIso);
+  });
+  const bestDayEntry = Object.entries(byDay).sort((a,b)=>b[1]-a[1])[0];
+  const _DOWF = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const pills = [];
+
+  if (bestDayEntry && bestDayEntry[1]>0) {
+    const d = new Date(bestDayEntry[0]+'T12:00:00');
+    pills.push(`<div class="insight-pill">🏆 <small>Mejor día</small> <b>${_DOWF[d.getDay()]} ${d.getDate()} ${_MN[d.getMonth()]} — $${Math.round(bestDayEntry[1]).toLocaleString('es-MX')}</b></div>`);
+  }
+
+  // Best category
+  const catMap = {};
+  sales.forEach(s => {
+    (s.items||[]).forEach(item => {
+      const prod = products.find(p=>+p.id===+item.id);
+      const cat = prod?.category_label || 'Otro';
+      catMap[cat] = (catMap[cat]||0) + parseFloat(item.subtotal||item.price||0);
+    });
+  });
+  const bestCat = Object.entries(catMap).sort((a,b)=>b[1]-a[1])[0];
+  if (bestCat) pills.push(`<div class="insight-pill">📦 <small>Top categoría</small> <b>${bestCat[0]}</b></div>`);
+
+  // Daily average
+  const msRange = new Date(toIso)-new Date(fromIso);
+  const daysInRange = Math.max(1, Math.round(msRange/86400000)+1);
+  const totalRev = sales.reduce((acc,x)=>acc+_abonoRevenue(x,fromIso,toIso),0);
+  const avg = totalRev/daysInRange;
+  if (avg>0) pills.push(`<div class="insight-pill">📊 <small>Prom/día</small> <b>$${Math.round(avg).toLocaleString('es-MX')}</b></div>`);
+
+  el.innerHTML = pills.join('');
+  el.style.display = pills.length ? 'flex' : 'none';
+}
+
+/* ── CALENDAR HEATMAP (month only) ── */
+function renderCalendar() {
+  const card = document.getElementById('calendar-card');
+  const el   = document.getElementById('sales-calendar');
+  if (!card||!el) return;
+  if (_statsMode !== 'month') { card.style.display='none'; return; }
+  card.style.display='';
+
+  const fromIso = _currentFrom(), toIso = _currentTo();
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  const byDay = {};
+  sales.forEach(s => {
+    const day = s.created_at.split('T')[0];
+    byDay[day] = (byDay[day]||0) + _abonoRevenue(s, fromIso, toIso);
+  });
+  const maxRev = Math.max(1, ...Object.values(byDay));
+
+  const d0 = new Date(fromIso);
+  const year = d0.getFullYear(), month = d0.getMonth();
+  const firstDow = (new Date(year,month,1).getDay()+6)%7; // Mon=0
+  const lastD    = new Date(year,month+1,0).getDate();
+
+  const _DOWS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  let html = '<div class="cal-grid">';
+  _DOWS.forEach(d => html += `<div class="cal-hdr">${d}</div>`);
+  for (let i=0;i<firstDow;i++) html += '<div class="cal-empty"></div>';
+
+  for (let d=1;d<=lastD;d++) {
+    const key = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const rev = byDay[key]||0;
+    const cellDate = new Date(year,month,d);
+    const isToday  = cellDate.getTime()===today.getTime();
+    const isFuture = cellDate > today;
+
+    let cls = 'cal-zero';
+    if (isFuture) cls = 'cal-empty';
+    else if (rev>0) {
+      const pct = rev/maxRev;
+      cls = pct>0.66?'cal-l4':pct>0.33?'cal-l3':pct>0.08?'cal-l2':'cal-l1';
+    }
+    const todayCls = isToday?' cal-today':'';
+    const amtStr   = rev>0?`<span class="cal-cell-amt">$${rev>=1000?(rev/1000).toFixed(1)+'k':Math.round(rev)}</span>`:'';
+    html += `<div class="cal-cell ${cls}${todayCls}"><span class="cal-cell-n">${d}</span>${amtStr}</div>`;
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+/* ── WEEKDAY PATTERN (week + month) ── */
+function renderWeekdayChart() {
+  const card = document.getElementById('weekday-card');
+  if (!card) return;
+  if (_statsMode==='day') { card.style.display='none'; if(weekdayChart){weekdayChart.destroy();weekdayChart=null;} return; }
+
+  const fromIso = _currentFrom(), toIso = _currentTo();
+  const _DOW = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const byDow = Array(7).fill(0);
+
+  sales.forEach(s => {
+    const dow = (new Date(s.created_at).getDay()+6)%7;
+    byDow[dow] += _abonoRevenue(s, fromIso, toIso);
+  });
+  if (byDow.every(v=>v===0)) { card.style.display='none'; return; }
+
+  const ctx = document.getElementById('weekday-chart')?.getContext('2d');
+  if (!ctx) return;
+  if (weekdayChart) { weekdayChart.destroy(); weekdayChart=null; }
+  card.style.display='';
+
+  const maxDow = Math.max(...byDow);
+  const colors = byDow.map(v => v===maxDow&&v>0?'#C9A462':'rgba(201,164,98,.4)');
+
+  const lbl = document.getElementById('weekday-period-label');
+  if (lbl) lbl.textContent = PERIOD_LABELS[currentPeriod]||'';
+
+  weekdayChart = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels:_DOW,
+      datasets:[{data:byDow, backgroundColor:colors, borderRadius:6, borderSkipped:false}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>`$${c.parsed.y.toLocaleString('es-MX')}`}}
+      },
+      scales:{
+        y:{beginAtZero:true,ticks:{callback:v=>v>=1000?'$'+(v/1000).toFixed(0)+'k':'$'+v,font:{size:10}},grid:{color:'#F0E8E0'}},
+        x:{grid:{display:false},ticks:{font:{size:11,weight:'500'}}}
+      }
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
