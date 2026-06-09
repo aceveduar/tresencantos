@@ -107,7 +107,9 @@ async function cobrar() {
       );
     }
   }
-  await Promise.all(stockUpdates);
+  const stockResults = await Promise.allSettled(stockUpdates);
+  const failedStock = stockResults.filter(r => r.status === 'rejected').length;
+  if (failedStock) toast(`Venta guardada. ${failedStock} actualización${failedStock > 1 ? 'es' : ''} de stock fallaron — verifica el inventario.`, 'error');
 
   btn.removeAttribute('data-loading');
 

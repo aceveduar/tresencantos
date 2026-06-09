@@ -51,8 +51,8 @@
     pop.id = 'ud-pop';
     pop.innerHTML = `
       <div class="ud-info">
-        <div class="ud-name">${name}</div>
-        <div class="ud-email">${email}</div>
+        <div class="ud-name"></div>
+        <div class="ud-email"></div>
         <span class="ud-role">${roleLabel}</span>
       </div>
       <div class="ud-divider"></div>
@@ -61,6 +61,8 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Cerrar sesión
       </button>`;
+    pop.querySelector('.ud-name').textContent = name;
+    pop.querySelector('.ud-email').textContent = email;
     document.body.appendChild(pop);
 
     // Posicionar bajo el avatar

@@ -356,7 +356,14 @@ function adminCatMatches(productCat, filterCat) {
   return false;
 }
 
-const _norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+const _normCache = new Map();
+const _norm = s => {
+  const k = s || '';
+  if (_normCache.has(k)) return _normCache.get(k);
+  const v = k.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  _normCache.set(k, v);
+  return v;
+};
 
 function getFilteredProducts() {
   const q           = _norm(document.getElementById('search-input')?.value) || '';

@@ -209,11 +209,11 @@ function applySort(list) {
     case 'recientes': {
       const order = _posRecentOrder.length ? _posRecentOrder : JSON.parse(localStorage.getItem('te_recently_edited') || '[]');
       if (!order.length) return [...list].sort((a, b) => b.id - a.id);
+      const idx = new Map(order.map((id, i) => [id, i]));
       return [...list].sort((a, b) => {
-        const ia = order.indexOf(a.id), ib = order.indexOf(b.id);
-        if (ia === -1 && ib === -1) return b.id - a.id;
-        if (ia === -1) return 1;
-        if (ib === -1) return -1;
+        const ia = idx.has(a.id) ? idx.get(a.id) : order.length;
+        const ib = idx.has(b.id) ? idx.get(b.id) : order.length;
+        if (ia === ib) return b.id - a.id;
         return ia - ib;
       });
     }
@@ -319,7 +319,14 @@ function setCategory(cat) {
   searchProducts(q);
 }
 
-const _norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+const _normCache = new Map();
+const _norm = s => {
+  const k = s || '';
+  if (_normCache.has(k)) return _normCache.get(k);
+  const v = k.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  _normCache.set(k, v);
+  return v;
+};
 
 /* ── SEARCH ── */
 function getFilteredProducts(q = '', includeOos = false) {
