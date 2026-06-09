@@ -643,7 +643,7 @@ async function loadPreviousSales() {
 }
 
 async function loadProducts() {
-  const r = await api('products?select=id,name,category,category_label,price,cost,stock,out_of_stock,image&order=position.asc&limit=500');
+  const r = await api('products?select=id,name,category,category_label,price,cost,stock,out_of_stock,image,images&order=position.asc&limit=500');
   products = (r.ok && Array.isArray(r.data)) ? r.data : [];
 }
 
@@ -669,7 +669,6 @@ function renderTodaySales() {
     ? `${ventas.length} venta${ventas.length!==1?'s':''}${apartados.length?` · ${apartados.length} apt.`:''}`
     : isToday ? hoy : PERIOD_LABELS[currentPeriod];
   if (!all.length) { el.innerHTML = `<p class="no-data">Sin ventas ${isToday ? 'hoy' : 'en este período'}</p>`; return; }
-  const PH = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 24 24' fill='none' stroke='%23C9A462' stroke-width='1.5'%3E%3Crect x='3' y='3' width='18' height='18' rx='3'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'/%3E%3Cpolyline points='21 15 16 10 5 21'/%3E%3C/svg%3E`;
   const fromIso = PERIODS[currentPeriod]();
   el.innerHTML = all.map((s, idx) => {
     const t = new Date(s.created_at);
@@ -693,7 +692,7 @@ function renderTodaySales() {
 
     const itemsHtml = items.map(i => {
       const prod = products.find(p => +p.id === +i.id);
-      const img = prod?.image || PH;
+      const img = _prodImg(prod) || _DV_PH;
       const qty = i.qty || 1;
       const sub = parseFloat(i.subtotal ?? i.price * qty);
       const meta = qty > 1
@@ -701,8 +700,10 @@ function renderTodaySales() {
         : `$${parseFloat(i.price).toLocaleString('es-MX',{maximumFractionDigits:0})}`;
       const stockInfo = prod ? (prod.out_of_stock || prod.stock === 0 ? '● Agotado' : `● ${prod.stock} en stock`) : '';
       const stockColor = prod && !prod.out_of_stock && prod.stock > 0 ? '#2D6A4F' : '#E85D5D';
+      const imgEsc = img.replace(/"/g, '&quot;');
+      const nameEsc = i.name.replace(/'/g, "\\'");
       return `<div class="dv-item">
-  <img class="dv-thumb" src="${img}" alt="${i.name}" onerror="this.src='${PH}'" style="cursor:pointer" onclick="event.stopPropagation();_dvImgPopup(this,'${img.replace(/'/g,"\\'")}','${i.name.replace(/'/g,"\\'")}',${parseFloat(i.price)},${qty},'${stockInfo}','${stockColor}')">
+  <img class="dv-thumb" src="${imgEsc}" alt="${i.name}" onerror="_dvImgErr(this)" style="cursor:pointer" onclick="event.stopPropagation();_dvImgPopup(this,'${imgEsc}','${nameEsc}',${parseFloat(i.price)},${qty},'${stockInfo}','${stockColor}')">
   <div style="flex:1;min-width:0"><div class="dv-item-name">${i.name}</div><div class="dv-item-meta">${meta}</div></div>
   <div class="dv-item-sub">$${sub.toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
 </div>`;
@@ -726,6 +727,15 @@ function renderTodaySales() {
 
 function dvToggle(idx) {
   document.getElementById('dv-'+idx)?.classList.toggle('open');
+}
+
+const _DV_PH = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="%23C9A462" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+function _dvImgErr(el) { el.onerror = null; el.src = _DV_PH; }
+function _prodImg(prod) {
+  if (!prod) return null;
+  if (prod.image && prod.image.length > 5 && prod.image !== 'null') return prod.image;
+  const extras = Array.isArray(prod.images) ? prod.images : (typeof prod.images === 'string' ? JSON.parse(prod.images || '[]') : []);
+  return extras[0] || null;
 }
 
 /* ── RENDER ── */
