@@ -65,19 +65,16 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .day-summary-none{font-size:.9rem;color:rgba(255,255,255,.45);font-style:italic}
 
 /* ── PERIOD SELECTOR ── */
-.period-bar{
-  display:flex;gap:8px;margin-bottom:26px;
-  background:#fff;border:1px solid var(--border);
-  border-radius:50px;padding:5px;width:fit-content;
-  box-shadow:0 2px 8px rgba(28,24,23,.07);
-}
-.period-btn{
-  padding:7px 18px;border-radius:50px;font-size:.82rem;font-weight:600;
-  border:none;background:transparent;cursor:pointer;color:var(--muted);transition:.18s;
-  white-space:nowrap;
-}
-.period-btn.active{background:var(--charcoal);color:#fff}
-.period-btn:hover:not(.active){background:var(--cream);color:var(--charcoal)}
+.stats-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.smode-bar{display:flex;background:#fff;border:1px solid var(--border);border-radius:50px;padding:4px;gap:4px;box-shadow:0 2px 8px rgba(28,24,23,.07)}
+.smode-btn{padding:6px 16px;border-radius:50px;font-size:.82rem;font-weight:600;border:none;background:transparent;cursor:pointer;color:var(--muted);transition:.15s;white-space:nowrap}
+.smode-btn.active{background:var(--charcoal);color:#fff}
+.smode-btn:hover:not(.active){background:var(--cream);color:var(--charcoal)}
+.stats-range-nav{display:flex;align-items:center;gap:2px;background:#fff;border:1px solid var(--border);border-radius:50px;padding:4px 8px;box-shadow:0 2px 8px rgba(28,24,23,.07)}
+.srn-btn{width:28px;height:28px;border-radius:50%;border:none;background:transparent;cursor:pointer;color:var(--charcoal);font-size:1.1rem;line-height:1;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0}
+.srn-btn:hover:not(:disabled){background:var(--cream)}
+.srn-btn:disabled{opacity:.3;cursor:default}
+.srn-label{font-size:.82rem;font-weight:600;color:var(--charcoal);min-width:110px;text-align:center;white-space:nowrap;padding:0 4px}
 
 /* ── KPI GRID ── */
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
@@ -235,9 +232,12 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   /* Ocultar botón "← Inventario" — el nav de iconos lo reemplaza */
   .btn-back{display:none}
 
-  /* Period bar: touch targets mínimos 44px */
-  .period-bar{width:100%;border-radius:12px;justify-content:space-between;padding:4px}
-  .period-btn{flex:1;text-align:center;padding:10px 6px;font-size:.76rem;min-height:44px;display:flex;align-items:center;justify-content:center}
+  /* Nav período en mobile */
+  .stats-nav{gap:6px}
+  .smode-bar{width:100%}
+  .smode-btn{flex:1;text-align:center;padding:10px 6px;font-size:.76rem;min-height:44px;display:flex;align-items:center;justify-content:center}
+  .stats-range-nav{width:100%;justify-content:space-between}
+  .srn-label{flex:1;min-width:0}
 
   .kpi-grid{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
   .kpi-card{padding:14px 14px 12px}
@@ -269,7 +269,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 
 @media(max-width:360px){
   .kpi-grid{grid-template-columns:1fr 1fr;gap:8px}
-  .period-btn{font-size:.7rem;padding:10px 4px}
+  .smode-btn{font-size:.7rem;padding:10px 4px}
 }
 
 /* stats-specific topbar overrides */
@@ -311,12 +311,17 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 <main>
 
   <!-- PERÍODO + WA -->
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-    <div class="period-bar" style="margin-bottom:0;flex:1;min-width:0">
-      <button class="period-btn active" data-period="today" onclick="setPeriod('today')">Hoy</button>
-      <button class="period-btn" data-period="week" onclick="setPeriod('week')">7 días</button>
-      <button class="period-btn" data-period="month" onclick="setPeriod('month')">30 días</button>
-      <button class="period-btn" data-period="all" onclick="setPeriod('all')">Todo</button>
+  <div class="stats-nav">
+    <div class="smode-bar">
+      <button class="smode-btn" data-mode="day" onclick="setMode('day')">Día</button>
+      <button class="smode-btn active" data-mode="week" onclick="setMode('week')">Semana</button>
+      <button class="smode-btn" data-mode="month" onclick="setMode('month')">Mes</button>
+    </div>
+    <div class="stats-range-nav">
+      <button class="srn-btn" id="stats-nav-back" onclick="navigate(-1)" title="Período anterior">&#8249;</button>
+      <span class="srn-label" id="stats-range-label">Cargando…</span>
+      <button class="srn-btn" id="stats-nav-fwd" onclick="navigate(1)" title="Período siguiente" disabled>&#8250;</button>
+      <button class="srn-btn" id="stats-nav-now" onclick="resetToNow()" title="Volver al período actual" style="display:none;font-size:.85rem">&#8635;</button>
     </div>
     <button onclick="sendDailySummaryWA()" style="background:#25D366;color:#fff;border:none;border-radius:50px;padding:7px 14px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0">
       <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.374 0 0 5.373 0 12c0 2.124.553 4.118 1.522 5.85L.057 23.499l5.772-1.513A11.94 11.94 0 0012 24c6.626 0 12-5.373 12-12S18.626 0 12 0z"/></svg>
@@ -594,30 +599,90 @@ function api(path, opts={}) {
 }
 
 /* ── STATE ── */
-let currentPeriod = 'today';
+let _statsMode = 'week';
+let _statsOffset = 0;
+let currentPeriod = 'week'; // derived — updated by _updateNavUI()
 let sales = [];
-let prevSales = [];   // período anterior para comparación
+let prevSales = [];
 let products = [];
 let revenueChart = null;
 let catChart = null;
 let hourChart = null;
-let nameMap = {}; // { email: nombreVisible } — cargado desde config.user_names
+let nameMap = {};
 
-/* ── PERIODS ── */
-const PERIODS = {
-  today: () => { const d = new Date(); d.setHours(0,0,0,0); return d.toISOString(); },
-  week:  () => { const d = new Date(); d.setDate(d.getDate()-6); d.setHours(0,0,0,0); return d.toISOString(); },
-  month: () => { const d = new Date(); d.setDate(d.getDate()-29); d.setHours(0,0,0,0); return d.toISOString(); },
-  all:   () => null
-};
-// Retorna el inicio del período ANTERIOR equivalente (para comparar)
-const PREV_PERIODS = {
-  today: () => { const d = new Date(); d.setDate(d.getDate()-1); d.setHours(0,0,0,0); return [d.toISOString(), PERIODS.today()]; },
-  week:  () => { const e = new Date(); e.setDate(e.getDate()-6); e.setHours(0,0,0,0); const s = new Date(e); s.setDate(s.getDate()-7); return [s.toISOString(), e.toISOString()]; },
-  month: () => { const e = new Date(); e.setDate(e.getDate()-29); e.setHours(0,0,0,0); const s = new Date(e); s.setDate(s.getDate()-30); return [s.toISOString(), e.toISOString()]; },
-  all:   () => null
-};
-const PERIOD_LABELS = { today:'Hoy', week:'Últimos 7 días', month:'Últimos 30 días', all:'Todo el tiempo' };
+/* ── PERIOD NAV ── */
+const _MN  = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const _MNF = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function _fmt(d)  { return d.getDate()+' '+_MN[d.getMonth()]+' '+d.getFullYear(); }
+function _fmtRange(a,b) {
+  if (a.getMonth()===b.getMonth()&&a.getFullYear()===b.getFullYear())
+    return a.getDate()+'–'+b.getDate()+' '+_MN[a.getMonth()]+' '+a.getFullYear();
+  if (a.getFullYear()===b.getFullYear())
+    return a.getDate()+' '+_MN[a.getMonth()]+'–'+b.getDate()+' '+_MN[b.getMonth()]+' '+a.getFullYear();
+  return _fmt(a)+' – '+_fmt(b);
+}
+function _fmtMonth(d) { return _MNF[d.getMonth()]+' '+d.getFullYear(); }
+
+function getRange(mode, offset) {
+  const now = new Date();
+  let from, to, label, rangeStr;
+  if (mode === 'day') {
+    from = new Date(now); from.setDate(from.getDate()+offset); from.setHours(0,0,0,0);
+    to   = new Date(from); to.setHours(23,59,59,999);
+    rangeStr = _fmt(from);
+    label = offset===0 ? 'Hoy' : offset===-1 ? 'Ayer' : rangeStr;
+  } else if (mode === 'week') {
+    const base = new Date(now);
+    const dow = base.getDay();
+    base.setDate(base.getDate()+(dow===0?-6:1-dow)+offset*7);
+    base.setHours(0,0,0,0);
+    from = new Date(base);
+    to   = new Date(base); to.setDate(to.getDate()+6); to.setHours(23,59,59,999);
+    rangeStr = _fmtRange(from, to);
+    label = offset===0 ? 'Esta semana' : offset===-1 ? 'Semana pasada' : rangeStr;
+  } else {
+    from = new Date(now.getFullYear(), now.getMonth()+offset, 1, 0,0,0,0);
+    to   = new Date(from.getFullYear(), from.getMonth()+1, 0, 23,59,59,999);
+    rangeStr = _fmtMonth(from);
+    label = offset===0 ? 'Este mes' : offset===-1 ? 'Mes pasado' : rangeStr;
+  }
+  return { from: from.toISOString(), to: to.toISOString(), label, rangeStr };
+}
+function _currentFrom() { return getRange(_statsMode, _statsOffset).from; }
+function _currentTo()   { return getRange(_statsMode, _statsOffset).to; }
+function _prevRange()   { const r=getRange(_statsMode,_statsOffset-1); return [r.from,r.to]; }
+
+const PERIOD_LABELS = { today:'Hoy', week:'Esta semana', month:'Este mes', day_custom:'Este día', all:'Todo' };
+
+function _updateNavUI() {
+  const range = getRange(_statsMode, _statsOffset);
+  const lbl = document.getElementById('stats-range-label');
+  if (lbl) lbl.textContent = range.rangeStr;
+  document.querySelectorAll('.smode-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===_statsMode));
+  const fwd = document.getElementById('stats-nav-fwd');
+  if (fwd) fwd.disabled = _statsOffset >= 0;
+  const now = document.getElementById('stats-nav-now');
+  if (now) now.style.display = _statsOffset < 0 ? '' : 'none';
+  if (_statsMode==='day'&&_statsOffset===0) currentPeriod='today';
+  else if (_statsMode==='day') currentPeriod='day_custom';
+  else if (_statsMode==='week') currentPeriod='week';
+  else currentPeriod='month';
+  PERIOD_LABELS[currentPeriod] = range.label;
+}
+
+function navigate(delta) {
+  if (delta > 0 && _statsOffset >= 0) return;
+  _statsOffset += delta;
+  _updateNavUI();
+  _reloadStats();
+}
+function setMode(mode) { _statsMode=mode; _statsOffset=0; _updateNavUI(); _reloadStats(); }
+function resetToNow()  { _statsOffset=0; _updateNavUI(); _reloadStats(); }
+async function _reloadStats() {
+  ['kpi-revenue','kpi-sales','kpi-avg'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='…';});
+  await Promise.all([loadSales(),loadPreviousSales()]);
+  renderAll();
+}
 
 /* ── LOAD ── */
 async function loadNameMap() {
@@ -628,17 +693,15 @@ async function loadNameMap() {
 }
 
 async function loadSales() {
-  const from = PERIODS[currentPeriod]();
-  const filter = from ? `&created_at=gte.${from}` : '';
+  const { from, to } = getRange(_statsMode, _statsOffset);
+  const filter = `&created_at=gte.${from}&created_at=lte.${to}`;
   const r = await api(`sales?select=id,total,created_at,items,payment_method,type,seller_email,discount,customer,abonos&order=created_at.desc${filter}&limit=500`);
   sales = (r.ok && Array.isArray(r.data)) ? r.data.filter(s => s.type !== 'apartado') : [];
 }
 
 async function loadPreviousSales() {
-  const range = PREV_PERIODS[currentPeriod]?.();
-  if (!range) { prevSales = []; return; }
-  const [from, to] = range;
-  const r = await api(`sales?select=id,total,created_at,type,abonos&created_at=gte.${from}&created_at=lt.${to}&limit=500`);
+  const [from, to] = _prevRange();
+  const r = await api(`sales?select=id,total,created_at,type,abonos&created_at=gte.${from}&created_at=lte.${to}&limit=500`);
   prevSales = (r.ok && Array.isArray(r.data)) ? r.data.filter(s => s.type !== 'apartado') : [];
 }
 
@@ -659,7 +722,7 @@ function renderTodaySales() {
   const countEl = document.getElementById('today-sales-count');
   const titleEl = document.getElementById('today-sales-title');
   if (!el) return;
-  const isToday = currentPeriod === 'today';
+  const isToday = _statsMode === 'day' && _statsOffset === 0;
   const all = [...(isToday ? todaySales : sales)].sort((a,b) => new Date(b.created_at)-new Date(a.created_at));
   if (titleEl) titleEl.textContent = isToday ? 'Ventas de hoy' : `Ventas — ${PERIOD_LABELS[currentPeriod]}`;
   const ventas = all.filter(s => s.type !== 'apartado');
@@ -669,7 +732,8 @@ function renderTodaySales() {
     ? `${ventas.length} venta${ventas.length!==1?'s':''}${apartados.length?` · ${apartados.length} apt.`:''}`
     : isToday ? hoy : PERIOD_LABELS[currentPeriod];
   if (!all.length) { el.innerHTML = `<p class="no-data">Sin ventas ${isToday ? 'hoy' : 'en este período'}</p>`; return; }
-  const fromIso = PERIODS[currentPeriod]();
+  const fromIso = _currentFrom();
+  const _listToIso = _currentTo();
   el.innerHTML = all.map((s, idx) => {
     const t = new Date(s.created_at);
     const h = t.getHours(), m = t.getMinutes();
@@ -684,7 +748,7 @@ function renderTodaySales() {
     // Monto del período: si hay abonos mostramos solo lo cobrado en el período activo
     const abonos = Array.isArray(s.abonos) ? s.abonos : [];
     const fullTotal = parseFloat(s.total || 0);
-    const periodAmt = abonos.length ? _abonoRevenue(s, fromIso, null) : fullTotal;
+    const periodAmt = abonos.length ? _abonoRevenue(s, fromIso, _listToIso) : fullTotal;
     const showOf = abonos.length && Math.round(periodAmt) !== Math.round(fullTotal);
     const totalHtml = showOf
       ? `$${Math.round(periodAmt).toLocaleString('es-MX')}<span class="dv-total-of">/ $${Math.round(fullTotal).toLocaleString('es-MX')}</span>`
@@ -744,11 +808,12 @@ function renderAll() {
   document.getElementById('top-prod-period').textContent = lbl;
   document.getElementById('hour-period-label').textContent = lbl;
 
+  const _isToday = _statsMode === 'day' && _statsOffset === 0;
   // Resumen del día: solo relevante en "Hoy" — en otros períodos los KPIs ya cubren el contexto
-  document.getElementById('day-summary').style.display = currentPeriod === 'today' ? '' : 'none';
+  document.getElementById('day-summary').style.display = _isToday ? '' : 'none';
   // Clientas frecuentes: se basa en historial de apartados — no tiene sentido mostrarlo en vista "Hoy"
   const clientasCard = document.getElementById('clientas-card');
-  if (clientasCard) clientasCard.style.display = currentPeriod === 'today' ? 'none' : '';
+  if (clientasCard) clientasCard.style.display = _isToday ? 'none' : '';
 
   renderDaySummary();
   renderKPIs();
@@ -770,12 +835,13 @@ function renderVendedores() {
 
   // Agrupar por seller_email
   const map = {};
-  const _fromIso = PERIODS[currentPeriod]();
+  const _fromIso = _currentFrom();
+  const _toIso   = _currentTo();
   sales.forEach(s => {
     const key = s.seller_email || '__sin_sesion__';
     if (!map[key]) map[key] = { ventas: 0, total: 0 };
     map[key].ventas++;
-    map[key].total += _abonoRevenue(s, _fromIso, null);
+    map[key].total += _abonoRevenue(s, _fromIso, _toIso);
   });
 
   const entries = Object.entries(map).sort((a,b) => b[1].total - a[1].total);
@@ -822,7 +888,7 @@ function _abonoRevenue(sale, fromIso, toIso) {
 
 /* KPIs con delta vs período anterior */
 function kpiDelta(curr, prev) {
-  if (!prev || currentPeriod === 'all') return '';
+  if (!prev) return '';
   if (prev === 0) return '';
   const pct = (curr - prev) / prev * 100;
   const sign = pct >= 0 ? '+' : '';
@@ -832,11 +898,11 @@ function kpiDelta(curr, prev) {
 }
 
 function renderKPIs() {
-  const fromIso   = PERIODS[currentPeriod]();
-  const prevRange = PREV_PERIODS[currentPeriod]?.();
-  const [prevFromIso, prevToIso] = prevRange || [null, null];
+  const fromIso   = _currentFrom();
+  const toIso     = _currentTo();
+  const [prevFromIso, prevToIso] = _prevRange();
 
-  const totalRev  = sales.reduce((s,x) => s + _abonoRevenue(x, fromIso, null), 0);
+  const totalRev  = sales.reduce((s,x) => s + _abonoRevenue(x, fromIso, toIso), 0);
   const count     = sales.length;
   const avg       = count ? totalRev / count : 0;
 
@@ -863,7 +929,7 @@ function renderKPIs() {
 /* Hora pico */
 function renderHourChart() {
   const byHour  = Array(24).fill(0);
-  const fromMs  = PERIODS[currentPeriod]() ? new Date(PERIODS[currentPeriod]()).getTime() : 0;
+  const fromMs  = new Date(_currentFrom()).getTime();
   sales.forEach(s => {
     const abonos = Array.isArray(s.abonos) ? s.abonos : [];
     if (abonos.length) {
@@ -908,10 +974,10 @@ function renderHourChart() {
 function renderRevenueChart() {
   const byDay = {};
   // Fill all days in range
-  const from = PERIODS[currentPeriod]();
-  const start = from ? new Date(from) : new Date(Math.min(...sales.map(s=>new Date(s.created_at))));
-  const end = new Date(); end.setHours(23,59,59,999);
-  if (sales.length === 0 && !from) {
+  const from = _currentFrom();
+  const start = new Date(from);
+  const end = new Date(_currentTo());
+  if (sales.length === 0) {
     destroyChart('revenueChart');
     document.getElementById('revenue-chart').parentElement.innerHTML = '<p class="no-data">Sin ventas registradas</p>';
     return;
@@ -1237,13 +1303,7 @@ function renderRentabilidad() {
 }
 
 /* ── PERIOD SWITCH ── */
-async function setPeriod(period) {
-  currentPeriod = period;
-  document.querySelectorAll('.period-btn').forEach(b => b.classList.toggle('active', b.dataset.period===period));
-  ['kpi-revenue','kpi-sales','kpi-avg'].forEach(id => document.getElementById(id).textContent = '…');
-  await Promise.all([loadSales(), loadPreviousSales()]);
-  renderAll();
-}
+async // setPeriod removed — use setMode() / navigate()
 
 /* ── RESUMEN DEL DÍA ── */
 let _aptResumen = { count: 0, pendiente: 0, vencidos: 0 };
@@ -1476,6 +1536,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => reject(new Error('timeout')), 12000)
   );
   try {
+    _updateNavUI();
     await Promise.race([
       Promise.all([loadProducts(), loadSales(), loadPreviousSales(), loadApartadosPendientes(), loadClientas(), loadNameMap(), loadTodaySales()]),
       timeout
