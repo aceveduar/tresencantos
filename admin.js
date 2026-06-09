@@ -567,6 +567,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Escape — cierra cualquier modal abierto
     if (e.key === 'Escape') {
+      if (document.getElementById('cmp-zoom')?.classList.contains('open'))        { closeCmpZoom(); return; }
       if (document.getElementById('form-overlay')?.classList.contains('open'))    { closeForm(); return; }
       if (document.getElementById('del-overlay')?.classList.contains('open'))     { closeDel(); return; }
       if (document.getElementById('revista-overlay')?.classList.contains('open')) { closeRevista(); return; }
@@ -7956,6 +7957,25 @@ function closeCompareModal() {
   _compareIds = [];
 }
 
+function openCmpZoom() {
+  const [idA, idB] = _compareIds;
+  const a = products.find(p => p.id === idA);
+  const b = products.find(p => p.id === idB);
+  if (!a || !b) return;
+  const fill = (el, prod) => {
+    el.innerHTML = `<img src="${prod.image || DEFAULT_IMG}" onerror="this.src='${DEFAULT_IMG}'" alt="${prod.name}">
+      <div class="cmp-zoom-label">${prod.name}</div>`;
+  };
+  fill(document.getElementById('cmp-zoom-a'), a);
+  fill(document.getElementById('cmp-zoom-b'), b);
+  document.getElementById('cmp-zoom').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeCmpZoom() {
+  document.getElementById('cmp-zoom').classList.remove('open');
+  document.body.style.overflow = 'hidden'; // compare modal still open
+}
+
 function _truncate(str, max) {
   return str && str.length > max ? str.slice(0, max) + '…' : (str || '');
 }
@@ -7973,7 +7993,7 @@ function _renderCmpCol(p, otherId) {
   if (p.barcode) chips.push(`<span class="cmp-chip">🔲 ${p.barcode}</span>`);
 
   return `
-    <img class="cmp-img" src="${p.image || DEFAULT_IMG}" onerror="this.src='${DEFAULT_IMG}'" loading="lazy">
+    <img class="cmp-img" src="${p.image || DEFAULT_IMG}" onerror="this.src='${DEFAULT_IMG}'" loading="lazy" onclick="openCmpZoom()" style="cursor:zoom-in" title="Ver ambas imágenes en grande">
     <div class="cmp-name">${p.name}</div>
     <div class="cmp-meta">${p.categoryLabel || '—'}${p.createdBy ? ` · 👤 ${_creatorName(p.createdBy)}` : ''} · #${p.id}</div>
     <div class="cmp-price">$${(p.price || 0).toLocaleString('es-MX')} <span style="font-size:.75rem;font-weight:400;color:var(--muted)">MXN</span>${p.originalPrice ? `<s>$${p.originalPrice.toLocaleString('es-MX')}</s>` : ''}</div>

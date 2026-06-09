@@ -1707,6 +1707,15 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .cmp-keep-btn{padding:10px 8px;border-radius:8px;border:1.5px solid var(--gold);background:var(--gold-light);color:var(--charcoal);font-weight:600;cursor:pointer;font-size:.78rem;font-family:inherit;transition:.15s;line-height:1.4;text-align:center}
 .cmp-keep-btn:hover{background:var(--gold);color:#fff}
 .cmp-keep-btn:disabled{opacity:.45;cursor:default}
+/* ── COMPARE ZOOM (split fullscreen) ── */
+#cmp-zoom{position:fixed;inset:0;z-index:1600;background:#000;display:none;cursor:zoom-out}
+#cmp-zoom.open{display:flex}
+.cmp-zoom-half{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;min-width:0;position:relative}
+.cmp-zoom-half:first-child{border-right:1px solid rgba(255,255,255,.12)}
+.cmp-zoom-half img{max-width:100%;max-height:calc(100dvh - 80px);object-fit:contain;border-radius:8px;display:block}
+.cmp-zoom-label{color:rgba(255,255,255,.75);font-size:.82rem;text-align:center;font-family:inherit;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#cmp-zoom-close{position:fixed;top:14px;right:16px;width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);z-index:1601;transition:.15s}
+#cmp-zoom-close:hover{background:rgba(255,255,255,.28)}
 @media(max-width:620px){
   .cmp-body{grid-template-columns:1fr}
   .cmp-divider{writing-mode:horizontal-tb;padding:6px 16px;border-top:1px solid var(--border)}
@@ -2586,6 +2595,13 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="admin.js"></script>
+<!-- COMPARE ZOOM: split fullscreen -->
+<div id="cmp-zoom" onclick="closeCmpZoom()">
+  <button id="cmp-zoom-close" onclick="event.stopPropagation();closeCmpZoom()">✕</button>
+  <div class="cmp-zoom-half" id="cmp-zoom-a"></div>
+  <div class="cmp-zoom-half" id="cmp-zoom-b"></div>
+</div>
+
 <!-- MODAL: comparar producto similar -->
 <div id="sim-overlay" onclick="if(event.target===this)closeSimilarModal()">
   <div id="sim-modal">
