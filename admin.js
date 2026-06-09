@@ -117,6 +117,7 @@ let _showingArchived = false;
 /* Categorías — cargadas dinámicamente desde config.categories */
 let categories = []; // [{code, label, color}]
 
+const TE = null; // tracking removed — stub keeps TE?.track() calls safe
 
 const CAT_DEFAULTS = [
   // ── BOLSOS ──────────────────────────────────────────────

@@ -700,10 +700,9 @@ function renderTodaySales() {
         : `$${parseFloat(i.price).toLocaleString('es-MX',{maximumFractionDigits:0})}`;
       const stockInfo = prod ? (prod.out_of_stock || prod.stock === 0 ? '● Agotado' : `● ${prod.stock} en stock`) : '';
       const stockColor = prod && !prod.out_of_stock && prod.stock > 0 ? '#2D6A4F' : '#E85D5D';
-      const imgEsc = img.replace(/"/g, '&quot;');
-      const nameEsc = i.name.replace(/'/g, "\\'");
+      const nameEsc = i.name.replace(/'/g, "\'");
       return `<div class="dv-item">
-  <img class="dv-thumb" src="${imgEsc}" alt="${i.name}" onerror="_dvImgErr(this)" style="cursor:pointer" onclick="event.stopPropagation();_dvImgPopup(this,'${imgEsc}','${nameEsc}',${parseFloat(i.price)},${qty},'${stockInfo}','${stockColor}')">
+  <img class="dv-thumb" src="${img}" alt="${i.name}" onerror="_dvImgErr(this)" style="cursor:pointer" onclick="event.stopPropagation();_dvImgPopup(this,this.src,'${nameEsc}',${parseFloat(i.price)},${qty},'${stockInfo}','${stockColor}')">
   <div style="flex:1;min-width:0"><div class="dv-item-name">${i.name}</div><div class="dv-item-meta">${meta}</div></div>
   <div class="dv-item-sub">$${sub.toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
 </div>`;
@@ -729,7 +728,7 @@ function dvToggle(idx) {
   document.getElementById('dv-'+idx)?.classList.toggle('open');
 }
 
-const _DV_PH = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="%23C9A462" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+const _DV_PH = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#C9A462" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>');
 function _dvImgErr(el) { el.onerror = null; el.src = _DV_PH; }
 function _prodImg(prod) {
   if (!prod) return null;
