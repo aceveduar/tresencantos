@@ -643,7 +643,7 @@ async function loadPreviousSales() {
 }
 
 async function loadProducts() {
-  const r = await api('products?select=id,name,category,category_label,price,cost,stock,out_of_stock,image,images&order=position.asc&limit=500');
+  const r = await api('products?select=id,name,category,category_label,price,cost,stock,out_of_stock,image,images&order=position.asc&limit=2000');
   products = (r.ok && Array.isArray(r.data)) ? r.data : [];
 }
 
