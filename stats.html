@@ -119,11 +119,6 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .cal-l4{background:#A67C3A;color:#fff}
 .cal-today{outline:2px solid var(--gold-dark);outline-offset:1px}
 
-/* ── INSIGHT PILLS ── */
-.insight-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-.insight-pill{background:#fff;border:1px solid var(--border);border-radius:50px;padding:7px 14px;font-size:.8rem;display:flex;align-items:center;gap:6px;box-shadow:0 1px 4px rgba(28,24,23,.06);white-space:nowrap}
-.insight-pill b{color:var(--charcoal);font-weight:700}
-.insight-pill small{color:var(--muted)}
 
 /* ── TOP PRODUCTOS ── */
 .top-prod-item{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)}
@@ -401,7 +396,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   <div class="charts-row">
     <div class="card">
       <div class="card-head">
-        <h2>Ingresos por día</h2>
+        <h2 id="revenue-chart-title">Ingresos por día</h2>
         <span id="chart-period-label"></span>
       </div>
       <div class="card-body">
@@ -420,6 +415,21 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
           <canvas id="cat-chart"></canvas>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- CALENDAR (mes) + WEEKDAY (mes) — rendered by JS -->
+  <div class="card" id="calendar-card" style="display:none;margin-bottom:16px">
+    <div class="card-head"><h2>📅 Mapa del mes</h2></div>
+    <div class="card-body"><div id="sales-calendar"></div></div>
+  </div>
+  <div class="card" id="weekday-card" style="display:none;margin-bottom:16px">
+    <div class="card-head">
+      <h2>Días más rentables</h2>
+      <span id="weekday-period-label" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body">
+      <div class="chart-canvas-wrap" style="height:180px"><canvas id="weekday-chart"></canvas></div>
     </div>
   </div>
 
@@ -474,7 +484,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   </div>
 
   <!-- HORA PICO -->
-  <div class="card" style="margin-bottom:16px">
+  <div class="card" id="hora-pico-card" style="margin-bottom:16px">
     <div class="card-head">
       <h2>Hora pico</h2>
       <span id="hour-period-label"></span>
@@ -483,24 +493,6 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
       <div class="chart-canvas-wrap" style="height:200px">
         <canvas id="hour-chart"></canvas>
       </div>
-    </div>
-  </div>
-
-  <!-- INSIGHTS + CALENDAR + WEEKDAY — rendered by JS -->
-  <div class="insight-row" id="insights-row" style="display:none"></div>
-
-  <div class="card" id="calendar-card" style="display:none;margin-bottom:16px">
-    <div class="card-head"><h2>📅 Mapa del mes</h2></div>
-    <div class="card-body"><div id="sales-calendar"></div></div>
-  </div>
-
-  <div class="card" id="weekday-card" style="display:none;margin-bottom:16px">
-    <div class="card-head">
-      <h2>Días más rentables</h2>
-      <span id="weekday-period-label" style="font-size:.75rem;color:var(--muted)"></span>
-    </div>
-    <div class="card-body">
-      <div class="chart-canvas-wrap" style="height:190px"><canvas id="weekday-chart"></canvas></div>
     </div>
   </div>
 
@@ -848,11 +840,25 @@ function renderAll() {
   document.getElementById('hour-period-label').textContent = lbl;
 
   const _isToday = _statsMode === 'day' && _statsOffset === 0;
-  // Resumen del día: solo relevante en "Hoy" — en otros períodos los KPIs ya cubren el contexto
+
+  // Título dinámico de la gráfica principal según modo
+  const revTitle = document.getElementById('revenue-chart-title');
+  if (revTitle) {
+    if (_statsMode === 'day')   revTitle.textContent = 'Ingresos por hora';
+    else if (_statsMode === 'week') revTitle.textContent = 'Esta semana vs anterior';
+    else revTitle.textContent = 'Ingresos por día';
+  }
+
+  // Resumen del día: solo relevante en "Hoy"
   document.getElementById('day-summary').style.display = _isToday ? '' : 'none';
-  // Clientas frecuentes: se basa en historial de apartados — no tiene sentido mostrarlo en vista "Hoy"
+
+  // Clientas frecuentes: sin sentido en vista "Hoy"
   const clientasCard = document.getElementById('clientas-card');
   if (clientasCard) clientasCard.style.display = _isToday ? 'none' : '';
+
+  // Hora pico: redundante en modo Día (el revenue chart ya muestra horarios)
+  const horaPicoCard = document.getElementById('hora-pico-card');
+  if (horaPicoCard) horaPicoCard.style.display = _statsMode === 'day' ? 'none' : '';
 
   renderDaySummary();
   renderKPIs();
@@ -864,7 +870,6 @@ function renderAll() {
   renderInventory();
   renderRentabilidad();
   renderVendedores();
-  renderInsights();
   renderCalendar();
   renderWeekdayChart();
 }
@@ -1052,9 +1057,14 @@ function renderRevenueChart() {
     return;
   }
 
-  // Month / Day mode: bars by day
+  if (_statsMode === 'day') {
+    _renderDayHourly(ctx);
+    return;
+  }
+
+  // Month mode: bars by day
   const days = Object.keys(byDay).sort();
-  const isMonth = _statsMode === 'month';
+  const isMonth = true;
 
   const barLabelPlugin = {
     id:'barLabels',
@@ -1087,7 +1097,7 @@ function renderRevenueChart() {
         data: days.map(d => byDay[d]),
         backgroundColor: 'rgba(201,164,98,.75)',
         borderColor: '#C9A462', borderWidth:1,
-        borderRadius: isMonth ? 3 : 5, borderSkipped:false
+        borderRadius: 3, borderSkipped:false
       }]
     },
     options: {
@@ -1095,11 +1105,11 @@ function renderRevenueChart() {
       layout:{padding:{top:18}},
       plugins: {
         legend:{display:false},
-        tooltip:{callbacks:{label:c=>`$${c.parsed.y.toLocaleString('es-MX')}`}}
+        tooltip:{callbacks:{label:c=>`${c.parsed.y.toLocaleString('es-MX')}`}}
       },
       scales: {
-        y:{beginAtZero:true, ticks:{callback:v=>`$${v>=1000?(v/1000).toFixed(0)+'k':v}`,font:{size:10}}, grid:{color:'#F0E8E0'}},
-        x:{grid:{display:false}, ticks:{font:{size: isMonth?9:11}, maxRotation:0}}
+        y:{beginAtZero:true, ticks:{callback:v=>`${v>=1000?(v/1000).toFixed(0)+'k':v}`,font:{size:10}}, grid:{color:'#F0E8E0'}},
+        x:{grid:{display:false}, ticks:{font:{size:9}, maxRotation:0}}
       }
     },
     plugins: [barLabelPlugin]
@@ -1177,6 +1187,53 @@ function _renderWeekComparison(ctx, byDayCurr) {
       }
     },
     plugins:[labelPlugin]
+  });
+}
+
+
+function _renderDayHourly(ctx) {
+  const byHour = Array(24).fill(0);
+  const fromMs = new Date(_currentFrom()).getTime();
+  sales.forEach(s => {
+    const abonos = Array.isArray(s.abonos) ? s.abonos : [];
+    if (abonos.length) {
+      abonos.forEach(a => {
+        const t = new Date(a.date).getTime();
+        if (t >= fromMs) byHour[new Date(a.date).getHours()] += parseFloat(a.amount||0);
+      });
+    } else {
+      byHour[new Date(s.created_at).getHours()] += parseFloat(s.total||0);
+    }
+  });
+
+  const active = byHour.reduce((acc,v,i) => v>0?[...acc,i]:acc, []);
+  const first  = active.length ? active[0] : 8;
+  const last   = active.length ? active[active.length-1] : 20;
+  const hours  = [];
+  for (let h=Math.max(0,first-1); h<=Math.min(23,last+1); h++) hours.push(h);
+
+  const maxH = Math.max(...hours.map(h=>byHour[h]),1);
+  const colors = hours.map(h => byHour[h]===maxH&&byHour[h]>0?'#C9A462':'rgba(201,164,98,.55)');
+
+  if (revenueChart) { revenueChart.destroy(); revenueChart = null; }
+  revenueChart = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: hours.map(h=>h+'h'),
+      datasets:[{data:hours.map(h=>byHour[h]), backgroundColor:colors, borderRadius:5, borderSkipped:false}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      layout:{padding:{top:14}},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>`$${c.parsed.y.toLocaleString('es-MX')}`}}
+      },
+      scales:{
+        y:{beginAtZero:true, ticks:{callback:v=>v>=1000?'$'+(v/1000).toFixed(0)+'k':'$'+v, font:{size:10}}, grid:{color:'#F0E8E0'}},
+        x:{grid:{display:false}, ticks:{font:{size:11}}}
+      }
+    }
   });
 }
 
@@ -1741,7 +1798,7 @@ function renderCalendar() {
 function renderWeekdayChart() {
   const card = document.getElementById('weekday-card');
   if (!card) return;
-  if (_statsMode==='day') { card.style.display='none'; if(weekdayChart){weekdayChart.destroy();weekdayChart=null;} return; }
+  if (_statsMode!=='month') { card.style.display='none'; if(weekdayChart){weekdayChart.destroy();weekdayChart=null;} return; }
 
   const fromIso = _currentFrom(), toIso = _currentTo();
   const _DOW = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
