@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-06-06 (rev 12).
+Documentación técnica del proyecto. Última actualización: 2026-06-09 (rev 13).
 
 ## Rol de Claude en este proyecto
 
@@ -478,6 +478,8 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
 - **Drag cambiaba sort al iniciar** — `_forcePositionSort()` estaba en `dragstart`; movido a los handlers de `drop`. El cambio de sort intermedio causaba re-render y pérdida visual del elemento arrastrado. (2026-06-06)
 - **Sort se reseteaba al recargar** — `currentSort` no se leía de `localStorage` al iniciar. Corregido con `localStorage.getItem('te_admin_sort') || 'recent'`. (2026-06-06)
 - **iPad iOS 13+ no detectado como iOS** — `navigator.userAgent` reporta `Macintosh` en iPad con iOS 13+. Agregado fallback `navigator.maxTouchPoints > 1` en `isIOS`. (2026-06-06)
+- **Caja no cargaba productos en catálogo** — `_esc is not defined` (helper no declarado en ningún archivo cargado por `pos.html`) lanzaba `ReferenceError` dentro de `renderPosProducts()`, llamado sincrónicamente tras `await Promise.all(...)` en `init()`. Esto detenía el resto de `init()` antes de poblar `#pos-results` (pero `#pos-frecuentes` sí renderizaba porque no usa `_esc`). Mismo patrón que el bug de `TE` no definido. Fix: `_esc` agregado a `pos-core.js` línea 7. (2026-06-08)
+- **Patrón de debugging — `ReferenceError` silencioso en `init()`**: si una función llamada sincrónicamente dentro de `init()` (tras el `await Promise.all(...)` inicial) referencia un identificador global no declarado en ningún script cargado por la página, lanza `ReferenceError` y aborta el resto de `init()` sin mensaje visible — solo algunas secciones de la UI quedan sin poblar. Si algo se queda en su placeholder ("Cargando...") mientras otras secciones sí cargan, sospechar de esto primero y revisar la consola del navegador.
 
 ---
 
@@ -806,3 +808,5 @@ El QV (`#qv-overlay`) es el modal de vista rápida del producto en el Inventario
 - **Drag & drop en mobile:** la API HTML5 de drag & drop no funciona en iOS Safari. Usar "📌 Al inicio" como alternativa para reordenar desde móvil.
 - **isIOS detection:** `const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)` — el segundo check cubre iPad con iOS 13+ que reporta `Macintosh` en UA. Aplica en `admin.js` y `pos.html`.
 - **Borrador:** un producto es borrador si `!p.kitItems?.length && !p.isPublished && (!p.price || p.price === 0)`. Los kits nunca son borradores aunque no tengan precio.
+- **XSS — helper `_esc()`:** `const _esc = s => (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')`. Cualquier string de BD/usuario (nombre de producto, cliente, nota, descripción, barcode, email) que se inserte vía `innerHTML` debe pasar por `_esc()`. Ya aplicado en todos los módulos (sweep completo 2026-06-08/09). Definido en `admin.js` (admin-*.js), `pos-core.js` (pos-*.js), `app.js`, `stats.js`; `activity.js` y `settings.js` (como `escH`) tienen su propia copia local por ser módulos aislados.
+- **Patrón onclick con string dinámico:** para insertar un string en `onclick="fn('...')"`, usar `_esc(x).replace(/'/g,"\\'")` — primero escapa HTML (protege el atributo `"..."` de `<`,`>`,`&`,`"`), luego escapa comillas simples para el literal JS (el navegador decodifica entidades antes de parsear JS, así que la función receptora recibe el string original sin escapar).
