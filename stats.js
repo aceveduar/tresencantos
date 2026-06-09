@@ -50,6 +50,8 @@ function api(path, opts={}) {
   });
 }
 
+const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
 /* ── STATE ── */
 let _statsMode = 'week';
 let _statsOffset = 0;
@@ -217,10 +219,10 @@ function renderTodaySales() {
         : `$${parseFloat(i.price).toLocaleString('es-MX',{maximumFractionDigits:0})}`;
       const stockInfo = prod ? (prod.out_of_stock || prod.stock === 0 ? '● Agotado' : `● ${prod.stock} en stock`) : '';
       const stockColor = prod && !prod.out_of_stock && prod.stock > 0 ? '#2D6A4F' : '#E85D5D';
-      const nameEsc = i.name.replace(/'/g, "\'");
+      const nameEsc = i.name.replace(/'/g, "\\'");
       return `<div class="dv-item">
-  <img class="dv-thumb" src="${img}" alt="${i.name}" onerror="_dvImgErr(this)" style="cursor:pointer" onclick="event.stopPropagation();_dvImgPopup(this,this.src,'${nameEsc}',${parseFloat(i.price)},${qty},'${stockInfo}','${stockColor}')">
-  <div style="flex:1;min-width:0"><div class="dv-item-name">${i.name}</div><div class="dv-item-meta">${meta}</div></div>
+  <img class="dv-thumb" src="${img}" alt="${_esc(i.name)}" onerror="_dvImgErr(this)" style="cursor:pointer" onclick="event.stopPropagation();_dvImgPopup(this,this.src,'${nameEsc}',${parseFloat(i.price)},${qty},'${stockInfo}','${stockColor}')">
+  <div style="flex:1;min-width:0"><div class="dv-item-name">${_esc(i.name)}</div><div class="dv-item-meta">${meta}</div></div>
   <div class="dv-item-sub">$${sub.toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
 </div>`;
     }).join('');
@@ -745,7 +747,7 @@ function renderTopProducts() {
 <div class="top-prod-item">
   <div class="tp-rank">${i+1}</div>
   <div class="tp-info">
-    <div class="tp-name" title="${p.name}">${p.name}</div>
+    <div class="tp-name" title="${_esc(p.name)}">${_esc(p.name)}</div>
     <div class="tp-bar-wrap"><div class="tp-bar" style="width:${Math.round(p.revenue/maxRev*100)}%"></div></div>
   </div>
   <div class="tp-stats">
@@ -793,7 +795,7 @@ function openSaleDetail(idx) {
     return `
 <div class="sd-item-row">
   <div class="sd-item-info">
-    <span class="sd-item-name">${i.name}</span>
+    <span class="sd-item-name">${_esc(i.name)}</span>
     ${meta ? `<span class="sd-item-meta">${meta}</span>` : ''}
   </div>
   <span class="sd-item-sub">$${sub.toLocaleString('es-MX',{maximumFractionDigits:0})}</span>
@@ -852,7 +854,7 @@ function renderInventory() {
   el.innerHTML = items.length
     ? items.map(i => `
 <div class="inv-list-item">
-  <span class="inv-name">${i.name}</span>
+  <span class="inv-name">${_esc(i.name)}</span>
   <span class="badge-sm ${i.cls}">${i.badge}</span>
 </div>`).join('')
     : '<p class="no-data" style="padding:16px 0">Todo el inventario tiene existencias ✓</p>';
@@ -895,7 +897,7 @@ function renderRentabilidad() {
     `<p style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Margen más bajo — revisar precio o costo</p>` +
     watchList.map(p => `
 <div class="inv-list-item">
-  <span class="inv-name">${p.name}</span>
+  <span class="inv-name">${_esc(p.name)}</span>
   <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
     <span style="font-size:.74rem;color:var(--muted)">$${p.price.toLocaleString('es-MX')}</span>
     <span class="badge-sm ${p.pct < 10 ? 'badge-red' : 'badge-amber'}">${p.pct}%</span>

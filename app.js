@@ -4,6 +4,8 @@ const WA_BASE = `https://wa.me/${WA}`;
 const SUPABASE_URL = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjYyMjYsImV4cCI6MjA5NDEwMjIyNn0.irCFwOR5HL_ZOVjFGVw9LqmzYicDZTNEmxcknu_j6cI';
 
+const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
 let products = [];
 let publicCategories = [];
 let waFloatEnabled = true;
@@ -440,13 +442,13 @@ function cardHTML(p) {
   const badgeIsPromo = !p.badgeType || p.badgeType === 'promo';
   if (pct > 0 && p.badge && !badgeIsPromo) {
     // Badge aporta info diferente al descuento (Nuevo, Más vendido, Natura) → mostrar ambos en esquinas opuestas
-    badgeArea = `<span class="product-badge badge-${p.badgeType}">${p.badge}</span>`
+    badgeArea = `<span class="product-badge badge-${p.badgeType}">${_esc(p.badge)}</span>`
               + `<span class="product-badge badge-discount">-${pct}%</span>`;
   } else if (pct > 0) {
     // Descuento solo (o badge era "OFERTA" — redundante): solo el %
     badgeArea = `<span class="product-badge badge-discount">-${pct}%</span>`;
   } else if (p.badge) {
-    badgeArea = `<span class="product-badge badge-${p.badgeType||'best'}">${p.badge}</span>`;
+    badgeArea = `<span class="product-badge badge-${p.badgeType||'best'}">${_esc(p.badge)}</span>`;
   }
 
   const urgencyTag = '';
@@ -461,12 +463,12 @@ function cardHTML(p) {
   return `
 <article class="product-card reveal${oos ? ' card-oos' : ''}" onclick="openModal(${p.id})">
   <div class="product-img-wrap">
-    <img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.onerror=null;this.src='${fallback}'">
+    <img src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${fallback}'">
     ${oosTag}${badgeArea}${urgencyTag}
   </div>
   <div class="product-body">
-    <p class="product-cat">${p.categoryLabel}</p>
-    <h3>${p.name}</h3>
+    <p class="product-cat">${_esc(p.categoryLabel)}</p>
+    <h3>${_esc(p.name)}</h3>
     <p class="product-desc">${_descText(p.description)}</p>
     <div class="product-footer">
       ${priceHTML}
@@ -485,9 +487,9 @@ function renderHeroMobileStrip() {
   const fallback = () => 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22400%22%20viewBox%3D%220%200%20400%20400%22%3E%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22%23F7F2EB%22%2F%3E%3Crect%20x%3D%22130%22%20y%3D%22100%22%20width%3D%22140%22%20height%3D%22140%22%20rx%3D%2210%22%20fill%3D%22none%22%20stroke%3D%22%23D4BC94%22%20stroke-width%3D%223%22%2F%3E%3Ccircle%20cx%3D%22158%22%20cy%3D%22127%22%20r%3D%2214%22%20fill%3D%22%23D4BC94%22%2F%3E%3Cpath%20d%3D%22M130%20210%20L175%20165%20L210%20195%20L255%20150%20L280%20180%20L280%20240%20L130%20240Z%22%20fill%3D%22%23D4BC94%22%20fill-opacity%3D%22.4%22%2F%3E%3C%2Fsvg%3E';
   const cardHTML = p => `
 <div class="hms-card" onclick="openModal(${p.id})">
-  <img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.onerror=null;this.src='${fallback(p.id)}'">
+  <img src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${fallback(p.id)}'">
   <div class="hms-info">
-    <div class="hms-name">${p.name}</div>
+    <div class="hms-name">${_esc(p.name)}</div>
     <div class="hms-price">$${p.price.toLocaleString('es-MX')}</div>
   </div>
 </div>`;
@@ -507,9 +509,9 @@ function renderHeroVisual() {
   const fallback = () => 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22400%22%20viewBox%3D%220%200%20400%20400%22%3E%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22%23F7F2EB%22%2F%3E%3Crect%20x%3D%22130%22%20y%3D%22100%22%20width%3D%22140%22%20height%3D%22140%22%20rx%3D%2210%22%20fill%3D%22none%22%20stroke%3D%22%23D4BC94%22%20stroke-width%3D%223%22%2F%3E%3Ccircle%20cx%3D%22158%22%20cy%3D%22127%22%20r%3D%2214%22%20fill%3D%22%23D4BC94%22%2F%3E%3Cpath%20d%3D%22M130%20210%20L175%20165%20L210%20195%20L255%20150%20L280%20180%20L280%20240%20L130%20240Z%22%20fill%3D%22%23D4BC94%22%20fill-opacity%3D%22.4%22%2F%3E%3C%2Fsvg%3E';
   container.innerHTML = items.map(p => `
 <div class="hc" onclick="openModal(${p.id})">
-  <img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.onerror=null;this.src='${fallback(p.id)}'">
+  <img src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${fallback(p.id)}'">
   <div class="hc-info">
-    <div class="hc-name">${p.name}</div>
+    <div class="hc-name">${_esc(p.name)}</div>
     <div class="hc-price">$${p.price.toLocaleString('es-MX')}</div>
   </div>
 </div>`).join('');
@@ -538,12 +540,12 @@ function renderNatura() {
   wrap.innerHTML = list.map(p => `
 <div class="nc-card" onclick="openModal(${p.id})">
   <div class="nc-img-wrap">
-    <img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.onerror=null;this.src='${fb(p.id)}'">
+    <img src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${fb(p.id)}'">
     <div class="nc-overlay"><span>Ver producto →</span></div>
   </div>
   <div class="nc-info">
     <div class="nc-cat">${_ncCatLabel(p.category)}</div>
-    <div class="nc-name">${p.name}</div>
+    <div class="nc-name">${_esc(p.name)}</div>
     <div class="nc-price">$${p.price.toLocaleString('es-MX')}</div>
   </div>
 </div>`).join('');
@@ -829,24 +831,24 @@ function openModal(id) {
   const pct = discountPct(p);
 
   // Categoría con contexto de padre si es subcategoría
-  let catDisplay = p.categoryLabel;
+  let catDisplay = _esc(p.categoryLabel);
   if (publicCategories.length) {
     const cat = publicCategories.find(c => c.code === p.category);
     if (cat?.parent) {
       const parent = publicCategories.find(c => c.code === cat.parent);
-      if (parent) catDisplay = `${parent.label} · ${p.categoryLabel}`;
+      if (parent) catDisplay = `${_esc(parent.label)} · ${_esc(p.categoryLabel)}`;
     }
   }
 
   let modalBadgeArea = '';
   const modalBadgeIsPromo = !p.badgeType || p.badgeType === 'promo';
   if (pct > 0 && p.badge && !modalBadgeIsPromo) {
-    modalBadgeArea = `<span class="product-badge badge-${p.badgeType}" style="position:absolute;top:10px;left:10px">${p.badge}</span>`
+    modalBadgeArea = `<span class="product-badge badge-${p.badgeType}" style="position:absolute;top:10px;left:10px">${_esc(p.badge)}</span>`
                    + `<span class="product-badge badge-discount" style="position:absolute;top:10px;right:10px;left:auto">-${pct}%</span>`;
   } else if (pct > 0) {
     modalBadgeArea = `<span class="product-badge badge-discount" style="position:absolute;top:10px;right:10px;left:auto">-${pct}%</span>`;
   } else if (p.badge) {
-    modalBadgeArea = `<span class="product-badge badge-${p.badgeType||'best'}" style="position:absolute;top:10px;left:10px">${p.badge}</span>`;
+    modalBadgeArea = `<span class="product-badge badge-${p.badgeType||'best'}" style="position:absolute;top:10px;left:10px">${_esc(p.badge)}</span>`;
   }
   const urgencyText = '';
   const ctaPriceHTML = pct > 0
@@ -881,8 +883,8 @@ function openModal(id) {
           const comp = products.find(x => x.id === item.id);
           const img  = comp?.image || item.image;
           return `<div class="modal-kit-item">
-            ${img ? `<img src="${img}" alt="${item.name}" onerror="this.style.display='none'">` : ''}
-            <span>${item.name}</span>
+            ${img ? `<img src="${img}" alt="${_esc(item.name)}" onerror="this.style.display='none'">` : ''}
+            <span>${_esc(item.name)}</span>
             ${item.qty > 1 ? `<span class="modal-kit-qty">×${item.qty}</span>` : ''}
           </div>`;
         }).join('')}
@@ -892,16 +894,16 @@ function openModal(id) {
   const hasGallery = allImgs.length > 1;
   const galleryHTML = hasGallery
     ? `<div class="modal-gallery" id="modal-gallery" onscroll="_updateGalleryDots(this)">
-        ${allImgs.map((src, i) => `<img class="modal-gallery-img" src="${src}" alt="${p.name} ${i+1}" onerror="this.onerror=null;this.src='${fallback}'"${oos && i===0 ? ' style="filter:grayscale(.4)"' : ''}>`).join('')}
+        ${allImgs.map((src, i) => `<img class="modal-gallery-img" src="${src}" alt="${_esc(p.name)} ${i+1}" onerror="this.onerror=null;this.src='${fallback}'"${oos && i===0 ? ' style="filter:grayscale(.4)"' : ''}>`).join('')}
        </div>
        <div class="modal-gallery-dots" id="modal-gallery-dots">
          ${allImgs.map((_,i) => `<span class="mgd${i===0?' mgd-active':''}" onclick="_goToGalleryImg(${i})"></span>`).join('')}
        </div>`
-    : `<img class="modal-img" src="${p.image}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'"${oos ? ' style="filter:grayscale(.4)"' : ''}>`;
+    : `<img class="modal-img" src="${p.image}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${fallback}'"${oos ? ' style="filter:grayscale(.4)"' : ''}>`;
 
   const overlay = document.getElementById('modal-overlay');
   overlay.innerHTML = `
-<div class="modal" role="dialog" aria-modal="true" aria-label="${p.name}">
+<div class="modal" role="dialog" aria-modal="true" aria-label="${_esc(p.name)}">
   <div class="modal-img-wrap${hasGallery ? ' has-gallery' : ''}">
     ${galleryHTML}
     <button class="modal-close" onclick="closeModal()" aria-label="Cerrar">✕</button>
@@ -910,7 +912,7 @@ function openModal(id) {
   </div>
   <div class="modal-body">
     <p class="modal-cat">${catDisplay}</p>
-    <h2 class="modal-title">${p.name}</h2>
+    <h2 class="modal-title">${_esc(p.name)}</h2>
     ${descHTML}
     ${kitHTML}
     ${urgencyText}

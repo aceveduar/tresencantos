@@ -322,7 +322,7 @@ function _qvOpenZoom() {
   const fs = document.createElement('div');
   fs.id = 'qv-zoom';
   fs.innerHTML = `
-    <img src="${src}" alt="${p.name}" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
+    <img src="${src}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
     <button onclick="document.getElementById('qv-zoom').remove()" title="Cerrar">✕</button>`;
   fs.onclick = e => { if (e.target === fs) fs.remove(); };
   document.body.appendChild(fs);
@@ -513,7 +513,7 @@ function _renderQV(p) {
   if (allImgs.length > 1) {
     imgContainer.innerHTML =
       `<div class="qv-gallery" id="qv-gallery" onscroll="_qvGalleryScroll(this)" ontouchend="_qvImgDoubleTap(event)">
-        ${allImgs.map((src, i) => `<img class="qv-gallery-img" src="${src}" alt="${p.name} ${i+1}" onerror="this.onerror=null;this.src='${fallback}'" onclick="_qvOpenZoom()" style="cursor:zoom-in;${oosStyle}">`).join('')}
+        ${allImgs.map((src, i) => `<img class="qv-gallery-img" src="${src}" alt="${_esc(p.name)} ${i+1}" onerror="this.onerror=null;this.src='${fallback}'" onclick="_qvOpenZoom()" style="cursor:zoom-in;${oosStyle}">`).join('')}
        </div>
        <div class="qv-gallery-dots" id="qv-gallery-dots">
          ${allImgs.map((_,i) => `<span class="qv-gd${i===0?' active':''}" onclick="_qvGoTo(${i})"></span>`).join('')}
@@ -521,23 +521,23 @@ function _renderQV(p) {
        <button class="qv-img-nav qv-img-nav-prev" onclick="_qvImgNav(-1)" title="Imagen anterior">&#8249;</button>
        <button class="qv-img-nav qv-img-nav-next" onclick="_qvImgNav(1)"  title="Imagen siguiente">&#8250;</button>`;
   } else {
-    imgContainer.innerHTML = `<img id="qv-img" src="${allImgs[0]}" alt="${p.name}" onerror="this.onerror=null;this.src='${fallback}'" onclick="_qvImgClick(event)" ondblclick="_qvImgDblClick(event)" style="width:100%;height:260px;object-fit:contain;display:block;cursor:zoom-in;${oosStyle}" title="Clic: ver completa · Doble clic: cambiar imagen">`;
+    imgContainer.innerHTML = `<img id="qv-img" src="${allImgs[0]}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${fallback}'" onclick="_qvImgClick(event)" ondblclick="_qvImgDblClick(event)" style="width:100%;height:260px;object-fit:contain;display:block;cursor:zoom-in;${oosStyle}" title="Clic: ver completa · Doble clic: cambiar imagen">`;
   }
 
   // Badge
   document.getElementById('qv-badge-zone').innerHTML = p.badge
-    ? `<span class="badge badge-${p.badgeType || 'none'}">${p.badge}</span>`
+    ? `<span class="badge badge-${p.badgeType || 'none'}">${_esc(p.badge)}</span>`
     : '';
 
   // Categoría — editable inline
   document.getElementById('qv-cat-row').innerHTML =
     `<span class="cat-dot" style="background:${catColor}"></span>
-     <span class="qv-cat-label cat-label-inline qv-editable" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría">${p.categoryLabel || '—'}</span>`;
+     <span class="qv-cat-label cat-label-inline qv-editable" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría">${_esc(p.categoryLabel || '—')}</span>`;
 
   // Nombre
   const nameEl = document.getElementById('qv-name');
   if (can.editProduct) {
-    nameEl.innerHTML = `<span class="qv-editable" onclick="_qvEditName(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar nombre">${p.name}</span>`;
+    nameEl.innerHTML = `<span class="qv-editable" onclick="_qvEditName(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar nombre">${_esc(p.name)}</span>`;
   } else {
     nameEl.textContent = p.name;
   }
