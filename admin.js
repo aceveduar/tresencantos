@@ -4907,28 +4907,43 @@ function _openFormFromKit(compId) {
   if (banner) { banner.style.display = 'flex'; if (bannerTxt) bannerTxt.textContent = `Volver al kit: ${kitName}`; }
 }
 
-function _dupThumb(img, name) {
-  return img
-    ? `<img src="${img}" alt="${name}" loading="lazy" style="cursor:zoom-in" onclick="_dupOpenZoom(this.src)">`
-    : `<div class="dup-prod-ph">📦</div>`;
+function _dupThumb(img, name, otherImg) {
+  if (!img) return `<div class="dup-prod-ph">📦</div>`;
+  const otherEsc = (otherImg || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  return `<img src="${img}" alt="${name}" loading="lazy" style="cursor:zoom-in" data-other="${otherEsc}" data-name="${name.replace(/"/g,'&quot;')}" onclick="_dupOpenZoom(this)">`;
 }
 
-function _dupOpenZoom(src) {
-  const fs = document.createElement('div');
-  fs.id = 'qv-zoom';
-  fs.innerHTML = `<img src="${src}" alt=""><button onclick="document.getElementById('qv-zoom').remove()" title="Cerrar">✕</button>`;
-  fs.onclick = e => { if (e.target === fs) fs.remove(); };
-  document.body.appendChild(fs);
-  requestAnimationFrame(() => fs.classList.add('open'));
+function _dupOpenZoom(el) {
+  const src = el.src;
+  const otherSrc = el.dataset.other || '';
+  if (otherSrc) {
+    // Split view — reutiliza el overlay #cmp-zoom
+    const za = document.getElementById('cmp-zoom-a');
+    const zb = document.getElementById('cmp-zoom-b');
+    if (za && zb) {
+      za.innerHTML = `<img src="${src}" alt="">`;
+      zb.innerHTML = `<img src="${otherSrc}" alt="">`;
+      document.getElementById('cmp-zoom').classList.add('open');
+      document.body.style.overflow = 'hidden';
+      return;
+    }
+  }
+  // Fallback: imagen única
+  const overlay = document.createElement('div');
+  overlay.id = 'qv-zoom';
+  overlay.innerHTML = `<img src="${src}" alt=""><button onclick="document.getElementById('qv-zoom').remove()" title="Cerrar">✕</button>`;
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('open'));
 }
 
-function _dupCard(p, pairKey, isMed) {
+function _dupCard(p, pairKey, isMed, otherImg) {
   const createdStr = p.createdAt
     ? new Date(p.createdAt).toLocaleDateString('es-MX', {day:'numeric', month:'short', year:'numeric'})
     : null;
   return `
     <div class="dup-prod">
-      ${_dupThumb(p.image, p.name)}
+      ${_dupThumb(p.image, p.name, otherImg)}
       <div class="dup-prod-name">${p.name}</div>
       <div class="dup-prod-meta">${p.categoryLabel || '—'} · $${(p.price||0).toLocaleString('es-MX')} · Stock ${p.stock}${p.createdBy ? `<span style="margin-left:6px;color:var(--muted);font-size:.78em">· 👤 ${_userNames[p.createdBy] || p.createdBy.split('@')[0]}</span>` : ''}</div>
       ${(p.barcode || createdStr) ? `<div class="dup-prod-meta" style="margin-top:2px">${p.barcode ? `<span>🔲 ${p.barcode}</span>` : ''}${p.barcode && createdStr ? ' · ' : ''}${createdStr ? `<span>📅 ${createdStr}</span>` : ''}</div>` : ''}
@@ -4948,7 +4963,7 @@ function _dupRenderPair({ a, b, signals, pairKey, score }) {
       <div class="dup-signals-row">
         <div class="dup-signals ${cls}"><span class="dup-dot ${dot}"></span>${signals.join(' · ')}</div>
       </div>
-      <div class="dup-pair-cols">${_dupCard(a, pairKey, isMed)}${_dupCard(b, pairKey, isMed)}</div>
+      <div class="dup-pair-cols">${_dupCard(a, pairKey, isMed, b.image)}${_dupCard(b, pairKey, isMed, a.image)}</div>
       <button class="dup-dismiss" onclick="_dismissDupPair('${pairKey}')">
         ${isMed ? '✓ Los nombres ya son distintos — no volver a avisar' : '✓ Son productos distintos — no volver a avisar'}
       </button>
