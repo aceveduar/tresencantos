@@ -35,7 +35,7 @@ Antes de diseñar o modificar cualquier funcionalidad, tomar como referencia los
 
 ## Descripción
 
-Panel de administración + POS + estadísticas + staging + sitio e-commerce para **Tres Encantos**, boutique mexicana (bolsos, accesorios, maquillaje, Natura). Dueña: **Ofelia**, consultora Diamond de Natura. Los pedidos del sitio público se cierran por WhatsApp — no hay checkout.
+Panel de administración + POS + estadísticas + carga masiva con IA + sitio e-commerce para **Tres Encantos**, boutique mexicana (bolsos, accesorios, maquillaje, Natura). Dueña: **Ofelia**, consultora Diamond de Natura. Los pedidos del sitio público se cierran por WhatsApp — no hay checkout.
 
 ---
 
@@ -55,12 +55,11 @@ Panel de administración + POS + estadísticas + staging + sitio e-commerce para
 | Archivo | Nombre en UI | Uso |
 |---|---|---|
 | `index.html` + `app.js` | **Tienda** (o Website) | Sitio público |
-| `admin.html` + `admin.js` | **Inventario** | CRUD productos |
-| `pos.html` | **Caja** | Punto de venta |
-| `stats.html` | **Reportes** | Estadísticas |
-| `staging.html` | **Staging** | Preparación de productos |
-| `activity.html` | **Actividad** | Log de auditoría (ventas, inventario, apartados) |
-| `settings.html` | **Configuración** | Ajustes globales — solo superadmin |
+| `admin.html` + `admin-*.js` | **Inventario** | CRUD productos |
+| `pos.html` + `pos-*.js` | **Caja** | Punto de venta |
+| `stats.html` + `stats.js` | **Reportes** | Estadísticas |
+| `activity.html` + `activity.js` | **Actividad** | Log de auditoría (ventas, inventario, apartados) |
+| `settings.html` + `settings.js` | **Configuración** | Ajustes globales — solo superadmin |
 
 Usar siempre estos nombres en UI, botones, tickets y conversación. Nunca "Admin", "POS", "Stats".
 
@@ -106,7 +105,6 @@ tresencantos/
 ├── activity.css         # Estilos de Actividad
 ├── activity.js          # Lógica de Actividad
 │
-├── staging.html         # Staging: subida masiva + IA Groq (sin partir aún)
 ├── shared.css           # Estilos compartidos entre módulos admin
 ├── shared.js            # JS compartido entre módulos admin
 ├── splash.js            # Transición de entrada compartida por todos los módulos admin
@@ -133,7 +131,7 @@ En mobile algunos módulos pueden ocultar ítems según rol. `settings.html` red
 | Archivo | Key | Razón |
 |---|---|---|
 | `app.js` | Anon key | Solo SELECT público — seguro |
-| `admin.js` (y todos los `admin-*.js`), `pos-core.js`, `stats.js`, `staging.html`, `activity.js`, `settings.js` | Service role key | Bypasea RLS para escritura |
+| `admin.js` (y todos los `admin-*.js`), `pos-core.js`, `stats.js`, `activity.js`, `settings.js` | Service role key | Bypasea RLS para escritura |
 
 - **Project URL:** `https://qxvrggmpaqhslgdmbhqw.supabase.co`
 - **Regla de oro:** nunca poner service role key en `app.js`
@@ -329,7 +327,7 @@ Incluye **migración automática**: si los valores no están en Supabase pero s�
 - **Acciones bulk:** categoría, featured, oos, badge, exportar JSON, eliminar, reabastecer, 📌 al inicio
 - **Import/Export JSON** — importar reemplaza catálogo con rollback local
 - **Subcategorías** — modal "Gestionar categorías" en Configuración con soporte jerárquico
-- **Staging area** → `staging.html` (botón 🗂 en topbar)
+- **Carga masiva con IA** → overlay `admin-batch.js` (botón 📸 Masivo en topbar, solo superadmin)
 - **Revista Natura** — URL o PDF base64 en `config`
 
 ### IA en formulario de producto
@@ -551,23 +549,22 @@ Bottom sheet `#restock-prompt` que aparece en dos situaciones:
 
 ---
 
-## Staging Area (`staging.html`)
+## Carga Masiva con IA (`admin-batch.js`)
 
-Zona de preparación de productos antes de publicar al inventario.
+Overlay dentro del Inventario — botón 📸 Masivo en topbar (solo superadmin). Antes era un módulo separado `staging.html`; fue absorbido en el Inventario.
 
 **Flujo:**
-1. Subir imágenes (múltiples a la vez, drag & drop o selector)
+1. Subir imágenes (múltiples a la vez, drag & drop o selector de galería/cámara)
 2. Opcional: botón 🤖 IA por imagen o "Analizar todas" en masa
 3. Revisar/editar nombre, descripción y categoría en cada card
 4. "Publicar listas" → crea productos en Supabase con `is_published=false` y `price=0`
-5. En el admin: ajustar precio y activar "Publicar en sitio web" cuando estén listos
+5. En el Inventario: ajustar precio y activar "Publicar en sitio web" cuando estén listos
 
 **IA con Groq (Llama 4 Scout Vision):**
-- API Key leída de `config.id='groq_key'` en Supabase — compartida con admin, sin configurar por dispositivo
+- API Key leída de `config.id='groq_key'` en Supabase — compartida con admin
 - Modelo: `meta-llama/llama-4-scout-17b-16e-instruct` vía `https://api.groq.com/openai/v1/chat/completions`
 - Extrae nombre (<60 chars), descripción (<200 chars) y categoría
 - 1.5s de pausa entre llamadas en análisis masivo (free tier: ~30 req/min)
-- El prompt incluye las categorías disponibles para que la IA asigne correctamente
 - Free tier de Groq: sin restricción regional, sin tarjeta de crédito, ~1000 req/día
 
 **Por qué Groq y no Gemini:** Gemini free tier tiene `limit: 0` en México (restricción regional). Groq no tiene esta restricción.
@@ -798,7 +795,7 @@ El QV (`#qv-overlay`) es el modal de vista rápida del producto en el Inventario
 - **Batch upsert:** body array JSON + header `Prefer: resolution=merge-duplicates`
 - **PostgREST batch PATCH:** usar lotes de máx 10 IDs en `?id=in.(...)` — listas más largas pueden retornar 204 sin aplicar cambios
 - **Librerías CDN:** html5-qrcode@2.3.8 (escáner), Chart.js@4 (stats)
-- **IA:** Groq Llama 4 Scout Vision — key en `config` Supabase (`groq_key`), compartida entre admin y staging
+- **IA:** Groq Llama 4 Scout Vision — key en `config` Supabase (`groq_key`), compartida entre admin (`admin-images.js`) y carga masiva (`admin-batch.js`)
 - **Google Drive:** Apps Script como proxy. Secreto en `config` Supabase (`drive_secret`), nunca en código fuente. Al cambiar el secreto → siempre desplegar nueva versión del Apps Script.
 - `position` lo gestiona el admin — sitio público y POS ordenan por él
 - **PWA:** `manifest.json` + `sw.js` + íconos `icono-192.png` / `icono-512.png`. En iOS Safari no hay prompt automático de instalación — el usuario debe ir a Compartir → Agregar a pantalla de inicio.
