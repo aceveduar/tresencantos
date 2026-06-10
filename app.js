@@ -452,7 +452,7 @@ function cardHTML(p) {
     badgeArea = `<span class="product-badge badge-${p.badgeType||'best'}">${_esc(p.badge)}</span>`;
   }
 
-  const urgencyTag = '';
+  const urgencyTag = '';
   const priceHTML = pct > 0
     ? `<div class="product-price"><s class="price-before">$${p.originalPrice.toLocaleString('es-MX')}</s> $${p.price.toLocaleString('es-MX')}</div>`
     : `<div class="product-price">$${p.price.toLocaleString('es-MX')}</div>`;
@@ -483,7 +483,7 @@ function renderHeroMobileStrip() {
   const container = document.getElementById('hero-mobile-strip');
   if (!container) return;
   const items = products.filter(p => p.featured);
-  if (!items.length) return;
+  if (!items.length) return;
   const cardHTML = p => `
 <div class="hms-card" onclick="openModal(${p.id})">
   <img src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
@@ -504,7 +504,7 @@ function renderHeroVisual() {
   const container = document.getElementById('hero-visual');
   if (!container) return;
   const items = products.filter(p => p.featured).slice(0, 3);
-  if (!items.length) return;
+  if (!items.length) return;
   container.innerHTML = items.map(p => `
 <div class="hc" onclick="openModal(${p.id})">
   <img src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
@@ -533,7 +533,7 @@ function renderNatura() {
   if (!list.length) {
     document.querySelector('.natura-carousel')?.style.setProperty('display','none');
     return;
-  }
+  }
   wrap.innerHTML = list.map(p => `
 <div class="nc-card" onclick="openModal(${p.id})">
   <div class="nc-img-wrap">
@@ -822,7 +822,7 @@ function openModal(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   activeProduct = p;
-  _modalQty = 1;
+  _modalQty = 1;
   const oos = isOos(p);
   const pct = discountPct(p);
 
