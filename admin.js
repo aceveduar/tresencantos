@@ -110,6 +110,7 @@ function _doMultiDrop(targetId, insertBefore) {
 let currentSort = localStorage.getItem('te_admin_sort') || 'created-new';
 let _adminPage = 1;
 const ADMIN_PAGE_SIZE = 50;
+let _adminLoadObserver = null;
 let _realtimeChannel = null;
 let _statFilter = null; // 'con-stock' | 'sin-stock' | 'sin-publicar' | 'sin-codigo' | 'ultima-pieza' | 'kits' | 'borradores'
 let _showingArchived = false;

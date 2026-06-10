@@ -306,6 +306,7 @@ Incluye **migración automática**: si los valores no están en Supabase pero s�
 - **Kits / Bundles** — ver sección abajo
 - **Imágenes adicionales** — ver sección abajo
 - **Vista lista / tarjetas** — toggle ☰/⊞ en toolbar, guardado en localStorage. En mobile: "Lista" = cards anchas, "Grid" = 2 columnas compactas
+- **Paginación / scroll infinito** — `renderTable()` solo monta en el DOM `getFilteredProducts().slice(0, _adminPage * ADMIN_PAGE_SIZE)` (`ADMIN_PAGE_SIZE = 50`, `admin.js`). Un sentinel al final de la lista/grid (`IntersectionObserver`) incrementa `_adminPage` y re-renderiza al acercarse al final — sin botón manual. `_adminPage` se resetea a 1 en cada cambio de búsqueda/filtro/orden. Bulk actions y "Seleccionar todos" operan sobre `getFilteredProducts()` completo, no solo lo renderizado — no afectados por la paginación.
 - **Drag & drop** para reordenar (`position`) — desktop y Android Chrome. No funciona en iOS Safari. En tabletas Android (Samsung): `touch-action:none` + `user-select:none` + `-webkit-touch-callout:none` en thumbnails para evitar menú de contexto y doble-selección accidental
 - **📌 Mover al inicio** — `moveToTop(id)` desde el Quick View, `bulkMoveToTop()` desde bulk bar. Mueve el/los productos al frente del array y guarda. Cambia sort a "Mi orden" automáticamente. Alternativa al drag en mobile.
 - **Inline stock:** tap en chip de número → input editable. Android fix: `type="text"+inputMode="numeric"` + botón ✓ explícito. El chip aparece siempre (incluso en agotados con stock=0) para facilitar el restock.
@@ -782,7 +783,6 @@ El QV (`#qv-overlay`) es el modal de vista rápida del producto en el Inventario
 | Problema | Impacto |
 |---|---|
 | Sin Realtime entre sesiones | Cambios no visibles en otras pestañas |
-| Sin paginación en tabla admin | Con 600+ productos empieza a sentirse; crítico en 900+ |
 | Staging publica con `price=0` | Requiere edición manual de precio en admin antes de publicar |
 
 ---

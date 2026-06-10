@@ -746,6 +746,7 @@ function renderTable() {
     }
     updateBulkBar();
     if (!document.getElementById('qv-overlay')?.classList.contains('open')) _updateActiveFiltersBar();
+    _setupLoadMoreSentinel(false);
     return;
   }
 
@@ -753,42 +754,41 @@ function renderTable() {
 
   const visible  = filtered.slice(0, _adminPage * ADMIN_PAGE_SIZE);
   const hasMore  = visible.length < filtered.length;
-  const moreHTML = hasMore
-    ? `<div id="load-more-wrap" style="padding:16px;text-align:center">
-        <button class="btn btn-outline btn-sm" onclick="_loadMoreAdmin()">
-          Ver ${Math.min(ADMIN_PAGE_SIZE, filtered.length - visible.length)} más de ${filtered.length - visible.length}
-        </button>
-       </div>`
+  const sentinelHTML = hasMore
+    ? `<div id="admin-load-sentinel" style="padding:16px;text-align:center;color:var(--muted);font-size:.85rem">Cargando más…</div>`
     : '';
 
   if (useCards && cardGrid) {
-    cardGrid.innerHTML = visible.map(p => adminCard(p, true)).join('') + moreHTML;
+    cardGrid.innerHTML = visible.map(p => adminCard(p, true)).join('') + sentinelHTML;
     updateBulkBar();
+    _setupLoadMoreSentinel(hasMore);
     return;
   }
 
   // Vista lista: mobile → mpc cards, desktop → tabla
   const tbody = document.getElementById('products-table');
   if (tbody) tbody.innerHTML = visible.map(p => mobile ? mobileCard(p) : desktopRow(p)).join('') +
-    (hasMore ? `<tr><td colspan="5">${moreHTML}</td></tr>` : '');
+    (hasMore ? `<tr><td colspan="5">${sentinelHTML}</td></tr>` : '');
 
   updateSelectAllCheckbox();
   if (!mobile) initDragDrop();
+  _setupLoadMoreSentinel(hasMore);
 }
 
-function _loadMoreAdmin() {
-  const firstNewIndex = _adminPage * ADMIN_PAGE_SIZE;
-  _adminPage++;
-  renderTable();
-
-  const useCards = localStorage.getItem('te_admin_view') !== 'list';
-  const cardGrid = document.getElementById('card-grid');
-  if (useCards && cardGrid) {
-    cardGrid.querySelectorAll('.admin-card')[firstNewIndex]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } else {
-    const tbody = document.getElementById('products-table');
-    tbody?.querySelectorAll('tr')[firstNewIndex]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+/* ── INFINITE SCROLL ── */
+function _setupLoadMoreSentinel(hasMore) {
+  if (_adminLoadObserver) { _adminLoadObserver.disconnect(); _adminLoadObserver = null; }
+  if (!hasMore) return;
+  const sentinel = document.getElementById('admin-load-sentinel');
+  if (!sentinel) return;
+  _adminLoadObserver = new IntersectionObserver(entries => {
+    if (!entries[0].isIntersecting) return;
+    _adminLoadObserver.disconnect();
+    _adminLoadObserver = null;
+    _adminPage++;
+    renderTable();
+  }, { rootMargin: '400px' });
+  _adminLoadObserver.observe(sentinel);
 }
 
 /* ── SELECTION ── */
