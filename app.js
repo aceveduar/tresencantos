@@ -743,11 +743,13 @@ function _swipeDown(getSheet, closeFn, getOverlay) {
   let startY = 0, curY = 0, on = false;
   const area = () => getSheet();
   document.addEventListener('touchstart', e => {
+    if (document.getElementById('modal-zoom')) return;
     const sh = area(); if (!sh) return;
     if (!sh.closest('#modal-overlay.open, #cart-overlay.open')) return;
     startY = e.touches[0].clientY; on = false; curY = 0;
   }, { passive: true });
   document.addEventListener('touchmove', e => {
+    if (document.getElementById('modal-zoom')) return;
     const sh = area(); if (!sh || !sh.closest('#modal-overlay.open, #cart-overlay.open')) return;
     const dy = e.touches[0].clientY - startY;
     if (!on) {
@@ -784,6 +786,8 @@ function initModal() {
   const overlay = document.getElementById('modal-overlay');
   overlay?.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
   document.addEventListener('keydown', e => {
+    const zoom = document.getElementById('modal-zoom');
+    if (zoom) { if (e.key === 'Escape') zoom.remove(); return; }
     if (e.key === 'Escape') { closeModal(); return; }
     if (!activeProduct) return;
     if (e.key === 'ArrowRight') _modalNavigate(1);
@@ -834,21 +838,33 @@ function _initModalSwipeNav() {
   let sx = 0, sy = 0, swDir = null, inGallery = false;
   document.addEventListener('touchstart', e => {
     if (!document.querySelector('#modal-overlay.open')) return;
+    if (document.getElementById('modal-zoom')) return;
     inGallery = !!e.target.closest('.modal-gallery');
     sx = e.touches[0].clientX; sy = e.touches[0].clientY; swDir = null;
   }, { passive: true });
   document.addEventListener('touchmove', e => {
-    if (swDir) return;
+    if (swDir || document.getElementById('modal-zoom')) return;
     const dx = Math.abs(e.touches[0].clientX - sx);
     const dy = Math.abs(e.touches[0].clientY - sy);
     if (dx > 8 || dy > 8) swDir = dx > dy ? 'h' : 'v';
   }, { passive: true });
   document.addEventListener('touchend', e => {
-    if (!activeProduct || swDir !== 'h' || inGallery) return;
+    if (!activeProduct || swDir !== 'h' || inGallery || document.getElementById('modal-zoom')) return;
     const dx = e.changedTouches[0].clientX - sx;
     if (Math.abs(dx) < 45) return;
     _modalNavigate(dx < 0 ? 1 : -1);
   }, { passive: true });
+}
+
+// Tap en imagen del modal → ver en pantalla completa
+function _openModalZoom(imgEl) {
+  if (!imgEl?.src) return;
+  const fs = document.createElement('div');
+  fs.id = 'modal-zoom';
+  fs.innerHTML = `<img src="${imgEl.src}" alt=""><button onclick="document.getElementById('modal-zoom').remove()" aria-label="Cerrar">✕</button>`;
+  fs.onclick = e => { if (e.target === fs) fs.remove(); };
+  document.body.appendChild(fs);
+  requestAnimationFrame(() => fs.classList.add('open'));
 }
 
 function openModal(id) {
@@ -923,12 +939,12 @@ function openModal(id) {
   const hasGallery = allImgs.length > 1;
   const galleryHTML = hasGallery
     ? `<div class="modal-gallery" id="modal-gallery" onscroll="_updateGalleryDots(this)">
-        ${allImgs.map((src, i) => `<img class="modal-gallery-img" src="${src}" alt="${_esc(p.name)} ${i+1}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'"${oos && i===0 ? ' style="filter:grayscale(.4)"' : ''}>`).join('')}
+        ${allImgs.map((src, i) => `<img class="modal-gallery-img" src="${src}" alt="${_esc(p.name)} ${i+1}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'" onclick="_openModalZoom(this)"${oos && i===0 ? ' style="filter:grayscale(.4)"' : ''}>`).join('')}
        </div>
        <div class="modal-gallery-dots" id="modal-gallery-dots">
          ${allImgs.map((_,i) => `<span class="mgd${i===0?' mgd-active':''}" onclick="_goToGalleryImg(${i})"></span>`).join('')}
        </div>`
-    : `<img class="modal-img" src="${p.image}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'"${oos ? ' style="filter:grayscale(.4)"' : ''}>`;
+    : `<img class="modal-img" src="${p.image}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'" onclick="_openModalZoom(this)"${oos ? ' style="filter:grayscale(.4)"' : ''}>`;
 
   const overlay = document.getElementById('modal-overlay');
   overlay.innerHTML = `
