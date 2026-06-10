@@ -195,6 +195,9 @@ section{padding:80px 20px}
 .btn-buy svg{width:15px;height:15px;flex-shrink:0}
 .btn-buy-oos{background:var(--text-light)!important;cursor:not-allowed;opacity:.7}
 .btn-buy-oos:hover{background:var(--text-light)!important;transform:none!important}
+.btn-cart-add{background:var(--gold)}
+.btn-cart-add:hover{background:var(--gold-dark)}
+.btn-cart-add.added{background:#2D6A4F!important}
 .card-oos{opacity:.75}
 .card-oos .product-img-wrap img{filter:grayscale(30%)}
 .price-before{font-size:.8em;color:var(--text-light);font-weight:400;text-decoration:line-through;font-family:'Inter',sans-serif;margin-right:4px}

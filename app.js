@@ -51,16 +51,37 @@ function saveCart() { localStorage.setItem('te_cart', JSON.stringify(cart)); }
 
 function addToCart(id, qty = 1) {
   const p = products.find(x => x.id === id);
-  if (!p) return;
+  if (!p) return false;
   const existing = cart.find(x => x.id === id);
   const currentQty = existing ? existing.qty : 0;
   const available = (p.stock || 0) - currentQty;
   const toAdd = Math.min(qty, available);
-  if (toAdd <= 0) return;
+  if (toAdd <= 0) return false;
   if (existing) existing.qty += toAdd;
   else cart.push({ id: p.id, name: p.name, price: p.price, qty: toAdd, image: p.image });
   saveCart();
   renderCartBadge();
+  return true;
+}
+
+function _shakeBtn(btn) {
+  if (!btn) return;
+  btn.classList.remove('btn-at-max');
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    btn.classList.add('btn-at-max');
+    setTimeout(() => btn.classList.remove('btn-at-max'), 500);
+  }));
+}
+
+function addToCartFromCard(id, btn) {
+  if (!addToCart(id, 1)) { _shakeBtn(btn); return; }
+  const orig = btn.innerHTML;
+  btn.innerHTML = '✓ Agregado';
+  btn.classList.add('added');
+  setTimeout(() => {
+    btn.innerHTML = orig;
+    btn.classList.remove('added');
+  }, 1200);
 }
 
 function removeFromCart(id) {
@@ -459,7 +480,7 @@ function cardHTML(p) {
   const buyBtn = apt
     ? `<button class="btn-buy btn-buy-oos" onclick="event.stopPropagation();whatsapp(${p.id},this)" style="background:#92400E">${WA_SVG} Consultar</button>`
     : oos ? `<button class="btn-buy btn-buy-oos" disabled>Agotado</button>`
-    : `<button class="btn-buy" onclick="event.stopPropagation();whatsapp(${p.id},this)">${WA_SVG} Pedir</button>`;
+    : `<button class="btn-buy btn-cart-add" onclick="event.stopPropagation();addToCartFromCard(${p.id},this)">🛒 Agregar</button>`;
   return `
 <article class="product-card reveal${oos ? ' card-oos' : ''}" onclick="openModal(${p.id})">
   <div class="product-img-wrap">
@@ -953,8 +974,8 @@ function changeModalQty(delta) {
 }
 
 function modalAddToCart(id) {
-  addToCart(id, _modalQty);
   const btn = document.getElementById('modal-addcart-btn');
+  if (!addToCart(id, _modalQty)) { _shakeBtn(btn); return; }
   if (btn) {
     btn.innerHTML = `✓ ${_modalQty > 1 ? _modalQty + ' agregados' : 'Agregado'} &nbsp;·&nbsp; <u style="font-weight:400;font-size:.88em">Ver carrito →</u>`;
     btn.classList.add('added');
