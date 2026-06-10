@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-06-09 (rev 13).
+Documentación técnica del proyecto. Última actualización: 2026-06-10 (rev 14).
 
 ## Rol de Claude en este proyecto
 
@@ -206,9 +206,6 @@ En mobile algunos módulos pueden ocultar ítems según rol. `settings.html` red
 
 **Tipos de acción (`action`):**
 `venta`, `apartado_nuevo`, `apartado_abono`, `apartado_liquidado`, `producto_creado`, `producto_editado`, `producto_eliminado`, `duplicado_descartado`
-
-#### `users` (legacy)
-Email + password plano. Ya no se usa para auth real (Supabase Auth JWT).
 
 ### Auth JWT
 ```javascript
@@ -783,7 +780,6 @@ El QV (`#qv-overlay`) es el modal de vista rápida del producto en el Inventario
 
 | Problema | Impacto |
 |---|---|
-| `users` table con password plano (legacy) | Seguridad — ya no se usa para auth pero existe |
 | Sin Realtime entre sesiones | Cambios no visibles en otras pestañas |
 | Sin paginación en tabla admin | Con 600+ productos empieza a sentirse; crítico en 900+ |
 | Staging publica con `price=0` | Requiere edición manual de precio en admin antes de publicar |
