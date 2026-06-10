@@ -27,6 +27,7 @@
 
 html{
   scroll-behavior:smooth;
+  scroll-padding-top:calc(80px + env(safe-area-inset-top)); /* deja espacio para el header fijo al saltar a una sección */
   overflow-x:hidden;
   -webkit-text-size-adjust:100%; /* evita que iOS cambie el tamaño de texto al rotar */
   text-size-adjust:100%;
@@ -768,6 +769,8 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   /* Targets táctiles mínimos 44×44px (guía Apple HIG) */
   .btn,.btn-buy,.filter-btn,.nav-cta,.btn-login{min-height:44px}
   .filter-btn{padding:10px 18px}
+  .d-link{padding:10px 0}
+  .footer-col ul a{display:inline-flex;padding:10px 0}
 
   /* Safe area para iPhone X+ con notch o home indicator */
   .header{padding-top:env(safe-area-inset-top)}
