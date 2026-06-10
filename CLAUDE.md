@@ -783,7 +783,6 @@ El QV (`#qv-overlay`) es el modal de vista rápida del producto en el Inventario
 
 | Problema | Impacto |
 |---|---|
-| Staging publica con `price=0` | Requiere edición manual de precio en admin antes de publicar |
 | **Service role key expuesta en archivos JS estáticos** | `admin.js`, `admin-*.js`, `pos-core.js`, `stats.js`, `activity.js`, `settings.js` son assets públicos — cualquiera puede descargarlos sin login y obtener la key, que bypasea RLS por completo (lectura/escritura/borrado total). El JWT solo protege la UI, no estos archivos. **Mitigación correcta:** mover INSERT/UPDATE/DELETE a Supabase Edge Functions (valida JWT server-side) — implica agregar un "backend" serverless. **Alternativa:** políticas RLS basadas en el JWT del usuario en vez de service role key, replicando la matriz de roles de este documento. Ambas son cambios grandes y de alto impacto — abordar en sesión dedicada, con proyecto Supabase de prueba antes de tocar producción. |
 
 ---
