@@ -104,6 +104,7 @@ let _lastSale   = {};
 let posView     = (window.innerWidth <= 1024) ? 'list' : (localStorage.getItem('te_pos_view') || 'list');
 let posSort     = localStorage.getItem('te_pos_sort') || 'position';
 let _posRecentOrder = JSON.parse(localStorage.getItem('te_recently_edited') || '[]');
+let _posRealtimeChannel = null;
 
 /* ── API ── */
 function api(path, opts = {}) {
@@ -123,27 +124,64 @@ function api(path, opts = {}) {
 }
 
 /* ── LOAD PRODUCTS ── */
+function _mapPosProduct(p) {
+  return {
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    categoryLabel: p.category_label,
+    price: p.price,
+    originalPrice: p.original_price,
+    description: p.description || '',
+    image: p.image,
+    barcode: p.barcode || null,
+    stock: p.stock ?? 0,
+    outOfStock: p.out_of_stock,
+    badge: p.badge,
+    badgeType: p.badge_type,
+    kitItems: p.kit_items || null
+  };
+}
+
 async function loadProducts() {
   const result = await api('products?select=id,name,category,category_label,price,original_price,description,image,barcode,stock,out_of_stock,badge,badge_type,kit_items&is_archived=eq.false&order=position.asc');
   if (result.ok && Array.isArray(result.data)) {
-    products = result.data.map(p => ({
-      id: p.id,
-      name: p.name,
-      category: p.category,
-      categoryLabel: p.category_label,
-      price: p.price,
-      originalPrice: p.original_price,
-      description: p.description || '',
-      image: p.image,
-      barcode: p.barcode || null,
-      stock: p.stock ?? 0,
-      outOfStock: p.out_of_stock,
-      badge: p.badge,
-      badgeType: p.badge_type,
-      kitItems: p.kit_items || null
-    }));
+    products = result.data.map(_mapPosProduct);
   }
   renderFrecuentes();
+}
+
+/* ── SUPABASE REALTIME ── */
+function initRealtime() {
+  if (typeof window.supabase === 'undefined') return;
+  try {
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    _posRealtimeChannel = client
+      .channel('pos-products')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, _handleRealtimeProduct)
+      .subscribe();
+  } catch (err) {
+    console.warn('Realtime no disponible:', err);
+  }
+}
+
+function _handleRealtimeProduct({ eventType, new: row, old }) {
+  if (eventType === 'INSERT') {
+    if (!row.is_archived && !products.find(x => x.id === row.id)) products.push(_mapPosProduct(row));
+  } else if (eventType === 'UPDATE') {
+    const idx = products.findIndex(x => x.id === row.id);
+    if (row.is_archived) {
+      if (idx >= 0) products.splice(idx, 1);
+    } else if (idx >= 0) {
+      products[idx] = { ...products[idx], ..._mapPosProduct(row) };
+    } else {
+      products.push(_mapPosProduct(row));
+    }
+  } else if (eventType === 'DELETE') {
+    const idx = products.findIndex(x => x.id === old.id);
+    if (idx >= 0) products.splice(idx, 1);
+  }
+  searchProducts(document.getElementById('pos-search')?.value || '');
 }
 
 /* ── KIT STOCK ── */

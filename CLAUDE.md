@@ -506,6 +506,7 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
 - **Validación:** efectivo debe cubrir total; doble submit bloqueado con flag `_cobrandoAhora`
 - **Mobile:** `pos-right` scrollable, cart-items con `max-height:120px` para que checkout siempre sea visible
 - **seller_email** — se guarda en cada venta con el email del usuario autenticado
+- **Realtime entre sesiones** — `initRealtime()` (`pos-core.js`) suscribe el canal `pos-products` a cambios de `products` vía Supabase Realtime. `_handleRealtimeProduct()` actualiza `stock`/`out_of_stock`/precio/etc. en el array local y re-renderiza el catálogo visible (`searchProducts()`), evitando sobreventa cuando dos cajeras venden al mismo tiempo desde dispositivos distintos. Mismo patrón que Inventario (`admin.js`).
 
 ### Restock rápido desde la Caja
 
@@ -782,7 +783,6 @@ El QV (`#qv-overlay`) es el modal de vista rápida del producto en el Inventario
 
 | Problema | Impacto |
 |---|---|
-| Sin Realtime entre sesiones | Cambios no visibles en otras pestañas |
 | Staging publica con `price=0` | Requiere edición manual de precio en admin antes de publicar |
 
 ---

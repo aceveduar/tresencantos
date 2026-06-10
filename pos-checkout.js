@@ -463,6 +463,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadHistory();
   loadApartados();
   showAllProducts();
+  initRealtime();
 
   // Swipe para cerrar offcanvas (derecha)
   initSwipeToClose('corte-offcanvas',   'corte-backdrop',   closeCorte,      0.35);
