@@ -124,7 +124,7 @@ function api(path, opts = {}) {
 
 /* ── LOAD PRODUCTS ── */
 async function loadProducts() {
-  const result = await api('products?select=*&is_archived=eq.false&order=position.asc');
+  const result = await api('products?select=id,name,category,category_label,price,original_price,description,image,barcode,stock,out_of_stock,badge,badge_type,kit_items&is_archived=eq.false&order=position.asc');
   if (result.ok && Array.isArray(result.data)) {
     products = result.data.map(p => ({
       id: p.id,
@@ -133,6 +133,7 @@ async function loadProducts() {
       categoryLabel: p.category_label,
       price: p.price,
       originalPrice: p.original_price,
+      description: p.description || '',
       image: p.image,
       barcode: p.barcode || null,
       stock: p.stock ?? 0,
