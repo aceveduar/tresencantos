@@ -491,6 +491,7 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
 - **Descuento** — campo % o $ antes del cobro, clampado 0-100% en modo %
 - **Método de pago** — 💵 Efectivo / 📱 Transferencia. Transferencia oculta campos de cambio
 - **Nota de venta** — texto libre que aparece en ticket WA
+- **Cliente (opcional en venta normal)** — botón colapsable "👤 Agregar cliente" (mismo patrón que Nota), junto a `#pos-customer`. En venta normal es opcional; al activar "Es apartado" se expande automáticamente y se vuelve obligatorio. El nombre se guarda en `sales.customer`, aparece como tag en Historial y personaliza el saludo del ticket WA ("¡Gracias por tu compra, {nombre}!")
 - **Apartados/anticipos** — checkbox "Es apartado", requiere nombre de cliente + anticipo. Panel "📌 Apartados" muestra pendientes con botón "Completar"
 - **Ticket por WhatsApp** — botón en modal post-venta. Al enviarlo el modal se cierra automáticamente (400ms delay) — sin tap extra. Incluye productos, total, método, cambio, nota y aviso de transferencia pendiente si aplica
 - **Historial** — últimas 50 ventas en **offcanvas lateral**. Botón en topbar (`#btn-history-pos`, visible ≥641px) + tab bar mobile. Cancelar venta → borra `sales` → restaura stock. Solo superadmin puede cancelar (`CAN_CANCEL_SALE`)

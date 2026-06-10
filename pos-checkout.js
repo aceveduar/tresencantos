@@ -131,10 +131,11 @@ async function cobrar() {
 
   // Reset UI
   cart = [];
-  ['pos-cash','pos-discount','pos-note','pos-customer','pos-phone','pos-anticipo'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  ['pos-cash','pos-discount','pos-note','pos-phone','pos-anticipo'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   document.getElementById('pos-is-apartado').checked = false;
   document.getElementById('apartado-fields').style.display = 'none';
   clearNoteField();
+  clearCustomerField();
   document.getElementById('cobrar-btn').textContent = '✓ Cobrar';
   renderCart(); updateChange();
   document.getElementById('pos-search').value = '';
@@ -167,7 +168,7 @@ function showSaleDone() {
   document.getElementById('sd-pending-row').style.display  = isApt ? '' : 'none';
   document.getElementById('sd-pending').textContent         = fmt(pendiente);
   document.getElementById('sd-change-row').style.display   = isApt ? 'none' : '';
-  document.getElementById('sd-customer-row').style.display = isApt && s.customer ? '' : 'none';
+  document.getElementById('sd-customer-row').style.display = s.customer ? '' : 'none';
   document.getElementById('sd-customer').textContent       = (s.customer||'').split(' · 📱 ')[0];
 
   const transAlert = document.getElementById('sd-transfer-alert');
@@ -215,9 +216,11 @@ function sendWhatsAppTicket() {
     setTimeout(() => closeSaleDone(), 400);
     return;
   } else {
+    const nombre   = (s.customer||'').split(' · 📱 ')[0] || '';
     const chng     = s.change > 0 ? `\n💵 Cambio: $${s.change.toLocaleString('es-MX')}` : '';
     const transAviso = s.payMethod === 'transferencia' ? `\n\n⚠️ _Pendiente confirmar recibo de transferencia_` : '';
-    msg = `🛍 *Tres Encantos*\n━━━━━━━━━━━━━━\n${lines}${disc}\n━━━━━━━━━━━━━━\n*Total: $${(s.total||0).toLocaleString('es-MX')} MXN*\n${metodo}${chng}${note}${transAviso}\n\n¡Gracias por tu compra! 💛`;
+    const saludo   = nombre ? `¡Gracias por tu compra, ${nombre}! 💛` : '¡Gracias por tu compra! 💛';
+    msg = `🛍 *Tres Encantos*\n━━━━━━━━━━━━━━\n${lines}${disc}\n━━━━━━━━━━━━━━\n*Total: $${(s.total||0).toLocaleString('es-MX')} MXN*\n${metodo}${chng}${note}${transAviso}\n\n${saludo}`;
   }
   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   setTimeout(() => closeSaleDone(), 400);

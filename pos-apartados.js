@@ -50,6 +50,24 @@ function autoCollapseNote() {
   if (!val) clearNoteField();
 }
 
+/* ── CLIENTE ── */
+function toggleCustomerField() {
+  document.getElementById('customer-toggle-btn').style.display = 'none';
+  document.getElementById('customer-input-wrap').style.display = '';
+  setTimeout(() => document.getElementById('pos-customer').focus(), 50);
+}
+function clearCustomerField() {
+  document.getElementById('pos-customer').value = '';
+  document.getElementById('customer-input-wrap').style.display = 'none';
+  document.getElementById('customer-toggle-btn').style.display = '';
+  updateAnticipoInfo();
+}
+function autoCollapseCustomer() {
+  if (document.getElementById('pos-is-apartado')?.checked) return; // requerido en apartado
+  const val = document.getElementById('pos-customer')?.value.trim();
+  if (!val) clearCustomerField();
+}
+
 /* ── APARTADO ── */
 function toggleApartadoMode() {
   const isApt = document.getElementById('pos-is-apartado').checked;
@@ -72,13 +90,20 @@ function toggleApartadoMode() {
       const d = new Date(); d.setDate(d.getDate() + 30);
       dueEl.value = d.toISOString().split('T')[0];
     }
-    // Auto-focus en el primer campo requerido
+    // Auto-focus en el campo de cliente (requerido en apartado)
+    document.getElementById('customer-toggle-btn').style.display = 'none';
+    document.getElementById('customer-input-wrap').style.display = '';
     setTimeout(() => document.getElementById('pos-customer')?.focus(), 80);
   } else {
-    // Al desactivar apartado: limpiar campos y hint
-    ['pos-customer','pos-phone','pos-anticipo','pos-pendiente','pos-due-date'].forEach(id => {
+    // Al desactivar apartado: limpiar campos específicos del apartado y hint
+    ['pos-phone','pos-anticipo','pos-pendiente','pos-due-date'].forEach(id => {
       const el = document.getElementById(id); if (el) el.value = '';
     });
+    // Cliente: si quedó vacío, colapsar de vuelta; si tiene texto, conservarlo (venta normal lo acepta)
+    if (!document.getElementById('pos-customer')?.value.trim()) {
+      document.getElementById('customer-input-wrap').style.display = 'none';
+      document.getElementById('customer-toggle-btn').style.display = '';
+    }
     document.querySelectorAll('.anticipo-quick button').forEach(b => b.classList.remove('active-cash'));
     const hint = document.getElementById('cobrar-hint');
     if (hint) hint.style.display = 'none';

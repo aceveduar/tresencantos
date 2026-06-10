@@ -180,6 +180,13 @@
         <button type="button" class="note-clear-btn" onclick="clearNoteField()" title="Quitar nota">✕</button>
       </div>
 
+      <!-- Cliente (opcional en venta normal, requerido en apartado) -->
+      <button type="button" class="note-toggle-btn" id="customer-toggle-btn" onclick="toggleCustomerField()">👤 Agregar cliente</button>
+      <div class="note-input-wrap" id="customer-input-wrap" style="display:none">
+        <input type="text" id="pos-customer" placeholder="Nombre del cliente" oninput="updateAnticipoInfo()" onblur="autoCollapseCustomer()">
+        <button type="button" class="note-clear-btn" onclick="clearCustomerField()" title="Quitar cliente">✕</button>
+      </div>
+
       <!-- Apartado toggle -->
       <label class="apartado-toggle-label">
         <input type="checkbox" id="pos-is-apartado" onchange="toggleApartadoMode()">
@@ -189,7 +196,6 @@
       <!-- Campos del apartado -->
       <div id="apartado-fields" style="display:none">
         <div class="apartado-fields">
-          <input type="text" id="pos-customer" placeholder="👤 Nombre del cliente" oninput="updateAnticipoInfo()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%">
           <input type="tel" id="pos-phone" placeholder="📱 Teléfono (opcional)" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%">
           <div class="apartado-field-row">
             <div class="cash-field">
