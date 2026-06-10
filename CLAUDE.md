@@ -35,7 +35,7 @@ Antes de diseñar o modificar cualquier funcionalidad, tomar como referencia los
 
 ## Descripción
 
-Panel de administración + POS + estadísticas + carga masiva con IA + sitio e-commerce para **Tres Encantos**, boutique mexicana (bolsos, accesorios, maquillaje, Natura). Dueña: **Ofelia**, consultora Diamond de Natura. Los pedidos del sitio público se cierran por WhatsApp — no hay checkout.
+Panel de administración + POS + estadísticas + carga masiva con IA + sitio e-commerce para **Tres Encantos**, boutique mexicana (bolsos, accesorios, maquillaje, Natura). Dueña: **Ofelia**, consultora Diamond de Natura. En la Tienda los pedidos se arman en un carrito y se cierran por WhatsApp — no hay checkout/pago en línea.
 
 ---
 
@@ -584,8 +584,21 @@ Overlay dentro del Inventario — botón 📸 Masivo en topbar (solo superadmin)
       &or=(out_of_stock.eq.false,is_apartado.eq.true)&order=position.asc
   ```
 - **Hero mobile:** strip horizontal de productos destacados con scroll touch
-- **Filtros** por categoría, búsqueda, ordenamiento; modal de detalle con botón WhatsApp
+- **Filtros** por categoría, búsqueda, ordenamiento; modal de detalle con carrito y WhatsApp
 - **Barra admin:** si hay sesión activa (`te_admin_session` válida en localStorage), aparece barra fija en top con accesos a Inventario / Caja / Reportes. Invisible para clientes.
+
+### Carrito de compra ("Mi pedido")
+Sistema de carrito multi-producto que consolida el pedido en **un solo mensaje de WhatsApp** — vive desde 2026-05-17 (commit `c460400`).
+
+- **Estado:** array `cart` en `localStorage` key `te_cart` — `[{id, name, price, qty, image}]`
+- **Acceso:** ícono 🛒 en el header (`#nav-cart-btn`) con badge de cantidad (`#nav-cart-badge`); pulso dorado (`.cart-pulse`) cada vez que se agrega un producto
+- **UI:** bottom sheet (`#cart-overlay` / `.cart-sheet`) — ítems con thumbnail, controles `[−] N [+]`, botón ✕ para quitar, total y botón "Pedir por WhatsApp"
+- **Agregar al carrito:**
+  - **Tarjeta del catálogo** — botón "🛒 Agregar" (`addToCartFromCard`): agrega 1 unidad, feedback "✓ Agregado" + pulso del ícono. Es el CTA primario de cada tarjeta (antes era "Pedir" → WhatsApp directo de un solo producto; cambiado para que el pedido se consolide en el carrito)
+  - **Modal de producto** — stepper de cantidad + botón "🛒 Agregar al carrito" (`modalAddToCart`)
+- **Tope de stock:** `addToCart(id, qty)` retorna `false` y no agrega si `(p.stock - cantidad ya en carrito) <= 0`. En ese caso el botón hace shake rojo (`.btn-at-max`, mismo patrón que en Caja)
+- **`cartWhatsApp()`** — arma un solo mensaje con todos los productos, cantidades, subtotales y total, y abre WhatsApp
+- **WhatsApp directo (alternativa):** dentro del modal de producto, ícono `waDirectBtn` (desktop) y botón "Pedir directo por WhatsApp" (mobile) permiten consultar/pedir **un solo producto** sin pasar por el carrito — para preguntar disponibilidad antes de decidir. Productos `📌 Apartado` (última pieza ya reservada) usan este flujo ("Consultar") en vez de agregarse al carrito
 
 ### Manejo de OOS en tienda (incluyendo kits)
 ```javascript
@@ -627,8 +640,10 @@ Los kits siempre tienen `stock=0` en BD — `isOos()` evita marcarlos agotados i
 │ Descripción...       │
 │ ⚡ Últimas X unidades│
 ├──────────────────────┤
-│ $1,349 MXN    [⬡]   │  ← Zona 3: CTA (flex-shrink:0, siempre visible)
-│ [  Pedir por WA   ]  │
+│ $1,349 MXN   [⬡][📤]│  ← Zona 3: CTA (flex-shrink:0, siempre visible)
+│      [−]  1  [+]     │     ⬡ = WhatsApp directo (consulta 1 producto)
+│ [🛒 Agregar carrito] │     📤 = compartir (Web Share API, si disponible)
+│  Pedir directo por WA│     última fila solo en mobile
 └──────────────────────┘
 ```
 - En mobile: **bottom sheet** (slide desde abajo, pill de arrastre, border-radius top)
