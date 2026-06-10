@@ -365,7 +365,19 @@ const _norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, 
 function onSearchInput(val) {
   searchQuery = _norm(val);
   _catalogShowAll = false;
+  _toggleProductsSearchClear();
   render();
+}
+
+function _toggleProductsSearchClear() {
+  const btn = document.getElementById('products-search-clear');
+  if (btn) btn.style.display = document.getElementById('products-search-input')?.value ? '' : 'none';
+}
+
+function clearProductsSearch() {
+  const input = document.getElementById('products-search-input');
+  if (input) { input.value = ''; input.focus(); }
+  onSearchInput('');
 }
 
 /* ── SORT ── */
