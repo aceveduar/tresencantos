@@ -314,7 +314,7 @@ function renderCatList() {
     const parentOpts = otherRoots.map(x => `<option value="${x.code}">${escH(x.label)}</option>`).join('');
     const subRows = subs.map(s => {
       const si = categories.indexOf(s);
-      const moveOpts = otherRoots.map(x => `<option value="${x.code}">${x.label}</option>`).join('');
+      const moveOpts = otherRoots.map(x => `<option value="${x.code}">${escH(x.label)}</option>`).join('');
       const cnt = _catCounts[s.code];
       return `<div class="cat-sub-row" draggable="true" data-code="${s.code}"
         ondragstart="_catDragStart(event,'sub','${s.code}')"
@@ -371,7 +371,7 @@ function renderCatList() {
   });
 }
 
-function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function toggleCatSection(code) {
   const section = document.querySelector(`.cat-section[data-code="${CSS.escape(code)}"]`);
