@@ -86,7 +86,7 @@ async function _launchScanner() {
       Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.UPC_A,
       Html5QrcodeSupportedFormats.UPC_E,   Html5QrcodeSupportedFormats.QR_CODE,
     ];
-    _scanInst = new Html5Qrcode('scanner-reader', { formatsToSupport: barcodeFormats, verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
+    _scanInst = new Html5Qrcode('scanner-reader', { formatsToSupport: barcodeFormats, verbose: false });
     _scanInst.start(
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 260, height: 100 } },

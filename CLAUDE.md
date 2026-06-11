@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-06-11 (rev 25).
+Documentación técnica del proyecto. Última actualización: 2026-06-11 (rev 26).
 
 ## Rol de Claude en este proyecto
 
@@ -492,6 +492,7 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
 - **Gap en sweep `_esc()` — Inventario / Nota de "🚩 Marcar para revisión"** — `flagData.note` (texto libre del admin/operador) se insertaba sin `_esc()` en `title="..."` (`admin-render.js`, vistas cards y tabla/lista) y como contenido en el Quick View (`admin-qv.js`). Corregido en los 3 puntos. (2026-06-11)
 - **Gap en sweep `_esc()` — Carga masiva con IA**: `admin-batch.js` insertaba `item.description` (texto generado por Groq) sin escapar dentro de `<textarea>...</textarea>` — una respuesta de IA con `</textarea>` rompería el HTML. `item.name` solo escapaba comillas dobles. Ambos corregidos con `_esc()`. (2026-06-11)
 - **Gap en sweep `_esc()` — Tienda / filtro de categorías** — `renderCategoryFilters()` (`app.js:696`) insertaba `r.label` (nombre de categoría) sin `_esc()` en los botones de filtro de la Tienda pública. Corregido. El resto de sitios donde `category.label` se inserta sin escapar (`admin.js`, `admin-bulk.js`, `admin-batch.js`, `admin-form.js`, `pos-core.js`) queda documentado como pendiente — ver Deudas Técnicas. (2026-06-11)
+- **Escáner de código de barras no detectaba en Android (Inventario y Caja)** — confirmado en prueba real en tienda física: la cámara abría correctamente pero nunca capturaba el código. Causa: `experimentalFeatures: { useBarCodeDetectorIfSupported: true }` en `Html5Qrcode` (`pos-checkout.js`, `admin-scanner.js`) hace que la librería use la API nativa `BarcodeDetector` de Chrome Android, que depende de un módulo de Google Play Services/ML Kit que en muchos dispositivos no está disponible o no soporta bien formatos 1D (EAN-13, Code128, UPC) — `detect()` nunca regresa coincidencias, sin error visible. Quitada la bandera en ambos archivos para forzar el decodificador JS interno (ZXing), consistente en Android. (2026-06-11)
 
 ---
 

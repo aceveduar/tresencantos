@@ -306,7 +306,7 @@ async function openPosScanner() {
       Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.UPC_A,
       Html5QrcodeSupportedFormats.UPC_E,   Html5QrcodeSupportedFormats.QR_CODE,
     ];
-    _posScanner = new Html5Qrcode('pos-reader', { formatsToSupport: barcodeFormats, verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
+    _posScanner = new Html5Qrcode('pos-reader', { formatsToSupport: barcodeFormats, verbose: false });
     _posScanner.start(
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 260, height: 100 } },
