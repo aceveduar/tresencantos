@@ -175,7 +175,11 @@ function cartWhatsApp() {
   if (btn?.disabled) return;
   if (btn) { btn.disabled = true; setTimeout(() => { btn.disabled = false; }, 2000); }
   const snapshot = [...cart]; // captura el carrito en este momento
-  const lines = snapshot.map(x => `• ${x.name} x${x.qty} — $${(x.price * x.qty).toLocaleString('es-MX')} MXN`).join('\n');
+  const lines = snapshot.map(x => {
+    const p = products.find(prod => prod.id === x.id);
+    const note = (p && isLastPiece(p)) ? ' (⚡ última pieza)' : '';
+    return `• ${x.name} x${x.qty} — $${(x.price * x.qty).toLocaleString('es-MX')} MXN${note}`;
+  }).join('\n');
   const total = '$' + snapshot.reduce((s, x) => s + x.price * x.qty, 0).toLocaleString('es-MX') + ' MXN';
   const msg = `¡Hola! 😊 Me gustaría hacer el siguiente pedido de Tres Encantos:\n\n${lines}\n\n*Total: ${total}*\n\n¿Está todo disponible?`;
   window.open(`${WA_BASE}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -464,6 +468,11 @@ function isOos(p) {
   return p.outOfStock || p.stock === 0;
 }
 
+// stock=1 = ahora mismo, en esta tienda, queda 1 — sin promesas sobre origen ni reabasto
+function isLastPiece(p) {
+  return p.stock === 1 && !p.isApartado;
+}
+
 function cardHTML(p) {
   const oos = isOos(p);
   const apt = p.isApartado && p.stock <= 1;
@@ -734,7 +743,10 @@ function whatsapp(id, btn) {
   const priceText = pct > 0
     ? `~$${p.originalPrice.toLocaleString('es-MX')} MXN~ → *$${p.price.toLocaleString('es-MX')} MXN* (-${pct}% 🔥)`
     : `*$${p.price.toLocaleString('es-MX')} MXN*`;
-  const msg = `¡Hola! 😊 Me interesa este producto de Tres Encantos:\n\n*${p.name}*\nPrecio: ${priceText}\n\n¿Está disponible?`;
+  const urgencyNote = isLastPiece(p)
+    ? '\n⚡ Vi que es la última pieza disponible.'
+    : '';
+  const msg = `¡Hola! 😊 Me interesa este producto de Tres Encantos:\n\n*${p.name}*\nPrecio: ${priceText}${urgencyNote}\n\n¿Está disponible?`;
   window.open(`${WA_BASE}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
@@ -895,7 +907,9 @@ function openModal(id) {
   } else if (p.badge) {
     modalBadgeArea = `<span class="product-badge badge-${p.badgeType||'best'}" style="position:absolute;top:10px;left:10px">${_esc(p.badge)}</span>`;
   }
-  const urgencyText = '';
+  const urgencyText = isLastPiece(p)
+    ? `<p class="modal-urgency">⚡ Última pieza disponible</p>`
+    : '';
   const ctaPriceHTML = pct > 0
     ? `<div class="modal-cta-price">
          <span class="modal-price-old">$${p.originalPrice.toLocaleString('es-MX')}</span>

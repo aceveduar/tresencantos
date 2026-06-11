@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-06-10 (rev 14).
+Documentación técnica del proyecto. Última actualización: 2026-06-10 (rev 15).
 
 ## Rol de Claude en este proyecto
 
@@ -638,7 +638,7 @@ Los kits siempre tienen `stock=0` en BD — `isOos()` evita marcarlos agotados i
 │ CATEGORÍA · PADRE    │  ← Zona 2: info (flex:1, overflow-y:auto)
 │ Nombre del producto  │
 │ Descripción...       │
-│ ⚡ Últimas X unidades│
+│ ⚡ Última pieza disp.│
 ├──────────────────────┤
 │ $1,349 MXN   [⬡][📤]│  ← Zona 3: CTA (flex-shrink:0, siempre visible)
 │      [−]  1  [+]     │     ⬡ = WhatsApp directo (consulta 1 producto)
@@ -654,6 +654,19 @@ Los kits siempre tienen `stock=0` en BD — `isOos()` evita marcarlos agotados i
 - Urgencia de stock como texto en Zona 2, no solo badge en imagen
 - **Swipe ← →:** navega entre productos del catálogo con animación slide (`_modalNavigate`, `_initModalSwipeNav`)
 - **Teclas ← → Esc:** misma navegación en desktop
+
+### Mensaje "Última pieza disponible" (2026-06-10)
+`isLastPiece(p)` en `app.js` → `p.stock === 1 && !p.isApartado`. Mismo mensaje en los 3 puntos donde el cliente decide:
+- **Modal** (Zona 2, debajo de descripción/kit): `<p class="modal-urgency">⚡ Última pieza disponible</p>`
+- **WhatsApp directo** (`whatsapp()`): agrega "⚡ Vi que es la última pieza disponible." antes de "¿Está disponible?"
+- **Carrito → WhatsApp** (`cartWhatsApp()`): anota cada línea afectada con `(⚡ última pieza)`
+
+**Por qué "Última pieza disponible" y no "Pieza única — no hay otra igual"** (descartado): "no hay otra igual" no es cierto para ningún producto del catálogo real de Ofelia:
+- Bolsos/mochilas (1 pieza por modelo, comprados en CDMX, limitado por capital): el modelo podría seguir existiendo en el proveedor — es "no sé si conseguiré otra", no "no existe otra"
+- Cabello/donas/peines (normalmente 5-10 por modelo): al llegar a 1 no se sabe si el siguiente lote será el mismo modelo u otro
+- Natura/Avon (catálogo de marca, reabasto ~1 semana vía revista): claramente reordenable — "no hay otra igual" sería falso
+
+Lo único cierto en los 3 casos es "ahora mismo, en esta tienda, queda 1" — sin distinción por categoría.
 
 ### Lógica de badges en cards
 Regla: descuento % y badge "OFERTA/promo" son redundantes — el % gana siempre.
