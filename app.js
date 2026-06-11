@@ -494,7 +494,6 @@ function cardHTML(p) {
     badgeArea = `<span class="product-badge badge-${p.badgeType||'best'}">${_esc(p.badge)}</span>`;
   }
 
-  const urgencyTag = '';
   const priceHTML = pct > 0
     ? `<div class="product-price"><s class="price-before">$${p.originalPrice.toLocaleString('es-MX')}</s> $${p.price.toLocaleString('es-MX')}</div>`
     : `<div class="product-price">$${p.price.toLocaleString('es-MX')}</div>`;
@@ -506,7 +505,7 @@ function cardHTML(p) {
 <article class="product-card reveal${oos ? ' card-oos' : ''}" onclick="openModal(${p.id})">
   <div class="product-img-wrap">
     <img src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
-    ${oosTag}${badgeArea}${urgencyTag}
+    ${oosTag}${badgeArea}
   </div>
   <div class="product-body">
     <p class="product-cat">${_esc(p.categoryLabel)}</p>
