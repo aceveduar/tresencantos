@@ -595,6 +595,9 @@ async function deleteSale(id) {
         abonos: prevAbonos.length > 0 ? prevAbonos : null
       })});
       if (!r.ok) { toast('Error al revertir', 'error'); return; }
+      logActivity('apartado_editado',
+        `Revirtió apartado liquidado de ${nombre} a pendiente`,
+        { id, total: parseFloat(sale.total) || 0, pagado: prevPagado });
       delete salesCache[id];
       await loadHistory();
       await loadApartados();

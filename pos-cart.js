@@ -525,7 +525,7 @@ function renderGastos() {
   list.innerHTML = gastos.map((g, i) => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
       <div>
-        <span style="font-size:.82rem;font-weight:600">${g.desc}</span>
+        <span style="font-size:.82rem;font-weight:600">${_esc(g.desc)}</span>
         <span style="font-size:.68rem;color:var(--muted);margin-left:6px">${g.time}</span>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
