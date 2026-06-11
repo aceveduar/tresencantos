@@ -151,7 +151,7 @@ async function _confirmRestock() {
     p.stock = newStock;
     p.outOfStock = false;
     _closeRestockPrompt();
-    filterAndRender();
+    searchProducts(document.getElementById('pos-search')?.value || '');
     addToCart(id);
     toast(`📦 +${_restockQty} en stock — agregado al carrito`, '');
   } else {
