@@ -642,7 +642,7 @@ function _renderQV(p) {
       flagZone.innerHTML = `
         <div class="qv-flag-active">
           <span class="qv-flag-title">🚩 Pendiente de revisión</span>
-          ${flagData.note ? `<p class="qv-flag-note-text">"${flagData.note}"</p>` : ''}
+          ${flagData.note ? `<p class="qv-flag-note-text">"${_esc(flagData.note)}"</p>` : ''}
           <span class="qv-flag-ts">Marcado el ${dateStr}</span>
         </div>`;
     } else {

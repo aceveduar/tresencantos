@@ -276,7 +276,7 @@ function adminCard(p, editable = false) {
   const pubTitle  = p.isPublished === false ? 'Oculto del sitio — toca para publicar' : p.outOfStock ? 'Publicado pero agotado — no aparece en el sitio' : 'Visible en sitio — toca para ocultar';
   const pubEmoji  = p.isPublished === false ? '🙈' : p.outOfStock ? '⚠️' : '🌐';
   const flagData  = _flagItem(p.id);
-  const flagDotAC = flagData ? `<span class="flag-dot" title="${flagData.note ? flagData.note : 'Pendiente de revisión'}">🚩</span>` : '';
+  const flagDotAC = flagData ? `<span class="flag-dot" title="${_esc(flagData.note || 'Pendiente de revisión')}">🚩</span>` : '';
   const isSinCat  = p.category === 'por_revisar';
 
   return `
@@ -586,7 +586,7 @@ function desktopRow(p) {
   const catDot     = `<span class="cat-dot" style="background:${catColor}"></span>`;
   const flagDataDR = _flagItem(p.id);
   const isSinCatDR = p.category === 'por_revisar';
-  const flagDotRow = flagDataDR ? `<span class="flag-dot-row" title="${flagDataDR.note || 'Pendiente de revisión'}">🚩</span>` : '';
+  const flagDotRow = flagDataDR ? `<span class="flag-dot-row" title="${_esc(flagDataDR.note || 'Pendiente de revisión')}">🚩</span>` : '';
   return `
 <tr draggable="true" data-id="${p.id}" class="${selectedIds.has(p.id) ? 'row-selected' : ''}${isSinCatDR ? ' card-por-revisar' : ''}"
     ondblclick="if(!event.target.closest('button,input,select,a,.drag-handle,.cat-label-inline'))openForm(${p.id})"
