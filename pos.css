@@ -163,7 +163,7 @@ button,a{touch-action:manipulation}
 .scan-head{padding:16px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.1)}
 .scan-head h3{color:#fff;font-size:1rem;font-family:'Playfair Display',serif}
 .scan-close{background:none;border:none;color:#aaa;font-size:1.2rem;cursor:pointer;padding:4px 8px}
-#pos-reader{width:100%}
+#pos-reader{width:100%;position:relative}
 #pos-reader video,#pos-reader canvas{display:block;width:100%!important;max-width:100%!important;height:auto!important}
 .scan-status{padding:10px 18px 16px;color:#aaa;font-size:.82rem;text-align:center}
 

@@ -265,12 +265,13 @@ async function openPosScanner() {
   Quagga.init({
     inputStream: { name: 'Live', type: 'LiveStream',
       target: document.getElementById('pos-reader'),
-      constraints: { facingMode: { ideal: 'environment' } }
+      constraints: { facingMode: { ideal: 'environment' } },
+      area: { top: '35%', right: '10%', left: '10%', bottom: '35%' }
     },
     locator: { patchSize: 'medium', halfSample: true },
     numOfWorkers: 0, frequency: 15,
     decoder: { readers: ['ean_reader','ean_8_reader','code_128_reader','upc_reader','upc_e_reader'] },
-    locate: true
+    locate: false
   }, (err) => {
     if (err) {
       document.getElementById('pos-scan-status').textContent = 'No se pudo acceder a la cámara. Verifica los permisos.';

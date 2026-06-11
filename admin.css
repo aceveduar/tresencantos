@@ -935,7 +935,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 /* ══ SCANNER ════════════════════════════════════════════════════════════ */
 .scanner-wrap{position:relative;background:#111;border-radius:var(--r);overflow:hidden;min-height:260px;display:flex;align-items:center;justify-content:center}
 .scanner-hint{color:#fff;font-size:.85rem;opacity:.7;text-align:center;padding:20px}
-#scanner-reader{width:100%}
+#scanner-reader{width:100%;position:relative}
 #scanner-reader video,#scanner-reader canvas{width:100%!important;max-width:100%!important;height:auto!important;border-radius:var(--r)}
 
 /* ══ EMPTY STATE ════════════════════════════════════════════════════════ */
