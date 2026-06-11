@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-06-11 (rev 21).
+Documentación técnica del proyecto. Última actualización: 2026-06-11 (rev 22).
 
 ## Rol de Claude en este proyecto
 
@@ -488,6 +488,7 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
 - **Revertir apartado liquidado sin rastro en Actividad** — en `deleteSale()` (pos-ui.js), la rama "regresar como apartado pendiente" (al cancelar una venta que vino de un apartado liquidado) no llamaba `logActivity()`. Corregido con `logActivity('apartado_editado', 'Revirtió apartado liquidado de {nombre} a pendiente', ...)`. (2026-06-11)
 - **Gap en sweep `_esc()` — Reportes / Ventas recientes** — `renderRecentSales()` (`stats.js`) insertaba la lista de nombres de productos (`prods`) sin `_esc()`, tanto en `title="..."` como en el contenido del div — el sweep 2026-06-08/09 no cubrió Reportes. Corregido. (2026-06-11)
 - **Gap en `escH()` — Configuración / Gestionar categorías** — `moveOpts` (selector "↳ Mover a otra categoría" en `renderCatList()`, `settings.js`) insertaba `x.label` sin `escH()`, a diferencia de `parentOpts` (mismo patrón `<option>`, sí escapado). Corregido. Además `escH()` no escapaba `>` (a diferencia de `_esc()` del resto de módulos) — agregado `.replace(/>/g,'&gt;')`. (2026-06-11)
+- **Gap en sweep `_esc()` — Tienda / Carrito "Mi pedido"** — `renderCartBody()` (`app.js`) insertaba `item.name` sin `_esc()` en `alt` y en el nombre visible del ítem — único punto de la Tienda pública fuera del sweep, y el de mayor exposición (lo ven todas las clientas). Corregido. (2026-06-11)
 
 ---
 

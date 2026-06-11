@@ -142,9 +142,9 @@ function renderCartBody() {
   }
   body.innerHTML = cart.map(item => `
 <div class="cart-item">
-  <img class="cart-item-img" src="${item.image}" alt="${item.name}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
+  <img class="cart-item-img" src="${item.image}" alt="${_esc(item.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
   <div class="cart-item-info">
-    <div class="cart-item-name">${item.name}</div>
+    <div class="cart-item-name">${_esc(item.name)}</div>
     <div class="cart-item-price">$${item.price.toLocaleString('es-MX')} MXN</div>
   </div>
   <div class="cart-item-controls">
