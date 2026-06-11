@@ -79,10 +79,10 @@ function _batchRenderCards() {
       <button class="btn-ai" onclick="_batchAnalyzeOne(${i})" ${item.status === 'analyzing' ? 'disabled' : ''}>✨ Analizar</button>
       <button class="btn-remove" onclick="_batchRemove(${i})" title="Eliminar">✕</button>
     </div>
-    <input type="text" placeholder="Nombre del producto" value="${item.name.replace(/"/g,'&quot;')}"
+    <input type="text" placeholder="Nombre del producto" value="${_esc(item.name)}"
            oninput="_batchItems[${i}].name=this.value;_batchUpdateFooter()">
     <textarea rows="2" placeholder="Descripción…"
-              oninput="_batchItems[${i}].description=this.value">${item.description}</textarea>
+              oninput="_batchItems[${i}].description=this.value">${_esc(item.description)}</textarea>
     <select onchange="_batchItems[${i}].category=this.value">
       <option value="">— Categoría —</option>
       ${catOptions}
