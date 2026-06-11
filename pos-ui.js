@@ -635,7 +635,20 @@ async function deleteSale(id) {
     await Promise.all(restores);
   }
 
-  // 3. Refrescar UI
+  // 3. Registrar actividad
+  const totalNum = parseFloat(sale.total) || 0;
+  if (isApt) {
+    const nombre = (sale.customer || '').split(' · 📱 ')[0] || 'Sin nombre';
+    logActivity('apartado_cancelado',
+      `Canceló apartado de ${nombre} — $${totalNum.toLocaleString('es-MX')}`,
+      { customer: nombre, total: totalNum, pagado: parseFloat(sale.paid_amount || 0), items: itemCount });
+  } else {
+    logActivity('venta_cancelada',
+      `Canceló venta de $${totalNum.toLocaleString('es-MX')} — ${itemCount} producto${itemCount !== 1 ? 's' : ''}`,
+      { total: totalNum, items: itemCount, method: sale.payment_method, itemIds: (sale.items || []).map(i => i.id) });
+  }
+
+  // 4. Refrescar UI
   delete salesCache[id];
   await loadHistory();
   await loadTodayStats();

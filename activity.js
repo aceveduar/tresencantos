@@ -74,9 +74,12 @@ function setType(btn, type) {
 /* ── ACTION CONFIG ── */
 const ACTION_CFG = {
   venta:              { type:'venta',      badge:'venta',     icon:'💰', label:'Venta'     },
+  venta_cancelada:    { type:'venta',      badge:'eliminado', icon:'❌', label:'Venta cancelada' },
   apartado_nuevo:     { type:'apartado',   badge:'apartado',  icon:'📌', label:'Apartado'  },
   apartado_abono:     { type:'apartado',   badge:'apartado',  icon:'💳', label:'Abono'     },
+  apartado_editado:   { type:'apartado',   badge:'apartado',  icon:'✏️', label:'Apartado editado' },
   apartado_liquidado: { type:'apartado',   badge:'apartado',  icon:'✅', label:'Liquidado' },
+  apartado_cancelado: { type:'apartado',   badge:'eliminado', icon:'❌', label:'Apartado cancelado' },
   producto_creado:       { type:'inventario', badge:'creado',    icon:'➕', label:'Creado'    },
   producto_editado:      { type:'inventario', badge:'editado',   icon:'✏️', label:'Editado'   },
   producto_eliminado:    { type:'inventario', badge:'eliminado', icon:'🗑', label:'Eliminado' },
@@ -207,7 +210,7 @@ function render(data) {
       const ini   = avatarInitial(item.user_email);
 
       let detail = '';
-      if (item.action === 'venta')
+      if (item.action === 'venta' || item.action === 'venta_cancelada')
         detail = [
           meta.items != null ? `${meta.items} producto${meta.items !== 1 ? 's' : ''}` : '',
           meta.method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo',
@@ -252,7 +255,7 @@ function _actPopup(idx) {
   // Contenido según tipo de acción
   let imgHtml = '', bodyHtml = '';
   const isProductAction = ['producto_editado','producto_creado','producto_eliminado','duplicado_descartado'].includes(item.action);
-  const isSale  = item.action === 'venta';
+  const isSale  = item.action === 'venta' || item.action === 'venta_cancelada';
   const isApt   = item.action.startsWith('apartado');
 
   if (isProductAction && meta.id) {
@@ -283,6 +286,7 @@ function _actPopup(idx) {
     if (meta.anticipo != null) bodyHtml += `<div style="font-size:.82rem;color:#059669;margin-top:2px">Anticipo: $${parseFloat(meta.anticipo).toLocaleString('es-MX')}</div>`;
     if (meta.pendiente != null) bodyHtml += `<div style="font-size:.82rem;color:#B45309;margin-top:2px">Pendiente: $${parseFloat(meta.pendiente).toLocaleString('es-MX')}</div>`;
     if (meta.amount != null)   bodyHtml += `<div style="font-size:.82rem;color:#059669;margin-top:2px">Abono: $${parseFloat(meta.amount).toLocaleString('es-MX')}</div>`;
+    if (meta.pagado != null)   bodyHtml += `<div style="font-size:.82rem;color:#E85D5D;margin-top:2px">Pagado (perdido): $${parseFloat(meta.pagado).toLocaleString('es-MX')}</div>`;
   } else {
     bodyHtml = `<div style="font-size:.85rem;color:#1C1817">${_esc(item.summary)}</div>`;
   }

@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-06-10 (rev 15).
+Documentación técnica del proyecto. Última actualización: 2026-06-10 (rev 16).
 
 ## Rol de Claude en este proyecto
 
@@ -201,11 +201,14 @@ En mobile algunos módulos pueden ocultar ítems según rol. `settings.html` red
 | `id` | serial PK | |
 | `action` | text | Tipo de evento (ver abajo) |
 | `user_email` | text | Email del usuario que realizó la acción |
-| `payload` | jsonb | Datos del evento (producto, venta, etc.) |
+| `summary` | text | Descripción legible del evento (se muestra en Actividad) |
+| `meta` | jsonb nullable | Datos del evento (producto, venta, montos, etc.) |
 | `created_at` | timestamptz | Auto |
 
 **Tipos de acción (`action`):**
-`venta`, `apartado_nuevo`, `apartado_abono`, `apartado_liquidado`, `producto_creado`, `producto_editado`, `producto_eliminado`, `duplicado_descartado`
+`venta`, `venta_cancelada`, `apartado_nuevo`, `apartado_abono`, `apartado_editado`, `apartado_liquidado`, `apartado_cancelado`, `producto_creado`, `producto_editado`, `producto_eliminado`, `duplicado_descartado`
+
+Cada tipo tiene su entrada en `ACTION_CFG` (`activity.js`) con `{type, badge, icon, label}` — un `action` sin entrada cae en un badge genérico "•" bajo el filtro "Inventario", por lo que cualquier `logActivity()` nuevo debe agregarse también a `ACTION_CFG`.
 
 ### Auth JWT
 ```javascript
@@ -479,6 +482,7 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
 - **Caja no cargaba productos en catálogo** — `_esc is not defined` (helper no declarado en ningún archivo cargado por `pos.html`) lanzaba `ReferenceError` dentro de `renderPosProducts()`, llamado sincrónicamente tras `await Promise.all(...)` en `init()`. Esto detenía el resto de `init()` antes de poblar `#pos-results` (pero `#pos-frecuentes` sí renderizaba porque no usa `_esc`). Mismo patrón que el bug de `TE` no definido. Fix: `_esc` agregado a `pos-core.js` línea 7. (2026-06-08)
 - **Patrón de debugging — `ReferenceError` silencioso en `init()`**: si una función llamada sincrónicamente dentro de `init()` (tras el `await Promise.all(...)` inicial) referencia un identificador global no declarado en ningún script cargado por la página, lanza `ReferenceError` y aborta el resto de `init()` sin mensaje visible — solo algunas secciones de la UI quedan sin poblar. Si algo se queda en su placeholder ("Cargando...") mientras otras secciones sí cargan, sospechar de esto primero y revisar la consola del navegador.
 - **Modal de tienda no respetaba productos 📌 Apartado** — `cardHTML` calculaba `apt = p.isApartado && p.stock <= 1` para mostrar badge "Apartado" + botón "Consultar", pero `openModal` solo usaba `isOos(p)` (true para estos productos) y mostraba "Agotado" + "Avisarme cuando haya stock" — inconsistente con la tarjeta. Corregido replicando `apt` en `openModal`: badge "📌 Apartado" + botón "Consultar por WhatsApp" (`#92400E`, mismo `whatsapp(p.id)` sin pasar `this` para no romper el estilo inline tras el reset de 2.2s). (2026-06-10)
+- **Cancelaciones en Caja sin rastro en Actividad** — `cancelApartado()` (pos-core.js) y `deleteSale()` (pos-ui.js) restauraban stock y borraban el registro de `sales`, pero nunca llamaban `logActivity()` — cancelar una venta o un apartado (acciones restringidas a superadmin/encargado/dueña) no dejaba evidencia en Actividad. Corregido agregando `logActivity('venta_cancelada', ...)` / `logActivity('apartado_cancelado', ...)` en ambos. Además, `apartado_editado` (ya emitido por `saveEditApt()`) no existía en `ACTION_CFG` de `activity.js` y se mostraba como "• apartado_editado" bajo el filtro "Inventario". Se agregaron las 3 entradas a `ACTION_CFG` (`venta_cancelada`, `apartado_editado`, `apartado_cancelado` — badge `eliminado`/`apartado` según corresponda). (2026-06-10)
 
 ---
 

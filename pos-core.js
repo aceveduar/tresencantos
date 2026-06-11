@@ -68,6 +68,10 @@ async function cancelApartado(id) {
     await Promise.all(restores);
   }
 
+  logActivity('apartado_cancelado',
+    `Canceló apartado de ${nombre} — $${total.toLocaleString('es-MX')}`,
+    { customer: nombre, total, pagado, items: nItems });
+
   closeAptDetail();
   await loadApartados();
   showAllProducts();
