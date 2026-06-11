@@ -193,9 +193,9 @@ function renderCategorySelects() {
     fSel.innerHTML = `<option value="por_revisar">📋 Por revisar</option>` + roots.filter(r => r.code !== 'por_revisar').map(r => {
       const subs = subCats(r.code);
       if (subs.length) {
-        return `<optgroup label="${r.label}"><option value="${r.code}">${r.label} — General</option>${subs.map(s => `<option value="${s.code}">${s.label}</option>`).join('')}</optgroup>`;
+        return `<optgroup label="${_esc(r.label)}"><option value="${r.code}">${_esc(r.label)} — General</option>${subs.map(s => `<option value="${s.code}">${_esc(s.label)}</option>`).join('')}</optgroup>`;
       }
-      return `<option value="${r.code}">${r.label}</option>`;
+      return `<option value="${r.code}">${_esc(r.label)}</option>`;
     }).join('');
     if (cur && categories.find(c => c.code === cur)) fSel.value = cur;
   }
@@ -207,9 +207,9 @@ function renderCategorySelects() {
       roots.map(r => {
         const subs = subCats(r.code);
         if (subs.length) {
-          return `<optgroup label="${r.label}"><option value="${r.code}">${r.label} — Todos</option>${subs.map(s => `<option value="${s.code}">${s.label}</option>`).join('')}</optgroup>`;
+          return `<optgroup label="${_esc(r.label)}"><option value="${r.code}">${_esc(r.label)} — Todos</option>${subs.map(s => `<option value="${s.code}">${_esc(s.label)}</option>`).join('')}</optgroup>`;
         }
-        return `<option value="${r.code}">${r.label}</option>`;
+        return `<option value="${r.code}">${_esc(r.label)}</option>`;
       }).join('');
   }
   _updateCatFilterBtn();
@@ -250,7 +250,7 @@ function _renderCatSheetChips(query) {
 
   const dot  = (color) => `<span style="width:8px;height:8px;border-radius:50%;background:${color || '#8A7564'};display:inline-block;flex-shrink:0"></span>`;
   const chip = (code, label, color, isSelected) =>
-    `<button class="bcp-chip${isSelected ? ' selected' : ''}" onclick="selectCatSheet('${code}')">${dot(color)}${label}</button>`;
+    `<button class="bcp-chip${isSelected ? ' selected' : ''}" onclick="selectCatSheet('${code}')">${dot(color)}${_esc(label)}</button>`;
 
   let html = '';
 
@@ -278,7 +278,7 @@ function _renderCatSheetChips(query) {
     const filtered = q ? items.filter(i => i.label.toLowerCase().includes(q) || r.label.toLowerCase().includes(q)) : items;
     if (!filtered.length) return;
     html += `<div style="padding:2px 16px 10px;border-top:1px solid var(--border)">
-      <div class="bcp-group-label">${r.label.toUpperCase()}</div>
+      <div class="bcp-group-label">${_esc(r.label.toUpperCase())}</div>
       <div class="bcp-chips">${filtered.map(i => chip(i.code, i.label, i.color, cur === i.code)).join('')}</div>
     </div>`;
   });

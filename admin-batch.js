@@ -58,8 +58,8 @@ function _batchRenderCards() {
     return;
   }
   const catOptions = categories.map(c => {
-    if (c.parent) return `<option value="${c.code}">${c.label}</option>`;
-    return `<option value="${c.code}" style="font-weight:700">${c.label}</option>`;
+    if (c.parent) return `<option value="${c.code}">${_esc(c.label)}</option>`;
+    return `<option value="${c.code}" style="font-weight:700">${_esc(c.label)}</option>`;
   }).join('');
 
   grid.innerHTML = _batchItems.map((item, i) => {

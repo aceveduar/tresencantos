@@ -188,7 +188,7 @@ function _updateActiveFiltersBar() {
 
   if (chips.length > 0) {
     chipsEl.innerHTML = chips.map(c =>
-      `<span class="fac-chip">${c.label}<button class="fac-chip-x" onclick="event.stopPropagation();_clearFilter('${c.type}')" title="Quitar filtro">×</button></span>`
+      `<span class="fac-chip">${_esc(c.label)}<button class="fac-chip-x" onclick="event.stopPropagation();_clearFilter('${c.type}')" title="Quitar filtro">×</button></span>`
     ).join('') +
     (_statFilter === 'imagen-base64' && ROLE === 'superadmin'
       ? `<button class="fac-chip fac-chip-action" onclick="migrateBase64ToDrive()">🚀 Migrar todas a Drive</button>`

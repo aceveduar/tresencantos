@@ -353,7 +353,7 @@ function renderCategoryChips() {
     ? roots
     : [...new Map(products.map(p => [p.category, { code: p.category, label: p.categoryLabel }])).values()];
   bar.innerHTML = `<button class="cat-chip active" data-cat="all" onclick="setCategory('all')">Todos</button>` +
-    chips.map(c => `<button class="cat-chip" data-cat="${c.code}" onclick="setCategory('${c.code}')">${c.label}</button>`).join('');
+    chips.map(c => `<button class="cat-chip" data-cat="${c.code}" onclick="setCategory('${c.code}')">${_esc(c.label)}</button>`).join('');
 }
 
 function setCategory(cat) {
@@ -424,7 +424,7 @@ function renderPosProducts(list, groupByCategory = false) {
       cats[key].push(p);
     });
     el.innerHTML = order.map(label =>
-      `<div class="cat-header">${label}</div>` + cats[label].map(p => productCard(p)).join('')
+      `<div class="cat-header">${_esc(label)}</div>` + cats[label].map(p => productCard(p)).join('')
     ).join('');
   } else {
     el.innerHTML = list.map(p => productCard(p)).join('');
