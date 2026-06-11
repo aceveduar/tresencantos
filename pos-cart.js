@@ -375,6 +375,7 @@ async function openCorte() {
   document.body.style.overflow = 'hidden';
   await loadCorte();
   renderGastos();
+  _initCierreInputs();
 }
 
 function closeCorte() {
@@ -517,6 +518,7 @@ function renderGastos() {
     list.innerHTML = '<div style="padding:10px 0;font-size:.78rem;color:var(--muted);text-align:center">Sin gastos registrados</div>';
     totRow.style.display = 'none';
     utilRow.style.display = 'none';
+    _renderCierre();
     return;
   }
   const totalGastos = gastos.reduce((s, g) => s + g.amount, 0);
@@ -539,6 +541,59 @@ function renderGastos() {
     utilEl.textContent = '$' + utilidad.toLocaleString('es-MX');
     utilEl.style.color = utilidad >= 0 ? 'var(--gold-dark)' : 'var(--red)';
   }
+  _renderCierre();
+}
+
+/* ── CIERRE DE CAJA (FONDO INICIAL + CONTEO FÍSICO) ──────────────── */
+function _fondoKey()  { return 'te_fondo_'  + (localStorage.getItem('te_shift_date') || new Date().toISOString().split('T')[0]); }
+function _conteoKey() { return 'te_conteo_' + (localStorage.getItem('te_shift_date') || new Date().toISOString().split('T')[0]); }
+
+function _initCierreInputs() {
+  const fondo  = localStorage.getItem(_fondoKey());
+  const conteo = localStorage.getItem(_conteoKey());
+  document.getElementById('corte-fondo').value  = fondo  != null ? fondo  : '';
+  document.getElementById('corte-conteo').value = conteo != null ? conteo : '';
+  _renderCierre();
+}
+
+function _onFondoChange() {
+  const val = document.getElementById('corte-fondo').value;
+  if (val === '') localStorage.removeItem(_fondoKey());
+  else localStorage.setItem(_fondoKey(), parseFloat(val) || 0);
+  _renderCierre();
+}
+
+function _onConteoChange() {
+  const val = document.getElementById('corte-conteo').value;
+  if (val === '') localStorage.removeItem(_conteoKey());
+  else localStorage.setItem(_conteoKey(), parseFloat(val) || 0);
+  _renderCierre();
+}
+
+function _renderCierre() {
+  if (!_corteData) return;
+  const fondo = parseFloat(localStorage.getItem(_fondoKey())) || 0;
+  const totalGastos = _getGastos().reduce((s, g) => s + g.amount, 0);
+  const esperado = fondo + _corteData.efectivo - totalGastos;
+  document.getElementById('corte-esperado').textContent = '$' + esperado.toLocaleString('es-MX');
+
+  const conteoRaw = localStorage.getItem(_conteoKey());
+  const diffRow = document.getElementById('corte-diff-row');
+  const diffVal = document.getElementById('corte-diff-val');
+  if (conteoRaw == null) { diffRow.style.display = 'none'; return; }
+
+  const diff = (parseFloat(conteoRaw) || 0) - esperado;
+  diffRow.style.display = 'flex';
+  if (diff === 0) {
+    diffVal.textContent = '✓ Cuadra';
+    diffVal.style.color = 'var(--green)';
+  } else if (diff > 0) {
+    diffVal.textContent = `+$${diff.toLocaleString('es-MX')} sobrante`;
+    diffVal.style.color = 'var(--gold-dark)';
+  } else {
+    diffVal.textContent = `-$${Math.abs(diff).toLocaleString('es-MX')} faltante`;
+    diffVal.style.color = 'var(--red)';
+  }
 }
 
 function compartirCorteWA() {
@@ -559,5 +614,22 @@ function compartirCorteWA() {
     msg += `\nTotal gastos: ${fmt(totalGastos)}`;
     msg += `\n\n🏆 *Utilidad: ${fmt(total - totalGastos)}*`;
   }
+
+  // Cierre de caja (fondo + conteo)
+  const fondo = parseFloat(localStorage.getItem(_fondoKey())) || 0;
+  const esperado = fondo + efectivo - totalGastos;
+  const conteoRaw = localStorage.getItem(_conteoKey());
+  if (fondo > 0 || conteoRaw != null) {
+    msg += `\n\n💵 *Cierre de caja:*`;
+    msg += `\nFondo inicial: ${fmt(fondo)}`;
+    msg += `\nEfectivo esperado: ${fmt(esperado)}`;
+    if (conteoRaw != null) {
+      const conteo = parseFloat(conteoRaw) || 0;
+      const diff = conteo - esperado;
+      msg += `\nConteo físico: ${fmt(conteo)}`;
+      msg += diff === 0 ? `\n✓ Cuadra` : diff > 0 ? `\n+${fmt(diff)} sobrante` : `\n-${fmt(Math.abs(diff))} faltante`;
+    }
+  }
+
   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
 }

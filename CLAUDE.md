@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-06-10 (rev 16).
+Documentación técnica del proyecto. Última actualización: 2026-06-10 (rev 17).
 
 ## Rol de Claude en este proyecto
 
@@ -502,6 +502,7 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
 - **Ticket por WhatsApp** — botón en modal post-venta. Al enviarlo el modal se cierra automáticamente (400ms delay) — sin tap extra. Incluye productos, total, método, cambio, nota y aviso de transferencia pendiente si aplica
 - **Historial** — últimas 50 ventas en **offcanvas lateral**. Botón en topbar (`#btn-history-pos`, visible ≥641px) + tab bar mobile. Cancelar venta → borra `sales` → restaura stock. Solo superadmin puede cancelar (`CAN_CANCEL_SALE`)
 - **Corte de caja** — botón 🧾 Corte (`#btn-corte-pos`, visible ≥641px) + tab bar mobile. Muestra totales del turno (efectivo, transferencia, ventas, apartados) con opción de compartir por WhatsApp. Turno se registra en `localStorage` keys `te_shift_start` / `te_shift_date` al abrir el POS cada día
+- **Cierre de caja (reconciliación de efectivo)** — sección "💵 Cierre de caja" dentro de Corte: input "Fondo inicial" (efectivo con el que se abrió el día) → calcula "Efectivo esperado" = fondo + efectivo recibido − gastos del turno. Input "Conteo físico" (efectivo real contado al cerrar) → muestra "Diferencia" (✓ Cuadra / sobrante / faltante, verde-dorado-rojo). Ambos valores en `localStorage` keys `te_fondo_<fecha>` / `te_conteo_<fecha>` (mismo patrón que `te_gastos_<fecha>`), se resetean solos cada día. Incluido en el mensaje de WhatsApp del corte (`compartirCorteWA()`)
 - **Apartados con fecha límite** — campo `📅 Fecha límite de pago` en el formulario de apartado (default 30 días). En la lista de apartados muestra el estado con color: rojo=vencido, ámbar=≤7 días, verde=ok
 - **Banner apartados vencidos** — franja roja debajo del topbar (`#apt-venc-banner`), clickeable → abre pestaña Apartados. Se muestra/oculta al cargar apartados.
 - **Modal post-venta protegido** — `onclick="void 0"` (no cierra al tocar fuera) + Escape bloqueado con `_escGuard`. Se limpia al cerrar con `closeSaleDone()`.
