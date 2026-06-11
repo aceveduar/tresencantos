@@ -239,7 +239,7 @@ function closeSaleDone() {
 /* ── SCANNER ── */
 let _posScanner = null;
 let _posQuaggaActive = false;
-let _posQuaggaDetected = false;
+let _posScanCooldown = false;
 
 function _loadQuaggaPos() {
   return new Promise((resolve, reject) => {
@@ -252,7 +252,10 @@ function _loadQuaggaPos() {
 }
 
 async function openPosScanner() {
-  document.getElementById('pos-scan-status').textContent = 'Iniciando cámara...';
+  const statusEl = document.getElementById('pos-scan-status');
+  statusEl.textContent = 'Iniciando cámara...';
+  statusEl.style.color = '';
+  _posScanCooldown = false;
   document.getElementById('pos-scanner-overlay').classList.add('open');
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -264,7 +267,6 @@ async function openPosScanner() {
       document.getElementById('pos-scan-status').textContent = 'No se pudo cargar el escáner.';
       return;
     }
-    _posQuaggaDetected = false;
     _posQuaggaActive = true;
     Quagga.init({
       inputStream: { name: 'Live', type: 'LiveStream',
@@ -283,14 +285,17 @@ async function openPosScanner() {
       Quagga.start();
       document.getElementById('pos-scan-status').textContent = 'Apunta al código de barras del producto';
       Quagga.onDetected((result) => {
-        if (_posQuaggaDetected) return;
+        if (_posScanCooldown) return;
         const code = result.codeResult?.code;
-        if (code) {
-          _posQuaggaDetected = true;
+        if (!code) return;
+        const p = products.find(x => x.barcode === code);
+        if (p) {
           closePosScanner();
-          const p = products.find(x => x.barcode === code);
-          if (p) { addToCart(p.id); document.getElementById('pos-search').value = ''; searchProducts(''); }
-          else { toast(`Código "${code}" — no está registrado en el catálogo`, 'error'); }
+          addToCart(p.id);
+          document.getElementById('pos-search').value = '';
+          searchProducts('');
+        } else {
+          _posBarcodeNotFound(code);
         }
       });
     });
@@ -306,10 +311,16 @@ async function openPosScanner() {
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 260, height: 100 } },
       (code) => {
-        closePosScanner();
+        if (_posScanCooldown) return;
         const p = products.find(x => x.barcode === code);
-        if (p) { addToCart(p.id); document.getElementById('pos-search').value = ''; searchProducts(''); }
-        else { toast(`Código "${code}" — no está registrado en el catálogo`, 'error'); }
+        if (p) {
+          closePosScanner();
+          addToCart(p.id);
+          document.getElementById('pos-search').value = '';
+          searchProducts('');
+        } else {
+          _posBarcodeNotFound(code);
+        }
       },
       () => {}
     ).then(() => {
@@ -328,6 +339,21 @@ function closePosScanner() {
   }
   if (_posScanner) { _posScanner.stop().catch(() => {}); _posScanner = null; }
   document.getElementById('pos-scanner-overlay').classList.remove('open');
+}
+
+// Código no reconocido: deja la cámara activa para reintentar de inmediato
+function _posBarcodeNotFound(code) {
+  _posScanCooldown = true;
+  const statusEl = document.getElementById('pos-scan-status');
+  statusEl.textContent = `Código "${code}" no encontrado`;
+  statusEl.style.color = 'var(--red)';
+  toast(`Código "${code}" — no está registrado en el catálogo`, 'error');
+  setTimeout(() => {
+    _posScanCooldown = false;
+    if (!document.getElementById('pos-scanner-overlay').classList.contains('open')) return;
+    statusEl.textContent = 'Apunta al código de barras del producto';
+    statusEl.style.color = '';
+  }, 1500);
 }
 
 /* ── TOAST ── */

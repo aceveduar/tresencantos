@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-06-10 (rev 17).
+Documentación técnica del proyecto. Última actualización: 2026-06-10 (rev 18).
 
 ## Rol de Claude en este proyecto
 
@@ -483,6 +483,7 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
 - **Patrón de debugging — `ReferenceError` silencioso en `init()`**: si una función llamada sincrónicamente dentro de `init()` (tras el `await Promise.all(...)` inicial) referencia un identificador global no declarado en ningún script cargado por la página, lanza `ReferenceError` y aborta el resto de `init()` sin mensaje visible — solo algunas secciones de la UI quedan sin poblar. Si algo se queda en su placeholder ("Cargando...") mientras otras secciones sí cargan, sospechar de esto primero y revisar la consola del navegador.
 - **Modal de tienda no respetaba productos 📌 Apartado** — `cardHTML` calculaba `apt = p.isApartado && p.stock <= 1` para mostrar badge "Apartado" + botón "Consultar", pero `openModal` solo usaba `isOos(p)` (true para estos productos) y mostraba "Agotado" + "Avisarme cuando haya stock" — inconsistente con la tarjeta. Corregido replicando `apt` en `openModal`: badge "📌 Apartado" + botón "Consultar por WhatsApp" (`#92400E`, mismo `whatsapp(p.id)` sin pasar `this` para no romper el estilo inline tras el reset de 2.2s). (2026-06-10)
 - **Cancelaciones en Caja sin rastro en Actividad** — `cancelApartado()` (pos-core.js) y `deleteSale()` (pos-ui.js) restauraban stock y borraban el registro de `sales`, pero nunca llamaban `logActivity()` — cancelar una venta o un apartado (acciones restringidas a superadmin/encargado/dueña) no dejaba evidencia en Actividad. Corregido agregando `logActivity('venta_cancelada', ...)` / `logActivity('apartado_cancelado', ...)` en ambos. Además, `apartado_editado` (ya emitido por `saveEditApt()`) no existía en `ACTION_CFG` de `activity.js` y se mostraba como "• apartado_editado" bajo el filtro "Inventario". Se agregaron las 3 entradas a `ACTION_CFG` (`venta_cancelada`, `apartado_editado`, `apartado_cancelado` — badge `eliminado`/`apartado` según corresponda). (2026-06-10)
+- **Gap en sweep `_esc()` — Editar apartado** — `renderEditAptItems()` (`pos-apartados.js`) insertaba `item.name` directamente en `innerHTML` sin pasar por `_esc()`, el único punto de Caja que quedó fuera del sweep 2026-06-08/09. Corregido. (2026-06-10)
 
 ---
 
@@ -509,6 +510,7 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
 - **Modo Recepción** (`openRecvMode`) — overlay `#recv-overlay` para recibir inventario desde la Caja sin salir al Inventario. CSS en admin.html, JS en admin.js línea ~4164.
 - **Productos OOS ocultos en Caja** — `getFilteredProducts()` filtra `outOfStock || stock === 0`. Aplica a lista, grid y búsqueda.
 - **Restock desde Caja** — `_showRestockPrompt(id)` + `_confirmRestock()`. Aparece al tocar producto OOS o al superar stock en carrito (350ms delay tras shake). PATCH stock + auto-agrega al carrito.
+- **Escáner — código no encontrado no cierra la cámara** (`pos-checkout.js`): al detectar un código sin coincidencia en el catálogo, `_posBarcodeNotFound(code)` muestra el error en `#pos-scan-status` (rojo) + toast, pero deja la cámara activa para escanear el siguiente artículo de inmediato (patrón Square POS/Clip). `_posScanCooldown` evita toasts repetidos del mismo código mientras sigue en cuadro (1.5s). El escáner solo se cierra al encontrar coincidencia.
 - **Validación:** efectivo debe cubrir total; doble submit bloqueado con flag `_cobrandoAhora`
 - **Mobile:** `pos-right` scrollable, cart-items con `max-height:120px` para que checkout siempre sea visible
 - **seller_email** — se guarda en cada venta con el email del usuario autenticado

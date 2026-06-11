@@ -574,7 +574,7 @@ function renderEditAptItems() {
   el.innerHTML = _editAptCtx.items.map((item, idx) => `
     <div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #F0E8DC">
       <div style="flex:1;min-width:0">
-        <div style="font-size:.84rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.name}</div>
+        <div style="font-size:.84rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(item.name)}</div>
         <div style="display:flex;align-items:center;gap:4px;margin-top:5px">
           <span style="font-size:.75rem;color:var(--muted)">$</span>
           <input type="number" value="${item.price}" min="0" step="1" inputmode="numeric"
