@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-06-11 (rev 24).
+Documentación técnica del proyecto. Última actualización: 2026-06-11 (rev 25).
 
 ## Rol de Claude en este proyecto
 
@@ -491,6 +491,7 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
 - **Gap en sweep `_esc()` — Tienda / Carrito "Mi pedido"** — `renderCartBody()` (`app.js`) insertaba `item.name` sin `_esc()` en `alt` y en el nombre visible del ítem — único punto de la Tienda pública fuera del sweep, y el de mayor exposición (lo ven todas las clientas). Corregido. (2026-06-11)
 - **Gap en sweep `_esc()` — Inventario / Nota de "🚩 Marcar para revisión"** — `flagData.note` (texto libre del admin/operador) se insertaba sin `_esc()` en `title="..."` (`admin-render.js`, vistas cards y tabla/lista) y como contenido en el Quick View (`admin-qv.js`). Corregido en los 3 puntos. (2026-06-11)
 - **Gap en sweep `_esc()` — Carga masiva con IA**: `admin-batch.js` insertaba `item.description` (texto generado por Groq) sin escapar dentro de `<textarea>...</textarea>` — una respuesta de IA con `</textarea>` rompería el HTML. `item.name` solo escapaba comillas dobles. Ambos corregidos con `_esc()`. (2026-06-11)
+- **Gap en sweep `_esc()` — Tienda / filtro de categorías** — `renderCategoryFilters()` (`app.js:696`) insertaba `r.label` (nombre de categoría) sin `_esc()` en los botones de filtro de la Tienda pública. Corregido. El resto de sitios donde `category.label` se inserta sin escapar (`admin.js`, `admin-bulk.js`, `admin-batch.js`, `admin-form.js`, `pos-core.js`) queda documentado como pendiente — ver Deudas Técnicas. (2026-06-11)
 
 ---
 
@@ -827,6 +828,7 @@ El QV (`#qv-overlay`) es el modal de vista rápida del producto en el Inventario
 | Problema | Impacto |
 |---|---|
 | **Service role key expuesta en archivos JS estáticos** | `admin.js`, `admin-*.js`, `pos-core.js`, `stats.js`, `activity.js`, `settings.js` son assets públicos — cualquiera puede descargarlos sin login y obtener la key, que bypasea RLS por completo (lectura/escritura/borrado total). El JWT solo protege la UI, no estos archivos. **Mitigación correcta:** mover INSERT/UPDATE/DELETE a Supabase Edge Functions (valida JWT server-side) — implica agregar un "backend" serverless. **Alternativa:** políticas RLS basadas en el JWT del usuario en vez de service role key, replicando la matriz de roles de este documento. Ambas son cambios grandes y de alto impacto — abordar en sesión dedicada, con proyecto Supabase de prueba antes de tocar producción. |
+| **`category.label` sin `_esc()`/`escH()` en ~15 sitios** | `admin.js` (selects de formulario/filtro), `admin-bulk.js` (bottom sheet de categoría bulk), `admin-batch.js` (select de carga masiva), `admin-form.js` (chips de filtro), `pos-core.js` (chips de categoría en Caja). Severidad baja — solo superadmin edita labels desde "Gestionar categorías" y las 40 categorías actuales son nombres simples en español — pero es inconsistente con el resto del codebase y, si un label llevara `<`/`>`/`&`, rompería selects/chips en varios módulos. El sitio análogo en la Tienda (`app.js:696`) ya se corrigió (2026-06-11). Pendiente: sweep dedicado para los 5 archivos restantes. |
 
 ---
 

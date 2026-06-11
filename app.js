@@ -693,7 +693,7 @@ function initFilters() {
   container.innerHTML = `<button class="filter-btn active" data-filter="all">Todo</button>` +
     activeCats.map(r => {
       const n = products.filter(p => catMatchesFilter(p.category, r.code)).length;
-      return `<button class="filter-btn" data-filter="${r.code}">${r.label} <span class="filter-count">${n}</span></button>`;
+      return `<button class="filter-btn" data-filter="${r.code}">${_esc(r.label)} <span class="filter-count">${n}</span></button>`;
     }).join('');
 
   container.querySelectorAll('.filter-btn').forEach(btn => {
