@@ -885,6 +885,7 @@ function openModal(id) {
   activeProduct = p;
   _modalQty = 1;
   const oos = isOos(p);
+  const apt = p.isApartado && p.stock <= 1;
   const pct = discountPct(p);
 
   // Categoría con contexto de padre si es subcategoría
@@ -921,7 +922,9 @@ function openModal(id) {
     ? `<button class="btn btn-share modal-share-btn" onclick="shareProduct(${p.id})" aria-label="Compartir"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>`
     : '';
   const waDirectBtn = oos ? '' : `<button class="modal-wa-direct" onclick="whatsapp(${p.id})" title="Pedir por WhatsApp" aria-label="Pedir por WhatsApp">${WA_SVG}</button>`;
-  const modalBtn = oos
+  const modalBtn = apt
+    ? `<button class="btn modal-btn-oos" onclick="whatsapp(${p.id})" style="background:#92400E;color:#fff;border-color:#92400E">${WA_SVG} Consultar por WhatsApp</button>`
+    : oos
     ? `<button class="btn modal-btn-oos" onclick="notifyRestock(${p.id},this)">🔔 Avisarme cuando haya stock</button>`
     : `<div class="modal-qty-row">
         <button class="modal-qty-btn" onclick="changeModalQty(-1)">−</button>
@@ -966,7 +969,8 @@ function openModal(id) {
   <div class="modal-img-wrap${hasGallery ? ' has-gallery' : ''}">
     ${galleryHTML}
     <button class="modal-close" onclick="closeModal()" aria-label="Cerrar">✕</button>
-    ${oos ? `<span class="product-badge badge-oos" style="position:absolute;top:10px;left:10px;background:#9B8B78">Agotado</span>` : ''}
+    ${apt ? `<span class="product-badge badge-apartado" style="position:absolute;top:10px;left:10px">📌 Apartado</span>`
+      : oos ? `<span class="product-badge badge-oos" style="position:absolute;top:10px;left:10px;background:#9B8B78">Agotado</span>` : ''}
     ${!hasGallery ? modalBadgeArea : ''}
   </div>
   <div class="modal-body">
