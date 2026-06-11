@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-06-11 (rev 29).
+Documentación técnica del proyecto. Última actualización: 2026-06-11 (rev 30).
 
 ## Rol de Claude en este proyecto
 
@@ -848,6 +848,7 @@ El QV (`#qv-overlay`) es el modal de vista rápida del producto en el Inventario
 - **Google Drive:** Apps Script como proxy. Secreto en `config` Supabase (`drive_secret`), nunca en código fuente. Al cambiar el secreto → siempre desplegar nueva versión del Apps Script.
 - `position` lo gestiona el admin — sitio público y POS ordenan por él
 - **PWA:** `manifest.json` + `sw.js` + íconos `icono-192.png` / `icono-512.png`. En iOS Safari no hay prompt automático de instalación — el usuario debe ir a Compartir → Agregar a pantalla de inicio.
+- **⚠️ `sw.js` cachea TODOS los archivos propios (stale-while-revalidate), no solo `STATIC`** — cualquier `.js`/`.html`/`.css` del proyecto (incluye `admin-scanner.js`, `pos-checkout.js`, etc.) se sirve desde caché en cada carga aunque ya exista una versión nueva en el servidor; la red solo actualiza el caché para la *siguiente* carga. Por eso, tras un `git push` con cambios de JS/HTML/CSS, **subir `CACHE_VERSION` en `sw.js`** (ej. `v24` → `v25`) — esto borra el caché viejo en `activate`. Aun así, por el ciclo de vida de Service Workers (`skipWaiting`+`clients.claim` activa el nuevo SW pero no reemplaza assets ya cargados en la pestaña actual), el usuario puede necesitar **recargar dos veces** (o cerrar y reabrir la pestaña/PWA) para ver el cambio reflejado. Sin este bump, los cambios de código pueden tardar varias cargas en aparecer — causa de confusión real durante pruebas en dispositivo (2026-06-11: 4 commits de fixes de escáner sin bump de `CACHE_VERSION`).
 - **Documentación de usuario:** `MANUAL.md` en la raíz — guía para Ofelia, Areli y Eduardo, sin tecnicismos
 - **Splash compartido:** `splash.js` debe estar en la raíz — todos los módulos admin lo referencian con `src="splash.js"`
 - **Galería de imágenes:** CSS en `style.css` (modal tienda) y en `admin.html` `<style>` inline (QV). Clases: `.modal-gallery`, `.mgd` (tienda) / `.qv-gallery`, `.qv-gd` (admin)
