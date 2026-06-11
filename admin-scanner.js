@@ -2,10 +2,6 @@
 let _scanCtx = null;
 let _quaggaActive = false;
 let _quaggaDetected = false;
-let _quaggaCandidate = null;
-let _quaggaCandidateCount = 0;
-const _QUAGGA_CONFIRM = 2;     // lecturas idénticas consecutivas antes de aceptar
-const _QUAGGA_MAX_ERROR = 0.15; // error promedio máximo de decodedCodes para considerar la lectura
 
 function _loadQuagga() {
   return new Promise((resolve, reject) => {
@@ -54,18 +50,11 @@ async function _launchScanner() {
     return;
   }
   _quaggaDetected = false;
-  _quaggaCandidate = null;
-  _quaggaCandidateCount = 0;
   _quaggaActive = true;
   Quagga.init({
     inputStream: { name: 'Live', type: 'LiveStream',
       target: document.getElementById('scanner-reader'),
-      constraints: {
-        facingMode: { ideal: 'environment' },
-        width: { min: 640, ideal: 1280 },
-        height: { min: 480, ideal: 720 },
-        advanced: [{ focusMode: 'continuous' }]
-      }
+      constraints: { facingMode: { ideal: 'environment' } }
     },
     locator: { patchSize: 'medium', halfSample: true },
     numOfWorkers: 0, frequency: 15,
@@ -81,15 +70,7 @@ async function _launchScanner() {
     Quagga.onDetected((result) => {
       if (_quaggaDetected) return;
       const code = result.codeResult?.code;
-      if (!code) return;
-      const errs = (result.codeResult.decodedCodes || []).map(c => c.error).filter(e => e !== undefined);
-      const avgErr = errs.length ? errs.reduce((a, b) => a + b, 0) / errs.length : 0;
-      if (avgErr > _QUAGGA_MAX_ERROR) return;
-      if (code === _quaggaCandidate) _quaggaCandidateCount++;
-      else { _quaggaCandidate = code; _quaggaCandidateCount = 1; }
-      if (_quaggaCandidateCount < _QUAGGA_CONFIRM) return;
-      _quaggaDetected = true;
-      _onAdminScan(code);
+      if (code) { _quaggaDetected = true; _onAdminScan(code); }
     });
   });
 }
@@ -112,8 +93,6 @@ function _adminBarcodeNotFound(code) {
   toast(`Código "${code}" — no está registrado en el catálogo`, 'error');
   setTimeout(() => {
     _quaggaDetected = false;
-    _quaggaCandidate = null;
-    _quaggaCandidateCount = 0;
     if (!document.getElementById('scanner-overlay').classList.contains('open')) return;
     statusEl.textContent = 'Apunta al código de barras';
     statusEl.style.color = '';

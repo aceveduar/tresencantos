@@ -239,10 +239,6 @@ function closeSaleDone() {
 /* ── SCANNER ── */
 let _posQuaggaActive = false;
 let _posScanCooldown = false;
-let _posQuaggaCandidate = null;
-let _posQuaggaCandidateCount = 0;
-const _POS_QUAGGA_CONFIRM = 2;     // lecturas idénticas consecutivas antes de aceptar
-const _POS_QUAGGA_MAX_ERROR = 0.15; // error promedio máximo de decodedCodes para considerar la lectura
 
 function _loadQuaggaPos() {
   return new Promise((resolve, reject) => {
@@ -266,17 +262,10 @@ async function openPosScanner() {
     return;
   }
   _posQuaggaActive = true;
-  _posQuaggaCandidate = null;
-  _posQuaggaCandidateCount = 0;
   Quagga.init({
     inputStream: { name: 'Live', type: 'LiveStream',
       target: document.getElementById('pos-reader'),
-      constraints: {
-        facingMode: { ideal: 'environment' },
-        width: { min: 640, ideal: 1280 },
-        height: { min: 480, ideal: 720 },
-        advanced: [{ focusMode: 'continuous' }]
-      }
+      constraints: { facingMode: { ideal: 'environment' } }
     },
     locator: { patchSize: 'medium', halfSample: true },
     numOfWorkers: 0, frequency: 15,
@@ -293,14 +282,6 @@ async function openPosScanner() {
       if (_posScanCooldown) return;
       const code = result.codeResult?.code;
       if (!code) return;
-      const errs = (result.codeResult.decodedCodes || []).map(c => c.error).filter(e => e !== undefined);
-      const avgErr = errs.length ? errs.reduce((a, b) => a + b, 0) / errs.length : 0;
-      if (avgErr > _POS_QUAGGA_MAX_ERROR) return;
-      if (code === _posQuaggaCandidate) _posQuaggaCandidateCount++;
-      else { _posQuaggaCandidate = code; _posQuaggaCandidateCount = 1; }
-      if (_posQuaggaCandidateCount < _POS_QUAGGA_CONFIRM) return;
-      _posQuaggaCandidate = null;
-      _posQuaggaCandidateCount = 0;
       const p = products.find(x => x.barcode === code);
       if (p) {
         closePosScanner();
@@ -332,8 +313,6 @@ function _posBarcodeNotFound(code) {
   toast(`Código "${code}" — no está registrado en el catálogo`, 'error');
   setTimeout(() => {
     _posScanCooldown = false;
-    _posQuaggaCandidate = null;
-    _posQuaggaCandidateCount = 0;
     if (!document.getElementById('pos-scanner-overlay').classList.contains('open')) return;
     statusEl.textContent = 'Apunta al código de barras del producto';
     statusEl.style.color = '';
