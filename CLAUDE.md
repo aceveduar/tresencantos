@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-06-11 (rev 19).
+Documentación técnica del proyecto. Última actualización: 2026-06-11 (rev 20).
 
 ## Rol de Claude en este proyecto
 
@@ -486,6 +486,7 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
 - **Gap en sweep `_esc()` — Editar apartado** — `renderEditAptItems()` (`pos-apartados.js`) insertaba `item.name` directamente en `innerHTML` sin pasar por `_esc()`, el único punto de Caja que quedó fuera del sweep 2026-06-08/09. Corregido. (2026-06-10)
 - **Gap en sweep `_esc()` — Gastos del turno** — `renderGastos()` (`pos-cart.js`) insertaba `g.desc` (texto libre de la cajera) directo en `innerHTML` sin `_esc()`. Corregido. (2026-06-11)
 - **Revertir apartado liquidado sin rastro en Actividad** — en `deleteSale()` (pos-ui.js), la rama "regresar como apartado pendiente" (al cancelar una venta que vino de un apartado liquidado) no llamaba `logActivity()`. Corregido con `logActivity('apartado_editado', 'Revirtió apartado liquidado de {nombre} a pendiente', ...)`. (2026-06-11)
+- **Gap en sweep `_esc()` — Reportes / Ventas recientes** — `renderRecentSales()` (`stats.js`) insertaba la lista de nombres de productos (`prods`) sin `_esc()`, tanto en `title="..."` como en el contenido del div — el sweep 2026-06-08/09 no cubrió Reportes. Corregido. (2026-06-11)
 
 ---
 

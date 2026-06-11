@@ -768,10 +768,11 @@ function renderRecentSales() {
     const t = new Date(s.created_at);
     const time = t.toLocaleString('es-MX',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
     const prods = Array.isArray(s.items) ? s.items.map(i=>i.name).join(', ') : '—';
+    const prodsEsc = _esc(prods);
     return `
 <div class="recent-item" onclick="openSaleDetail(${idx})">
   <div style="flex:1;min-width:0">
-    <div class="recent-products" title="${prods}">${prods}</div>
+    <div class="recent-products" title="${prodsEsc}">${prodsEsc}</div>
     <div class="recent-time">${time}</div>
   </div>
   <div class="recent-amount">$${parseFloat(s.total).toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
