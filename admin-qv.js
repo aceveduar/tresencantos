@@ -544,6 +544,7 @@ function _renderQV(p) {
       descToggle.style.display = overflows ? 'block' : 'none';
       descToggle.textContent   = 'Ver más ↓';
       descEl.classList.toggle('expanded', !overflows);
+      _qvInfoScroll();
     }, 50);
   }
 
@@ -634,6 +635,17 @@ function _qvToggleDesc() {
   const expanding = !descEl.classList.contains('expanded');
   descEl.classList.toggle('expanded', expanding);
   btn.textContent = expanding ? 'Ver menos ↑' : 'Ver más ↓';
+  _qvInfoScroll();
+}
+
+// Difumina la zona de botones cuando .qv-info tiene más contenido por debajo del fold
+function _qvInfoScroll() {
+  const info = document.querySelector('.qv-info');
+  const actions = document.getElementById('qv-actions');
+  if (!info || !actions) return;
+  const overflows = info.scrollHeight > info.clientHeight + 1;
+  const atEnd = info.scrollTop + info.clientHeight >= info.scrollHeight - 2;
+  actions.classList.toggle('qv-fade-hidden', !overflows || atEnd);
 }
 
 // Cerrar QV con Escape
