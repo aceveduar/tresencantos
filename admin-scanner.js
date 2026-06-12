@@ -54,13 +54,12 @@ async function _launchScanner() {
   Quagga.init({
     inputStream: { name: 'Live', type: 'LiveStream',
       target: document.getElementById('scanner-reader'),
-      constraints: { facingMode: { ideal: 'environment' } },
-      area: { top: '35%', right: '10%', left: '10%', bottom: '35%' }
+      constraints: { facingMode: { ideal: 'environment' } }
     },
     locator: { patchSize: 'medium', halfSample: true },
     numOfWorkers: 0, frequency: 15,
     decoder: { readers: ['ean_reader','ean_8_reader','code_128_reader','upc_reader','upc_e_reader'] },
-    locate: false
+    locate: true
   }, (err) => {
     if (err) {
       document.getElementById('scanner-status').textContent = 'No se pudo acceder a la cámara. Verifica los permisos.';
