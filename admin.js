@@ -579,8 +579,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (document.getElementById('cmp-zoom')?.classList.contains('open'))        { closeCmpZoom(); return; }
       if (document.getElementById('form-overlay')?.classList.contains('open'))    { closeForm(); return; }
       if (document.getElementById('del-overlay')?.classList.contains('open'))     { closeDel(); return; }
-      if (document.getElementById('revista-overlay')?.classList.contains('open')) { closeRevista(); return; }
-      if (document.getElementById('cat-overlay')?.classList.contains('open'))     { closeCatManager(); return; }
       if (document.getElementById('scanner-overlay')?.classList.contains('open')) { closeAdminScanner(); return; }
     }
 
@@ -715,10 +713,6 @@ async function doLogout() {
 
 /* ── APP ── */
 function _applyRoleUI() {
-  // Sección JSON (importar/exportar catálogo) — solo superadmin
-  if (!can.importJSON) {
-    document.getElementById('tools-json-section')?.style.setProperty('display', 'none');
-  }
   // Operador: ocultar Reportes, Actividad y Settings
   if (ROLE === 'operador') {
     ['stats.html','activity.html','settings.html'].forEach(href => {
@@ -823,7 +817,6 @@ async function showApp() {
 
   await loadCategories();
   await Promise.all([loadAppConfig(), loadFlagged(), loadRecentlyEdited(), loadApartadosMap()]);
-  _loadNameMap();
   await loadProductsFromSupabase();
   loadSalesCounts(); // no-blocking — actualiza chips cuando termina
   _syncFlagFilter();

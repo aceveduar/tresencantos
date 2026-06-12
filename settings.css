@@ -27,9 +27,6 @@ button,a,[onclick]{touch-action:manipulation}
 .scard-desc{font-size:.74rem;color:var(--muted);margin-top:2px;line-height:1.4}
 .scard-action{flex-shrink:0}
 .scard-row + .scard-row{border-top:1px solid var(--border)}
-
-/* Expandable section within card */
-.scard-expand{padding:16px 18px;border-top:1px solid var(--border);background:#FDFAF8}
 .field-label{font-size:.74rem;font-weight:700;color:var(--muted);margin-bottom:6px;display:block}
 .field-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;transition:border-color .15s;font-family:inherit}
 .field-input:focus{border-color:var(--gold)}

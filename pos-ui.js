@@ -187,13 +187,10 @@ function _initLightboxSwipe() {
 }
 
 /* ── PRODUCT PREVIEW ── */
-let _posPrevId = null;
-
 function openPosPreview(id) {
   const p = products.find(x => x.id === id);
   if (p) TE?.track('pos_preview', { id: p.id, name: p.name });
   if (!p) return;
-  _posPrevId = id;
   const fallback = PROD_PLACEHOLDER;
   const effStock = getKitStock(p);
   const isKit    = !!(p.kitItems?.length);

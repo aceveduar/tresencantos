@@ -22,17 +22,8 @@ button,select{font-family:inherit}
 .topbar-left img{height:34px;border-radius:5px}
 .topbar-title{font-family:'Playfair Display',serif;font-size:1rem;color:rgba(255,255,255,.9)}
 .topbar-right{display:flex;gap:10px;align-items:center}
-.topbar-title-group{display:flex;align-items:center;gap:8px}
-.user-display{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .user-avatar{width:28px;height:28px;border-radius:50%;background:rgba(201,164,98,.25);color:var(--gold);font-size:.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1.5px solid rgba(201,164,98,.45);user-select:none}
 .user-name-label{font-size:.75rem;color:rgba(255,255,255,.65);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.btn-back{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:7px 16px;border-radius:50px;font-size:.8rem;font-weight:600;
-  border:1.5px solid rgba(255,255,255,.25);color:#fff;background:transparent;
-  cursor:pointer;text-decoration:none;transition:.15s;
-}
-.btn-back:hover{background:rgba(255,255,255,.1)}
 
 /* ── MAIN ── */
 main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
@@ -186,14 +177,11 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
     align-items:center;padding:0 12px;gap:0;
   }
   .topbar-left{display:contents}
-  .topbar-title-group{justify-content:center}
   .topbar-title{
     font-style:italic;font-size:1rem;white-space:nowrap;
   }
   .user-name-label{display:none}
   .user-avatar{width:24px;height:24px;font-size:.68rem}
-  /* Ocultar botón "← Inventario" — el nav de iconos lo reemplaza */
-  .btn-back{display:none}
 
   /* Nav período en mobile */
   .stats-nav{gap:6px}
@@ -223,7 +211,6 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 @media(max-width:480px){
   .kpi-icon{font-size:1rem;margin-bottom:6px}
   .kpi-value{font-size:1.2rem}
-  .topbar-right .btn-back span{display:none}
 
   /* Inventario: 3 col muy pequeño → 2+1 */
   .inv-summary{grid-template-columns:1fr 1fr;gap:8px}

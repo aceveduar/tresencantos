@@ -108,7 +108,6 @@ let _lastSale   = {};
 let posView     = (window.innerWidth <= 1024) ? 'list' : (localStorage.getItem('te_pos_view') || 'list');
 let posSort     = localStorage.getItem('te_pos_sort') || 'position';
 let _posRecentOrder = JSON.parse(localStorage.getItem('te_recently_edited') || '[]');
-let _posRealtimeChannel = null;
 
 /* ── API ── */
 function api(path, opts = {}) {
@@ -160,7 +159,7 @@ function initRealtime() {
   if (typeof window.supabase === 'undefined') return;
   try {
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-    _posRealtimeChannel = client
+    client
       .channel('pos-products')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, _handleRealtimeProduct)
       .subscribe();
@@ -203,7 +202,7 @@ function getKitStock(p) {
 
 /* ── LOAD CATEGORIES ── */
 async function refreshPosProducts() {
-  const btn = document.getElementById('btn-refresh-pos');
+  const btn = document.getElementById('pos-refresh-btn');
   if (btn) { btn.style.opacity = '.4'; btn.style.pointerEvents = 'none'; }
   await Promise.all([loadProducts(), loadSalesStats(), loadTopProductsFromSales(), loadPosRecentlyEdited()]);
   showAllProducts();

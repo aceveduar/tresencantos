@@ -306,15 +306,6 @@ function _actPopup(idx) {
   document.body.appendChild(pop);
 }
 
-/* ── TOAST ── */
-let _toastT;
-function toast(msg, type = '') {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.className = `toast${type ? ' '+type : ''} show`;
-  clearTimeout(_toastT);
-  _toastT = setTimeout(() => el.classList.remove('show'), 2800);
-}
-
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
   try {

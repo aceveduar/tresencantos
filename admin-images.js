@@ -14,7 +14,7 @@ function _creatorName(email) {
 }
 
 async function loadAppConfig() {
-  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret,wa_float,captura_rapida,dismissed_dups,show_creator,show_batch,show_recv,user_names)&select=id,value');
+  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret,captura_rapida,dismissed_dups,show_creator,show_batch,show_recv,user_names)&select=id,value');
   if (r.ok && r.data) {
     r.data.forEach(row => {
       if (row.id === 'groq_key')     groqApiKey  = row.value || null;
@@ -24,10 +24,6 @@ async function loadAppConfig() {
         try { _dismissedDupsCache = new Set(JSON.parse(row.value || '[]')); }
         catch { _dismissedDupsCache = new Set(); }
       }
-      if (row.id === 'wa_float') {
-        const toggle = document.getElementById('wa-float-toggle');
-        if (toggle) toggle.checked = row.value !== 'false';
-      }
       if (row.id === 'captura_rapida') {
         // false solo si está explícitamente desactivado; por defecto activo
         if (row.value === 'false') {
@@ -36,8 +32,6 @@ async function loadAppConfig() {
       }
       if (row.id === 'show_creator') {
         _showCreator = row.value === 'true';
-        const toggle = document.getElementById('show-creator-toggle');
-        if (toggle) toggle.checked = _showCreator;
         _refreshCreatorFilter();
       }
       if (row.id === 'show_batch') {
@@ -94,118 +88,6 @@ async function loadAppConfig() {
     }
   }
   if (migrations.length) await Promise.all(migrations);
-  loadDriveConfig();
-  loadGroqKeyStatus();
-}
-
-function loadDriveConfig() {
-  const epInput   = document.getElementById('drive-endpoint-input');
-  const secInput  = document.getElementById('drive-secret-input');
-  const statusTxt = document.getElementById('drive-status-txt');
-  if (!epInput) return;
-  if (driveEp && driveSecret) {
-    epInput.value  = driveEp;
-    secInput.value = driveSecret;
-    statusTxt.textContent = '✓ Conectado — imágenes nuevas van a Drive';
-    statusTxt.style.color = 'var(--green)';
-    document.getElementById('drive-test-btn')?.style && (document.getElementById('drive-test-btn').style.display = '');
-    document.getElementById('drive-clear-btn')?.style && (document.getElementById('drive-clear-btn').style.display = '');
-  }
-}
-
-function loadGroqKeyStatus() {
-  const el = document.getElementById('groq-key-status');
-  if (!el) return;
-  if (groqApiKey) {
-    el.textContent = '✓ Configurado — IA activa en todos los dispositivos';
-    el.style.color = 'var(--green)';
-  }
-}
-
-async function toggleWaFloat(enabled) {
-  const r = await supabaseApi('config', {
-    method: 'POST',
-    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: 'wa_float', value: String(enabled) })
-  });
-  if (r.ok) {
-    toast(enabled ? '💬 Botón WhatsApp activado en Tienda' : '💬 Botón WhatsApp desactivado en Tienda', 'success');
-  } else {
-    toast('Error al guardar configuración', 'error');
-    const toggle = document.getElementById('wa-float-toggle');
-    if (toggle) toggle.checked = !enabled;
-  }
-}
-
-async function saveGroqKey() {
-  const val = document.getElementById('groq-key-input')?.value.trim();
-  if (!val || !val.startsWith('gsk_')) { toast('Ingresa una key válida de Groq (empieza con gsk_)', 'error'); return; }
-  const r = await supabaseApi('config', {
-    method: 'POST',
-    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: 'groq_key', value: val })
-  });
-  if (r.ok) {
-    groqApiKey = val;
-    loadGroqKeyStatus();
-    toast('🤖 Groq key guardada — IA disponible para todos los usuarios ✓', 'success');
-  } else { toast('Error al guardar la key', 'error'); }
-}
-
-async function saveDriveEndpoint() {
-  const ep = document.getElementById('drive-endpoint-input').value.trim();
-  if (!ep) { toast('Pega primero la URL del Apps Script', 'error'); return; }
-  if (!driveSecret) {
-    driveSecret = 'te_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-  }
-  driveEp = ep;
-  await Promise.all([
-    supabaseApi('config', { method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id: 'drive_ep', value: ep }) }),
-    supabaseApi('config', { method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id: 'drive_secret', value: driveSecret }) })
-  ]);
-  document.getElementById('drive-secret-input').value = driveSecret;
-  const statusTxt = document.getElementById('drive-status-txt');
-  statusTxt.textContent = '✓ Conectado — imágenes nuevas van a Drive';
-  statusTxt.style.color = 'var(--green)';
-  document.getElementById('drive-test-btn').style.display = '';
-  document.getElementById('drive-clear-btn').style.display = '';
-  toast('Drive guardado — copia el secreto del campo gris y pégalo en tu Apps Script', 'success');
-}
-
-function copyDriveSecret() {
-  const val = document.getElementById('drive-secret-input').value;
-  if (!val) return;
-  navigator.clipboard.writeText(val)
-    .then(() => toast('Secreto copiado al portapapeles ✓', 'success'))
-    .catch(() => { document.getElementById('drive-secret-input').select(); toast('Selecciona el texto y copia con Ctrl+C / ⌘C', ''); });
-}
-
-async function clearDrive() {
-  if (!confirm('¿Desconectar Google Drive? Las imágenes futuras se guardarán como base64.')) return;
-  await Promise.all([
-    supabaseApi('config?id=eq.drive_ep',     { method: 'DELETE' }),
-    supabaseApi('config?id=eq.drive_secret', { method: 'DELETE' })
-  ]);
-  driveEp = null; driveSecret = null;
-  document.getElementById('drive-endpoint-input').value = '';
-  document.getElementById('drive-secret-input').value = '';
-  document.getElementById('drive-status-txt').textContent = '(no configurado)';
-  document.getElementById('drive-status-txt').style.color = '';
-  document.getElementById('drive-test-btn').style.display = 'none';
-  document.getElementById('drive-clear-btn').style.display = 'none';
-  toast('Drive desconectado', '');
-}
-
-async function testDriveEndpoint() {
-  if (!driveEp) return;
-  const btn = document.getElementById('drive-test-btn');
-  btn.textContent = 'Probando…'; btn.disabled = true;
-  try {
-    const r = await fetch(driveEp);
-    const txt = await r.text();
-    toast(txt === 'OK' ? 'Conexión con Drive OK ✓' : 'Respuesta inesperada: ' + txt, txt === 'OK' ? 'success' : 'error');
-  } catch(e) { toast('Error al conectar con Drive: ' + e.message, 'error'); }
-  btn.textContent = 'Probar'; btn.disabled = false;
 }
 
 /* Extrae el file ID de una URL de Drive thumbnail */
@@ -605,7 +487,6 @@ async function saveInlineAiKey() {
   });
   if (r.ok) {
     groqApiKey = val;
-    loadGroqKeyStatus();
     document.getElementById('ai-key-prompt').style.display = 'none';
     toast('Key guardada para todos los dispositivos ✓', 'success');
     analyzeFormImage();

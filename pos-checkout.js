@@ -370,9 +370,8 @@ async function loadTodayStats() {
   // Fetch últimos 8 días para capturar abonos de apartados viejos
   const desde  = new Date(Date.now() - 8*24*3600*1000).toISOString();
   const result = await api(`sales?created_at=gte.${desde}&select=total,paid_amount,payment_method,type,abonos,created_at`);
-  const el     = document.getElementById('today-stats');
   const mob    = document.getElementById('daily-summary-mobile');
-  if (!el || !result.ok || !result.data?.length) return;
+  if (!result.ok || !result.data?.length) return;
 
   let efectivo = 0, transferencia = 0;
   result.data.forEach(s => {
@@ -398,12 +397,8 @@ async function loadTodayStats() {
   if (total === 0) return;
 
   const fmt = n => `$${n.toLocaleString('es-MX')}`;
-  el.innerHTML = `💵 ${fmt(efectivo)} &nbsp;·&nbsp; 📱 ${fmt(transferencia)} &nbsp;·&nbsp; <strong>${fmt(total)}</strong>`;
-  el.style.display = '';
-  if (mob) {
-    mob.innerHTML = `<span style="color:var(--gold-dark);font-weight:700">Hoy</span> &nbsp;💵 ${fmt(efectivo)} &nbsp;📱 ${fmt(transferencia)} &nbsp;<strong>${fmt(total)}</strong>`;
-    mob.style.display = 'flex';
-  }
+  mob.innerHTML = `<span style="color:var(--gold-dark);font-weight:700">Hoy</span> &nbsp;💵 ${fmt(efectivo)} &nbsp;📱 ${fmt(transferencia)} &nbsp;<strong>${fmt(total)}</strong>`;
+  mob.style.display = 'flex';
 }
 
 /* ── DIVISOR ARRASTRABLE ── */

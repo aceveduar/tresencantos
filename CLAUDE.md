@@ -107,7 +107,6 @@ tresencantos/
 │
 ├── shared.css           # Estilos compartidos entre módulos admin
 ├── shared.js            # JS compartido entre módulos admin
-├── splash.js            # Transición de entrada compartida por todos los módulos admin
 ├── manifest.json        # PWA manifest
 ├── sw.js                # Service Worker (PWA offline)
 ├── icono-192.png        # Icono PWA
@@ -510,6 +509,18 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
   - **Rescatado — contador de duplicados en Configuración**: `settings.js` ya leía `te_dup_last_count` de localStorage para mostrar "X posibles" junto a "Revisión de duplicados", pero nada lo escribía. Se agregó `localStorage.setItem('te_dup_last_count', _findDuplicatePairs().length)` en el flujo de inicio de Inventario (`admin.js`, junto a `initRealtime()`).
   - CACHE_VERSION v29→v30. (2026-06-12)
 - **Reversión de 2 rescates — no se usan**: tras probar lo anterior, la usuaria decidió que no usa "📦 Reabastecer"/"📤 Exportar selección" en la bulk bar de Inventario ni las pills "Mejor día / Top categoría / Prom. día" en Reportes. Se eliminó por completo (no solo el botón, también el código fuente): `bulkRestock()` y `bulkExport()` (`admin-bulk.js`), sus botones y el gateo `can.importJSON` (`admin.html`/`admin.js`); `renderInsights()`, su llamada en `renderAll()`, `#insights-row` y `.insight-pill`/`.insights-row` (`stats.js`/`stats.html`/`stats.css`). CACHE_VERSION v30→v31. (2026-06-12)
+- **Limpieza de código muerto — ronda 2 (auditoría completa)** — segunda auditoría general del proyecto, misma metodología que la ronda anterior:
+  - **Tienda**: eliminado `doLogout()` huérfano (`app.js` — sin botón que lo invoque, la barra admin de la Tienda no tiene salir) y CSS muerto `.btn-login`/`.btn-outline`/`.modal-btn-wa` (`style.css`).
+  - **Inventario — bloque "Herramientas"**: eliminado de `admin.html` el bloque completo "Herramientas" (`display:none` desde que sus funciones migraron a Configuración) — Catálogo/Datos/Integraciones (toggle WA flotante, categorías, revista, JSON, nombres, Groq, Drive) — junto con sus 3 modales muertos (`#revista-overlay`, `#cat-overlay`, `#names-overlay`). Eliminadas las funciones correspondientes: en `admin-utils.js` el bloque Revista (`openRevista`/`closeRevista`/`saveRevista`/etc.) y Nombres (`nameMap`/`_loadNameMap`/`openNamesModal`/`saveNamesAdmin`); en `admin-images.js` `toggleWaFloat`, `saveGroqKey`, `saveDriveEndpoint`, `copyDriveSecret`, `clearDrive`, `testDriveEndpoint`, `loadDriveConfig`, `loadGroqKeyStatus` y la lectura muerta de `wa_float`. Eliminado `admin-categories.js` completo (237 líneas — `openCatManager`, `addCategory`, etc.; `settings.js` ya tiene su propio gestor de categorías independiente). Limpiado `admin.css`: bloque Category Manager (`.cat-mgr-*`, `.new-cat-grid*`) y bloque Herramientas (`.io-bar`, `.tools-*`) — `.io-bar` parecía "usado por settings.html" pero su única referencia real era el bloque recién eliminado de `admin.html`.
+  - **Inventario — variables muertas**: `_qvDismissEditor` (`admin-qv.js`), `_recvFbPendingQty` (`admin-recv.js`).
+  - **Caja — variables muertas**: `_posRealtimeChannel` (`pos-core.js`), `_posPrevId` (`pos-ui.js`).
+  - **Caja — `loadTodayStats()` arreglada y activada**: dependía de `#today-stats` (pill de topbar desktop que nunca existió en `pos.html`) — la función siempre retornaba antes de llegar a `#daily-summary-mobile` (barra "Hoy" sobre la lista de productos, presente en el HTML desde antes pero nunca poblada). Quitada la dependencia de `#today-stats`; ahora puebla directamente `#daily-summary-mobile` con efectivo/transferencia/total del día. Agregada `@media(min-width:641px){#daily-summary-mobile{display:none!important}}` (solo mobile, como indica el comentario del HTML). Eliminado CSS muerto `.today-stats`/`#today-stats` (`pos.css`).
+  - **Caja — fix `refreshPosProducts()`**: usaba `document.getElementById('btn-refresh-pos')`, pero el botón real es `#pos-refresh-btn` — el feedback visual (opacidad reducida durante la actualización) nunca se aplicaba. Corregido el id.
+  - **Caja — CSS muerto adicional (`pos.css`)**: `.history-del-btn`, `.btn-outline-white`, `.btn-red`, `.title-long`/`.title-short`, `#btn-stats-pos`, `.change-display`/`.change-amount`, `.checkout-divider`, `.apartado-pending-lbl`, `.topbar-right > .btn-outline-white:last-of-type` — sin uso en ningún HTML/JS del módulo.
+  - **Actividad**: eliminado sistema `toast()` completo — función + `_toastT` (`activity.js`), `#toast` (`activity.html`), `.toast`/`.toast.show`/`.toast.success` (`activity.css`) — cero llamadas en todo el módulo.
+  - **Reportes/Configuración/Compartido**: eliminado CSS muerto `.btn-back` (×4, `stats.css`), `.user-display` (`stats.css`), `.scard-expand` (`settings.css`), `.topbar-title-group` y `.topbar-left h2` (duplicados en `admin.css`/`stats.css`/`shared.css`) — ningún `.topbar-left` del proyecto contiene `<h2>` ni un elemento con clase `topbar-title-group`.
+  - **Eliminado `splash.js`** (14 líneas, `window.showSplash`) y su sección "Splash de Módulo" de este documento — el archivo nunca fue referenciado por ningún `<script src="splash.js">`; la pantalla de transición entre módulos no estaba activa.
+  - CACHE_VERSION v31→v32. (2026-06-12)
 
 ---
 
@@ -771,29 +782,6 @@ Colores de categoría: **dinámicos desde `categories[]`**, campo `color` de cad
 
 ---
 
-## Splash de Módulo (`splash.js`)
-
-Archivo compartido por todos los módulos admin. Muestra una pantalla de entrada al navegar entre módulos.
-
-**Uso:** cada HTML admin carga el script y llama `showSplash(icon, name, tagline)`:
-```html
-<script src="splash.js"></script>
-<script>showSplash('🛍️','Caja','Punto de venta')</script>
-```
-
-**Módulos configurados:**
-| Módulo | Ícono | Tagline |
-|---|---|---|
-| Caja | 🛍️ | Punto de venta |
-| Inventario | 📦 | Gestión de productos |
-| Reportes | 📊 | Estadísticas de ventas |
-| Actividad | 📋 | Registro de operaciones |
-| Configuración | ⚙️ | Ajustes del sistema |
-
-**Animación:** el contenido aparece con scale + fade, se mantiene ~1s y el overlay sube como telón (`@keyframes ms-curtain`). Usa `height:100dvh` para centrado correcto en mobile con barras del browser.
-
----
-
 ## Sistema de Gestos Táctiles
 
 Mapa completo de gestos implementados en todos los módulos:
@@ -862,7 +850,6 @@ El QV (`#qv-overlay`) es el modal de vista rápida del producto en el Inventario
 - **PWA:** `manifest.json` + `sw.js` + íconos `icono-192.png` / `icono-512.png`. En iOS Safari no hay prompt automático de instalación — el usuario debe ir a Compartir → Agregar a pantalla de inicio.
 - **⚠️ `sw.js` cachea TODOS los archivos propios (stale-while-revalidate), no solo `STATIC`** — cualquier `.js`/`.html`/`.css` del proyecto (incluye `admin-scanner.js`, `pos-checkout.js`, etc.) se sirve desde caché en cada carga aunque ya exista una versión nueva en el servidor; la red solo actualiza el caché para la *siguiente* carga. Por eso, tras un `git push` con cambios de JS/HTML/CSS, **subir `CACHE_VERSION` en `sw.js`** (ej. `v24` → `v25`) — esto borra el caché viejo en `activate`. Aun así, por el ciclo de vida de Service Workers (`skipWaiting`+`clients.claim` activa el nuevo SW pero no reemplaza assets ya cargados en la pestaña actual), el usuario puede necesitar **recargar dos veces** (o cerrar y reabrir la pestaña/PWA) para ver el cambio reflejado. Sin este bump, los cambios de código pueden tardar varias cargas en aparecer — causa de confusión real durante pruebas en dispositivo (2026-06-11: 4 commits de fixes de escáner sin bump de `CACHE_VERSION`).
 - **Documentación de usuario:** `MANUAL.md` en la raíz — guía para Ofelia, Areli y Eduardo, sin tecnicismos
-- **Splash compartido:** `splash.js` debe estar en la raíz — todos los módulos admin lo referencian con `src="splash.js"`
 - **Galería de imágenes:** CSS en `style.css` (modal tienda) y en `admin.html` `<style>` inline (QV). Clases: `.modal-gallery`, `.mgd` (tienda) / `.qv-gallery`, `.qv-gd` (admin)
 - **Gestos táctiles:** nunca usar `stopPropagation` en handlers de swipe — rompe la detección de dirección. Siempre `{ passive: true }` salvo que se necesite `preventDefault` (en ese caso documentarlo)
 - **Drag & drop en mobile:** la API HTML5 de drag & drop no funciona en iOS Safari. Usar "📌 Al inicio" como alternativa para reordenar desde móvil.

@@ -195,7 +195,6 @@ async function _bcpCreateAndSelect(parentCode = null) {
   categories.push(newCat);
   await _saveCategories();
   renderCategorySelects();
-  populateCatParentSelect();
   const suffix = parent ? ` en ${parent.label}` : '';
   toast(`Categoría "${label}"${suffix} creada ✓`, 'success');
   _bcpSelect(code);

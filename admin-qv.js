@@ -1,6 +1,5 @@
 /* ── QUICK VIEW ── */
 let _qvCurrentId = null;
-let _qvDismissEditor = null; // cierra el editor inline activo antes de abrir otro
 
 function openQV(id) {
   const p = products.find(x => x.id === id);

@@ -31,9 +31,7 @@ button,a{touch-action:manipulation}
 .user-display{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:4px}
 .user-avatar{width:28px;height:28px;border-radius:50%;background:rgba(201,164,98,.25);color:var(--gold);font-size:.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1.5px solid rgba(201,164,98,.45);user-select:none}
 .user-name-label{font-size:.75rem;color:rgba(255,255,255,.65);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.today-stats{font-size:.75rem;color:rgba(255,255,255,.65);background:rgba(255,255,255,.1);padding:4px 12px;border-radius:50px;white-space:nowrap}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:50px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;transition:.15s;white-space:nowrap}
-.btn-outline-white{background:transparent;border:1.5px solid rgba(255,255,255,.35);color:#fff}
 /* Historial y Corte en topbar — estilo tbn-icon */
 #btn-history-pos,#btn-corte-pos,#btn-apt-pos{
   display:flex;flex-direction:column;align-items:center;gap:2px;
@@ -46,10 +44,8 @@ button,a{touch-action:manipulation}
 #btn-history-pos:hover,#btn-corte-pos:hover,#btn-apt-pos:hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.09)}
 #btn-history-pos:active,#btn-corte-pos:active,#btn-apt-pos:active{opacity:.6;transform:scale(.9)}
 #btn-apt-badge{position:absolute;top:2px;right:4px;background:var(--gold);color:#fff;font-size:.48rem;font-weight:800;min-width:14px;height:14px;border-radius:50%;display:none;align-items:center;justify-content:center;border:1.5px solid var(--charcoal)}
-.btn-outline-white:hover{background:rgba(255,255,255,.1)}
 .btn-gold{background:var(--gold);color:#fff}
 .btn-gold:hover{background:var(--gold-dark)}
-.btn-red{background:var(--red);color:#fff}
 .btn-green{background:var(--green);color:#fff;font-size:.92rem;padding:11px 20px;border-radius:10px;width:100%;justify-content:center;font-weight:700}
 .btn-green:disabled{background:#ccc;cursor:not-allowed}
 
@@ -153,9 +149,6 @@ button,a{touch-action:manipulation}
 .cash-field label{font-size:.68rem;font-weight:600;color:#6B5C48;text-transform:uppercase;letter-spacing:.03em;display:block;margin-bottom:3px}
 .cash-field input{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none}
 .cash-field input:focus{border-color:var(--gold)}
-.change-display{background:var(--cream);border-radius:var(--r);padding:6px 10px;font-size:.8rem;color:#6B5C48;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-.change-amount{font-weight:700;font-family:'Playfair Display',serif;font-size:.95rem;color:var(--charcoal)}
-
 /* SCANNER MODAL */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
 .overlay.open{opacity:1;pointer-events:all}
@@ -304,9 +297,6 @@ button,a{touch-action:manipulation}
 .hi-tag.discount{background:#FEF3C7;color:#92400E}
 .hi-tag.note{background:#EFF6FF;color:#1E40AF}
 .hi-tag.customer{background:#F0FDF4;color:#166534}
-
-/* Botón cancelar (reservado para confirmación) */
-.history-del-btn{display:none} /* reemplazado por hi-del */
 
 /* Loading */
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -462,7 +452,6 @@ button,a{touch-action:manipulation}
 .cat-chip:hover:not(.active){border-color:var(--gold);color:var(--gold-dark)}
 
 /* CHECKOUT EXTRAS */
-.checkout-divider{height:1px;background:var(--border);margin:4px 0}
 .discount-row{display:flex;align-items:center;gap:5px;margin-bottom:5px}
 .discount-label{font-size:.74rem;color:#9B8B78;font-weight:500;white-space:nowrap}
 .discount-type-btn{padding:3px 8px;border-radius:50px;border:1.5px solid var(--border);background:#fff;font-size:.73rem;font-weight:700;cursor:pointer;color:#9B8B78;transition:.15s}
@@ -489,7 +478,6 @@ button,a{touch-action:manipulation}
 .apartado-toggle-label input{width:15px;height:15px;accent-color:var(--gold);cursor:pointer;flex-shrink:0}
 .apartado-fields{background:var(--cream);border-radius:8px;padding:8px 10px;margin-bottom:5px;display:flex;flex-direction:column;gap:6px;border:1px solid var(--border)}
 .apartado-field-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.apartado-pending-lbl{font-size:.8rem;font-weight:700;text-align:center;padding:1px 0}
 
 /* APARTADOS PANEL — inline (desktop) */
 /* APARTADO CARD — colapsable */
@@ -634,17 +622,11 @@ button,a{touch-action:manipulation}
   .user-avatar{width:24px;height:24px;font-size:.68rem}
   .btn-label{display:none}
   .topbar-sep-user{display:none!important}
-  /* Ocultar refresh (↻) en mobile — poco espacio */
-  .title-long{display:none}
-  .title-short{display:inline!important}
-  .today-stats{display:none!important}
   .cart-topbar-btn{padding:5px 8px!important}
   /* En mobile, Historial y Corte viven en el tab bar — ocultar del topbar */
   #btn-corte-pos,#btn-history-pos{display:none!important}
-  #btn-stats-pos{display:none!important}
   #btn-apt-pos{display:none!important}
   #apt-vencidos-alert{display:none!important}
-  .topbar-right > .btn-outline-white:last-of-type{display:none}
 
   /* ── LAYOUT VERTICAL ─────────────────────────────────────── */
   .pos-body{display:flex;flex-direction:column;overflow:hidden}
@@ -882,6 +864,8 @@ button,a{touch-action:manipulation}
 }
 /* Tablet (≥641px): carrito en panel — botón topbar redundante */
 @media(min-width:641px){#cart-topbar-btn{display:none}}
+/* Resumen "Hoy" — solo mobile */
+@media(min-width:641px){#daily-summary-mobile{display:none!important}}
 /* Desktop: nav centrada */
 @media(min-width:1025px){
   .topbar{background:var(--charcoal);justify-content:space-between}

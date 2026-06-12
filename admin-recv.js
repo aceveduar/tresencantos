@@ -2,7 +2,6 @@
 let _recvSession = []; // [{product, qtyAdded, prevStock}]
 let _recvFbTimer = null;
 let _recvFbPendingId = null;
-let _recvFbPendingQty = 0;
 
 function openRecvMode() {
   _recvSession = [];
@@ -136,7 +135,6 @@ async function _recvDoAdd(id, qty) {
 function _showRecvFeedback(p, totalQty) {
   clearTimeout(_recvFbTimer);
   _recvFbPendingId = p.id;
-  _recvFbPendingQty = totalQty;
   const fb = document.getElementById('recv-fb');
   fb.style.display = 'block';
   fb.innerHTML = `

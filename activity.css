@@ -72,16 +72,10 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinner{width:22px;height:22px;border:2.5px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .6s linear infinite;margin:48px auto}
 
-/* TOAST */
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--charcoal);color:#fff;padding:10px 22px;border-radius:50px;font-size:.82rem;font-weight:500;z-index:600;transition:.25s ease;opacity:0;white-space:nowrap}
-.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
-.toast.success{background:var(--green)}
-
 @media(max-width:640px){
   .topbar{padding:0 12px}
   .user-name-lbl{display:none}
   .user-avatar{width:24px;height:24px;font-size:.68rem}
-  .btn-back span{display:none}
   .main{padding:14px 12px 40px}
   .summary-row{gap:8px}
   .sum-card{padding:12px 8px}
