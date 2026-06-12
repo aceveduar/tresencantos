@@ -966,7 +966,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
    Breakpoint 640px: sobreescribe tamaños MPC para teléfono, bottom sheet
    ══════════════════════════════════════════════════════════════════════ */
 @media(max-width:640px){
-  main{padding:14px 12px}
+  /* Espacio extra abajo: la última tarjeta no debe quedar tapada por los FAB flotantes (+ / 🎁) ni por #scroll-top-btn */
+  main{padding:14px 12px calc(136px + env(safe-area-inset-bottom))}
 
   /* Fix iOS zoom en inputs < 16px */
   input,select,textarea{font-size:16px!important;-webkit-appearance:none}
