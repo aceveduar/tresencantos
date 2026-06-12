@@ -871,13 +871,14 @@
     <div class="modal-body">
       <p style="font-size:.82rem;color:#6B5C48;margin-bottom:12px">Apunta la cámara al código de barras o QR del producto.</p>
       <div class="scanner-wrap">
-        <div id="scanner-reader"><div class="scan-frame"></div></div>
+        <div id="scanner-reader"></div>
       </div>
       <p id="scanner-status" style="margin-top:10px;font-size:.82rem;color:#9B8B78;text-align:center">Iniciando cámara...</p>
     </div>
   </div>
 </div>
 
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="admin.js"></script>
 <script src="admin-render.js"></script>

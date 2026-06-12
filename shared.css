@@ -137,14 +137,3 @@ a{text-decoration:none}
   .tbn-icon svg{width:20px;height:20px}
   .topbar-nav-mobile{gap:2px}
 }
-
-/* ── Marco guía del escáner de código de barras ──────────────────────
-   Coincide con inputStream.area de Quagga2 (top/bottom 35%, left/right 10%) */
-.scan-frame{
-  position:absolute;
-  top:35%; bottom:35%; left:10%; right:10%;
-  border:2px solid var(--gold);
-  border-radius:8px;
-  box-shadow:0 0 0 9999px rgba(0,0,0,.45);
-  pointer-events:none;
-}

@@ -4,7 +4,11 @@
       "Bash(node -e \"const fs=require\\('fs'\\);const h=fs.readFileSync\\('pos.html','utf8'\\);const m=h.match\\(/<script>\\([\\\\s\\\\S]*?\\)<\\\\/script>/\\);try{new Function\\(m[1]\\);console.log\\('OK'\\)}catch\\(e\\){console.error\\(e.message\\)}\")",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git -C \"/c/Users/Aceveduar/Documents/tresencantos\" add admin.js pos-checkout.js pos-core.js shared.js)",
+      "Bash(git -C /c/Users/Aceveduar/Documents/tresencantos commit -m ' *)",
+      "Bash(grep -n \"innerHTML.*\\\\${p\\\\.name\\\\|innerHTML.*\\\\${p\\\\.description\\\\|innerHTML.*\\\\${p\\\\.badge\" \"c:\\\\Users\\\\Aceveduar\\\\Documents\\\\tresencantos\\\\admin-render.js\" \"c:\\\\Users\\\\Aceveduar\\\\Documents\\\\tresencantos\\\\pos-core.js\")",
+      "Bash(node -e \"const fs=require\\('fs'\\); new Function\\(fs.readFileSync\\('stats.js','utf8'\\)\\); console.log\\('OK stats.js'\\);\")"
     ]
   }
 }

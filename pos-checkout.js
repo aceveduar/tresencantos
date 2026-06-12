@@ -237,6 +237,7 @@ function closeSaleDone() {
 }
 
 /* ── SCANNER ── */
+let _posScanner = null;
 let _posQuaggaActive = false;
 let _posScanCooldown = false;
 
@@ -250,6 +251,19 @@ function _loadQuaggaPos() {
   });
 }
 
+function _posHandleCode(code) {
+  if (_posScanCooldown) return;
+  const p = products.find(x => x.barcode === code);
+  if (p) {
+    closePosScanner();
+    addToCart(p.id);
+    document.getElementById('pos-search').value = '';
+    searchProducts('');
+  } else {
+    _posBarcodeNotFound(code);
+  }
+}
+
 async function openPosScanner() {
   const statusEl = document.getElementById('pos-scan-status');
   statusEl.textContent = 'Iniciando cámara...';
@@ -257,42 +271,61 @@ async function openPosScanner() {
   _posScanCooldown = false;
   document.getElementById('pos-scanner-overlay').classList.add('open');
 
-  try { await _loadQuaggaPos(); } catch(e) {
-    document.getElementById('pos-scan-status').textContent = 'No se pudo cargar el escáner.';
-    return;
-  }
-  _posQuaggaActive = true;
-  Quagga.init({
-    inputStream: { name: 'Live', type: 'LiveStream',
-      target: document.getElementById('pos-reader'),
-      constraints: { facingMode: { ideal: 'environment' } }
-    },
-    locator: { patchSize: 'medium', halfSample: true },
-    numOfWorkers: 0, frequency: 15,
-    decoder: { readers: ['ean_reader','ean_8_reader','code_128_reader','upc_reader','upc_e_reader'] },
-    locate: true
-  }, (err) => {
-    if (err) {
-      document.getElementById('pos-scan-status').textContent = 'No se pudo acceder a la cámara. Verifica los permisos.';
-      _posQuaggaActive = false; return;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  if (isIOS) {
+    if (_posScanner) { _posScanner.stop().catch(() => {}); _posScanner = null; }
+    try { await _loadQuaggaPos(); } catch(e) {
+      statusEl.textContent = 'No se pudo cargar el escáner.';
+      return;
     }
-    Quagga.start();
-    document.getElementById('pos-scan-status').textContent = 'Apunta al código de barras del producto';
-    Quagga.onDetected((result) => {
-      if (_posScanCooldown) return;
-      const code = result.codeResult?.code;
-      if (!code) return;
-      const p = products.find(x => x.barcode === code);
-      if (p) {
-        closePosScanner();
-        addToCart(p.id);
-        document.getElementById('pos-search').value = '';
-        searchProducts('');
-      } else {
-        _posBarcodeNotFound(code);
+    _posQuaggaActive = true;
+    Quagga.init({
+      inputStream: { name: 'Live', type: 'LiveStream',
+        target: document.getElementById('pos-reader'),
+        constraints: { facingMode: { ideal: 'environment' } }
+      },
+      locator: { patchSize: 'medium', halfSample: true },
+      numOfWorkers: 0, frequency: 15,
+      decoder: { readers: ['ean_reader','ean_8_reader','code_128_reader','upc_reader','upc_e_reader'] },
+      locate: true
+    }, (err) => {
+      if (err) {
+        statusEl.textContent = 'No se pudo acceder a la cámara. Verifica los permisos.';
+        _posQuaggaActive = false; return;
       }
+      Quagga.start();
+      statusEl.textContent = 'Apunta al código de barras del producto';
+      Quagga.onDetected((result) => {
+        const code = result.codeResult?.code;
+        if (code) _posHandleCode(code);
+      });
     });
-  });
+  } else {
+    if (_posQuaggaActive && window.Quagga) {
+      Quagga.offDetected();
+      Promise.resolve(Quagga.stop()).catch(() => {});
+      _posQuaggaActive = false;
+    }
+    if (_posScanner) { _posScanner.clear().catch(() => {}); _posScanner = null; }
+    const barcodeFormats = [
+      Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,   Html5QrcodeSupportedFormats.QR_CODE,
+    ];
+    _posScanner = new Html5Qrcode('pos-reader', { formatsToSupport: barcodeFormats, verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
+    _posScanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 260, height: 100 } },
+      (code) => _posHandleCode(code),
+      () => {}
+    ).then(() => {
+      statusEl.textContent = 'Apunta al código de barras del producto';
+    }).catch(() => {
+      statusEl.textContent = 'No se pudo acceder a la cámara. Verifica los permisos.';
+    });
+  }
 }
 
 function closePosScanner() {
@@ -301,6 +334,7 @@ function closePosScanner() {
     Promise.resolve(Quagga.stop()).catch(() => {});
     _posQuaggaActive = false;
   }
+  if (_posScanner) { _posScanner.stop().catch(() => {}); _posScanner = null; }
   document.getElementById('pos-scanner-overlay').classList.remove('open');
 }
 

@@ -534,7 +534,7 @@
       <h3>Escanear código</h3>
       <button class="scan-close" onclick="closePosScanner()">✕</button>
     </div>
-    <div id="pos-reader"><div class="scan-frame"></div></div>
+    <div id="pos-reader"></div>
     <div class="scan-status" id="pos-scan-status">Iniciando cámara...</div>
   </div>
 </div>
@@ -542,6 +542,7 @@
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="pos-core.js"></script>
 <script src="pos-cart.js"></script>
