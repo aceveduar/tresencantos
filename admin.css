@@ -575,6 +575,17 @@ tr:hover .drag-handle{opacity:1}
 .qv-btn-del:hover{background:var(--red);color:#fff}
 .qv-btn-archive{background:#f5f5f4;color:var(--muted);border:1.5px solid var(--border)}
 .qv-btn-archive:hover{background:var(--charcoal);color:#fff;border-color:var(--charcoal)}
+.qv-right{display:contents}
+@media(min-width:901px){
+  .qv-panel{flex-direction:row;max-width:880px;height:min(78vh,600px)}
+  .qv-img-zone{flex:0 0 380px}
+  #qv-img-container{height:100%;display:flex;flex-direction:column}
+  #qv-img-container>img{flex:1;min-height:0}
+  #qv-img-container .qv-gallery{flex:1;min-height:0}
+  .qv-gallery-img{height:100%}
+  .qv-gallery-dots{flex-shrink:0}
+  .qv-right{display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden}
+}
 @media(max-width:600px){
   #qv-overlay{align-items:flex-end;padding:0;gap:0}
   .qv-panel{max-width:100%;border-radius:20px 20px 0 0;max-height:93vh;transform:translateY(30px)}
@@ -899,6 +910,17 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 /* Kit Builder */
 #kit-builder-overlay{display:none}
 #kit-builder-overlay.kb-open{display:flex;opacity:1;pointer-events:auto}
+#kit-builder-overlay{align-items:flex-end}
+.kb-modal{max-width:600px;border-radius:20px 20px 0 0}
+.kb-body{display:flex;flex-direction:column;gap:14px}
+.kb-col-left,.kb-col-right{display:contents}
+@media(min-width:901px){
+  #kit-builder-overlay{align-items:center}
+  .kb-modal{max-width:760px;border-radius:20px;max-height:85vh}
+  .kb-body{flex-direction:row;gap:24px;align-items:flex-start}
+  .kb-col-left{display:flex;flex-direction:column;gap:14px;flex:0 0 280px}
+  .kb-col-right{display:flex;flex-direction:column;gap:14px;flex:1;min-width:0}
+}
 .kb-input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:.92rem;font-family:inherit;outline:none;box-sizing:border-box;transition:.15s}
 .kb-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,164,98,.1)}
 .kb-label{font-size:.75rem;font-weight:700;color:var(--muted);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
