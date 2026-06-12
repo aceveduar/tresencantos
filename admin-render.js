@@ -10,6 +10,7 @@ function renderStats() {
         </button>
         <span style="font-size:.82rem;color:var(--muted)">${nArchivados} producto${nArchivados !== 1 ? 's' : ''} archivado${nArchivados !== 1 ? 's' : ''}</span>
       </div>`;
+    _statsScroll();
     return;
   }
 
@@ -103,6 +104,16 @@ function renderStats() {
       }
     }
   }
+  _statsScroll();
+}
+
+/* Oculta el indicador "›" de .stats-wrap cuando ya no hay más chips a la derecha */
+function _statsScroll() {
+  const el = document.getElementById('stats');
+  const wrap = el?.parentElement;
+  if (!el || !wrap) return;
+  const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
+  wrap.classList.toggle('at-end', atEnd);
 }
 
 function dismissNoPriceAlert() {

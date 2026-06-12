@@ -254,7 +254,9 @@
 
   <main>
     <!-- STATS -->
-    <div class="stats" id="stats"></div>
+    <div class="stats-wrap">
+      <div class="stats" id="stats" onscroll="_statsScroll()"></div>
+    </div>
     <div id="no-price-alert" style="display:none;background:#FFF8EE;border:1.5px solid var(--gold);border-radius:10px;padding:10px 16px;margin-bottom:14px;align-items:center;gap:10px;font-size:.82rem">
       <span style="font-size:1.1rem;flex-shrink:0">⚠️</span>
       <span id="no-price-alert-text" style="flex:1;color:var(--charcoal);font-weight:500;cursor:pointer" onclick="filterNoPriceProducts()"></span>
