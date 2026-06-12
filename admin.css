@@ -1212,14 +1212,14 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .modal{max-width:100%!important;max-height:92vh;border-radius:20px 20px 0 0;margin:0}
   .overlay.open .modal{transform:scale(1) translateY(0)}
   .form-row{grid-template-columns:1fr;gap:0}
-  /* Footer sticky: siempre visible sin scroll */
+  /* Footer sticky: siempre visible sin scroll, una sola fila para no robar altura al body */
   .modal-foot{
     position:sticky;bottom:0;z-index:10;
-    flex-direction:column-reverse;gap:8px;
-    border-radius:0;padding:12px 20px 24px;
+    gap:10px;
+    border-radius:0;padding:10px 16px calc(10px + env(safe-area-inset-bottom));
     background:#fff;
   }
-  .modal-foot .btn{width:100%;justify-content:center;padding:14px}
+  .modal-foot .btn{flex:1;justify-content:center;padding:13px}
 
   /* Zona de imagen: ícono como placeholder, ocultar texto drag */
   .img-upload-zone .up-text{display:none}
