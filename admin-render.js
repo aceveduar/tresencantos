@@ -414,7 +414,7 @@ async function editStockInline(e, id, chipEl) {
     if (saved) return;
     saved = true;
     const newStock = Math.max(0, parseInt(input.value) || 0);
-    if (newStock === p.stock) { renderTable(); _qvRefresh(id); _srpRefresh(id); return; }
+    if (newStock === p.stock) { renderTable(); _qvRefresh(id); return; }
 
     const patch = { stock: newStock };
     if (newStock > 0 && p.outOfStock)  patch.out_of_stock = false;
@@ -434,7 +434,7 @@ async function editStockInline(e, id, chipEl) {
     } else {
       toast('Error al actualizar stock', 'error');
     }
-    renderTable(); _qvRefresh(id); _srpRefresh(id);
+    renderTable(); _qvRefresh(id);
   };
 
   input.addEventListener('keydown', ev => {

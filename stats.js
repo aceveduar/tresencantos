@@ -757,73 +757,6 @@ function renderTopProducts() {
 </div>`).join('');
 }
 
-/* Ventas recientes */
-let _recentForDetail = [];
-function renderRecentSales() {
-  const el = document.getElementById('recent-sales');
-  const recent = sales.slice(0, 10);
-  _recentForDetail = recent;
-  if (!recent.length) { el.innerHTML = '<p class="no-data">Sin ventas en el período</p>'; return; }
-  el.innerHTML = recent.map((s, idx) => {
-    const t = new Date(s.created_at);
-    const time = t.toLocaleString('es-MX',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-    const prods = Array.isArray(s.items) ? s.items.map(i=>i.name).join(', ') : '—';
-    const prodsEsc = _esc(prods);
-    return `
-<div class="recent-item" onclick="openSaleDetail(${idx})">
-  <div style="flex:1;min-width:0">
-    <div class="recent-products" title="${prodsEsc}">${prodsEsc}</div>
-    <div class="recent-time">${time}</div>
-  </div>
-  <div class="recent-amount">$${parseFloat(s.total).toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
-</div>`;
-  }).join('');
-}
-
-function openSaleDetail(idx) {
-  const s = _recentForDetail[idx];
-  if (!s) return;
-  const t = new Date(s.created_at);
-  const isApartado = s.type === 'apartado';
-  document.getElementById('sd-title').textContent = isApartado ? `Apartado — ${s.customer || ''}` : 'Venta';
-  document.getElementById('sd-subtitle').textContent = t.toLocaleString('es-MX',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-
-  const items = Array.isArray(s.items) ? s.items : [];
-  document.getElementById('sd-items').innerHTML = items.map(i => {
-    const qty = i.qty || 1;
-    const sub = parseFloat(i.subtotal ?? i.price * qty);
-    const meta = qty > 1 ? `${qty} × $${parseFloat(i.price).toLocaleString('es-MX',{maximumFractionDigits:0})}` : '';
-    return `
-<div class="sd-item-row">
-  <div class="sd-item-info">
-    <span class="sd-item-name">${_esc(i.name)}</span>
-    ${meta ? `<span class="sd-item-meta">${meta}</span>` : ''}
-  </div>
-  <span class="sd-item-sub">$${sub.toLocaleString('es-MX',{maximumFractionDigits:0})}</span>
-</div>`;
-  }).join('') || '<p style="color:var(--muted);font-size:.82rem">Sin detalle</p>';
-
-  const payBadge = s.payment_method === 'transferencia'
-    ? '<span class="sd-badge transfer">📱 Transferencia</span>'
-    : '<span class="sd-badge">💵 Efectivo</span>';
-  let footer = '';
-  if (s.discount > 0) footer += `<div class="sd-footer-row"><span class="sd-label">Descuento</span><span class="sd-val">−$${parseFloat(s.discount).toLocaleString('es-MX',{maximumFractionDigits:0})}</span></div>`;
-  footer += `<div class="sd-footer-row total"><span class="sd-label">Total</span><span class="sd-val">$${parseFloat(s.total).toLocaleString('es-MX',{maximumFractionDigits:0})}</span></div>`;
-  footer += `<div class="sd-footer-row" style="margin-top:6px"><span class="sd-label">Pago</span>${payBadge}</div>`;
-  if (isApartado && s.paid_amount > 0) footer += `<div class="sd-footer-row"><span class="sd-label">Anticipo</span><span class="sd-val">$${parseFloat(s.paid_amount).toLocaleString('es-MX',{maximumFractionDigits:0})}</span></div>`;
-  if (s.note) footer += `<div class="sd-footer-row" style="margin-top:8px;align-items:flex-start"><span class="sd-label">Nota</span><span class="sd-val" style="text-align:right;max-width:60%">${_esc(s.note)}</span></div>`;
-  if (s.seller_email) footer += `<div class="sd-footer-row" style="margin-top:4px"><span class="sd-label">Vendedor</span><span class="sd-val" style="font-size:.74rem">${_esc(s.seller_email)}</span></div>`;
-  document.getElementById('sd-footer').innerHTML = footer;
-
-  document.getElementById('sd-overlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeSaleDetail() {
-  document.getElementById('sd-overlay').classList.remove('open');
-  document.body.style.overflow = '';
-}
-
 /* Inventario */
 function renderInventory() {
   const out  = products.filter(p => p.stock===0 || p.out_of_stock);
@@ -1123,51 +1056,6 @@ function sendDailySummaryWA() {
   msg += `\n¡Hasta mañana! 🌟`;
   const WA = '5215534548417';
   window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`, '_blank');
-}
-
-/* ── INSIGHTS PILLS ── */
-function renderInsights() {
-  const el = document.getElementById('insights-row');
-  if (!el) return;
-  if (_statsMode === 'day') { el.style.display='none'; return; }
-  const fromIso = _currentFrom(), toIso = _currentTo();
-
-  // Best day
-  const byDay = {};
-  sales.forEach(s => {
-    const day = s.created_at.split('T')[0];
-    byDay[day] = (byDay[day]||0) + _abonoRevenue(s, fromIso, toIso);
-  });
-  const bestDayEntry = Object.entries(byDay).sort((a,b)=>b[1]-a[1])[0];
-  const _DOWF = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  const pills = [];
-
-  if (bestDayEntry && bestDayEntry[1]>0) {
-    const d = new Date(bestDayEntry[0]+'T12:00:00');
-    pills.push(`<div class="insight-pill">🏆 <small>Mejor día</small> <b>${_DOWF[d.getDay()]} ${d.getDate()} ${_MN[d.getMonth()]} — $${Math.round(bestDayEntry[1]).toLocaleString('es-MX')}</b></div>`);
-  }
-
-  // Best category
-  const catMap = {};
-  sales.forEach(s => {
-    (s.items||[]).forEach(item => {
-      const prod = products.find(p=>+p.id===+item.id);
-      const cat = prod?.category_label || 'Otro';
-      catMap[cat] = (catMap[cat]||0) + parseFloat(item.subtotal||item.price||0);
-    });
-  });
-  const bestCat = Object.entries(catMap).sort((a,b)=>b[1]-a[1])[0];
-  if (bestCat) pills.push(`<div class="insight-pill">📦 <small>Top categoría</small> <b>${_esc(bestCat[0])}</b></div>`);
-
-  // Daily average
-  const msRange = new Date(toIso)-new Date(fromIso);
-  const daysInRange = Math.max(1, Math.round(msRange/86400000)+1);
-  const totalRev = sales.reduce((acc,x)=>acc+_abonoRevenue(x,fromIso,toIso),0);
-  const avg = totalRev/daysInRange;
-  if (avg>0) pills.push(`<div class="insight-pill">📊 <small>Prom/día</small> <b>$${Math.round(avg).toLocaleString('es-MX')}</b></div>`);
-
-  el.innerHTML = pills.join('');
-  el.style.display = pills.length ? 'flex' : 'none';
 }
 
 /* ── CALENDAR HEATMAP (month only) ── */

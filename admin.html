@@ -32,7 +32,6 @@
   <div class="topbar">
     <div class="topbar-left"></div>
     <div class="topbar-right">
-      <button id="dup-badge-btn" onclick="openDupReview()" title="Revisar posibles duplicados"><span id="dup-badge-count">0</span><span class="dup-badge-label" id="dup-badge-label"> duplicados</span></button>
       <a href="stats.html" class="btn btn-outline btn-sm btn-stats-admin">📊 Reportes</a>
       <a href="activity.html" class="btn btn-outline btn-sm btn-stats-admin">📋 Actividad</a>
       <a href="settings.html" class="btn btn-outline btn-sm btn-stats-admin">⚙️ Config</a>
@@ -132,7 +131,6 @@
         </div>
         <div>
           <label class="kb-label">Categoría</label>
-          <select id="kb-category" style="display:none"></select>
           <button type="button" id="kb-cat-btn" class="f-cat-btn" onclick="openKitCatPicker()">
             <span id="kb-cat-dot" class="cat-dot" style="background:#9B8B78;width:10px;height:10px;border-radius:50%;flex-shrink:0"></span>
             <span id="kb-cat-label-display">Seleccionar categoría</span>
@@ -262,19 +260,6 @@
       <span id="no-price-alert-text" style="flex:1;color:var(--charcoal);font-weight:500;cursor:pointer" onclick="filterNoPriceProducts()"></span>
       <span style="color:var(--gold-dark);font-weight:700;font-size:.78rem;white-space:nowrap;cursor:pointer" onclick="filterNoPriceProducts()">Ver →</span>
       <button onclick="dismissNoPriceAlert()" style="background:none;border:none;font-size:1rem;color:var(--muted);cursor:pointer;padding:2px 4px;line-height:1;flex-shrink:0;touch-action:manipulation" title="Cerrar por ahora">✕</button>
-    </div>
-
-    <!-- BANNER DUPLICADOS -->
-    <div id="dup-banner" style="display:none">
-      <span style="font-size:1.3rem;flex-shrink:0">⚠️</span>
-      <div class="dup-ban-text">
-        <div class="dup-ban-title" id="dup-banner-title">Posibles duplicados detectados</div>
-        <div class="dup-ban-sub">Revisa antes de agregar más productos similares</div>
-      </div>
-      <div class="dup-ban-actions">
-        <button class="dup-ban-primary" onclick="openDupReview()">Revisar ahora</button>
-        <button class="dup-ban-dismiss" onclick="_dismissDupBanner()">Luego ×</button>
-      </div>
     </div>
 
     <!-- TOOLBAR -->

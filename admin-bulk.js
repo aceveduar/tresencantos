@@ -20,26 +20,6 @@ async function bulkFlag() {
   toast(`🚩 ${ids.length} producto${ids.length > 1 ? 's' : ''} marcado${ids.length > 1 ? 's' : ''} para revisar`);
 }
 
-async function bulkRestock() {
-  if (!selectedIds.size) return;
-  const input = prompt(`¿Cuántas unidades agregar a los ${selectedIds.size} producto(s) seleccionado(s)?`);
-  if (input === null) return;
-  const qty = parseInt(input);
-  if (!qty || qty <= 0) { toast('Ingresa una cantidad válida', 'error'); return; }
-
-  const selected = products.filter(p => selectedIds.has(p.id));
-  for (const p of selected) {
-    const newStock = (p.stock || 0) + qty;
-    const result = await supabaseApi(`products?id=eq.${p.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ stock: newStock, out_of_stock: false })
-    });
-    if (result.ok) { p.stock = newStock; p.outOfStock = false; }
-  }
-  renderTable(); renderStats();
-  toast(`+${qty} unidades agregadas a ${selectedIds.size} producto(s) ✓`, 'success');
-}
-
 async function bulkDelete() {
   if (!selectedIds.size) return;
   if (!confirm(`¿Eliminar ${selectedIds.size} producto(s) seleccionado(s)?\nEsta acción no se puede deshacer.`)) return;
@@ -397,17 +377,6 @@ async function bulkTogglePublish() {
   toast(newVal
     ? `${selectedIds.size} producto(s) publicados en sitio web 🌐`
     : `${selectedIds.size} producto(s) ocultados del sitio web 🙈`, 'success');
-}
-
-function bulkExport() {
-  if (!selectedIds.size) return;
-  const selected = products.filter(p => selectedIds.has(p.id));
-  const blob = new Blob([JSON.stringify(selected, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `tres-encantos-seleccion-${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-  toast(`${selected.length} producto(s) exportados ✓`, 'success');
 }
 
 /* ── EXPORT / IMPORT ── */

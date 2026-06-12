@@ -340,11 +340,6 @@ function initAdminBar() {
   } catch {}
 }
 
-function doLogout() {
-  localStorage.removeItem('te_admin_session');
-  location.reload();
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
   initAdminBar();
   await Promise.all([loadProducts(), loadRevista(), loadCategories()]);

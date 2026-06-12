@@ -48,8 +48,6 @@ function openKitBuilder() {
     byId('kb-img-remove').style.display = 'none';
     byId('kb-img-input').value = '';
     byId('kb-price-hint').style.display = 'none';
-    const kbCatSel = byId('kb-category');
-    if (kbCatSel) kbCatSel.value = '';
     const kbDot = byId('kb-cat-dot');
     const kbLbl = byId('kb-cat-label-display');
     if (kbDot) kbDot.style.background = '#9B8B78';
@@ -76,19 +74,6 @@ function _closeKitBuilderSafe() {
   const hasData = name || price || _kbComponents.length > 0 || _kbImageDataUrl;
   if (hasData && !confirm('¿Descartar el kit? Perderás lo que llevas ingresado.')) return;
   closeKitBuilder();
-}
-
-function _kbPopulateCategories() {
-  const sel = document.getElementById('kb-category');
-  sel.innerHTML = '';
-  categories.filter(c => !c.parent).forEach(r => {
-    const o = document.createElement('option');
-    o.value = r.code; o.textContent = r.label; sel.appendChild(o);
-    categories.filter(c => c.parent === r.code).forEach(sub => {
-      const s = document.createElement('option');
-      s.value = sub.code; s.textContent = '  · ' + sub.label; sel.appendChild(s);
-    });
-  });
 }
 
 function _kbSearch(q) {

@@ -545,7 +545,6 @@ function setBtn(el, loading, text) {
 
 /* ── INIT ── */
 window.addEventListener('pageshow', () => {
-  const srp = document.getElementById('scan-result-panel');
   closeQV();
 });
 
@@ -835,6 +834,7 @@ async function showApp() {
   if (sortSel) sortSel.value = currentSort;
   setAdminView(currentAdminView);
   initRealtime();
+  localStorage.setItem('te_dup_last_count', _findDuplicatePairs().length);
   if (location.hash === '#dup-review') {
     history.replaceState(null, '', location.pathname);
     setTimeout(openDupReview, 500);

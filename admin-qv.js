@@ -42,8 +42,6 @@ function _qvRefresh(id) {
   const p = products.find(x => x.id === id);
   if (p) _renderQV(p);
 }
-// Alias — antes era el SRP, ahora ambos usan el mismo QV. Sin llamada circular.
-function _srpRefresh(id) {}
 
 async function _qvEditPrice(e, id) {
   e.stopPropagation();
@@ -324,66 +322,6 @@ function _qvOpenZoom() {
   fs.innerHTML = `
     <img src="${src}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
     <button onclick="document.getElementById('qv-zoom').remove()" title="Cerrar">✕</button>`;
-  fs.onclick = e => { if (e.target === fs) fs.remove(); };
-  document.body.appendChild(fs);
-  requestAnimationFrame(() => fs.classList.add('open'));
-}
-
-let _srpClickTimer = null;
-function _srpGalleryScroll(gallery) {
-  const idx = Math.round(gallery.scrollLeft / gallery.clientWidth);
-  document.querySelectorAll('#srp-gallery-dots .srp-gd').forEach((d, i) => d.classList.toggle('active', i === idx));
-}
-function _srpGoTo(idx) {
-  const g = document.getElementById('srp-gallery');
-  if (g) g.scrollTo({ left: idx * g.clientWidth, behavior: 'smooth' });
-}
-
-function _srpImgClick(e) {
-  clearTimeout(_srpClickTimer);
-  _srpClickTimer = setTimeout(() => _srpOpenZoom(), 220);
-}
-function _srpImgDblClick(e) {
-  clearTimeout(_srpClickTimer);
-  if (!can.editProduct) return;
-  document.getElementById('srp-img-file').click();
-}
-async function _srpHandleImgUpload(input) {
-  const file = input.files?.[0];
-  const srpId = parseInt(document.getElementById('scan-result-panel').dataset.srpId);
-  if (!file || !srpId) return;
-  const p = products.find(x => x.id === srpId);
-  if (!p) return;
-  const img = document.getElementById('srp-img');
-  if (img) { img.style.opacity = '.4'; img.style.transition = 'opacity .2s'; }
-  toast('Subiendo imagen…', '');
-  const b64 = await _fileToBase64Resized(file);
-  let finalUrl = b64;
-  if (driveEp && driveSecret) {
-    const driveResult = await uploadToDrive(b64);
-    if (driveResult) finalUrl = driveResult;
-  }
-  const result = await supabaseApi(`products?id=eq.${srpId}`, {
-    method: 'PATCH', body: JSON.stringify({ image: finalUrl })
-  });
-  input.value = '';
-  if (result.ok) {
-    p.image = finalUrl;
-    renderTable();
-    _srpRefresh(srpId);
-    toast('Imagen actualizada ✓', 'success');
-  } else {
-    if (img) img.style.opacity = '1';
-    toast('Error al guardar imagen', 'error');
-  }
-}
-
-function _srpOpenZoom() {
-  const img = document.getElementById('srp-img');
-  if (!img?.src) return;
-  const fs = document.createElement('div');
-  fs.id = 'qv-zoom';
-  fs.innerHTML = `<img src="${img.src}" alt=""><button onclick="document.getElementById('qv-zoom').remove()" title="Cerrar">✕</button>`;
   fs.onclick = e => { if (e.target === fs) fs.remove(); };
   document.body.appendChild(fs);
   requestAnimationFrame(() => fs.classList.add('open'));
@@ -693,15 +631,6 @@ async function _qvTogglePublished(id) {
 function _qvToggleDesc() {
   const descEl = document.getElementById('qv-desc');
   const btn    = document.getElementById('qv-desc-toggle');
-  if (!descEl || !btn) return;
-  const expanding = !descEl.classList.contains('expanded');
-  descEl.classList.toggle('expanded', expanding);
-  btn.textContent = expanding ? 'Ver menos ↑' : 'Ver más ↓';
-}
-
-function _srpToggleDesc() {
-  const descEl = document.getElementById('srp-desc');
-  const btn    = document.getElementById('srp-desc-toggle');
   if (!descEl || !btn) return;
   const expanding = !descEl.classList.contains('expanded');
   descEl.classList.toggle('expanded', expanding);

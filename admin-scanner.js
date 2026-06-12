@@ -377,8 +377,6 @@ function _findDuplicatePairs() {
   return pairs.sort((x, y) => y.score - x.score);
 }
 
-function _updateDupBadge() { /* desactivado — solo corre al abrir Revisión de duplicados */ }
-
 /* ── ARCHIVAR / RESTAURAR ── */
 async function archiveProduct(id) {
   if (!can.deleteProduct) return;
@@ -433,13 +431,6 @@ function toggleArchivedView() {
   _adminPage = 1;
   renderTable();
   renderStats();
-}
-
-function _dismissDupBanner() {
-  const pairs = _findDuplicatePairs();
-  localStorage.setItem('te_dup_dismiss', pairs.length);
-  const banner = document.getElementById('dup-banner');
-  if (banner) banner.style.display = 'none';
 }
 
 function openDupReview() {
@@ -566,7 +557,6 @@ function _renderDupReview() {
   const pairs = _findDuplicatePairs();
   if (!pairs.length) {
     body.innerHTML = `<p style="text-align:center;padding:40px;color:var(--muted)">✓ Sin duplicados pendientes de revisión.</p>`;
-    _updateDupBadge();
     return;
   }
 
@@ -600,7 +590,6 @@ function _dismissDupPair(pairKey) {
     document.getElementById('dup-review-body').innerHTML =
       `<p style="text-align:center;padding:40px;color:var(--muted)">✓ Sin duplicados pendientes de revisión.</p>`;
   }
-  _updateDupBadge();
   toast('Par descartado', 'success');
 }
 
@@ -638,7 +627,7 @@ async function _deleteDupProduct(id, pairKey) {
     if (!r.ok) { toast('No se pudo restaurar', 'error'); return; }
     products.splice(deletedIdx, 0, deleted);
     const set = _getDismissedDups(); set.delete(pairKey); _saveDismissedDups(set);
-    renderTable(); _updateDupBadge();
+    renderTable();
     toast(`"${truncName(deleted.name)}" restaurado ✓`, 'success');
   }, () => {
     const fileId = _driveFileId(deleted?.image);
@@ -651,5 +640,3 @@ function showScanResult(id) {
   TE?.track('scan_result', { id });
   openQV(id);
 }
-function clearScanResult() { closeQV(); }
-function _srpRefresh(id)   { _qvRefresh(id); }
