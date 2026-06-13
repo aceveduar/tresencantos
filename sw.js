@@ -1,5 +1,5 @@
 // ⚠️ Incrementar CACHE_VERSION en cada deploy para invalidar caché anterior
-const CACHE_VERSION = 'v42';
+const CACHE_VERSION = 'v43';
 const CACHE = `tres-encantos-${CACHE_VERSION}`;
 
 // Base path dinámica — funciona en GitHub Pages (/tresencantos) y en dominio raíz ("")

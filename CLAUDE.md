@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-06-12 (rev 36).
+Documentación técnica del proyecto. Última actualización: 2026-06-12 (rev 37).
 
 ## Rol de Claude en este proyecto
 
@@ -618,8 +618,9 @@ Bottom sheet `#restock-prompt` que aparece en dos situaciones:
 - **Por vendedor** — sección visible solo cuando hay 2+ vendedores distintos en el período; agrupa por `seller_email` con barra de progreso relativa
 - **Rentabilidad** — productos con margen alto/medio/bajo según `cost`
 - **Inventario:** agotados/última unidad/con existencias
-- **Capital invertido por categoría (2026-06-12)** — card "💰 Capital invertido por categoría", justo después de "Estado del inventario": agrupa `cost × stock` (productos con `cost>0 && stock>0`) por categoría raíz, con barra + % del total invertido. `_CAT_ROOT_MERGE = {avon:'natura'}` fusiona Natura y Avon en una sola fila "Natura y Avon" (para Ofelia son la misma inversión) — incluye productos categorizados directo en la raíz o en cualquiera de sus subcategorías. Card oculta (`display:none`) si no hay productos con costo+stock.
+- **Valor en venta por categoría (2026-06-12)** — card "💰 Valor en venta por categoría", justo después de "Estado del inventario": agrupa `price × stock` (productos con `price>0 && stock>0`) por categoría raíz, con barra + % del total. `_CAT_ROOT_MERGE = {avon:'natura'}` fusiona Natura y Avon en una sola fila "Natura y Avon" (para Ofelia son la misma mercancía) — incluye productos categorizados directo en la raíz o en cualquiera de sus subcategorías. Card oculta (`display:none`) si no hay productos con precio+stock.
 - **"Ventas de hoy" reposicionado (2026-06-12)** — la card de ventas del período activo (título dinámico: "Ventas de hoy" en modo Día, "Ventas — {período}" en Semana/Mes) se movió de cerca del final de la página a justo después del grid de KPIs, por ser una métrica de consulta frecuente. Verificado mobile/tablet/desktop, cero errores de consola. CACHE_VERSION v39→v40.
+- **Fix: "Capital invertido por categoría" → "Valor en venta por categoría" (2026-06-12)** — la card original calculaba `cost × stock`, pero `cost` solo estaba lleno en 30/698 productos (de un catálogo donde casi todo el precio de costo está vacío), dando un total de apenas $2,533 — no representativo. La usuaria aclaró que lo que necesita es "cuánto hay en productos... sácalo del precio del producto al consumidor", es decir el valor de la mercancía a precio de venta, no la inversión en costo. Cambiado `renderCapitalCategoria()` a `price × stock` (productos con `price>0 && stock>0` → 630/698), mismo `_CAT_ROOT_MERGE`. Renombrado el título (`stats.html`) y el texto "% del capital invertido" → "% del valor en venta" (`stats.js`), siguiendo la terminología ya existente "Valor en venta" de la card "Estado del inventario" (`price×stock`, distinta de "Capital invertido" = `cost×stock`, que sigue existiendo ahí sin cambios). Nuevo total: $205,114 — Natura y Avon $131,213 (64%), Joyería $22,310 (11%), Bolsos & Mochilas $10,714 (5%), Accesorios $10,398 (5%), Maquillaje $9,906 (5%), Cabello $8,494 (4%), Uñas $7,100 (3%), Regalos $4,979 (2%). Verificado mobile/desktop, cero errores de consola. CACHE_VERSION v42→v43.
 
 ---
 

@@ -803,7 +803,7 @@ function renderInventory() {
     : '<p class="no-data" style="padding:16px 0">Todo el inventario tiene existencias ✓</p>';
 }
 
-/* Capital invertido por categoría — Natura y Avon se muestran fusionados */
+/* Valor de mercancía (a precio de venta) por categoría — Natura y Avon se muestran fusionados */
 const _CAT_ROOT_MERGE = { avon: 'natura' };
 
 function renderCapitalCategoria() {
@@ -812,11 +812,11 @@ function renderCapitalCategoria() {
   const totalEl = document.getElementById('capital-cat-total');
   if (!card || !body) return;
 
-  const withCost = products.filter(p => p.cost > 0 && p.stock > 0);
-  if (!withCost.length) { card.style.display = 'none'; return; }
+  const withStock = products.filter(p => p.price > 0 && p.stock > 0);
+  if (!withStock.length) { card.style.display = 'none'; return; }
 
   const map = {};
-  withCost.forEach(p => {
+  withStock.forEach(p => {
     const cat = categories.find(c => c.code === p.category);
     let rootCode, label;
     if (cat) {
@@ -828,7 +828,7 @@ function renderCapitalCategoria() {
       label = p.category_label || 'Otro';
     }
     if (!map[rootCode]) map[rootCode] = { label, total: 0 };
-    map[rootCode].total += p.cost * p.stock;
+    map[rootCode].total += p.price * p.stock;
   });
 
   const entries    = Object.values(map).sort((a, b) => b.total - a.total);
@@ -849,7 +849,7 @@ function renderCapitalCategoria() {
       <div style="background:var(--border);border-radius:50px;height:5px;overflow:hidden;margin-bottom:4px">
         <div style="width:${pct}%;height:100%;background:var(--gold);border-radius:50px"></div>
       </div>
-      <div style="font-size:.7rem;color:var(--muted)">${share}% del capital invertido</div>
+      <div style="font-size:.7rem;color:var(--muted)">${share}% del valor en venta</div>
     </div>`;
   }).join('');
 }
