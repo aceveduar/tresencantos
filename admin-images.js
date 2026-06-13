@@ -178,65 +178,48 @@ async function migrateBase64ToDrive() {
   }
 }
 
-/* ── IMAGE UPLOAD ── */
-let imageUploadController = null;
-let currentFormImageDataUrl = null; // base64 de la imagen actual para análisis IA
+/* ── IMAGE UPLOAD — flujo unificado: cada archivo se agrega a _allImagesEdit (máx 6) ── */
+let currentFormImageDataUrl = null; // base64 de la imagen principal para análisis IA
 
 function handleFileSelect(input) {
-  const file = input.files[0];
-  if (!file) return;
-  document.getElementById('save-btn').disabled = true;
-  compressAndPreview(file);
+  const files = Array.from(input.files || []);
+  input.value = '';
+  if (files.length) addImagesToForm(files);
 }
 
-function compressAndPreview(file) {
-  if (imageUploadController) imageUploadController.abort();
-  const controller = new AbortController();
-  imageUploadController = controller;
+async function addImagesToForm(files) {
+  const imgFiles = files.filter(f => f.type.startsWith('image/'));
+  if (!imgFiles.length) return;
+  document.getElementById('save-btn').disabled = true;
+  for (const file of imgFiles) {
+    if (_allImagesEdit.length >= 6) { toast('Máximo 6 imágenes en total', ''); break; }
+    await _addImageFile(file);
+  }
+  document.getElementById('save-btn').disabled = false;
+}
 
-  const reader = new FileReader();
-  reader.onload = e => {
-    const img = new Image();
-    img.onload = () => {
-      if (controller.signal.aborted) return;
-      const canvas = document.createElement('canvas');
-      const MAX = 900;
-      let w = img.width, h = img.height;
-      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
-      if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      const b64 = canvas.toDataURL('image/jpeg', 0.82);
+async function _addImageFile(file) {
+  let b64;
+  try {
+    b64 = await _fileToBase64Resized(file);
+  } catch {
+    toast('Error al procesar la imagen', 'error');
+    return;
+  }
+  const isMain = _allImagesEdit.length === 0;
+  _allImagesEdit.push(b64);
+  if (isMain) { currentFormImageDataUrl = b64; showAiFormBtn(); }
+  renderAdditionalImages();
 
-      // Mostrar preview inmediatamente
-      const preview = document.getElementById('f-img-preview');
-      preview.src = b64;
-      preview.classList.add('show');
-      currentFormImageDataUrl = b64;
-      showAiFormBtn();
-      _allImagesEdit[0] = b64;
+  // Intentar subir a Drive; si no hay Drive o falla → se queda en base64
+  if (driveEp) {
+    const driveUrl = await uploadToDrive(b64);
+    const idx = _allImagesEdit.indexOf(b64);
+    if (driveUrl && idx > -1) {
+      _allImagesEdit[idx] = driveUrl;
       renderAdditionalImages();
-
-      // Intentar subir a Drive; si no hay Drive o falla → usar base64
-      (async () => {
-        const hasDrive = !!driveEp;
-        if (hasDrive) toast('Subiendo imagen a Drive…', '');
-        const driveUrl = await uploadToDrive(b64);
-        if (controller.signal.aborted) return;
-        const finalUrl = driveUrl || b64;
-        document.getElementById('f-image').value = finalUrl;
-        _allImagesEdit[0] = finalUrl;
-        renderAdditionalImages();
-        document.getElementById('save-btn').disabled = false;
-        if (driveUrl) toast('Imagen guardada en Drive ✓', 'success');
-      })();
-    };
-    img.onerror = () => {
-      if (!controller.signal.aborted) toast('Error al procesar la imagen', 'error');
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
+    }
+  }
 }
 
 function initImageUpload() {
@@ -254,11 +237,8 @@ function initImageUpload() {
   zone._dropHandler = e => {
     e.preventDefault();
     zone.classList.remove('drag-over');
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
-      document.getElementById('save-btn').disabled = true;
-      compressAndPreview(file);
-    }
+    const files = Array.from(e.dataTransfer.files || []);
+    if (files.length) addImagesToForm(files);
   };
 
   zone.addEventListener('dragover', zone._dragoverHandler);

@@ -175,8 +175,7 @@ document.addEventListener('paste', async e => {
     const tag = document.activeElement?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA') return;
     e.preventDefault();
-    document.getElementById('save-btn').disabled = true;
-    compressAndPreview(file);
+    addImagesToForm([file]);
     toast('Imagen pegada desde portapapeles');
   } else if (kbOpen) {
     e.preventDefault();

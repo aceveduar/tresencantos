@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-06-12 (rev 35).
+Documentación técnica del proyecto. Última actualización: 2026-06-12 (rev 36).
 
 ## Rol de Claude en este proyecto
 
@@ -399,24 +399,37 @@ Productos compuestos por otros productos del catálogo. Al vender un kit en Caja
 - `addKitComponent(id)` / `removeKitComponent(id)` / `changeKitQty(id, delta)`
 - `getKitStock(p)` en `pos.html` — calcula disponibilidad desde componentes
 
-### Imágenes adicionales
+### Fotos del producto — flujo unificado (2026-06-12)
 
-Cada producto puede tener hasta 5 imágenes adicionales además de la imagen principal.
+Cada producto puede tener hasta 6 imágenes en total: la primera = principal (`products.image`), las demás = adicionales (`products.images`).
 
-**Columna:** `images JSONB` — `["url1","url2",...]` (sin incluir `image` principal)
+**Columnas:** `image TEXT` (principal) + `images JSONB` — `["url1","url2",...]` (adicionales, sin incluir la principal)
 
-**En el formulario:** sección "🖼 Imágenes adicionales" — thumbnails editables, upload desde galería o URL, botón ✕ por imagen.
+**En el formulario:** UNA sola sección "📸 Fotos del producto (la primera = principal · máx. 6)" con una sola zona de carga (`#img-upload-zone`):
+- 📁 Galería (`#f-img-file`, `multiple` — permite seleccionar varias fotos de una vez)
+- 📷 Tomar foto (`#f-img-camera`, `capture="environment"`)
+- + URL → revela `#add-img-url-wrap` (input + botón "+ Agregar")
+- Drag & drop sobre la zona (desktop)
+- Ctrl+V para pegar desde el portapapeles (listener global, funciona con el formulario abierto)
+
+Todas las rutas de carga llaman a `addImagesToForm(files)`, que itera y llama `_addImageFile(file)` por cada archivo — cada uno se agrega (`push`) a `_allImagesEdit` (tope 6, toast si se excede). El primer elemento (`index 0`) es siempre la imagen principal.
+
+La tira `#additional-images-strip` (renderizada por `renderAdditionalImages()`) muestra TODAS las imágenes, incluyendo la principal con badge "⭐ Principal" + badge de almacenamiento (Drive/B64), botones ‹/› para reordenar y ✕ para quitar.
+
+`#f-image` es ahora un `<input type="hidden">` — se sincroniza automáticamente con `_allImagesEdit[0]` vía `_syncMainFromStrip()` (llamada dentro de `renderAdditionalImages()`). La clase `.has-image` en `#img-upload-zone` (controlada por la misma función) reduce el padding y oculta el ícono/texto de "arrastrar" una vez que hay al menos 1 imagen.
+
+Si se quitan todas las imágenes, la tira muestra "Sin imágenes — sube una arriba" y el botón "✨ Completar con IA" se oculta automáticamente (`hideAiFormBtn()`).
 
 **En el modal del sitio:** si hay más de 1 imagen total, la zona de imagen se convierte en galería con scroll-snap horizontal nativo y dots de navegación dorados.
 
 **En el Quick View del Inventario:** mismo comportamiento de galería con dots.
 
-**Globals en admin.js:** `_additionalImagesEdit = []` — array temporal durante edición
+**Globals en admin.js/admin-form.js:** `_allImagesEdit = []` — array unificado temporal durante edición (`[0]` = principal, `[1..n]` = adicionales)
 
 **Funciones clave:**
-- `renderAdditionalImages()` — renderiza la tira de thumbnails
+- `renderAdditionalImages()` — renderiza la tira completa de thumbnails (incluye la principal) y llama `_syncMainFromStrip()`
+- `handleFileSelect(input)` / `addImagesToForm(files)` / `_addImageFile(file)` (`admin-images.js`) — flujo unificado de carga: resize a base64 → push a `_allImagesEdit` → intenta `uploadToDrive()` y sustituye la URL si tiene éxito
 - `addAdditionalImageUrl()` — agrega desde URL
-- `handleAdditionalImageFile(input)` — sube desde galería (comprime + Drive o base64)
 - `removeAdditionalImage(idx)`
 - `_aiMove(idx, dir)` — reordena imagen en la tira (dir: -1/+1). Botones ‹/› en cada thumbnail (mobile y desktop). El drag HTML5 de thumbnails se mantiene solo para desktop
 - `_fileToBase64Resized(file)` — helper: comprime imagen a 900px JPEG 0.82
@@ -532,6 +545,7 @@ Cada producto puede tener hasta 5 imágenes adicionales además de la imagen pri
 - **Inventario — descripción del Quick View sin indicador de overflow en productos con texto largo** — auditoría UX/UI: `.qv-desc{max-height:80px}` ya tenía su propio fade + botón "Ver más ↓" (`.qv-desc::after`/`#qv-desc-toggle`), pero ambos viven dentro de `.qv-info{overflow-y:auto}`, cuyo `clientHeight` (239px en mobile) puede ser menor que su `scrollHeight` (335px) cuando hay muchos chips/badges antes de la descripción. Para el producto id=89 (descripción de 1140 caracteres), el fade y el botón "Ver más ↓" quedaban renderizados 45-59px por debajo del borde visible de `.qv-info` — invisibles sin hacer scroll dentro de esa zona, scroll que a su vez no tenía ninguna señal. El usuario veía el texto cortado abruptamente sin fade y sin botón. Corregido agregando un degradado de difuminado en el borde superior de `.qv-actions` (`::before`, `linear-gradient(transparent,#fff)`, 28px) que se solapa visualmente con los últimos px de `.qv-info` — visible siempre que `.qv-info` tenga contenido por debajo del fold (`scrollHeight > clientHeight`) y se oculta (`.qv-fade-hidden`) al llegar al final del scroll. Nueva función `_qvInfoScroll()` (`admin-qv.js`), llamada desde `_renderQV()` (render inicial), `onscroll` de `.qv-info` (`admin.html`) y `_qvToggleDesc()` (al expandir/contraer la descripción). Verificado con producto id=89 en mobile 390×844 (fade visible al abrir, desaparece al hacer scroll al fondo, reaparece tras expandir "Ver más" porque queda aún más contenido por ver), tablet 768px (fade visible, `.qv-info` 253×334) y desktop 1440×900 post-Fix#5 (sin overflow a 433×433, fade correctamente oculto) — y con un producto de descripción corta (sin overflow, fade oculto, botón "Ver más" no se muestra, comportamiento sin cambios). Cero errores de consola en los 4 casos. CACHE_VERSION v37→v38. (2026-06-12)
 - **Inventario — QV galería de imágenes no llenaba la columna en desktop (regresión de Fix#5)** — tras el layout de 2 columnas de Fix#5, productos con una sola imagen llenaban correctamente los 380×600px, pero productos con galería (`images[]`) mostraban la primera imagen a 380×260px con un espacio vacío debajo y los dots pegados al fondo de la columna. Causa: la regla `.qv-img-zone img{height:260px}` (especificidad `0,1,1`, clase+elemento) le ganaba a la nueva `.qv-gallery-img{height:100%}` (especificidad `0,1,0`, solo clase) — `.qv-gallery{flex:1;min-height:0}` sí crecía a 584px, pero cada `<img class="qv-gallery-img">` dentro se quedaba fijo en 260px. Corregido subiendo la especificidad a `#qv-img-container .qv-gallery-img{height:100%}` (`1,1,0`, igual que la regla de `.qv-gallery` ya usada en el mismo bloque). Verificado en desktop 1440×900 con producto id=739 (galería de 3 imágenes, ahora 380×584 llenando la columna, dots en su posición) y producto id=715 (imagen única, sigue en 380×600), y mobile/tablet sin cambios (260px). Cero errores de consola. CACHE_VERSION v38→v39. (2026-06-12)
 - **Inventario — eliminado "🤖 ¿Son el mismo producto?" del modal Comparar productos** — la usuaria reportó que las respuestas de la IA (Groq, free tier) eran poco confiables y no le servían para decidir cuál de dos productos duplicados conservar. Eliminado por completo (no solo ocultado): botón `#compare-ai-btn`, contenedor `#compare-ai-result` y `.cmp-ai-row` (`admin.html`); función `compareWithAI()` y su helper `_urlToBase64()` (`admin-batch.js` — duplicado del de `admin-form.js`, usado solo por esta función); CSS `.cmp-ai-row`/`#compare-ai-btn`/`#compare-ai-result` (`admin.css`). El modal "⚖️ Comparar productos" conserva su funcionalidad principal: comparación lado a lado, zoom de ambas imágenes, "✓ Quedarme con X / Eliminar el otro". Verificado mobile y desktop, cero errores de consola. CACHE_VERSION v40→v41. (2026-06-12)
+- **Inventario — formulario de producto: flujo de subida de fotos unificado en un solo paso** — la usuaria pidió simplificar el formulario, que tenía DOS secciones separadas para imágenes ("imagen principal" con preview + URL, y "Galería de imágenes" abajo con su propio botón de galería/cámara), sin poder subir varias fotos a la vez. Unificado en una sola sección "📸 Fotos del producto (la primera = principal · máx. 6)" con una sola zona de carga (`#img-upload-zone`): 📁 Galería (`#f-img-file`, ahora con `multiple`), 📷 Tomar foto, + URL, drag&drop (desktop) y Ctrl+V — los 5 métodos de carga existentes se conservan intactos, ninguno se quitó. Todas las rutas convergen en `addImagesToForm(files)` → `_addImageFile(file)` (`admin-images.js`), que agrega cada archivo a un array unificado `_allImagesEdit` (índice 0 = principal) hasta el tope de 6. La tira de thumbnails (`renderAdditionalImages()`) ahora muestra también la imagen principal, con badge "⭐ Principal"; `#f-image` pasó a `<input type="hidden">` sincronizado vía `_syncMainFromStrip()`. Nuevo: el botón "✨ Completar con IA" se oculta automáticamente si se quitan todas las imágenes (`hideAiFormBtn()`). Eliminado código muerto: `#f-img-preview`, `#f-img-url-wrap`, `.upload-or`, `previewImg()`, `compressAndPreview()`, `handleAdditionalImageFile()`, `imageUploadController`. Verificado con Playwright en mobile 390×844 y desktop 1440×900: carga múltiple de 2 archivos en una sola selección (`_allImagesEdit.length` pasa de 0→2), +URL, reordenar con `_aiMove`, quitar todas las imágenes (oculta botón IA, restaura placeholder), y modo edición (popula `_allImagesEdit` desde `image`+`images[]` existentes). Cero errores de consola en ambos viewports. CACHE_VERSION v41→v42. (2026-06-12)
 
 ---
 

@@ -453,8 +453,6 @@ tr:hover .drag-handle{opacity:1}
 .field input:focus,.field select:focus,.field textarea:focus,.form-input:focus{border-color:var(--gold);background:#fff;box-shadow:0 0 0 3px rgba(201,164,98,.12)}
 .field textarea{resize:vertical;min-height:90px;line-height:1.5}
 .field .hint{font-size:.73rem;color:var(--muted-light);margin-top:5px;line-height:1.4}
-.img-preview{width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:var(--r);border:1px solid var(--border);margin-top:10px;display:none}
-.img-preview.show{display:block}
 .modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 28px;border-top:1px solid var(--border);flex-shrink:0;background:#fff;border-radius:0 0 20px 20px}
 /* ── TOGGLE SWITCH (reemplaza checkboxes estándar) ── */
 .checkbox-row{display:flex;align-items:center;gap:12px;font-size:.88rem;cursor:pointer;color:var(--charcoal)}
@@ -641,9 +639,6 @@ tr:hover .drag-handle{opacity:1}
 .img-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .btn-cam{background:var(--gold);color:#fff;border:none;box-shadow:0 2px 8px rgba(201,164,98,.35)}
 .btn-cam:hover{background:var(--gold-dark);color:#fff;transform:translateY(-1px);box-shadow:0 4px 14px rgba(201,164,98,.45)}
-.upload-or{text-align:center;font-size:.72rem;color:var(--muted-light);margin:12px 0;position:relative}
-.upload-or::before,.upload-or::after{content:'';position:absolute;top:50%;width:44%;height:1px;background:var(--border)}
-.upload-or::before{left:0}.upload-or::after{right:0}
 
 /* Drag & drop table */
 tr[draggable="true"]{cursor:grab}
