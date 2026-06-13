@@ -251,14 +251,6 @@ function openCompareModal() {
   document.getElementById('compare-col-a').innerHTML = _renderCmpCol(a, b.id);
   document.getElementById('compare-col-b').innerHTML = _renderCmpCol(b, a.id);
 
-  // Reset AI section
-  const aiResult = document.getElementById('compare-ai-result');
-  aiResult.textContent = '';
-  aiResult.className = '';
-  aiResult.style.display = 'none';
-  const aiBtn = document.getElementById('compare-ai-btn');
-  if (aiBtn) { aiBtn.disabled = false; aiBtn.textContent = '🤖 ¿Son el mismo producto?'; }
-
   // Render keep/delete actions
   const actions = document.getElementById('compare-actions');
   if (can.deleteProduct) {
@@ -356,89 +348,6 @@ async function _cmpKeep(keepId, deleteId) {
   updateBulkBar();
   toast(`"${del.name}" eliminado — se quedó el producto seleccionado`);
 }
-
-async function _urlToBase64(url) {
-  if (!url || url.startsWith('data:')) return url;
-  // fetch() falla por CORS en Drive URLs — usar canvas vía <img> que sí puede cargar la imagen
-  return new Promise(resolve => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      try {
-        const MAX = 768;
-        let w = img.naturalWidth, h = img.naturalHeight;
-        if (w > MAX || h > MAX) {
-          if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
-          else        { w = Math.round(w * MAX / h); h = MAX; }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', 0.82));
-      } catch { resolve(url); } // canvas tainted → fallback a URL
-    };
-    img.onerror = () => resolve(url);
-    img.src = url;
-  });
-}
-
-async function compareWithAI() {
-  if (!groqApiKey) {
-    toast('Configura la API key de Groq en Configuración → Integraciones', 'error');
-    return;
-  }
-  const [a, b] = _compareIds.map(id => products.find(p => p.id === id));
-  if (!a || !b) return;
-
-  const btn = document.getElementById('compare-ai-btn');
-  const result = document.getElementById('compare-ai-result');
-  btn.disabled = true;
-  btn.textContent = '🤖 Analizando…';
-  result.style.display = 'none';
-  result.className = '';
-
-  btn.textContent = '🤖 Cargando imágenes…';
-  const [imgA, imgB] = await Promise.all([
-    _urlToBase64(a.image || DEFAULT_IMG),
-    _urlToBase64(b.image || DEFAULT_IMG)
-  ]);
-  btn.textContent = '🤖 Analizando…';
-
-  // Si las imágenes no se pudieron convertir (Drive bloquea CORS), usar comparación por texto
-  const canUseImages = imgA.startsWith('data:') && imgB.startsWith('data:');
-  const content = canUseImages
-    ? [
-        { type: 'text', text: `Eres un asistente de inventario. ¿Son el mismo producto físico? Nombres: "${a.name}" y "${b.name}". Responde en español: SÍ, NO o PROBABLEMENTE, seguido de máximo 2 oraciones de justificación visual. Sé directo.` },
-        { type: 'image_url', image_url: { url: imgA } },
-        { type: 'image_url', image_url: { url: imgB } }
-      ]
-    : `Eres un asistente de inventario. Compara estos dos productos de una boutique y determina si son el mismo artículo:\n\nProducto A: "${a.name}" — Categoría: ${a.categoryLabel} — Precio: $${a.price}\nProducto B: "${b.name}" — Categoría: ${b.categoryLabel} — Precio: $${b.price}\n\nResponde en español: SÍ, NO o PROBABLEMENTE, seguido de máximo 2 oraciones de justificación. Sé directo y conciso.`;
-
-  try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
-      body: JSON.stringify({
-        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-        messages: [{ role: 'user', content }],
-        max_tokens: 180,
-        temperature: 0.2
-      })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
-    const text = data.choices?.[0]?.message?.content?.trim() || 'Sin respuesta';
-    result.textContent = (canUseImages ? '' : '📝 (comparación por nombre) ') + text;
-    result.style.display = 'block';
-    result.classList.add('show');
-  } catch (e) {
-    toast('Error al consultar IA: ' + e.message, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '🤖 ¿Son el mismo producto?';
-  }
-}
-
 
 // --- Interceptor global de escáner USB ---
 // Detecta ráfagas de caracteres (< 50ms entre cada uno) = escáner, no teclado humano
