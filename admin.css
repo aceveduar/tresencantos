@@ -585,7 +585,7 @@ tr:hover .drag-handle{opacity:1}
   #qv-img-container{height:100%;display:flex;flex-direction:column}
   #qv-img-container>img{flex:1;min-height:0}
   #qv-img-container .qv-gallery{flex:1;min-height:0}
-  .qv-gallery-img{height:100%}
+  #qv-img-container .qv-gallery-img{height:100%}
   .qv-gallery-dots{flex-shrink:0}
   .qv-right{display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden}
 }
