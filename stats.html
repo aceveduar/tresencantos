@@ -101,6 +101,19 @@
     </div>
   </div>
 
+  <!-- VENTAS DEL DÍA -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <h2 id="today-sales-title">Ventas de hoy</h2>
+      <span id="today-sales-count" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body" style="padding-top:8px;padding-bottom:8px">
+      <div id="today-sales-list" style="max-height:400px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain">
+        <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
+      </div>
+    </div>
+  </div>
+
   <!-- APARTADOS PENDIENTES -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-head">
@@ -203,6 +216,17 @@
     </div>
   </div>
 
+  <!-- CAPITAL INVERTIDO POR CATEGORÍA -->
+  <div class="card" id="capital-cat-card" style="display:none;margin-bottom:16px">
+    <div class="card-head">
+      <h2>💰 Capital invertido por categoría</h2>
+      <span id="capital-cat-total" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body" id="capital-cat-body">
+      <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
+    </div>
+  </div>
+
   <!-- HORA PICO -->
   <div class="card" id="hora-pico-card" style="margin-bottom:16px">
     <div class="card-head">
@@ -263,19 +287,6 @@
     </div>
     <div class="card-body" id="vendedores-body">
       <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
-    </div>
-  </div>
-
-  <!-- VENTAS DEL DÍA -->
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-head">
-      <h2 id="today-sales-title">Ventas de hoy</h2>
-      <span id="today-sales-count" style="font-size:.75rem;color:var(--muted)"></span>
-    </div>
-    <div class="card-body" style="padding-top:8px;padding-bottom:8px">
-      <div id="today-sales-list" style="max-height:400px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain">
-        <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
-      </div>
     </div>
   </div>
 

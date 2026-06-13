@@ -64,6 +64,7 @@ let catChart = null;
 let hourChart = null;
 let weekdayChart = null;
 let nameMap = {};
+let categories = [];
 
 /* ── PERIOD NAV ── */
 const _MN  = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -144,6 +145,13 @@ async function loadNameMap() {
   const r = await api('config?id=eq.user_names&select=value');
   if (r.ok && r.data?.[0]?.value) {
     try { nameMap = JSON.parse(r.data[0].value); } catch {}
+  }
+}
+
+async function loadCategories() {
+  const r = await api('config?id=eq.categories&select=value');
+  if (r.ok && r.data?.[0]?.value) {
+    try { categories = JSON.parse(r.data[0].value); } catch { categories = []; }
   }
 }
 
@@ -292,6 +300,7 @@ function renderAll() {
   renderTodaySales();
   renderHourChart();
   renderInventory();
+  renderCapitalCategoria();
   renderRentabilidad();
   renderVendedores();
   renderCalendar();
@@ -794,6 +803,57 @@ function renderInventory() {
     : '<p class="no-data" style="padding:16px 0">Todo el inventario tiene existencias ✓</p>';
 }
 
+/* Capital invertido por categoría — Natura y Avon se muestran fusionados */
+const _CAT_ROOT_MERGE = { avon: 'natura' };
+
+function renderCapitalCategoria() {
+  const card    = document.getElementById('capital-cat-card');
+  const body    = document.getElementById('capital-cat-body');
+  const totalEl = document.getElementById('capital-cat-total');
+  if (!card || !body) return;
+
+  const withCost = products.filter(p => p.cost > 0 && p.stock > 0);
+  if (!withCost.length) { card.style.display = 'none'; return; }
+
+  const map = {};
+  withCost.forEach(p => {
+    const cat = categories.find(c => c.code === p.category);
+    let rootCode, label;
+    if (cat) {
+      const root = cat.parent || cat.code;
+      rootCode = _CAT_ROOT_MERGE[root] || root;
+      label = rootCode === 'natura' ? 'Natura y Avon' : (categories.find(c => c.code === rootCode)?.label || rootCode);
+    } else {
+      rootCode = p.category || 'otro';
+      label = p.category_label || 'Otro';
+    }
+    if (!map[rootCode]) map[rootCode] = { label, total: 0 };
+    map[rootCode].total += p.cost * p.stock;
+  });
+
+  const entries    = Object.values(map).sort((a, b) => b.total - a.total);
+  const grandTotal = entries.reduce((s, e) => s + e.total, 0);
+  const maxTotal   = entries[0].total;
+
+  card.style.display = '';
+  totalEl.textContent = `$${Math.round(grandTotal).toLocaleString('es-MX')} en total`;
+
+  body.innerHTML = entries.map(e => {
+    const pct   = Math.round(e.total / maxTotal * 100);
+    const share = Math.round(e.total / grandTotal * 100);
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:.84rem;font-weight:600">${_esc(e.label)}</span>
+        <span style="font-weight:700;font-size:.88rem">$${Math.round(e.total).toLocaleString('es-MX')}</span>
+      </div>
+      <div style="background:var(--border);border-radius:50px;height:5px;overflow:hidden;margin-bottom:4px">
+        <div style="width:${pct}%;height:100%;background:var(--gold);border-radius:50px"></div>
+      </div>
+      <div style="font-size:.7rem;color:var(--muted)">${share}% del capital invertido</div>
+    </div>`;
+  }).join('');
+}
+
 /* ── RENTABILIDAD ── */
 function renderRentabilidad() {
   const margin = p => p.cost > 0 && p.price > 0
@@ -1170,7 +1230,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     _updateNavUI();
     await Promise.race([
-      Promise.all([loadProducts(), loadSales(), loadPreviousSales(), loadApartadosPendientes(), loadClientas(), loadNameMap(), loadTodaySales()]),
+      Promise.all([loadProducts(), loadSales(), loadPreviousSales(), loadApartadosPendientes(), loadClientas(), loadNameMap(), loadTodaySales(), loadCategories()]),
       timeout
     ]);
     renderAll();

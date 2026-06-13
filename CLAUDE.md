@@ -603,6 +603,8 @@ Bottom sheet `#restock-prompt` que aparece en dos situaciones:
 - **Por vendedor** — sección visible solo cuando hay 2+ vendedores distintos en el período; agrupa por `seller_email` con barra de progreso relativa
 - **Rentabilidad** — productos con margen alto/medio/bajo según `cost`
 - **Inventario:** agotados/última unidad/con existencias
+- **Capital invertido por categoría (2026-06-12)** — card "💰 Capital invertido por categoría", justo después de "Estado del inventario": agrupa `cost × stock` (productos con `cost>0 && stock>0`) por categoría raíz, con barra + % del total invertido. `_CAT_ROOT_MERGE = {avon:'natura'}` fusiona Natura y Avon en una sola fila "Natura y Avon" (para Ofelia son la misma inversión) — incluye productos categorizados directo en la raíz o en cualquiera de sus subcategorías. Card oculta (`display:none`) si no hay productos con costo+stock.
+- **"Ventas de hoy" reposicionado (2026-06-12)** — la card de ventas del período activo (título dinámico: "Ventas de hoy" en modo Día, "Ventas — {período}" en Semana/Mes) se movió de cerca del final de la página a justo después del grid de KPIs, por ser una métrica de consulta frecuente. Verificado mobile/tablet/desktop, cero errores de consola. CACHE_VERSION v39→v40.
 
 ---
 
