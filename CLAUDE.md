@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-06-17 (rev 39).
+Documentación técnica del proyecto. Última actualización: 2026-06-17 (rev 40).
 
 ## Rol de Claude en este proyecto
 
@@ -585,13 +585,22 @@ Si se quitan todas las imágenes, la tira muestra "Sin imágenes — sube una ar
   - **`.chip-group-wrap` sin `width:100%` en su segunda línea** — `width:100%` en `@media(max-width:640px)` garantiza que el wrapper llene la línea y el indicador `›` se posicione en el borde correcto.
   - **`.sum-sub` sin control de overflow** — "➕N ✏️N 🗑N" podía wrappear en cards de ~112px. Agregado `white-space:nowrap;overflow:hidden;text-overflow:ellipsis`.
   - CACHE_VERSION v47→v48. (2026-06-17)
+- **Seguridad — eliminación de `SUPABASE_SERVICE_KEY` del código cliente (2026-06-17)** — la service_role_key estaba hardcodeada en 5 archivos JS públicos estáticos, permitiendo que cualquiera la descargara y realizara operaciones sin autenticación. Resuelta activando RLS en Supabase y usando el JWT del usuario activo en todas las llamadas API:
+  - **`SUPABASE_SERVICE_KEY` eliminada** de `admin.js`, `pos-core.js`, `stats.js`, `activity.js`, `settings.js`
+  - **Reemplazada por `SUPABASE_ANON_KEY`** como `apikey` + JWT del usuario (`te_admin_session.access_token`) como `Authorization: Bearer {token}` — los helpers `_getAdminToken()`, `_getPosToken()`, `_getStatsToken()`, `_getActivityToken()`, `_getSettingsToken()` leen el token en cada llamada
+  - **Realtime** (`initRealtime()` en admin.js y pos-core.js): `createClient` ahora usa `SUPABASE_ANON_KEY` + `global.headers.Authorization` con el JWT del usuario
+  - **Auth Admin API eliminada** de `openNamesModal()` en `settings.js` — requería service_role para listar usuarios; se usa directamente el fallback de `activity_log` (ya estaba implementado, siempre devolvía los mismos emails en producción)
+  - **Storage (revista PDF)**: `settings.js` líneas 697/705 usan `_getSettingsToken()` en vez de service_role — requiere política de storage en Supabase (incluida en `_rls-setup.sql`)
+  - **`_rls-setup.sql`**: archivo SQL completo en la raíz del proyecto con `get_user_role()` helper + políticas para `products`, `sales`, `config`, `activity_log`, `recently_edited` y `storage.objects` (bucket `revistas`) — Eduardo lo corre en Supabase SQL Editor antes del deploy
+  - **`config` table**: política anon solo expone `categories` y `revista_url`; `groq_key`, `drive_ep` y `drive_secret` solo visibles para usuarios autenticados
+  - CACHE_VERSION v48→v49. (2026-06-17)
 
 ---
 
 ## POS (`pos.html`)
 
 - Auth: mismo JWT check
-- Service role key para leer/escribir
+- Anon key + JWT del usuario para leer/escribir (RLS en Supabase valida permisos)
 - Productos cargados en memoria; búsqueda filtra en cliente
 - **Vista lista / tarjetas** — toggle ☰/⊞ en barra de búsqueda
 - **Filtro por categoría** — chips horizontales sobre la lista
@@ -896,11 +905,41 @@ El QV (`#qv-overlay`) es el modal de vista rápida del producto en el Inventario
 
 ---
 
+## Seguridad — RLS implementado (2026-06-17)
+
+La deuda técnica de `service_role_key` expuesta en JS estáticos fue resuelta con RLS + JWT del usuario autenticado:
+
+**Cambios en Supabase (correr `_rls-setup.sql` en SQL Editor):**
+- `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` en: `products`, `sales`, `config`, `activity_log`, `recently_edited`
+- Función helper `get_user_role()` extrae `user_metadata.role` del JWT activo
+- Políticas por tabla y operación — alineadas con la matriz de roles del documento
+- `config`: anon solo puede leer `categories` y `revista_url` (nunca `groq_key`, `drive_ep`, `drive_secret`)
+- `storage.objects`: bucket `revistas` — superadmin puede subir, lectura pública
+- Auth Admin API (`/auth/v1/admin/users`) eliminada de `settings.js` — requería service_role; se usa solo el fallback de `activity_log`
+
+**Cambios en JS:**
+- `SUPABASE_SERVICE_KEY` eliminada de todos los archivos — `admin.js`, `pos-core.js`, `stats.js`, `activity.js`, `settings.js`
+- Reemplazada por `SUPABASE_ANON_KEY` como `apikey` y el JWT del usuario activo como `Authorization: Bearer {access_token}`
+- Helpers `_getAdminToken()` / `_getPosToken()` / `_getStatsToken()` / `_getActivityToken()` / `_getSettingsToken()` leen `te_admin_session.access_token` de localStorage en cada llamada
+- Clientes Realtime (`window.supabase.createClient`) actualizados con `global.headers.Authorization` usando el JWT del usuario
+- CACHE_VERSION v48→v49
+
+**Archivo de referencia:** `_rls-setup.sql` en raíz del proyecto — SQL completo para correr en Supabase SQL Editor. Eliminarlo después de aplicar (o mantenerlo para referencia).
+
+**Rollback de emergencia:** si algo falla después del deploy, restaurar en el archivo afectado:
+```
+apikey: SUPABASE_ANON_KEY,
+Authorization: `Bearer ${_getXXXToken()}`,
+```
+→ volver a `SUPABASE_SERVICE_KEY` / `Bearer ${SUPABASE_SERVICE_KEY}` mientras se diagnostica.
+
 ## Deudas Técnicas
+
+*(La deuda principal de service_role_key fue resuelta — ver sección anterior)*
 
 | Problema | Impacto |
 |---|---|
-| **Service role key expuesta en archivos JS estáticos** | `admin.js`, `admin-*.js`, `pos-core.js`, `stats.js`, `activity.js`, `settings.js` son assets públicos — cualquiera puede descargarlos sin login y obtener la key, que bypasea RLS por completo (lectura/escritura/borrado total). El JWT solo protege la UI, no estos archivos. **Mitigación correcta:** mover INSERT/UPDATE/DELETE a Supabase Edge Functions (valida JWT server-side) — implica agregar un "backend" serverless. **Alternativa:** políticas RLS basadas en el JWT del usuario en vez de service role key, replicando la matriz de roles de este documento. Ambas son cambios grandes y de alto impacto — abordar en sesión dedicada, con proyecto Supabase de prueba antes de tocar producción. |
+| **Edge Functions para validación server-side** | Con RLS el JWT del usuario se valida en Supabase antes de ejecutar cada query — protección real. La única mejora adicional sería mover operaciones sensibles a Edge Functions para mayor control de auditoría. Baja prioridad. |
 
 ---
 

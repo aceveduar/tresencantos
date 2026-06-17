@@ -1,7 +1,6 @@
 /* ── CONFIG ── */
 const SUPABASE_URL      = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjYyMjYsImV4cCI6MjA5NDEwMjIyNn0.irCFwOR5HL_ZOVjFGVw9LqmzYicDZTNEmxcknu_j6cI';
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUyNjIyNiwiZXhwIjoyMDk0MTAyMjI2fQ.B9nZ1KENDQsUtn9PFwiMTrXuMZuWWIphGnH8XPfeJjQ';
 const SESSION_KEY = 'te_admin_session';
 const TE = null; // tracking removed — stub keeps TE?.track() calls safe
 const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -110,12 +109,18 @@ let posSort     = localStorage.getItem('te_pos_sort') || 'position';
 let _posRecentOrder = JSON.parse(localStorage.getItem('te_recently_edited') || '[]');
 
 /* ── API ── */
+function _getPosToken() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
+    return s?.access_token || SUPABASE_ANON_KEY;
+  } catch { return SUPABASE_ANON_KEY; }
+}
 function api(path, opts = {}) {
   return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...opts,
     headers: {
-      apikey: SUPABASE_SERVICE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${_getPosToken()}`,
       'Content-Type': 'application/json',
       ...opts.headers
     }
@@ -158,7 +163,9 @@ async function loadProducts() {
 function initRealtime() {
   if (typeof window.supabase === 'undefined') return;
   try {
-    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${_getPosToken()}` } }
+    });
     client
       .channel('pos-products')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, _handleRealtimeProduct)

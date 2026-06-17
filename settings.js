@@ -1,5 +1,5 @@
 const SUPABASE_URL         = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUyNjIyNiwiZXhwIjoyMDk0MTAyMjI2fQ.B9nZ1KENDQsUtn9PFwiMTrXuMZuWWIphGnH8XPfeJjQ';
+const SUPABASE_ANON_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjYyMjYsImV4cCI6MjA5NDEwMjIyNn0.irCFwOR5HL_ZOVjFGVw9LqmzYicDZTNEmxcknu_j6cI';
 const SESSION_KEY          = 'te_admin_session';
 const CAT_PALETTE          = ['#C9A462','#60a5fa','#f472b6','#34d399','#a78bfa','#fb923c','#fbbf24','#a3e635','#2dd4bf','#f87171'];
 
@@ -22,10 +22,16 @@ function doLogout() {
 }
 
 /* ── API ── */
+function _getSettingsToken() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
+    return s?.access_token || SUPABASE_ANON_KEY;
+  } catch { return SUPABASE_ANON_KEY; }
+}
 function api(path, opts = {}) {
   return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...opts,
-    headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, 'Content-Type': 'application/json', ...opts.headers }
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${_getSettingsToken()}`, 'Content-Type': 'application/json', ...opts.headers }
   }).then(async r => {
     const text = await r.text();
     let data; try { data = JSON.parse(text); } catch { data = text || null; }
@@ -694,7 +700,7 @@ async function saveRevista() {
     try {
       await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, 'Content-Type': 'application/json' },
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${_getSettingsToken()}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ id:'revistas', name:'revistas', public: true })
       });
     } catch {}
@@ -702,7 +708,7 @@ async function saveRevista() {
       const filename = `revista-${Date.now()}.pdf`;
       const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/revistas/${filename}`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, 'Content-Type': 'application/pdf', 'x-upsert': 'true' },
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${_getSettingsToken()}`, 'Content-Type': 'application/pdf', 'x-upsert': 'true' },
         body: pendingFile
       });
       saveBtn.textContent = 'Guardar revista'; saveBtn.disabled = false;
@@ -731,22 +737,10 @@ async function saveRevista() {
 
 /* ── NOMBRES ── */
 async function openNamesModal() {
-  // Obtener usuarios reales desde Supabase Auth Admin API
+  // Obtener emails desde activity_log (usuarios que han operado el sistema)
   let emails = [];
-  try {
-    const r = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?per_page=100`, {
-      headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` }
-    });
-    if (r.ok) {
-      const data = await r.json();
-      emails = (data.users || []).map(u => u.email).filter(Boolean);
-    }
-  } catch {}
-  // Fallback: emails del activity_log si la API falla
-  if (!emails.length) {
-    const r2 = await api('activity_log?select=user_email&limit=500');
-    if (r2.ok && r2.data) emails = [...new Set(r2.data.map(d => d.user_email))].filter(Boolean);
-  }
+  const r2 = await api('activity_log?select=user_email&limit=500');
+  if (r2.ok && r2.data) emails = [...new Set(r2.data.map(d => d.user_email))].filter(Boolean);
   // Incluir también usuarios que ya tenían nombre guardado pero no están en las fuentes anteriores
   Object.keys(nameMap).forEach(e => { if (!emails.includes(e)) emails.push(e); });
   emails = emails.sort();

@@ -1,6 +1,6 @@
 /* ── CONFIG ── */
 const SUPABASE_URL = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUyNjIyNiwiZXhwIjoyMDk0MTAyMjI2fQ.B9nZ1KENDQsUtn9PFwiMTrXuMZuWWIphGnH8XPfeJjQ';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjYyMjYsImV4cCI6MjA5NDEwMjIyNn0.irCFwOR5HL_ZOVjFGVw9LqmzYicDZTNEmxcknu_j6cI';
 const SESSION_KEY = 'te_admin_session';
 
 /* ── AUTH + ROL ── */
@@ -35,12 +35,18 @@ function doLogout() {
 }
 
 /* ── API ── */
+function _getStatsToken() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
+    return s?.access_token || SUPABASE_ANON_KEY;
+  } catch { return SUPABASE_ANON_KEY; }
+}
 function api(path, opts={}) {
   return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...opts,
     headers: {
-      apikey: SUPABASE_SERVICE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${_getStatsToken()}`,
       'Content-Type': 'application/json',
       ...opts.headers
     }

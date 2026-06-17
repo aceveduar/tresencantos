@@ -41,11 +41,7 @@ const can = {
 
 const SUPABASE_URL = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
 
-// Anon key — para operaciones de autenticación (login/logout/refresh)
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjYyMjYsImV4cCI6MjA5NDEwMjIyNn0.irCFwOR5HL_ZOVjFGVw9LqmzYicDZTNEmxcknu_j6cI';
-
-// Service role key — bypasea RLS para operaciones de datos del admin (nunca en el sitio público)
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODUyNjIyNiwiZXhwIjoyMDk0MTAyMjI2fQ.B9nZ1KENDQsUtn9PFwiMTrXuMZuWWIphGnH8XPfeJjQ';
 
 let products = [];
 let _kitItemsEdit = [];
@@ -323,7 +319,12 @@ function _initCatSheetSwipe() {
 }
 
 const getSupabaseUrl = () => SUPABASE_URL;
-const getSupabaseKey = () => SUPABASE_SERVICE_KEY;
+function _getAdminToken() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
+    return s?.access_token || SUPABASE_ANON_KEY;
+  } catch { return SUPABASE_ANON_KEY; }
+}
 
 /* ── ACTIVITY LOG ── */
 function getCurrentUserEmail() {
@@ -438,8 +439,8 @@ function supabaseApi(path, opts = {}) {
   return fetch(getSupabaseUrl() + '/rest/v1/' + path, {
     ...opts,
     headers: {
-      apikey: getSupabaseKey(),
-      Authorization: 'Bearer ' + getSupabaseKey(),
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: 'Bearer ' + _getAdminToken(),
       'Content-Type': 'application/json',
       ...opts.headers
     }
@@ -900,7 +901,9 @@ async function loadProductsFromSupabase() {
 function initRealtime() {
   if (typeof window.supabase === 'undefined') return;
   try {
-    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${_getAdminToken()}` } }
+    });
     _realtimeChannel = client
       .channel('admin-products')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, _handleRealtimeProduct)
