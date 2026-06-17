@@ -71,7 +71,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .kpi-icon{font-size:1.3rem;margin-bottom:10px;display:block}
 .kpi-value{font-family:'Playfair Display',serif;font-size:1.85rem;font-weight:600;line-height:1;color:var(--charcoal)}
 .kpi-label{font-size:.68rem;color:var(--muted);margin-top:7px;letter-spacing:.07em;text-transform:uppercase;font-weight:500}
-.kpi-sub{font-size:.72rem;color:var(--muted-light);margin-top:4px}
+.kpi-sub{font-size:.72rem;color:var(--muted-light);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ── CARDS ── */
 .card{background:#fff;border-radius:var(--r);border:1px solid var(--border);box-shadow:0 2px 8px rgba(28,24,23,.06);overflow:hidden}
@@ -115,7 +115,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .tp-qty{font-size:.7rem;color:var(--muted);margin-top:2px}
 
 /* ── SEGUNDA FILA ── */
-.bottom-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.bottom-row{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px}
 
 /* ── INVENTARIO ── */
 .inv-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
@@ -215,6 +215,15 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   /* Inventario: 3 col muy pequeño → 2+1 */
   .inv-summary{grid-template-columns:1fr 1fr;gap:8px}
   .inv-stat:nth-child(3){grid-column:1/-1}
+}
+
+@media(max-width:640px){
+  /* WA button full-width en mobile */
+  .btn-wa-stats{width:100%!important;justify-content:center!important;white-space:normal!important;flex-shrink:1!important}
+  /* Ventas del día: scroll area más compacto */
+  #today-sales-list{max-height:240px!important}
+  /* Calendar: montos ilegibles en celdas pequeñas — solo color y número */
+  .cal-cell-amt{display:none}
 }
 
 @media(max-width:360px){

@@ -564,6 +564,13 @@ Si se quitan todas las imágenes, la tira muestra "Sin imágenes — sube una ar
   - **"Última pieza disponible" solo visible en modal, no en tarjeta** — `cardHTML()` calcula `lastPieceChip` cuando `!oos && !apt && isLastPiece(p)` → renderiza `<p class="card-last-piece">⚡ Última pieza</p>` encima del `.product-footer`. CSS `.card-last-piece{font-size:.68rem;font-weight:600;color:#92400E}` (mismo café-ámbar que el modal). Consistente con ZARA "Last items available" en tarjeta.
   - **`notifyRestock()` sin guard anti-doble-tap** — `if (btn.disabled) return` al inicio; `btn.disabled = true` antes de abrir WhatsApp. Evita que un doble tap rápido abra WhatsApp dos veces.
   - CACHE_VERSION v44→v45. (2026-06-17)
+- **Reportes — auditoría UX/UI completa (5 hallazgos)** — análisis mobile-first (360-430px) referenciando Shopify Analytics/Square Dashboard, implementados todos:
+  - **Botón "Resumen WA" huérfano en 3ª línea** — con `flex-wrap:wrap` en `.stats-nav`, el botón caía solo en la tercera línea flush-left a ~130px. Agregada clase `btn-wa-stats` en `stats.html` + regla `@media(max-width:640px)`: `width:100%;justify-content:center` con `!important` para sobreescribir los inline styles.
+  - **"Ventas del día" max-height:400px excesivo en mobile** — en iPhone 390×844 creaba un scroll interno de ~70% del viewport conflictuando con el scroll de página. Override `#today-sales-list{max-height:240px!important}` en `@media(max-width:640px)`.
+  - **"Productos más vendidos" a mitad del ancho en desktop** — `.bottom-row{grid-template-columns:1fr 1fr}` con una sola card dejaba 50% de espacio muerto. Cambiado a `grid-template-columns:1fr`.
+  - **`.kpi-sub` podía wrappear desalineando las KPI cards** — el texto de delta sin overflow control podía romper a 2 líneas. Agregado `white-space:nowrap;overflow:hidden;text-overflow:ellipsis` a `.kpi-sub`.
+  - **Calendar heatmap: `.cal-cell-amt` ilegible en mobile** — `.52rem` (~7px) invisible en celdas de ~47px. Oculto con `.cal-cell-amt{display:none}` en `@media(max-width:640px)` — el color del nivel comunica la información relevante.
+  - CACHE_VERSION v45→v46. (2026-06-17)
 
 ---
 
