@@ -12,7 +12,7 @@ const SESSION_KEY = 'te_admin_session';
     const role = s?.user?.user_metadata?.role ||
       (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.user_metadata?.role; } catch{} })() ||
       'operador';
-    if (role === 'operador') window.location.href = 'admin.html';
+    if (role === 'operador' || role === 'encargado') window.location.href = 'admin.html';
     const userEmail = s?.user?.email ||
       (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.email; } catch{} })() || '';
     if (role === 'superadmin' && userEmail === 'eacevedo@sunname.com.mx') {

@@ -10,7 +10,7 @@ const LOCKOUT_MS   = 60 * 1000; // 1 minuto de bloqueo por cada 5 intentos falli
 
 /* ── ROLES Y PERMISOS ── */
 // Roles válidos: 'superadmin' | 'encargado' | 'operador' | 'duena'
-// encargado = operador + eliminar productos + cancelar ventas + ver reportes
+// encargado = puede todo excepto: Reportes, Actividad, Configuración, Import/Export JSON
 // Sin rol definido → 'operador' (nunca escala permisos)
 function _parseRole() {
   try {
@@ -34,7 +34,7 @@ const can = {
   bulkDelete:      _isSuperOrEncargado,
   importJSON:      ROLE === 'superadmin',
   manageSettings:  ROLE === 'superadmin',
-  publishProduct:  ROLE === 'superadmin' || _isDuena || ROLE === 'operador',
+  publishProduct:  ROLE === 'superadmin' || _isDuena || ROLE === 'encargado' || ROLE === 'operador',
   editProduct:     true,
   addProduct:      true,
 };
@@ -720,9 +720,9 @@ function _applyRoleUI() {
       document.querySelectorAll(`a[href="${href}"]`).forEach(a => a.style.setProperty('display','none'));
     });
   }
-  // Encargado: ver Reportes, NO Actividad ni Settings
+  // Encargado: NO Reportes, NO Actividad, NO Settings
   if (ROLE === 'encargado') {
-    ['activity.html','settings.html'].forEach(href => {
+    ['stats.html','activity.html','settings.html'].forEach(href => {
       document.querySelectorAll(`a[href="${href}"]`).forEach(a => a.style.setProperty('display','none'));
     });
   }
