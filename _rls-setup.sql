@@ -41,10 +41,10 @@ CREATE POLICY "products_update" ON products
   FOR UPDATE
   USING (get_user_role() IN ('superadmin', 'operador', 'duena'));
 
--- DELETE: solo superadmin y duena
+-- DELETE: superadmin, duena y encargado
 CREATE POLICY "products_delete" ON products
   FOR DELETE
-  USING (get_user_role() IN ('superadmin', 'duena'));
+  USING (get_user_role() IN ('superadmin', 'duena', 'encargado'));
 
 
 -- ── SALES ───────────────────────────────────────────────────────────

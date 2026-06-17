@@ -30,11 +30,11 @@ const ROLE = _parseRole();
 const _isSuperOrEncargado = ROLE === 'superadmin' || ROLE === 'encargado';
 const _isDuena = ROLE === 'duena';
 const can = {
-  deleteProduct:   _isSuperOrEncargado || _isDuena || ROLE === 'operador',
+  deleteProduct:   _isSuperOrEncargado || _isDuena,
   bulkDelete:      _isSuperOrEncargado,
   importJSON:      ROLE === 'superadmin',
   manageSettings:  ROLE === 'superadmin',
-  publishProduct:  ROLE === 'superadmin' || _isDuena || ROLE === 'encargado' || ROLE === 'operador',
+  publishProduct:  ROLE === 'superadmin' || _isDuena || ROLE === 'encargado',
   editProduct:     true,
   addProduct:      true,
 };
