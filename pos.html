@@ -101,7 +101,9 @@
       <button class="pos-vbtn" id="pos-refresh-btn" onclick="refreshPosProducts()" title="Actualizar inventario">↻</button>
     </div>
     <!-- Chips de categoría -->
-    <div class="cat-chip-bar" id="cat-chip-bar"></div>
+    <div class="cat-chip-bar-wrap" id="cat-chip-bar-wrap">
+      <div class="cat-chip-bar" id="cat-chip-bar" onscroll="_catChipScroll()"></div>
+    </div>
     <!-- Productos frecuentes -->
     <div class="pos-freq-bar" id="pos-frecuentes">
       <span class="pos-freq-label">Freq.</span>
@@ -137,13 +139,15 @@
       </div>
 
       <!-- Descuento -->
+      <button type="button" class="note-toggle-btn" id="discount-toggle-btn" onclick="toggleDiscountField()">🏷️ Agregar descuento</button>
       <div id="discount-row-wrap" style="display:none">
       <div class="discount-row">
         <span class="discount-label">Descuento</span>
         <button class="discount-type-btn active" id="disc-pct-btn" onclick="setDiscountType('pct')">%</button>
         <button class="discount-type-btn" id="disc-fixed-btn" onclick="setDiscountType('fixed')">$</button>
-        <input type="number" id="pos-discount" min="0" placeholder="0" oninput="clampDiscount();updateChange()">
+        <input type="number" id="pos-discount" min="0" placeholder="0" oninput="clampDiscount();updateChange()" onblur="autoCollapseDiscount()">
         <span class="discount-amount" id="pos-discount-amount"></span>
+        <button type="button" class="discount-clear-btn" onclick="clearDiscountField()" title="Quitar descuento">✕</button>
       </div>
       </div>
 
@@ -173,18 +177,20 @@
         </div>
       </div>
 
-      <!-- Nota -->
-      <button type="button" class="note-toggle-btn" id="note-toggle-btn" onclick="toggleNoteField()">📝 Agregar nota</button>
-      <div class="note-input-wrap" id="note-input-wrap" style="display:none">
-        <input type="text" id="pos-note" placeholder="Escribe una nota…" onblur="autoCollapseNote()">
-        <button type="button" class="note-clear-btn" onclick="clearNoteField()" title="Quitar nota">✕</button>
-      </div>
+      <!-- Nota + Cliente -->
+      <div class="note-cliente-row">
+        <button type="button" class="note-toggle-btn" id="note-toggle-btn" onclick="toggleNoteField()">📝 Agregar nota</button>
+        <div class="note-input-wrap" id="note-input-wrap" style="display:none">
+          <input type="text" id="pos-note" placeholder="Escribe una nota…" onblur="autoCollapseNote()">
+          <button type="button" class="note-clear-btn" onclick="clearNoteField()" title="Quitar nota">✕</button>
+        </div>
 
-      <!-- Cliente (opcional en venta normal, requerido en apartado) -->
-      <button type="button" class="note-toggle-btn" id="customer-toggle-btn" onclick="toggleCustomerField()">👤 Agregar cliente</button>
-      <div class="note-input-wrap" id="customer-input-wrap" style="display:none">
-        <input type="text" id="pos-customer" placeholder="Nombre del cliente" oninput="updateAnticipoInfo()" onblur="autoCollapseCustomer()">
-        <button type="button" class="note-clear-btn" onclick="clearCustomerField()" title="Quitar cliente">✕</button>
+        <!-- Cliente (opcional en venta normal, requerido en apartado) -->
+        <button type="button" class="note-toggle-btn" id="customer-toggle-btn" onclick="toggleCustomerField()">👤 Agregar cliente</button>
+        <div class="note-input-wrap" id="customer-input-wrap" style="display:none">
+          <input type="text" id="pos-customer" placeholder="Nombre del cliente" oninput="updateAnticipoInfo()" onblur="autoCollapseCustomer()">
+          <button type="button" class="note-clear-btn" onclick="clearCustomerField()" title="Quitar cliente">✕</button>
+        </div>
       </div>
 
       <!-- Apartado toggle -->
@@ -226,6 +232,14 @@
     </div>
   </div>
 
+  <!-- BARRA MINI DE TOTAL — pestaña Catálogo con carrito (≤1024px) -->
+  <div class="pos-mini-cart-bar" id="pos-mini-cart-bar" onclick="switchPosTab('cart')">
+    <div class="pmc-info">
+      <span class="pmc-count" id="pmc-count">0</span>
+      <span class="pmc-total" id="pmc-total">$0</span>
+    </div>
+    <span class="pmc-cta">Cobrar →</span>
+  </div>
 
   <!-- TAB BAR — solo teléfonos (≤640px) -->
   <div class="pos-tab-bar" id="pos-tab-bar">

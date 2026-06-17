@@ -353,6 +353,16 @@ function renderCategoryChips() {
     : [...new Map(products.map(p => [p.category, { code: p.category, label: p.categoryLabel }])).values()];
   bar.innerHTML = `<button class="cat-chip active" data-cat="all" onclick="setCategory('all')">Todos</button>` +
     chips.map(c => `<button class="cat-chip" data-cat="${c.code}" onclick="setCategory('${c.code}')">${_esc(c.label)}</button>`).join('');
+  _catChipScroll();
+}
+
+/* Oculta el indicador "›" de .cat-chip-bar-wrap cuando ya no hay más chips a la derecha */
+function _catChipScroll() {
+  const el = document.getElementById('cat-chip-bar');
+  const wrap = document.getElementById('cat-chip-bar-wrap');
+  if (!el || !wrap) return;
+  const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
+  wrap.classList.toggle('at-end', atEnd);
 }
 
 function setCategory(cat) {

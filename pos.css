@@ -445,7 +445,19 @@ button,a{touch-action:manipulation}
 .pos-freq-price{font-size:.62rem;color:var(--gold-dark);font-weight:700}
 
 /* CATEGORY CHIPS */
-.cat-chip-bar{display:flex;gap:6px;padding:8px 14px;background:#fff;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;flex-shrink:0;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(to right,#000 78%,transparent 97%);mask-image:linear-gradient(to right,#000 78%,transparent 97%)}
+.cat-chip-bar-wrap{position:relative;flex-shrink:0;background:#fff;border-bottom:1px solid var(--border)}
+.cat-chip-bar-wrap::after{
+  content:'›';
+  position:absolute;top:0;bottom:0;right:0;width:28px;
+  display:flex;align-items:center;justify-content:flex-end;
+  padding-right:4px;
+  background:linear-gradient(to right,transparent,#fff 65%);
+  color:var(--muted);font-size:1.2rem;font-weight:800;
+  pointer-events:none;
+  opacity:1;transition:opacity .15s;
+}
+.cat-chip-bar-wrap.at-end::after{opacity:0}
+.cat-chip-bar{display:flex;gap:6px;padding:8px 14px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .cat-chip-bar::-webkit-scrollbar{display:none}
 .cat-chip{flex-shrink:0;padding:6px 14px;border-radius:50px;border:1.5px solid var(--border);background:#fff;font-size:.76rem;font-weight:600;cursor:pointer;color:#9B8B78;transition:.15s;white-space:nowrap}
 .cat-chip.active{background:var(--charcoal);color:#fff;border-color:var(--charcoal)}
@@ -459,10 +471,15 @@ button,a{touch-action:manipulation}
 #pos-discount{width:60px;padding:4px 7px;border:1.5px solid var(--border);border-radius:7px;font-size:.84rem;outline:none;text-align:right;font-family:inherit}
 #pos-discount:focus{border-color:var(--gold)}
 .discount-amount{margin-left:auto;color:var(--red);font-weight:700;font-family:'Playfair Display',serif;font-size:.82rem;white-space:nowrap}
+.discount-clear-btn{background:none;border:none;cursor:pointer;color:#B5A696;font-size:.9rem;padding:2px 4px;line-height:1;flex-shrink:0;touch-action:manipulation}
+.discount-clear-btn:hover{color:var(--red)}
 .pay-method-row{display:flex;gap:5px;margin-bottom:5px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
 .pay-btn{flex:1;padding:6px 4px;border-radius:7px;border:1.5px solid var(--border);background:#fff;font-size:.76rem;font-weight:600;cursor:pointer;color:#9B8B78;transition:.15s;text-align:center}
 .pay-btn.active{background:var(--charcoal);color:#fff;border-color:var(--charcoal)}
 .pay-btn:hover:not(.active){border-color:var(--gold);color:var(--gold-dark)}
+.note-cliente-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:5px}
+.note-cliente-row .note-toggle-btn,.note-cliente-row .note-input-wrap{flex:1;margin-bottom:0}
+.note-cliente-row .note-input-wrap{flex-basis:100%}
 .note-toggle-btn{
   width:100%;padding:7px 10px;border:1.5px dashed var(--border);border-radius:7px;
   background:transparent;color:#9B8B78;font-size:.8rem;font-weight:500;cursor:pointer;
@@ -508,7 +525,7 @@ button,a{touch-action:manipulation}
 .apt-item-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #EDE0CF;cursor:pointer;transition:opacity .15s}
 .apt-item-row:last-child{border-bottom:none}
 .apt-item-row:active{opacity:.7}
-.apt-item-thumb{width:44px;height:44px;object-fit:contain;border-radius:7px;flex-shrink:0;background:#F7F2EB;padding:3px}
+.apt-item-thumb{width:32px;height:32px;border-radius:5px;object-fit:cover;flex-shrink:0;background:#F5EDE4;border:1px solid #EDE5DC}
 .apt-item-info{flex:1;min-width:0}
 .apt-item-name{font-size:.82rem;font-weight:600;color:var(--charcoal);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3}
 .apt-item-right{display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;gap:2px}
@@ -520,8 +537,8 @@ button,a{touch-action:manipulation}
 .apt-amounts-row{display:flex;justify-content:space-between;font-size:.74rem}
 .apt-paid-lbl{color:#6B9E78;font-weight:600}
 .apt-pending-lbl{color:var(--red);font-weight:600}
-.apt-btns{display:flex;gap:7px}
-.btn-cancelar-apt{flex-shrink:0;width:36px;padding:0;border-radius:8px;border:1.5px solid #FECACA;background:#FEF2F2;color:#DC2626;font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;line-height:1;font-weight:700}
+.apt-btns{display:flex;gap:7px;align-items:stretch}
+.btn-cancelar-apt{flex-shrink:0;width:42px;height:42px;padding:0;border-radius:8px;border:1.5px solid #FECACA;background:#FEF2F2;color:#DC2626;font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;line-height:1;font-weight:700;margin-left:6px}
 .btn-cancelar-apt:hover{background:#FEE2E2;border-color:#FCA5A5}
 /* Desktop grid */
 @media(min-width:768px){
@@ -578,11 +595,11 @@ button,a{touch-action:manipulation}
 .adm-footer .btn-liquidar{flex:1;height:40px;font-size:.82rem}
 .adm-footer .btn-edit-apt{width:40px;height:40px;border-radius:10px;border:1.5px solid var(--border);background:#F7F2EB;color:var(--charcoal);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0}
 .adm-footer .btn-edit-apt:hover{background:var(--gold-light);border-color:var(--gold)}
-.btn-abonar{flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--gold);background:#fff;color:var(--gold-dark);font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--gold);background:#fff;color:var(--gold-dark);font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+.btn-abonar{flex:1;height:42px;padding:0 9px;border-radius:8px;border:1.5px solid var(--gold);background:#fff;color:var(--gold-dark);font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;display:flex;align-items:center;justify-content:center}
 .btn-abonar:hover{background:var(--gold-light)}
-.btn-liquidar{flex:1;padding:9px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+.btn-liquidar{flex:1;height:42px;padding:0 9px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;display:flex;align-items:center;justify-content:center}
 .btn-liquidar:hover{background:#1B4332}
-.btn-wa-reminder{flex-shrink:0;width:36px;padding:0;border-radius:8px;border:none;background:#25D366;color:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;line-height:1}
+.btn-wa-reminder{flex-shrink:0;width:42px;height:42px;padding:0;border-radius:8px;border:none;background:#25D366;color:#fff;font-size:1.05rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;line-height:1}
 .btn-wa-reminder:hover{background:#1da851;transform:scale(1.05)}
 /* HISTORIAL DE ABONOS */
 .apt-abonos{margin:0 0 4px;border-top:1px solid #F0E8DC;padding-top:7px}
@@ -674,6 +691,26 @@ button,a{touch-action:manipulation}
   .pos-tab-bar { padding-bottom: env(safe-area-inset-bottom, 16px) }
 }
 
+/* ── BARRA MINI DE TOTAL (catálogo con carrito, ≤1024px) ──────────── */
+.pos-mini-cart-bar{
+  display:none;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 14px;background:var(--charcoal);color:#fff;
+  flex-shrink:0;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.pos-mini-cart-bar.visible{display:flex}
+.pmc-info{display:flex;align-items:center;gap:9px;min-width:0}
+.pmc-count{
+  background:var(--gold);color:#fff;font-weight:800;font-size:.72rem;
+  min-width:21px;height:21px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.pmc-total{font-family:'Playfair Display',serif;font-weight:700;font-size:1.08rem;white-space:nowrap}
+.pmc-cta{
+  background:var(--gold);color:#fff;font-weight:700;font-size:.84rem;
+  padding:9px 18px;border-radius:50px;white-space:nowrap;flex-shrink:0;
+}
+
 /* ── TAB BAR (teléfonos ≤640px) ─────────────────────────────────── */
 .pos-tab-bar{
   display:none; /* oculto en desktop y tablet */
@@ -751,8 +788,10 @@ button,a{touch-action:manipulation}
 
   /* View toggle buttons */
   .pos-vbtn{width:38px;height:38px}
+}
 
-  /* ── Botón + siempre visible en tablet (sin hover) ── */
+/* ── Botón + siempre visible en tablet y desktop (sin hover) ── */
+@media(min-width:641px){
   /* Quitar el overlay gold centrado — no tiene sentido sin hover */
   .pos-card-add{display:block;background:transparent!important}
   /* Posicionar + en esquina inferior-derecha de la imagen */
@@ -770,6 +809,10 @@ button,a{touch-action:manipulation}
     transform:scale(.85);
     background:var(--gold-dark,#A67C3A);
   }
+  .pos-card:hover:not(.card-sold) .pos-card-add-icon{
+    transform:scale(1.08);
+    background:var(--gold-dark,#A67C3A);
+  }
   /* Sin stock: ocultar + */
   .pos-card.card-sold .pos-card-add-icon{display:none}
 }
@@ -777,8 +820,13 @@ button,a{touch-action:manipulation}
 @media(max-width:640px){
   .pos-view-toggle{display:none}
   .pos-view-toggle + .pos-sort-sep{display:none}
-  #pos-refresh-btn{display:none}
-  .pos-freq-bar.visible{display:none!important}
+  /* Frecuentes — versión compacta (solo imagen + precio) */
+  .pos-freq-bar.visible{padding:6px 10px 8px;gap:6px}
+  .pos-freq-card{width:58px;padding:3px 2px;gap:2px}
+  .pos-freq-img{width:42px;height:42px;border-radius:7px}
+  .pos-freq-add-icon{width:16px;height:16px;font-size:.72rem}
+  .pos-freq-name{display:none}
+  .pos-freq-price{font-size:.62rem}
 }
 
 /* CART TOPBAR BUTTON */
@@ -874,4 +922,5 @@ button,a{touch-action:manipulation}
   .topbar-nav-mobile{position:absolute;left:50%;transform:translateX(-50%)}
   #btn-corte-pos .btn-label,#btn-history-pos .btn-label,#btn-apt-pos .btn-label{display:inline;font-size:.52rem}
   #btn-corte-pos,#btn-history-pos,#btn-apt-pos{padding:5px 12px!important;gap:3px!important;}
+  .pos-mini-cart-bar{display:none!important}
 }

@@ -239,6 +239,20 @@ function switchPosTab(tab) {
   document.getElementById('tab-catalog')?.classList.toggle('active', isCatalog);
   document.getElementById('tab-cart')?.classList.toggle('active',    isCart);
   if (!isCatalog) updateChange();
+  _updateMiniCartBar();
+}
+
+/* ── BARRA MINI DE TOTAL (catálogo, mobile/tablet) ── */
+function _updateMiniCartBar() {
+  const bar = document.getElementById('pos-mini-cart-bar');
+  if (!bar) return;
+  const totalItems = cart.reduce((s, x) => s + x.qty, 0);
+  const show = isTabMode() && _currentTab === 'catalog' && totalItems > 0;
+  bar.classList.toggle('visible', show);
+  if (show) {
+    document.getElementById('pmc-count').textContent = totalItems;
+    document.getElementById('pmc-total').textContent = `$${getDiscountedTotal().toLocaleString('es-MX')}`;
+  }
 }
 
 /* ── CART TOPBAR PREVIEW ── */
@@ -311,11 +325,9 @@ function renderCart() {
   totalEl.textContent = `$${total.toLocaleString('es-MX')}`;
   cobrarBtn.disabled = cart.length === 0;
   syncCartTopbar();
+  _updateMiniCartBar();
   updateChange();
   if (document.getElementById('pos-is-apartado')?.checked) updateAnticipoInfo();
-
-  const discountRow = document.getElementById('discount-row-wrap');
-  if (discountRow) discountRow.style.display = cart.length ? '' : 'none';
 
   if (!cart.length) {
     el.innerHTML = '<div class="cart-empty"><div class="em">🛒</div>El carrito está vacío</div>';

@@ -15,6 +15,21 @@ function setDiscountType(type) {
   updateChange();
 }
 
+function toggleDiscountField() {
+  document.getElementById('discount-toggle-btn').style.display = 'none';
+  document.getElementById('discount-row-wrap').style.display = '';
+  setTimeout(() => document.getElementById('pos-discount')?.focus(), 50);
+}
+function clearDiscountField() {
+  setDiscountType('pct');
+  document.getElementById('discount-row-wrap').style.display = 'none';
+  document.getElementById('discount-toggle-btn').style.display = '';
+}
+function autoCollapseDiscount() {
+  const val = parseFloat(document.getElementById('pos-discount')?.value) || 0;
+  if (val <= 0) clearDiscountField();
+}
+
 function getDiscount() {
   const val = parseFloat(document.getElementById('pos-discount')?.value) || 0;
   if (val <= 0) return 0;
@@ -82,8 +97,7 @@ function toggleApartadoMode() {
     const changeEl = document.getElementById('pos-change-input');
     if (changeEl) changeEl.value = '';
     // Limpiar descuento — en apartado el precio ya se negoció por ítem
-    const discEl = document.getElementById('pos-discount');
-    if (discEl) { discEl.value = ''; updateChange(); }
+    clearDiscountField();
     // Fecha límite por defecto: 30 días
     const dueEl = document.getElementById('pos-due-date');
     if (dueEl && !dueEl.value) {

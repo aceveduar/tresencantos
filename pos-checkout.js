@@ -136,6 +136,7 @@ async function cobrar() {
   document.getElementById('apartado-fields').style.display = 'none';
   clearNoteField();
   clearCustomerField();
+  clearDiscountField();
   document.getElementById('cobrar-btn').textContent = '✓ Cobrar';
   renderCart(); updateChange();
   document.getElementById('pos-search').value = '';
