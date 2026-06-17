@@ -607,8 +607,8 @@ async function deleteSale(id) {
   }
 
   // 1. Eliminar el registro
-  const delResult = await api(`sales?id=eq.${id}`, { method: 'DELETE' });
-  if (!delResult.ok) { toast(`Error al cancelar el ${label}`, 'error'); return; }
+  const delResult = await api(`sales?id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': 'return=representation' } });
+  if (!delResult.ok || (Array.isArray(delResult.data) && delResult.data.length === 0)) { toast(`Error al cancelar el ${label} — sin permiso o registro no encontrado`, 'error'); return; }
 
   // 2. Restaurar stock en paralelo
   if (Array.isArray(sale.items)) {

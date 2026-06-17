@@ -44,8 +44,8 @@ async function cancelApartado(id) {
   msg += `\nSe restaurará el stock. Esta acción no se puede deshacer.`;
   if (!confirm(msg)) return;
 
-  const delResult = await api(`sales?id=eq.${id}`, { method: 'DELETE' });
-  if (!delResult.ok) { toast('Error al cancelar apartado', 'error'); return; }
+  const delResult = await api(`sales?id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': 'return=representation' } });
+  if (!delResult.ok || (Array.isArray(delResult.data) && delResult.data.length === 0)) { toast('Error al cancelar apartado — sin permiso o registro no encontrado', 'error'); return; }
 
   if (Array.isArray(sale.items)) {
     const restores = [];

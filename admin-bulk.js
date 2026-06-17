@@ -30,10 +30,10 @@ async function bulkDelete() {
     const ids = [...selectedIds].join(',');
     const result = await supabaseApi(`products?id=in.(${ids})`, {
       method: 'DELETE',
-      headers: { 'Prefer': 'return=minimal' }
+      headers: { 'Prefer': 'return=representation' }
     });
-    if (!result.ok) {
-      const msg = result.data?.message || `HTTP ${result.status}`;
+    if (!result.ok || (Array.isArray(result.data) && result.data.length === 0)) {
+      const msg = !result.ok ? (result.data?.message || `HTTP ${result.status}`) : 'Sin permiso para eliminar estos productos';
       toast('Error al eliminar: ' + msg, 'error');
       return;
     }

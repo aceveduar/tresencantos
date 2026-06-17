@@ -1107,11 +1107,12 @@ async function confirmDelete() {
 
   const result = await supabaseApi(`products?id=eq.${id}`, {
     method: 'DELETE',
-    headers: { 'Prefer': 'return=minimal' }
+    headers: { 'Prefer': 'return=representation' }
   });
-  if (!result.ok) {
+  const blocked = !result.ok || (Array.isArray(result.data) && result.data.length === 0);
+  if (blocked) {
     setBtn(btn, false);
-    const msg = result.data?.message || result.data?.hint || `HTTP ${result.status}`;
+    const msg = !result.ok ? (result.data?.message || result.data?.hint || `HTTP ${result.status}`) : 'Sin permiso para eliminar este producto';
     toast('Error al eliminar: ' + msg, 'error');
     closeDel();
     return;
