@@ -892,8 +892,24 @@ async function loadProductsFromSupabase() {
   const data = result.data;
   if (result.ok && Array.isArray(data) && data.length) {
     products = data.map(mapProduct);
+    try {
+      localStorage.setItem('te_products_cache', JSON.stringify(data));
+      localStorage.setItem('te_products_cache_ts', Date.now());
+    } catch {}
     return;
   }
+  // Fallback: cargar desde caché local si no hay conexión
+  try {
+    const cached = localStorage.getItem('te_products_cache');
+    if (cached) {
+      products = JSON.parse(cached).map(mapProduct);
+      const ts = parseInt(localStorage.getItem('te_products_cache_ts') || '0');
+      const mins = Math.round((Date.now() - ts) / 60000);
+      const age = mins < 60 ? `${mins} min` : `${Math.round(mins/60)} h`;
+      toast(`Sin conexión — mostrando catálogo de hace ${age}`, 'error');
+      return;
+    }
+  } catch {}
   products = [];
 }
 

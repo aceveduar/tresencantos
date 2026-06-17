@@ -23,6 +23,7 @@ function updateChange() {
 let _cobrandoAhora = false;
 async function cobrar() {
   if (!cart.length || _cobrandoAhora) return;
+  if (!navigator.onLine) { toast('Sin conexión — no se puede registrar la venta', 'error'); return; }
   _cobrandoAhora = true;
   const isApartado = document.getElementById('pos-is-apartado')?.checked;
   const customerName = document.getElementById('pos-customer')?.value.trim() || '';

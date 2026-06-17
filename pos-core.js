@@ -155,6 +155,22 @@ async function loadProducts() {
   const result = await api('products?select=id,name,category,category_label,price,original_price,description,image,barcode,stock,out_of_stock,badge,badge_type,kit_items&is_archived=eq.false&order=position.asc');
   if (result.ok && Array.isArray(result.data)) {
     products = result.data.map(_mapPosProduct);
+    try {
+      localStorage.setItem('te_pos_products_cache', JSON.stringify(result.data));
+      localStorage.setItem('te_pos_products_cache_ts', Date.now());
+    } catch {}
+  } else {
+    // Fallback: cargar desde caché local si no hay conexión
+    try {
+      const cached = localStorage.getItem('te_pos_products_cache');
+      if (cached) {
+        products = JSON.parse(cached).map(_mapPosProduct);
+        const ts = parseInt(localStorage.getItem('te_pos_products_cache_ts') || '0');
+        const mins = Math.round((Date.now() - ts) / 60000);
+        const age = mins < 60 ? `${mins} min` : `${Math.round(mins/60)} h`;
+        toast(`Sin conexión — catálogo de hace ${age}. Las ventas no se pueden registrar.`, 'error');
+      }
+    } catch {}
   }
   renderFrecuentes();
 }

@@ -316,6 +316,28 @@ const observer = new IntersectionObserver(entries => {
   entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('visible'); observer.unobserve(e.target); } });
 }, { threshold: 0.1 });
 
+function _initOfflineBanner() {
+  const banner = document.createElement('div');
+  banner.id = 'offline-banner';
+  banner.style.bottom = '0';
+  document.body.appendChild(banner);
+  let hideTimer = null;
+  const goOffline = () => {
+    clearTimeout(hideTimer);
+    banner.textContent = '⚡ Sin conexión a internet';
+    banner.className = 'ob-offline';
+  };
+  const goOnline = () => {
+    clearTimeout(hideTimer);
+    banner.textContent = '✓ Conexión restaurada';
+    banner.className = 'ob-online';
+    hideTimer = setTimeout(() => { banner.className = ''; }, 3000);
+  };
+  window.addEventListener('offline', goOffline);
+  window.addEventListener('online', goOnline);
+  if (!navigator.onLine) goOffline();
+}
+
 function initAdminBar() {
   try {
     const raw = localStorage.getItem('te_admin_session');
@@ -341,6 +363,7 @@ function initAdminBar() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  _initOfflineBanner();
   initAdminBar();
   await Promise.all([loadProducts(), loadRevista(), loadCategories()]);
   render();

@@ -81,3 +81,36 @@
 
   document.addEventListener('DOMContentLoaded', _initUserDropdown);
 })();
+
+/* ── OFFLINE BANNER ── */
+(function () {
+  function _initOfflineBanner() {
+    const banner = document.createElement('div');
+    banner.id = 'offline-banner';
+    // Posicionar sobre la tab bar en Caja, al fondo en el resto
+    const hasPosTabBar = !!document.getElementById('pos-tab-bar');
+    banner.style.bottom = hasPosTabBar ? '56px' : '0';
+    document.body.appendChild(banner);
+
+    let hideTimer = null;
+
+    const goOffline = () => {
+      clearTimeout(hideTimer);
+      banner.textContent = '⚡ Sin conexión a internet — los cambios no se guardarán';
+      banner.className = 'ob-offline';
+    };
+
+    const goOnline = () => {
+      clearTimeout(hideTimer);
+      banner.textContent = '✓ Conexión restaurada';
+      banner.className = 'ob-online';
+      hideTimer = setTimeout(() => { banner.className = ''; }, 3000);
+    };
+
+    window.addEventListener('offline', goOffline);
+    window.addEventListener('online', goOnline);
+    if (!navigator.onLine) goOffline();
+  }
+
+  document.addEventListener('DOMContentLoaded', _initOfflineBanner);
+})();
