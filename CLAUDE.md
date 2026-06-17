@@ -578,6 +578,13 @@ Si se quitan todas las imágenes, la tira muestra "Sin imágenes — sube una ar
   - **`drive-secret-input` sin affordance de "tap para copiar"** — `border-style:dashed;color:var(--muted)` distingue el campo de solo lectura de los inputs editables; patrón estándar de Shopify para campos auto-generados.
   - **`btn-row` Drive con 3 botones apretados en mobile** — cuando Drive está configurado, "Guardar" + "Probar conexión" + "Desconectar" en ~280px disponibles. En `@media(max-width:640px)`: `flex-direction:column` + `width:100%;justify-content:center` en cada botón.
   - CACHE_VERSION v46→v47. (2026-06-17)
+- **Actividad — auditoría UX/UI completa (5 hallazgos)** — análisis mobile-first (360-430px), implementados todos:
+  - **`.chip-group` usaba máscara pasiva en vez de indicador `›`** — reemplazada por el patrón consistente del sistema: wrapper `div.chip-group-wrap#chip-group-wrap` + `::after` con `›` + degradado a `var(--cream)` + función `_chipsScroll()` que alterna `.at-end` en `onscroll` y al iniciar. Elimina la máscara `linear-gradient` anterior. (`activity.html` + `activity.css` + `activity.js`)
+  - **Tap targets de selects y chips a ~30px** — `.filter-select` pasa a `padding:11px 28px 11px 12px;font-size:1rem` (≥44px, previene zoom iOS) y `.chip` a `padding:10px 14px;min-height:44px` en `@media(max-width:640px)`.
+  - **`filter-select` no llenaba uniformemente la primera fila en mobile** — `flex:1;min-width:0` en `@media(max-width:640px)`: los dos selects se dividen el ancho igualitariamente.
+  - **`.chip-group-wrap` sin `width:100%` en su segunda línea** — `width:100%` en `@media(max-width:640px)` garantiza que el wrapper llene la línea y el indicador `›` se posicione en el borde correcto.
+  - **`.sum-sub` sin control de overflow** — "➕N ✏️N 🗑N" podía wrappear en cards de ~112px. Agregado `white-space:nowrap;overflow:hidden;text-overflow:ellipsis`.
+  - CACHE_VERSION v47→v48. (2026-06-17)
 
 ---
 

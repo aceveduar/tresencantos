@@ -64,6 +64,14 @@ async function loadNameMap() {
   }
 }
 
+/* ── CHIP SCROLL INDICATOR ── */
+function _chipsScroll() {
+  const el   = document.getElementById('chip-group');
+  const wrap = document.getElementById('chip-group-wrap');
+  if (!el || !wrap) return;
+  wrap.classList.toggle('at-end', el.scrollLeft + el.clientWidth >= el.scrollWidth - 4);
+}
+
 /* ── FILTERS ── */
 function setType(btn, type) {
   currentType = type;
@@ -322,4 +330,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (r.ok && Array.isArray(r.data)) r.data.forEach(p => { _prodMap[p.id] = p; });
   });
   load();
+  _chipsScroll();
 });

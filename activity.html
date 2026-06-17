@@ -53,11 +53,13 @@
     <select class="filter-select" id="filter-user" onchange="load()">
       <option value="">Todos</option>
     </select>
-    <div class="chip-group">
-      <button class="chip active" data-type="" onclick="setType(this,'')">Todos</button>
-      <button class="chip" data-type="venta" onclick="setType(this,'venta')">💰 Ventas</button>
-      <button class="chip" data-type="inventario" onclick="setType(this,'inventario')">📦 Inventario</button>
-      <button class="chip" data-type="apartado" onclick="setType(this,'apartado')">📌 Apartados</button>
+    <div class="chip-group-wrap" id="chip-group-wrap">
+      <div class="chip-group" id="chip-group" onscroll="_chipsScroll()">
+        <button class="chip active" data-type="" onclick="setType(this,'')">Todos</button>
+        <button class="chip" data-type="venta" onclick="setType(this,'venta')">💰 Ventas</button>
+        <button class="chip" data-type="inventario" onclick="setType(this,'inventario')">📦 Inventario</button>
+        <button class="chip" data-type="apartado" onclick="setType(this,'apartado')">📌 Apartados</button>
+      </div>
     </div>
   </div>
 

@@ -30,7 +30,10 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal
   background-repeat:no-repeat;background-position:right 10px center;
 }
 .filter-select:focus{border-color:var(--gold)}
-.chip-group{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;flex-shrink:0;-webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%);mask-image:linear-gradient(to right,#000 82%,transparent 100%)}
+.chip-group-wrap{position:relative;flex-shrink:0}
+.chip-group-wrap::after{content:'›';position:absolute;top:0;bottom:0;right:0;width:24px;display:flex;align-items:center;justify-content:flex-end;padding-right:2px;background:linear-gradient(to right,transparent,var(--cream) 65%);color:var(--muted);font-size:1.2rem;font-weight:800;pointer-events:none;opacity:1;transition:opacity .15s}
+.chip-group-wrap.at-end::after{opacity:0}
+.chip-group{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .chip-group::-webkit-scrollbar{display:none}
 .chip{flex-shrink:0;padding:6px 14px;border-radius:50px;border:1.5px solid var(--border);background:#fff;font-size:.76rem;font-weight:600;cursor:pointer;color:#9B8B78;transition:.15s;white-space:nowrap}
 .chip.active{background:var(--charcoal);color:#fff;border-color:var(--charcoal)}
@@ -40,7 +43,7 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal
 .summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
 .sum-card{background:#fff;border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:12px;padding:14px 12px;text-align:center}
 .sum-val{font-family:'Playfair Display',serif;font-size:1.25rem;font-weight:700}
-.sum-sub{font-size:.73rem;font-weight:600;color:var(--green);margin-top:2px;min-height:1.1em;line-height:1.2}
+.sum-sub{font-size:.73rem;font-weight:600;color:var(--green);margin-top:2px;min-height:1.1em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sum-sub.muted{color:var(--muted)}
 .sum-lbl{font-size:.67rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:4px}
 
@@ -82,4 +85,10 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal
   .sum-val{font-size:1.1rem}
   .act-card{padding:10px 12px;gap:10px}
   .act-avatar{width:32px;height:32px;font-size:.75rem}
+  /* Selects: flex:1 para llenar la fila + tap target ≥44px */
+  .filter-select{flex:1;min-width:0;padding:11px 28px 11px 12px;font-size:1rem}
+  /* Chips: tap target ≥44px */
+  .chip{padding:10px 14px;min-height:44px}
+  /* Chip-group-wrap: ancho completo en su línea */
+  .chip-group-wrap{width:100%}
 }
