@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-06-13 (rev 38).
+Documentación técnica del proyecto. Última actualización: 2026-06-17 (rev 39).
 
 ## Rol de Claude en este proyecto
 
@@ -557,6 +557,13 @@ Si se quitan todas las imágenes, la tira muestra "Sin imágenes — sube una ar
   - **Nota y Cliente ocupaban dos filas separadas** — agrupados en `.note-cliente-row` (flex-wrap), mismo patrón de botón colapsable para ambos.
   - **Campo de descuento siempre visible aunque no se use** — convertido a patrón colapsable: botón "🏷️ Agregar descuento" (`toggleDiscountField()`) revela el input; botón ✕ (`clearDiscountField()`) lo quita y colapsa; `autoCollapseDiscount()` en `blur` si queda vacío/0. Reseteado en `cobrar()` y en `toggleApartadoMode()`.
   - Sin tocar el split validado de escáner (Html5Qrcode/Quagga2) ni los handlers de swipe (`stopPropagation`). CACHE_VERSION v43→v44. (2026-06-13)
+- **Tienda — auditoría UX/UI completa (5 hallazgos)** — análisis mobile-first (360-430px) referenciando ZARA, H&M, Amazon, implementados todos:
+  - **Filtros de categoría sin indicador de scroll** — `#products-filters` envuelto en `.products-filters-wrap` con `::after` `›` y fade a `var(--cream)` al borde derecho (mismo patrón que Caja/Inventario). Nueva `_filtersScroll()` (`app.js`), llamada desde `onscroll` de `#products-filters` y al final de `initFilters()`, oculta el `›` (`.at-end`) al llegar al final. `.products-filters-wrap{flex:1;min-width:0}` en estilos base para mantener el layout flex-row con `.sort-select`.
+  - **Chip de filtro activo fuera del viewport tras `filterTo()`** — nueva `_scrollActiveFilter()` llama `activeBtn.scrollIntoView({block:'nearest',inline:'center'})` + `_filtersScroll()`. Se llama desde el `click` de cada filtro (en `initFilters()`) y desde `filterTo()` con 320ms de delay (espera a que `render()` + `scrollIntoView('#productos')` terminen). Los links del footer (`filterTo('bolsos')`, etc.) ahora centran el chip activo en la fila horizontal.
+  - **Modal: imagen demasiado pequeña en mobile** — `.modal-img{aspect-ratio:1/1}` y `.modal-gallery{aspect-ratio:1/1}` (antes `4/3`). Para productos cuadrados (bolsos, mochilas), la imagen pasa de ~270×270px a ~360×360px en iPhone 12 — 33% más grande. `.modal-body` es `overflow-y:auto;flex:1` así que el CTA siempre queda visible aunque el body tenga menos espacio. Sin cambios en desktop (`.modal{max-width:460px}` → imagen 460×460px, sigue entrando con `max-height:90vh`).
+  - **"Última pieza disponible" solo visible en modal, no en tarjeta** — `cardHTML()` calcula `lastPieceChip` cuando `!oos && !apt && isLastPiece(p)` → renderiza `<p class="card-last-piece">⚡ Última pieza</p>` encima del `.product-footer`. CSS `.card-last-piece{font-size:.68rem;font-weight:600;color:#92400E}` (mismo café-ámbar que el modal). Consistente con ZARA "Last items available" en tarjeta.
+  - **`notifyRestock()` sin guard anti-doble-tap** — `if (btn.disabled) return` al inicio; `btn.disabled = true` antes de abrir WhatsApp. Evita que un doble tap rápido abra WhatsApp dos veces.
+  - CACHE_VERSION v44→v45. (2026-06-17)
 
 ---
 

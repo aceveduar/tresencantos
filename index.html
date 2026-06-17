@@ -160,8 +160,10 @@
       <button class="products-search-clear" id="products-search-clear" onclick="clearProductsSearch()" title="Borrar búsqueda" aria-label="Borrar búsqueda" style="display:none">✕</button>
     </div>
     <div class="products-filters-row">
-      <div class="products-filters" id="products-filters">
-        <!-- generado dinámicamente por initFilters() -->
+      <div class="products-filters-wrap" id="products-filters-wrap">
+        <div class="products-filters" id="products-filters" onscroll="_filtersScroll()">
+          <!-- generado dinámicamente por initFilters() -->
+        </div>
       </div>
       <select class="sort-select" id="sort-select" onchange="setSortOption(this.value)" aria-label="Ordenar por">
         <option value="default">Nuestra selección</option>

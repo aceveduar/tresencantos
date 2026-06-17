@@ -489,6 +489,9 @@ function cardHTML(p) {
     badgeArea = `<span class="product-badge badge-${p.badgeType||'best'}">${_esc(p.badge)}</span>`;
   }
 
+  const lastPieceChip = (!oos && !apt && isLastPiece(p))
+    ? `<p class="card-last-piece">⚡ Última pieza</p>`
+    : '';
   const priceHTML = pct > 0
     ? `<div class="product-price"><s class="price-before">$${p.originalPrice.toLocaleString('es-MX')}</s> $${p.price.toLocaleString('es-MX')}</div>`
     : `<div class="product-price">$${p.price.toLocaleString('es-MX')}</div>`;
@@ -506,6 +509,7 @@ function cardHTML(p) {
     <p class="product-cat">${_esc(p.categoryLabel)}</p>
     <h3>${_esc(p.name)}</h3>
     <p class="product-desc">${_descText(p.description)}</p>
+    ${lastPieceChip}
     <div class="product-footer">
       ${priceHTML}
       ${buyBtn}
@@ -698,8 +702,24 @@ function initFilters() {
       currentFilter = btn.dataset.filter;
       _catalogShowAll = false;
       render();
+      _scrollActiveFilter();
     });
   });
+  _filtersScroll();
+}
+
+function _filtersScroll() {
+  const el   = document.getElementById('products-filters');
+  const wrap = document.getElementById('products-filters-wrap');
+  if (!el || !wrap) return;
+  const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
+  wrap.classList.toggle('at-end', atEnd);
+}
+
+function _scrollActiveFilter() {
+  const active = document.querySelector('#products-filters .filter-btn.active');
+  active?.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
+  _filtersScroll();
 }
 
 function filterTo(cat) {
@@ -708,6 +728,7 @@ function filterTo(cat) {
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === cat));
   render();
   document.getElementById('productos')?.scrollIntoView({ behavior:'smooth' });
+  setTimeout(_scrollActiveFilter, 320);
 }
 
 /* ── SHARE ── */
@@ -990,6 +1011,8 @@ function openModal(id) {
 }
 
 function notifyRestock(id, btn) {
+  if (btn.disabled) return;
+  btn.disabled = true;
   const p = products.find(x => x.id === id) || activeProduct;
   const name = p ? p.name : 'este producto';
   const msg = `¡Hola! 😊 Me interesa *${name}* pero está agotado. ¿Podrías avisarme cuando vuelva a haber stock? ¡Gracias!`;
