@@ -571,6 +571,13 @@ Si se quitan todas las imágenes, la tira muestra "Sin imágenes — sube una ar
   - **`.kpi-sub` podía wrappear desalineando las KPI cards** — el texto de delta sin overflow control podía romper a 2 líneas. Agregado `white-space:nowrap;overflow:hidden;text-overflow:ellipsis` a `.kpi-sub`.
   - **Calendar heatmap: `.cal-cell-amt` ilegible en mobile** — `.52rem` (~7px) invisible en celdas de ~47px. Oculto con `.cal-cell-amt{display:none}` en `@media(max-width:640px)` — el color del nivel comunica la información relevante.
   - CACHE_VERSION v45→v46. (2026-06-17)
+- **Configuración — auditoría UX/UI completa (5 hallazgos)** — análisis mobile-first (360-430px) referenciando Shopify Admin, implementados todos:
+  - **`btn-sm` tap targets ~30px — deben ser ≥44px** — `padding:7px 14px` producía ~30px de alto en los 7+ botones de acción (Gestionar, Editar, Exportar, Importar, Revisar, Guardar, etc.). Cambiado a `padding:11px 14px` en `@media(max-width:640px)`.
+  - **Toggle `te-switch` de 24px — debajo del mínimo táctil** — aumentado a `height:28px` (thumb 20×20px, `top:4px;left:4px`, `translateX(16px)` al activar). Aplica en todos los viewports (cambio visual mínimo).
+  - **"Respaldo de productos" — 2 botones en `.scard-action` dejaban solo 116px al texto** — agregado `id="scard-backup"` en `settings.html` + en `@media(max-width:640px)`: `flex-wrap:wrap` en la fila, `scard-action{width:100%}` para que los botones bajen a la 2ª línea y se dividan el ancho completo (`flex:1;justify-content:center`).
+  - **`drive-secret-input` sin affordance de "tap para copiar"** — `border-style:dashed;color:var(--muted)` distingue el campo de solo lectura de los inputs editables; patrón estándar de Shopify para campos auto-generados.
+  - **`btn-row` Drive con 3 botones apretados en mobile** — cuando Drive está configurado, "Guardar" + "Probar conexión" + "Desconectar" en ~280px disponibles. En `@media(max-width:640px)`: `flex-direction:column` + `width:100%;justify-content:center` en cada botón.
+  - CACHE_VERSION v46→v47. (2026-06-17)
 
 ---
 
