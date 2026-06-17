@@ -30,7 +30,7 @@ function renderFrecuentes(hide) {
     top.map(p => `
 <div class="pos-freq-card" onclick="addToCart(${p.id})" title="${_esc(p.name)}">
   <div class="pos-freq-img-wrap">
-    <img class="pos-freq-img" src="${p.image}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
+    <img class="pos-freq-img" src="${_driveSz(p.image,80)}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
     <div class="pos-freq-add"><span class="pos-freq-add-icon">+</span></div>
   </div>
   <span class="pos-freq-name">${_esc(p.name)}</span>
@@ -288,7 +288,7 @@ function renderCartPreview() {
     const effPrice = customPrice ?? p.price;
     return `
 <div class="cp-item">
-  <img class="cp-item-img" src="${p.image}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
+  <img class="cp-item-img" src="${_driveSz(p.image,80)}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
   <span class="cp-item-name" title="${_esc(p.name)}">${_esc(p.name)}</span>
   <span class="cp-item-qty">×${qty}</span>
   <span class="cp-item-sub">$${(effPrice*qty).toLocaleString('es-MX')}</span>
@@ -345,7 +345,7 @@ function renderCart() {
       : '';
     return `
 <div class="cart-item" data-pid="${p.id}">
-  <img class="ci-img" src="${p.image}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
+  <img class="ci-img" src="${_driveSz(p.image,80)}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
   <div class="ci-info">
     <div class="ci-name">${_esc(p.name)}</div>
     ${kitSub}

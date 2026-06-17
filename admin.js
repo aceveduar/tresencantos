@@ -435,6 +435,11 @@ function getFilteredProducts() {
   }
 }
 
+function _driveSz(url, w) {
+  if (!url || !url.includes('drive.google.com')) return url;
+  return url.replace(/sz=w\d+/, `sz=w${w}`);
+}
+
 function supabaseApi(path, opts = {}) {
   return fetch(getSupabaseUrl() + '/rest/v1/' + path, {
     ...opts,
@@ -915,18 +920,26 @@ async function loadProductsFromSupabase() {
 
 /* ── SUPABASE REALTIME ── */
 function initRealtime() {
-  if (typeof window.supabase === 'undefined') return;
-  try {
-    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: `Bearer ${_getAdminToken()}` } }
-    });
-    _realtimeChannel = client
-      .channel('admin-products')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, _handleRealtimeProduct)
-      .subscribe();
-  } catch(err) {
-    console.warn('Realtime no disponible:', err);
-  }
+  const load = new Promise((res, rej) => {
+    if (window.supabase) { res(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+  load.then(() => {
+    try {
+      const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: `Bearer ${_getAdminToken()}` } }
+      });
+      _realtimeChannel = client
+        .channel('admin-products')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, _handleRealtimeProduct)
+        .subscribe();
+    } catch(err) {
+      console.warn('Realtime no disponible:', err);
+    }
+  }).catch(() => console.warn('No se pudo cargar supabase.js para Realtime'));
 }
 
 function _handleRealtimeProduct({ eventType, new: row, old }) {

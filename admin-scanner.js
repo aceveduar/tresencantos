@@ -15,6 +15,17 @@ function _loadQuagga() {
   });
 }
 
+function _loadHtml5Qrcode() {
+  return new Promise((resolve, reject) => {
+    if (typeof Html5Qrcode !== 'undefined') { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
 function openFormScanner() {
   TE?.track('scan_form');
   _scanCtx = 'form';
@@ -88,6 +99,9 @@ async function _launchScanner() {
       _quaggaActive = false;
     }
     if (_scanInst) { _scanInst.clear().catch(() => {}); _scanInst = null; }
+    try { await _loadHtml5Qrcode(); } catch(e) {
+      statusEl.textContent = 'No se pudo cargar el escáner.'; return;
+    }
     const barcodeFormats = [
       Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
       Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.UPC_A,

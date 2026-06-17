@@ -253,6 +253,16 @@ function _loadQuaggaPos() {
   });
 }
 
+function _loadHtml5QrcodePos() {
+  return new Promise((resolve, reject) => {
+    if (typeof Html5Qrcode !== 'undefined') { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
 function _posHandleCode(code) {
   if (_posScanCooldown) return;
   const p = products.find(x => x.barcode === code);
@@ -311,6 +321,9 @@ async function openPosScanner() {
       _posQuaggaActive = false;
     }
     if (_posScanner) { _posScanner.clear().catch(() => {}); _posScanner = null; }
+    try { await _loadHtml5QrcodePos(); } catch(e) {
+      statusEl.textContent = 'No se pudo cargar el escáner.'; return;
+    }
     const barcodeFormats = [
       Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
       Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.UPC_A,

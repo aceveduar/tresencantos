@@ -518,7 +518,7 @@ async function loadHistory() {
       const THUMB_PH = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2228%22 height=%2228%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23D1C4B8%22 stroke-width=%221.5%22%3E%3Crect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/%3E%3Ccircle cx=%228.5%22 cy=%228.5%22 r=%221.5%22/%3E%3Cpath d=%22m21 15-5-5L5 21%22/%3E%3C/svg%3E';
       const itemsHTML = items.map(i => {
         const cur = products.find(p => p.id === i.id);
-        const img = cur?.image || THUMB_PH;
+        const img = _driveSz(cur?.image, 80) || THUMB_PH;
         const displayName = _esc(cur?.name || i.name);
         return `
 <div class="hi-item">

@@ -304,7 +304,7 @@ function adminCard(p, editable = false) {
      ondrop="_cardDrop(event,${p.id})"
      style="cursor:pointer">
   <div class="ac-img-wrap">
-    <img class="ac-img" src="${p.image}" alt="${_esc(p.name)}" draggable="false" loading="lazy"
+    <img class="ac-img" src="${_driveSz(p.image,300)}" alt="${_esc(p.name)}" draggable="false" loading="lazy"
          onerror="this.onerror=null;this.src='${fallback}'">
     <input type="checkbox" class="ac-check row-check"
            ${sel?'checked':''} onchange="toggleRowSelect(${p.id},this.checked)">
@@ -608,7 +608,7 @@ function desktopRow(p) {
   <td class="col-product">
     <div style="display:flex;align-items:center;gap:10px;min-width:0">
       <span class="drag-handle" title="Arrastrar para reordenar">⠿</span>
-      <img class="prod-thumb" src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${fallback}'" onclick="event.stopPropagation();openQV(${p.id})" style="cursor:pointer${oos ? ';opacity:.5;filter:grayscale(.5)' : ''}" title="Ver detalle rápido">
+      <img class="prod-thumb" src="${_driveSz(p.image,80)}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${fallback}'" onclick="event.stopPropagation();openQV(${p.id})" style="cursor:pointer${oos ? ';opacity:.5;filter:grayscale(.5)' : ''}" title="Ver detalle rápido">
       <div style="min-width:0;flex:1">
         <div class="prod-name" title="${_esc(p.name)}">${_esc(p.name)}</div>
         ${flagDataDR?.note ? `<div class="flag-note-line">🚩 "${_esc(flagDataDR.note)}"</div>` : ''}
@@ -674,7 +674,7 @@ function mobileCard(p) {
            ontouchmove="_lpMove(${p.id})"
            style="cursor:pointer">
         <div class="mpc-img-wrap">
-          <img class="mpc-img" src="${p.image}" alt="${_esc(p.name)}" loading="lazy"
+          <img class="mpc-img" src="${_driveSz(p.image,300)}" alt="${_esc(p.name)}" loading="lazy"
                onerror="this.onerror=null;this.src='${fallback}'"
                ${oos ? 'style="opacity:.5;filter:grayscale(.4)"' : ''}>
           <input type="checkbox" class="row-check mpc-check-over"
