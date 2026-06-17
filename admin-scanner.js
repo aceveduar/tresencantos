@@ -640,3 +640,49 @@ function showScanResult(id) {
   TE?.track('scan_result', { id });
   openQV(id);
 }
+
+/* ── PISTOLA LECTORA (keyboard wedge) — tableta con escáner USB/Bluetooth ── */
+function _focusAdminScanTrap() {
+  const trap = document.getElementById('admin-scan-trap');
+  if (!trap) return;
+  const tag = document.activeElement?.tagName?.toUpperCase();
+  // No robar foco de inputs reales (formulario, búsqueda, etc.)
+  if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+    trap.value = '';
+    trap.focus({ preventScroll: true });
+  }
+}
+
+;(function _initAdminKeyboardWedge() {
+  let buf = '', t = null;
+  document.addEventListener('keydown', e => {
+    if (!e.isTrusted) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const active = document.activeElement;
+    const tag    = active?.tagName?.toUpperCase();
+    // Saltar inputs reales — no el trap
+    if ((tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') && active?.id !== 'admin-scan-trap') return;
+    // Saltar si la cámara está abierta (ya tiene su propio detector)
+    if (document.getElementById('scanner-overlay')?.classList.contains('open')) return;
+
+    if (e.key === 'Enter') {
+      if (buf.length >= 4) {
+        e.preventDefault();
+        const code = buf;
+        buf = ''; clearTimeout(t);
+        _onAdminScan(code);
+        setTimeout(_focusAdminScanTrap, 200);
+        return;
+      }
+      buf = ''; clearTimeout(t);
+      return;
+    }
+    if (e.key.length === 1) {
+      buf += e.key;
+      clearTimeout(t);
+      t = setTimeout(() => { buf = ''; }, 80);
+    }
+  });
+  // Enfocar trampa al cargar para que la pistola siempre sea capturada
+  setTimeout(_focusAdminScanTrap, 500);
+})();
