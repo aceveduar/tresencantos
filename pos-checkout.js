@@ -463,18 +463,13 @@ function initDivider() {
 
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
-  // Ocultar nav según rol
-  if (_posRole !== 'superadmin' && _posRole !== 'duena') {
-    document.querySelectorAll(`a.tbn-icon[href="activity.html"]`).forEach(a => a.style.display = 'none');
-  }
-  if (_posRole === 'operador') {
-    ['stats.html','settings.html'].forEach(href => {
-      document.querySelectorAll(`a.tbn-icon[href="${href}"]`).forEach(a => a.style.display = 'none');
-    });
-  }
-  if (_posRole === 'duena' || _posRole === 'encargado') {
-    document.querySelectorAll(`a.tbn-icon[href="settings.html"]`).forEach(a => a.style.display = 'none');
-  }
+  // Ocultar nav según rol (espejo de _applyRoleUI en admin.js)
+  const _canStats    = _posRole === 'superadmin' || _posRole === 'duena';
+  const _canActivity = _posRole === 'superadmin' || _posRole === 'duena';
+  const _canSettings = _posRole === 'superadmin';
+  if (!_canStats)    document.querySelectorAll('a.tbn-icon[href="stats.html"]').forEach(a => a.style.display = 'none');
+  if (!_canActivity) document.querySelectorAll('a.tbn-icon[href="activity.html"]').forEach(a => a.style.display = 'none');
+  if (!_canSettings) document.querySelectorAll('a.tbn-icon[href="settings.html"]').forEach(a => a.style.display = 'none');
   // Registrar inicio de turno (se resetea cada día)
   const hoyKey = new Date().toISOString().split('T')[0];
   if (localStorage.getItem('te_shift_date') !== hoyKey) {
