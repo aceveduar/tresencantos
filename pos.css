@@ -47,7 +47,8 @@ button,a{touch-action:manipulation}
 .btn-gold{background:var(--gold);color:#fff}
 .btn-gold:hover{background:var(--gold-dark)}
 .btn-green{background:var(--green);color:#fff;font-size:.92rem;padding:11px 20px;border-radius:10px;width:100%;justify-content:center;font-weight:700}
-.btn-green:disabled{background:#ccc;cursor:not-allowed}
+.btn-green:disabled{background:#C4B9AD;color:rgba(255,255,255,.7);cursor:not-allowed}
+#cobrar-btn:disabled{background:#C4B9AD;color:rgba(255,255,255,.7);cursor:not-allowed;box-shadow:none}
 
 /* LAYOUT */
 .pos-body{display:grid;grid-template-columns:1fr 5px 1fr;flex:1;overflow:hidden;gap:0}
