@@ -73,8 +73,11 @@ function toggleCustomerField() {
 }
 function clearCustomerField() {
   document.getElementById('pos-customer').value = '';
-  document.getElementById('customer-input-wrap').style.display = 'none';
-  document.getElementById('customer-toggle-btn').style.display = '';
+  // En modo apartado el campo es requerido — solo limpia el valor, no lo colapsa
+  if (!document.getElementById('pos-is-apartado')?.checked) {
+    document.getElementById('customer-input-wrap').style.display = 'none';
+    document.getElementById('customer-toggle-btn').style.display = '';
+  }
   updateAnticipoInfo();
 }
 function autoCollapseCustomer() {
@@ -107,14 +110,18 @@ function toggleApartadoMode() {
     // Auto-focus en el campo de cliente (requerido en apartado)
     document.getElementById('customer-toggle-btn').style.display = 'none';
     document.getElementById('customer-input-wrap').style.display = '';
-    setTimeout(() => document.getElementById('pos-customer')?.focus(), 80);
+    const custReq = document.getElementById('pos-customer');
+    if (custReq) { custReq.placeholder = 'Nombre del cliente *'; custReq.classList.add('apt-required'); }
+    setTimeout(() => custReq?.focus(), 80);
   } else {
     // Al desactivar apartado: limpiar campos específicos del apartado y hint
     ['pos-phone','pos-anticipo','pos-pendiente','pos-due-date'].forEach(id => {
       const el = document.getElementById(id); if (el) el.value = '';
     });
-    // Cliente: si quedó vacío, colapsar de vuelta; si tiene texto, conservarlo (venta normal lo acepta)
-    if (!document.getElementById('pos-customer')?.value.trim()) {
+    // Restaurar campo cliente a estado opcional
+    const custEl = document.getElementById('pos-customer');
+    if (custEl) { custEl.placeholder = 'Nombre del cliente'; custEl.classList.remove('apt-required'); }
+    if (!custEl?.value.trim()) {
       document.getElementById('customer-input-wrap').style.display = 'none';
       document.getElementById('customer-toggle-btn').style.display = '';
     }
