@@ -227,6 +227,7 @@ function renderTodaySales() {
     const itemsHtml = items.map(i => {
       const prod = products.find(p => +p.id === +i.id);
       const img = _driveSz(_prodImg(prod), 80) || _DV_PH;
+      const fullImg = _driveSz(_prodImg(prod), 600) || img;
       const qty = i.qty || 1;
       const sub = parseFloat(i.subtotal ?? i.price * qty);
       const meta = qty > 1
@@ -236,7 +237,7 @@ function renderTodaySales() {
       const stockColor = prod && !prod.out_of_stock && prod.stock > 0 ? '#2D6A4F' : '#E85D5D';
       const nameEsc = _esc(i.name).replace(/'/g, "\\'");
       return `<div class="dv-item">
-  <img class="dv-thumb" src="${img}" alt="${_esc(i.name)}" onerror="_dvImgErr(this)" style="cursor:pointer" onclick="event.stopPropagation();_dvImgPopup(this,this.src,'${nameEsc}',${parseFloat(i.price)},${qty},'${stockInfo}','${stockColor}')">
+  <img class="dv-thumb" src="${img}" data-full="${_esc(fullImg)}" alt="${_esc(i.name)}" onerror="_dvImgErr(this)" style="cursor:pointer" onclick="event.stopPropagation();_dvImgPopup(this,this.dataset.full||this.src,'${nameEsc}',${parseFloat(i.price)},${qty},'${stockInfo}','${stockColor}')">
   <div style="flex:1;min-width:0"><div class="dv-item-name">${_esc(i.name)}</div><div class="dv-item-meta">${meta}</div></div>
   <div class="dv-item-sub">$${sub.toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
 </div>`;
