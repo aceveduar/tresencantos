@@ -178,27 +178,29 @@
         </div>
       </div>
 
-      <!-- Nota + Cliente -->
+      <!-- Nota -->
       <div class="note-cliente-row">
         <button type="button" class="note-toggle-btn" id="note-toggle-btn" onclick="toggleNoteField()">📝 Agregar nota</button>
         <div class="note-input-wrap" id="note-input-wrap" style="display:none">
           <input type="text" id="pos-note" placeholder="Escribe una nota…" onblur="autoCollapseNote()">
           <button type="button" class="note-clear-btn" onclick="clearNoteField()" title="Quitar nota">✕</button>
         </div>
+      </div>
 
-        <!-- Cliente (opcional en venta normal, requerido en apartado) -->
+      <!-- Apartado toggle — causa antes del efecto (cliente se expande al activar) -->
+      <label class="apartado-toggle-label">
+        <input type="checkbox" id="pos-is-apartado" onchange="toggleApartadoMode()">
+        📌 Es apartado / anticipo
+      </label>
+
+      <!-- Cliente (opcional en venta normal, requerido en apartado) -->
+      <div class="note-cliente-row">
         <button type="button" class="note-toggle-btn" id="customer-toggle-btn" onclick="toggleCustomerField()">👤 Agregar cliente</button>
         <div class="note-input-wrap" id="customer-input-wrap" style="display:none">
           <input type="text" id="pos-customer" placeholder="Nombre del cliente" oninput="updateAnticipoInfo()" onblur="autoCollapseCustomer()">
           <button type="button" class="note-clear-btn" onclick="clearCustomerField()" title="Quitar cliente">✕</button>
         </div>
       </div>
-
-      <!-- Apartado toggle -->
-      <label class="apartado-toggle-label">
-        <input type="checkbox" id="pos-is-apartado" onchange="toggleApartadoMode()">
-        📌 Es apartado / anticipo
-      </label>
 
       <!-- Campos del apartado -->
       <div id="apartado-fields" style="display:none">

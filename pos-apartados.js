@@ -155,23 +155,35 @@ function updateAnticipoInfo() {
 
   const pendiente = Math.max(0, total - anticipo);
   if (el) {
-    el.value = pendiente > 0 ? pendiente.toFixed(2) : '';
-    el.placeholder = pendiente === 0 && anticipo > 0 ? 'Cubierto ✓' : '—';
-    el.style.color = pendiente > 0 ? 'var(--red)' : 'var(--green)';
+    if (anticipo > 0 && pendiente > 0) {
+      el.value = pendiente.toFixed(2); el.placeholder = ''; el.style.color = 'var(--red)';
+    } else if (anticipo > 0 && pendiente === 0) {
+      el.value = ''; el.placeholder = 'Cubierto ✓'; el.style.color = 'var(--green)';
+    } else if (total > 0) {
+      el.value = ''; el.placeholder = 'Cobrar al entregar'; el.style.color = 'var(--muted)';
+    } else {
+      el.value = ''; el.placeholder = '—'; el.style.color = 'var(--muted)';
+    }
   }
   const hint = document.getElementById('cobrar-hint');
   if (btn && document.getElementById('pos-is-apartado')?.checked) {
-    const customer = document.getElementById('pos-customer')?.value.trim() || '';
-    const needsCustomer = !customer;
-    btn.disabled = needsCustomer;
+    const customer  = document.getElementById('pos-customer')?.value.trim() || '';
+    const noCart    = !cart.length;
+    const needsCust = !customer;
+    btn.disabled = noCart || needsCust;
     if (hint) {
-      if (needsCustomer) {
+      if (noCart && needsCust) {
+        hint.textContent = 'Agrega productos y el nombre del cliente para continuar';
+        hint.style.color = '#9B8B78'; hint.style.display = '';
+      } else if (noCart) {
+        hint.textContent = 'Agrega productos al carrito para continuar';
+        hint.style.color = '#9B8B78'; hint.style.display = '';
+      } else if (needsCust) {
         hint.textContent = 'Ingresa el nombre del cliente para continuar';
-        hint.style.display = '';
+        hint.style.color = '#9B8B78'; hint.style.display = '';
       } else if (anticipo <= 0) {
         hint.textContent = '📦 Sin anticipo — se cobrará al entregar';
-        hint.style.color = 'var(--gold-dark)';
-        hint.style.display = '';
+        hint.style.color = 'var(--gold-dark)'; hint.style.display = '';
       } else {
         hint.style.display = 'none';
       }
