@@ -363,7 +363,7 @@ function posCard(p) {
   return `
 <div class="pos-card${oos?' card-sold':''}" onclick="${oos?`_showRestockPrompt(${p.id})`:` addToCart(${p.id},this.querySelector('.pos-card-add-icon'),event)`}">
   <div class="pos-card-img-wrap">
-    <img class="pos-card-img" src="${p.image}" alt="${_esc(p.name)}" loading="lazy"
+    <img class="pos-card-img" src="${_driveSz(p.image,200)}" alt="${_esc(p.name)}" loading="lazy"
          onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'"
          onclick="event.stopPropagation();openPosPreview(${p.id})" style="cursor:zoom-in">
     <div class="pos-card-add">
@@ -542,7 +542,7 @@ function productCard(p) {
           : '';
   return `
 <div class="pos-prod" onclick="${oos ? `_showRestockPrompt(${p.id})` : `addToCart(${p.id},null,event)`}" ${oos ? '' : ''}>
-  <img class="pos-prod-img" src="${p.image}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'" onclick="event.stopPropagation();${oos ? `_showRestockPrompt(${p.id})` : `openPosPreview(${p.id})`}" style="cursor:${oos?'pointer':'zoom-in'}">
+  <img class="pos-prod-img" src="${_driveSz(p.image,200)}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'" onclick="event.stopPropagation();${oos ? `_showRestockPrompt(${p.id})` : `openPosPreview(${p.id})`}" style="cursor:${oos?'pointer':'zoom-in'}">
   <div class="pos-prod-info">
     <div class="pos-prod-name">${isKit ? '🎁 ' : ''}${_esc(p.name)}</div>
     ${kitCompsLine}
