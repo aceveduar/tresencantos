@@ -75,42 +75,48 @@ async function cobrar() {
                        : null
   };
 
-  const saleResult = await api('sales', { method:'POST', headers:{'Prefer':'return=minimal'}, body:JSON.stringify(saleData) });
-  if (!saleResult.ok) { btn.removeAttribute('data-loading'); btn.disabled = false; _cobrandoAhora = false; toast('Error al registrar la venta', 'error'); return; }
+  // Una sola llamada atómica: valida stock + inserta venta + descuenta stock en una transacción
+  const rpcResult = await api('rpc/record_sale_atomic', {
+    method: 'POST',
+    body: JSON.stringify({
+      p_items:           saleData.items,
+      p_total:           saleData.total,
+      p_discount:        saleData.discount || 0,
+      p_payment_method:  saleData.payment_method,
+      p_note:            saleData.note || null,
+      p_type:            saleData.type,
+      p_paid_amount:     saleData.paid_amount ?? null,
+      p_customer:        saleData.customer || null,
+      p_due_date:        saleData.due_date || null,
+      p_abonos:          saleData.abonos || null
+    })
+  });
+  if (!rpcResult.ok) {
+    btn.removeAttribute('data-loading'); btn.disabled = false; _cobrandoAhora = false;
+    const msg = rpcResult.data?.message || rpcResult.data?.details || '';
+    toast(msg.includes('Sin stock') ? msg : 'Error al registrar la venta — intenta de nuevo', 'error');
+    return;
+  }
 
-  // Reducir stock — todos los updates en paralelo
-  const stockUpdates = [];
+  // Actualizar array local optimistamente (Realtime también sincronizará)
   for (const { product: p, qty } of cart) {
     if (p.kitItems?.length) {
       for (const comp of p.kitItems) {
         const lc = products.find(x => x.id === comp.id);
         if (!lc) continue;
-        const newStock = Math.max(0, lc.stock - qty * comp.qty);
-        const patch = { stock: newStock };
-        if (newStock === 0) patch.out_of_stock = !isApartado; // apartado: no marcar agotado
-        if (newStock === 0 && !isApartado) patch.is_published = false;
-        if (newStock === 0 && isApartado) patch.is_apartado = true;
-        stockUpdates.push(
-          api(`products?id=eq.${comp.id}`, { method:'PATCH', body:JSON.stringify(patch) })
-            .then(() => { lc.stock = newStock; if (newStock === 0 && !isApartado) { lc.outOfStock = true; lc.isPublished = false; } })
-        );
+        lc.stock = Math.max(0, lc.stock - qty * comp.qty);
+        if (lc.stock === 0 && !isApartado) { lc.outOfStock = true; lc.isPublished = false; }
+        if (lc.stock === 0 &&  isApartado) { lc.isApartado = true; }
       }
     } else {
-      const newStock = Math.max(0, p.stock - qty);
-      const patch = { stock: newStock };
-      if (newStock === 0) patch.out_of_stock = !isApartado;
-      if (newStock === 0 && !isApartado) patch.is_published = false;
-      if (isApartado) patch.is_apartado = true;
       const lp = products.find(x => x.id === p.id);
-      stockUpdates.push(
-        api(`products?id=eq.${p.id}`, { method:'PATCH', body:JSON.stringify(patch) })
-          .then(() => { if (lp) { lp.stock = newStock; if (newStock === 0 && !isApartado) { lp.outOfStock = true; lp.isPublished = false; } } })
-      );
+      if (lp) {
+        lp.stock = Math.max(0, lp.stock - qty);
+        if (lp.stock === 0 && !isApartado) { lp.outOfStock = true; lp.isPublished = false; }
+        if (lp.stock === 0 &&  isApartado) { lp.isApartado = true; }
+      }
     }
   }
-  const stockResults = await Promise.allSettled(stockUpdates);
-  const failedStock = stockResults.filter(r => r.status === 'rejected').length;
-  if (failedStock) toast(`Venta guardada. ${failedStock} actualización${failedStock > 1 ? 'es' : ''} de stock fallaron — verifica el inventario.`, 'error');
 
   btn.removeAttribute('data-loading');
 
