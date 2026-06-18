@@ -48,20 +48,23 @@ let _catCounts = {};
 let driveEp    = null;
 let driveSecret= null;
 let nameMap    = {};
+let userPermsMap = {};  // { "email": { role, canXxx: bool, … } }
+const _myEmail = (() => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)||'{}')?.user?.email||''; } catch { return ''; } })();
 
 /* ── INIT ── */
 async function init() {
   const [cfgR, catR, namesR] = await Promise.all([
-    api('config?id=in.(groq_key,drive_ep,drive_secret,wa_float,captura_rapida,show_creator,show_batch,show_restock,show_recv)&select=id,value'),
+    api('config?id=in.(groq_key,drive_ep,drive_secret,wa_float,captura_rapida,show_creator,show_batch,show_restock,show_recv,user_permissions)&select=id,value'),
     api('config?id=eq.categories&select=value'),
     api('config?id=eq.user_names&select=value')
   ]);
 
   if (cfgR.ok && cfgR.data) {
     cfgR.data.forEach(row => {
-      if (row.id === 'groq_key')     groqApiKey  = row.value || null;
-      if (row.id === 'drive_ep')     driveEp     = row.value || null;
-      if (row.id === 'drive_secret') driveSecret = row.value || null;
+      if (row.id === 'groq_key')          groqApiKey   = row.value || null;
+      if (row.id === 'drive_ep')          driveEp      = row.value || null;
+      if (row.id === 'drive_secret')      driveSecret  = row.value || null;
+      if (row.id === 'user_permissions')  { try { userPermsMap = JSON.parse(row.value||'{}'); } catch {} }
       if (row.id === 'wa_float') {
         const toggle = document.getElementById('wa-float-toggle');
         if (toggle) toggle.checked = row.value !== 'false';
@@ -97,6 +100,7 @@ async function init() {
     try { nameMap = JSON.parse(namesR.data[0].value); } catch {}
   }
 
+  renderUsersPerms();
   loadGroqKeyStatus();
   loadDriveConfig();
 }
@@ -829,6 +833,135 @@ async function clearActivityLog() {
   const r = await api(filter, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
   if (r.ok) toast(`Registros de ${labels[range]} eliminados ✓`, 'ok');
   else toast('Error al borrar el historial', 'err');
+}
+
+/* ── USER PERMISSIONS PANEL ── */
+const _UP_ROLE_LABELS = {superadmin:'Superadmin', encargado:'Encargada', duena:'Dueña', operador:'Operador'};
+const _UP_AVATAR_COLORS = ['#C9A462','#60a5fa','#f472b6','#34d399','#a78bfa','#fb923c'];
+
+function _upAvatarColor(email) {
+  let h = 0;
+  for (let i = 0; i < email.length; i++) h = (h * 31 + email.charCodeAt(i)) >>> 0;
+  return _UP_AVATAR_COLORS[h % _UP_AVATAR_COLORS.length];
+}
+
+function renderUsersPerms() {
+  const list = document.getElementById('up-list');
+  if (!list) return;
+
+  const allEmails = [...new Set([...Object.keys(nameMap), ...Object.keys(userPermsMap)])].sort();
+  if (!allEmails.length) {
+    list.innerHTML = '<div class="up-loading">Sin usuarios registrados</div>';
+    return;
+  }
+  list.innerHTML = allEmails.map(email => _renderUserCard(email)).join('');
+}
+
+function _renderUserCard(email) {
+  const name   = nameMap[email] || email.split('@')[0];
+  const initial= name.slice(0,1).toUpperCase();
+  const color  = _upAvatarColor(email);
+  const isMe   = email === _myEmail;
+  const perms  = userPermsMap[email] || {};
+  const role   = perms.role || 'operador';
+
+  const roleOpts = ['superadmin','encargado','duena','operador'].map(v =>
+    `<option value="${v}"${v===role?' selected':''}>${escH(_UP_ROLE_LABELS[v]||v)}</option>`
+  ).join('');
+
+  return `<div class="up-card" data-email="${escH(email)}">
+    <div class="up-head" onclick="_upToggleCard(this)">
+      <div class="up-avatar" style="background:${color}">${escH(initial)}</div>
+      <div class="up-meta">
+        <div class="up-name">${escH(name)}${isMe?` <span class="up-me">tú</span>`:''}</div>
+        <div class="up-email">${escH(email)}</div>
+      </div>
+      <select class="up-role-sel" onclick="event.stopPropagation()" onchange="_upRoleChange(this)">
+        ${roleOpts}
+      </select>
+      <span class="up-chevron">›</span>
+    </div>
+    <div class="up-perms" style="display:none">${_renderPermsBody(email)}</div>
+  </div>`;
+}
+
+function _renderPermsBody(email) {
+  const perms  = userPermsMap[email] || {};
+  const role   = perms.role || 'operador';
+  const defs   = UP_ROLE_DEFAULTS[role] || UP_ROLE_DEFAULTS.operador;
+  const groups = [...new Set(UP_PERMS.map(p => p.group))];
+  return groups.map(group => {
+    const items = UP_PERMS.filter(p => p.group === group);
+    const rows  = items.map(p => {
+      const val = p.key in perms ? perms[p.key] : defs[p.key];
+      return `<label class="up-perm-row">
+        <input type="checkbox" class="up-perm-cb"${val?' checked':''} onchange="_upPermChange(this,'${p.key}')">
+        <span class="up-perm-label">${escH(p.label)}</span>
+      </label>`;
+    }).join('');
+    return `<div class="up-perm-group">
+      <div class="up-perm-group-lbl">${escH(group)}</div>
+      <div class="up-perm-grid">${rows}</div>
+    </div>`;
+  }).join('');
+}
+
+function _upToggleCard(headEl) {
+  const card    = headEl.closest('.up-card');
+  const permsDiv= card.querySelector('.up-perms');
+  const chevron = card.querySelector('.up-chevron');
+  const open    = permsDiv.style.display !== 'none';
+  permsDiv.style.display  = open ? 'none' : '';
+  chevron.style.transform = open ? '' : 'rotate(90deg)';
+}
+
+function _upRoleChange(sel) {
+  const card    = sel.closest('.up-card');
+  const email   = card.dataset.email;
+  const newRole = sel.value;
+  const defs    = UP_ROLE_DEFAULTS[newRole] || UP_ROLE_DEFAULTS.operador;
+  userPermsMap[email] = { ...defs, role: newRole };
+  const permsDiv = card.querySelector('.up-perms');
+  if (permsDiv) permsDiv.innerHTML = _renderPermsBody(email);
+  _upSavePerms();
+}
+
+function _upPermChange(cb, key) {
+  const card  = cb.closest('.up-card');
+  const email = card.dataset.email;
+  if (!userPermsMap[email]) {
+    const role = 'operador';
+    userPermsMap[email] = { ...UP_ROLE_DEFAULTS.operador, role };
+  }
+  userPermsMap[email][key] = cb.checked;
+  _upSavePerms();
+}
+
+function _upAddUser() {
+  const input = document.getElementById('up-new-email');
+  const email = (input?.value||'').trim().toLowerCase();
+  if (!email || !email.includes('@')) { toast('Ingresa un correo válido', 'err'); return; }
+  if (userPermsMap[email]) { toast('Este usuario ya está en la lista', ''); input.value=''; return; }
+  userPermsMap[email] = { ...UP_ROLE_DEFAULTS.operador, role:'operador' };
+  input.value = '';
+  renderUsersPerms();
+  _upSavePerms();
+}
+
+let _upSaveTimer = null;
+function _upSavePerms() {
+  clearTimeout(_upSaveTimer);
+  _upSaveTimer = setTimeout(async () => {
+    const r = await api('config', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ id: 'user_permissions', value: JSON.stringify(userPermsMap) })
+    });
+    if (r.ok) {
+      sessionStorage.removeItem('te_user_can');
+      toast('Permisos guardados ✓', 'ok');
+    } else { toast('Error al guardar permisos', 'err'); }
+  }, 600);
 }
 
 /* ── TOAST ── */

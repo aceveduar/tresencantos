@@ -12,7 +12,10 @@ const SESSION_KEY = 'te_admin_session';
     const role = s?.user?.user_metadata?.role ||
       (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.user_metadata?.role; } catch{} })() ||
       'operador';
-    if (role === 'operador' || role === 'encargado') window.location.href = 'admin.html';
+    // Verificar permiso individual antes de usar el rol por defecto
+    const _up = (() => { try { return JSON.parse(sessionStorage.getItem('te_user_can')||'{}'); } catch { return {}; } })();
+    const canViewReports = 'canViewReports' in _up ? _up.canViewReports : (role === 'superadmin' || role === 'duena');
+    if (!canViewReports) return window.location.href = 'admin.html';
     const userEmail = s?.user?.email ||
       (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.email; } catch{} })() || '';
     if (role === 'superadmin' && userEmail === 'eacevedo@sunname.com.mx') {
@@ -21,9 +24,16 @@ const SESSION_KEY = 'te_admin_session';
         if (ga) ga.style.display = '';
       });
     }
-    if (role !== 'superadmin' && role !== 'duena') {
+    const canViewActivity = 'canViewActivity' in _up ? _up.canViewActivity : (role === 'superadmin' || role === 'duena');
+    if (!canViewActivity) {
       document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll(`a[href="activity.html"]`).forEach(a => a.style.display = 'none');
+      });
+    }
+    const canSettings = 'canManageSettings' in _up ? _up.canManageSettings : (role === 'superadmin');
+    if (!canSettings) {
+      document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll(`a[href="settings.html"]`).forEach(a => a.style.display = 'none');
       });
     }
   } catch { window.location.href = 'admin.html'; }

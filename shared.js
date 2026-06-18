@@ -114,3 +114,46 @@
 
   document.addEventListener('DOMContentLoaded', _initOfflineBanner);
 })();
+
+/* ── PERMISSION SYSTEM ── */
+const UP_PERMS = [
+  {key:'canAddProduct',     label:'Agregar productos',   group:'Inventario'},
+  {key:'canEditProduct',    label:'Editar y precios',    group:'Inventario'},
+  {key:'canDeleteProduct',  label:'Eliminar productos',  group:'Inventario'},
+  {key:'canPublishProduct', label:'Publicar en web',     group:'Inventario'},
+  {key:'canBulkDelete',     label:'Borrado masivo',      group:'Inventario'},
+  {key:'canImportJSON',     label:'Import / Export JSON',group:'Inventario'},
+  {key:'canMasivo',         label:'Carga masiva IA',     group:'Inventario'},
+  {key:'canCancelSale',     label:'Cancelar ventas',     group:'Caja'},
+  {key:'canEditApartado',   label:'Editar apartados',    group:'Caja'},
+  {key:'canViewReports',    label:'Ver Reportes',        group:'Módulos'},
+  {key:'canViewActivity',   label:'Ver Actividad',       group:'Módulos'},
+  {key:'canManageSettings', label:'Configuración',       group:'Módulos'},
+];
+const UP_ROLE_DEFAULTS = {
+  superadmin:{canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canImportJSON:true, canMasivo:true, canCancelSale:true, canEditApartado:true, canViewReports:true, canViewActivity:true, canManageSettings:true},
+  encargado: {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canImportJSON:false, canMasivo:false, canCancelSale:true, canEditApartado:false, canViewReports:false, canViewActivity:false, canManageSettings:false},
+  duena:     {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:true, canViewReports:true, canViewActivity:true, canManageSettings:false},
+  operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:false, canViewReports:false, canViewActivity:false, canManageSettings:false},
+};
+function _getMyPermsCached() {
+  try { const c=sessionStorage.getItem('te_user_can'); return c?JSON.parse(c):null; } catch { return null; }
+}
+async function _loadMyPerms() {
+  const cached=_getMyPermsCached(); if(cached) return cached;
+  try {
+    const _s=JSON.parse(localStorage.getItem('te_admin_session')||'{}');
+    const tok=_s?.access_token||'';
+    const url=typeof SUPABASE_URL!=='undefined'?SUPABASE_URL:'';
+    const key=typeof SUPABASE_ANON_KEY!=='undefined'?SUPABASE_ANON_KEY:'';
+    const r=await fetch(`${url}/rest/v1/config?id=eq.user_permissions&select=value`,
+      {headers:{apikey:key,Authorization:`Bearer ${tok}`}});
+    if(!r.ok) return null;
+    const data=await r.json();
+    const all=JSON.parse(data?.[0]?.value||'{}');
+    const email=_s?.user?.email||null;
+    const my=email?all[email]||null:null;
+    if(my) sessionStorage.setItem('te_user_can',JSON.stringify(my));
+    return my;
+  } catch { return null; }
+}

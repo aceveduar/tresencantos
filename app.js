@@ -351,10 +351,13 @@ function initAdminBar() {
     const role = s.user?.user_metadata?.role ||
       (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.user_metadata?.role; } catch { return null; } })() ||
       'operador';
-    const _noStats    = role === 'operador' || role === 'encargado';
-    const _noSettings = role !== 'superadmin';
-    if (_noStats)    ['stats.html','activity.html'].forEach(href => document.querySelector(`#admin-bar a[href="${href}"]`)?.remove());
-    if (_noSettings) document.querySelector('#admin-bar a[href="settings.html"]')?.remove();
+    const _up = (() => { try { return JSON.parse(sessionStorage.getItem('te_user_can')||'{}'); } catch { return {}; } })();
+    const _noStats    = 'canViewReports'    in _up ? !_up.canViewReports    : (role === 'operador' || role === 'encargado');
+    const _noActivity = 'canViewActivity'   in _up ? !_up.canViewActivity   : (role === 'operador' || role === 'encargado');
+    const _noSettings = 'canManageSettings' in _up ? !_up.canManageSettings : (role !== 'superadmin');
+    if (_noStats)    document.querySelector(`#admin-bar a[href="stats.html"]`)?.remove();
+    if (_noActivity) document.querySelector(`#admin-bar a[href="activity.html"]`)?.remove();
+    if (_noSettings) document.querySelector(`#admin-bar a[href="settings.html"]`)?.remove();
   } catch {}
 }
 

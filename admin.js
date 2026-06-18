@@ -29,7 +29,7 @@ function _parseRole() {
 const ROLE = _parseRole();
 const _isSuperOrEncargado = ROLE === 'superadmin' || ROLE === 'encargado';
 const _isDuena = ROLE === 'duena';
-const can = {
+let can = {
   deleteProduct:   true,
   bulkDelete:      _isSuperOrEncargado,
   importJSON:      ROLE === 'superadmin',
@@ -38,6 +38,17 @@ const can = {
   editProduct:     true,
   addProduct:      true,
 };
+
+function _applyUserPermsToAdmin(up) {
+  if (!up) return;
+  if ('canDeleteProduct'  in up) can.deleteProduct  = up.canDeleteProduct;
+  if ('canBulkDelete'     in up) can.bulkDelete     = up.canBulkDelete;
+  if ('canImportJSON'     in up) can.importJSON      = up.canImportJSON;
+  if ('canManageSettings' in up) can.manageSettings  = up.canManageSettings;
+  if ('canPublishProduct' in up) can.publishProduct  = up.canPublishProduct;
+  if ('canEditProduct'    in up) can.editProduct     = up.canEditProduct;
+  if ('canAddProduct'     in up) can.addProduct      = up.canAddProduct;
+}
 
 const SUPABASE_URL = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
 
@@ -812,6 +823,8 @@ async function showApp() {
   } catch {}
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
+  // Aplicar permisos cacheados de sesión antes del render de UI (evita flash)
+  _applyUserPermsToAdmin(_getMyPermsCached());
   _applyRoleUI();
 
   // Mostrar skeleton mientras cargan datos

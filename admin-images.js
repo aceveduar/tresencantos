@@ -14,7 +14,7 @@ function _creatorName(email) {
 }
 
 async function loadAppConfig() {
-  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret,captura_rapida,dismissed_dups,show_creator,show_batch,show_recv,user_names)&select=id,value');
+  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret,captura_rapida,dismissed_dups,show_creator,show_batch,show_recv,user_names,user_permissions)&select=id,value');
   if (r.ok && r.data) {
     r.data.forEach(row => {
       if (row.id === 'groq_key')     groqApiKey  = row.value || null;
@@ -48,6 +48,18 @@ async function loadAppConfig() {
       }
       if (row.id === 'user_names') {
         try { _userNames = JSON.parse(row.value || '{}'); } catch { _userNames = {}; }
+      }
+      if (row.id === 'user_permissions') {
+        try {
+          const allPerms = JSON.parse(row.value || '{}');
+          const myEmail  = (()=>{ try{ return JSON.parse(localStorage.getItem('te_admin_session')||'{}')?.user?.email||null; }catch{return null;} })();
+          const myPerms  = myEmail ? allPerms[myEmail] || null : null;
+          if (myPerms) {
+            sessionStorage.setItem('te_user_can', JSON.stringify(myPerms));
+            _applyUserPermsToAdmin(myPerms);
+            _applyRoleUI();
+          }
+        } catch {}
       }
     });
   }

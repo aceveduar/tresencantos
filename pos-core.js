@@ -24,8 +24,16 @@ function getPosRole() {
     return (jr && KNOWN_ROLES.includes(jr)) ? jr : 'operador';
   } catch { return 'operador'; }
 }
-function canCancelSale() { const r = getPosRole(); return r === 'superadmin' || r === 'encargado'; }
-function canEditApartado() { const r = getPosRole(); return r === 'superadmin' || r === 'duena'; }
+function canCancelSale() {
+  const up = _getMyPermsCached();
+  if (up && 'canCancelSale' in up) return up.canCancelSale;
+  const r = getPosRole(); return r === 'superadmin' || r === 'encargado';
+}
+function canEditApartado() {
+  const up = _getMyPermsCached();
+  if (up && 'canEditApartado' in up) return up.canEditApartado;
+  const r = getPosRole(); return r === 'superadmin' || r === 'duena';
+}
 
 async function cancelApartado(id) {
   if (!canEditApartado()) { toast('Sin permiso para cancelar apartados', 'error'); return; }

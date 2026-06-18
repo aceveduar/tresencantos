@@ -11,7 +11,9 @@ const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace
     const role = s?.user?.user_metadata?.role ||
       (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.user_metadata?.role; } catch{} })() ||
       'operador';
-    if (role !== 'superadmin' && role !== 'duena') window.location.href = 'admin.html';
+    const _up = (() => { try { return JSON.parse(sessionStorage.getItem('te_user_can')||'{}'); } catch { return {}; } })();
+    const canViewActivity = 'canViewActivity' in _up ? _up.canViewActivity : (role === 'superadmin' || role === 'duena');
+    if (!canViewActivity) return window.location.href = 'admin.html';
   } catch { window.location.href = 'admin.html'; }
 })();
 
