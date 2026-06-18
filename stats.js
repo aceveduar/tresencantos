@@ -60,9 +60,9 @@ const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace
 const _driveSz = (url, w) => (url && url.includes('drive.google.com')) ? url.replace(/sz=w\d+/, `sz=w${w}`) : (url || '');
 
 /* ── STATE ── */
-let _statsMode = 'week';
+let _statsMode = 'day';
 let _statsOffset = 0;
-let currentPeriod = 'week'; // derived — updated by _updateNavUI()
+let currentPeriod = 'today'; // derived — updated by _updateNavUI()
 let sales = [];
 let prevSales = [];
 let products = [];
@@ -751,24 +751,24 @@ function aggregateProducts() {
       map[item.id].revenue += item.subtotal||0;
     });
   });
-  return Object.values(map).sort((a,b)=>b.revenue-a.revenue);
+  return Object.values(map).sort((a,b)=>b.qty-a.qty||b.revenue-a.revenue);
 }
 
 function renderTopProducts() {
   const prods = aggregateProducts().slice(0,8);
   const el = document.getElementById('top-products');
   if (!prods.length) { el.innerHTML = '<p class="no-data">Sin ventas en el período</p>'; return; }
-  const maxRev = prods[0].revenue || 1;
+  const maxQty = prods[0].qty || 1;
   el.innerHTML = prods.map((p,i) => `
 <div class="top-prod-item">
   <div class="tp-rank">${i+1}</div>
   <div class="tp-info">
     <div class="tp-name" title="${_esc(p.name)}">${_esc(p.name)}</div>
-    <div class="tp-bar-wrap"><div class="tp-bar" style="width:${Math.round(p.revenue/maxRev*100)}%"></div></div>
+    <div class="tp-bar-wrap"><div class="tp-bar" style="width:${Math.round(p.qty/maxQty*100)}%"></div></div>
   </div>
   <div class="tp-stats">
-    <div class="tp-revenue">$${p.revenue.toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
-    <div class="tp-qty">${p.qty} ud${p.qty!==1?'s':''}</div>
+    <div class="tp-revenue">${p.qty} ud${p.qty!==1?'s':''}</div>
+    <div class="tp-qty">$${p.revenue.toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
   </div>
 </div>`).join('');
 }
