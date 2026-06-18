@@ -351,15 +351,10 @@ function initAdminBar() {
     const role = s.user?.user_metadata?.role ||
       (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.user_metadata?.role; } catch { return null; } })() ||
       'operador';
-    if (role === 'operador') {
-      ['stats.html', 'activity.html', 'settings.html'].forEach(href => {
-        document.querySelector(`#admin-bar a[href="${href}"]`)?.remove();
-      });
-    } else if (role === 'duena') {
-      ['settings.html'].forEach(href => {
-        document.querySelector(`#admin-bar a[href="${href}"]`)?.remove();
-      });
-    }
+    const _noStats    = role === 'operador' || role === 'encargado';
+    const _noSettings = role !== 'superadmin';
+    if (_noStats)    ['stats.html','activity.html'].forEach(href => document.querySelector(`#admin-bar a[href="${href}"]`)?.remove());
+    if (_noSettings) document.querySelector('#admin-bar a[href="settings.html"]')?.remove();
   } catch {}
 }
 
