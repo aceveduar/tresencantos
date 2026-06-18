@@ -56,7 +56,7 @@ function recvSearch(q) {
   const PH = DEFAULT_IMG;
   resultsEl.innerHTML = matches.map(p => `
 <div class="recv-result-item" onclick="recvConfirmAdd(${p.id})">
-  <img class="recv-result-img" src="${p.image}" onerror="this.src='${PH}'" alt="">
+  <img class="recv-result-img" src="${_driveSz(p.image, 80)}" onerror="this.src='${PH}'" alt="">
   <div style="flex:1;min-width:0">
     <div class="recv-result-name">${_esc(p.name)}</div>
     <div class="recv-result-stock">Stock actual: ${p.stock}</div>
@@ -139,7 +139,7 @@ function _showRecvFeedback(p, totalQty) {
   fb.style.display = 'block';
   fb.innerHTML = `
 <div class="recv-fb-inner">
-  <img class="recv-fb-img" src="${p.image}" onerror="this.style.display='none'" alt="">
+  <img class="recv-fb-img" src="${_driveSz(p.image, 80)}" onerror="this.style.display='none'" alt="">
   <div class="recv-fb-info">
     <div class="recv-fb-name">${_esc(p.name)}</div>
     <div class="recv-fb-arrow">${p.stock - totalQty} → <strong>+${totalQty} = ${p.stock}</strong> unidades</div>
@@ -194,7 +194,7 @@ function _renderRecvList() {
   const PH = DEFAULT_IMG;
   el.innerHTML = _recvSession.map(({ product: p, qtyAdded, prevStock }) => `
 <div class="recv-item">
-  <img class="recv-item-img" src="${p.image}" onerror="this.src='${PH}'" alt="">
+  <img class="recv-item-img" src="${_driveSz(p.image, 80)}" onerror="this.src='${PH}'" alt="">
   <div class="recv-item-info">
     <div class="recv-item-name">${_esc(p.name)}</div>
     <div class="recv-item-arrow">${prevStock} → <strong>+${qtyAdded} = ${p.stock}</strong> uds.</div>

@@ -829,7 +829,7 @@ function renderKitEditor() {
     const stock = p ? (p.outOfStock || p.stock === 0 ? '<span style="color:var(--red)">Agotado</span>' : `<span style="color:var(--green)">${p.stock} uds</span>`) : '<span style="color:var(--muted)">—</span>';
     return `
 <div class="kit-comp-row">
-  ${p?.image ? `<img src="${p.image}" class="kit-comp-img" onerror="this.style.display='none'" onclick="_kitCompPopover(${item.id},event)" style="cursor:zoom-in" title="Ver producto">` : '<div class="kit-comp-img"></div>'}
+  ${p?.image ? `<img src="${_driveSz(p.image, 80)}" class="kit-comp-img" onerror="this.style.display='none'" onclick="_kitCompPopover(${item.id},event)" style="cursor:zoom-in" title="Ver producto">` : '<div class="kit-comp-img"></div>'}
   <span class="kit-comp-name" onclick="_kitCompPopover(${item.id},event)" style="cursor:pointer" title="Ver producto">${p?.name || item.name}</span>
   <span class="kit-comp-stock">${stock}</span>
   <div class="kit-comp-qty">
@@ -889,7 +889,7 @@ function searchKitProducts(query) {
   resultsEl.style.display = 'block';
   resultsEl.innerHTML = matches.map(p => `
 <div onclick="addKitComponent(${p.id})" style="cursor:pointer;padding:7px 10px;display:flex;align-items:center;gap:8px;font-size:.82rem;border-bottom:1px solid var(--border);transition:.1s" onmouseenter="this.style.background='#FFF8EE'" onmouseleave="this.style.background=''">
-  <img src="${p.image}" style="width:28px;height:28px;object-fit:cover;border-radius:5px;flex-shrink:0" onerror="this.style.display='none'">
+  <img src="${_driveSz(p.image, 80)}" style="width:28px;height:28px;object-fit:cover;border-radius:5px;flex-shrink:0" onerror="this.style.display='none'">
   <span style="flex:1;font-weight:600">${_esc(p.name)}</span>
   <span style="color:var(--muted);font-size:.74rem">${p.stock > 0 && !p.outOfStock ? p.stock+' uds' : 'Agotado'}</span>
 </div>`).join('') + createBtn;

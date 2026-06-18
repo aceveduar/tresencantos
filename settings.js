@@ -12,7 +12,7 @@ let ROLE = 'operador';
     ROLE = s?.user?.user_metadata?.role ||
       (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.user_metadata?.role; } catch{} })() ||
       'operador';
-    if (ROLE === 'operador') window.location.href = 'admin.html';
+    if (ROLE !== 'superadmin') window.location.href = 'admin.html';
   } catch { window.location.href = 'admin.html'; }
 })();
 

@@ -110,7 +110,7 @@ function _kbSearch(q) {
       : `${p.stock} en stock`;
     return `
     <div class="kb-result-item" onclick="_kbAddComponent(${p.id})" style="${isOos ? 'opacity:.75' : ''}">
-      <img src="${p.image}" style="width:36px;height:36px;object-fit:cover;border-radius:7px;flex-shrink:0;background:#F0EBE3" onerror="this.src='${DEFAULT_IMG}'">
+      <img src="${_driveSz(p.image, 80)}" style="width:36px;height:36px;object-fit:cover;border-radius:7px;flex-shrink:0;background:#F0EBE3" onerror="this.src='${DEFAULT_IMG}'">
       <div style="flex:1;min-width:0">
         <div style="font-size:.84rem;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${_esc(p.name)}</div>
         <div style="font-size:.72rem;color:var(--muted);margin-top:1px">${stockTxt}</div>

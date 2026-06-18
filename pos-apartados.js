@@ -313,7 +313,7 @@ function _renderApartadoCards(data) {
     // Items
     const itemsListHTML = nItems ? s.items.map(i => {
       const prod  = products.find(x => x.id === i.id);
-      const img   = prod?.image || i.image || '';
+      const img   = _driveSz(prod?.image || i.image || '', 80);
       const price = (i.subtotal ?? i.price*(i.qty||1)).toLocaleString('es-MX');
       return `<div class="apt-item-row" onclick="event.stopPropagation();_aptItemPopup(${i.id},this)">
         <img class="apt-item-thumb" src="${img}" onerror="this.style.visibility='hidden'" alt="">
@@ -648,7 +648,7 @@ function searchEditApt(q) {
   res.innerHTML = matches.map(p => {
     const oos = p.outOfStock || p.stock === 0;
     return `<div onclick="_editAptAddProduct(${p.id})" style="cursor:pointer;padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:.82rem;border-bottom:1px solid var(--border);${oos?'opacity:.65':''}">
-      <img src="${p.image}" style="width:28px;height:28px;object-fit:cover;border-radius:5px;flex-shrink:0" onerror="this.style.display='none'">
+      <img src="${_driveSz(p.image, 80)}" style="width:28px;height:28px;object-fit:cover;border-radius:5px;flex-shrink:0" onerror="this.style.display='none'">
       <span style="flex:1;font-weight:600">${_esc(p.name)}</span>
       <span style="color:${oos?'var(--red)':'var(--muted)'};font-size:.74rem">${oos?'Sin stock':'$'+p.price.toLocaleString('es-MX')}</span>
     </div>`;

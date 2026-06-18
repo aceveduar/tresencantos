@@ -57,6 +57,7 @@ function api(path, opts={}) {
 }
 
 const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const _driveSz = (url, w) => (url && url.includes('drive.google.com')) ? url.replace(/sz=w\d+/, `sz=w${w}`) : (url || '');
 
 /* ── STATE ── */
 let _statsMode = 'week';
@@ -225,7 +226,7 @@ function renderTodaySales() {
 
     const itemsHtml = items.map(i => {
       const prod = products.find(p => +p.id === +i.id);
-      const img = _prodImg(prod) || _DV_PH;
+      const img = _driveSz(_prodImg(prod), 80) || _DV_PH;
       const qty = i.qty || 1;
       const sub = parseFloat(i.subtotal ?? i.price * qty);
       const meta = qty > 1

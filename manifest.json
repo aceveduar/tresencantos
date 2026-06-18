@@ -18,6 +18,11 @@
   ],
   "shortcuts": [
     {
+      "name": "Caja",
+      "url": "/pos.html",
+      "description": "Punto de venta"
+    },
+    {
       "name": "Ver catálogo",
       "url": "/index.html#productos",
       "description": "Ir al catálogo de productos"

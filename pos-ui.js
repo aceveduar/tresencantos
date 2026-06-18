@@ -361,7 +361,7 @@ function openAptDetail(id) {
   // Items
   const itemsHTML = (s.items || []).map(i => {
     const prod     = products.find(x => x.id === i.id);
-    const img      = prod?.image || i.image || '';
+    const img      = _driveSz(prod?.image || i.image || '', 80);
     const price    = (i.subtotal ?? i.price * (i.qty || 1)).toLocaleString('es-MX');
     const kitComps = prod?.kitItems || i.kit_items;
     const kitHTML  = Array.isArray(kitComps) && kitComps.length

@@ -370,9 +370,9 @@ function _kitCompPopupRender(id) {
     <button onclick="document.getElementById('kit-comp-popup')?.remove()" style="${navBtn('right:8px;top:8px;margin-top:0')}">✕</button>
     ${hasPrev ? `<button onclick="event.stopPropagation();_kitCompPopupNav(-1)" style="${navBtn('left:6px')}">‹</button>` : ''}
     ${hasNext ? `<button onclick="event.stopPropagation();_kitCompPopupNav(1)"  style="${navBtn('right:6px')}">›</button>` : ''}
-    <img src="${comp.image || DEFAULT_IMG}" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'" style="width:100%;height:230px;object-fit:contain;background:#F7F2EB;display:block">
+    <img src="${_driveSz(comp.image || DEFAULT_IMG, 400)}" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'" style="width:100%;height:230px;object-fit:contain;background:#F7F2EB;display:block">
     <div style="padding:8px 12px 12px;display:flex;flex-direction:column;gap:5px">
-      <div style="font-size:.84rem;font-weight:700;color:#1C1817;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${comp.name}</div>
+      <div style="font-size:.84rem;font-weight:700;color:#1C1817;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(comp.name)}</div>
       <div style="display:flex;align-items:center;justify-content:space-between">
         ${stockTxt}
         <span style="font-size:.75rem;color:var(--muted)">$${(comp.price||0).toLocaleString('es-MX')}</span>
@@ -558,7 +558,7 @@ function _renderQV(p) {
           const comp = products.find(x => x.id === item.id);
           const clickable = comp ? `onclick="_kitCompPopup(${comp.id},this)" style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-light);cursor:pointer;border-radius:6px;transition:background .15s" onmouseenter="this.style.background='var(--gold-light)'" onmouseleave="this.style.background=''"` : `style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-light)"`;
           return `<div ${clickable}>
-            <img src="${comp?.image || DEFAULT_IMG}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0;background:#F0EBE3" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
+            <img src="${_driveSz(comp?.image || DEFAULT_IMG, 80)}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0;background:#F0EBE3" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
             <span style="flex:1;font-size:.82rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${comp?.name || item.name}</span>
             <span style="font-size:.75rem;color:var(--muted);font-weight:600;flex-shrink:0">×${item.qty}</span>
           </div>`;
