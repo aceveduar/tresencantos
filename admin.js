@@ -37,6 +37,9 @@ let can = {
   publishProduct:  true,
   editProduct:     true,
   addProduct:      true,
+  masivo:          ROLE === 'superadmin',
+  viewReports:     ROLE === 'superadmin' || ROLE === 'duena',
+  viewActivity:    ROLE === 'superadmin' || ROLE === 'duena',
 };
 
 function _applyUserPermsToAdmin(up) {
@@ -48,6 +51,9 @@ function _applyUserPermsToAdmin(up) {
   if ('canPublishProduct' in up) can.publishProduct  = up.canPublishProduct;
   if ('canEditProduct'    in up) can.editProduct     = up.canEditProduct;
   if ('canAddProduct'     in up) can.addProduct      = up.canAddProduct;
+  if ('canMasivo'         in up) can.masivo          = up.canMasivo;
+  if ('canViewReports'    in up) can.viewReports     = up.canViewReports;
+  if ('canViewActivity'   in up) can.viewActivity    = up.canViewActivity;
 }
 
 const SUPABASE_URL = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
@@ -730,26 +736,13 @@ async function doLogout() {
 
 /* ── APP ── */
 function _applyRoleUI() {
-  // Operador: ocultar Reportes, Actividad y Settings
-  if (ROLE === 'operador') {
-    ['stats.html','activity.html','settings.html'].forEach(href => {
-      document.querySelectorAll(`a[href="${href}"]`).forEach(a => a.style.setProperty('display','none'));
-    });
-  }
-  // Encargado: NO Reportes, NO Actividad, NO Settings
-  if (ROLE === 'encargado') {
-    ['stats.html','activity.html','settings.html'].forEach(href => {
-      document.querySelectorAll(`a[href="${href}"]`).forEach(a => a.style.setProperty('display','none'));
-    });
-  }
-  // Dueña: no ve Settings (Actividad sí puede ver)
-  if (ROLE === 'duena') {
-    document.querySelectorAll('a[href="settings.html"]').forEach(a => a.style.setProperty('display','none'));
-  }
-  // Settings — solo superadmin
-  if (!can.manageSettings) {
-    document.querySelectorAll('a[href="settings.html"]').forEach(a => a.style.setProperty('display', 'none'));
-  }
+  // Nav links — basado en can (respeta permisos individuales del panel)
+  const _hide = href => document.querySelectorAll(`a[href="${href}"]`).forEach(a => a.style.setProperty('display','none'));
+  const _show = href => document.querySelectorAll(`a[href="${href}"]`).forEach(a => a.style.removeProperty('display'));
+  // Reportar primero limpia, luego aplica estado actual (idempotente para re-llamadas)
+  if (!can.viewReports)    _hide('stats.html');    else _show('stats.html');
+  if (!can.viewActivity)   _hide('activity.html'); else _show('activity.html');
+  if (!can.manageSettings) _hide('settings.html'); else _show('settings.html');
   // Botones de agregar producto — solo si puede
   if (!can.addProduct) {
     document.querySelectorAll('[onclick="openForm()"]').forEach(b => b.style.setProperty('display', 'none'));
@@ -778,8 +771,8 @@ function _applyRoleUI() {
   if (can.addProduct) {
     document.getElementById('btn-capture-mode')?.style.removeProperty('display');
   }
-  // Botón Carga masiva — solo superadmin y si está activado en config
-  if (ROLE === 'superadmin' && _showBatch) {
+  // Botón Carga masiva — permiso canMasivo + config activado
+  if (can.masivo && _showBatch) {
     document.getElementById('btn-batch-upload')?.style.removeProperty('display');
   }
 }
@@ -826,6 +819,8 @@ async function showApp() {
   // Aplicar permisos cacheados de sesión antes del render de UI (evita flash)
   _applyUserPermsToAdmin(_getMyPermsCached());
   _applyRoleUI();
+  // Actualizar async en caso de que el caché estuviera vacío (primera visita o sesión nueva)
+  _loadMyPerms().then(up => { if (up) { _applyUserPermsToAdmin(up); _applyRoleUI(); } });
 
   // Mostrar skeleton mientras cargan datos
   const tbody = document.getElementById('products-table');

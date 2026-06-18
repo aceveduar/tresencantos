@@ -37,7 +37,7 @@ async function loadAppConfig() {
       if (row.id === 'show_batch') {
         _showBatch = row.value === 'true';
         const btn = document.getElementById('btn-batch-upload');
-        if (btn && ROLE === 'superadmin') {
+        if (btn && can.masivo) {
           _showBatch ? btn.style.removeProperty('display') : btn.style.setProperty('display', 'none');
         }
       }
