@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-06-17 (rev 40).
+Documentación técnica del proyecto. Última actualización: 2026-06-18 (rev 41).
 
 ## Rol de Claude en este proyecto
 
@@ -237,19 +237,22 @@ El cambio aplica en el **próximo login** — la sesión activa usa el JWT viejo
 | ofe@tresencantos.com | duena |
 
 **Permisos por rol:**
-| Acción | superadmin | operador | duena |
-|---|---|---|---|
-| Ver productos | ✓ | ✓ | ✓ |
-| Editar producto / precio | ✓ | ✓ | ✓ |
-| Agregar producto | ✓ | ✓ | ✓ |
-| Publicar en sitio web | ✓ | ✗ | ✓ |
-| Eliminar producto | ✓ | ✗ | ✓ |
-| Importar/Exportar JSON | ✓ | ✗ | ✗ |
-| Cancelar venta (Caja) | ✓ | ✗ | ✗ |
-| Bulk delete | ✓ | ✗ | ✗ |
-| Ver Reportes | ✓ | ✗ | ✓ |
-| Ver Actividad | ✓ | ✗ | ✓ |
-| Configuración | ✓ | ✗ | ✗ |
+| Acción | superadmin | encargado | duena | operador |
+|---|---|---|---|---|
+| Ver productos | ✓ | ✓ | ✓ | ✓ |
+| Editar producto / precio | ✓ | ✓ | ✓ | ✓ |
+| Agregar producto | ✓ | ✓ | ✓ | ✓ |
+| Publicar en sitio web | ✓ | ✓ | ✓ | ✗ |
+| Eliminar producto | ✓ | ✓ | ✓ | ✗ |
+| Cancelar venta (Caja) | ✓ | ✓ | ✗ | ✗ |
+| Editar apartado | ✓ | ✗ | ✓ | ✗ |
+| Bulk delete | ✓ | ✓ | ✗ | ✗ |
+| Importar/Exportar JSON | ✓ | ✗ | ✗ | ✗ |
+| Ver Reportes | ✓ | ✗ | ✓ | ✗ |
+| Ver Actividad | ✓ | ✗ | ✓ | ✗ |
+| Configuración | ✓ | ✗ | ✗ | ✗ |
+
+`encargado` — rol para cajera/encargada de turno con más permisos que operador (puede eliminar, cancelar ventas, bulk delete) pero sin acceso a Reportes, Actividad ni Configuración. No asignado a ningún usuario actualmente — disponible para cuando se necesite.
 
 **Comportamiento operador al crear productos:** `is_published` se fuerza a `false` — requiere que un superadmin revise y publique. El campo precio sí puede editarlo (transcribe de etiqueta física).
 
@@ -591,9 +594,13 @@ Si se quitan todas las imágenes, la tira muestra "Sin imágenes — sube una ar
   - **Realtime** (`initRealtime()` en admin.js y pos-core.js): `createClient` ahora usa `SUPABASE_ANON_KEY` + `global.headers.Authorization` con el JWT del usuario
   - **Auth Admin API eliminada** de `openNamesModal()` en `settings.js` — requería service_role para listar usuarios; se usa directamente el fallback de `activity_log` (ya estaba implementado, siempre devolvía los mismos emails en producción)
   - **Storage (revista PDF)**: `settings.js` líneas 697/705 usan `_getSettingsToken()` en vez de service_role — requiere política de storage en Supabase (incluida en `_rls-setup.sql`)
-  - **`_rls-setup.sql`**: archivo SQL completo en la raíz del proyecto con `get_user_role()` helper + políticas para `products`, `sales`, `config`, `activity_log`, `recently_edited` y `storage.objects` (bucket `revistas`) — Eduardo lo corre en Supabase SQL Editor antes del deploy
+  - **`_rls-setup.sql`**: ejecutado en Supabase SQL Editor y eliminado del repo. Contenía `get_user_role()` helper + políticas para `products`, `sales`, `config`, `activity_log`, `recently_edited` y `storage.objects` (bucket `revistas`)
   - **`config` table**: política anon solo expone `categories` y `revista_url`; `groq_key`, `drive_ep` y `drive_secret` solo visibles para usuarios autenticados
   - CACHE_VERSION v48→v49. (2026-06-17)
+- **Registro de venta atómico — `record_sale_atomic` (2026-06-18)** — función PostgreSQL `SECURITY DEFINER` que reemplaza el flujo de dos pasos (POST /sales + N×PATCH /products) con una sola transacción atómica. Valida stock con `SELECT FOR UPDATE` en orden de ID (evita deadlocks), inserta la venta y descuenta stock (incluyendo componentes de kits) en un único commit. Si el stock no alcanza, la venta nunca se registra. `pos-checkout.js cobrar()` llama `/rpc/record_sale_atomic` en lugar de los endpoints separados. El array local de productos se actualiza optimistamente tras la confirmación. La función fue ejecutada en Supabase SQL Editor y el archivo `record_sale_atomic.sql` fue eliminado del repo. CACHE_VERSION v57→v58. (2026-06-18)
+- **Fix auth — settings.js guard corregido (2026-06-18)** — `if (ROLE === 'operador')` → `if (ROLE !== 'superadmin')`: el rol `encargado` podía acceder a Configuración, que es módulo exclusivo de superadmin.
+- **XSS fix — admin-qv.js `_kitCompPopupRender` (2026-06-18)** — `comp.name` se insertaba sin `_esc()` en el popup de componente de kit. Corregido. También: imagen del popup usa `_driveSz(comp.image, 400)` (antes `sz=w900`).
+- **`_driveSz()` — 12 puntos faltantes completados (2026-06-18)** — sweep de thumbnails que seguían cargando `sz=w900` aunque se renderizaban a 28–80px: `admin-recv.js` (3), `admin-kit-builder.js` (1), `admin-form.js` (2), `admin-qv.js` kit list (1), `pos-apartados.js` (2), `pos-ui.js` historial (1), `app.js` carrito (1), `stats.js` dv-thumb (1). `_driveSz` añadido a `stats.js` donde faltaba la definición. CACHE_VERSION v56→v57.
 
 ---
 
@@ -935,17 +942,22 @@ Authorization: `Bearer ${_getXXXToken()}`,
 
 ## Deudas Técnicas
 
-*(La deuda principal de service_role_key fue resuelta — ver sección anterior)*
-
-| Problema | Impacto |
-|---|---|
-| **Edge Functions para validación server-side** | Con RLS el JWT del usuario se valida en Supabase antes de ejecutar cada query — protección real. La única mejora adicional sería mover operaciones sensibles a Edge Functions para mayor control de auditoría. Baja prioridad. |
+No hay deudas técnicas conocidas. El sistema está production-ready:
+- Seguridad: RLS + JWT, sin service_role_key en cliente, XSS sweep completo
+- Ventas: atómicas via `record_sale_atomic` (validación server-side, sin oversell)
+- Performance: lazy loading CDN, Drive thumbnails sized, Chart.js diferido, font preconnects
+- Offline: banner + caché de productos en localStorage + cobrar() bloqueado sin conexión
+- UX/UI: auditoría completa de 6 módulos (mobile-first 360–430px)
 
 ---
 
 ## Notas de Desarrollo
 
 - **Sin build step** — editar y abrir directamente en browser
+- **Offline support (2026-06-18):** `shared.js` contiene un IIFE `_initOfflineBanner()` que se auto-ejecuta en todos los módulos admin. Crea `#offline-banner` (CSS en `shared.css`): rojo al perder conexión, verde 3s al recuperarla. `cobrar()` en `pos-checkout.js` verifica `navigator.onLine` y bloquea la venta si no hay conexión. `loadProducts()` en `admin.js` y `pos-core.js` guarda el catálogo en `localStorage` keys `te_products_cache` / `te_pos_products_cache` (con timestamp) al cargar exitosamente; si Supabase falla, carga desde caché y muestra un toast con la antigüedad. La Tienda (`app.js`) tiene su propia copia inline de `_initOfflineBanner()` (sin acceso a `shared.js`) con los mismos estilos en `style.css`.
+- **Performance — lazy loading CDN (2026-06-18):** `supabase.js` (Realtime) y `html5-qrcode` se cargan dinámicamente con `_loadScript()` solo cuando se necesitan (`initRealtime()` y `_launchScanner()` respectivamente). Quagga2 ya usaba este patrón. `admin.html` y `pos.html` ya no incluyen estos `<script>` en el `<head>`. Chart.js (`stats.html`) fue movido al fondo del `<body>` (antes de `stats.js`). `<link rel="preconnect">` a `fonts.gstatic.com` añadido en todos los módulos.
+- **Drive thumbnails — `_driveSz(url, w)` (2026-06-18):** helper definido en `admin.js`, `pos-core.js`, `app.js`, `stats.js` — `(url, w) => url?.includes('drive.google.com') ? url.replace(/sz=w\d+/, \`sz=w\${w}\`) : url`. Cualquier imagen de Drive que se muestre en UI debe pasar por `_driveSz(url, w)` con `w` igual al tamaño real renderizado (~80 para thumbnails de 24–50px, ~300 para cards de ~200px, ~400 para popups, default `sz=w900` para imágenes principales). Reducción de payload: thumbnails de 900px → 80px = ~90% menos datos.
+- **PostgREST RPC:** funciones PostgreSQL se llaman via `POST /rest/v1/rpc/{nombre}` con body JSON. `SECURITY DEFINER` permite lógica transaccional que bypasea RLS de forma controlada. `REVOKE ALL FROM PUBLIC; GRANT EXECUTE TO authenticated` — solo usuarios con JWT válido pueden invocarlas.
 - **PostgREST filtros:** `?id=eq.1` `?id=in.(1,2,3)` `?is_published=eq.true` `?order=position.asc`
 - **Batch upsert:** body array JSON + header `Prefer: resolution=merge-duplicates`
 - **PostgREST batch PATCH:** usar lotes de máx 10 IDs en `?id=in.(...)` — listas más largas pueden retornar 204 sin aplicar cambios
