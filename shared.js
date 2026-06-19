@@ -133,7 +133,7 @@ const UP_ROLE_DEFAULTS = {
   superadmin:{canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canImportJSON:true, canMasivo:true, canCancelSale:true, canEditApartado:true, canViewReports:true, canViewActivity:true, canManageSettings:true},
   encargado: {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canImportJSON:false, canMasivo:false, canCancelSale:true, canEditApartado:false, canViewReports:false, canViewActivity:false, canManageSettings:false},
   duena:     {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:true, canViewReports:true, canViewActivity:true, canManageSettings:false},
-  operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:false, canViewReports:false, canViewActivity:false, canManageSettings:false},
+  operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:false, canPublishProduct:false, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:false, canViewReports:false, canViewActivity:false, canManageSettings:false},
 };
 function _getMyPermsCached() {
   try { const c=sessionStorage.getItem('te_user_can'); return c?JSON.parse(c):null; } catch { return null; }

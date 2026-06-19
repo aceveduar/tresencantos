@@ -51,10 +51,17 @@
   <div class="settings-card" style="padding:0;overflow:hidden">
     <div id="up-list"><div class="up-loading">Cargando usuarios…</div></div>
     <div class="up-add-row">
-      <input type="email" class="field-input" id="up-new-email" placeholder="correo@ejemplo.com" style="flex:1;min-width:0">
+      <input type="email" class="field-input" id="up-new-email" placeholder="correo@ejemplo.com" style="flex:1;min-width:0" onkeydown="if(event.key==='Enter')_upAddUser()">
+      <select class="up-role-sel" id="up-new-role" onclick="event.stopPropagation()">
+        <option value="operador">Operador</option>
+        <option value="encargado">Encargada</option>
+        <option value="duena">Dueña</option>
+        <option value="superadmin">Superadmin</option>
+      </select>
       <button class="btn btn-outline btn-sm" onclick="_upAddUser()">+ Agregar</button>
     </div>
   </div>
+  <p class="field-hint" style="padding:4px 2px 0">Los permisos se aplican al siguiente inicio de sesión de cada usuario.</p>
 
   <!-- ─── CATÁLOGO ─────────────────────────────────────────── -->
   <div class="section-label">Catálogo</div>
@@ -74,7 +81,7 @@
       </div>
     </div>
     <div class="scard-row">
-      <div class="scard-icon">📸</div>
+      <div class="scard-icon">📷</div>
       <div class="scard-body">
         <div class="scard-title">Captura rápida en Inventario</div>
         <div class="scard-desc">Botón para cargar productos con foto e IA</div>
@@ -138,6 +145,7 @@
         </label>
       </div>
     </div>
+    <div class="scard-divider-label">Contenido</div>
     <div class="scard-row">
       <div class="scard-icon">🏷</div>
       <div class="scard-body">
@@ -178,16 +186,6 @@
             <input type="file" accept=".json" style="display:none" onchange="importProducts(this)">
           </label>
         </div>
-      </div>
-    </div>
-    <div class="scard-row">
-      <div class="scard-icon">👤</div>
-      <div class="scard-body">
-        <div class="scard-title">Nombres de usuarios</div>
-        <div class="scard-desc">Asigna nombres visibles a cada cuenta en el historial de Actividad</div>
-      </div>
-      <div class="scard-action">
-        <button class="btn btn-outline btn-sm" onclick="openNamesModal()">Gestionar</button>
       </div>
     </div>
     <div class="scard-row">
@@ -327,24 +325,6 @@
     <div class="modal-foot">
       <button class="btn btn-outline" onclick="closeRevista()">Cancelar</button>
       <button class="btn btn-gold" id="revista-save-btn" onclick="saveRevista()">Guardar revista</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── MODAL: NOMBRES ── -->
-<div class="overlay" id="names-overlay">
-  <div class="modal">
-    <div class="modal-head">
-      <h3>Nombres de usuarios</h3>
-      <button class="modal-close" onclick="closeNamesModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:.82rem;color:var(--muted);margin-bottom:18px;line-height:1.5">Asigna un nombre visible a cada cuenta para identificarlas en el historial de Actividad.</p>
-      <div id="names-list"></div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-outline" onclick="closeNamesModal()">Cancelar</button>
-      <button class="btn btn-gold" onclick="saveNamesAdmin()">Guardar</button>
     </div>
   </div>
 </div>

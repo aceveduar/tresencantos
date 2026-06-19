@@ -92,6 +92,22 @@ async function init() {
     });
   }
 
+  // Migración silenciosa: corregir operadores con canDelete/canPublish:true (bug pre-2026-06-19)
+  let _driftFixed = false;
+  Object.values(userPermsMap).forEach(perms => {
+    if ((!perms.role || perms.role === 'operador') &&
+        (perms.canDeleteProduct === true || perms.canPublishProduct === true)) {
+      perms.canDeleteProduct  = false;
+      perms.canPublishProduct = false;
+      _driftFixed = true;
+    }
+  });
+  if (_driftFixed) api('config', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: 'user_permissions', value: JSON.stringify(userPermsMap) })
+  });
+
   if (catR.ok && catR.data?.[0]?.value) {
     try { categories = JSON.parse(catR.data[0].value); } catch { categories = []; }
   }
@@ -739,47 +755,6 @@ async function saveRevista() {
   toast('Revista guardada ✓', 'ok');
 }
 
-/* ── NOMBRES ── */
-async function openNamesModal() {
-  // Obtener emails desde activity_log (usuarios que han operado el sistema)
-  let emails = [];
-  const r2 = await api('activity_log?select=user_email&limit=500');
-  if (r2.ok && r2.data) emails = [...new Set(r2.data.map(d => d.user_email))].filter(Boolean);
-  // Incluir también usuarios que ya tenían nombre guardado pero no están en las fuentes anteriores
-  Object.keys(nameMap).forEach(e => { if (!emails.includes(e)) emails.push(e); });
-  emails = emails.sort();
-  if (!emails.length) { toast('Sin usuarios registrados aún'); return; }
-  document.getElementById('names-list').innerHTML = emails.map(e => `
-    <div class="name-pair">
-      <div class="name-email" title="${escH(e)}">${escH(e)}</div>
-      <input class="field-input" data-email="${escH(e)}" placeholder="Nombre visible" value="${escH(nameMap[e]||'')}"
-             style="padding:8px 12px">
-    </div>`).join('');
-  document.getElementById('names-overlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeNamesModal() {
-  document.getElementById('names-overlay').classList.remove('open');
-  document.body.style.overflow = '';
-}
-
-async function saveNamesAdmin() {
-  document.querySelectorAll('#names-list [data-email]').forEach(inp => {
-    const val = inp.value.trim();
-    if (val) nameMap[inp.dataset.email] = val;
-    else delete nameMap[inp.dataset.email];
-  });
-  const r = await api('config', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: 'user_names', value: JSON.stringify(nameMap) })
-  });
-  if (!r.ok) { toast('Error al guardar', 'err'); return; }
-  closeNamesModal();
-  toast('Nombres guardados ✓', 'ok');
-}
-
 /* ── EXPORT / IMPORT ── */
 async function exportProducts() {
   const r = await api('products?select=*&order=position.asc');
@@ -870,16 +845,25 @@ function _renderUserCard(email) {
   ).join('');
 
   return `<div class="up-card" data-email="${escH(email)}">
-    <div class="up-head" onclick="_upToggleCard(this)">
-      <div class="up-avatar" style="background:${color}">${escH(initial)}</div>
-      <div class="up-meta">
-        <div class="up-name">${escH(name)}${isMe?` <span class="up-me">tú</span>`:''}</div>
-        <div class="up-email">${escH(email)}</div>
+    <div class="up-head">
+      <div class="up-toggle-area" onclick="_upToggleCard(this)">
+        <div class="up-avatar" style="background:${color}">${escH(initial)}</div>
+        <div class="up-meta">
+          <div class="up-name">
+            <input class="up-name-inp" value="${escH(name)}" data-orig="${escH(name)}"
+              onclick="event.stopPropagation()"
+              onblur="_upSaveName(this,'${escH(email).replace(/'/g,"\\'")}')"
+              onkeydown="if(event.key==='Enter')this.blur();else if(event.key==='Escape'){this.value=this.dataset.orig;this.blur()}">
+            ${isMe?` <span class="up-me">tú</span>`:''}
+          </div>
+          <div class="up-email">${escH(email)}</div>
+        </div>
+        <span class="up-chevron">▾</span>
       </div>
-      <select class="up-role-sel" onclick="event.stopPropagation()" onchange="_upRoleChange(this)">
+      <select class="up-role-sel" onclick="event.stopPropagation()" onchange="_upRoleChange(this)"${isMe ? ' disabled title="No puedes cambiar tu propio rol"' : ''}>
         ${roleOpts}
       </select>
-      <span class="up-chevron">›</span>
+      ${isMe ? '' : `<button class="up-remove-btn" onclick="event.stopPropagation();_upRemoveUser('${escH(email).replace(/'/g,"\\'")}')" title="Quitar usuario">✕</button>`}
     </div>
     <div class="up-perms" style="display:none">${_renderPermsBody(email)}</div>
   </div>`;
@@ -890,11 +874,16 @@ function _renderPermsBody(email) {
   const role   = perms.role || 'operador';
   const defs   = UP_ROLE_DEFAULTS[role] || UP_ROLE_DEFAULTS.operador;
   const groups = [...new Set(UP_PERMS.map(p => p.group))];
-  return groups.map(group => {
+  const hasOverride = UP_PERMS.some(p => {
+    const val = p.key in perms ? perms[p.key] : defs[p.key];
+    return val !== defs[p.key];
+  });
+  const groupsHtml = groups.map(group => {
     const items = UP_PERMS.filter(p => p.group === group);
     const rows  = items.map(p => {
       const val = p.key in perms ? perms[p.key] : defs[p.key];
-      return `<label class="up-perm-row">
+      const isOverride = val !== defs[p.key];
+      return `<label class="up-perm-row${isOverride ? ' up-perm-overridden' : ''}">
         <input type="checkbox" class="up-perm-cb"${val?' checked':''} onchange="_upPermChange(this,'${p.key}')">
         <span class="up-perm-label">${escH(p.label)}</span>
       </label>`;
@@ -904,21 +893,31 @@ function _renderPermsBody(email) {
       <div class="up-perm-grid">${rows}</div>
     </div>`;
   }).join('');
+  return groupsHtml + `<button class="up-reset-btn" onclick="_upResetPerms('${escH(email).replace(/'/g,"\\'")}')" ${!hasOverride ? 'disabled' : ''}>↩ Restablecer al rol</button>`;
 }
 
-function _upToggleCard(headEl) {
-  const card    = headEl.closest('.up-card');
+function _upToggleCard(el) {
+  const card    = el.closest('.up-card');
   const permsDiv= card.querySelector('.up-perms');
   const chevron = card.querySelector('.up-chevron');
   const open    = permsDiv.style.display !== 'none';
   permsDiv.style.display  = open ? 'none' : '';
-  chevron.style.transform = open ? '' : 'rotate(90deg)';
+  chevron.style.transform = open ? '' : 'rotate(-180deg)';
+  card.classList.toggle('up-card-open', !open);
 }
 
 function _upRoleChange(sel) {
   const card    = sel.closest('.up-card');
   const email   = card.dataset.email;
+  const prevRole= (userPermsMap[email]?.role) || 'operador';
   const newRole = sel.value;
+  if (prevRole === 'superadmin' && newRole !== 'superadmin') {
+    const name = nameMap[email] || email.split('@')[0];
+    if (!confirm(`¿Cambiar a ${name} de Superadmin a ${_UP_ROLE_LABELS[newRole]||newRole}?\nPerderá acceso a Configuración.`)) {
+      sel.value = prevRole;
+      return;
+    }
+  }
   const defs    = UP_ROLE_DEFAULTS[newRole] || UP_ROLE_DEFAULTS.operador;
   userPermsMap[email] = { ...defs, role: newRole };
   const permsDiv = card.querySelector('.up-perms');
@@ -930,22 +929,69 @@ function _upPermChange(cb, key) {
   const card  = cb.closest('.up-card');
   const email = card.dataset.email;
   if (!userPermsMap[email]) {
-    const role = 'operador';
-    userPermsMap[email] = { ...UP_ROLE_DEFAULTS.operador, role };
+    const roleSel = card.querySelector('.up-role-sel');
+    const role = roleSel?.value || 'operador';
+    userPermsMap[email] = { ...UP_ROLE_DEFAULTS[role]||UP_ROLE_DEFAULTS.operador, role };
   }
   userPermsMap[email][key] = cb.checked;
   _upSavePerms();
 }
 
 function _upAddUser() {
-  const input = document.getElementById('up-new-email');
-  const email = (input?.value||'').trim().toLowerCase();
+  const input   = document.getElementById('up-new-email');
+  const roleSel = document.getElementById('up-new-role');
+  const email   = (input?.value||'').trim().toLowerCase();
+  const role    = roleSel?.value || 'operador';
   if (!email || !email.includes('@')) { toast('Ingresa un correo válido', 'err'); return; }
   if (userPermsMap[email]) { toast('Este usuario ya está en la lista', ''); input.value=''; return; }
-  userPermsMap[email] = { ...UP_ROLE_DEFAULTS.operador, role:'operador' };
+  userPermsMap[email] = { ...UP_ROLE_DEFAULTS[role]||UP_ROLE_DEFAULTS.operador, role };
   input.value = '';
+  if (roleSel) roleSel.value = 'operador';
   renderUsersPerms();
   _upSavePerms();
+}
+
+async function _upSaveName(inp, email) {
+  const newName = inp.value.trim();
+  const oldName = nameMap[email] || email.split('@')[0];
+  if (!newName) { inp.value = oldName; return; }
+  if (newName === oldName) return;
+  nameMap[email] = newName;
+  inp.dataset.orig = newName;
+  const r = await api('config', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: 'user_names', value: JSON.stringify(nameMap) })
+  });
+  if (r.ok) toast('Nombre actualizado ✓', 'ok');
+  else { toast('Error al guardar el nombre', 'err'); nameMap[email] = oldName; inp.value = oldName; inp.dataset.orig = oldName; }
+}
+
+function _upRemoveUser(email) {
+  if (email === _myEmail) { toast('No puedes eliminarte a ti mismo', 'err'); return; }
+  const name = nameMap[email] || email.split('@')[0];
+  if (!confirm(`¿Quitar a ${name} de la lista de permisos?`)) return;
+  delete userPermsMap[email];
+  delete nameMap[email];
+  renderUsersPerms();
+  _upSavePerms();
+  api('config', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: 'user_names', value: JSON.stringify(nameMap) })
+  });
+}
+
+function _upResetPerms(email) {
+  const role = userPermsMap[email]?.role || 'operador';
+  userPermsMap[email] = { ...UP_ROLE_DEFAULTS[role], role };
+  const card = document.querySelector(`.up-card[data-email="${CSS.escape(email)}"]`);
+  if (card) {
+    const permsDiv = card.querySelector('.up-perms');
+    if (permsDiv) permsDiv.innerHTML = _renderPermsBody(email);
+  }
+  _upSavePerms();
+  toast('Permisos restablecidos al rol ✓', 'ok');
 }
 
 let _upSaveTimer = null;
