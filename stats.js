@@ -74,7 +74,9 @@ let _statsMode = 'day';
 let _statsOffset = 0;
 let currentPeriod = 'today'; // derived — updated by _updateNavUI()
 let sales = [];
+let salesAll = [];
 let prevSales = [];
+let prevSalesAll = [];
 let products = [];
 let revenueChart = null;
 let catChart = null;
@@ -176,13 +178,17 @@ async function loadSales() {
   const { from, to } = getRange(_statsMode, _statsOffset);
   const filter = `&created_at=gte.${from}&created_at=lte.${to}`;
   const r = await api(`sales?select=id,total,created_at,items,payment_method,type,seller_email,discount,customer,abonos&order=created_at.desc${filter}&limit=500`);
-  sales = (r.ok && Array.isArray(r.data)) ? r.data.filter(s => s.type !== 'apartado') : [];
+  const data = (r.ok && Array.isArray(r.data)) ? r.data : [];
+  salesAll = data;
+  sales = data.filter(s => s.type !== 'apartado');
 }
 
 async function loadPreviousSales() {
   const [from, to] = _prevRange();
   const r = await api(`sales?select=id,total,created_at,type,abonos&created_at=gte.${from}&created_at=lte.${to}&limit=500`);
-  prevSales = (r.ok && Array.isArray(r.data)) ? r.data.filter(s => s.type !== 'apartado') : [];
+  const prevData = (r.ok && Array.isArray(r.data)) ? r.data : [];
+  prevSalesAll = prevData;
+  prevSales = prevData.filter(s => s.type !== 'apartado');
 }
 
 async function loadProducts() {
@@ -335,10 +341,10 @@ function renderVendedores() {
   const map = {};
   const _fromIso = _currentFrom();
   const _toIso   = _currentTo();
-  sales.forEach(s => {
+  salesAll.forEach(s => {
     const key = s.seller_email || '__sin_sesion__';
     if (!map[key]) map[key] = { ventas: 0, total: 0 };
-    map[key].ventas++;
+    if (s.type !== 'apartado') map[key].ventas++; // solo ventas completas en el conteo
     map[key].total += _abonoRevenue(s, _fromIso, _toIso);
   });
 
@@ -372,11 +378,15 @@ function renderVendedores() {
   }).join('');
 }
 
-// Retorna el ingreso de una venta que cae dentro del período [fromIso, toIso].
+// Retorna el ingreso de una venta/apartado que cae dentro del período [fromIso, toIso].
 // Si tiene abonos, suma solo los abonos dentro del rango; si no, usa total.
+// Apartados sin abonos (anticipo=0) retornan 0 — aún no se ha cobrado nada.
 function _abonoRevenue(sale, fromIso, toIso) {
   const abonos = Array.isArray(sale.abonos) ? sale.abonos : [];
-  if (!abonos.length) return parseFloat(sale.total || 0);
+  if (!abonos.length) {
+    if (sale.type === 'apartado') return 0;
+    return parseFloat(sale.total || 0);
+  }
   const from = fromIso ? new Date(fromIso).getTime() : 0;
   const to   = toIso   ? new Date(toIso).getTime()   : Date.now() + 86400000;
   return abonos
@@ -400,11 +410,11 @@ function renderKPIs() {
   const toIso     = _currentTo();
   const [prevFromIso, prevToIso] = _prevRange();
 
-  const totalRev  = sales.reduce((s,x) => s + _abonoRevenue(x, fromIso, toIso), 0);
+  const totalRev  = salesAll.reduce((s,x) => s + _abonoRevenue(x, fromIso, toIso), 0);
   const count     = sales.length;
   const avg       = count ? totalRev / count : 0;
 
-  const prevRev   = prevSales.reduce((s,x) => s + _abonoRevenue(x, prevFromIso, prevToIso), 0);
+  const prevRev   = prevSalesAll.reduce((s,x) => s + _abonoRevenue(x, prevFromIso, prevToIso), 0);
   const prevCount = prevSales.length;
   const prevAvg   = prevCount ? prevRev / prevCount : 0;
 
@@ -428,7 +438,7 @@ function renderKPIs() {
 function renderHourChart() {
   const byHour  = Array(24).fill(0);
   const fromMs  = new Date(_currentFrom()).getTime();
-  sales.forEach(s => {
+  salesAll.forEach(s => {
     const abonos = Array.isArray(s.abonos) ? s.abonos : [];
     if (abonos.length) {
       abonos.forEach(a => {
@@ -442,7 +452,7 @@ function renderHourChart() {
   const ctx = document.getElementById('hour-chart')?.getContext('2d');
   if (!ctx) return;
   if (hourChart) { hourChart.destroy(); hourChart = null; }
-  if (sales.length === 0) {
+  if (salesAll.length === 0) {
     document.getElementById('hour-chart').parentElement.innerHTML = '<p class="no-data">Sin datos en el período</p>';
     return;
   }
@@ -478,7 +488,7 @@ function renderRevenueChart() {
   const ctx   = document.getElementById('revenue-chart')?.getContext('2d');
   if (!ctx) return;
 
-  if (sales.length === 0) {
+  if (salesAll.length === 0) {
     if (revenueChart) { revenueChart.destroy(); revenueChart = null; }
     document.getElementById('revenue-chart').parentElement.innerHTML = '<p class="no-data">Sin ventas registradas</p>';
     return;
@@ -488,7 +498,7 @@ function renderRevenueChart() {
   for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
     byDay[d.toISOString().split('T')[0]] = 0;
   }
-  sales.forEach(s => {
+  salesAll.forEach(s => {
     const abonos = Array.isArray(s.abonos) ? s.abonos : [];
     if (abonos.length) {
       abonos.forEach(a => {
@@ -580,7 +590,7 @@ function _renderWeekComparison(ctx, byDayCurr) {
 
   // Aggregate prev week
   const prevByDow = Array(7).fill(0);
-  prevSales.forEach(s => {
+  prevSalesAll.forEach(s => {
     const dow = (new Date(s.created_at).getDay()+6)%7;
     prevByDow[dow] += _abonoRevenue(s, prevFrom, prevTo);
   });
@@ -645,7 +655,7 @@ function _renderWeekComparison(ctx, byDayCurr) {
 function _renderDayHourly(ctx) {
   const byHour = Array(24).fill(0);
   const fromMs = new Date(_currentFrom()).getTime();
-  sales.forEach(s => {
+  salesAll.forEach(s => {
     const abonos = Array.isArray(s.abonos) ? s.abonos : [];
     if (abonos.length) {
       abonos.forEach(a => {
@@ -930,14 +940,14 @@ function renderDaySummary() {
   const todayStartMs = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
   const todayEndMs   = Date.now();
   let totalHoy = 0;
-  ventas.forEach(v => {
+  todaySales.forEach(v => {
     const abonos = Array.isArray(v.abonos) ? v.abonos : [];
     if (abonos.length) {
       abonos.forEach(a => {
         const t = new Date(a.date).getTime();
         if (t >= todayStartMs && t <= todayEndMs) totalHoy += parseFloat(a.amount || 0);
       });
-    } else {
+    } else if (v.type !== 'apartado') {
       totalHoy += parseFloat(v.total || 0);
     }
   });
@@ -974,7 +984,7 @@ function renderDaySummary() {
   // Pills
   const pills = [];
   let efectivo = 0, transfer = 0;
-  ventas.forEach(v => {
+  todaySales.forEach(v => {
     const abonos = Array.isArray(v.abonos) ? v.abonos : [];
     if (abonos.length) {
       abonos.forEach(a => {
@@ -984,7 +994,7 @@ function renderDaySummary() {
           else efectivo += parseFloat(a.amount || 0);
         }
       });
-    } else {
+    } else if (v.type !== 'apartado') {
       if (v.payment_method === 'transferencia') transfer += parseFloat(v.total || 0);
       else efectivo += parseFloat(v.total || 0);
     }
@@ -1148,7 +1158,7 @@ function renderCalendar() {
   const today = new Date(); today.setHours(0,0,0,0);
 
   const byDay = {};
-  sales.forEach(s => {
+  salesAll.forEach(s => {
     const day = s.created_at.split('T')[0];
     byDay[day] = (byDay[day]||0) + _abonoRevenue(s, fromIso, toIso);
   });
@@ -1195,7 +1205,7 @@ function renderWeekdayChart() {
   const _DOW = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
   const byDow = Array(7).fill(0);
 
-  sales.forEach(s => {
+  salesAll.forEach(s => {
     const dow = (new Date(s.created_at).getDay()+6)%7;
     byDow[dow] += _abonoRevenue(s, fromIso, toIso);
   });
