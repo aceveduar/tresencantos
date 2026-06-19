@@ -154,7 +154,7 @@ function navigate(delta) {
 function setMode(mode) { _statsMode=mode; _statsOffset=0; _updateNavUI(); _reloadStats(); }
 function resetToNow()  { _statsOffset=0; _updateNavUI(); _reloadStats(); }
 async function _reloadStats() {
-  ['kpi-revenue','kpi-sales','kpi-avg'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='…';});
+  ['kpi-revenue','kpi-sales','kpi-avg'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '…'; });
   await Promise.all([loadSales(),loadPreviousSales()]);
   renderAll();
 }
@@ -412,11 +412,11 @@ function renderKPIs() {
 
   const totalRev  = salesAll.reduce((s,x) => s + _abonoRevenue(x, fromIso, toIso), 0);
   const count     = sales.length;
-  const avg       = count ? totalRev / count : 0;
+  const units     = sales.reduce((s,v) => s + (v.items||[]).reduce((a,i) => a + (i.qty||1), 0), 0);
 
   const prevRev   = prevSalesAll.reduce((s,x) => s + _abonoRevenue(x, prevFromIso, prevToIso), 0);
   const prevCount = prevSales.length;
-  const prevAvg   = prevCount ? prevRev / prevCount : 0;
+  const prevUnits = prevSales.reduce((s,v) => s + (v.items||[]).reduce((a,i) => a + (i.qty||1), 0), 0);
 
   const fmt = n => `$${n.toLocaleString('es-MX', {maximumFractionDigits:0})}`;
 
@@ -424,8 +424,8 @@ function renderKPIs() {
   document.getElementById('kpi-revenue-sub').textContent = prevRev > 0 ? `Período ant.: ${fmt(prevRev)}` : '';
   document.getElementById('kpi-sales').innerHTML = count + kpiDelta(count, prevCount);
   document.getElementById('kpi-sales-sub').textContent = prevCount > 0 ? `Período ant.: ${prevCount}` : '';
-  document.getElementById('kpi-avg').innerHTML = (count ? fmt(avg) : '—') + kpiDelta(avg, prevAvg);
-  document.getElementById('kpi-avg-sub').textContent = prevAvg > 0 ? `Período ant.: ${fmt(prevAvg)}` : '';
+  document.getElementById('kpi-avg').innerHTML = (units || '—') + kpiDelta(units, prevUnits);
+  document.getElementById('kpi-avg-sub').textContent = prevUnits > 0 ? `Período ant.: ${prevUnits}` : '';
 
   const aptAmt = _aptResumen.pendiente || 0;
   document.getElementById('kpi-apt').textContent = aptAmt > 0 ? fmt(aptAmt) : '$0';
