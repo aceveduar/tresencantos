@@ -222,11 +222,13 @@ function openPosPreview(id) {
   btn.onclick     = oos ? null : () => { closePosPreview(); addToCart(id); };
 
   document.getElementById('pos-preview').classList.add('open');
+  document.body.style.overscrollBehaviorY = 'none';
   _initPosPreviewSwipe();
 }
 
 function closePosPreview() {
   document.getElementById('pos-preview').classList.remove('open');
+  document.body.style.overscrollBehaviorY = '';
 }
 
 function _initPosPreviewSwipe() {
@@ -264,10 +266,12 @@ function openLightbox(img) {
   document.getElementById('img-lb-seller').textContent = sellerName || '—';
   sellerRow.style.display = sellerName ? '' : 'none';
   document.getElementById('img-lightbox').classList.add('open');
+  document.body.style.overscrollBehaviorY = 'none';
   _initLightboxSwipe();
 }
 function closeLightbox() {
   document.getElementById('img-lightbox').classList.remove('open');
+  document.body.style.overscrollBehaviorY = '';
 }
 
 function openApartados() {
