@@ -250,7 +250,7 @@ function _initPosPreviewSwipe() {
 }
 
 function openLightbox(img) {
-  document.getElementById('img-lightbox-img').src = img.src;
+  document.getElementById('img-lightbox-img').src = _driveSz(img.src, 900);
   const name   = img.dataset.name   || '';
   const price  = img.dataset.price  || '';
   const qty    = parseInt(img.dataset.qty) || 1;
