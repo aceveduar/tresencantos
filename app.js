@@ -984,9 +984,9 @@ function openModal(id) {
   const modalBadgeIsPromo = !p.badgeType || p.badgeType === 'promo';
   if (pct > 0 && p.badge && !modalBadgeIsPromo) {
     modalBadgeArea = `<span class="product-badge badge-${p.badgeType}" style="position:absolute;top:10px;left:10px">${_esc(p.badge)}</span>`
-                   + `<span class="product-badge badge-discount" style="position:absolute;top:10px;right:10px;left:auto">-${pct}%</span>`;
+                   + `<span class="product-badge badge-discount" style="position:absolute;top:48px;right:10px;left:auto">-${pct}%</span>`;
   } else if (pct > 0) {
-    modalBadgeArea = `<span class="product-badge badge-discount" style="position:absolute;top:10px;right:10px;left:auto">-${pct}%</span>`;
+    modalBadgeArea = `<span class="product-badge badge-discount" style="position:absolute;top:48px;right:10px;left:auto">-${pct}%</span>`;
   } else if (p.badge) {
     modalBadgeArea = `<span class="product-badge badge-${p.badgeType||'best'}" style="position:absolute;top:10px;left:10px">${_esc(p.badge)}</span>`;
   }
@@ -1053,7 +1053,7 @@ function openModal(id) {
     <button class="modal-close" onclick="closeModal()" aria-label="Cerrar">✕</button>
     ${apt ? `<span class="product-badge badge-apartado" style="position:absolute;top:10px;left:10px">📌 Apartado</span>`
       : oos ? `<span class="product-badge badge-oos" style="position:absolute;top:10px;left:10px;background:#9B8B78">Agotado</span>` : ''}
-    ${!hasGallery ? modalBadgeArea : ''}
+    ${modalBadgeArea}
   </div>
   <div class="modal-body">
     <p class="modal-cat">${catDisplay}</p>
