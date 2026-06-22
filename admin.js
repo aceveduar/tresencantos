@@ -458,24 +458,27 @@ function _driveSz(url, w) {
 }
 
 function _openKitLightbox(p, editFn) {
-  document.getElementById('kit-comp-popover')?.remove();
-  document.getElementById('kit-comp-popup')?.remove();
+  document.getElementById('kit-lightbox')?.remove();
   const lb = document.createElement('div');
   lb.id = 'kit-lightbox';
   lb.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 16px;overscroll-behavior:none;touch-action:none';
   const stockTxt = (p.outOfStock || p.stock === 0)
     ? '<span style="color:#EF4444">Agotado</span>'
     : `<span style="color:#6abe83">● ${p.stock} en stock</span>`;
+  const editBtnId = 'kit-lb-edit-btn';
   lb.innerHTML = `
     <img src="${_driveSz(p.image || DEFAULT_IMG, 900)}" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'" style="max-width:100%;max-height:58dvh;border-radius:12px;object-fit:contain;display:block">
     <div style="width:100%;max-width:360px;margin-top:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 16px;backdrop-filter:blur(8px)">
       <div style="font-size:.92rem;font-weight:700;color:#fff;margin-bottom:8px;line-height:1.3">${_esc(p.name)}</div>
       <div style="display:flex;justify-content:space-between;align-items:center;font-size:.78rem;margin-bottom:4px"><span style="color:rgba(255,255,255,.5)">Stock</span>${stockTxt}</div>
       <div style="display:flex;justify-content:space-between;align-items:center;font-size:.78rem"><span style="color:rgba(255,255,255,.5)">Precio</span><span style="color:rgba(255,255,255,.9);font-weight:600">$${(p.price||0).toLocaleString('es-MX')}</span></div>
-      ${editFn ? `<button onclick="event.stopPropagation();document.getElementById('kit-lightbox').remove();(${editFn.toString()})()" style="display:block;width:100%;margin-top:10px;background:rgba(201,164,98,.2);border:1px solid rgba(201,164,98,.4);border-radius:8px;padding:9px;color:var(--gold);font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;text-align:center">✏️ Editar producto →</button>` : ''}
+      ${editFn ? `<button id="${editBtnId}" style="display:block;width:100%;margin-top:10px;background:rgba(201,164,98,.2);border:1px solid rgba(201,164,98,.4);border-radius:8px;padding:9px;color:var(--gold);font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;text-align:center">✏️ Editar producto →</button>` : ''}
     </div>`;
   lb.onclick = e => { if (e.target === lb) lb.remove(); };
   document.body.appendChild(lb);
+  if (editFn) {
+    document.getElementById(editBtnId).addEventListener('click', e => { e.stopPropagation(); lb.remove(); editFn(); });
+  }
   let sy = 0, cy = 0, on = false;
   const img = lb.querySelector('img');
   lb.addEventListener('touchstart', e => { sy = e.touches[0].clientY; cy = 0; on = false; }, { passive: true });
