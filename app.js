@@ -467,18 +467,19 @@ function discountPct(p) {
 }
 
 function kitStock(p) {
-  if (!p.kitItems?.length) return null;
+  if (!Array.isArray(p.kitItems)) return null;
+  if (!p.kitItems.length) return 0;
   const stocks = p.kitItems.map(c => {
     const comp = products.find(x => x.id === c.id);
-    if (!comp) return null; // componente no publicado individualmente
+    if (!comp) return null;
     return Math.floor(comp.stock / c.qty);
   });
-  if (stocks.some(s => s === null)) return null; // fallback al flag del kit
+  if (stocks.some(s => s === null)) return null;
   return Math.min(...stocks);
 }
 
 function isOos(p) {
-  if (p.kitItems?.length) {
+  if (Array.isArray(p.kitItems)) {
     const s = kitStock(p);
     return s === null ? p.outOfStock : s === 0;
   }
@@ -975,7 +976,7 @@ function openModal(id) {
   const descHTML = p.description
     ? `<p class="modal-desc">${_descHtml(p.description)}</p>`
     : '';
-  const kitHTML = p.kitItems?.length
+  const kitHTML = Array.isArray(p.kitItems) && p.kitItems.length
     ? `<div class="modal-kit-includes">
         <div class="modal-kit-title">🎁 Incluye</div>
         ${p.kitItems.map(item => {

@@ -496,6 +496,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderCategoryChips();
   setPosView(posView);
   setPosSort(posSort);
+  _restoreCart();
   renderCart();
   loadTodayStats();
   loadHistory();

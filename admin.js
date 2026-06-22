@@ -411,9 +411,9 @@ function getFilteredProducts() {
       (_statFilter === 'ultima-pieza' && p.stock === 1 && !p.outOfStock) ||
       (_statFilter === 'sin-precio'   && (!p.price || p.price === 0)) ||
       (_statFilter === 'imagen-base64' && p.image?.startsWith('data:')) ||
-      (_statFilter === 'kits'         && !!p.kitItems?.length) ||
+      (_statFilter === 'kits'         && Array.isArray(p.kitItems)) ||
       (_statFilter === 'borradores');
-    const isKit      = !!p.kitItems?.length;
+    const isKit      = Array.isArray(p.kitItems);
     const isBorrador = !isKit && !p.isPublished && (!p.price || p.price === 0);
     const matchKit      = _statFilter === 'kits'      ? isKit      : !isKit;
     const matchBorrador = _statFilter === 'borradores' ? isBorrador : !isBorrador;
@@ -457,12 +457,12 @@ function _driveSz(url, w) {
   return url.replace(/sz=w\d+/, `sz=w${w}`);
 }
 
-function supabaseApi(path, opts = {}) {
-  return fetch(getSupabaseUrl() + '/rest/v1/' + path, {
+async function supabaseApi(path, opts = {}) {
+  const _call = (token) => fetch(getSupabaseUrl() + '/rest/v1/' + path, {
     ...opts,
     headers: {
       apikey: SUPABASE_ANON_KEY,
-      Authorization: 'Bearer ' + _getAdminToken(),
+      Authorization: 'Bearer ' + token,
       'Content-Type': 'application/json',
       ...opts.headers
     }
@@ -472,6 +472,9 @@ function supabaseApi(path, opts = {}) {
     try { data = JSON.parse(text); } catch { data = text || null; }
     return { ok: r.ok, status: r.status, data };
   });
+  const r = await _call(_getAdminToken());
+  if (r.status === 401 && await refreshSessionIfNeeded()) return _call(_getAdminToken());
+  return r;
 }
 
 /* ── AUTH HELPERS ── */

@@ -429,7 +429,7 @@ function _qvImgNav(dir) {
 }
 
 function _renderQV(p) {
-  const oos = p.kitItems?.length ? false : (p.outOfStock || p.stock === 0);
+  const oos = Array.isArray(p.kitItems) ? false : (p.outOfStock || p.stock === 0);
   const catColor = getCatColor(p.category);
   const fallback = DEFAULT_IMG;
 
@@ -510,9 +510,11 @@ function _renderQV(p) {
     marginChip = `<span class="qv-chip ${mc}">Margen ${m}%</span>`;
   }
   let stockChipQV;
-  if (p.kitItems?.length) {
+  if (Array.isArray(p.kitItems)) {
     const ki = _kitInfo(p);
-    if (ki?.stock === 0) {
+    if (ki?.empty) {
+      stockChipQV = `<span class="qv-chip qv-chip-sold">🎁 Sin componentes</span>`;
+    } else if (ki?.stock === 0) {
       const lbl = ki.blocker ? (ki.blocker.length > 16 ? ki.blocker.slice(0, 15) + '…' : ki.blocker) : '?';
       stockChipQV = `<span class="qv-chip qv-chip-sold" title="Falta: ${ki.blocker ?? 'componente agotado'}">🎁 Falta: ${lbl}</span>`;
     } else {
@@ -551,7 +553,7 @@ function _renderQV(p) {
   // Componentes del kit
   const kitZone = document.getElementById('qv-kit-components');
   if (kitZone) {
-    if (p.kitItems?.length) {
+    if (Array.isArray(p.kitItems) && p.kitItems.length) {
       kitZone.style.display = '';
       kitZone.innerHTML = `<div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">🎁 Incluye</div>` +
         p.kitItems.map(item => {
@@ -563,6 +565,9 @@ function _renderQV(p) {
             <span style="font-size:.75rem;color:var(--muted);font-weight:600;flex-shrink:0">×${item.qty}</span>
           </div>`;
         }).join('');
+    } else if (Array.isArray(p.kitItems)) {
+      kitZone.style.display = '';
+      kitZone.innerHTML = `<div style="text-align:center;padding:12px;color:var(--muted);font-size:.82rem;border:1.5px dashed var(--border);border-radius:10px">🎁 Kit sin componentes · edita para agregar productos</div>`;
     } else {
       kitZone.style.display = 'none';
       kitZone.innerHTML = '';
@@ -609,7 +614,7 @@ function _renderQV(p) {
   const btnTop = can.editProduct
     ? `<button class="qv-btn qv-btn-dup" onclick="moveToTop(${p.id})">📌 Al inicio</button>`
     : '';
-  const btnAddKit = can.editProduct && !p.kitItems?.length
+  const btnAddKit = can.editProduct && !Array.isArray(p.kitItems)
     ? `<button class="qv-btn qv-btn-dup" onclick="_openAddToKit([${p.id}])">🎁 A un kit</button>`
     : '';
   const btnArchive = can.deleteProduct

@@ -53,6 +53,7 @@ function openKitBuilder() {
     if (kbDot) kbDot.style.background = '#9B8B78';
     if (kbLbl) kbLbl.textContent = 'Seleccionar categoría';
     _kbRenderComponents();
+    _kbUpdateStock();
     const kbo = byId('kit-builder-overlay');
     kbo.style.display = 'flex';
     kbo.classList.add('kb-open');
@@ -82,7 +83,7 @@ function _kbSearch(q) {
   if (!term) { res.style.display = 'none'; return; }
   const taken = new Set(_kbComponents.map(c => c.id));
   const matches = products.filter(p =>
-    !p.kitItems?.length && !taken.has(p.id) &&
+    !Array.isArray(p.kitItems) && !taken.has(p.id) &&
     p.name.toLowerCase().includes(term)
   ).sort((a, b) => {
     const aOos = a.outOfStock || a.stock === 0;
@@ -210,8 +211,9 @@ function _kbAddComponent(id) {
   const p = products.find(x => x.id === id);
   if (!p || _kbComponents.find(c => c.id === id)) return;
   _kbComponents.push({ id: p.id, name: p.name, qty: 1, stock: p.stock, image: p.image, oos: p.outOfStock || p.stock === 0 });
-  document.getElementById('kb-search').value = '';
-  document.getElementById('kb-search-results').style.display = 'none';
+  const searchEl = document.getElementById('kb-search');
+  const q = searchEl.value.trim();
+  if (q) _kbSearch(q); else { searchEl.value = ''; document.getElementById('kb-search-results').style.display = 'none'; }
   _kbRenderComponents();
   _kbUpdateStock();
   _kbSuggestPrice();
@@ -236,7 +238,7 @@ function _kbChangeQty(id, delta) {
 function _kbRenderComponents() {
   const el = document.getElementById('kb-components');
   if (!_kbComponents.length) {
-    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:.82rem;border:1.5px dashed var(--border);border-radius:10px">Busca o escanea productos para agregar como componentes</div>';
+    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:.82rem;border:1.5px dashed var(--border);border-radius:10px">Sin componentes · búscalos aquí o agrégalos después desde el Inventario</div>';
     return;
   }
   el.innerHTML = _kbComponents.map(c => `
@@ -257,7 +259,7 @@ function _kbRenderComponents() {
 
 function _kbUpdateStock() {
   const el = document.getElementById('kb-stock-preview');
-  if (!_kbComponents.length) { el.textContent = ''; return; }
+  if (!_kbComponents.length) { el.textContent = 'Podrás agregar componentes después desde el Inventario'; el.style.color = 'var(--muted)'; return; }
   const avail = Math.min(..._kbComponents.map(c => Math.floor(c.stock / c.qty)));
   el.textContent = avail > 0
     ? `📦 ${avail} kit${avail !== 1 ? 's' : ''} disponibles con el stock actual`
@@ -270,7 +272,6 @@ async function _saveKit() {
   const price = parseFloat(document.getElementById('kb-price').value);
   if (!name)                      { toast('Escribe el nombre del kit', 'error'); document.getElementById('kb-name').focus(); return; }
   if (isNaN(price) || price < 0) { toast('Escribe un precio válido', 'error'); document.getElementById('kb-price').focus(); return; }
-  if (_kbComponents.length < 2)   { toast('Un kit necesita al menos 2 componentes', 'error'); return; }
 
   const catCode = _kbSelectedCatCode || '';
   if (!catCode) { toast('Selecciona una categoría', 'error'); return; }

@@ -51,19 +51,40 @@ function _getStatsToken() {
     return s?.access_token || SUPABASE_ANON_KEY;
   } catch { return SUPABASE_ANON_KEY; }
 }
-function api(path, opts={}) {
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+async function _refreshStatsToken() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY));
+    if (!s?.refresh_token) return false;
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: s.refresh_token })
+    });
+    const d = await r.json().catch(() => null);
+    if (!r.ok || !d?.access_token) return false;
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      access_token: d.access_token, refresh_token: d.refresh_token,
+      expires_at: Math.floor(Date.now()/1000) + (d.expires_in||3600),
+      email: d.user?.email || s.email, user: d.user || s.user
+    }));
+    return true;
+  } catch { return false; }
+}
+async function api(path, opts={}) {
+  const _call = (tk) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...opts,
     headers: {
       apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${_getStatsToken()}`,
+      Authorization: `Bearer ${tk}`,
       'Content-Type': 'application/json',
       ...opts.headers
     }
   }).then(async r => {
     const data = await r.json().catch(() => null);
-    return { ok: r.ok, data };
+    return { ok: r.ok, status: r.status, data };
   });
+  const r = await _call(_getStatsToken());
+  if (r.status === 401 && await _refreshStatsToken()) return _call(_getStatsToken());
+  return r;
 }
 
 const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1217,22 +1238,52 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
 function _dvImgPopup(trigger, img, name, price, qty, stockInfo, stockColor) {
-  document.getElementById('dv-img-pop')?.remove();
-  const pop = document.createElement('div');
-  pop.id = 'dv-img-pop';
-  pop.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);animation:dvp-in .15s ease';
+  document.getElementById('img-lightbox-img').src = _driveSz(img, 900);
+  document.getElementById('img-lb-name').textContent = name;
   const priceStr = qty > 1
     ? `${qty} × $${price.toLocaleString('es-MX',{maximumFractionDigits:0})}`
     : `$${price.toLocaleString('es-MX',{maximumFractionDigits:0})} MXN`;
-  pop.innerHTML = `
-    <style>@keyframes dvp-in{from{opacity:0}to{opacity:1}}</style>
-    <div onclick="event.stopPropagation()" style="background:#fff;border-radius:18px;padding:18px;max-width:280px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,.28);text-align:center;position:relative">
-      <button onclick="document.getElementById('dv-img-pop').remove()" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:1.1rem;cursor:pointer;color:#8A7564;line-height:1">✕</button>
-      <img src="${img}" alt="${_esc(name)}" onerror="this.style.display='none'" style="width:100%;max-height:220px;object-fit:contain;border-radius:10px;background:#F7F2EB;margin-bottom:12px">
-      <div style="font-size:.9rem;font-weight:700;color:#1C1817;line-height:1.35;margin-bottom:6px">${_esc(name)}</div>
-      <div style="font-size:1rem;font-weight:700;font-family:'Playfair Display',serif;color:#C9A462;margin-bottom:${stockInfo?'6px':'0'}">${priceStr}</div>
-      ${stockInfo ? `<div style="font-size:.72rem;font-weight:600;color:${stockColor}">${stockInfo}</div>` : ''}
-    </div>`;
-  pop.addEventListener('click', () => pop.remove());
-  document.body.appendChild(pop);
+  document.getElementById('img-lb-price').textContent = priceStr;
+  const stockRow = document.getElementById('img-lb-stock-row');
+  if (stockInfo) { stockRow.style.display = ''; document.getElementById('img-lb-stock').textContent = stockInfo; }
+  else { stockRow.style.display = 'none'; }
+  document.getElementById('img-lightbox').classList.add('open');
+  document.body.style.overscrollBehaviorY = 'none';
+  _initStatsLightboxSwipe();
+}
+
+function _closeLightbox() {
+  document.getElementById('img-lightbox').classList.remove('open');
+  document.body.style.overscrollBehaviorY = '';
+}
+
+function _initStatsLightboxSwipe() {
+  const lb = document.getElementById('img-lightbox');
+  if (!lb || lb._swipeInited) return;
+  lb._swipeInited = true;
+  let sy = 0, cy = 0, on = false;
+  lb.addEventListener('touchstart', e => { sy = e.touches[0].clientY; cy = 0; on = false; }, { passive: true });
+  lb.addEventListener('touchmove', e => {
+    const dy = e.touches[0].clientY - sy;
+    if (!on && dy > 10) on = true;
+    if (!on) return;
+    e.preventDefault();
+    cy = Math.max(0, dy);
+    const lbImg = document.getElementById('img-lightbox-img');
+    if (lbImg) lbImg.style.transform = `translateY(${cy * 0.45}px) scale(${Math.max(0.85, 1 - cy / 700)})`;
+    lb.style.background = `rgba(0,0,0,${Math.max(0, 0.88 - cy / 280)})`;
+  }, { passive: false });
+  lb.addEventListener('touchend', () => {
+    if (!on) return; on = false;
+    const lbImg = document.getElementById('img-lightbox-img');
+    if (cy > 80) {
+      _closeLightbox();
+      if (lbImg) { lbImg.style.transform = ''; lbImg.style.transition = ''; }
+      lb.style.background = '';
+    } else {
+      if (lbImg) { lbImg.style.transition = 'transform .36s cubic-bezier(.34,1.26,.64,1)'; lbImg.style.transform = ''; setTimeout(() => lbImg.style.transition = '', 360); }
+      lb.style.background = '';
+    }
+    cy = 0;
+  });
 }

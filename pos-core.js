@@ -112,6 +112,26 @@ let currentCat  = 'all';
 let payMethod   = 'efectivo';
 let discType    = 'pct';
 let _lastSale   = {};
+
+function _saveCart() {
+  try {
+    const data = cart.map(x => ({ id: x.product.id, qty: x.qty, cp: x.customPrice }));
+    localStorage.setItem('te_pos_cart', JSON.stringify(data));
+  } catch {}
+}
+function _restoreCart() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('te_pos_cart') || '[]');
+    if (!Array.isArray(raw) || !raw.length) return;
+    cart = raw.map(x => {
+      const p = products.find(pr => pr.id === x.id);
+      if (!p) return null;
+      const item = { product: p, qty: x.qty || 1 };
+      if (x.cp != null) item.customPrice = x.cp;
+      return item;
+    }).filter(Boolean);
+  } catch { cart = []; }
+}
 let posView     = (window.innerWidth <= 1024) ? 'list' : (localStorage.getItem('te_pos_view') || 'list');
 let posSort     = localStorage.getItem('te_pos_sort') || 'position';
 let _posRecentOrder = JSON.parse(localStorage.getItem('te_recently_edited') || '[]');
@@ -123,12 +143,30 @@ function _getPosToken() {
     return s?.access_token || SUPABASE_ANON_KEY;
   } catch { return SUPABASE_ANON_KEY; }
 }
-function api(path, opts = {}) {
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+async function _refreshPosToken() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY));
+    if (!s?.refresh_token) return false;
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: s.refresh_token })
+    });
+    const d = await r.json().catch(() => null);
+    if (!r.ok || !d?.access_token) return false;
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      access_token: d.access_token, refresh_token: d.refresh_token,
+      expires_at: Math.floor(Date.now()/1000) + (d.expires_in||3600),
+      email: d.user?.email || s.email, user: d.user || s.user
+    }));
+    return true;
+  } catch { return false; }
+}
+async function api(path, opts = {}) {
+  const _call = (tk) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...opts,
     headers: {
       apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${_getPosToken()}`,
+      Authorization: `Bearer ${tk}`,
       'Content-Type': 'application/json',
       ...opts.headers
     }
@@ -137,6 +175,9 @@ function api(path, opts = {}) {
     let data; try { data = JSON.parse(text); } catch { data = null; }
     return { ok: r.ok, status: r.status, data };
   });
+  const r = await _call(_getPosToken());
+  if (r.status === 401 && await _refreshPosToken()) return _call(_getPosToken());
+  return r;
 }
 
 /* ── LOAD PRODUCTS ── */
@@ -233,7 +274,8 @@ function _handleRealtimeProduct({ eventType, new: row, old }) {
 
 /* ── KIT STOCK ── */
 function getKitStock(p) {
-  if (!p.kitItems?.length) return p.stock;
+  if (!Array.isArray(p.kitItems)) return p.stock;
+  if (!p.kitItems.length) return 0;
   let min = Infinity;
   for (const comp of p.kitItems) {
     const c = products.find(x => x.id === comp.id);
@@ -359,13 +401,13 @@ function setPosView(view) {
 
 function posCard(p) {
   const effStock = getKitStock(p);
-  const isKit = !!(p.kitItems?.length);
+  const isKit = Array.isArray(p.kitItems);
   const oos = isKit ? effStock === 0 : (effStock === 0 || p.outOfStock);
   const stockCls = isKit ? (oos ? 'stock-sold' : 'stock-ok') : (effStock === 0 ? 'stock-sold' : effStock === 1 ? 'stock-one' : 'stock-ok');
   const stockTxt = isKit
-    ? (oos ? 'Sin stock' : `🎁 ${effStock} kit${effStock!==1?'s':''}`)
+    ? (isKit && !p.kitItems.length ? 'Sin componentes' : oos ? 'Sin stock' : `🎁 ${effStock} kit${effStock!==1?'s':''}`)
     : (effStock === 0 ? 'Sin stock' : `${effStock} ud${effStock!==1?'s':''}`);
-  const kitComps = isKit && p.kitItems?.length
+  const kitComps = isKit && p.kitItems.length
     ? p.kitItems.map(c => `<div style="font-size:.6rem;color:#9B8B78;line-height:1.3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.qty > 1 ? c.qty + '× ' : ''}${_esc(c.name)}</div>`).join('')
     : '';
   return `
@@ -430,7 +472,7 @@ function getFilteredProducts(q = '', includeOos = false) {
   const groups = _norm(q).split(',').map(g => g.trim().split(/\s+/).filter(Boolean)).filter(g => g.length);
   const filtered = products.filter(p => {
     const effStock = getKitStock(p);
-    const isOos = p.kitItems?.length ? effStock === 0 : (p.outOfStock || p.stock === 0);
+    const isOos = Array.isArray(p.kitItems) ? effStock === 0 : (p.outOfStock || p.stock === 0);
     if (isOos && !includeOos) return false;
     const matchCat = catMatchesFilter(p.category, currentCat);
     const matchQ   = !groups.length || groups.some(g => g.every(t =>
@@ -444,8 +486,8 @@ function getFilteredProducts(q = '', includeOos = false) {
   // OOS al final cuando se incluyen
   if (includeOos) {
     sorted.sort((a, b) => {
-      const aOos = a.kitItems?.length ? getKitStock(a) === 0 : (a.outOfStock || a.stock === 0);
-      const bOos = b.kitItems?.length ? getKitStock(b) === 0 : (b.outOfStock || b.stock === 0);
+      const aOos = Array.isArray(a.kitItems) ? getKitStock(a) === 0 : (a.outOfStock || a.stock === 0);
+      const bOos = Array.isArray(b.kitItems) ? getKitStock(b) === 0 : (b.outOfStock || b.stock === 0);
       return aOos - bOos;
     });
   }
@@ -533,14 +575,14 @@ const PROD_PLACEHOLDER = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fww
 
 function productCard(p) {
   const effStock = getKitStock(p);
-  const isKit    = !!(p.kitItems?.length);
+  const isKit    = Array.isArray(p.kitItems);
   const oos      = isKit ? effStock === 0 : (effStock === 0 || p.outOfStock);
   const disabled = oos ? 'style="opacity:.5;cursor:not-allowed"' : '';
-  const kitCompsLine = isKit && p.kitItems?.length
+  const kitCompsLine = isKit && p.kitItems.length
     ? p.kitItems.map(c => `<div style="font-size:.7rem;color:#9B8B78;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.qty > 1 ? c.qty + '× ' : ''}${_esc(c.name)}</div>`).join('')
     : '';
   const stockSub = isKit
-    ? (oos ? ' · <span style="color:var(--red)">Sin stock</span>' : ` · <span style="color:#6B9E78;font-weight:600">🎁 ${effStock} kit${effStock!==1?'s':''}</span>`)
+    ? (isKit && !p.kitItems.length ? ' · <span style="color:var(--red)">Sin componentes</span>' : oos ? ' · <span style="color:var(--red)">Sin stock</span>' : ` · <span style="color:#6B9E78;font-weight:600">🎁 ${effStock} kit${effStock!==1?'s':''}</span>`)
     : effStock === 1
       ? ' · <span style="color:#C9A462;font-weight:700">Última</span>'
       : effStock >= 2 && effStock <= 5

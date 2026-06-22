@@ -295,6 +295,21 @@
 
 </main>
 
+<div class="img-lightbox" id="img-lightbox" onclick="_closeLightbox()">
+  <img class="img-lightbox-img" id="img-lightbox-img" src="" alt="">
+  <div class="img-lightbox-info" onclick="event.stopPropagation()">
+    <div class="img-lb-name" id="img-lb-name"></div>
+    <div class="img-lb-row">
+      <span class="img-lb-label">Precio</span>
+      <span class="img-lb-val" id="img-lb-price"></span>
+    </div>
+    <div class="img-lb-row" id="img-lb-stock-row">
+      <span class="img-lb-label">Stock</span>
+      <span class="img-lb-val" id="img-lb-stock"></span>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script src="stats.js"></script>
 

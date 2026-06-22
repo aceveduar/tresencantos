@@ -8,8 +8,9 @@ async function loadTopProductsFromSales() {
   if (!r.ok || !Array.isArray(r.data)) return;
   const counts = {};
   for (const sale of r.data) {
+    const seen = new Set();
     for (const item of (Array.isArray(sale.items) ? sale.items : [])) {
-      if (item.id) counts[item.id] = (counts[item.id] || 0) + (item.qty || 1);
+      if (item.id && !seen.has(item.id)) { seen.add(item.id); counts[item.id] = (counts[item.id] || 0) + 1; }
     }
   }
   _topFromSales = Object.entries(counts)
@@ -43,7 +44,7 @@ function addToCart(id, btn, e) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   const effStock = getKitStock(p);
-  const isKitP = !!(p.kitItems?.length);
+  const isKitP = Array.isArray(p.kitItems);
   if (effStock === 0 || (!isKitP && p.outOfStock)) return;
   TE?.track('pos_add_cart', { id: p.id, name: p.name });
 
@@ -331,6 +332,7 @@ function renderCart() {
 
   if (!cart.length) {
     el.innerHTML = '<div class="cart-empty"><div class="em">🛒</div>El carrito está vacío</div>';
+    _saveCart();
     return;
   }
 
@@ -340,12 +342,12 @@ function renderCart() {
     const priceLabel = isCustom
       ? `<span style="text-decoration:line-through;opacity:.45;font-size:.65rem;margin-right:3px">$${p.price.toLocaleString('es-MX')}</span>$${effPrice.toLocaleString('es-MX')}`
       : `$${effPrice.toLocaleString('es-MX')}`;
-    const kitSub = p.kitItems?.length
+    const kitSub = Array.isArray(p.kitItems) && p.kitItems.length
       ? `<div style="font-size:.7rem;color:#9B8B78;margin-top:1px">🎁 ${_esc(p.kitItems.map(c=>`${c.qty>1?c.qty+'× ':''}${c.name}`).join(', '))}</div>`
       : '';
     return `
 <div class="cart-item" data-pid="${p.id}">
-  <img class="ci-img" src="${_driveSz(p.image,80)}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
+  <img class="ci-img" src="${_driveSz(p.image,80)}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'" onclick="event.stopPropagation();openLightbox(this)" data-name="${_esc(p.name)}" data-price="${effPrice}" data-qty="${qty}" style="cursor:zoom-in">
   <div class="ci-info">
     <div class="ci-name">${_esc(p.name)}</div>
     ${kitSub}
@@ -366,6 +368,7 @@ function renderCart() {
 </div>`;
   }).join('');
   applySwipeRemove();
+  _saveCart();
 }
 
 function setCash(amount) {

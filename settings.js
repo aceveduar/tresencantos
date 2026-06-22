@@ -28,15 +28,36 @@ function _getSettingsToken() {
     return s?.access_token || SUPABASE_ANON_KEY;
   } catch { return SUPABASE_ANON_KEY; }
 }
-function api(path, opts = {}) {
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+async function _refreshSettingsToken() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY));
+    if (!s?.refresh_token) return false;
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: s.refresh_token })
+    });
+    const d = await r.json().catch(() => null);
+    if (!r.ok || !d?.access_token) return false;
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      access_token: d.access_token, refresh_token: d.refresh_token,
+      expires_at: Math.floor(Date.now()/1000) + (d.expires_in||3600),
+      email: d.user?.email || s.email, user: d.user || s.user
+    }));
+    return true;
+  } catch { return false; }
+}
+async function api(path, opts = {}) {
+  const _call = (tk) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...opts,
-    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${_getSettingsToken()}`, 'Content-Type': 'application/json', ...opts.headers }
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json', ...opts.headers }
   }).then(async r => {
     const text = await r.text();
     let data; try { data = JSON.parse(text); } catch { data = text || null; }
     return { ok: r.ok, status: r.status, data };
   });
+  const r = await _call(_getSettingsToken());
+  if (r.status === 401 && await _refreshSettingsToken()) return _call(_getSettingsToken());
+  return r;
 }
 
 /* ── STATE ── */

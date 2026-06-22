@@ -15,16 +15,16 @@ function renderStats() {
   }
 
   // Helper: define borrador igual que getFilteredProducts para que contador = lo que se ve al filtrar
-  const _ib = p => !p.kitItems?.length && !p.isPublished && (!p.price || p.price === 0);
+  const _ib = p => !Array.isArray(p.kitItems) && !p.isPublished && (!p.price || p.price === 0);
 
   const nBorradores = products.filter(p => !p.isArchived && _ib(p)).length;
-  const visible     = p => !p.isArchived && !_ib(p) && !p.kitItems?.length; // no archivado, no borrador, no kit
+  const visible     = p => !p.isArchived && !_ib(p) && !Array.isArray(p.kitItems); // no archivado, no borrador, no kit
   const total       = products.filter(visible).length;
   const conStock    = products.filter(p => visible(p) && p.stock > 0 && !p.outOfStock).length;
   const sinStock    = products.filter(p => visible(p) && (p.stock === 0 || p.outOfStock)).length;
   const ultimaPieza = products.filter(p => visible(p) && p.stock === 1 && !p.outOfStock).length;
   const sinPublicar = products.filter(p => visible(p) && p.isPublished === false).length;
-  const nKits       = products.filter(p => !!p.kitItems?.length).length;
+  const nKits       = products.filter(p => Array.isArray(p.kitItems)).length;
   const sinCodigo   = products.filter(p => visible(p) && !p.barcode).length;
   const sinCateg    = products.filter(p => visible(p) && p.category === 'por_revisar').length;
   const nFlag = _flagged.filter(f => {
@@ -273,7 +273,7 @@ function setAdminView(view) {
 
 function adminCard(p, editable = false) {
   const fallback = DEFAULT_IMG;
-  const oos = p.kitItems?.length ? false : (p.outOfStock || p.stock === 0);
+  const oos = Array.isArray(p.kitItems) ? false : (p.outOfStock || p.stock === 0);
   const sel = selectedIds.has(p.id);
   const catColor = getCatColor(p.category);
 
@@ -348,7 +348,8 @@ function adminCard(p, editable = false) {
 }
 
 function _kitInfo(p) {
-  if (!p.kitItems?.length) return null;
+  if (!Array.isArray(p.kitItems)) return null;
+  if (!p.kitItems.length) return { stock: 0, empty: true };
   let min = Infinity, blocker = null;
   for (const comp of p.kitItems) {
     const c = products.find(x => x.id === comp.id);
@@ -361,8 +362,9 @@ function _kitInfo(p) {
 }
 
 function stockChip(p, editable = false) {
-  if (p.kitItems?.length) {
+  if (Array.isArray(p.kitItems)) {
     const ki = _kitInfo(p);
+    if (ki?.empty) return `<span class="stock-chip stock-sold" style="cursor:default">🎁 Sin componentes</span>`;
     if (ki?.stock === 0) {
       const lbl = ki.blocker ? (ki.blocker.length > 14 ? ki.blocker.slice(0, 13) + '…' : ki.blocker) : '?';
       return `<span class="stock-chip stock-sold" style="cursor:default" title="Falta: ${ki.blocker ?? 'componente agotado'}">🎁 Falta: ${lbl}</span>`;
@@ -591,7 +593,7 @@ function editCategoryInline(e, id) {
 
 function desktopRow(p) {
   const fallback = DEFAULT_IMG;
-  const oos = p.kitItems?.length ? false : (p.outOfStock || p.stock === 0);
+  const oos = Array.isArray(p.kitItems) ? false : (p.outOfStock || p.stock === 0);
   const featStar   = `<span onclick="toggleFeatured(${p.id})" class="toggle-featured" title="${p.featured ? 'Quitar destacado' : 'Destacar'}">${p.featured ? '⭐' : '☆'}</span>`;
   const catColor   = getCatColor(p.category);
   const catDot     = `<span class="cat-dot" style="background:${catColor}"></span>`;
@@ -647,7 +649,7 @@ function desktopRow(p) {
 function mobileCard(p) {
   const fallback = DEFAULT_IMG;
   const sel = selectedIds.has(p.id);
-  const oos = p.kitItems?.length ? false : (p.outOfStock || p.stock === 0);
+  const oos = Array.isArray(p.kitItems) ? false : (p.outOfStock || p.stock === 0);
   const catColor = getCatColor(p.category);
   const pubTitle  = p.isPublished === false ? 'Oculto del sitio — toca para publicar' : p.outOfStock ? 'Publicado pero agotado — no aparece en el sitio' : 'Visible en sitio — toca para ocultar';
   const pubEmoji  = p.isPublished === false ? '🙈' : p.outOfStock ? '⚠️' : '🌐';
