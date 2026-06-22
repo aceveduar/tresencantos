@@ -328,70 +328,9 @@ function _qvOpenZoom() {
 
 /* ── KIT COMPONENT MINI-POPUP ── */
 function _kitCompPopup(id, triggerEl) {
-  const existing = document.getElementById('kit-comp-popup');
-  if (existing) { existing.remove(); if (existing.dataset.forId == id) return; }
-  const popup = document.createElement('div');
-  popup.id = 'kit-comp-popup';
-  popup.style.cssText = 'position:fixed;z-index:9999;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.22);padding:0;overflow:hidden;width:250px;animation:kcp-in .18s ease';
-  popup.innerHTML = '<style>@keyframes kcp-in{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}</style>';
-  document.body.appendChild(popup);
-  // Posicionar junto al elemento que se clickeó
-  const r = triggerEl.getBoundingClientRect();
-  const pw = 250, ph = 320;
-  let top = r.top + window.scrollY - ph - 8;
-  let left = r.left + window.scrollX + r.width / 2 - pw / 2;
-  if (top < 8) top = r.bottom + window.scrollY + 8;
-  left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
-  popup.style.top = top + 'px';
-  popup.style.left = left + 'px';
-  _kitCompPopupRender(id);
-  const close = e => { if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('pointerdown', close); } };
-  setTimeout(() => document.addEventListener('pointerdown', close), 10);
-}
-
-function _kitCompPopupRender(id) {
-  const popup = document.getElementById('kit-comp-popup');
-  if (!popup) return;
   const comp = products.find(x => x.id === id);
   if (!comp) return;
-  popup.dataset.forId = id;
-  const kit = products.find(x => x.id === _qvCurrentId);
-  const kitComps = kit?.kitItems || [];
-  const idx = kitComps.findIndex(c => c.id === id);
-  const total = kitComps.length;
-  const hasPrev = idx > 0;
-  const hasNext = idx < total - 1;
-  const stockTxt = comp.outOfStock || comp.stock === 0
-    ? '<span style="color:#E85D5D;font-size:.72rem;font-weight:600">● Agotado</span>'
-    : `<span style="color:#2D6A4F;font-size:.72rem;font-weight:600">● ${comp.stock} en stock</span>`;
-  const navBtn = s => `width:28px;height:28px;background:rgba(0,0,0,.45);border:none;border-radius:50%;font-size:.9rem;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;line-height:1;z-index:1;position:absolute;top:50%;margin-top:-14px;${s}`;
-  popup.innerHTML = `
-    <style>@keyframes kcp-in{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}</style>
-    <button onclick="document.getElementById('kit-comp-popup')?.remove()" style="${navBtn('right:8px;top:8px;margin-top:0')}">✕</button>
-    ${hasPrev ? `<button onclick="event.stopPropagation();_kitCompPopupNav(-1)" style="${navBtn('left:6px')}">‹</button>` : ''}
-    ${hasNext ? `<button onclick="event.stopPropagation();_kitCompPopupNav(1)"  style="${navBtn('right:6px')}">›</button>` : ''}
-    <img src="${_driveSz(comp.image || DEFAULT_IMG, 400)}" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'" style="width:100%;height:230px;object-fit:contain;background:#F7F2EB;display:block">
-    <div style="padding:8px 12px 12px;display:flex;flex-direction:column;gap:5px">
-      <div style="font-size:.84rem;font-weight:700;color:#1C1817;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(comp.name)}</div>
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        ${stockTxt}
-        <span style="font-size:.75rem;color:var(--muted)">$${(comp.price||0).toLocaleString('es-MX')}</span>
-      </div>
-      ${total > 1 ? `<div style="text-align:center;font-size:.7rem;color:var(--muted-light);margin-top:1px">${idx+1} / ${total}</div>` : ''}
-      ${can.editProduct ? `<a href="#" onclick="event.preventDefault();_openFormFromKitQV(${comp.id})" style="font-size:.73rem;color:var(--gold);text-align:center;text-decoration:none;font-weight:600">✏️ Editar producto →</a>` : ''}
-    </div>`;
-}
-
-function _kitCompPopupNav(dir) {
-  const popup = document.getElementById('kit-comp-popup');
-  if (!popup) return;
-  const kit = products.find(x => x.id === _qvCurrentId);
-  if (!kit?.kitItems?.length) return;
-  const currentId = parseInt(popup.dataset.forId);
-  const idx = kit.kitItems.findIndex(c => c.id === currentId);
-  const next = idx + dir;
-  if (next < 0 || next >= kit.kitItems.length) return;
-  _kitCompPopupRender(kit.kitItems[next].id);
+  _openKitLightbox(comp, can.editProduct ? () => _openFormFromKitQV(comp.id) : null);
 }
 
 // Teclado: ← → Esc cuando el QV está abierto
@@ -399,11 +338,8 @@ document.addEventListener('keydown', e => {
   if (!_qvCurrentId) return;
   const tag = document.activeElement?.tagName;
   const isEditing = tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable;
-  // Si el popup de componente está abierto, las flechas navegan entre componentes del kit
-  if (document.getElementById('kit-comp-popup')) {
-    if (e.key === 'ArrowRight' && !isEditing) { e.stopImmediatePropagation(); _kitCompPopupNav(1); return; }
-    if (e.key === 'ArrowLeft'  && !isEditing) { e.stopImmediatePropagation(); _kitCompPopupNav(-1); return; }
-    if (e.key === 'Escape') { document.getElementById('kit-comp-popup')?.remove(); return; }
+  if (document.getElementById('kit-lightbox')) {
+    if (e.key === 'Escape') { document.getElementById('kit-lightbox')?.remove(); return; }
   }
   if (e.key === 'ArrowRight' && !isEditing) qvNavigate(1);
   if (e.key === 'ArrowLeft'  && !isEditing) qvNavigate(-1);

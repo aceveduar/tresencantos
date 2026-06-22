@@ -800,29 +800,7 @@ function _kitCompPopover(id, event) {
   event.stopPropagation();
   const p = products.find(x => x.id === id);
   if (!p) return;
-  document.getElementById('kit-comp-popover')?.remove();
-  const pop = document.createElement('div');
-  pop.id = 'kit-comp-popover';
-  pop.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:14px;padding:0;z-index:99999;box-shadow:0 8px 40px rgba(0,0,0,.28);width:250px;overflow:hidden';
-  const stockTxt = (p.outOfStock || p.stock === 0)
-    ? '<span style="color:var(--red)">⚠️ Agotado</span>'
-    : `<span style="color:var(--green)">● ${p.stock} en stock</span>`;
-  pop.innerHTML = `
-    <button onclick="document.getElementById('kit-comp-popover')?.remove()" style="position:absolute;top:8px;right:8px;width:28px;height:28px;background:rgba(0,0,0,.45);border:none;border-radius:50%;font-size:.85rem;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:1">✕</button>
-    <img src="${p.image || DEFAULT_IMG}" onerror="this.src='${DEFAULT_IMG}'" style="width:100%;height:230px;object-fit:contain;background:#F9F5EF;display:block">
-    <div style="padding:8px 12px 12px">
-      <div style="font-weight:700;font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px">${_esc(p.name)}</div>
-      <div style="font-size:.75rem;display:flex;align-items:center;justify-content:space-between">
-        ${stockTxt}
-        <span style="color:var(--muted)">$${(p.price||0).toLocaleString('es-MX')}</span>
-      </div>
-      ${can.editProduct ? `<a href="#" onclick="event.preventDefault();_openFormFromKit(${p.id})" style="display:block;margin-top:8px;font-size:.73rem;color:var(--gold);text-align:center;text-decoration:none;font-weight:600">✏️ Editar producto →</a>` : ''}
-    </div>`;
-  document.body.appendChild(pop);
-  setTimeout(() => {
-    const close = e => { if (!pop.contains(e.target)) { pop.remove(); document.removeEventListener('click', close); } };
-    document.addEventListener('click', close);
-  }, 50);
+  _openKitLightbox(p, can.editProduct ? () => _openFormFromKit(p.id) : null);
 }
 
 function renderKitEditor() {
