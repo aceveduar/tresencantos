@@ -667,7 +667,8 @@ function initStickyFilters() {
   const naturalTop = row.getBoundingClientRect().top + window.scrollY;
 
   function getOffset() {
-    return document.body.classList.contains('admin-bar-shown') ? 114 : 70;
+    const hdr = document.querySelector('.header');
+    return hdr ? hdr.getBoundingClientRect().bottom : 70;
   }
   function show(offset) {
     if (stuck) return;

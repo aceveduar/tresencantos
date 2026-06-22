@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&family=Dancing+Script:wght@600&display=swap');
-
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root{
@@ -27,7 +25,7 @@
 
 html{
   scroll-behavior:smooth;
-  scroll-padding-top:calc(80px + env(safe-area-inset-top)); /* deja espacio para el header fijo al saltar a una sección */
+  scroll-padding-top:calc(80px + env(safe-area-inset-top));
   overflow-x:hidden;
   -webkit-text-size-adjust:100%; /* evita que iOS cambie el tamaño de texto al rotar */
   text-size-adjust:100%;
@@ -146,7 +144,7 @@ section{padding:80px 20px}
 @media(max-width:640px){
   .products-filters-row{flex-wrap:nowrap;gap:8px;align-items:center}
   .products-filters{margin-bottom:0}
-  .sort-select{width:auto;flex-shrink:0;padding:8px 10px}
+  .sort-select{width:auto;flex-shrink:0;padding:8px 30px 8px 10px}
   /* Header catálogo compacto — productos suben */
   .products-section .section-header{margin-bottom:20px}
   .products-section .section-header h2{font-size:1.55rem;margin-bottom:6px}
@@ -247,7 +245,7 @@ section{padding:80px 20px}
 /* Navegación */
 .nc-nav{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px}
 .nc-dots{display:flex;gap:7px;align-items:center}
-.nc-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);border:none;cursor:pointer;padding:0;transition:.25s;flex-shrink:0}
+.nc-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);border:none;cursor:pointer;padding:8px;background-clip:content-box;transition:.25s;flex-shrink:0}
 .nc-dot.active{background:#fff;width:20px;border-radius:4px}
 .nc-arrow{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.3rem;transition:.2s;padding:0;line-height:1;flex-shrink:0}
 .nc-arrow:hover{background:rgba(255,255,255,.3)}
@@ -318,14 +316,12 @@ section{padding:80px 20px}
   #admin-bar .tbn-icon{padding:5px 9px}
 }
 body.admin-bar-shown #admin-bar{display:flex}
-body.admin-bar-shown .header{top:44px}
-@media(min-width:641px){
-  body.admin-bar-shown .header{top:54px}
-}
+body.admin-bar-shown .header{top:54px}
+body.admin-bar-shown{scroll-padding-top:calc(134px + env(safe-area-inset-top))}
 
 /* ── BOTÓN FLOTANTE WHATSAPP ── */
 #wa-float{
-  position:fixed;bottom:22px;right:18px;z-index:200;
+  position:fixed;bottom:calc(22px + env(safe-area-inset-bottom));right:18px;z-index:200;
   width:54px;height:54px;border-radius:50%;
   background:#25D366;
   display:flex;align-items:center;justify-content:center;
@@ -386,9 +382,9 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .modal-gallery::-webkit-scrollbar{display:none}
 .modal-gallery-img{flex:0 0 100%;width:100%;object-fit:contain;background:#fff;scroll-snap-align:start;cursor:zoom-in}
 .modal-gallery-dots{display:flex;justify-content:center;gap:6px;padding:6px 0 2px;background:#fff;flex-shrink:0}
-.mgd{width:7px;height:7px;border-radius:50%;background:#D1C4B8;cursor:pointer;transition:.2s;flex-shrink:0}
+.mgd{width:7px;height:7px;border-radius:50%;background:#D1C4B8;cursor:pointer;transition:.2s;flex-shrink:0;padding:8px;background-clip:content-box}
 .mgd-active{background:var(--gold);transform:scale(1.25)}
-.modal-close{position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.92);color:var(--charcoal);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:700;transition:var(--ease);z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.modal-close{position:absolute;top:8px;right:8px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.92);color:var(--charcoal);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:700;transition:var(--ease);z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.18)}
 .modal-close:hover{background:#fff;box-shadow:0 3px 14px rgba(0,0,0,.24)}
 
 /* Zoom de imagen a pantalla completa */
@@ -433,7 +429,7 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .modal-btn-oos{width:100%;justify-content:center;background:var(--cream);color:var(--text-mid);border:1.5px solid var(--gold);cursor:pointer;transition:var(--ease)}
 .modal-btn-oos:hover{background:#C9A462;color:#fff}
 .modal-qty-row{display:flex;align-items:center;justify-content:center;gap:16px;padding:8px 0 12px}
-.modal-qty-btn{width:32px;height:32px;border-radius:50%;border:2px solid var(--gold);background:transparent;color:var(--gold-dark);font-size:1.1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--ease);font-family:inherit}
+.modal-qty-btn{width:40px;height:40px;border-radius:50%;border:2px solid var(--gold);background:transparent;color:var(--gold-dark);font-size:1.1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--ease);font-family:inherit}
 .modal-qty-btn:hover{background:var(--gold);color:#fff}
 .modal-qty-num{font-size:1.1rem;font-weight:800;color:var(--charcoal);min-width:28px;text-align:center}
 .btn-modal-addcart{width:100%;justify-content:center;background:var(--gold);color:#fff}
@@ -463,7 +459,7 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .cart-sheet-handle{width:36px;height:4px;background:#E0D8CF;border-radius:2px;margin:10px auto 0;flex-shrink:0}
 .cart-sheet-head{padding:14px 20px;border-bottom:1px solid #F0E8E0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .cart-sheet-title{font-size:1rem;font-weight:700;color:var(--charcoal)}
-.cart-sheet-close{width:30px;height:30px;border-radius:50%;border:none;background:#F0E8E0;color:#6B5C48;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--ease)}
+.cart-sheet-close{width:36px;height:36px;border-radius:50%;border:none;background:#F0E8E0;color:#6B5C48;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--ease)}
 .cart-sheet-close:hover{background:#E85D5D;color:#fff}
 .cart-sheet-body{flex:1;overflow-y:auto;padding:12px 20px;display:flex;flex-direction:column;gap:10px}
 .cart-empty{text-align:center;padding:40px 20px;color:#9B8B78;font-size:.9rem}
@@ -473,7 +469,7 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .cart-item-name{font-size:.83rem;font-weight:600;color:var(--charcoal);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cart-item-price{font-size:.78rem;color:#8A7564;margin-top:2px}
 .cart-item-controls{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.cqty-btn{width:26px;height:26px;border-radius:50%;border:1.5px solid #EAE0D4;background:#fff;color:var(--charcoal);font-size:.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--ease)}
+.cqty-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid #EAE0D4;background:#fff;color:var(--charcoal);font-size:.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--ease)}
 .cqty-btn:hover{border-color:var(--gold);color:var(--gold-dark)}
 .cqty-num{font-size:.88rem;font-weight:700;color:var(--charcoal);min-width:20px;text-align:center}
 .cart-sheet-foot{padding:14px 20px;border-top:1px solid #F0E8E0;flex-shrink:0;padding-bottom:calc(14px + env(safe-area-inset-bottom))}
@@ -691,6 +687,7 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 
 /* Tablet pequeño (641–768px) — hamburger nav + layout compacto */
 @media(min-width:641px) and (max-width:768px){
+  .hero{min-height:100svh;min-height:-webkit-fill-available}
   /* NAV — hamburger también en tablet pequeño */
   .nav-links{display:none}
   .nav-toggle{display:flex}
@@ -744,7 +741,7 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .btn-buy{width:100%;justify-content:center;padding:11px 14px}
 
   /* Natura mobile */
-  .natura-grid>:first-child{order:1}
+  .natura-grid>:first-child{order:0}
   .natura-h2{font-size:1.7rem}
 
   /* Natura order banner */
@@ -806,7 +803,7 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .btn,.btn-buy,.filter-btn,.nav-cta{min-height:44px}
   .filter-btn{padding:10px 18px}
   .d-link{padding:10px 0}
-  .footer-col ul a{display:inline-flex;padding:10px 0}
+  .footer-col ul a{display:inline-flex;padding:10px 0;min-height:44px;align-items:center}
 
   /* Safe area para iPhone X+ con notch o home indicator */
   .header{padding-top:env(safe-area-inset-top)}
