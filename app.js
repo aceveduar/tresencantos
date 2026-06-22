@@ -512,9 +512,6 @@ function cardHTML(p) {
     badgeArea = `<span class="product-badge badge-${p.badgeType||'best'}">${_esc(p.badge)}</span>`;
   }
 
-  const lastPieceChip = (!oos && !apt && isLastPiece(p))
-    ? `<p class="card-last-piece">⚡ Última pieza</p>`
-    : '';
   const priceHTML = pct > 0
     ? `<div class="product-price"><s class="price-before">$${p.originalPrice.toLocaleString('es-MX')}</s> $${p.price.toLocaleString('es-MX')}</div>`
     : `<div class="product-price">$${p.price.toLocaleString('es-MX')}</div>`;
@@ -529,10 +526,7 @@ function cardHTML(p) {
     ${oosTag}${badgeArea}
   </div>
   <div class="product-body">
-    <p class="product-cat">${_esc(p.categoryLabel)}</p>
     <h3>${_esc(p.name)}</h3>
-    <p class="product-desc">${_descText(p.description)}</p>
-    ${lastPieceChip}
     <div class="product-footer">
       ${priceHTML}
       ${buyBtn}
