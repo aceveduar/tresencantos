@@ -385,7 +385,7 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .modal-gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:#fff;aspect-ratio:4/3}
 .modal-gallery::-webkit-scrollbar{display:none}
 .modal-gallery-img{flex:0 0 100%;width:100%;object-fit:contain;background:#fff;scroll-snap-align:start;cursor:zoom-in}
-.modal-gallery-dots{display:flex;justify-content:center;gap:6px;padding:8px 0 4px;background:#fff;flex-shrink:0}
+.modal-gallery-dots{display:flex;justify-content:center;gap:6px;padding:6px 0 2px;background:#fff;flex-shrink:0}
 .mgd{width:7px;height:7px;border-radius:50%;background:#D1C4B8;cursor:pointer;transition:.2s;flex-shrink:0}
 .mgd-active{background:var(--gold);transform:scale(1.25)}
 .modal-close{position:absolute;top:10px;right:10px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.92);color:var(--charcoal);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;transition:var(--ease);z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.18)}
@@ -492,10 +492,13 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .modal{max-width:100%;border-radius:20px 20px 0 0;max-height:92vh;transform:translateY(40px)}
   .modal-overlay.open .modal{transform:translateY(0)}
   .modal::before{content:'';display:block;width:36px;height:4px;background:rgba(28,24,23,.15);border-radius:2px;margin:10px auto 0;flex-shrink:0}
-  .modal-img,.modal-gallery{aspect-ratio:4/5;max-height:48vh}
-  .modal-body{padding:14px 18px 10px}
-  .modal-cta{padding:12px 18px calc(18px + env(safe-area-inset-bottom))}
+  .modal-img,.modal-gallery{aspect-ratio:auto;max-height:42vh}
+  .modal-gallery-img{aspect-ratio:auto;max-height:42vh;object-fit:contain}
+  .modal-body{padding:12px 18px 8px}
+  .modal-title{font-size:1.15rem;margin-bottom:6px}
+  .modal-cta{padding:10px 18px calc(14px + env(safe-area-inset-bottom))}
   .modal-cta-amount{font-size:1.5rem}
+  .modal-qty-row{padding:6px 0 8px}
 }
 
 
