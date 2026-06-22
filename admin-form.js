@@ -800,7 +800,11 @@ function _kitCompPopover(id, event) {
   event.stopPropagation();
   const p = products.find(x => x.id === id);
   if (!p) return;
-  _openKitLightbox(p, can.editProduct ? () => _openFormFromKit(p.id) : null);
+  const isKitBuilder = document.getElementById('kit-builder-overlay')?.classList.contains('kb-open');
+  const editFn = !can.editProduct ? null : isKitBuilder
+    ? () => { closeKitBuilder(); openForm(p.id); }
+    : () => _openFormFromKit(p.id);
+  _openKitLightbox(p, editFn);
 }
 
 function renderKitEditor() {
