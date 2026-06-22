@@ -503,8 +503,8 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 
 
 /* ── ANIMATIONS ── */
-.reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}
-.reveal.visible{opacity:1;transform:translateY(0)}
+.reveal{opacity:0;transition:opacity .5s ease}
+.reveal.visible{opacity:1}
 
 /* ── HERO MOBILE STRIP ── */
 .hms-label{display:none;font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:24px 0 10px}
