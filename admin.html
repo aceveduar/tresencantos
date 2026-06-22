@@ -147,7 +147,10 @@
           <div>
             <label class="kb-label">Componentes</label>
             <div style="display:flex;gap:8px;margin-bottom:6px">
-              <input id="kb-search" class="kb-input" type="text" placeholder="🔍 Buscar producto para agregar..." oninput="_kbSearch(this.value)" style="flex:1;margin-bottom:0">
+              <div style="flex:1;position:relative">
+                <input id="kb-search" class="kb-input" type="text" placeholder="🔍 Buscar producto para agregar..." oninput="_kbSearch(this.value);document.getElementById('kb-search-clear').style.display=this.value?'flex':'none'" style="width:100%;margin-bottom:0;padding-right:32px">
+                <button type="button" id="kb-search-clear" onclick="document.getElementById('kb-search').value='';_kbSearch('');this.style.display='none'" style="display:none;position:absolute;right:6px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;border:none;background:var(--border);color:var(--muted);font-size:.72rem;font-weight:700;cursor:pointer;align-items:center;justify-content:center;touch-action:manipulation">✕</button>
+              </div>
               <button type="button" onclick="openKitScanner()" style="flex-shrink:0;width:44px;height:44px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation" title="Escanear código de barras">📷</button>
             </div>
             <div id="kb-search-results" style="display:none;max-height:180px;overflow-y:auto;border:1.5px solid var(--border);border-radius:10px;background:#fff;margin-bottom:10px"></div>
@@ -509,7 +512,10 @@
       <div id="kit-editor" style="display:none;margin-bottom:4px">
         <p style="font-size:.72rem;color:var(--muted);margin:0 0 10px">Al vender en Caja, el stock de cada componente se descuenta automáticamente.</p>
         <div style="display:flex;gap:8px;margin-bottom:6px">
-          <input type="text" id="kit-search" class="form-input" placeholder="Buscar componente del kit..." oninput="searchKitProducts(this.value)" autocomplete="off">
+          <div style="flex:1;position:relative">
+            <input type="text" id="kit-search" class="form-input" placeholder="Buscar componente del kit..." oninput="searchKitProducts(this.value);document.getElementById('kit-search-clear').style.display=this.value?'flex':'none'" autocomplete="off" style="width:100%;padding-right:32px">
+            <button type="button" id="kit-search-clear" onclick="document.getElementById('kit-search').value='';document.getElementById('kit-search-results').style.display='none';this.style.display='none'" style="display:none;position:absolute;right:6px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;border:none;background:var(--border);color:var(--muted);font-size:.72rem;font-weight:700;cursor:pointer;align-items:center;justify-content:center;touch-action:manipulation">✕</button>
+          </div>
         </div>
         <div id="kit-search-results" style="display:none;border:1px solid var(--border);border-radius:8px;max-height:170px;overflow-y:auto;margin-bottom:10px;background:#fff"></div>
         <div id="kit-components-list" style="border:1px solid var(--border);border-radius:8px;padding:4px 6px;min-height:38px;background:#FAFAF8"></div>

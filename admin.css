@@ -269,7 +269,6 @@ td,th{overflow:hidden}
   font-size:.6rem;color:#fff;flex-shrink:0;vertical-align:middle;
 }
 /* Producto sin categoría real */
-.card-por-revisar{border-left:3px solid #F59E0B!important}
 .cat-label-sin-cat{font-family:'Inter',sans-serif!important;font-size:.75rem!important;font-weight:700!important;color:#B45309!important;background:#FFFBEB;border:1px dashed #F59E0B;border-radius:6px;padding:2px 8px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .creator-chip{font-size:.65rem;font-weight:600;color:#6B7280;background:#F3F4F6;border:1px solid #E5E7EB;border-radius:20px;padding:1px 6px;white-space:nowrap;flex-shrink:0}
 /* Nota de flag visible en card */
@@ -941,14 +940,14 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .table-wrap tr.mpc-row{display:block}
   .table-wrap tr.mpc-row td{display:block;padding:0;border:none}
   .table-wrap tr.mpc-row:hover td{background:transparent!important}
-  tr.row-selected .mpc{border-color:var(--gold)!important;background:#FFFBF4!important;box-shadow:inset 4px 0 0 var(--gold),0 3px 14px rgba(201,164,98,.18)!important}
+  tr.row-selected .mpc{border-color:var(--gold)!important;background:#FFFBF4!important;box-shadow:0 3px 14px rgba(201,164,98,.18)!important}
   tr.row-selected td{background:transparent!important}
   tr .actions{opacity:1}
   tr .drag-handle{opacity:0}
 
   /* ── Tarjeta MPC — tamaños tablet (mobile ≤640px sobreescribe abajo) ── */
-  .mpc{background:#fff;border:1.5px solid var(--border);border-radius:18px;overflow:hidden;transition:border-color .18s,box-shadow .18s,transform .12s;box-shadow:inset 4px 0 0 #10B981,0 2px 10px rgba(28,24,23,.07)}
-  .mpc.mpc-oos{opacity:.8;box-shadow:inset 4px 0 0 #EF4444,0 2px 8px rgba(28,24,23,.05)}
+  .mpc{background:#fff;border:1.5px solid var(--border);border-radius:18px;overflow:hidden;transition:border-color .18s,box-shadow .18s,transform .12s;box-shadow:0 2px 10px rgba(28,24,23,.07)}
+  .mpc.mpc-oos{opacity:.8;box-shadow:0 2px 8px rgba(28,24,23,.05)}
   .mpc-top:active{background:rgba(201,164,98,.04)}
   .mpc-top{display:flex;gap:12px;padding:12px 14px 10px;align-items:flex-start}
   .mpc-img-wrap{position:relative;flex-shrink:0}
