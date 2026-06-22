@@ -404,30 +404,14 @@ function _toggleAbonos(titleEl) {
 
 /* ── POPUP IMAGEN PRODUCTO EN APARTADO ── */
 function _aptItemPopup(productId, triggerEl) {
-  const existing = document.getElementById('apt-item-popup');
-  if (existing) { existing.remove(); if (existing.dataset.forId == productId) return; }
   const prod = products.find(x => x.id === productId);
   if (!prod?.image) return;
-  const popup = document.createElement('div');
-  popup.id = 'apt-item-popup';
-  popup.dataset.forId = productId;
-  popup.style.cssText = 'position:fixed;z-index:9999;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.22);padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px;width:230px;animation:apt-pop-in .18s ease';
-  popup.innerHTML = `
-    <style>@keyframes apt-pop-in{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}</style>
-    <button onclick="document.getElementById('apt-item-popup').remove()" style="position:absolute;top:8px;right:8px;background:none;border:none;font-size:1rem;cursor:pointer;color:#8A7564;line-height:1;padding:2px">✕</button>
-    <img src="${prod.image}" onerror="this.onerror=null;this.src=''" style="width:190px;height:190px;object-fit:contain;border-radius:8px;background:#F7F2EB">
-    <div style="font-size:.86rem;font-weight:600;color:#1C1817;text-align:center;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;width:100%">${_esc(prod.name)}</div>`;
-  document.body.appendChild(popup);
-  const r = triggerEl.getBoundingClientRect();
-  const pw = 230, ph = popup.offsetHeight || 280;
-  let top  = r.top - ph - 8;
-  let left = r.left + r.width / 2 - pw / 2;
-  if (top < 8) top = r.bottom + 8;
-  left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
-  popup.style.top  = top  + 'px';
-  popup.style.left = left + 'px';
-  const close = e => { if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('pointerdown', close); } };
-  setTimeout(() => document.addEventListener('pointerdown', close), 10);
+  const img = document.createElement('img');
+  img.src = _driveSz(prod.image, 80);
+  img.dataset.name = prod.name;
+  img.dataset.price = prod.price;
+  img.dataset.qty = 1;
+  openLightbox(img);
 }
 
 /* ── RECORDATORIO WA APARTADO ───────────────────────────────────────── */

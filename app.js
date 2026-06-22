@@ -143,7 +143,7 @@ function renderCartBody() {
   }
   body.innerHTML = cart.map(item => `
 <div class="cart-item">
-  <img class="cart-item-img" src="${_driveSz(item.image, 80)}" alt="${_esc(item.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
+  <img class="cart-item-img" src="${_driveSz(item.image, 80)}" alt="${_esc(item.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'" onclick="event.stopPropagation();_openLB('${(item.image||'').replace(/'/g,"\\'")}','${_esc(item.name).replace(/'/g,"\\'")}',${item.price})" style="cursor:zoom-in">
   <div class="cart-item-info">
     <div class="cart-item-name">${_esc(item.name)}</div>
     <div class="cart-item-price">$${item.price.toLocaleString('es-MX')} MXN</div>
@@ -904,6 +904,50 @@ function _initModalSwipeNav() {
     if (Math.abs(dx) < 45) return;
     _modalNavigate(dx < 0 ? 1 : -1);
   }, { passive: true });
+}
+
+/* ── LIGHTBOX ── */
+function _openLB(img, name, price) {
+  document.getElementById('img-lb-img').src = _driveSz(img, 900);
+  document.getElementById('img-lb-name').textContent = name || '';
+  document.getElementById('img-lb-price').textContent = price ? `$${parseFloat(price).toLocaleString('es-MX')} MXN` : '';
+  document.getElementById('img-lightbox').classList.add('open');
+  document.body.style.overscrollBehaviorY = 'none';
+  _initLBSwipe();
+}
+function _closeLB() {
+  document.getElementById('img-lightbox').classList.remove('open');
+  document.body.style.overscrollBehaviorY = '';
+}
+function _initLBSwipe() {
+  const lb = document.getElementById('img-lightbox');
+  if (!lb || lb._swipeInited) return;
+  lb._swipeInited = true;
+  let sy = 0, cy = 0, on = false;
+  lb.addEventListener('touchstart', e => { sy = e.touches[0].clientY; cy = 0; on = false; }, { passive: true });
+  lb.addEventListener('touchmove', e => {
+    const dy = e.touches[0].clientY - sy;
+    if (!on && dy > 10) on = true;
+    if (!on) return;
+    e.preventDefault();
+    cy = Math.max(0, dy);
+    const img = document.getElementById('img-lb-img');
+    if (img) img.style.transform = `translateY(${cy * 0.45}px) scale(${Math.max(0.85, 1 - cy / 700)})`;
+    lb.style.background = `rgba(0,0,0,${Math.max(0, 0.88 - cy / 280)})`;
+  }, { passive: false });
+  lb.addEventListener('touchend', () => {
+    if (!on) return; on = false;
+    const img = document.getElementById('img-lb-img');
+    if (cy > 80) {
+      _closeLB();
+      if (img) { img.style.transform = ''; img.style.transition = ''; }
+      lb.style.background = '';
+    } else {
+      if (img) { img.style.transition = 'transform .36s cubic-bezier(.34,1.26,.64,1)'; img.style.transform = ''; setTimeout(() => img.style.transition = '', 360); }
+      lb.style.background = '';
+    }
+    cy = 0;
+  });
 }
 
 // Tap en imagen del modal → ver en pantalla completa

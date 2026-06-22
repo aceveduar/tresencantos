@@ -200,6 +200,10 @@ function openPosPreview(id) {
   const img = document.getElementById('pos-preview-img');
   img.src = p.image || fallback;
   img.onerror = function() { this.onerror = null; this.src = fallback; };
+  img.onclick = function(e) { e.stopPropagation(); openLightbox(this); };
+  img.dataset.name = p.name;
+  img.dataset.price = p.price;
+  img.dataset.qty = 1;
 
   document.getElementById('pos-preview-cat').textContent   = p.categoryLabel || '';
   document.getElementById('pos-preview-name').textContent  = (isKit ? '🎁 ' : '') + p.name;
