@@ -386,19 +386,7 @@ function openAptDetail(id) {
     </div>`;
   }).join('');
 
-  // Abonos
   const abonos = Array.isArray(s.abonos) ? s.abonos : [];
-  const abonosHTML = abonos.length ? `
-<div class="apt-abonos" style="margin-top:12px">
-  <div class="apt-abonos-title" onclick="_toggleAbonos(this)">Historial de pagos <span class="apt-abonos-toggle">▼</span></div>
-  <div class="apt-abonos-body" style="max-height:0">
-    ${abonos.map(a => {
-      const fecha = new Date(a.date).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
-      const ico   = a.method === 'transferencia' ? '📱' : '💵';
-      return `<div class="apt-abono-row"><span>${fecha} · ${ico} ${a.method}</span><span class="apt-abono-amount">$${parseFloat(a.amount).toLocaleString('es-MX')}</span></div>`;
-    }).join('')}
-  </div>
-</div>` : '';
 
   // Due date
   let dueAlertHTML = '';
@@ -411,18 +399,37 @@ function openAptDetail(id) {
     dueAlertHTML = `<div style="font-size:.76rem;font-weight:700;color:${dueColor};margin-bottom:10px">📅 ${dueText}</div>`;
   }
 
+  const disc = parseFloat(s.discount) || 0;
+  const subtotal = disc > 0 ? total + disc : 0;
+
+  const summaryRows = [];
+  if (disc > 0) {
+    summaryRows.push(`<div class="apt-sum-row"><span>Subtotal</span><span>$${subtotal.toLocaleString('es-MX')}</span></div>`);
+    summaryRows.push(`<div class="apt-sum-row apt-sum-disc"><span>🏷 Descuento</span><span>−$${disc.toLocaleString('es-MX')}</span></div>`);
+  }
+  summaryRows.push(`<div class="apt-sum-row apt-sum-total"><span>Total</span><span>$${total.toLocaleString('es-MX')}</span></div>`);
+
+  const abonosVisible = abonos.length ? abonos.map(a => {
+    const fecha = new Date(a.date).toLocaleDateString('es-MX', { day:'numeric', month:'short' });
+    const ico = a.method === 'transferencia' ? '📱' : '💵';
+    return `<div class="apt-abono-row"><span>${fecha} · ${ico} ${_esc(a.method)}</span><span class="apt-abono-amount">$${parseFloat(a.amount).toLocaleString('es-MX')}</span></div>`;
+  }).join('') : '';
+
   document.getElementById('adm-body').innerHTML = `
     ${dueAlertHTML}
     <div class="adm-section-title">Productos</div>
-    <div class="apt-items-list" style="margin-bottom:12px">${itemsHTML}</div>
-    ${abonosHTML}
-    <div class="apt-progress-section" style="margin-top:14px">
+    <div class="apt-items-list">${itemsHTML}</div>
+    <div class="apt-summary">
+      ${summaryRows.join('')}
+    </div>
+    <div class="apt-progress-section">
       <div class="apt-progress-track"><div class="apt-progress-fill" style="width:${pct}%"></div></div>
-      <div class="apt-amounts-row" style="margin-top:4px">
-        <span class="apt-paid-lbl">✓ Pagado $${pagado.toLocaleString('es-MX')} (${pct}%)</span>
-        <span class="apt-pending-lbl">Pendiente $${pendiente.toLocaleString('es-MX')}</span>
+      <div class="apt-amounts-row">
+        <span class="apt-paid-lbl">✓ Pagado $${pagado.toLocaleString('es-MX')}</span>
+        <span class="apt-pending-lbl">${pendiente > 0 ? 'Pendiente $' + pendiente.toLocaleString('es-MX') : '✓ Liquidado'}</span>
       </div>
-    </div>`;
+    </div>
+    ${abonosVisible ? `<div class="apt-abonos-section"><div class="adm-section-title">Historial de pagos</div>${abonosVisible}</div>` : ''}`;
 
   // Footer buttons
   const editBtn = canEditApartado()
