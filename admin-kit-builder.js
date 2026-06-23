@@ -43,6 +43,7 @@ function openKitBuilder() {
     byId('kb-stock-preview').textContent = '';
     byId('kb-save-btn').disabled = false;
     byId('kb-save-btn').textContent = 'Guardar Kit →';
+    byId('kb-save-btn').onclick = _saveKit;
     byId('kb-img-preview').style.display = 'none';
     byId('kb-img-placeholder').style.display = 'flex';
     byId('kb-img-remove').style.display = 'none';
@@ -81,9 +82,28 @@ function _kbToggleBelow(show) {
   const comps = document.getElementById('kb-components');
   const stock = document.getElementById('kb-stock-preview');
   const count = document.getElementById('kb-comp-count');
+  const btn   = document.getElementById('kb-save-btn');
   if (comps) comps.style.display = show ? '' : 'none';
   if (stock) stock.style.display = show ? '' : 'none';
   if (count) count.textContent = !show && _kbComponents.length ? `· ${_kbComponents.length} agregados` : '';
+  if (btn) {
+    if (!show && _kbComponents.length) {
+      btn.textContent = `✓ Ver ${_kbComponents.length} componente${_kbComponents.length > 1 ? 's' : ''}`;
+      btn.onclick = _kbCloseSearch;
+    } else {
+      btn.textContent = 'Guardar Kit →';
+      btn.onclick = _saveKit;
+    }
+  }
+}
+
+function _kbCloseSearch() {
+  const search = document.getElementById('kb-search');
+  const clear = document.getElementById('kb-search-clear');
+  if (search) search.value = '';
+  if (clear) clear.style.display = 'none';
+  document.getElementById('kb-search-results').style.display = 'none';
+  _kbToggleBelow(true);
 }
 
 function _kbSearch(q) {
@@ -130,6 +150,7 @@ function _kbSearch(q) {
   }).join('') + createBtn;
   res.style.display = 'block';
   _kbToggleBelow(false);
+  document.getElementById('kb-search')?.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 async function _kbCreateDraft(name) {
