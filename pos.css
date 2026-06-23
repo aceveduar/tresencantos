@@ -832,9 +832,9 @@ button,a{touch-action:manipulation}
   .pos-view-toggle{display:none}
   .pos-view-toggle + .pos-sort-sep{display:none}
   .apt-btns{gap:5px}
-  .btn-abonar,.btn-liquidar{font-size:.74rem;padding:0 7px}
-  .btn-wa-reminder,.btn-cancelar-apt{width:38px;height:38px;font-size:.9rem}
-  .btn-abonar,.btn-liquidar{height:38px}
+  .apt-btns>.btn-wa-reminder:first-child{display:none}
+  .btn-abonar,.btn-liquidar{font-size:.74rem;padding:0 7px;height:38px}
+  .btn-cancelar-apt{width:38px;height:38px;font-size:.9rem}
   /* Frecuentes — versión compacta (solo imagen + precio) */
   .pos-freq-bar.visible{padding:6px 10px 8px;gap:6px}
   .pos-freq-card{width:58px;padding:3px 2px;gap:2px}
