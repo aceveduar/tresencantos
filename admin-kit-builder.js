@@ -77,10 +77,17 @@ function _closeKitBuilderSafe() {
   closeKitBuilder();
 }
 
+function _kbToggleBelow(show) {
+  const comps = document.getElementById('kb-components');
+  const stock = document.getElementById('kb-stock-preview');
+  if (comps) comps.style.display = show ? '' : 'none';
+  if (stock) stock.style.display = show ? '' : 'none';
+}
+
 function _kbSearch(q) {
   const res = document.getElementById('kb-search-results');
   const term = (q || '').toLowerCase().trim();
-  if (!term) { res.style.display = 'none'; return; }
+  if (!term) { res.style.display = 'none'; _kbToggleBelow(true); return; }
   const taken = new Set(_kbComponents.map(c => c.id));
   const matches = products.filter(p =>
     !Array.isArray(p.kitItems) && !taken.has(p.id) &&
@@ -120,6 +127,7 @@ function _kbSearch(q) {
     </div>`;
   }).join('') + createBtn;
   res.style.display = 'block';
+  _kbToggleBelow(false);
 }
 
 async function _kbCreateDraft(name) {
@@ -238,7 +246,7 @@ function _kbChangeQty(id, delta) {
 function _kbRenderComponents() {
   const el = document.getElementById('kb-components');
   if (!_kbComponents.length) {
-    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:.82rem;border:1.5px dashed var(--border);border-radius:10px">Sin componentes · búscalos aquí o agrégalos después desde el Inventario</div>';
+    el.innerHTML = '<div style="text-align:center;padding:14px;color:var(--muted);font-size:.8rem;border:1.5px dashed var(--border);border-radius:10px">Busca productos arriba para agregarlos al kit</div>';
     return;
   }
   el.innerHTML = _kbComponents.map(c => `
@@ -259,7 +267,7 @@ function _kbRenderComponents() {
 
 function _kbUpdateStock() {
   const el = document.getElementById('kb-stock-preview');
-  if (!_kbComponents.length) { el.textContent = 'Podrás agregar componentes después desde el Inventario'; el.style.color = 'var(--muted)'; return; }
+  if (!_kbComponents.length) { el.textContent = ''; return; }
   const avail = Math.min(..._kbComponents.map(c => Math.floor(c.stock / c.qty)));
   el.textContent = avail > 0
     ? `📦 ${avail} kit${avail !== 1 ? 's' : ''} disponibles con el stock actual`
