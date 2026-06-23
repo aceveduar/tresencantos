@@ -547,6 +547,7 @@ button,a{touch-action:manipulation}
 .apt-paid-lbl{color:#6B9E78;font-weight:700}
 .apt-pending-lbl{color:var(--red);font-weight:700}
 .apt-abonos-section{border-top:1px solid #F0E8DC;padding-top:10px}
+.apt-abonos-section-inline{margin-bottom:10px}
 .apt-btns{display:flex;gap:7px;align-items:stretch}
 .btn-cancelar-apt{flex-shrink:0;width:42px;height:42px;padding:0;border-radius:8px;border:1.5px solid #FECACA;background:#FEF2F2;color:#DC2626;font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;line-height:1;font-weight:700;margin-left:6px}
 .btn-cancelar-apt:hover{background:#FEE2E2;border-color:#FCA5A5}

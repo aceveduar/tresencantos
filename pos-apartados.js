@@ -346,6 +346,8 @@ function _renderApartadoCards(data) {
 
     const telLink = telNum ? `<a href="tel:${telNum.replace(/\D/g,'')}" onclick="event.stopPropagation()" style="color:#9B8B78;text-decoration:none;font-size:.72rem">📱 ${telNum}</a>` : '';
 
+    const disc = parseFloat(s.discount) || 0;
+
     return `
 <div class="apartado-item${isOverdue ? ' apt-overdue' : ''}" onclick="_toggleApt(this,${s.id})">
   <div class="apt-header">
@@ -365,14 +367,18 @@ function _renderApartadoCards(data) {
   <div class="apt-body">
     ${isOverdue ? '<div class="apt-overdue-badge">⚠️ Vencido</div>' : ''}
     <div class="apt-items-list">${itemsListHTML}</div>
-    ${abonosHTML}
+    <div class="apt-summary">
+      ${disc > 0 ? `<div class="apt-sum-row"><span>Subtotal</span><span>$${(total+disc).toLocaleString('es-MX')}</span></div><div class="apt-sum-row apt-sum-disc"><span>🏷 Descuento</span><span>−$${disc.toLocaleString('es-MX')}</span></div>` : ''}
+      <div class="apt-sum-row apt-sum-total"><span>Total</span><span>$${total.toLocaleString('es-MX')}</span></div>
+    </div>
     <div class="apt-progress-section">
       <div class="apt-progress-track"><div class="apt-progress-fill" style="width:${pct}%"></div></div>
       <div class="apt-amounts-row">
-        <span class="apt-paid-lbl">✓ Pagado $${pagado.toLocaleString('es-MX')} (${pct}%)</span>
-        <span class="apt-pending-lbl">Pendiente $${pendiente.toLocaleString('es-MX')}</span>
+        <span class="apt-paid-lbl">✓ Pagado $${pagado.toLocaleString('es-MX')}</span>
+        <span class="apt-pending-lbl">${pendiente > 0 ? 'Falta $' + pendiente.toLocaleString('es-MX') : '✓ Liquidado'}</span>
       </div>
     </div>
+    ${abonosHTML ? `<div class="apt-abonos-section-inline">${abonosHTML}</div>` : ''}
     <div class="apt-btns">
       <button class="btn-wa-reminder" onclick="event.stopPropagation();sendApartadoReminder(${s.id})" title="Recordatorio WhatsApp">💬</button>
       ${canEditApartado() ? `<button class="btn-wa-reminder" onclick="event.stopPropagation();openEditApartado(${s.id})" title="Editar" style="background:#F7F2EB;color:var(--charcoal);border:1.5px solid var(--border)">✏️</button>` : ''}
