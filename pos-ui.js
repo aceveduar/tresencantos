@@ -371,18 +371,19 @@ function openAptDetail(id) {
   const itemsHTML = (s.items || []).map(i => {
     const prod     = products.find(x => x.id === i.id);
     const img      = _driveSz(prod?.image || i.image || '', 80);
-    const price    = (i.subtotal ?? i.price * (i.qty || 1)).toLocaleString('es-MX');
+    const qty      = i.qty || 1;
+    const sub      = i.subtotal ?? i.price * qty;
     const kitComps = prod?.kitItems || i.kit_items;
     const kitHTML  = Array.isArray(kitComps) && kitComps.length
       ? kitComps.map(c => `<div style="font-size:.68rem;color:#9B8B78;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${_esc(c.name)}${c.qty > 1 ? ' ×' + c.qty : ''}</div>`).join('')
       : '';
+    const priceLabel = qty > 1
+      ? `<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span><span class="apt-item-qty">$${i.price.toLocaleString('es-MX')} ×${qty}</span>`
+      : `<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span>`;
     return `<div class="apt-item-row" onclick="_aptItemPopup(${i.id},this)">
       <img class="apt-item-thumb" src="${img}" onerror="this.style.visibility='hidden'" alt="">
       <div class="apt-item-info"><div class="apt-item-name">${_esc(i.name)}</div>${kitHTML}</div>
-      <div class="apt-item-right">
-        <span class="apt-item-price">$${price}</span>
-        <span class="apt-item-qty">×${i.qty || 1}</span>
-      </div>
+      <div class="apt-item-right">${priceLabel}</div>
     </div>`;
   }).join('');
 

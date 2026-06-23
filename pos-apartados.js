@@ -315,32 +315,30 @@ function _renderApartadoCards(data) {
     }
     const isOverdue = s.due_date && (() => { const h=new Date();h.setHours(0,0,0,0);return new Date(s.due_date+'T00:00:00') < h; })();
 
-    // Abonos
     const abonos = Array.isArray(s.abonos) ? s.abonos : [];
     const abonosHTML = abonos.length ? `
-<div class="apt-abonos">
-  <div class="apt-abonos-title" onclick="event.stopPropagation();_toggleAbonos(this)">Historial de pagos <span class="apt-abonos-toggle">▼</span></div>
-  <div class="apt-abonos-body" style="max-height:0">
-    ${abonos.map(a => {
-      const fecha = new Date(a.date).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
-      const ico   = a.method === 'transferencia' ? '📱' : '💵';
-      return `<div class="apt-abono-row"><span>${fecha} · ${ico} ${a.method}</span><span class="apt-abono-amount">$${parseFloat(a.amount).toLocaleString('es-MX')}</span></div>`;
-    }).join('')}
-  </div>
+<div class="apt-abonos-section-inline">
+  <div class="adm-section-title" style="font-size:.65rem;margin-bottom:4px">Pagos realizados</div>
+  ${abonos.map(a => {
+    const fecha = new Date(a.date).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+    const ico   = a.method === 'transferencia' ? '📱' : '💵';
+    return `<div class="apt-abono-row"><span>${fecha} · ${ico} ${_esc(a.method)}</span><span class="apt-abono-amount">$${parseFloat(a.amount).toLocaleString('es-MX')}</span></div>`;
+  }).join('')}
 </div>` : '';
 
     // Items
     const itemsListHTML = nItems ? s.items.map(i => {
       const prod  = products.find(x => x.id === i.id);
       const img   = _driveSz(prod?.image || i.image || '', 80);
-      const price = (i.subtotal ?? i.price*(i.qty||1)).toLocaleString('es-MX');
+      const qty   = i.qty || 1;
+      const sub   = i.subtotal ?? i.price * qty;
+      const priceLabel = qty > 1
+        ? `<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span><span class="apt-item-qty">$${i.price.toLocaleString('es-MX')} ×${qty}</span>`
+        : `<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span>`;
       return `<div class="apt-item-row" onclick="event.stopPropagation();_aptItemPopup(${i.id},this)">
         <img class="apt-item-thumb" src="${img}" onerror="this.style.visibility='hidden'" alt="">
         <div class="apt-item-info"><div class="apt-item-name">${_esc(i.name)}</div></div>
-        <div class="apt-item-right">
-          <span class="apt-item-price">$${price}</span>
-          <span class="apt-item-qty">×${i.qty||1}</span>
-        </div>
+        <div class="apt-item-right">${priceLabel}</div>
       </div>`;
     }).join('') : '';
 
