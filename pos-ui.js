@@ -562,13 +562,15 @@ async function loadHistory() {
       if (s.customer) tags.push(`<span class="hi-tag customer">👤 ${_esc((s.customer||'').split(' · 📱 ')[0])}</span>`);
       const footerHTML = tags.length ? `<div class="hi-footer">${tags.join('')}</div>` : '';
 
+      const displayTotal = isApt ? pagado : total;
+
       return `
-<div class="hi-card${isApt ? ' hi-card-apt' : ''}">
+<div class="hi-card">
   <div class="hi-head">
     <span class="hi-time">${hora} · ${totalQty} art.</span>
-    <span class="hi-spacer"></span>
     ${payBadge}
-    <span class="hi-total"${isApt ? ' title="Anticipo recibido"' : ''}>$${(isApt ? pagado : total).toLocaleString('es-MX')}${isApt ? '<span style="font-size:.65rem;color:#9B8B78;font-weight:400;margin-left:3px">anticipo</span>' : ''}</span>
+    <span class="hi-spacer"></span>
+    <span class="hi-total">$${displayTotal.toLocaleString('es-MX')}</span>
     ${canCancelSale() ? `<button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar">✕</button>` : ''}
   </div>
   <div class="hi-items">${itemsHTML || '<div style="color:#9B8B78;font-size:.78rem;padding:4px 0">Sin detalle</div>'}</div>
