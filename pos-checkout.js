@@ -428,37 +428,41 @@ function initDivider() {
   const body    = document.querySelector('.pos-body');
   if (!divider || !body) return;
 
-  // Restaurar proporción guardada
   const saved = localStorage.getItem('te_pos_split');
   if (saved) body.style.gridTemplateColumns = saved;
 
   let dragging = false;
 
-  divider.addEventListener('mousedown', e => {
+  function startDrag(e) {
     dragging = true;
     divider.classList.add('dragging');
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
     e.preventDefault();
-  });
-
-  document.addEventListener('mousemove', e => {
+  }
+  function moveDrag(clientX) {
     if (!dragging) return;
     const rect  = body.getBoundingClientRect();
-    const leftW = Math.max(200, Math.min(e.clientX - rect.left, rect.width - 200));
+    const leftW = Math.max(200, Math.min(clientX - rect.left, rect.width - 200));
     const pct   = (leftW / rect.width * 100).toFixed(1);
-    const cols  = `${pct}% 5px 1fr`;
-    body.style.gridTemplateColumns = cols;
-  });
-
-  document.addEventListener('mouseup', () => {
+    body.style.gridTemplateColumns = `${pct}% 5px 1fr`;
+  }
+  function endDrag() {
     if (!dragging) return;
     dragging = false;
     divider.classList.remove('dragging');
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
     localStorage.setItem('te_pos_split', body.style.gridTemplateColumns);
-  });
+  }
+
+  divider.addEventListener('mousedown', startDrag);
+  document.addEventListener('mousemove', e => moveDrag(e.clientX));
+  document.addEventListener('mouseup', endDrag);
+
+  divider.addEventListener('touchstart', e => { startDrag(e); }, { passive: false });
+  document.addEventListener('touchmove', e => { if (dragging) { e.preventDefault(); moveDrag(e.touches[0].clientX); } }, { passive: false });
+  document.addEventListener('touchend', endDrag);
 }
 
 /* ── INIT ── */
