@@ -80,8 +80,10 @@ function _closeKitBuilderSafe() {
 function _kbToggleBelow(show) {
   const comps = document.getElementById('kb-components');
   const stock = document.getElementById('kb-stock-preview');
+  const count = document.getElementById('kb-comp-count');
   if (comps) comps.style.display = show ? '' : 'none';
   if (stock) stock.style.display = show ? '' : 'none';
+  if (count) count.textContent = !show && _kbComponents.length ? `· ${_kbComponents.length} agregados` : '';
 }
 
 function _kbSearch(q) {
