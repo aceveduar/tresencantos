@@ -221,7 +221,7 @@ function getTotal() {
 
 /* ── TAB NAVIGATION (mobile) ── */
 let _currentTab = 'catalog';
-const isTabMode = () => window.innerWidth <= 1024;
+const isTabMode = () => window.innerWidth <= 640;
 
 function switchPosTab(tab) {
   _currentTab = tab;

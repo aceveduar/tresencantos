@@ -640,9 +640,8 @@ button,a{touch-action:manipulation}
 .btn-wa-ticket{width:100%;margin-top:8px;padding:11px;border-radius:12px;border:none;background:#25D366;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
 .btn-wa-ticket:hover{background:#1da851}
 
-/* ── MOBILE ── */
+/* ── TOUCH / SUB-DESKTOP (≤1024px) — cosmético, no layout ── */
 @media(max-width:1024px){
-  /* ── TOPBAR: grid 2 col — [Caja centrado] [acciones+nav] ── */
   .topbar{padding:0 10px;gap:6px}
   .topbar-title{border-right:none;padding-right:0;margin-right:0;font-style:italic}
   .topbar-right{gap:2px}
@@ -651,24 +650,9 @@ button,a{touch-action:manipulation}
   .btn-label{display:none}
   .topbar-sep-user{display:none!important}
   .cart-topbar-btn{padding:5px 8px!important}
-  /* En mobile, Historial y Corte viven en el tab bar — ocultar del topbar */
-  #btn-corte-pos,#btn-history-pos{display:none!important}
-  #btn-apt-pos{display:none!important}
-  #apt-vencidos-alert{display:none!important}
-
-  /* ── LAYOUT VERTICAL ─────────────────────────────────────── */
-  .pos-body{display:flex;flex-direction:column;overflow:hidden}
-  .pos-left{flex-shrink:0;max-height:40vh;border-right:none;border-bottom:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column}
-  .pos-divider{display:none}
-  .pos-right{flex:1;overflow-y:auto;overflow-x:hidden;display:block;min-height:0}
-  .cart-items{max-height:120px;min-height:90px;overflow-y:auto;flex:none}
-
-  /* ── CHIPS Y CARRITO ─────────────────────────────────────── */
   .cat-chip{padding:5px 12px;font-size:.72rem}
   .cart-header{padding:8px 12px}
   .ci-qty button{min-height:38px;min-width:38px;width:38px;height:38px}
-
-  /* ── CHECKOUT TOUCH-FRIENDLY ─────────────────────────────── */
   .pos-checkout{padding:8px 12px 12px}
   .cash-quick button{min-height:44px;padding:10px 4px;font-size:.8rem}
   .pay-btn{min-height:44px;font-size:.82rem}
@@ -683,17 +667,25 @@ button,a{touch-action:manipulation}
   .cash-field label{font-size:.7rem}
   .btn-green{min-height:48px;font-size:.95rem;border-radius:12px}
   .apartado-toggle-label{padding:6px 0;font-size:.85rem}
+  .pos-vbtn{width:36px;height:36px}
+  .pos-sort-btn{width:36px;height:36px}
+  .pos-search-bar .btn{width:36px;height:36px;padding:0;border-radius:8px;justify-content:center;font-size:1rem;flex-shrink:0}
+}
 
-  /* ── VISTA TARJETAS ──────────────────────────────────────── */
+/* ── MOBILE ONLY (≤640px) — layout vertical + tab bar ── */
+@media(max-width:640px){
+  #btn-corte-pos,#btn-history-pos{display:none!important}
+  #btn-apt-pos{display:none!important}
+  #apt-vencidos-alert{display:none!important}
+  .pos-body{display:flex;flex-direction:column;overflow:hidden}
+  .pos-left{flex-shrink:0;max-height:40vh;border-right:none;border-bottom:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column}
+  .pos-divider{display:none}
+  .pos-right{flex:1;overflow-y:auto;overflow-x:hidden;display:block;min-height:0}
+  .cart-items{max-height:120px;min-height:90px;overflow-y:auto;flex:none}
   .pos-grid{grid-template-columns:1fr 1fr;gap:8px;padding:8px}
   .pos-card-body{padding:6px 8px 8px}
   .pos-card-name{font-size:.73rem}
   .pos-card-price{font-size:.84rem}
-  .pos-vbtn{width:36px;height:36px}
-  .pos-sort-btn{width:36px;height:36px}
-
-  /* Botón escáner (📷): mismo tamaño que los toggles, sin el óvalo dorado grande */
-  .pos-search-bar .btn{width:36px;height:36px;padding:0;border-radius:8px;justify-content:center;font-size:1rem;flex-shrink:0}
 }
 
 /* ── PWA STANDALONE: evitar que la nav bar de Android tape el tab bar ── */
@@ -752,11 +744,8 @@ button,a{touch-action:manipulation}
   border:1.5px solid #fff;
 }
 
-@media(max-width:1024px){
-  /* Activar tab bar en mobile + tablet */
+@media(max-width:640px){
   .pos-tab-bar{display:flex}
-
-  /* Paneles en pantalla completa según pestaña activa */
   .pos-left.tab-active{display:flex!important;flex-direction:column;flex:1;max-height:none!important;overflow:hidden}
   .pos-left.tab-hidden{display:none!important}
   .pos-right.tab-active{display:block!important;flex:1;overflow-y:auto;overflow-x:hidden}
@@ -767,16 +756,16 @@ button,a{touch-action:manipulation}
   #cart-topbar-btn{display:none}
 }
 
-/* ── TABLET (641–1024px) — tarjetas y tab bar ───────────────────────── */
+/* ── TABLET (641–1024px) — split view + tarjetas refinadas ──────────── */
 @media(min-width:641px) and (max-width:1024px){
-  /* Tab bar */
-  .pos-tab{padding:12px 4px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));font-size:.72rem}
-  .pos-tab-icon{font-size:1.5rem}
+  .cat-chip{padding:6px 14px;font-size:.78rem}
+  .pos-prod-add{width:40px;height:40px;font-size:1.3rem}
+  .pos-prod-img{width:68px;height:68px}
+  .pos-prod{padding:10px 12px;gap:10px}
 
-  /* Vista tarjetas: 3 columnas (~255px c/u) */
-  .pos-grid{grid-template-columns:repeat(3,1fr);gap:12px;padding:12px}
+  /* Vista tarjetas: 2 columnas dentro del split panel */
+  .pos-grid{grid-template-columns:repeat(2,1fr);gap:10px;padding:10px}
 
-  /* Card — mejor apariencia para tablet */
   .pos-card{
     border-radius:18px;
     box-shadow:0 3px 16px rgba(0,0,0,.10);
@@ -787,17 +776,11 @@ button,a{touch-action:manipulation}
     box-shadow:0 1px 6px rgba(0,0,0,.07);
     border-color:var(--gold);
   }
-
-  /* Imagen: ligeramente más alta */
   .pos-card-img{aspect-ratio:4/3}
-
-  /* Cuerpo de la tarjeta */
   .pos-card-body{padding:10px 12px 12px;gap:4px}
   .pos-card-name{font-size:.82rem;-webkit-line-clamp:2}
   .pos-card-price{font-size:1rem;margin-top:2px}
   .pos-card-stock{font-size:.7rem;padding:4px 11px;margin-top:2px}
-
-  /* View toggle buttons */
   .pos-vbtn{width:38px;height:38px}
 }
 
@@ -930,6 +913,9 @@ button,a{touch-action:manipulation}
 /* Resumen "Hoy" — solo mobile */
 @media(min-width:641px){#daily-summary-mobile{display:none!important}}
 /* Desktop: nav centrada */
+@media(min-width:641px){
+  .pos-mini-cart-bar{display:none!important}
+}
 @media(min-width:1025px){
   .topbar{background:var(--charcoal);justify-content:space-between}
   .topbar-left{flex:1;display:flex;align-items:center}
@@ -937,5 +923,4 @@ button,a{touch-action:manipulation}
   .topbar-nav-mobile{position:absolute;left:50%;transform:translateX(-50%)}
   #btn-corte-pos .btn-label,#btn-history-pos .btn-label,#btn-apt-pos .btn-label{display:inline;font-size:.52rem}
   #btn-corte-pos,#btn-history-pos,#btn-apt-pos{padding:5px 12px!important;gap:3px!important;}
-  .pos-mini-cart-bar{display:none!important}
 }
