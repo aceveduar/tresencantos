@@ -803,12 +803,13 @@ function _swipeDown(getSheet, closeFn, getOverlay) {
       if (sc && sc.scrollTop > 4) return;
       on = true;
     }
+    e.preventDefault();
     curY = Math.max(0, dy);
     sh.style.transition = 'none';
     sh.style.transform  = `translateY(${curY}px)`;
     const ov = getOverlay?.();
     if (ov) ov.style.opacity = String(Math.max(0, 1 - curY / 200));
-  }, { passive: true });
+  }, { passive: false });
   document.addEventListener('touchend', () => {
     const sh = area(); if (!sh || !on) return; on = false;
     const ov = getOverlay?.();
@@ -1070,6 +1071,7 @@ function openModal(id) {
 </div>`;
   requestAnimationFrame(() => overlay.classList.add('open'));
   document.body.style.overflow = 'hidden';
+  document.body.style.overscrollBehaviorY = 'none';
 }
 
 function notifyRestock(id, btn) {
@@ -1116,6 +1118,7 @@ function modalAddToCart(id) {
 function closeModal() {
   document.getElementById('modal-overlay')?.classList.remove('open');
   document.body.style.overflow = '';
+  document.body.style.overscrollBehaviorY = '';
   activeProduct = null;
 }
 
