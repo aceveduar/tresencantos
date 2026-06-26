@@ -277,7 +277,7 @@ async function loadRevista() {
       return;
     }
   } catch {}
-  revistaUrl = "https://www.natura.com.mx/catalogos-digitales";
+  revistaUrl = "https://mx.natura.digital-catalogue.com/mx/2026/10/revista/ciclo-10/view/index.html?id_consultora=4721203&utm_term=app&utm_source=md&utm_medium=dynamic_link&page=2-3";
 }
 
 function updateRevistaLink() {
