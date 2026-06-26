@@ -28,21 +28,6 @@ button,select{font-family:inherit}
 /* ── MAIN ── */
 main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 
-/* ── RESUMEN DEL DÍA ── */
-.day-summary{
-  background:linear-gradient(135deg,#1C1817 0%,#2E2825 100%);
-  border-radius:16px;padding:20px 20px 18px;margin-bottom:20px;color:#fff;
-}
-.day-summary-date{font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:10px}
-.day-summary-main{font-size:1.6rem;font-weight:700;font-family:'Playfair Display',serif;color:#fff;line-height:1.2;margin-bottom:4px}
-.day-summary-sub{font-size:.84rem;color:rgba(255,255,255,.6);margin-bottom:14px}
-.day-summary-best{font-size:.8rem;color:var(--gold);font-weight:600;margin-bottom:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.day-summary-pills{display:flex;gap:8px;flex-wrap:wrap}
-.day-summary-pill{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.1);border-radius:50px;padding:5px 12px;font-size:.75rem;color:rgba(255,255,255,.8);font-weight:500}
-.day-summary-pill.apt{background:rgba(254,243,199,.15);color:#FDE68A}
-.day-summary-pill.apt.venc{background:rgba(239,68,68,.2);color:#FCA5A5}
-.day-summary-none{font-size:.9rem;color:rgba(255,255,255,.45);font-style:italic}
-
 /* ── PERIOD SELECTOR ── */
 .stats-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;position:sticky;top:0;z-index:20;background:var(--cream);padding:10px 0 8px;margin-top:-10px}
 .smode-bar{display:flex;background:#fff;border:1px solid var(--border);border-radius:50px;padding:4px;gap:4px;box-shadow:0 2px 8px rgba(28,24,23,.07)}
@@ -54,6 +39,8 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .srn-btn:hover:not(:disabled){background:var(--cream)}
 .srn-btn:disabled{opacity:.3;cursor:default}
 .srn-label{font-size:.82rem;font-weight:600;color:var(--charcoal);min-width:110px;text-align:center;white-space:nowrap;padding:0 4px}
+.srn-wa{background:#E8F5E9;margin-left:2px}
+.srn-wa:hover{background:#C8E6C9}
 
 /* ── KPI GRID ── */
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
@@ -243,8 +230,6 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 }
 
 @media(max-width:640px){
-  /* WA button full-width en mobile */
-  .btn-wa-stats{width:100%!important;justify-content:center!important;white-space:normal!important;flex-shrink:1!important}
   /* Ventas del día: scroll area más compacto */
   #today-sales-list{max-height:240px!important}
   /* Calendar: montos ilegibles en celdas pequeñas — solo color y número */

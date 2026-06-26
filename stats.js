@@ -345,9 +345,6 @@ function renderAll() {
     else revTitle.textContent = 'Ingresos por día';
   }
 
-  // Resumen del día: solo relevante en "Hoy"
-  document.getElementById('day-summary').style.display = _isToday ? '' : 'none';
-
   // Hora pico: redundante en modo Día (el revenue chart ya muestra horarios)
   const horaPicoCard = document.getElementById('hora-pico-card');
   if (horaPicoCard) horaPicoCard.style.display = _statsMode === 'day' ? 'none' : '';
@@ -360,8 +357,8 @@ function renderAll() {
   const topCard = document.getElementById('top-products')?.closest('.card');
   if (topCard) topCard.parentElement.style.display = _statsMode === 'day' ? 'none' : '';
 
-  renderDaySummary();
   renderKPIs();
+  renderBestSeller();
   renderRevenueChart();
   renderCatChart();
   renderTopProducts();
@@ -996,86 +993,23 @@ function renderRentabilidad() {
 
 /* setPeriod removed — setMode() / navigate() handle period changes */
 
-/* ── RESUMEN DEL DÍA ── */
 let _aptResumen = { count: 0, pendiente: 0, vencidos: 0 };
 
-function renderDaySummary() {
-  const fecha = new Date().toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
-  document.getElementById('ds-date').textContent = fecha.charAt(0).toUpperCase() + fecha.slice(1);
-
-  const ventas = todaySales.filter(s => s.type !== 'apartado');
-  const todayStartMs = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
-  const todayEndMs   = Date.now();
-  let totalHoy = 0;
-  todaySales.forEach(v => {
-    const abonos = Array.isArray(v.abonos) ? v.abonos : [];
-    if (abonos.length) {
-      abonos.forEach(a => {
-        const t = new Date(a.date).getTime();
-        if (t >= todayStartMs && t <= todayEndMs) totalHoy += parseFloat(a.amount || 0);
-      });
-    } else if (v.type !== 'apartado') {
-      totalHoy += parseFloat(v.total || 0);
-    }
-  });
-  const numVentas = ventas.length;
-
-  const mainEl = document.getElementById('ds-main');
-  const subEl  = document.getElementById('ds-sub');
-  const bestEl = document.getElementById('ds-best');
-  const pillsEl = document.getElementById('ds-pills');
-
-  if (!numVentas) {
-    mainEl.innerHTML = '<span class="day-summary-none">Aún no hay ventas hoy</span>';
-    subEl.textContent = '';
-    bestEl.style.display = 'none';
-  } else {
-    mainEl.textContent = `$${totalHoy.toLocaleString('es-MX', {maximumFractionDigits:0})}`;
-    subEl.textContent = `${numVentas} venta${numVentas !== 1 ? 's' : ''} hoy`;
-
-    // Producto más vendido por ingresos
-    const freq = {};
-    ventas.forEach(v => (v.items || []).forEach(i => {
-      freq[i.name] = (freq[i.name] || 0) + parseFloat(i.subtotal ?? i.price * (i.qty||1));
-    }));
-    const best = Object.entries(freq).sort((a,b) => b[1]-a[1])[0];
-    if (best) {
-      bestEl.style.display = 'block';
-      const bestName = best[0].length > 28 ? best[0].slice(0, 26) + '…' : best[0];
-      bestEl.textContent = `⭐ Lo más vendido: ${bestName} ($${Math.round(best[1]).toLocaleString('es-MX')})`;
-    } else {
-      bestEl.style.display = 'none';
-    }
-  }
-
-  // Pills
-  const pills = [];
-  let efectivo = 0, transfer = 0;
-  todaySales.forEach(v => {
-    const abonos = Array.isArray(v.abonos) ? v.abonos : [];
-    if (abonos.length) {
-      abonos.forEach(a => {
-        const t = new Date(a.date).getTime();
-        if (t >= todayStartMs && t <= todayEndMs) {
-          if (a.method === 'transferencia') transfer += parseFloat(a.amount || 0);
-          else efectivo += parseFloat(a.amount || 0);
-        }
-      });
-    } else if (v.type !== 'apartado') {
-      if (v.payment_method === 'transferencia') transfer += parseFloat(v.total || 0);
-      else efectivo += parseFloat(v.total || 0);
-    }
-  });
-  if (efectivo > 0) pills.push(`<span class="day-summary-pill">💵 $${efectivo.toLocaleString('es-MX',{maximumFractionDigits:0})} efectivo</span>`);
-  if (transfer > 0) pills.push(`<span class="day-summary-pill">📱 $${transfer.toLocaleString('es-MX',{maximumFractionDigits:0})} transferencia</span>`);
-  if (_aptResumen.count > 0) {
-    const cls = _aptResumen.vencidos > 0 ? 'apt venc' : 'apt';
-    const txt = _aptResumen.vencidos > 0
-      ? `⚠️ ${_aptResumen.count} apartado${_aptResumen.count>1?'s':''} · ${_aptResumen.vencidos} vencido${_aptResumen.vencidos>1?'s':''}`
-      : `⏳ ${_aptResumen.count} apartado${_aptResumen.count>1?'s':''} por cobrar`;
-    pills.push(`<span class="day-summary-pill ${cls}">${txt}</span>`);
-  }
-  pillsEl.innerHTML = pills.join('');
+function renderBestSeller() {
+  const el = document.getElementById('ds-best-row');
+  if (!el) return;
+  const isDay = _statsMode === 'day';
+  const src = isDay && _statsOffset === 0 ? todaySales : salesAll;
+  const ventas = src.filter(s => s.type !== 'apartado');
+  if (!ventas.length) { el.style.display = 'none'; return; }
+  const freq = {};
+  ventas.forEach(v => (v.items || []).forEach(i => {
+    freq[i.name] = (freq[i.name] || 0) + parseFloat(i.subtotal ?? i.price * (i.qty||1));
+  }));
+  const best = Object.entries(freq).sort((a,b) => b[1]-a[1])[0];
+  if (!best) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.innerHTML = `<div style="font-size:.76rem;color:var(--muted);padding:0 2px 10px;display:flex;align-items:center;gap:5px;overflow:hidden"><span style="flex-shrink:0">⭐</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><strong style="color:var(--charcoal)">${_esc(best[0])}</strong> · $${Math.round(best[1]).toLocaleString('es-MX')}</span></div>`;
 }
 
 /* ── APARTADOS PENDIENTES ── */
