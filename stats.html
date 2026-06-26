@@ -48,8 +48,8 @@
   <!-- PERÍODO + WA -->
   <div class="stats-nav">
     <div class="smode-bar">
-      <button class="smode-btn" data-mode="day" onclick="setMode('day')">Día</button>
-      <button class="smode-btn active" data-mode="week" onclick="setMode('week')">Semana</button>
+      <button class="smode-btn active" data-mode="day" onclick="setMode('day')">Día</button>
+      <button class="smode-btn" data-mode="week" onclick="setMode('week')">Semana</button>
       <button class="smode-btn" data-mode="month" onclick="setMode('month')">Mes</button>
     </div>
     <div class="stats-range-nav">
@@ -133,6 +133,7 @@
         <span id="chart-period-label"></span>
       </div>
       <div class="card-body">
+        <div id="week-summary" style="display:none"></div>
         <div class="chart-canvas-wrap">
           <canvas id="revenue-chart"></canvas>
         </div>

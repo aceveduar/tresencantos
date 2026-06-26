@@ -936,7 +936,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .table-wrap{border:none;background:transparent;box-shadow:none;overflow:visible}
   .table-wrap table{display:block}
   .table-wrap thead{display:none}
-  .table-wrap tbody{display:flex;flex-direction:column;gap:10px}
+  .table-wrap tbody{display:flex;flex-direction:column;gap:4px}
   .table-wrap tr.mpc-row{display:block}
   .table-wrap tr.mpc-row td{display:block;padding:0;border:none}
   .table-wrap tr.mpc-row:hover td{background:transparent!important}
@@ -946,8 +946,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   tr .drag-handle{opacity:0}
 
   /* ── Tarjeta MPC — tamaños tablet (mobile ≤640px sobreescribe abajo) ── */
-  .mpc{background:#fff;border:1.5px solid var(--border);border-radius:18px;overflow:hidden;transition:border-color .18s,box-shadow .18s,transform .12s;box-shadow:0 2px 10px rgba(28,24,23,.07)}
-  .mpc.mpc-oos{opacity:.8;box-shadow:0 2px 8px rgba(28,24,23,.05)}
+  .mpc{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .18s,box-shadow .18s,transform .12s;box-shadow:0 1px 4px rgba(28,24,23,.06)}
+  .mpc.mpc-oos{opacity:.75;box-shadow:0 1px 3px rgba(28,24,23,.04)}
   .mpc-top:active{background:rgba(201,164,98,.04)}
   .mpc-top{display:flex;gap:12px;padding:12px 14px 10px;align-items:flex-start}
   .mpc-img-wrap{position:relative;flex-shrink:0}
@@ -1087,7 +1087,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .table-wrap{border:none;background:transparent;box-shadow:none;overflow:visible}
   .table-wrap table{display:block}
   .table-wrap thead{display:none}
-  .table-wrap tbody{display:flex;flex-direction:column;gap:10px}
+  .table-wrap tbody{display:flex;flex-direction:column;gap:4px}
   .table-wrap tr.mpc-row{display:block}
   .table-wrap tr.mpc-row td{display:block;padding:0;border:none}
   .table-wrap tr.mpc-row:hover td{background:transparent!important}
@@ -1102,15 +1102,14 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 
   /* ── Tarjeta de producto (mobile) ────────── */
   .mpc{
-    background:#fff;border:1.5px solid var(--border);
-    border-radius:18px;overflow:hidden;
+    background:#fff;border:1px solid var(--border);
+    border-radius:12px;overflow:hidden;
     transition:border-color .18s,box-shadow .18s,transform .12s;
-    /* stripe izquierdo = disponible (verde) — escaneo visual instantáneo */
-    box-shadow:inset 4px 0 0 #10B981, 0 2px 10px rgba(28,24,23,.07);
+    box-shadow:0 1px 4px rgba(28,24,23,.06);
   }
   .mpc.mpc-oos{
-    opacity:.8;
-    box-shadow:inset 4px 0 0 #EF4444, 0 2px 8px rgba(28,24,23,.05);
+    opacity:.75;
+    box-shadow:0 1px 3px rgba(28,24,23,.04);
   }
   /* Feedback táctil al presionar la card */
   .mpc-top:active{background:rgba(201,164,98,.04)}

@@ -89,6 +89,25 @@ async function api(path, opts={}) {
 
 const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const _driveSz = (url, w) => (url && url.includes('drive.google.com')) ? url.replace(/sz=w\d+/, `sz=w${w}`) : (url || '');
+function _localDay(iso) { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+
+function _chartNoData(canvasId, msg) {
+  const c = document.getElementById(canvasId);
+  if (!c) return;
+  c.style.display = 'none';
+  const wrap = c.parentElement;
+  let nd = wrap.querySelector('.no-data');
+  if (!nd) { nd = document.createElement('p'); nd.className = 'no-data'; wrap.appendChild(nd); }
+  nd.textContent = msg; nd.style.display = '';
+}
+function _chartReady(canvasId) {
+  const c = document.getElementById(canvasId);
+  if (!c) return null;
+  c.style.display = '';
+  const nd = c.parentElement.querySelector('.no-data');
+  if (nd) nd.style.display = 'none';
+  return c.getContext('2d');
+}
 
 /* ── STATE ── */
 let _statsMode = 'day';
@@ -322,7 +341,7 @@ function renderAll() {
   const revTitle = document.getElementById('revenue-chart-title');
   if (revTitle) {
     if (_statsMode === 'day')   revTitle.textContent = 'Ingresos por hora';
-    else if (_statsMode === 'week') revTitle.textContent = 'Esta semana vs anterior';
+    else if (_statsMode === 'week') revTitle.textContent = lbl + ' vs anterior';
     else revTitle.textContent = 'Ingresos por día';
   }
 
@@ -332,6 +351,10 @@ function renderAll() {
   // Hora pico: redundante en modo Día (el revenue chart ya muestra horarios)
   const horaPicoCard = document.getElementById('hora-pico-card');
   if (horaPicoCard) horaPicoCard.style.display = _statsMode === 'day' ? 'none' : '';
+
+  // Week summary: solo en modo semana (lo puebla _renderWeekComparison)
+  const wkSum = document.getElementById('week-summary');
+  if (wkSum && _statsMode !== 'week') wkSum.style.display = 'none';
 
   renderDaySummary();
   renderKPIs();
@@ -466,13 +489,10 @@ function renderHourChart() {
       byHour[new Date(s.created_at).getHours()] += parseFloat(s.total || 0);
     }
   });
-  const ctx = document.getElementById('hour-chart')?.getContext('2d');
-  if (!ctx) return;
   if (hourChart) { hourChart.destroy(); hourChart = null; }
-  if (salesAll.length === 0) {
-    document.getElementById('hour-chart').parentElement.innerHTML = '<p class="no-data">Sin datos en el período</p>';
-    return;
-  }
+  if (salesAll.length === 0) { _chartNoData('hour-chart', 'Sin datos en el período'); return; }
+  const ctx = _chartReady('hour-chart');
+  if (!ctx) return;
   const maxH = byHour.indexOf(Math.max(...byHour));
   hourChart = new Chart(ctx, {
     type: 'bar',
@@ -502,33 +522,27 @@ function renderRevenueChart() {
   const to    = _currentTo();
   const start = new Date(from);
   const end   = new Date(to);
-  const ctx   = document.getElementById('revenue-chart')?.getContext('2d');
+  if (revenueChart) { revenueChart.destroy(); revenueChart = null; }
+  if (salesAll.length === 0) { _chartNoData('revenue-chart', 'Sin ventas registradas'); return; }
+  const ctx = _chartReady('revenue-chart');
   if (!ctx) return;
-
-  if (salesAll.length === 0) {
-    if (revenueChart) { revenueChart.destroy(); revenueChart = null; }
-    document.getElementById('revenue-chart').parentElement.innerHTML = '<p class="no-data">Sin ventas registradas</p>';
-    return;
-  }
 
   // Build daily revenue map for current period
   for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
-    byDay[d.toISOString().split('T')[0]] = 0;
+    byDay[_localDay(d)] = 0;
   }
   salesAll.forEach(s => {
     const abonos = Array.isArray(s.abonos) ? s.abonos : [];
     if (abonos.length) {
       abonos.forEach(a => {
-        const day = a.date.split('T')[0];
+        const day = _localDay(a.date);
         if (day in byDay) byDay[day] += parseFloat(a.amount||0);
       });
     } else {
-      const day = s.created_at.split('T')[0];
+      const day = _localDay(s.created_at);
       byDay[day] = (byDay[day]||0) + parseFloat(s.total||0);
     }
   });
-
-  if (revenueChart) { revenueChart.destroy(); revenueChart = null; }
 
   if (_statsMode === 'week') {
     _renderWeekComparison(ctx, byDay);
@@ -598,14 +612,12 @@ function _renderWeekComparison(ctx, byDayCurr) {
   const _DOW = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
   const [prevFrom, prevTo] = _prevRange();
 
-  // Map current week days to DOW index (Mon=0…Sun=6)
   const currByDow = Array(7).fill(0);
   Object.entries(byDayCurr).forEach(([key, val]) => {
     const dow = (new Date(key+'T12:00:00').getDay()+6)%7;
     currByDow[dow] = val;
   });
 
-  // Aggregate prev week
   const prevByDow = Array(7).fill(0);
   prevSalesAll.forEach(s => {
     const dow = (new Date(s.created_at).getDay()+6)%7;
@@ -613,36 +625,68 @@ function _renderWeekComparison(ctx, byDayCurr) {
   });
 
   const hasPrev = prevByDow.some(v=>v>0);
+  const currTotal = currByDow.reduce((a,b)=>a+b,0);
+  const prevTotal = prevByDow.reduce((a,b)=>a+b,0);
+  const _currLabel = PERIOD_LABELS[currentPeriod] || 'Esta semana';
+  const _fmt = n => '$'+Math.round(n).toLocaleString('es-MX');
 
-  // Highlight best day gold, others softer
+  // Week summary pills
+  const ws = document.getElementById('week-summary');
+  if (ws) {
+    ws.style.display = '';
+    let delta = '';
+    if (hasPrev && prevTotal > 0) {
+      const pct = Math.round((currTotal - prevTotal) / prevTotal * 100);
+      const sign = pct >= 0 ? '+' : '';
+      const bg = pct >= 0 ? '#D1FAE5' : '#FEE2E2';
+      const col = pct >= 0 ? '#065F46' : '#991B1B';
+      delta = `<span style="font-size:.72rem;font-weight:700;padding:3px 8px;border-radius:50px;background:${bg};color:${col}">${sign}${pct}%</span>`;
+    }
+    ws.innerHTML = `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+      <div style="flex:1;min-width:100px">
+        <div style="font-size:.65rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">${_esc(_currLabel)}</div>
+        <div style="font-size:1.2rem;font-weight:700;font-family:'Playfair Display',serif;display:flex;align-items:center;gap:8px">${_fmt(currTotal)} ${delta}</div>
+      </div>
+      ${hasPrev ? `<div style="text-align:right">
+        <div style="font-size:.65rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Anterior</div>
+        <div style="font-size:.95rem;font-weight:600;color:var(--muted)">${_fmt(prevTotal)}</div>
+      </div>` : ''}
+    </div>`;
+  }
+
   const maxCurr = Math.max(...currByDow, 1);
-  const currColors = currByDow.map(v => v===maxCurr&&v>0 ? '#C9A462' : 'rgba(201,164,98,.65)');
+  const currColors = currByDow.map(v => v===maxCurr&&v>0 ? '#C9A462' : 'rgba(201,164,98,.7)');
 
   const datasets = [{
-    label: 'Esta semana',
+    label: _currLabel,
     data: currByDow,
     backgroundColor: currColors,
-    borderColor: '#C9A462', borderWidth:1,
-    borderRadius:6, borderSkipped:false
+    borderColor: '#A67C3A', borderWidth: 1,
+    borderRadius: 6, borderSkipped: false,
+    barPercentage: hasPrev ? 0.7 : 0.6,
+    categoryPercentage: hasPrev ? 0.7 : 0.5
   }];
   if (hasPrev) datasets.push({
-    label: 'Semana anterior',
+    label: 'Anterior',
     data: prevByDow,
-    backgroundColor: 'rgba(201,164,98,.18)',
-    borderColor: 'rgba(201,164,98,.45)', borderWidth:1,
-    borderRadius:4, borderSkipped:false
+    backgroundColor: 'rgba(180,160,140,.35)',
+    borderColor: 'rgba(160,140,120,.55)', borderWidth: 1,
+    borderRadius: 4, borderSkipped: false,
+    barPercentage: 0.7,
+    categoryPercentage: 0.7
   });
 
-  // Value labels on current bars
   const labelPlugin = {
     id:'wkLabels',
     afterDatasetsDraw(chart) {
       const {ctx} = chart;
-      ctx.save(); ctx.font='600 9px Inter,sans-serif'; ctx.fillStyle='#6B5C48';
-      ctx.textAlign='center'; ctx.textBaseline='bottom';
-      chart.getDatasetMeta(0).data.forEach((bar,i) => {
+      ctx.save();
+      ctx.font = '600 9.5px Inter,sans-serif';
+      ctx.fillStyle = '#5C4B38';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      chart.getDatasetMeta(0).data.forEach((bar, i) => {
         const val = chart.data.datasets[0].data[i];
-        if (val>0) ctx.fillText(val>=1000?'$'+(val/1000).toFixed(1)+'k':'$'+Math.round(val), bar.x, bar.y-3);
+        if (val > 0) ctx.fillText(val>=1000?'$'+(val/1000).toFixed(1)+'k':'$'+Math.round(val), bar.x, bar.y - 3);
       });
       ctx.restore();
     }
@@ -653,15 +697,16 @@ function _renderWeekComparison(ctx, byDayCurr) {
     data:{ labels:_DOW, datasets },
     options:{
       responsive:true, maintainAspectRatio:false,
-      layout:{padding:{top:18}},
+      layout:{padding:{top:22}},
       plugins:{
         legend:{ display:hasPrev, position:'top', align:'end',
-          labels:{boxWidth:10,boxHeight:10,font:{size:10},color:'#8A7564',padding:8}},
+          labels:{boxWidth:12,boxHeight:12,font:{size:11,weight:'500'},color:'#8A7564',padding:10,
+            usePointStyle:true,pointStyle:'rectRounded'}},
         tooltip:{callbacks:{label:c=>`${c.dataset.label}: $${c.parsed.y.toLocaleString('es-MX')}`}}
       },
       scales:{
         y:{beginAtZero:true, ticks:{callback:v=>`$${v>=1000?(v/1000).toFixed(0)+'k':v}`,font:{size:10}}, grid:{color:'#F0E8E0'}},
-        x:{grid:{display:false}, ticks:{font:{size:12,weight:'500'}}}
+        x:{grid:{display:false}, ticks:{font:{size:12,weight:'600'},color:'#6B5C48'}}
       }
     },
     plugins:[labelPlugin]
@@ -693,7 +738,6 @@ function _renderDayHourly(ctx) {
   const maxH = Math.max(...hours.map(h=>byHour[h]),1);
   const colors = hours.map(h => byHour[h]===maxH&&byHour[h]>0?'#C9A462':'rgba(201,164,98,.55)');
 
-  if (revenueChart) { revenueChart.destroy(); revenueChart = null; }
   revenueChart = new Chart(ctx, {
     type:'bar',
     data:{
@@ -729,13 +773,10 @@ function renderCatChart() {
   });
 
   const entries = Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
-  const ctx = document.getElementById('cat-chart').getContext('2d');
   if (catChart) { catChart.destroy(); catChart = null; }
-
-  if (!entries.length) {
-    document.getElementById('cat-chart').parentElement.innerHTML = '<p class="no-data">Sin datos de categorías</p>';
-    return;
-  }
+  if (!entries.length) { _chartNoData('cat-chart', 'Sin datos de categorías'); return; }
+  const ctx = _chartReady('cat-chart');
+  if (!ctx) return;
 
   const COLORS = ['#C9A462','#34d399','#60a5fa','#f472b6','#a78bfa','#fb923c','#fbbf24'];
   catChart = new Chart(ctx, {
@@ -1126,7 +1167,7 @@ function renderCalendar() {
 
   const byDay = {};
   salesAll.forEach(s => {
-    const day = s.created_at.split('T')[0];
+    const day = _localDay(s.created_at);
     byDay[day] = (byDay[day]||0) + _abonoRevenue(s, fromIso, toIso);
   });
   const maxRev = Math.max(1, ...Object.values(byDay));
@@ -1149,18 +1190,32 @@ function renderCalendar() {
     const isFuture = cellDate > today;
 
     let cls = 'cal-zero';
-    if (isFuture) cls = 'cal-empty';
+    if (isFuture) cls = 'cal-future';
     else if (rev>0) {
       const pct = rev/maxRev;
-      cls = pct>0.66?'cal-l4':pct>0.33?'cal-l3':pct>0.08?'cal-l2':'cal-l1';
+      cls = pct>0.8?'cal-l5':pct>0.55?'cal-l4':pct>0.33?'cal-l3':pct>0.12?'cal-l2':'cal-l1';
     }
     const todayCls = isToday?' cal-today':'';
-    const amtStr   = rev>0?`<span class="cal-cell-amt">$${rev>=1000?(rev/1000).toFixed(1)+'k':Math.round(rev)}</span>`:'';
-    html += `<div class="cal-cell ${cls}${todayCls}"><span class="cal-cell-n">${d}</span>${amtStr}</div>`;
+    const fmtRev   = rev>=1000?'$'+(rev/1000).toFixed(1)+'k':'$'+Math.round(rev);
+    const amtStr   = rev>0?`<span class="cal-cell-amt">${fmtRev}</span>`:'';
+    const tooltip  = rev>0?`<span class="cal-tooltip">${d} ${_MN[month]} · $${Math.round(rev).toLocaleString('es-MX')}</span>`
+      : (!isFuture?`<span class="cal-tooltip">${d} ${_MN[month]} · Sin ventas</span>`:'');
+    const tapAttr = !isFuture ? ' onclick="_calTap(this)"' : '';
+    html += `<div class="cal-cell ${cls}${todayCls}"${tapAttr}>${tooltip}<span class="cal-cell-n">${d}</span>${amtStr}</div>`;
   }
   html += '</div>';
+  html += `<div class="cal-legend"><span>Menos</span><div class="cal-legend-cell" style="background:var(--cream);border:1px dashed var(--border)"></div><div class="cal-legend-cell" style="background:#FEF3CD"></div><div class="cal-legend-cell" style="background:#FBBF24"></div><div class="cal-legend-cell" style="background:#C9A462"></div><div class="cal-legend-cell" style="background:#A67C3A"></div><div class="cal-legend-cell" style="background:#7C5A2E"></div><span>Más</span></div>`;
   el.innerHTML = html;
 }
+
+function _calTap(cell) {
+  const was = cell.classList.contains('cal-tap');
+  document.querySelectorAll('.cal-tap').forEach(c => c.classList.remove('cal-tap'));
+  if (!was) cell.classList.add('cal-tap');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.cal-cell')) document.querySelectorAll('.cal-tap').forEach(c => c.classList.remove('cal-tap'));
+});
 
 /* ── WEEKDAY PATTERN (week + month) ── */
 function renderWeekdayChart() {
