@@ -44,7 +44,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .day-summary-none{font-size:.9rem;color:rgba(255,255,255,.45);font-style:italic}
 
 /* ── PERIOD SELECTOR ── */
-.stats-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.stats-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;position:sticky;top:0;z-index:20;background:var(--cream);padding:10px 0 8px;margin-top:-10px}
 .smode-bar{display:flex;background:#fff;border:1px solid var(--border);border-radius:50px;padding:4px;gap:4px;box-shadow:0 2px 8px rgba(28,24,23,.07)}
 .smode-btn{padding:6px 16px;border-radius:50px;font-size:.82rem;font-weight:600;border:none;background:transparent;cursor:pointer;color:var(--muted);transition:.15s;white-space:nowrap}
 .smode-btn.active{background:var(--charcoal);color:#fff}
@@ -119,6 +119,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .top-prod-item:nth-child(1) .tp-rank{background:var(--gold);color:#fff}
 .top-prod-item:nth-child(2) .tp-rank{background:#9B8B78;color:#fff}
 .top-prod-item:nth-child(3) .tp-rank{background:#C9A07E;color:#fff}
+.tp-img{width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border);background:#F0EBE3}
 .tp-info{flex:1;min-width:0}
 .tp-name{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--charcoal)}
 .tp-bar-wrap{height:4px;background:#F0E8E0;border-radius:2px;margin-top:5px;overflow:hidden}
@@ -126,6 +127,16 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .tp-stats{text-align:right;flex-shrink:0}
 .tp-revenue{font-size:.82rem;font-weight:700;font-family:'Playfair Display',serif;color:var(--charcoal)}
 .tp-qty{font-size:.7rem;color:var(--muted);margin-top:2px}
+
+/* ── CATEGORY LIST (debajo del donut) ── */
+.cl-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+.cl-item:last-child{border-bottom:none}
+.cl-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.cl-name{font-size:.78rem;font-weight:600;color:var(--charcoal);flex-shrink:0;max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-bar-wrap{flex:1;height:4px;background:#F0E8E0;border-radius:2px;overflow:hidden;min-width:30px}
+.cl-bar{height:100%;border-radius:2px}
+.cl-val{font-size:.78rem;font-weight:700;color:var(--charcoal);flex-shrink:0}
+.cl-pct{font-size:.68rem;color:var(--muted);flex-shrink:0;width:28px;text-align:right}
 
 /* ── SEGUNDA FILA ── */
 .bottom-row{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px}
@@ -210,6 +221,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 
   .charts-row{grid-template-columns:1fr;gap:12px}
   .chart-canvas-wrap{height:190px}
+  #cat-chart-wrap{height:180px}
   .bottom-row{grid-template-columns:1fr;gap:12px}
   .card-head{padding:13px 14px 11px}
   .card-body{padding:12px 14px}
@@ -239,6 +251,10 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   .cal-cell-amt{display:none}
   .cal-cell:hover .cal-tooltip{display:none}
   .cal-cell:hover{transform:none!important}
+  /* Secciones de baja prioridad — ocultas en mobile */
+  #hora-pico-card{display:none!important}
+  #weekday-card{display:none!important}
+  #rentabilidad-card{display:none!important}
 }
 
 @media(max-width:360px){

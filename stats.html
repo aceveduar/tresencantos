@@ -125,7 +125,22 @@
     </div>
   </div>
 
-  <!-- GRÁFICAS FILA 1 -->
+  <!-- TOP PRODUCTOS -->
+  <div class="bottom-row">
+    <div class="card">
+      <div class="card-head">
+        <h2>Productos más vendidos</h2>
+        <span id="top-prod-period"></span>
+      </div>
+      <div class="card-body" style="padding-top:8px;padding-bottom:8px">
+        <div id="top-products">
+          <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRÁFICAS -->
   <div class="charts-row">
     <div class="card">
       <div class="card-head">
@@ -145,39 +160,10 @@
         <h2>Por categoría</h2>
       </div>
       <div class="card-body">
-        <div class="chart-canvas-wrap" style="height:220px">
+        <div class="chart-canvas-wrap" id="cat-chart-wrap" style="height:220px">
           <canvas id="cat-chart"></canvas>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- CALENDAR (mes) + WEEKDAY (mes) — rendered by JS -->
-  <div class="card" id="calendar-card" style="display:none;margin-bottom:16px">
-    <div class="card-head"><h2>📅 Mapa del mes</h2></div>
-    <div class="card-body"><div id="sales-calendar"></div></div>
-  </div>
-  <div class="card" id="weekday-card" style="display:none;margin-bottom:16px">
-    <div class="card-head">
-      <h2>Días más rentables</h2>
-      <span id="weekday-period-label" style="font-size:.75rem;color:var(--muted)"></span>
-    </div>
-    <div class="card-body">
-      <div class="chart-canvas-wrap" style="height:180px"><canvas id="weekday-chart"></canvas></div>
-    </div>
-  </div>
-
-  <!-- TOP PRODUCTOS -->
-  <div class="bottom-row">
-    <div class="card">
-      <div class="card-head">
-        <h2>Productos más vendidos</h2>
-        <span id="top-prod-period"></span>
-      </div>
-      <div class="card-body" style="padding-top:8px;padding-bottom:8px">
-        <div id="top-products">
-          <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
-        </div>
+        <div id="cat-list"></div>
       </div>
     </div>
   </div>
@@ -228,7 +214,24 @@
     </div>
   </div>
 
-  <!-- HORA PICO -->
+  <!-- CALENDAR HEATMAP (mes) -->
+  <div class="card" id="calendar-card" style="display:none;margin-bottom:16px">
+    <div class="card-head"><h2>📅 Mapa del mes</h2></div>
+    <div class="card-body"><div id="sales-calendar"></div></div>
+  </div>
+
+  <!-- VENDEDORES -->
+  <div class="card" id="vendedores-card" style="display:none;margin-bottom:16px">
+    <div class="card-head">
+      <h2>👥 Por vendedor</h2>
+      <span id="vendedores-label" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body" id="vendedores-body">
+      <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
+    </div>
+  </div>
+
+  <!-- HORA PICO — solo desktop/tablet -->
   <div class="card" id="hora-pico-card" style="margin-bottom:16px">
     <div class="card-head">
       <h2>Hora pico</h2>
@@ -241,8 +244,19 @@
     </div>
   </div>
 
-  <!-- RENTABILIDAD -->
-  <div class="card" style="margin-bottom:16px">
+  <!-- DÍAS MÁS RENTABLES (mes) — solo desktop/tablet -->
+  <div class="card" id="weekday-card" style="display:none;margin-bottom:16px">
+    <div class="card-head">
+      <h2>Días más rentables</h2>
+      <span id="weekday-period-label" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body">
+      <div class="chart-canvas-wrap" style="height:180px"><canvas id="weekday-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- RENTABILIDAD — solo desktop/tablet -->
+  <div class="card" id="rentabilidad-card" style="margin-bottom:16px">
     <div class="card-head">
       <h2>Rentabilidad</h2>
       <span id="rent-label" style="font-size:.75rem;color:var(--muted)"></span>
@@ -266,17 +280,6 @@
         ⚪ <strong id="rent-no-cost-n">0</strong> productos sin costo registrado — edítalos en Inventario para ver su margen
       </div>
       <div id="rent-list"></div>
-    </div>
-  </div>
-
-  <!-- VENDEDORES -->
-  <div class="card" id="vendedores-card" style="display:none;margin-bottom:16px">
-    <div class="card-head">
-      <h2>👥 Por vendedor</h2>
-      <span id="vendedores-label" style="font-size:.75rem;color:var(--muted)"></span>
-    </div>
-    <div class="card-body" id="vendedores-body">
-      <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
     </div>
   </div>
 

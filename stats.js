@@ -356,6 +356,10 @@ function renderAll() {
   const wkSum = document.getElementById('week-summary');
   if (wkSum && _statsMode !== 'week') wkSum.style.display = 'none';
 
+  // Top productos: redundante en modo Día (la lista de ventas ya lo cubre)
+  const topCard = document.getElementById('top-products')?.closest('.card');
+  if (topCard) topCard.parentElement.style.display = _statsMode === 'day' ? 'none' : '';
+
   renderDaySummary();
   renderKPIs();
   renderRevenueChart();
@@ -774,7 +778,7 @@ function renderCatChart() {
 
   const entries = Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
   if (catChart) { catChart.destroy(); catChart = null; }
-  if (!entries.length) { _chartNoData('cat-chart', 'Sin datos de categorías'); return; }
+  if (!entries.length) { _chartNoData('cat-chart', 'Sin datos de categorías'); const _cl=document.getElementById('cat-list'); if(_cl) _cl.innerHTML=''; return; }
   const ctx = _chartReady('cat-chart');
   if (!ctx) return;
 
@@ -788,24 +792,7 @@ function renderCatChart() {
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: {
-          position:'bottom',
-          labels:{
-            font:{family:'Inter',size:11}, padding:10, boxWidth:12,
-            generateLabels(chart) {
-              const data = chart.data.datasets[0].data;
-              const total = data.reduce((s,v)=>s+v,0);
-              return chart.data.labels.map((label, i) => ({
-                text: `${label}  $${data[i].toLocaleString('es-MX',{maximumFractionDigits:0})} (${Math.round(data[i]/total*100)}%)`,
-                fillStyle: COLORS[i % COLORS.length],
-                strokeStyle: '#fff',
-                lineWidth: 2,
-                index: i,
-                hidden: false
-              }));
-            }
-          }
-        },
+        legend: { display: false },
         tooltip: {
           callbacks: {
             label: c => {
@@ -817,6 +804,22 @@ function renderCatChart() {
       }
     }
   });
+
+  // Lista rankeada debajo del donut
+  const total = entries.reduce((s,[,v])=>s+v,0);
+  const maxVal = entries[0][1];
+  const listEl = document.getElementById('cat-list');
+  if (listEl) listEl.innerHTML = entries.map(([cat, val], i) => {
+    const pct = Math.round(val/total*100);
+    const barW = Math.round(val/maxVal*100);
+    return `<div class="cl-item">
+      <span class="cl-dot" style="background:${COLORS[i%COLORS.length]}"></span>
+      <span class="cl-name">${_esc(cat)}</span>
+      <span class="cl-bar-wrap"><span class="cl-bar" style="width:${barW}%;background:${COLORS[i%COLORS.length]}"></span></span>
+      <span class="cl-val">$${val.toLocaleString('es-MX',{maximumFractionDigits:0})}</span>
+      <span class="cl-pct">${pct}%</span>
+    </div>`;
+  }).join('');
 }
 
 /* Top productos */
@@ -825,7 +828,7 @@ function aggregateProducts() {
   sales.forEach(s => {
     if (!Array.isArray(s.items)) return;
     s.items.forEach(item => {
-      if (!map[item.id]) map[item.id] = { name: item.name, qty:0, revenue:0 };
+      if (!map[item.id]) map[item.id] = { id: item.id, name: item.name, qty:0, revenue:0 };
       map[item.id].qty += item.qty||1;
       map[item.id].revenue += item.subtotal||0;
     });
@@ -833,14 +836,19 @@ function aggregateProducts() {
   return Object.values(map).sort((a,b)=>b.qty-a.qty||b.revenue-a.revenue);
 }
 
+const _TP_PH = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C9A462" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>');
+
 function renderTopProducts() {
   const prods = aggregateProducts().slice(0,8);
   const el = document.getElementById('top-products');
   if (!prods.length) { el.innerHTML = '<p class="no-data">Sin ventas en el período</p>'; return; }
   const maxQty = prods[0].qty || 1;
-  el.innerHTML = prods.map((p,i) => `
-<div class="top-prod-item">
+  el.innerHTML = prods.map((p,i) => {
+    const prod = products.find(x => +x.id === +p.id);
+    const img = _driveSz(_prodImg(prod), 80) || _TP_PH;
+    return `<div class="top-prod-item">
   <div class="tp-rank">${i+1}</div>
+  <img class="tp-img" src="${img}" alt="${_esc(p.name)}" onerror="this.src='${_TP_PH}'">
   <div class="tp-info">
     <div class="tp-name" title="${_esc(p.name)}">${_esc(p.name)}</div>
     <div class="tp-bar-wrap"><div class="tp-bar" style="width:${Math.round(p.qty/maxQty*100)}%"></div></div>
@@ -849,7 +857,8 @@ function renderTopProducts() {
     <div class="tp-revenue">${p.qty} ud${p.qty!==1?'s':''}</div>
     <div class="tp-qty">$${p.revenue.toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
   </div>
-</div>`).join('');
+</div>`;
+  }).join('');
 }
 
 /* Inventario */
