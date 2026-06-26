@@ -1341,12 +1341,17 @@ function _initStatsLightboxSwipe() {
     if (!on) return; on = false;
     const lbImg = document.getElementById('img-lightbox-img');
     if (cy > 80) {
-      _closeLightbox();
-      if (lbImg) { lbImg.style.transform = ''; lbImg.style.transition = ''; }
-      lb.style.background = '';
+      if (lbImg) { lbImg.style.transition = 'transform .22s ease-in'; lbImg.style.transform = 'translateY(120vh) scale(0.7)'; }
+      lb.style.transition = 'background .22s ease-in'; lb.style.background = 'rgba(0,0,0,0)';
+      setTimeout(() => {
+        _closeLightbox();
+        if (lbImg) { lbImg.style.transform = ''; lbImg.style.transition = ''; }
+        lb.style.background = ''; lb.style.transition = '';
+      }, 230);
     } else {
       if (lbImg) { lbImg.style.transition = 'transform .36s cubic-bezier(.34,1.26,.64,1)'; lbImg.style.transform = ''; setTimeout(() => lbImg.style.transition = '', 360); }
-      lb.style.background = '';
+      lb.style.transition = 'background .28s ease'; lb.style.background = '';
+      setTimeout(() => lb.style.transition = '', 280);
     }
     cy = 0;
   });

@@ -198,12 +198,13 @@ function _initQVSwipe() {
     // En mobile: el panel sigue el dedo en tiempo real
     if (_qvSwipeDir === 'v' && window.innerWidth <= 600) {
       const panel = document.getElementById('qv-panel');
+      const overlay = document.getElementById('qv-overlay');
       if (panel) {
         panel.style.transition = 'none';
-        // Hacia arriba: resistencia (efecto rubber band al 25%)
         panel.style.transform = `translateY(${dy > 0 ? dy : dy * 0.25}px)`;
         _qvDragging = true;
       }
+      if (overlay && dy > 0) overlay.style.background = `rgba(0,0,0,${Math.max(0, 0.6 - dy / 300)})`;
     }
   }, { passive: true });
 
@@ -218,35 +219,38 @@ function _initQVSwipe() {
 
     const panel = document.getElementById('qv-panel');
 
+    const overlay = document.getElementById('qv-overlay');
+
     if (dir === 'h' && Math.abs(dx) >= 40) {
-      // ← → Navegar entre productos (no en galería)
       if (panel) { panel.style.transition = ''; panel.style.transform = ''; }
+      if (overlay) overlay.style.background = '';
       if (!e.target.closest('.qv-gallery')) qvNavigate(dx < 0 ? 1 : -1);
 
     } else if (dir === 'v' && dy > 72) {
-      // ↓ suficiente → cerrar
       _qvCloseWithAnim('down');
 
     } else if (wasDragging && panel) {
-      // No llegó al umbral → rebotar de vuelta con spring
       panel.style.transition = 'transform .38s cubic-bezier(.34,1.56,.64,1)';
       panel.style.transform  = 'translateY(0)';
-      setTimeout(() => { panel.style.transition = ''; panel.style.transform = ''; }, 380);
+      if (overlay) { overlay.style.transition = 'background .28s ease'; overlay.style.background = ''; }
+      setTimeout(() => { panel.style.transition = ''; panel.style.transform = ''; if (overlay) overlay.style.transition = ''; }, 380);
     }
   }, { passive: true });
 }
 
 function _qvCloseWithAnim(dir) {
   const panel = document.getElementById('qv-panel');
+  const overlay = document.getElementById('qv-overlay');
   if (panel) {
-    panel.style.transition = 'transform .32s cubic-bezier(.4,0,1,1), opacity .28s ease';
-    panel.style.transform  = dir === 'down' ? 'translateY(105%)' : 'translateY(-48px) scale(.95)';
-    panel.style.opacity    = '0';
+    panel.style.transition = 'transform .25s ease-in';
+    panel.style.transform  = dir === 'down' ? 'translateY(110%)' : 'translateY(-48px) scale(.95)';
   }
+  if (overlay) { overlay.style.transition = 'background .25s ease-in'; overlay.style.background = 'rgba(0,0,0,0)'; }
   setTimeout(() => {
     closeQV();
-    if (panel) { panel.style.transition = ''; panel.style.transform = ''; panel.style.opacity = ''; }
-  }, 300);
+    if (panel) { panel.style.transition = ''; panel.style.transform = ''; }
+    if (overlay) { overlay.style.transition = ''; overlay.style.background = ''; }
+  }, 260);
 }
 
 // Doble tap en imagen → zoom pantalla completa
