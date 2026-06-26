@@ -12,7 +12,10 @@ let ROLE = 'operador';
     ROLE = s?.user?.user_metadata?.role ||
       (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.user_metadata?.role; } catch{} })() ||
       'operador';
-    if (ROLE !== 'superadmin') window.location.href = 'admin.html';
+    const _up = (() => { try { return JSON.parse(sessionStorage.getItem('te_user_can')||'{}'); } catch { return {}; } })();
+    if (_up.role) ROLE = _up.role;
+    const canSettings = 'canManageSettings' in _up ? _up.canManageSettings : (ROLE === 'superadmin');
+    if (!canSettings) window.location.href = 'admin.html';
   } catch { window.location.href = 'admin.html'; }
 })();
 
