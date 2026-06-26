@@ -195,16 +195,15 @@ function _initQVSwipe() {
     const absDy = Math.abs(dy);
     if (!_qvSwipeDir && (dx > 8 || absDy > 8)) _qvSwipeDir = dx > absDy ? 'h' : 'v';
 
-    // En mobile: el panel sigue el dedo en tiempo real
-    if (_qvSwipeDir === 'v' && window.innerWidth <= 600) {
+    if (_qvSwipeDir === 'v' && dy > 0 && window.innerWidth <= 600) {
       const panel = document.getElementById('qv-panel');
-      const overlay = document.getElementById('qv-overlay');
       if (panel) {
         panel.style.transition = 'none';
-        panel.style.transform = `translateY(${dy > 0 ? dy : dy * 0.25}px)`;
+        panel.style.transform = `translateY(${dy}px)`;
         _qvDragging = true;
       }
-      if (overlay && dy > 0) overlay.style.background = `rgba(0,0,0,${Math.max(0, 0.6 - dy / 300)})`;
+      const ov = document.getElementById('qv-overlay');
+      if (ov) ov.style.opacity = String(Math.max(0, 1 - dy / 200));
     }
   }, { passive: true });
 
@@ -219,38 +218,38 @@ function _initQVSwipe() {
 
     const panel = document.getElementById('qv-panel');
 
-    const overlay = document.getElementById('qv-overlay');
+    const ov = document.getElementById('qv-overlay');
 
     if (dir === 'h' && Math.abs(dx) >= 40) {
       if (panel) { panel.style.transition = ''; panel.style.transform = ''; }
-      if (overlay) overlay.style.background = '';
+      if (ov) ov.style.opacity = '';
       if (!e.target.closest('.qv-gallery')) qvNavigate(dx < 0 ? 1 : -1);
 
-    } else if (dir === 'v' && dy > 72) {
+    } else if (dir === 'v' && dy > 90) {
       _qvCloseWithAnim('down');
 
     } else if (wasDragging && panel) {
-      panel.style.transition = 'transform .38s cubic-bezier(.34,1.56,.64,1)';
+      panel.style.transition = 'transform .28s cubic-bezier(.4,0,.2,1)';
       panel.style.transform  = 'translateY(0)';
-      if (overlay) { overlay.style.transition = 'background .28s ease'; overlay.style.background = ''; }
-      setTimeout(() => { panel.style.transition = ''; panel.style.transform = ''; if (overlay) overlay.style.transition = ''; }, 380);
+      if (ov) ov.style.opacity = '';
+      setTimeout(() => { panel.style.transition = ''; panel.style.transform = ''; }, 280);
     }
   }, { passive: true });
 }
 
 function _qvCloseWithAnim(dir) {
   const panel = document.getElementById('qv-panel');
-  const overlay = document.getElementById('qv-overlay');
+  const ov = document.getElementById('qv-overlay');
   if (panel) {
-    panel.style.transition = 'transform .25s ease-in';
+    panel.style.transition = 'transform .22s ease-in';
     panel.style.transform  = dir === 'down' ? 'translateY(110%)' : 'translateY(-48px) scale(.95)';
   }
-  if (overlay) { overlay.style.transition = 'background .25s ease-in'; overlay.style.background = 'rgba(0,0,0,0)'; }
+  if (ov) ov.style.opacity = '0';
   setTimeout(() => {
     closeQV();
     if (panel) { panel.style.transition = ''; panel.style.transform = ''; }
-    if (overlay) { overlay.style.transition = ''; overlay.style.background = ''; }
-  }, 260);
+    if (ov) ov.style.opacity = '';
+  }, 230);
 }
 
 // Doble tap en imagen → zoom pantalla completa
