@@ -1,6 +1,22 @@
 /* ── QUICK VIEW ── */
 let _qvCurrentId = null;
 
+async function _qvShare(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const url = `${SITE_URL}?p=${p.id}`;
+  const price = `$${p.price.toLocaleString('es-MX')}`;
+  const desc = p.description ? `\n${p.description.slice(0, 120)}` : '';
+  const last = p.stock === 1 ? '\n⚡ Última pieza disponible' : '';
+  const text = `✨ ${p.name} — ${price} MXN${desc}${last}\n\n🛒 Tres Encantos:`;
+  if (navigator.share) {
+    try { await navigator.share({ title: p.name, text, url }); return; } catch {}
+  }
+  try { await navigator.clipboard.writeText(`${text}\n${url}`); } catch {}
+  const btn = document.querySelector('.qv-btn-share');
+  if (btn) { const orig = btn.innerHTML; btn.textContent = '✓ Copiado'; setTimeout(() => btn.innerHTML = orig, 1500); }
+}
+
 function openQV(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
@@ -550,6 +566,7 @@ function _renderQV(p) {
   const btnFlag = flagData
     ? `<button class="qv-btn qv-btn-flagdone" onclick="unflagProduct(${p.id})">✓ Revisado</button>`
     : `<button class="qv-btn qv-btn-flag"    onclick="_qvShowFlagForm(${p.id})">🚩 Revisar</button>`;
+  const btnShare = `<button class="qv-btn qv-btn-share" onclick="_qvShare(${p.id})">📤 Compartir</button>`;
   const btnTop = can.editProduct
     ? `<button class="qv-btn qv-btn-dup" onclick="moveToTop(${p.id})">📌 Al inicio</button>`
     : '';
@@ -564,7 +581,7 @@ function _renderQV(p) {
   const actionsEl = document.getElementById('qv-actions');
   actionsEl.removeAttribute('style');
   // Orden: Editar · Duplicar · Ocultar/Publicar / Al inicio · A un kit · Revisar · Archivar / Eliminar
-  actionsEl.innerHTML = btnEdit + btnDup + btnPub + btnTop + btnAddKit + btnFlag + btnArchive + btnDel;
+  actionsEl.innerHTML = btnShare + btnEdit + btnDup + btnPub + btnTop + btnAddKit + btnFlag + btnArchive + btnDel;
 }
 
 async function _qvTogglePublished(id) {

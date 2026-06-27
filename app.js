@@ -385,6 +385,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initModal();
   initWaFloat();
   renderCartBadge();
+  _handleDeepLink();
 });
 
 const _norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -715,16 +716,47 @@ function filterTo(cat) {
 }
 
 /* ── SHARE ── */
+function _productUrl(id) {
+  const base = window.location.origin + window.location.pathname;
+  return `${base}?p=${id}`;
+}
+
+function _shareText(p) {
+  const price = `$${p.price.toLocaleString('es-MX')}`;
+  const desc = p.description ? `\n${p.description.slice(0, 120)}` : '';
+  const lastPiece = p.stock === 1 && !p.isApartado ? '\n⚡ Última pieza disponible' : '';
+  return `✨ ${p.name} — ${price} MXN${desc}${lastPiece}\n\n🛒 Tres Encantos:`;
+}
+
 async function shareProduct(id) {
   const p = products.find(x => x.id === id);
-  if (!p || !navigator.share) return;
+  if (!p) return;
+  const url = _productUrl(p.id);
+  const text = _shareText(p);
+  if (navigator.share) {
+    try { await navigator.share({ title: p.name, text, url }); return; } catch {}
+  }
   try {
-    await navigator.share({
-      title: p.name,
-      text: `${p.name} — $${p.price.toLocaleString('es-MX')} MXN\n${p.description}`,
-      url: window.location.href
-    });
+    await navigator.clipboard.writeText(`${text}\n${url}`);
+    const btn = document.querySelector('.modal-share-btn');
+    if (btn) { btn.textContent = '✓'; setTimeout(() => { btn.textContent = ''; btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>'; }, 1500); }
   } catch {}
+}
+
+function _handleDeepLink() {
+  const params = new URLSearchParams(window.location.search);
+  const pid = parseInt(params.get('p'));
+  if (!pid) return;
+  const p = products.find(x => x.id === pid);
+  if (p) setTimeout(() => openModal(pid), 300);
+}
+
+async function shareRevista() {
+  const text = `📖 ¡Revista Natura del mes!\nOfertas exclusivas, lanzamientos y todo el catálogo 🌿\nHojéala aquí:`;
+  if (navigator.share) {
+    try { await navigator.share({ title: 'Revista Natura', text, url: revistaUrl }); return; } catch {}
+  }
+  try { await navigator.clipboard.writeText(`${text}\n${revistaUrl}`); } catch {}
 }
 
 /* ── WHATSAPP ── */
