@@ -4,6 +4,7 @@ let _qvCurrentId = null;
 async function _qvShare(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
+  if (!p.isPublished) { toast('Publica el producto primero para poder compartirlo', 'err'); return; }
   const url = `${SITE_URL}?p=${p.id}`;
   const kit = Array.isArray(p.kitItems) ? '🎁 ' : '';
   const price = `$${p.price.toLocaleString('es-MX')}`;
