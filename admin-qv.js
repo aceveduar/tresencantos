@@ -1,13 +1,6 @@
 /* ── QUICK VIEW ── */
 let _qvCurrentId = null;
 
-function _qvDownloadImg(id) {
-  const p = products.find(x => x.id === id);
-  if (!p || !p.image) return;
-  const url = p.image.includes('drive.google.com') ? p.image.replace(/sz=w\d+/, 'sz=w1200') : p.image;
-  window.open(url, '_blank');
-}
-
 async function _qvShare(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
@@ -574,7 +567,6 @@ function _renderQV(p) {
     ? `<button class="qv-btn qv-btn-flagdone" onclick="unflagProduct(${p.id})">✓ Revisado</button>`
     : `<button class="qv-btn qv-btn-flag"    onclick="_qvShowFlagForm(${p.id})">🚩 Revisar</button>`;
   const btnShare = `<button class="qv-btn qv-btn-share" onclick="_qvShare(${p.id})">📤 Compartir</button>`;
-  const btnDownload = `<button class="qv-btn qv-btn-dup" onclick="_qvDownloadImg(${p.id})">📥 Guardar foto</button>`;
   const btnTop = can.editProduct
     ? `<button class="qv-btn qv-btn-dup" onclick="moveToTop(${p.id})">📌 Al inicio</button>`
     : '';
@@ -589,7 +581,7 @@ function _renderQV(p) {
   const actionsEl = document.getElementById('qv-actions');
   actionsEl.removeAttribute('style');
   // Orden: Editar · Duplicar · Ocultar/Publicar / Al inicio · A un kit · Revisar · Archivar / Eliminar
-  actionsEl.innerHTML = btnShare + btnDownload + btnEdit + btnDup + btnPub + btnTop + btnAddKit + btnFlag + btnArchive + btnDel;
+  actionsEl.innerHTML = btnShare + btnEdit + btnDup + btnPub + btnTop + btnAddKit + btnFlag + btnArchive + btnDel;
 }
 
 async function _qvTogglePublished(id) {
