@@ -570,7 +570,8 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   transition:background .3s,border-color .3s,transform .3s;
 }
 .revista-banner:hover .rb-cta{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.5);transform:translateX(4px)}
-.rb-share{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:#fff;width:42px;height:42px;border-radius:50%;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .3s;margin-top:4px}
+.rb-actions{display:flex;align-items:center;gap:12px}
+.rb-share{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:#fff;width:42px;height:42px;border-radius:50%;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .3s;flex-shrink:0}
 .rb-share:hover{background:rgba(255,255,255,.25)}
 .rb-shimmer{
   position:absolute;inset:0;z-index:2;pointer-events:none;
