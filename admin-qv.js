@@ -574,7 +574,7 @@ function _renderQV(p) {
     ? `<button class="qv-btn qv-btn-flagdone" onclick="unflagProduct(${p.id})">✓ Revisado</button>`
     : `<button class="qv-btn qv-btn-flag"    onclick="_qvShowFlagForm(${p.id})">🚩 Revisar</button>`;
   const btnShare = `<button class="qv-btn qv-btn-share" onclick="_qvShare(${p.id})">📤 Compartir</button>`;
-  const btnDownload = `<button class="qv-btn qv-btn-dup" onclick="_qvDownloadImg(${p.id})">📥 Descargar imagen</button>`;
+  const btnDownload = `<button class="qv-btn qv-btn-dup" onclick="_qvDownloadImg(${p.id})">📥 Guardar foto</button>`;
   const btnTop = can.editProduct
     ? `<button class="qv-btn qv-btn-dup" onclick="moveToTop(${p.id})">📌 Al inicio</button>`
     : '';
