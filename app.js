@@ -716,7 +716,10 @@ function filterTo(cat) {
 }
 
 /* ── SHARE ── */
-const SITE_URL = 'https://tresencantos.netlify.app/index.html';
+const _isLocal = ['localhost','127.0.0.1'].includes(window.location.hostname);
+const SITE_URL = _isLocal
+  ? 'https://tresencantos.netlify.app/index.html'
+  : window.location.origin + window.location.pathname;
 
 function _productUrl(id) {
   return `${SITE_URL}?p=${id}`;
