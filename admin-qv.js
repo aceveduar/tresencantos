@@ -5,10 +5,16 @@ async function _qvShare(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
   const url = `${SITE_URL}?p=${p.id}`;
+  const kit = Array.isArray(p.kitItems) ? '🎁 ' : '';
   const price = `$${p.price.toLocaleString('es-MX')}`;
-  const desc = p.description ? `\n${p.description.slice(0, 120)}` : '';
-  const last = p.stock === 1 ? '\n⚡ Última pieza disponible' : '';
-  const text = `✨ ${p.name} — ${price} MXN${desc}${last}\n\n🛒 Tres Encantos:`;
+  let desc = '';
+  if (p.description) {
+    let d = p.description.slice(0, 120);
+    if (p.description.length > 120) d = d.replace(/\s+\S*$/, '') + '…';
+    desc = `\n${d}`;
+  }
+  const last = p.stock === 1 ? '\n⚡ ¡Última pieza!' : '';
+  const text = `✨ ${kit}${p.name} — ${price}${desc}${last}\n\n🛒 Tres Encantos 👇`;
   if (navigator.share) {
     try { await navigator.share({ title: p.name, text, url }); return; } catch {}
   }

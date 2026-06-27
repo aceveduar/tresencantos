@@ -716,16 +716,23 @@ function filterTo(cat) {
 }
 
 /* ── SHARE ── */
+const SITE_URL = 'https://tresencantos.netlify.app/index.html';
+
 function _productUrl(id) {
-  const base = window.location.origin + window.location.pathname;
-  return `${base}?p=${id}`;
+  return `${SITE_URL}?p=${id}`;
 }
 
 function _shareText(p) {
+  const kit = Array.isArray(p.kitItems) ? '🎁 ' : '';
   const price = `$${p.price.toLocaleString('es-MX')}`;
-  const desc = p.description ? `\n${p.description.slice(0, 120)}` : '';
-  const lastPiece = p.stock === 1 && !p.isApartado ? '\n⚡ Última pieza disponible' : '';
-  return `✨ ${p.name} — ${price} MXN${desc}${lastPiece}\n\n🛒 Tres Encantos:`;
+  let desc = '';
+  if (p.description) {
+    let d = p.description.slice(0, 120);
+    if (p.description.length > 120) d = d.replace(/\s+\S*$/, '') + '…';
+    desc = `\n${d}`;
+  }
+  const lastPiece = p.stock === 1 && !p.isApartado ? '\n⚡ ¡Última pieza!' : '';
+  return `✨ ${kit}${p.name} — ${price}${desc}${lastPiece}\n\n🛒 Tres Encantos 👇`;
 }
 
 async function shareProduct(id) {
@@ -752,7 +759,7 @@ function _handleDeepLink() {
 }
 
 async function shareRevista() {
-  const text = `📖 ¡Revista Natura del mes!\nOfertas exclusivas, lanzamientos y todo el catálogo 🌿\nHojéala aquí:`;
+  const text = `📖 ¡Nueva revista Natura! 🌿\nOfertas exclusivas, lanzamientos y todo el catálogo.\n\nHojéala aquí 👇`;
   if (navigator.share) {
     try { await navigator.share({ title: 'Revista Natura', text, url: revistaUrl }); return; } catch {}
   }
