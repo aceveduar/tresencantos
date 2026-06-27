@@ -60,73 +60,29 @@ async function _launchScanner() {
   document.body.style.overflow = 'hidden';
   _scanCooldown = false;
 
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-  if (isIOS) {
-    if (_scanInst) { _scanInst.clear().catch(() => {}); _scanInst = null; }
-    try { await _loadQuagga(); } catch(e) {
-      statusEl.textContent = 'No se pudo cargar el escáner.';
-      return;
-    }
-    _quaggaActive = true;
-    Quagga.init({
-      inputStream: { name: 'Live', type: 'LiveStream',
-        target: document.getElementById('scanner-reader'),
-        constraints: { facingMode: { ideal: 'environment' } }
-      },
-      locator: { patchSize: 'medium', halfSample: true },
-      numOfWorkers: 0, frequency: 15,
-      decoder: { readers: ['ean_reader','ean_8_reader','code_128_reader','upc_reader','upc_e_reader'] },
-      locate: true
-    }, (err) => {
-      if (err) {
-        statusEl.textContent = 'No se pudo acceder a la cámara. Verifica los permisos.';
-        _quaggaActive = false; return;
-      }
-      Quagga.start();
-      statusEl.textContent = 'Apunta al código de barras';
-      Quagga.onDetected((result) => {
-        if (_scanCooldown) return;
-        const code = result.codeResult?.code;
-        if (code) _onAdminScan(code);
-      });
-    });
-  } else {
-    if (_quaggaActive && window.Quagga) {
-      Quagga.offDetected();
-      Promise.resolve(Quagga.stop()).catch(() => {});
-      _quaggaActive = false;
-    }
-    if (_scanInst) { _scanInst.clear().catch(() => {}); _scanInst = null; }
-    try { await _loadHtml5Qrcode(); } catch(e) {
-      statusEl.textContent = 'No se pudo cargar el escáner.'; return;
-    }
-    const barcodeFormats = [
-      Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
-      Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.UPC_A,
-      Html5QrcodeSupportedFormats.UPC_E,   Html5QrcodeSupportedFormats.QR_CODE,
-    ];
-    _scanInst = new Html5Qrcode('scanner-reader', { formatsToSupport: barcodeFormats, verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
-    _scanInst.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 260, height: 100 } },
-      (code) => { if (!_scanCooldown) _onAdminScan(code); },
-      () => {}
-    ).then(() => {
-      statusEl.textContent = 'Apunta al código de barras';
-    }).catch(() => {
-      statusEl.textContent = 'No se pudo acceder a la cámara. Verifica los permisos.';
-    });
+  if (_scanInst) { _scanInst.clear().catch(() => {}); _scanInst = null; }
+  try { await _loadHtml5Qrcode(); } catch(e) {
+    statusEl.textContent = 'No se pudo cargar el escáner.'; return;
   }
+  const barcodeFormats = [
+    Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
+    Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.UPC_A,
+    Html5QrcodeSupportedFormats.UPC_E,   Html5QrcodeSupportedFormats.QR_CODE,
+  ];
+  _scanInst = new Html5Qrcode('scanner-reader', { formatsToSupport: barcodeFormats, verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
+  _scanInst.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: { width: 260, height: 100 } },
+    (code) => { if (!_scanCooldown) _onAdminScan(code); },
+    () => {}
+  ).then(() => {
+    statusEl.textContent = 'Apunta al código de barras';
+  }).catch(() => {
+    statusEl.textContent = 'No se pudo acceder a la cámara. Verifica los permisos.';
+  });
 }
 
 function closeAdminScanner() {
-  if (_quaggaActive && window.Quagga) {
-    Quagga.offDetected();
-    Promise.resolve(Quagga.stop()).catch(() => {});
-    _quaggaActive = false;
-  }
   if (_scanInst) { _scanInst.stop().catch(() => {}); _scanInst = null; }
   document.getElementById('scanner-overlay').classList.remove('open');
   document.body.style.overflow = '';
