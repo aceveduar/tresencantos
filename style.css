@@ -134,15 +134,15 @@ section{padding:80px 20px}
 .products-search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#B5A696;cursor:pointer;font-size:.85rem;line-height:1;padding:8px;border-radius:50%;transition:.15s}
 .products-search-clear:hover{color:var(--charcoal);background:rgba(0,0,0,.05)}
 
-.products-filters-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:44px}
-.products-filters-row.is-stuck{position:fixed;left:0;right:0;z-index:40;background:var(--cream);padding:10px 20px;margin-bottom:0;box-shadow:0 4px 16px rgba(28,24,23,.08);border-bottom:1px solid var(--border);animation:filterStickIn .22s ease forwards}
-@keyframes filterStickIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.products-filters-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:44px;position:sticky;top:70px;z-index:40;background:var(--cream);padding:10px 0}
+body.admin-bar-shown .products-filters-row{top:124px}
 .products-filters-wrap{flex:1;min-width:0}
 .products-filters{display:flex;gap:10px;flex-wrap:wrap;flex:1}
 .sort-select{padding:8px 36px 8px 14px;border:1.5px solid var(--border);border-radius:50px;font-size:.82rem;outline:none;background:#fff;cursor:pointer;color:var(--text-mid);font-family:'Inter',sans-serif;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B5C48' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;flex-shrink:0}
 .sort-select:focus{border-color:var(--gold)}
 @media(max-width:640px){
-  .products-filters-row{flex-wrap:nowrap;gap:8px;align-items:center}
+  .products-filters-row{flex-wrap:nowrap;gap:8px;align-items:center;top:68px}
+  body.admin-bar-shown .products-filters-row{top:122px}
   .products-filters{margin-bottom:0}
   .sort-select{width:auto;flex-shrink:0;padding:8px 30px 8px 10px}
   /* Header catálogo compacto — productos suben */
@@ -545,21 +545,37 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .btn-load-more:hover{background:var(--gold);color:#fff;transform:translateY(-2px)}
 .btn-load-more:active{transform:translateY(0)}
 
-/* ── NATURA ORDER BANNER ── */
-.natura-order-banner{
-  margin-top:48px;
-  background:rgba(0,0,0,.22);
-  border:1px solid rgba(255,255,255,.15);
-  border-radius:16px;
-  padding:28px 32px;
-  display:flex;align-items:center;gap:24px;flex-wrap:wrap;
+/* ── REVISTA BANNER ── */
+.revista-banner{
+  display:block;position:relative;margin-top:48px;
+  border-radius:16px;overflow:hidden;
+  min-height:240px;
+  background:linear-gradient(135deg,#1B4332 0%,#2D6A4F 40%,#40916C 100%);
+  text-decoration:none;color:#fff;
+  transition:transform .35s,box-shadow .35s;
 }
-.nob-icon{font-size:2.2rem;flex-shrink:0;line-height:1}
-.nob-body{flex:1;min-width:200px}
-.nob-body h4{color:#fff;font-size:1.05rem;font-weight:600;margin-bottom:8px;line-height:1.3}
-.nob-body p{color:rgba(255,255,255,.78);font-size:.88rem;margin:0;line-height:1.6}
-.nob-body strong{color:#fff;opacity:1}
-.nob-actions{display:flex;gap:10px;flex-wrap:wrap;flex-shrink:0}
+.revista-banner:hover{transform:translateY(-4px);box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.rb-cover{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:right center;display:none}
+.rb-cover.visible{display:block}
+.rb-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(27,67,50,.94) 0%,rgba(27,67,50,.65) 45%,rgba(27,67,50,.2) 100%)}
+.rb-content{position:relative;z-index:1;padding:32px;display:flex;flex-direction:column;justify-content:flex-end;min-height:240px}
+.rb-tag{font-size:.65rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.6;margin-bottom:10px}
+.rb-title{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;line-height:1.12;margin:0 0 10px}
+.rb-sub{font-size:.86rem;opacity:.72;line-height:1.55;margin:0 0 20px;max-width:340px}
+.rb-cta{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.3);
+  padding:12px 24px;border-radius:50px;
+  font-size:.86rem;font-weight:600;width:fit-content;
+  transition:background .3s,border-color .3s,transform .3s;
+}
+.revista-banner:hover .rb-cta{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.5);transform:translateX(4px)}
+.rb-shimmer{
+  position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.04) 44%,rgba(255,255,255,.09) 50%,rgba(255,255,255,.04) 56%,transparent 60%);
+  animation:rb-shimmer 5s ease-in-out infinite;
+}
+@keyframes rb-shimmer{0%,30%{transform:translateX(-150%)}70%,100%{transform:translateX(150%)}}
 
 /* ── TOUCH ACTIVE STATES (solo dispositivos sin hover real) ── */
 @media(hover:none){
@@ -588,6 +604,15 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 @media(max-width:1000px) and (min-width:769px){
   .products-grid{grid-template-columns:repeat(3,1fr);gap:16px}
   .product-desc{-webkit-line-clamp:2}
+}
+
+/* Revista banner — desktop: text left, image right */
+@media(min-width:901px){
+  .rb-cover{object-position:center center}
+  .rb-overlay{background:linear-gradient(to right,rgba(27,67,50,.94) 0%,rgba(27,67,50,.6) 40%,rgba(27,67,50,.15) 65%,transparent 85%)}
+  .rb-content{justify-content:center;max-width:45%;min-height:280px;padding:44px}
+  .rb-title{font-size:2.2rem}
+  .revista-banner{min-height:280px}
 }
 
 @media(max-width:900px){
@@ -744,10 +769,11 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .natura-grid>:first-child{order:0}
   .natura-h2{font-size:1.7rem}
 
-  /* Natura order banner */
-  .natura-order-banner{padding:20px;gap:16px}
-  .nob-actions{width:100%}
-  .nob-actions .btn{width:100%;justify-content:center}
+  /* Revista banner mobile */
+  .revista-banner{min-height:220px;margin-top:32px}
+  .rb-content{padding:24px;min-height:220px}
+  .rb-title{font-size:1.5rem}
+  .rb-overlay{background:linear-gradient(to top,rgba(27,67,50,.96) 0%,rgba(27,67,50,.7) 50%,rgba(27,67,50,.25) 100%)}
 
   /* Delivery */
   .delivery-grid{grid-template-columns:1fr}

@@ -682,10 +682,20 @@ async function addCategory() {
 }
 
 /* ── REVISTA ── */
-function openRevista() {
+async function openRevista() {
   document.getElementById('revista-url-input').value = '';
+  document.getElementById('revista-cover-input').value = '';
   document.getElementById('revista-preview').style.display = 'none';
   document.getElementById('revista-file')._pendingFile = null;
+  try {
+    const r = await api('config?id=in.(revista_url,revista_cover)&select=id,value');
+    if (r.ok && r.data) {
+      r.data.forEach(row => {
+        if (row.id === 'revista_url') document.getElementById('revista-url-input').value = row.value || '';
+        if (row.id === 'revista_cover') document.getElementById('revista-cover-input').value = row.value || '';
+      });
+    }
+  } catch {}
   document.getElementById('revista-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
   initRevistaZone();
@@ -775,6 +785,14 @@ async function saveRevista() {
     body: JSON.stringify({ id: 'revista_url', value: finalUrl })
   });
   if (!r.ok) { toast('Error al guardar el enlace', 'err'); return; }
+
+  const coverVal = document.getElementById('revista-cover-input').value.trim();
+  await api('config', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates' },
+    body: JSON.stringify({ id: 'revista_cover', value: coverVal })
+  });
+
   closeRevista();
   toast('Revista guardada ✓', 'ok');
 }

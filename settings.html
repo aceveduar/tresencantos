@@ -303,10 +303,13 @@
       <button class="modal-close" onclick="closeRevista()">✕</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Actualiza el enlace o PDF que se muestra en el sitio.</p>
-      <span class="field-label">URL de la revista (PDF externo, Google Drive, etc.)</span>
-      <input type="url" class="field-input" id="revista-url-input" placeholder="https://...pdf">
-      <p class="field-hint" style="margin-top:6px">Puedes usar Google Drive con enlace público.</p>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Actualiza el enlace y portada que se muestran en el sitio.</p>
+      <span class="field-label">URL de la revista</span>
+      <input type="url" class="field-input" id="revista-url-input" placeholder="https://mx.natura.digital-catalogue.com/...">
+      <p class="field-hint" style="margin-top:6px">Enlace de tu revista interactiva Natura (cambia cada ciclo).</p>
+      <span class="field-label" style="margin-top:16px">Portada del ciclo (URL de imagen)</span>
+      <input type="url" class="field-input" id="revista-cover-input" placeholder="https://...jpg o .png">
+      <p class="field-hint" style="margin-top:6px">Imagen que se muestra en el banner del sitio. Captura la portada de la revista o sube una foto a Drive.</p>
       <div style="text-align:center;font-size:.75rem;color:var(--muted-light);margin:14px 0;font-weight:600">— o sube un archivo PDF —</div>
       <div class="upload-zone" id="revista-upload-zone">
         <input type="file" id="revista-file" accept="application/pdf" style="display:none" onchange="handleRevistaFile(this)">

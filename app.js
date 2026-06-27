@@ -13,6 +13,7 @@ let publicCategories = [];
 let waFloatEnabled = true;
 let _salesCounts = {}; // { productId: qtySold } — cargado desde config
 let revistaUrl = "";
+let revistaCover = "";
 let currentFilter = 'all';
 let searchQuery   = '';
 let currentSort   = 'default';
@@ -271,18 +272,25 @@ function _showCatalogError() {
 /* ── REVISTA ── */
 async function loadRevista() {
   try {
-    const result = await supabaseApi('config?id=eq.revista_url&select=value');
-    if (result.ok && Array.isArray(result.data) && result.data.length) {
-      revistaUrl = result.data[0].value;
-      return;
+    const result = await supabaseApi('config?id=in.(revista_url,revista_cover)&select=id,value');
+    if (result.ok && Array.isArray(result.data)) {
+      result.data.forEach(r => {
+        if (r.id === 'revista_url' && r.value) revistaUrl = r.value;
+        if (r.id === 'revista_cover' && r.value) revistaCover = r.value;
+      });
     }
   } catch {}
-  revistaUrl = "https://mx.natura.digital-catalogue.com/mx/2026/10/revista/ciclo-10/view/index.html?id_consultora=4721203&utm_term=app&utm_source=md&utm_medium=dynamic_link&page=2-3";
+  if (!revistaUrl) revistaUrl = "https://mx.natura.digital-catalogue.com/mx/2026/10/revista/ciclo-10/view/index.html?id_consultora=4721203&utm_term=app&utm_source=md&utm_medium=dynamic_link&page=1";
 }
 
-function updateRevistaLink() {
-  const link = document.getElementById("revista-link");
-  if (link) link.href = revistaUrl;
+function updateRevistaBanner() {
+  const banner = document.getElementById('revista-banner');
+  if (banner) banner.href = revistaUrl;
+  const cover = document.getElementById('rb-cover');
+  if (cover && revistaCover) {
+    cover.src = revistaCover;
+    cover.classList.add('visible');
+  }
 }
 
 async function loadCategories() {
@@ -367,12 +375,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   await Promise.all([loadProducts(), loadRevista(), loadCategories()]);
   render();
   renderNatura();
-  updateRevistaLink();
+  updateRevistaBanner();
   renderHeroVisual();
   renderHeroMobileStrip();
   initAutoScroll();
   initFilters();
-  initStickyFilters();
   initNav();
   initReveal();
   initModal();
@@ -654,48 +661,6 @@ function _initNaturaCarousel(total) {
 }
 
 /* ── STICKY FILTERS ── */
-function initStickyFilters() {
-  const row = document.querySelector('.products-filters-row');
-  if (!row) return;
-
-  const placeholder = document.createElement('div');
-  placeholder.style.display = 'none';
-  row.parentElement.insertBefore(placeholder, row);
-
-  let stuck = false;
-  let lastY = window.scrollY;
-  const naturalTop = row.getBoundingClientRect().top + window.scrollY;
-
-  function getOffset() {
-    const hdr = document.querySelector('.header');
-    return hdr ? hdr.getBoundingClientRect().bottom : 70;
-  }
-  function show(offset) {
-    if (stuck) return;
-    stuck = true;
-    placeholder.style.display = 'block';
-    placeholder.style.height = row.offsetHeight + 'px';
-    row.style.top = offset + 'px';
-    row.classList.add('is-stuck');
-  }
-  function hide() {
-    if (!stuck) return;
-    stuck = false;
-    placeholder.style.display = 'none';
-    row.style.top = '';
-    row.classList.remove('is-stuck');
-  }
-  window.addEventListener('scroll', () => {
-    const y = window.scrollY;
-    const offset = getOffset();
-    const pastFilter = y > naturalTop - offset;
-    const scrollingUp = y < lastY;
-    lastY = y;
-
-    if (!pastFilter) { hide(); return; }
-    if (scrollingUp) show(offset); else hide();
-  }, { passive: true });
-}
 
 /* ── FILTERS ── */
 function initFilters() {
