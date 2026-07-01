@@ -3,7 +3,7 @@ let _formSnapshot = null;
 let _savingProduct = false;
 
 function _takeFormSnapshot() {
-  const ids = ['f-name','f-price','f-original-price','f-description','f-image','f-category','f-badge','f-badge-type','f-barcode','f-stock','f-cost'];
+  const ids = ['f-name','f-price','f-original-price','f-description','f-image','f-category','f-badge','f-badge-type','f-barcode','f-stock','f-cost','f-expiry-date'];
   const snap = {};
   ids.forEach(id => { const el = document.getElementById(id); if (el) snap[id] = el.value; });
   ['f-featured','f-out-of-stock','f-published','f-is-kit'].forEach(id => {
@@ -48,6 +48,7 @@ function openForm(id) {
     document.getElementById('f-barcode').value = p.barcode || '';
     document.getElementById('f-stock').value = p.stock ?? 0;
     document.getElementById('f-cost').value = p.cost ?? '';
+    document.getElementById('f-expiry-date').value = p.expiryDate || '';
     updateMarginDisplay();
     const isKit = Array.isArray(p.kitItems);
     document.getElementById('f-is-kit').checked = isKit;
@@ -74,6 +75,7 @@ function openForm(id) {
     document.getElementById('f-barcode').value = '';
     document.getElementById('f-stock').value = 1;
     document.getElementById('f-cost').value = '';
+    document.getElementById('f-expiry-date').value = '';
     document.getElementById('f-margin-display').textContent = 'Margen: —';
     document.getElementById('f-img-file').value = '';
     document.getElementById('f-img-camera').value = '';
@@ -625,6 +627,7 @@ async function saveProduct() {
     barcode: document.getElementById('f-barcode').value.trim() || null,
     stock: parseInt(document.getElementById('f-stock').value) || 0,
     cost: parseFloat(document.getElementById('f-cost').value) || null,
+    expiryDate: document.getElementById('f-expiry-date').value || null,
     isPublished: publishedVal,
     kitItems: document.getElementById('f-is-kit').checked
       ? _kitItemsEdit.map(item => {
@@ -657,6 +660,7 @@ async function saveProduct() {
     barcode: data.barcode,
     stock: data.stock,
     cost: data.cost,
+    expiry_date: data.expiryDate,
     is_published: data.isPublished,
     kit_items: data.kitItems,
     images: data.images,

@@ -487,8 +487,16 @@ function _renderQV(p) {
     const stockLbl = p.stock === 0 ? 'Sin stock' : p.stock === 1 ? '1 · Última' : `${p.stock} en stock`;
     stockChipQV = `<span class="qv-chip ${stockCls} qv-editable" onclick="editStockInline(event,${p.id},this)" ontouchstart="event.stopPropagation()" title="Toca para editar stock" style="cursor:pointer">${stockLbl}</span>`;
   }
+  let expiryChipQV = '';
+  const expSt = _expiryStatus(p);
+  if (expSt && expSt.state !== 'ok') {
+    const dateStr = new Date(p.expiryDate + 'T00:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' });
+    expiryChipQV = expSt.state === 'expired'
+      ? `<span class="qv-chip qv-chip-sold" title="Caducó el ${dateStr}">⏰ Caducado</span>`
+      : `<span class="qv-chip qv-chip-warn" title="Caduca el ${dateStr}">⏰ Caduca en ${expSt.days}d</span>`;
+  }
   document.getElementById('qv-chips').innerHTML =
-    oosChip + pubChip + stockChipQV + featChip + marginChip;
+    oosChip + pubChip + stockChipQV + featChip + marginChip + expiryChipQV;
 
   // Descripción
   const descEl   = document.getElementById('qv-desc');

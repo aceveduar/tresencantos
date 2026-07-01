@@ -27,6 +27,7 @@ function renderStats() {
   const nKits       = products.filter(p => Array.isArray(p.kitItems)).length;
   const sinCodigo   = products.filter(p => visible(p) && !p.barcode).length;
   const sinCateg    = products.filter(p => visible(p) && p.category === 'por_revisar').length;
+  const porCaducar  = products.filter(p => visible(p) && ['soon','expired'].includes(_expiryStatus(p)?.state)).length;
   const nFlag = _flagged.filter(f => {
     const p = products.find(x => x.id === f.id);
     return p && !_ib(p);
@@ -61,6 +62,7 @@ function renderStats() {
     (sinStock > 0 ? chip('sin-stock', '🚫', sinStock, 'Sin stock', '#dc2626') : '') +
     (ultimaPieza > 0 ? chip('ultima-pieza','⚡', ultimaPieza, 'Última pieza', '#B45309') : '') +
     (sinPublicar  > 0 ? chip('sin-publicar','🙈', sinPublicar, 'Sin publicar', '#C2410C') : '') +
+    (porCaducar   > 0 ? chip('por-caducar', '⏰', porCaducar,  'Por caducar', '#dc2626') : '') +
     (nBorradores > 0 ? chip('borradores', '📝', nBorradores, 'Borradores', '#6B7280', '#fff') : '') +
     (nFlag        > 0 ? chip('revisar',     '🚩', nFlag,       'Por revisar',  '#dc2626') : '') +
     (sinCodigo    > 0 ? chip('sin-codigo',  '🔲', sinCodigo,   'Sin código',   '#4B5563') : '') +
@@ -336,6 +338,7 @@ function adminCard(p, editable = false) {
       <div style="display:flex;align-items:center;gap:6px">
         ${stockChip(p, editable)}
         ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip" title="${_apartadosMap[p.id] || ''} unidad(es) en apartado">📌 Apartado</span>` : ''}
+        ${expiryChip(p)}
         <button class="ac-pub-dot" onclick="togglePublished(${p.id})"
                 ontouchstart="event.stopPropagation()"
                 title="${pubTitle}">
@@ -359,6 +362,15 @@ function _kitInfo(p) {
   }
   const stock = min === Infinity ? 0 : min;
   return { stock, blocker: stock === 0 ? blocker : null };
+}
+
+function expiryChip(p) {
+  const st = _expiryStatus(p);
+  if (!st || st.state === 'ok') return '';
+  const dateStr = new Date(p.expiryDate + 'T00:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' });
+  return st.state === 'expired'
+    ? `<span class="exp-chip exp-chip-expired" title="Caducó el ${dateStr}">⏰ Caducado</span>`
+    : `<span class="exp-chip exp-chip-soon" title="Caduca el ${dateStr}">⏰ ${st.days}d</span>`;
 }
 
 function stockChip(p, editable = false) {
@@ -634,6 +646,7 @@ function desktopRow(p) {
         ${oos ? 'Agotado' : 'Disponible'}
       </button>
       ${stockChip(p, true)}
+      ${expiryChip(p)}
     </div>
   </td>
   <td class="col-actions">
@@ -699,6 +712,7 @@ function mobileCard(p) {
           <div class="mpc-price-row">
             ${priceHTML}${stockInfo}
             ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip">📌 Apartado</span>` : ''}
+            ${expiryChip(p)}
             <button class="ac-pub-dot"
                     onclick="togglePublished(${p.id})"
                     ontouchstart="event.stopPropagation()"
@@ -944,6 +958,7 @@ async function duplicateProduct(id) {
         featured: copy.featured, out_of_stock: false, is_published: false,
         original_price: copy.originalPrice, position: copy.position,
         barcode: null, stock: copy.stock ?? 0, cost: copy.cost ?? null,
+        expiry_date: copy.expiryDate ?? null,
         kit_items: copy.kitItems ?? null,
         images: copy.images ?? null
       })

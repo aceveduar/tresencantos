@@ -378,6 +378,16 @@ function adminCatMatches(productCat, filterCat) {
 
 const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+// Productos Natura/naturales caducan — alerta si faltan <=60 días o ya caducó
+const _EXPIRY_SOON_DAYS = 60;
+function _expiryStatus(p) {
+  if (!p.expiryDate) return null;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const exp = new Date(p.expiryDate + 'T00:00:00');
+  const days = Math.round((exp - today) / 86400000);
+  return { days, state: days < 0 ? 'expired' : days <= _EXPIRY_SOON_DAYS ? 'soon' : 'ok' };
+}
+
 const _normCache = new Map();
 const _norm = s => {
   const k = s || '';
@@ -413,6 +423,7 @@ function getFilteredProducts() {
       (_statFilter === 'sin-precio'   && (!p.price || p.price === 0)) ||
       (_statFilter === 'imagen-base64' && p.image?.startsWith('data:')) ||
       (_statFilter === 'kits'         && Array.isArray(p.kitItems)) ||
+      (_statFilter === 'por-caducar'  && ['soon','expired'].includes(_expiryStatus(p)?.state)) ||
       (_statFilter === 'borradores');
     const isKit      = Array.isArray(p.kitItems);
     const isBorrador = !isKit && !p.isPublished && (!p.price || p.price === 0);
@@ -918,7 +929,8 @@ function mapProduct(p) {
     isApartado: p.is_apartado || false,
     createdBy: p.created_by || null,
     createdAt: p.created_at || null,
-    isArchived: p.is_archived || false
+    isArchived: p.is_archived || false,
+    expiryDate: p.expiry_date || null
   };
 }
 

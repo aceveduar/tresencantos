@@ -196,12 +196,13 @@ function _mapPosProduct(p) {
     outOfStock: p.out_of_stock,
     badge: p.badge,
     badgeType: p.badge_type,
-    kitItems: p.kit_items || null
+    kitItems: p.kit_items || null,
+    expiryDate: p.expiry_date || null
   };
 }
 
 async function loadProducts() {
-  const result = await api('products?select=id,name,category,category_label,price,original_price,description,image,barcode,stock,out_of_stock,badge,badge_type,kit_items&is_archived=eq.false&order=position.asc');
+  const result = await api('products?select=id,name,category,category_label,price,original_price,description,image,barcode,stock,out_of_stock,badge,badge_type,kit_items,expiry_date&is_archived=eq.false&order=position.asc');
   if (result.ok && Array.isArray(result.data)) {
     products = result.data.map(_mapPosProduct);
     try {
@@ -410,6 +411,13 @@ function posCard(p) {
   const kitComps = isKit && p.kitItems.length
     ? p.kitItems.map(c => `<div style="font-size:.6rem;color:#9B8B78;line-height:1.3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.qty > 1 ? c.qty + '× ' : ''}${_esc(c.name)}</div>`).join('')
     : '';
+  let expBadge = '';
+  if (p.expiryDate) {
+    const hoy  = new Date(); hoy.setHours(0, 0, 0, 0);
+    const days = Math.round((new Date(p.expiryDate + 'T00:00:00') - hoy) / 86400000);
+    if (days < 0) expBadge = `<span class="pos-card-stock stock-sold" style="margin-left:4px" title="Caducó hace ${Math.abs(days)}d">⏰</span>`;
+    else if (days <= 60) expBadge = `<span class="pos-card-stock stock-one" style="margin-left:4px" title="Caduca en ${days}d">⏰ ${days}d</span>`;
+  }
   return `
 <div class="pos-card${oos?' card-sold':''}" onclick="${oos?`_showRestockPrompt(${p.id})`:` addToCart(${p.id},this.querySelector('.pos-card-add-icon'),event)`}">
   <div class="pos-card-img-wrap">
@@ -424,7 +432,7 @@ function posCard(p) {
     <div class="pos-card-name">${isKit ? '🎁 ' : ''}${_esc(p.name)}</div>
     ${kitComps}
     <div class="pos-card-price">$${p.price.toLocaleString('es-MX')}</div>
-    <span class="pos-card-stock ${stockCls}">${stockTxt}</span>
+    <span class="pos-card-stock ${stockCls}">${stockTxt}</span>${expBadge}
   </div>
 </div>`;
 }
@@ -590,13 +598,20 @@ function productCard(p) {
         : effStock > 5
           ? ` · <span style="color:#9B8B78">${effStock} uds</span>`
           : '';
+  let expSub = '';
+  if (p.expiryDate) {
+    const hoy  = new Date(); hoy.setHours(0, 0, 0, 0);
+    const days = Math.round((new Date(p.expiryDate + 'T00:00:00') - hoy) / 86400000);
+    if (days < 0) expSub = ' · <span style="color:var(--red);font-weight:700">⏰ Caducado</span>';
+    else if (days <= 60) expSub = ` · <span style="color:#D97706;font-weight:700">⏰ ${days}d</span>`;
+  }
   return `
 <div class="pos-prod" onclick="${oos ? `_showRestockPrompt(${p.id})` : `addToCart(${p.id},null,event)`}" ${oos ? '' : ''}>
   <img class="pos-prod-img" src="${_driveSz(p.image,200)}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'" onclick="event.stopPropagation();${oos ? `_showRestockPrompt(${p.id})` : `openPosPreview(${p.id})`}" style="cursor:${oos?'pointer':'zoom-in'}">
   <div class="pos-prod-info">
     <div class="pos-prod-name">${isKit ? '🎁 ' : ''}${_esc(p.name)}</div>
     ${kitCompsLine}
-    <div class="pos-prod-sub"${kitCompsLine ? ' style="margin-top:5px;padding-top:4px;border-top:1px solid #EDE0CF"' : ''}>${_esc(p.categoryLabel)}${stockSub}</div>
+    <div class="pos-prod-sub"${kitCompsLine ? ' style="margin-top:5px;padding-top:4px;border-top:1px solid #EDE0CF"' : ''}>${_esc(p.categoryLabel)}${stockSub}${expSub}</div>
   </div>
   <div class="pos-prod-right">
     <div class="pos-prod-price">$${p.price.toLocaleString('es-MX')}</div>

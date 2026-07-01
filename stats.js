@@ -232,7 +232,7 @@ async function loadPreviousSales() {
 }
 
 async function loadProducts() {
-  const r = await api('products?select=id,name,category,category_label,price,cost,stock,out_of_stock,image,images&order=position.asc&limit=2000');
+  const r = await api('products?select=id,name,category,category_label,price,cost,stock,out_of_stock,image,images,expiry_date&order=position.asc&limit=2000');
   products = (r.ok && Array.isArray(r.data)) ? r.data : [];
 }
 
@@ -366,6 +366,7 @@ function renderAll() {
   renderHourChart();
   renderInventory();
   renderCapitalCategoria();
+  renderExpiringProducts();
   renderRentabilidad();
   renderVendedores();
   renderCalendar();
@@ -942,6 +943,48 @@ function renderCapitalCategoria() {
         <div style="width:${pct}%;height:100%;background:var(--gold);border-radius:50px"></div>
       </div>
       <div style="font-size:.7rem;color:var(--muted)">${share}% del valor en venta</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── PRODUCTOS POR CADUCAR ── */
+function renderExpiringProducts() {
+  const card  = document.getElementById('expiring-card');
+  const body  = document.getElementById('expiring-body');
+  const label = document.getElementById('expiring-label');
+  if (!card || !body) return;
+
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const withExpiry = products
+    .filter(p => p.expiry_date)
+    .map(p => ({ ...p, _days: Math.round((new Date(p.expiry_date + 'T00:00:00') - hoy) / 86400000) }))
+    .filter(p => p._days <= 60)
+    .sort((a, b) => a._days - b._days);
+
+  if (!withExpiry.length) {
+    label.textContent = '';
+    body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:.84rem">Sin productos por caducar</div>';
+    return;
+  }
+
+  const vencidos    = withExpiry.filter(p => p._days < 0).length;
+  const valorRiesgo = withExpiry.reduce((s, p) => s + (p.price || 0) * (p.stock || 0), 0);
+  label.textContent = `${withExpiry.length} producto${withExpiry.length !== 1 ? 's' : ''}${vencidos ? ` · ⚠️ ${vencidos} caducado${vencidos > 1 ? 's' : ''}` : ''} · $${Math.round(valorRiesgo).toLocaleString('es-MX')} en riesgo`;
+
+  body.innerHTML = withExpiry.map(p => {
+    const color = p._days < 0 ? '#E85D5D' : p._days <= 7 ? '#D97706' : '#B45309';
+    const text  = p._days < 0 ? `Caducó hace ${Math.abs(p._days)}d` : p._days === 0 ? 'Caduca hoy' : `Caduca en ${p._days}d`;
+    const fecha = new Date(p.expiry_date + 'T00:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+    const valor = (p.price || 0) * (p.stock || 0);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="min-width:0">
+        <div style="font-weight:600;font-size:.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(p.name)}</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:2px">${_esc(p.category_label || '')} · Stock: ${p.stock ?? 0}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-weight:700;font-size:.78rem;color:${color}">${text}</div>
+        <div style="font-size:.68rem;color:var(--muted)">${fecha}${valor ? ` · $${Math.round(valor).toLocaleString('es-MX')}` : ''}</div>
+      </div>
     </div>`;
   }).join('');
 }
