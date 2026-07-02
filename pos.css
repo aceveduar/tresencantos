@@ -385,7 +385,7 @@ button,a{touch-action:manipulation}
 }
 
 /* LIGHTBOX IMAGEN */
-.img-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:1050;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s;padding:20px 16px;overscroll-behavior:none;touch-action:none}
+.img-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:1400;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s;padding:20px 16px;overscroll-behavior:none;touch-action:none}
 .img-lightbox.open{opacity:1;pointer-events:auto}
 .img-lightbox-img{max-width:100%;max-height:65dvh;border-radius:12px;object-fit:contain;display:block}
 .img-lightbox-info{width:100%;max-width:360px;margin-top:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 16px;backdrop-filter:blur(8px)}
