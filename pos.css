@@ -580,7 +580,7 @@ button,a{touch-action:manipulation}
 /* Compact card */
 .apc-card{background:#fff;border-radius:12px;border:1.5px solid #EDE0CF;box-shadow:0 1px 4px rgba(28,24,23,.06);padding:12px 14px;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .1s}
 .apc-card:hover{border-color:var(--gold);box-shadow:0 3px 10px rgba(201,164,98,.18);transform:translateY(-1px)}
-.apc-card.apt-overdue{border-color:#FECACA}
+.apc-card.apt-overdue{border-color:#FECACA;border-width:2.5px}
 .apc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px}
 .apc-name{font-size:.88rem;font-weight:700;color:var(--charcoal);line-height:1.2}
 .apc-pending{font-size:.92rem;font-weight:800;color:var(--red);white-space:nowrap;flex-shrink:0}
