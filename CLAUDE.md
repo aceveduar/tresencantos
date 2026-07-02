@@ -260,20 +260,21 @@ El cambio aplica en el **próximo login** — la sesión activa usa el JWT viejo
 **Chip de rol:** eliminado de la topbar — ocupaba demasiado espacio en mobile. El rol no se muestra visualmente; los permisos siguen aplicándose en código.
 
 ### Categorías dinámicas
-Guardadas en `config.id='categories'` como JSON. **40 categorías en total** organizadas en 8 raíces:
+Guardadas en `config.id='categories'` como JSON. Estructura real vigente desde 2026-07-01 (**30 categorías** en 7 raíces — reorganizada respecto a versiones anteriores de este documento, ver nota de reconciliación abajo):
 
 | Raíz | Subcategorías |
 |---|---|
-| Bolsos & Mochilas | Bolsos de dama, Mochilas, Mochilas dama, Mochilas personaje, Loncheras, Maletas |
-| Cabello | Diademas, Donas & Ligas, Pinzas & Broches, Cepillos |
-| Maquillaje | Ojos & Pestañas |
-| Uñas | Uñas postizas, Limas, Herramientas, Decoración |
-| Joyería | Aretes, Anillos, Pulseras, Collares & Cadenas, Bisutería surtida, Reloj |
+| Bolsos | Bolsos Dama, Bolsos Casual, Cosmetiqueras |
+| Mochilas | Mochilas Dama, Mochilas Personaje, Mochilas Deportivas, Cangureras, Lapiceras, Loncheras |
+| Accesorios | Cabello, Bisutería & Joyería, Moda |
+| Belleza | Maquillaje, Uñas & Manicure |
 | Natura | Perfumería, Cuerpo, Facial, Cabello Natura, Maquillaje Natura |
-| Accesorios | Carteras & Monederos, Botellas & Termos, Tecnológicos, Sombreros & Gorras |
-| Regalos | Bolsas de regalo |
+| Avon | Perfumería, Cuerpo, Facial, Maquillaje |
+| Regalos | (sin subcategorías) |
 
-Categoría especial: `por_revisar` — sin padre, solo para uso interno (0 productos normalmente).
+Categoría especial: `por_revisar` — sin padre, solo para uso interno.
+
+**⚠️ Riesgo conocido — categorías huérfanas al reorganizar:** el modal "Gestionar categorías" (Configuración) permite eliminar/renombrar códigos de categoría sin migrar los productos que ya la usan — el producto se queda con un `category` que ya no existe en `config.id='categories'`. Como el filtro por categoría (Inventario, Tienda, Caja) solo lista códigos presentes en la configuración actual, esos productos **desaparecen silenciosamente de cualquier filtro** aunque sigan existiendo y sean visibles en "Todos"/búsqueda por texto. Caso real (2026-07-01): al consolidar la raíz "Joyería" (Aretes, Collares & Cadenas, Pulseras, Bisutería surtida) en `accesorios_bisuteria` y eliminar la raíz "Regalos", 95 productos quedaron huérfanos (`joyeria`, `joyeria_aretes`, `joyeria_collares`, `joyeria_pulseras`, `joyeria_bisuteria`, `regalos`) — invisibles en el filtro de categorías pese a existir en la BD. Corregido reasignando los 88 de joyería a `bisuteria` (Bisutería & Joyería) y restaurando `regalos` en la configuración (los 7 productos ya tenían `category='regalos'`, solo faltaba que la categoría volviera a existir). **Si un producto "desaparece" al filtrar por categoría pero aparece en la búsqueda por texto, sospechar de esto primero** — comparar su `category` contra los códigos vigentes en `config.id='categories'`.
 
 Estructura de cada objeto:
 ```javascript
@@ -608,6 +609,7 @@ Si se quitan todas las imágenes, la tira muestra "Sin imágenes — sube una ar
   - **Caja**: indicador inline en las tarjetas de producto de ambas vistas (lista `productCard()` y grid `posCard()`, `pos-core.js`) — "⏰ Nd" (ámbar) o "⏰ Caducado" (rojo) junto al stock, para que la cajera lo note antes de vender. `_mapPosProduct()` y el `select` de `loadProducts()` agregan `expiry_date`/`expiryDate`. No bloquea la venta, solo informa.
   - Tienda pública sin cambios — mostrar caducidad a la clienta es una decisión de negocio (ej. liquidación) que Ofelia no ha pedido.
   - CACHE_VERSION v138→v139.
+- **Fix datos — 95 productos huérfanos por categorías eliminadas sin migrar (2026-07-01)** — reportado como "no encuentro los aretes al filtrar por categoría". Diagnóstico vía REST API con la anon key (solo lectura, sin tocar código): los 95 productos seguían con `category` apuntando a códigos que ya no existían en `config.id='categories'` (raíz "Joyería" con sus subcategorías, y raíz "Regalos" — ver detalle en "Categorías dinámicas" arriba). No fue un bug de código — el filtro funciona correctamente, el problema era la BD. Corregido con SQL directo en Supabase (mismo flujo que otras migraciones de este documento): 88 productos de joyería reasignados a `bisuteria` (Bisutería & Joyería), y la raíz `regalos` restaurada en la configuración de categorías para los 7 productos que ya la usaban. Sin cambios de código — pura corrección de datos.
 
 ---
 
