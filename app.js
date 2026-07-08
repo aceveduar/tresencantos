@@ -568,16 +568,44 @@ function initAutoScroll() { /* no-op */ }
 function renderHeroVisual() {
   const container = document.getElementById('hero-visual');
   if (!container) return;
-  const items = products.filter(p => p.featured).slice(0, 3);
+  const items = products.filter(p => p.featured).slice(0, 4);
   if (!items.length) return;
   container.innerHTML = items.map(p => `
 <div class="hc" onclick="openModal(${p.id})">
-  <img src="${_driveSz(p.image,300)}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
+  <img src="${_driveSz(p.image,400)}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
   <div class="hc-info">
     <div class="hc-name">${_esc(p.name)}</div>
     <div class="hc-price">$${p.price.toLocaleString('es-MX')}</div>
   </div>
 </div>`).join('');
+  _initHeroParallax();
+}
+
+/* Parallax 3D sutil — el grupo de tarjetas sigue el cursor. Solo desktop con mouse fino. */
+let _heroParallaxBound = false;
+function _initHeroParallax() {
+  const visual = document.getElementById('hero-visual');
+  const hero   = document.getElementById('inicio');
+  if (!visual || !hero) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!window.matchMedia('(hover:hover) and (pointer:fine)').matches) return;
+  if (_heroParallaxBound) return;
+  _heroParallaxBound = true;
+
+  let raf = null;
+  hero.addEventListener('mousemove', e => {
+    const rect = hero.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width  - .5; // -.5 → .5
+    const y = (e.clientY - rect.top)  / rect.height - .5;
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(() => {
+      visual.style.transform = `rotateY(${x * 10}deg) rotateX(${-y * 10}deg)`;
+    });
+  });
+  hero.addEventListener('mouseleave', () => {
+    cancelAnimationFrame(raf);
+    visual.style.transform = 'rotateY(0deg) rotateX(0deg)';
+  });
 }
 
 /* ── RENDER NATURA CARRUSEL ── */
