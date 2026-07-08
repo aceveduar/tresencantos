@@ -602,7 +602,7 @@ function renderNatura() {
   wrap.innerHTML = list.map(p => `
 <div class="nc-card" onclick="openModal(${p.id})">
   <div class="nc-img-wrap">
-    <img src="${_driveSz(p.image,300)}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
+    <img src="${_driveSz(p.image,700)}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
     <div class="nc-overlay"><span>Ver producto →</span></div>
   </div>
   <div class="nc-info">
