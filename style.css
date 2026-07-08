@@ -90,10 +90,10 @@ a{color:inherit}
 .hc:nth-child(3):hover{transform:rotate(0deg) translateY(-8px)}
 .hc:nth-child(4){width:150px;top:-6px;right:20px;transform:rotate(9deg);z-index:1}
 .hc:nth-child(4):hover{transform:rotate(0deg) translateY(-6px)}
-/* sparkle decorations */
-.hero-visual::before,.hero-visual::after{content:'✦';position:absolute;font-size:1.6rem;color:var(--gold);opacity:.4;pointer-events:none}
-.hero-visual::before{top:0;left:70px;animation:float-star 4s ease-in-out infinite}
-.hero-visual::after{bottom:90px;left:0;font-size:1rem;animation:float-star 4s ease-in-out infinite .8s}
+/* sparkle decorations — en los huecos del collage, no flotando solas */
+.hero-visual::before,.hero-visual::after{content:'✦';position:absolute;z-index:6;color:var(--gold);opacity:.45;pointer-events:none}
+.hero-visual::before{top:12px;left:225px;font-size:1.3rem;animation:float-star 4s ease-in-out infinite}
+.hero-visual::after{bottom:60px;left:20px;font-size:1rem;animation:float-star 4s ease-in-out infinite .8s}
 @keyframes float-star{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-8px) rotate(15deg)}}
 
 /* ── BUTTONS ── */
