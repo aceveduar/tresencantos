@@ -594,10 +594,6 @@ function _initHeroParallax() {
 
   let raf = null;
   hero.addEventListener('mousemove', e => {
-    // Pausado sobre una tarjeta: si el grupo sigue rotando mientras el hover
-    // individual de la tarjeta también mueve/rota, ambos efectos compiten y
-    // se ve un "temblor" justo al cruzar el borde entre dos tarjetas.
-    if (e.target.closest('.hc')) return;
     const rect = hero.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width  - .5; // -.5 → .5
     const y = (e.clientY - rect.top)  / rect.height - .5;

@@ -75,12 +75,14 @@ a{color:inherit}
   transform-style:preserve-3d;transition:transform .3s cubic-bezier(.2,.8,.2,1);will-change:transform;
   background:radial-gradient(circle at 42% 48%,rgba(201,164,98,.28) 0%,transparent 62%);
 }
-/* Hover: solo cambia la sombra, nunca la geometría (rotate/translate) —
-   dos tarjetas traslapadas que se mueven al hover pueden "empujarse" la una
-   a la otra en su borde compartido y generar temblor/ping-pong. Sin cambio
-   de geometría esto es imposible por diseño. */
-.hc{position:absolute;background:#fff;border-radius:18px;box-shadow:0 4px 10px rgba(28,24,23,.06),0 22px 44px -12px rgba(28,24,23,.24);overflow:hidden;cursor:pointer;transition:box-shadow .35s ease}
-.hc:hover{box-shadow:0 4px 14px rgba(28,24,23,.08),0 30px 60px -12px rgba(201,164,98,.4);z-index:10!important}
+/* Sin efecto de :hover — con tarjetas traslapadas, el sensor del mouse
+   reporta micro-movimiento aun con la mano quieta; justo en el borde entre
+   dos tarjetas eso alterna :hover entre ambas muchas veces por segundo. Si
+   :hover cambia algo visible (sombra, z-index), esa alternancia se ve como
+   temblor aunque nada se mueva de posición. Sin nada que alternar, no hay
+   nada que temblar. El clic sigue funcionando igual (cursor:pointer ya
+   indica que es interactivo).  */
+.hc{position:absolute;background:#fff;border-radius:18px;box-shadow:0 4px 10px rgba(28,24,23,.06),0 22px 44px -12px rgba(28,24,23,.24);overflow:hidden;cursor:pointer}
 .hc img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
 .hc-info{padding:11px 14px 13px}
 .hc-name{font-family:'Playfair Display',serif;font-size:.85rem;font-weight:600;color:var(--charcoal);line-height:1.3;margin-bottom:3px}
