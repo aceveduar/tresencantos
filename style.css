@@ -75,7 +75,11 @@ a{color:inherit}
   transform-style:preserve-3d;transition:transform .3s cubic-bezier(.2,.8,.2,1);will-change:transform;
   background:radial-gradient(circle at 42% 48%,rgba(201,164,98,.28) 0%,transparent 62%);
 }
-.hc{position:absolute;background:#fff;border-radius:18px;box-shadow:0 4px 10px rgba(28,24,23,.06),0 22px 44px -12px rgba(28,24,23,.24);overflow:hidden;cursor:pointer;transition:transform .35s cubic-bezier(.4,0,.2,1),box-shadow .35s ease}
+/* Hover: solo cambia la sombra, nunca la geometría (rotate/translate) —
+   dos tarjetas traslapadas que se mueven al hover pueden "empujarse" la una
+   a la otra en su borde compartido y generar temblor/ping-pong. Sin cambio
+   de geometría esto es imposible por diseño. */
+.hc{position:absolute;background:#fff;border-radius:18px;box-shadow:0 4px 10px rgba(28,24,23,.06),0 22px 44px -12px rgba(28,24,23,.24);overflow:hidden;cursor:pointer;transition:box-shadow .35s ease}
 .hc:hover{box-shadow:0 4px 14px rgba(28,24,23,.08),0 30px 60px -12px rgba(201,164,98,.4);z-index:10!important}
 .hc img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
 .hc-info{padding:11px 14px 13px}
@@ -83,13 +87,9 @@ a{color:inherit}
 .hc-price{font-size:.82rem;font-weight:700;color:var(--gold-dark)}
 /* positions & rotations — collage asimétrico, tarjeta central como foco */
 .hc:nth-child(1){width:210px;top:0;left:0;transform:rotate(-7deg);z-index:2}
-.hc:nth-child(1):hover{transform:rotate(-3deg) translateY(-4px)}
 .hc:nth-child(2){width:205px;bottom:0;right:10px;transform:rotate(6deg);z-index:3}
-.hc:nth-child(2):hover{transform:rotate(2deg) translateY(-4px)}
 .hc:nth-child(3){width:250px;top:100px;left:120px;transform:rotate(-2deg);z-index:5;box-shadow:0 4px 10px rgba(28,24,23,.06),0 26px 52px -10px rgba(28,24,23,.3)}
-.hc:nth-child(3):hover{transform:rotate(-1deg) translateY(-5px)}
 .hc:nth-child(4){width:150px;top:-6px;right:20px;transform:rotate(9deg);z-index:1}
-.hc:nth-child(4):hover{transform:rotate(4deg) translateY(-4px)}
 /* sparkle decorations — en los huecos del collage, no flotando solas */
 .hero-visual::before,.hero-visual::after{content:'✦';position:absolute;z-index:6;color:var(--gold);opacity:.45;pointer-events:none}
 .hero-visual::before{top:12px;left:225px;font-size:1.3rem;animation:float-star 4s ease-in-out infinite}
