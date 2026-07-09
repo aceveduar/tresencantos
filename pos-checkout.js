@@ -17,6 +17,21 @@ function updateChange() {
   const discEl = document.getElementById('pos-discount-amount');
   if (discEl) discEl.textContent = disc > 0 ? `−$${disc.toLocaleString('es-MX', {maximumFractionDigits:0})}` : '';
 
+  // Total con descuento — evita que el cajero tenga que restar Total − Descuento mentalmente
+  // Label consciente del modo: en apartado no se cobra ahora, es el total del pedido
+  const totalDiscRow   = document.getElementById('total-discounted-row');
+  const totalDiscEl    = document.getElementById('pos-total-discounted');
+  const totalDiscLabel = document.getElementById('total-discounted-label');
+  if (totalDiscRow && totalDiscEl) {
+    if (disc > 0) {
+      totalDiscEl.textContent = `$${getDiscountedTotal().toLocaleString('es-MX')}`;
+      if (totalDiscLabel) totalDiscLabel.textContent = isApt ? 'Total del pedido' : 'Total a cobrar';
+      totalDiscRow.style.display = '';
+    } else {
+      totalDiscRow.style.display = 'none';
+    }
+  }
+
   updateAnticipoInfo();
 }
 
@@ -26,7 +41,7 @@ async function cobrar() {
   if (!navigator.onLine) { toast('Sin conexión — no se puede registrar la venta', 'error'); return; }
   _cobrandoAhora = true;
   const isApartado = document.getElementById('pos-is-apartado')?.checked;
-  const customerName = document.getElementById('pos-customer')?.value.trim() || '';
+  const customerName = document.getElementById(isApartado ? 'pos-apt-customer' : 'pos-customer')?.value.trim() || '';
   const phone        = document.getElementById('pos-phone')?.value.trim() || '';
   const customer     = customerName + (phone ? ` · 📱 ${phone}` : '');
   const note       = document.getElementById('pos-note')?.value.trim() || '';
@@ -138,13 +153,12 @@ async function cobrar() {
 
   // Reset UI
   cart = [];
-  ['pos-cash','pos-discount','pos-note','pos-phone','pos-anticipo'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  ['pos-cash','pos-discount','pos-note'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   document.getElementById('pos-is-apartado').checked = false;
-  document.getElementById('apartado-fields').style.display = 'none';
+  toggleApartadoMode(); // limpia phone/anticipo/pendiente/fecha/cliente-apartado y cierra el sheet
   clearNoteField();
   clearCustomerField();
   clearDiscountField();
-  document.getElementById('cobrar-btn').textContent = '✓ Cobrar';
   renderCart(); updateChange();
   document.getElementById('pos-search').value = '';
   showAllProducts();
@@ -176,6 +190,15 @@ function showSaleDone() {
   document.getElementById('sd-pending-row').style.display  = isApt ? '' : 'none';
   document.getElementById('sd-pending').textContent         = fmt(pendiente);
   document.getElementById('sd-change-row').style.display   = isApt ? 'none' : '';
+
+  const dueRow = document.getElementById('sd-due-row');
+  if (dueRow) {
+    dueRow.style.display = (isApt && s.dueDate) ? '' : 'none';
+    if (isApt && s.dueDate) {
+      const due = new Date(s.dueDate + 'T00:00:00');
+      document.getElementById('sd-due').textContent = due.toLocaleDateString('es-MX', { day:'numeric', month:'long', year:'numeric' });
+    }
+  }
   document.getElementById('sd-customer-row').style.display = s.customer ? '' : 'none';
   document.getElementById('sd-customer').textContent       = (s.customer||'').split(' · 📱 ')[0];
 

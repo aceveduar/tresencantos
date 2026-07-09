@@ -63,13 +63,13 @@ async function cancelApartado(id) {
         for (const comp of p.kitItems) {
           const lc = products.find(x => x.id === comp.id);
           const newStock = (lc ? lc.stock : 0) + (item.qty || 1) * comp.qty;
-          restores.push(api(`products?id=eq.${comp.id}`, { method:'PATCH', body:JSON.stringify({ stock: newStock, out_of_stock: false }) })
-            .then(() => { if (lc) { lc.stock = newStock; lc.outOfStock = false; } }));
+          restores.push(api(`products?id=eq.${comp.id}`, { method:'PATCH', body:JSON.stringify({ stock: newStock, out_of_stock: false, is_apartado: false }) })
+            .then(() => { if (lc) { lc.stock = newStock; lc.outOfStock = false; lc.isApartado = false; } }));
         }
       } else {
         const newStock = (p ? p.stock : 0) + (item.qty || 1);
-        restores.push(api(`products?id=eq.${item.id}`, { method:'PATCH', body:JSON.stringify({ stock: newStock, out_of_stock: false }) })
-          .then(() => { if (p) { p.stock = newStock; p.outOfStock = false; } }));
+        restores.push(api(`products?id=eq.${item.id}`, { method:'PATCH', body:JSON.stringify({ stock: newStock, out_of_stock: false, is_apartado: false }) })
+          .then(() => { if (p) { p.stock = newStock; p.outOfStock = false; p.isApartado = false; } }));
       }
     }
     await Promise.all(restores);
@@ -110,7 +110,7 @@ let salesStats    = {};
 let salesCache  = {};
 let currentCat  = 'all';
 let payMethod   = 'efectivo';
-let discType    = 'pct';
+let discType    = 'fixed';
 let _lastSale   = {};
 
 function _saveCart() {

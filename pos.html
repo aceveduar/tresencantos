@@ -144,16 +144,22 @@
       <div id="discount-row-wrap" style="display:none">
       <div class="discount-row">
         <span class="discount-label">Descuento</span>
-        <button class="discount-type-btn active" id="disc-pct-btn" onclick="setDiscountType('pct')">%</button>
-        <button class="discount-type-btn" id="disc-fixed-btn" onclick="setDiscountType('fixed')">$</button>
+        <button class="discount-type-btn" id="disc-pct-btn" onclick="setDiscountType('pct')">%</button>
+        <button class="discount-type-btn active" id="disc-fixed-btn" onclick="setDiscountType('fixed')">$</button>
         <input type="number" id="pos-discount" min="0" placeholder="0" oninput="clampDiscount();updateChange()" onblur="autoCollapseDiscount()">
         <span class="discount-amount" id="pos-discount-amount"></span>
         <button type="button" class="discount-clear-btn" onclick="clearDiscountField()" title="Quitar descuento">✕</button>
       </div>
       </div>
 
-      <!-- Método de pago -->
-      <div class="pay-method-row">
+      <!-- Total con descuento — solo visible cuando hay un descuento activo, para no dejar la resta al cajero -->
+      <div class="total-row total-row-discounted" id="total-discounted-row" style="display:none">
+        <span class="total-label" id="total-discounted-label">Total a cobrar</span>
+        <span class="total-amount" id="pos-total-discounted">$0</span>
+      </div>
+
+      <!-- Método de pago — se oculta en apartado, donde vive dentro del sheet junto al anticipo -->
+      <div class="pay-method-row" id="pay-method-row-main">
         <button class="pay-btn active" id="pay-efectivo" onclick="setPayMethod('efectivo')">💵 Efectivo</button>
         <button class="pay-btn" id="pay-transferencia" onclick="setPayMethod('transferencia')">📱 Transferencia</button>
       </div>
@@ -187,46 +193,22 @@
         </div>
       </div>
 
-      <!-- Apartado toggle — causa antes del efecto (cliente se expande al activar) -->
-      <label class="apartado-toggle-label">
-        <input type="checkbox" id="pos-is-apartado" onchange="toggleApartadoMode()">
-        📌 Es apartado / anticipo
-      </label>
+      <!-- Apartado — agrupado visualmente en su propio bloque; se resalta cuando está activo -->
+      <div class="apartado-group" id="apartado-group">
+        <label class="apartado-toggle-label">
+          <input type="checkbox" id="pos-is-apartado" onchange="toggleApartadoMode()">
+          📌 Es apartado / anticipo
+        </label>
+        <button type="button" class="note-toggle-btn" id="apartado-details-btn" style="display:none" onclick="openApartadoSheet()">📌 Agregar cliente y datos del apartado</button>
+        <div class="apartado-summary-row" id="apartado-summary" style="display:none" onclick="openApartadoSheet()"></div>
+      </div>
 
-      <!-- Cliente (opcional en venta normal, requerido en apartado) -->
-      <div class="note-cliente-row">
+      <!-- Cliente (venta normal, opcional) — oculto durante apartado, donde el cliente vive en el sheet -->
+      <div class="note-cliente-row" id="cliente-normal-row">
         <button type="button" class="note-toggle-btn" id="customer-toggle-btn" onclick="toggleCustomerField()">👤 Agregar cliente</button>
         <div class="note-input-wrap" id="customer-input-wrap" style="display:none">
           <input type="text" id="pos-customer" placeholder="Nombre del cliente" oninput="updateAnticipoInfo()" onblur="autoCollapseCustomer()">
           <button type="button" class="note-clear-btn" onclick="clearCustomerField()" title="Quitar cliente">✕</button>
-        </div>
-      </div>
-
-      <!-- Campos del apartado -->
-      <div id="apartado-fields" style="display:none">
-        <div class="apartado-fields">
-          <input type="tel" id="pos-phone" placeholder="📱 Teléfono (opcional)" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%">
-          <div class="apartado-field-row">
-            <div class="cash-field">
-              <label>Anticipo <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
-              <input type="number" id="pos-anticipo" min="0" step="1" placeholder="0 = cobrar al entregar" oninput="updateAnticipoInfo()">
-            </div>
-            <div class="cash-field">
-              <label>Pendiente</label>
-              <input type="number" id="pos-pendiente" readonly style="background:#F9F4EE;color:var(--red);font-weight:700">
-            </div>
-          </div>
-          <!-- Botones rápidos de anticipo -->
-          <div class="cash-quick anticipo-quick" style="margin-top:6px">
-            <button onclick="setAnticipo(.25)">25%</button>
-            <button onclick="setAnticipo(.50)">50%</button>
-            <button onclick="setAnticipo(.75)">75%</button>
-            <button onclick="setAnticipo(1)" class="exact-btn">Exacto</button>
-          </div>
-          <div class="cash-field" style="margin-top:6px">
-            <label>📅 Fecha límite de pago</label>
-            <input type="date" id="pos-due-date" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%;background:#fff">
-          </div>
         </div>
       </div>
 
@@ -308,6 +290,49 @@
   </div>
 </div>
 
+<!-- APARTADO SHEET — todo lo que conlleva un apartado: cliente, teléfono, anticipo y fecha límite -->
+<div class="abonar-overlay" id="apartado-sheet-overlay" style="display:none" onclick="if(event.target===this)closeApartadoSheet()">
+  <div class="abonar-modal">
+    <h3>📌 Datos del apartado</h3>
+    <p class="apt-info-lbl">El anticipo es opcional — déjalo en 0 si se cobrará todo al entregar</p>
+    <label>Nombre del cliente <span style="color:var(--red)">*</span></label>
+    <input type="text" id="pos-apt-customer" placeholder="Nombre del cliente" oninput="updateAnticipoInfo()" style="padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;outline:none;font-family:inherit;width:100%;margin-bottom:14px">
+    <input type="tel" id="pos-phone" placeholder="📱 Teléfono (opcional)" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%;margin-bottom:14px">
+    <div class="apartado-field-row">
+      <div class="cash-field">
+        <label>Anticipo <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
+        <input type="number" id="pos-anticipo" min="0" step="1" placeholder="0 = cobrar al entregar" oninput="updateAnticipoInfo()">
+      </div>
+      <div class="cash-field">
+        <label>Pendiente</label>
+        <input type="number" id="pos-pendiente" readonly style="background:#F9F4EE;color:var(--red);font-weight:700">
+      </div>
+    </div>
+    <!-- Botones rápidos de anticipo -->
+    <div class="cash-quick anticipo-quick" style="margin:10px 0">
+      <button onclick="setAnticipo(.25)">25%</button>
+      <button onclick="setAnticipo(.50)">50%</button>
+      <button onclick="setAnticipo(.75)">75%</button>
+      <button onclick="setAnticipo(1)" class="exact-btn">Exacto</button>
+    </div>
+    <div class="cash-field" style="margin-bottom:14px">
+      <label>Método del anticipo</label>
+      <div class="pay-method-row" style="margin:0">
+        <button class="pay-btn active" id="apt-pay-efectivo" onclick="setPayMethod('efectivo')">💵 Efectivo</button>
+        <button class="pay-btn" id="apt-pay-transferencia" onclick="setPayMethod('transferencia')">📱 Transferencia</button>
+      </div>
+    </div>
+    <div class="cash-field">
+      <label>📅 Fecha límite de pago</label>
+      <input type="date" id="pos-due-date" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%;background:#fff">
+    </div>
+    <div class="abonar-footer" style="margin-top:16px">
+      <button class="btn-cancel" onclick="_cancelApartadoSheet()">Cancelar apartado</button>
+      <button class="btn-confirm" onclick="_confirmApartadoSheet()">Listo</button>
+    </div>
+  </div>
+</div>
+
 <!-- RESTOCK PROMPT -->
 <div id="restock-prompt" style="display:none;position:fixed;inset:0;z-index:520;background:rgba(0,0,0,.45);align-items:flex-end;justify-content:center" onclick="if(event.target===this)_closeRestockPrompt()">
   <div style="background:#fff;border-radius:20px 20px 0 0;padding:22px 20px 32px;width:100%;max-width:480px;box-shadow:0 -8px 32px rgba(0,0,0,.18)">
@@ -341,6 +366,7 @@
     <div class="sd-row" id="sd-cash-row"><span id="sd-cash-label">Recibido</span><strong id="sd-cash"></strong></div>
     <div class="sd-row sd-change" id="sd-change-row"><span>Cambio</span><strong id="sd-change"></strong></div>
     <div class="sd-row" id="sd-pending-row" style="display:none"><span>Pendiente</span><strong id="sd-pending" style="color:var(--red)"></strong></div>
+    <div class="sd-row" id="sd-due-row" style="display:none"><span>📅 Fecha límite</span><strong id="sd-due"></strong></div>
     <div class="sd-row" id="sd-customer-row" style="display:none"><span>Cliente</span><strong id="sd-customer" style="font-size:.85rem"></strong></div>
     <div class="sd-row" id="sd-note-row" style="display:none"><span>Nota</span><strong id="sd-note" style="font-size:.85rem"></strong></div>
     <div id="sd-transfer-alert" style="display:none;margin-top:10px;padding:10px 14px;background:#FEF3C7;border-radius:10px;font-size:.82rem;color:#92400E;text-align:left">

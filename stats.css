@@ -68,7 +68,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .card-body{padding:20px 22px}
 
 /* ── CHARTS ROW ── */
-.charts-row{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:16px}
+.charts-row{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:16px;align-items:start}
 .chart-canvas-wrap{position:relative;height:240px}
 
 /* ── CALENDAR HEATMAP ── */

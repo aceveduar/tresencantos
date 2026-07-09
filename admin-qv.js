@@ -544,6 +544,41 @@ function _renderQV(p) {
     }
   }
 
+  // Zona de apartado — quién reservó este producto
+  const aptZone = document.getElementById('qv-apartado-zone');
+  if (aptZone) {
+    const aptList   = _apartadosDetail[p.id];
+    const kitParent = !aptList?.length ? _findKitApartadoParent(p.id) : null;
+    const renderList = (list, title) => `
+        <div class="qv-flag-active" style="border-color:#B45309;background:#FFFBEB">
+          <span class="qv-flag-title" style="color:#B45309">${title}</span>
+          ${list.map(a => {
+            const d = a.createdAt ? new Date(a.createdAt) : null;
+            const dateStr = d ? d.toLocaleDateString('es-MX', { day:'numeric', month:'short' }) : '';
+            const pendiente = Math.max(0, a.total - a.paidAmount);
+            const dueStr = a.dueDate ? new Date(a.dueDate + 'T00:00:00').toLocaleDateString('es-MX', { day:'numeric', month:'short' }) : '';
+            return `<p class="qv-flag-note-text">
+              👤 ${_esc(a.customer)} · ×${a.qty} · pendiente $${pendiente.toLocaleString('es-MX')}${dueStr ? ` · vence ${dueStr}` : ''}${dateStr ? ` · apartado el ${dateStr}` : ''}
+            </p>`;
+          }).join('')}
+        </div>`;
+
+    if (aptList?.length) {
+      aptZone.innerHTML = renderList(aptList, `📌 Apartado — ${aptList.length > 1 ? `${aptList.length} clientes` : '1 cliente'}`);
+    } else if (kitParent) {
+      aptZone.innerHTML = renderList(_apartadosDetail[kitParent.id], `📌 Reservado como parte del kit "${_esc(kitParent.name)}"`);
+    } else if (p.isApartado) {
+      aptZone.innerHTML = `
+        <div class="qv-flag-active" style="border-color:#B91C1C;background:#FEF2F2">
+          <span class="qv-flag-title" style="color:#B91C1C">⚠️ Marcado como apartado, pero sin apartado activo</span>
+          <p class="qv-flag-note-text">No encontramos ningún apartado pendiente en Caja que lo respalde — probablemente quedó la marca pegada de un apartado ya cancelado. Verifica en Caja → Apartados antes de quitarlo si tienes dudas.</p>
+          ${can.editProduct ? `<button class="btn btn-sm" style="margin-top:8px;background:#B91C1C;color:#fff;border:none" onclick="_clearOrphanApartado(${p.id})">Quitar marca de apartado</button>` : ''}
+        </div>`;
+    } else {
+      aptZone.innerHTML = '';
+    }
+  }
+
   // Zona de flag
   const flagData = _flagItem(p.id);
   const flagZone = document.getElementById('qv-flag-zone');
@@ -602,6 +637,20 @@ function _renderQV(p) {
 async function _qvTogglePublished(id) {
   await togglePublished(id);
   _qvRefresh(id);
+}
+
+async function _clearOrphanApartado(id) {
+  if (!can.editProduct) { toast('Sin permiso para editar productos', 'error'); return; }
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  if (!confirm('¿Quitar la marca de apartado? Ya se verificó que no hay ningún apartado activo que lo respalde en la tabla de ventas.')) return;
+  const result = await supabaseApi(`products?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ is_apartado: false }) });
+  if (!result.ok) { toast('Error al quitar la marca de apartado', 'error'); return; }
+  p.isApartado = false;
+  toast('Marca de apartado quitada ✓', 'success');
+  _qvRefresh(id);
+  renderStats();
+  renderTable();
 }
 
 function _qvToggleDesc() {

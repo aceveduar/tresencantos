@@ -1,3 +1,15 @@
+/* ── ANIMACIÓN "PENDIENTE" — pulso sutil cuando cambia el valor mostrado ── */
+let _lastPendienteDisplay = null;
+function _pulsePendiente(el) {
+  if (!el) return;
+  const display = el.value || el.placeholder || '';
+  if (display === _lastPendienteDisplay) return;
+  _lastPendienteDisplay = display;
+  el.classList.remove('pendiente-pulse');
+  void el.offsetWidth; // fuerza reflow para poder reiniciar la animación
+  el.classList.add('pendiente-pulse');
+}
+
 /* ── DESCUENTO ── */
 function clampDiscount() {
   const input = document.getElementById('pos-discount');
@@ -11,7 +23,7 @@ function setDiscountType(type) {
   discType = type;
   document.getElementById('disc-pct-btn').classList.toggle('active', type === 'pct');
   document.getElementById('disc-fixed-btn').classList.toggle('active', type === 'fixed');
-  document.getElementById('pos-discount').value = '';
+  clampDiscount();
   updateChange();
 }
 
@@ -21,9 +33,11 @@ function toggleDiscountField() {
   setTimeout(() => document.getElementById('pos-discount')?.focus(), 50);
 }
 function clearDiscountField() {
-  setDiscountType('pct');
+  document.getElementById('pos-discount').value = '';
+  setDiscountType('fixed');
   document.getElementById('discount-row-wrap').style.display = 'none';
   document.getElementById('discount-toggle-btn').style.display = '';
+  updateChange();
 }
 function autoCollapseDiscount() {
   const val = parseFloat(document.getElementById('pos-discount')?.value) || 0;
@@ -44,6 +58,8 @@ function setPayMethod(method) {
   payMethod = method;
   document.getElementById('pay-efectivo').classList.toggle('active', method === 'efectivo');
   document.getElementById('pay-transferencia').classList.toggle('active', method === 'transferencia');
+  document.getElementById('apt-pay-efectivo')?.classList.toggle('active', method === 'efectivo');
+  document.getElementById('apt-pay-transferencia')?.classList.toggle('active', method === 'transferencia');
   const isApt = document.getElementById('pos-is-apartado')?.checked;
   document.getElementById('cash-section').style.display = (!isApt && method === 'efectivo') ? '' : 'none';
   updateChange();
@@ -73,15 +89,11 @@ function toggleCustomerField() {
 }
 function clearCustomerField() {
   document.getElementById('pos-customer').value = '';
-  // En modo apartado el campo es requerido — solo limpia el valor, no lo colapsa
-  if (!document.getElementById('pos-is-apartado')?.checked) {
-    document.getElementById('customer-input-wrap').style.display = 'none';
-    document.getElementById('customer-toggle-btn').style.display = '';
-  }
+  document.getElementById('customer-input-wrap').style.display = 'none';
+  document.getElementById('customer-toggle-btn').style.display = '';
   updateAnticipoInfo();
 }
 function autoCollapseCustomer() {
-  if (document.getElementById('pos-is-apartado')?.checked) return; // requerido en apartado
   const val = document.getElementById('pos-customer')?.value.trim();
   if (!val) clearCustomerField();
 }
@@ -89,47 +101,102 @@ function autoCollapseCustomer() {
 /* ── APARTADO ── */
 function toggleApartadoMode() {
   const isApt = document.getElementById('pos-is-apartado').checked;
-  document.getElementById('apartado-fields').style.display = isApt ? '' : 'none';
   document.getElementById('cobrar-btn').textContent = isApt ? '📌 Registrar apartado' : '✓ Cobrar';
   // Ocultar efectivo/cambio en apartado — esos campos se ignoran en cobrar()
   const cashSection = document.getElementById('cash-section');
   if (cashSection) cashSection.style.display = isApt ? 'none' : (payMethod === 'efectivo' ? '' : 'none');
+  // Método de pago: en apartado vive dentro del sheet (junto al anticipo), no en la columna principal
+  const payRowMain = document.getElementById('pay-method-row-main');
+  if (payRowMain) payRowMain.style.display = isApt ? 'none' : '';
+  document.getElementById('apartado-group')?.classList.toggle('active', isApt);
   if (isApt) {
     const cashEl = document.getElementById('pos-cash');
     if (cashEl) cashEl.value = '';
     const changeEl = document.getElementById('pos-change-input');
     if (changeEl) changeEl.value = '';
-    // Limpiar descuento — en apartado el precio ya se negoció por ítem
-    clearDiscountField();
     // Fecha límite por defecto: 30 días
     const dueEl = document.getElementById('pos-due-date');
     if (dueEl && !dueEl.value) {
       const d = new Date(); d.setDate(d.getDate() + 30);
       dueEl.value = d.toISOString().split('T')[0];
     }
-    // Auto-focus en el campo de cliente (requerido en apartado)
-    document.getElementById('customer-toggle-btn').style.display = 'none';
-    document.getElementById('customer-input-wrap').style.display = '';
-    const custReq = document.getElementById('pos-customer');
-    if (custReq) { custReq.placeholder = 'Nombre del cliente *'; custReq.classList.add('apt-required'); }
-    setTimeout(() => custReq?.focus(), 80);
+    // El cliente ahora vive en el sheet del apartado, no en la columna principal
+    document.getElementById('cliente-normal-row').style.display = 'none';
+    // Si ya había un nombre capturado para venta normal, se lo pasamos al sheet
+    const existingName = document.getElementById('pos-customer')?.value.trim();
+    const aptCustEl = document.getElementById('pos-apt-customer');
+    if (aptCustEl && existingName && !aptCustEl.value) aptCustEl.value = existingName;
+    openApartadoSheet();
   } else {
     // Al desactivar apartado: limpiar campos específicos del apartado y hint
-    ['pos-phone','pos-anticipo','pos-pendiente','pos-due-date'].forEach(id => {
+    ['pos-apt-customer','pos-phone','pos-anticipo','pos-pendiente','pos-due-date'].forEach(id => {
       const el = document.getElementById(id); if (el) el.value = '';
     });
-    // Restaurar campo cliente a estado opcional
-    const custEl = document.getElementById('pos-customer');
-    if (custEl) { custEl.placeholder = 'Nombre del cliente'; custEl.classList.remove('apt-required'); }
-    if (!custEl?.value.trim()) {
-      document.getElementById('customer-input-wrap').style.display = 'none';
-      document.getElementById('customer-toggle-btn').style.display = '';
-    }
+    document.getElementById('cliente-normal-row').style.display = '';
     document.querySelectorAll('.anticipo-quick button').forEach(b => b.classList.remove('active-cash'));
     const hint = document.getElementById('cobrar-hint');
     if (hint) hint.style.display = 'none';
+    closeApartadoSheet();
   }
-  updateAnticipoInfo();
+  _renderApartadoSummary();
+  updateChange(); // recalcula label de "Total del pedido"/"Total a cobrar" y todo lo demás (incluye updateAnticipoInfo)
+}
+
+/* ── APARTADO SHEET — cliente, teléfono, anticipo y fecha límite en un panel aparte ── */
+function openApartadoSheet() {
+  const overlay = document.getElementById('apartado-sheet-overlay');
+  if (overlay) overlay.style.display = 'flex';
+  setTimeout(() => document.getElementById('pos-apt-customer')?.focus(), 80);
+}
+function closeApartadoSheet() {
+  const overlay = document.getElementById('apartado-sheet-overlay');
+  if (overlay) overlay.style.display = 'none';
+  _renderApartadoSummary();
+}
+function _confirmApartadoSheet() {
+  const name = document.getElementById('pos-apt-customer')?.value.trim();
+  if (!name) {
+    toast('Ingresa el nombre del cliente', 'error');
+    document.getElementById('pos-apt-customer')?.focus();
+    return;
+  }
+  closeApartadoSheet();
+}
+function _cancelApartadoSheet() {
+  document.getElementById('pos-is-apartado').checked = false;
+  toggleApartadoMode();
+}
+
+function _renderApartadoSummary() {
+  const btn     = document.getElementById('apartado-details-btn');
+  const summary = document.getElementById('apartado-summary');
+  if (!btn || !summary) return;
+  const isApt = document.getElementById('pos-is-apartado')?.checked;
+  if (!isApt) { btn.style.display = 'none'; summary.style.display = 'none'; return; }
+
+  const customerName = document.getElementById('pos-apt-customer')?.value.trim() || '';
+  if (!customerName) {
+    summary.style.display = 'none';
+    btn.style.display = '';
+    return;
+  }
+  btn.style.display = 'none';
+  summary.style.display = 'flex';
+  const anticipo  = parseFloat(document.getElementById('pos-anticipo')?.value) || 0;
+  const total     = getDiscountedTotal();
+  const pendiente = Math.max(0, total - anticipo);
+  const dueVal    = document.getElementById('pos-due-date')?.value;
+  const dueStr    = dueVal ? new Date(dueVal + 'T00:00:00').toLocaleDateString('es-MX', { day:'numeric', month:'short' }) : '';
+  const parts = [_esc(customerName)];
+  if (anticipo > 0 && pendiente > 0) {
+    parts.push(`anticipo $${anticipo.toLocaleString('es-MX')}`, `pendiente $${pendiente.toLocaleString('es-MX')}`);
+  } else if (anticipo > 0 && pendiente === 0) {
+    parts.push(`anticipo $${anticipo.toLocaleString('es-MX')} (cubierto ✓)`);
+  } else {
+    parts.push(`$${total.toLocaleString('es-MX')} al entregar`);
+  }
+  if (dueStr) parts.push(`vence ${dueStr}`);
+  summary.innerHTML = `<span>📌 ${parts.join(' · ')}</span><span class="apt-summary-edit">✏️ Editar</span>`;
 }
 
 function setAnticipo(pct) {
@@ -151,7 +218,7 @@ function updateAnticipoInfo() {
 
   if (anticipo > total && anticipo > 0) {
     // Anticipo mayor al total — no tiene sentido para un apartado
-    if (el)      { el.value = ''; el.style.color = 'var(--red)'; el.placeholder = 'Anticipo > total'; }
+    if (el)      { el.value = ''; el.style.color = 'var(--red)'; el.placeholder = 'Anticipo > total'; _pulsePendiente(el); }
     if (antiEl)  antiEl.style.borderColor = 'var(--red)';
     if (btn)     btn.disabled = true;
     return;
@@ -171,10 +238,11 @@ function updateAnticipoInfo() {
     } else {
       el.value = ''; el.placeholder = '—'; el.style.color = 'var(--muted)';
     }
+    _pulsePendiente(el);
   }
   const hint = document.getElementById('cobrar-hint');
   if (btn && document.getElementById('pos-is-apartado')?.checked) {
-    const customer  = document.getElementById('pos-customer')?.value.trim() || '';
+    const customer  = document.getElementById('pos-apt-customer')?.value.trim() || '';
     const noCart    = !cart.length;
     const needsCust = !customer;
     btn.disabled = noCart || needsCust;
@@ -198,6 +266,7 @@ function updateAnticipoInfo() {
   } else if (hint) {
     hint.style.display = 'none';
   }
+  _renderApartadoSummary();
 }
 
 

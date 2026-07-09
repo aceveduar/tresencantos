@@ -28,6 +28,7 @@ function renderStats() {
   const sinCodigo   = products.filter(p => visible(p) && !p.barcode).length;
   const sinCateg    = products.filter(p => visible(p) && p.category === 'por_revisar').length;
   const porCaducar  = products.filter(p => visible(p) && ['soon','expired'].includes(_expiryStatus(p)?.state)).length;
+  const nApartado   = products.filter(p => !p.isArchived && (p.isApartado || _apartadosMap[p.id])).length;
   const nFlag = _flagged.filter(f => {
     const p = products.find(x => x.id === f.id);
     return p && !_ib(p);
@@ -61,6 +62,7 @@ function renderStats() {
     chip('con-stock',   '✅', conStock,    'Con stock',    '#059669') +
     (sinStock > 0 ? chip('sin-stock', '🚫', sinStock, 'Sin stock', '#dc2626') : '') +
     (ultimaPieza > 0 ? chip('ultima-pieza','⚡', ultimaPieza, 'Última pieza', '#B45309') : '') +
+    (nApartado > 0 ? chip('apartado', '📌', nApartado, 'Apartado', '#92400E') : '') +
     (sinPublicar  > 0 ? chip('sin-publicar','🙈', sinPublicar, 'Sin publicar', '#C2410C') : '') +
     (porCaducar   > 0 ? chip('por-caducar', '⏰', porCaducar,  'Por caducar', '#dc2626') : '') +
     (nBorradores > 0 ? chip('borradores', '📝', nBorradores, 'Borradores', '#6B7280', '#fff') : '') +
@@ -154,20 +156,47 @@ document.addEventListener('visibilitychange', () => {
 
 
 /* ── APARTADOS ACTIVOS — mapa productId → unidades reservadas ── */
-let _apartadosMap = {}; // { productId: totalUnits }
+let _apartadosMap    = {}; // { productId: totalUnits }
+let _apartadosDetail = {}; // { productId: [{ saleId, customer, qty, total, paidAmount, dueDate, createdAt }] }
 
 async function loadApartadosMap() {
-  const r = await supabaseApi('sales?type=eq.apartado&select=items,total,paid_amount');
+  const r = await supabaseApi('sales?type=eq.apartado&select=id,items,total,paid_amount,customer,due_date,created_at');
   if (!r.ok || !Array.isArray(r.data)) return;
   const map = {};
+  const detail = {};
   r.data.forEach(sale => {
     // Solo apartados sin liquidar (paid_amount < total)
     if (parseFloat(sale.paid_amount || 0) >= parseFloat(sale.total || 0)) return;
     (sale.items || []).forEach(item => {
-      if (item.id) map[item.id] = (map[item.id] || 0) + (item.qty || 1);
+      if (!item.id) return;
+      map[item.id] = (map[item.id] || 0) + (item.qty || 1);
+      (detail[item.id] = detail[item.id] || []).push({
+        saleId: sale.id,
+        customer: (sale.customer || '').split(' · 📱 ')[0] || 'Sin nombre',
+        qty: item.qty || 1,
+        total: parseFloat(sale.total || 0),
+        paidAmount: parseFloat(sale.paid_amount || 0),
+        dueDate: sale.due_date || null,
+        createdAt: sale.created_at
+      });
     });
   });
-  _apartadosMap = map;
+  _apartadosMap    = map;
+  _apartadosDetail = detail;
+}
+
+// Si un producto es componente de un kit, y ese kit sí tiene un apartado activo
+// (sale.items solo guarda el id del kit, no el de sus componentes) — evita falsos huérfanos
+function _findKitApartadoParent(componentId) {
+  return products.find(k => Array.isArray(k.kitItems)
+    && k.kitItems.some(ci => ci.id === componentId)
+    && _apartadosMap[k.id]);
+}
+
+function _aptTitle(id) {
+  const list = _apartadosDetail[id];
+  if (!list?.length) return 'En apartado';
+  return _esc(list.map(a => `${a.customer} ×${a.qty}`).join(', '));
 }
 
 /* ── RECENTLY EDITED — centralizado en Supabase ── */
@@ -337,7 +366,7 @@ function adminCard(p, editable = false) {
     <div class="ac-footer">
       <div style="display:flex;align-items:center;gap:6px">
         ${stockChip(p, editable)}
-        ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip" title="${_apartadosMap[p.id] || ''} unidad(es) en apartado">📌 Apartado</span>` : ''}
+        ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip" title="${_aptTitle(p.id)}">📌 Apartado</span>` : ''}
         ${expiryChip(p)}
         <button class="ac-pub-dot" onclick="togglePublished(${p.id})"
                 ontouchstart="event.stopPropagation()"
@@ -711,7 +740,7 @@ function mobileCard(p) {
           </div>
           <div class="mpc-price-row">
             ${priceHTML}${stockInfo}
-            ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip">📌 Apartado</span>` : ''}
+            ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip" title="${_aptTitle(p.id)}">📌 Apartado</span>` : ''}
             ${expiryChip(p)}
             <button class="ac-pub-dot"
                     onclick="togglePublished(${p.id})"

@@ -168,6 +168,28 @@
     </div>
   </div>
 
+  <!-- ─── NOTIFICACIONES ───────────────────────────────────────── -->
+  <div class="section-label">Notificaciones</div>
+
+  <div class="settings-card">
+    <div class="scard-row">
+      <div class="scard-icon">🔔</div>
+      <div class="scard-body">
+        <div class="scard-title">Avisarme cuando se venda algo</div>
+        <div class="scard-desc">Notificación en este navegador al registrarse una venta o apartado — solo en este dispositivo, cada quien la activa en el suyo</div>
+      </div>
+      <div class="scard-action">
+        <label class="te-switch" title="Activar/desactivar notificaciones de venta">
+          <input type="checkbox" id="sales-notif-toggle" onchange="toggleSalesNotif(this.checked)">
+          <span class="te-switch-slider"></span>
+        </label>
+      </div>
+    </div>
+    <div class="scard-row" id="sales-notif-hint-row" style="display:none">
+      <div class="scard-desc" id="sales-notif-hint" style="font-size:.78rem;color:var(--muted);padding:2px 0 4px"></div>
+    </div>
+  </div>
+
   <!-- ─── DATOS ─────────────────────────────────────────────── -->
   <div class="section-label">Datos</div>
 

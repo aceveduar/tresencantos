@@ -114,6 +114,101 @@
   document.addEventListener('DOMContentLoaded', _initOfflineBanner);
 })();
 
+/* ── NOTIFICACIONES DE VENTA — polling por dispositivo, sin cargar Realtime en los 5 módulos ── */
+(function () {
+  let _salesNotifTimer = null;
+  let _notifNameMap = null; // { email: displayName } — mismo origen que Actividad/Reportes/Configuración
+
+  async function _getNotifNameMap(url, key, tok) {
+    if (_notifNameMap) return _notifNameMap;
+    _notifNameMap = {};
+    try {
+      const r = await fetch(`${url}/rest/v1/config?id=eq.user_names&select=value`,
+        { headers: { apikey: key, Authorization: `Bearer ${tok}` } });
+      if (r.ok) {
+        const data = await r.json();
+        if (data?.[0]?.value) _notifNameMap = JSON.parse(data[0].value);
+      }
+    } catch {}
+    return _notifNameMap;
+  }
+
+  function _notifEnabled() {
+    return typeof Notification !== 'undefined' && Notification.permission === 'granted'
+      && localStorage.getItem('te_sales_notif_enabled') === '1';
+  }
+
+  function _showSaleNotification(title, body, tag) {
+    const opts = { body, icon: 'icono-192.png', badge: 'icono-192.png', tag };
+    const fallback = () => { try { new Notification(title, opts); } catch {} };
+    if (navigator.serviceWorker) {
+      // navigator.serviceWorker.ready nunca resuelve ni rechaza si no hay SW activo —
+      // sin timeout, la notificación se perdería en silencio para siempre en ese caso
+      Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((_, rej) => setTimeout(rej, 1500))
+      ]).then(reg => reg.showNotification(title, opts)).catch(fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  async function _pollNewSales() {
+    if (!_notifEnabled()) return;
+    const url = typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : '';
+    const key = typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : '';
+    if (!url || !key) return;
+    let tok = '';
+    try { tok = JSON.parse(localStorage.getItem('te_admin_session') || '{}')?.access_token || ''; } catch {}
+    if (!tok) return;
+
+    try {
+      const r = await fetch(`${url}/rest/v1/sales?select=id,total,type,customer,seller_email&order=id.desc&limit=10`,
+        { headers: { apikey: key, Authorization: `Bearer ${tok}` } });
+      if (!r.ok) return;
+      const rows = await r.json();
+      if (!Array.isArray(rows) || !rows.length) return;
+
+      const maxId  = Math.max(...rows.map(s => s.id));
+      const lastId = parseInt(localStorage.getItem('te_last_seen_sale_id') || '0', 10);
+
+      if (!lastId) {
+        // Primera vez que corre en este dispositivo — solo ancla el punto de partida, no notifica retroactivo
+        localStorage.setItem('te_last_seen_sale_id', String(maxId));
+        return;
+      }
+
+      const nuevas = rows.filter(s => s.id > lastId).sort((a, b) => a.id - b.id);
+      if (nuevas.length) {
+        const nameMap = await _getNotifNameMap(url, key, tok);
+        nuevas.forEach(s => {
+          const monto   = `$${parseFloat(s.total || 0).toLocaleString('es-MX')}`;
+          const cliente = (s.customer || '').split(' · 📱 ')[0];
+          const quien   = s.seller_email ? (nameMap[s.seller_email] || s.seller_email.split('@')[0]) : '';
+          const title   = s.type === 'apartado' ? '📌 Nuevo apartado' : '🛍️ Nueva venta';
+          const body    = [monto, cliente, quien].filter(Boolean).join(' · ');
+          _showSaleNotification(title, body, 'te-sale-' + s.id);
+        });
+      }
+      if (maxId > lastId) localStorage.setItem('te_last_seen_sale_id', String(maxId));
+    } catch {}
+  }
+
+  window._startSalesNotifPolling = function () {
+    if (_salesNotifTimer) return;
+    _pollNewSales();
+    _salesNotifTimer = setInterval(_pollNewSales, 25000);
+  };
+  window._stopSalesNotifPolling = function () {
+    clearInterval(_salesNotifTimer);
+    _salesNotifTimer = null;
+  };
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (_notifEnabled()) window._startSalesNotifPolling();
+  });
+})();
+
 /* ── PERMISSION SYSTEM ── */
 const UP_PERMS = [
   {key:'canAddProduct',     label:'Agregar productos',   group:'Inventario'},

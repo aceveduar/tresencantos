@@ -320,6 +320,57 @@ async function toggleWaFloat(enabled) {
   }
 }
 
+/* ── NOTIFICACIONES DE VENTA (por dispositivo — ver shared.js) ── */
+async function toggleSalesNotif(checked) {
+  const toggle = document.getElementById('sales-notif-toggle');
+  if (checked) {
+    if (!('Notification' in window)) {
+      toast('Tu navegador no soporta notificaciones', 'err');
+      if (toggle) toggle.checked = false;
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      if (toggle) toggle.checked = false;
+      toast('Permiso de notificaciones denegado — actívalo en los ajustes del navegador', 'err');
+      _renderSalesNotifHint();
+      return;
+    }
+    localStorage.setItem('te_sales_notif_enabled', '1');
+    toast('Notificaciones de venta activadas en este dispositivo ✓', 'ok');
+    window._startSalesNotifPolling?.();
+  } else {
+    localStorage.setItem('te_sales_notif_enabled', '0');
+    window._stopSalesNotifPolling?.();
+    toast('Notificaciones de venta desactivadas', 'ok');
+  }
+  _renderSalesNotifHint();
+}
+
+function _renderSalesNotifHint() {
+  const row  = document.getElementById('sales-notif-hint-row');
+  const hint = document.getElementById('sales-notif-hint');
+  if (!row || !hint) return;
+  if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+    hint.textContent = '⚠️ Bloqueadas en este navegador — actívalas en los ajustes del sitio (candado en la barra de direcciones) para poder usarlas aquí.';
+    row.style.display = '';
+  } else if (localStorage.getItem('te_sales_notif_enabled') === '1') {
+    hint.textContent = 'Activas en este dispositivo. Solo llegan mientras tengas una pestaña de Tres Encantos abierta (puede estar en segundo plano) — si cierras el navegador del todo, no llegan.';
+    row.style.display = '';
+  } else {
+    row.style.display = 'none';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const toggle = document.getElementById('sales-notif-toggle');
+  if (toggle) {
+    toggle.checked = typeof Notification !== 'undefined' && Notification.permission === 'granted'
+      && localStorage.getItem('te_sales_notif_enabled') === '1';
+  }
+  _renderSalesNotifHint();
+});
+
 /* ── CATEGORIES ── */
 function rootCats()    { return categories.filter(c => !c.parent); }
 function subCats(code) { return categories.filter(c => c.parent === code); }

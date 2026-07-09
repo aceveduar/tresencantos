@@ -268,7 +268,10 @@ function renderTodaySales() {
     const payIcon = `<span class="dv-sale-pay ${isTrans ? 'dv-pay-trans' : 'dv-pay-efec'}">${isTrans ? '📱' : '💵'}</span>`;
     const isAp = s.type === 'apartado';
     const items = Array.isArray(s.items) ? s.items : [];
-    const names = items.map(i => i.name).join(', ');
+    // Preview corto y predecible — con muchos productos, el listado completo se corta a media palabra
+    const names = items.length <= 2
+      ? items.map(i => i.name).join(', ')
+      : `${items[0]?.name || ''} +${items.length - 1} más`;
     const apTag = isAp ? `<span style="font-size:.62rem;background:#FEF3C7;color:#92400E;padding:1px 6px;border-radius:50px;font-weight:700;flex-shrink:0">APT</span>` : '';
 
     // Monto del período: si hay abonos mostramos solo lo cobrado en el período activo
