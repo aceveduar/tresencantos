@@ -354,6 +354,19 @@
   </div>
 </div>
 
+<!-- CANCELAR APARTADO — modal propio (antes era confirm() nativo, muy fácil de aceptar sin querer) -->
+<div class="abonar-overlay" id="cancel-apt-overlay" style="display:none" onclick="if(event.target===this)_closeCancelAptModal()">
+  <div class="abonar-modal">
+    <h3>¿Cancelar este apartado?</h3>
+    <p class="apt-info-lbl" id="cancel-apt-info"></p>
+    <div id="cancel-apt-warning" style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:10px 14px;font-size:.82rem;color:#B91C1C;margin-bottom:16px;line-height:1.5"></div>
+    <div class="abonar-footer">
+      <button class="btn-cancel" onclick="_closeCancelAptModal()">No, mantenerlo</button>
+      <button class="btn-confirm" id="cancel-apt-confirm-btn" style="background:var(--red)" onclick="_confirmCancelApartado()">Sí, cancelar apartado</button>
+    </div>
+  </div>
+</div>
+
 <!-- SALE DONE OVERLAY — onclick vacío: no cierra al tocar fuera -->
 <div class="overlay" id="sale-done-overlay" onclick="void 0">
   <div class="sale-done-modal">

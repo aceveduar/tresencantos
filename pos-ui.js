@@ -681,11 +681,11 @@ async function deleteSale(id) {
     const nombre = (sale.customer || '').split(' · 📱 ')[0] || 'Sin nombre';
     logActivity('apartado_cancelado',
       `Canceló apartado de ${nombre} — $${totalNum.toLocaleString('es-MX')}`,
-      { customer: nombre, total: totalNum, pagado: parseFloat(sale.paid_amount || 0), items: itemCount });
+      { customer: nombre, total: totalNum, pagado: parseFloat(sale.paid_amount || 0), items: itemCount, itemsDetail: sale.items || null, dueDate: sale.due_date || null });
   } else {
     logActivity('venta_cancelada',
       `Canceló venta de $${totalNum.toLocaleString('es-MX')} — ${itemCount} producto${itemCount !== 1 ? 's' : ''}`,
-      { total: totalNum, items: itemCount, method: sale.payment_method, itemIds: (sale.items || []).map(i => i.id) });
+      { total: totalNum, items: itemCount, method: sale.payment_method, itemIds: (sale.items || []).map(i => i.id), itemsDetail: sale.items || null });
   }
 
   // 4. Refrescar UI

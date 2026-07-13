@@ -35,7 +35,9 @@ function canEditApartado() {
   const r = getPosRole(); return r === 'superadmin' || r === 'duena';
 }
 
-async function cancelApartado(id) {
+let _cancelAptCtx = null;
+
+function cancelApartado(id) {
   if (!canEditApartado()) { toast('Sin permiso para cancelar apartados', 'error'); return; }
   const sale = (_apartadosData || {})[id];
   if (!sale) { toast('Apartado no encontrado', 'error'); return; }
@@ -46,14 +48,33 @@ async function cancelApartado(id) {
   const pagado    = parseFloat(sale.paid_amount || 0);
   const nItems    = Array.isArray(sale.items) ? sale.items.length : 0;
 
-  let msg = `¿Cancelar el apartado de ${nombre}?\n\n`;
-  msg += `• $${total.toLocaleString('es-MX')} total · ${nItems} producto${nItems !== 1 ? 's' : ''}\n`;
-  if (pagado > 0) msg += `• $${pagado.toLocaleString('es-MX')} ya pagado — se perderá al cancelar\n`;
-  msg += `\nSe restaurará el stock. Esta acción no se puede deshacer.`;
-  if (!confirm(msg)) return;
+  _cancelAptCtx = { id, sale, nombre, total, pagado, nItems };
+
+  document.getElementById('cancel-apt-info').textContent = `${nombre} · $${total.toLocaleString('es-MX')} MXN · ${nItems} producto${nItems !== 1 ? 's' : ''}`;
+  const warnEl = document.getElementById('cancel-apt-warning');
+  warnEl.innerHTML = pagado > 0
+    ? `⚠️ Ya se pagaron <strong>$${pagado.toLocaleString('es-MX')}</strong> de anticipo — se perderán al cancelar.<br>Se restaurará el stock. Esta acción no se puede deshacer.`
+    : `Se restaurará el stock. Esta acción no se puede deshacer.`;
+  document.getElementById('cancel-apt-overlay').style.display = 'flex';
+}
+
+function _closeCancelAptModal() {
+  document.getElementById('cancel-apt-overlay').style.display = 'none';
+  _cancelAptCtx = null;
+}
+
+async function _confirmCancelApartado() {
+  if (!_cancelAptCtx) return;
+  const { id, sale, nombre, total, pagado, nItems } = _cancelAptCtx;
+  const btn = document.getElementById('cancel-apt-confirm-btn');
+  btn.disabled = true; btn.textContent = 'Cancelando…';
 
   const delResult = await api(`sales?id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': 'return=representation' } });
-  if (!delResult.ok || (Array.isArray(delResult.data) && delResult.data.length === 0)) { toast('Error al cancelar apartado — sin permiso o registro no encontrado', 'error'); return; }
+  if (!delResult.ok || (Array.isArray(delResult.data) && delResult.data.length === 0)) {
+    toast('Error al cancelar apartado — sin permiso o registro no encontrado', 'error');
+    btn.disabled = false; btn.textContent = 'Sí, cancelar apartado';
+    return;
+  }
 
   if (Array.isArray(sale.items)) {
     const restores = [];
@@ -77,8 +98,10 @@ async function cancelApartado(id) {
 
   logActivity('apartado_cancelado',
     `Canceló apartado de ${nombre} — $${total.toLocaleString('es-MX')}`,
-    { customer: nombre, total, pagado, items: nItems });
+    { customer: nombre, total, pagado, items: nItems, itemsDetail: sale.items || null, dueDate: sale.due_date || null });
 
+  btn.disabled = false; btn.textContent = 'Sí, cancelar apartado';
+  _closeCancelAptModal();
   closeAptDetail();
   await loadApartados();
   showAllProducts();
