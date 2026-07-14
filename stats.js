@@ -300,8 +300,15 @@ function renderTodaySales() {
   const fromMs = new Date(fromIso).getTime();
   const toMs   = new Date(_listToIso).getTime();
 
-  // Ventas de una sola exhibición (sin abonos) — ya vienen acotadas al período desde salesAll
-  const oneShot = salesAll.filter(s => s.type !== 'apartado' && (!Array.isArray(s.abonos) || !s.abonos.length));
+  // Ventas de una sola exhibición (sin abonos) — salesAll mezcla el período actual con TODAS
+  // las ventas que tengan abonos!=null (incluye [] vacío, que en Postgres no es null), traídas
+  // sin filtro de fecha para el fix de abonos de otros días — hay que acotar aquí por fecha
+  // o se cuelan ventas viejas con abonos:[] como si fueran de hoy
+  const oneShot = salesAll.filter(s => {
+    if (s.type === 'apartado' || (Array.isArray(s.abonos) && s.abonos.length)) return false;
+    const t = new Date(s.created_at).getTime();
+    return t >= fromMs && t <= toMs;
+  });
 
   // Abonos/anticipos — de CUALQUIER venta o apartado con abonos, sin importar cuándo se creó
   // el registro; cada uno se cuenta el día real en que se recibió el dinero, no el de creación
@@ -487,12 +494,16 @@ function renderVendedores() {
 // Apartados sin abonos (anticipo=0) retornan 0 — aún no se ha cobrado nada.
 function _abonoRevenue(sale, fromIso, toIso) {
   const abonos = Array.isArray(sale.abonos) ? sale.abonos : [];
-  if (!abonos.length) {
-    if (sale.type === 'apartado') return 0;
-    return parseFloat(sale.total || 0);
-  }
   const from = fromIso ? new Date(fromIso).getTime() : 0;
   const to   = toIso   ? new Date(toIso).getTime()   : Date.now() + 86400000;
+  if (!abonos.length) {
+    if (sale.type === 'apartado') return 0;
+    // Sin abonos reales (abonos:[] cuenta como "not null" en Postgres, no solo NULL) —
+    // salesAll trae estas filas sin filtro de fecha, así que hay que acotar aquí por su
+    // propia fecha de creación o se cuela el total completo de ventas de otros períodos
+    const created = new Date(sale.created_at).getTime();
+    return (created >= from && created <= to) ? parseFloat(sale.total || 0) : 0;
+  }
   return abonos
     .filter(a => { const t = new Date(a.date).getTime(); return t >= from && t <= to; })
     .reduce((s, a) => s + parseFloat(a.amount || 0), 0);
@@ -542,15 +553,17 @@ function renderKPIs() {
 function renderHourChart() {
   const byHour  = Array(24).fill(0);
   const fromMs  = new Date(_currentFrom()).getTime();
+  const toMs    = new Date(_currentTo()).getTime();
   salesAll.forEach(s => {
     const abonos = Array.isArray(s.abonos) ? s.abonos : [];
     if (abonos.length) {
       abonos.forEach(a => {
         const t = new Date(a.date).getTime();
-        if (t >= fromMs) byHour[new Date(a.date).getHours()] += parseFloat(a.amount || 0);
+        if (t >= fromMs && t <= toMs) byHour[new Date(a.date).getHours()] += parseFloat(a.amount || 0);
       });
     } else {
-      byHour[new Date(s.created_at).getHours()] += parseFloat(s.total || 0);
+      const t = new Date(s.created_at).getTime();
+      if (t >= fromMs && t <= toMs) byHour[new Date(s.created_at).getHours()] += parseFloat(s.total || 0);
     }
   });
   if (hourChart) { hourChart.destroy(); hourChart = null; }
@@ -604,7 +617,7 @@ function renderRevenueChart() {
       });
     } else {
       const day = _localDay(s.created_at);
-      byDay[day] = (byDay[day]||0) + parseFloat(s.total||0);
+      if (day in byDay) byDay[day] += parseFloat(s.total||0);
     }
   });
 
@@ -781,15 +794,17 @@ function _renderWeekComparison(ctx, byDayCurr) {
 function _renderDayHourly(ctx) {
   const byHour = Array(24).fill(0);
   const fromMs = new Date(_currentFrom()).getTime();
+  const toMs   = new Date(_currentTo()).getTime();
   salesAll.forEach(s => {
     const abonos = Array.isArray(s.abonos) ? s.abonos : [];
     if (abonos.length) {
       abonos.forEach(a => {
         const t = new Date(a.date).getTime();
-        if (t >= fromMs) byHour[new Date(a.date).getHours()] += parseFloat(a.amount||0);
+        if (t >= fromMs && t <= toMs) byHour[new Date(a.date).getHours()] += parseFloat(a.amount||0);
       });
     } else {
-      byHour[new Date(s.created_at).getHours()] += parseFloat(s.total||0);
+      const t = new Date(s.created_at).getTime();
+      if (t >= fromMs && t <= toMs) byHour[new Date(s.created_at).getHours()] += parseFloat(s.total||0);
     }
   });
 
@@ -1104,7 +1119,9 @@ function renderBestSeller() {
   const el = document.getElementById('ds-best-row');
   if (!el) return;
   const isDay = _statsMode === 'day';
-  const src = isDay && _statsOffset === 0 ? todaySales : salesAll;
+  // sales (no salesAll) — ya viene acotado al período actual; salesAll mezcla ventas de
+  // cualquier fecha con abonos:[] (no-null en Postgres) y contaminaría el conteo de productos
+  const src = isDay && _statsOffset === 0 ? todaySales : sales;
   const ventas = src.filter(s => s.type !== 'apartado');
   if (!ventas.length) { el.style.display = 'none'; return; }
   const freq = {};
