@@ -270,6 +270,34 @@ function updateAnticipoInfo() {
 }
 
 
+let _apartadosLiquidadosAll = [];
+let _aptViewMode = 'activos'; // 'activos' | 'liquidados'
+
+async function loadApartadosLiquidados() {
+  const result = await api(`sales?type=eq.venta&abonos=not.is.null&cancelled_at=is.null&select=id,type,total,paid_amount,customer,created_at,due_date,items,abonos,discount&order=created_at.desc&limit=200`);
+  _apartadosLiquidadosAll = (result.ok && Array.isArray(result.data)) ? result.data : [];
+  // Se fusiona a _apartadosData (no se reemplaza) para que openAptDetail() los encuentre también
+  _apartadosLiquidadosAll.forEach(s => { _apartadosData[s.id] = s; });
+  return _apartadosLiquidadosAll;
+}
+
+async function toggleAptView(mode, target) {
+  _aptViewMode = mode;
+  document.querySelectorAll(`#apt-view-toggle-${target} button`).forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  const isLiq = mode === 'liquidados';
+  const renderFn = target === 'page' ? _renderAptPageCards : _renderApartadoCards;
+  if (isLiq) {
+    const listEl = document.getElementById(target === 'page' ? 'apt-page-list' : 'apt-offcanvas-list');
+    if (listEl) listEl.innerHTML = '<div class="history-empty" style="grid-column:1/-1">Cargando…</div>';
+    await loadApartadosLiquidados();
+    renderFn(_apartadosLiquidadosAll, true);
+  } else {
+    renderFn(_apartadosAll, false);
+  }
+}
+
 async function loadApartados() {
   const result = await api(`sales?type=eq.apartado&cancelled_at=is.null&select=id,total,paid_amount,customer,created_at,due_date,items,abonos,discount&order=created_at.desc&limit=100`);
   const ocList    = document.getElementById('apt-offcanvas-list');
@@ -354,11 +382,11 @@ async function loadApartados() {
   }
 }
 
-function _renderApartadoCards(data) {
+function _renderApartadoCards(data, isLiquidado) {
   const ocList = document.getElementById('apt-offcanvas-list');
   if (!ocList) return;
   if (!data.length) {
-    ocList.innerHTML = '<div class="history-empty" style="grid-column:1/-1"><div style="font-size:2rem;margin-bottom:8px">🔍</div>Sin resultados</div>';
+    ocList.innerHTML = `<div class="history-empty" style="grid-column:1/-1"><div style="font-size:2rem;margin-bottom:8px">${isLiquidado ? '✅' : '🔍'}</div>Sin ${isLiquidado ? 'apartados liquidados' : 'resultados'}</div>`;
     return;
   }
   const itemsHTML = data.map(s => {
@@ -372,9 +400,9 @@ function _renderApartadoCards(data) {
     const nombre    = custParts[0] || 'Sin nombre';
     const telNum    = custParts[1] || '';
 
-    // Fecha de vencimiento
+    // Fecha de vencimiento — sin sentido para un apartado ya liquidado
     let dueColor = '', dueText = '', dueHTML = '';
-    if (s.due_date) {
+    if (s.due_date && !isLiquidado) {
       const hoy = new Date(); hoy.setHours(0,0,0,0);
       const due = new Date(s.due_date + 'T00:00:00');
       const diff = Math.round((due - hoy) / 86400000);
@@ -382,7 +410,7 @@ function _renderApartadoCards(data) {
       dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)}d` : diff === 0 ? 'Vence hoy' : `Vence ${due.toLocaleDateString('es-MX',{day:'numeric',month:'short'})}`;
       dueHTML  = `<span class="apt-h-due" style="color:${dueColor}">📅 ${dueText}</span>`;
     }
-    const isOverdue = s.due_date && (() => { const h=new Date();h.setHours(0,0,0,0);return new Date(s.due_date+'T00:00:00') < h; })();
+    const isOverdue = !isLiquidado && s.due_date && (() => { const h=new Date();h.setHours(0,0,0,0);return new Date(s.due_date+'T00:00:00') < h; })();
 
     const abonos = Array.isArray(s.abonos) ? s.abonos : [];
     const abonosHTML = abonos.length ? `
@@ -448,10 +476,11 @@ function _renderApartadoCards(data) {
     ${abonosHTML ? `<div class="apt-abonos-section-inline">${abonosHTML}</div>` : ''}
     <div class="apt-btns">
       <button class="btn-wa-reminder" onclick="event.stopPropagation();sendApartadoReminder(${s.id})" title="Recordatorio WhatsApp">💬</button>
+      ${isLiquidado ? `<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--green)">✓ Liquidado</span>` : `
       ${canEditApartado() ? `<button class="btn-wa-reminder" onclick="event.stopPropagation();openEditApartado(${s.id})" title="Editar" style="background:#F7F2EB;color:var(--charcoal);border:1.5px solid var(--border)">✏️</button>` : ''}
       <button class="btn-abonar" onclick="event.stopPropagation();abonarApartado('${s.id}','${total}','${pagado}','${_esc(nombre).replace(/'/g,"\\'")}')">+ Abonar</button>
       <button class="btn-liquidar" onclick="event.stopPropagation();openLiqModal(${s.id})">✓ Liquidar</button>
-      ${canEditApartado() ? `<button class="btn-cancelar-apt" onclick="event.stopPropagation();cancelApartado(${s.id})" title="Cancelar apartado">✕</button>` : ''}
+      ${canEditApartado() ? `<button class="btn-cancelar-apt" onclick="event.stopPropagation();cancelApartado(${s.id})" title="Cancelar apartado">✕</button>` : ''}`}
     </div>
   </div>
 </div>`;

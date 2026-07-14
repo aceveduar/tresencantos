@@ -471,6 +471,11 @@ button,a{touch-action:manipulation}
 .cat-chip.active{background:var(--charcoal);color:#fff;border-color:var(--charcoal)}
 .cat-chip:hover:not(.active){border-color:var(--gold);color:var(--gold-dark)}
 
+/* APARTADOS — toggle Activos/Liquidados */
+.apt-view-toggle{display:flex;gap:4px;background:#F0EBE3;border-radius:50px;padding:3px}
+.apt-view-toggle button{padding:5px 12px;border-radius:50px;border:none;background:transparent;font-size:.76rem;font-weight:700;cursor:pointer;color:#9B8B78;transition:.15s;font-family:inherit}
+.apt-view-toggle button.active{background:#fff;color:var(--charcoal);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
 /* CHECKOUT EXTRAS */
 .discount-row{display:flex;align-items:center;gap:5px;margin-bottom:5px}
 .discount-label{font-size:.74rem;color:#9B8B78;font-weight:500;white-space:nowrap}

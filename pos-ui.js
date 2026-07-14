@@ -301,6 +301,10 @@ function closeLightbox() {
 }
 
 function openApartados() {
+  // Siempre regresa a "Activos" al abrir, sin importar cómo se dejó la última vez
+  _aptViewMode = 'activos';
+  document.querySelectorAll('.apt-view-toggle button').forEach(b => b.classList.toggle('active', b.dataset.mode === 'activos'));
+
   if (window.innerWidth >= 768) {
     const page = document.getElementById('apt-page');
     page.style.display = 'flex';
@@ -315,6 +319,7 @@ function openApartados() {
     const bd = document.getElementById('apt-backdrop');
     if (bd) { bd.style.display = ''; bd.classList.add('open'); }
     document.body.style.overflow = 'hidden';
+    _renderApartadoCards(_apartadosAll || []);
   }
 }
 
@@ -330,13 +335,13 @@ function closeAptPage() {
   document.body.style.overflow = '';
 }
 
-function _renderAptPageCards(data) {
+function _renderAptPageCards(data, isLiquidado) {
   const grid = document.getElementById('apt-page-list');
   if (!grid) return;
   const count = document.getElementById('apt-page-count');
-  if (count) count.textContent = data.length ? `${data.length} activo${data.length !== 1 ? 's' : ''}` : '';
+  if (count) count.textContent = data.length ? `${data.length} ${isLiquidado ? 'liquidado' : 'activo'}${data.length !== 1 ? 's' : ''}` : '';
   if (!data.length) {
-    grid.innerHTML = '<div class="history-empty" style="grid-column:1/-1"><div style="font-size:2rem;margin-bottom:8px">🔍</div>Sin resultados</div>';
+    grid.innerHTML = `<div class="history-empty" style="grid-column:1/-1"><div style="font-size:2rem;margin-bottom:8px">${isLiquidado ? '✅' : '🔍'}</div>Sin ${isLiquidado ? 'apartados liquidados' : 'resultados'}</div>`;
     return;
   }
   grid.innerHTML = data.map(s => {
@@ -349,6 +354,17 @@ function _renderAptPageCards(data) {
     const custParts = (s.customer || '').split(' · 📱 ');
     const nombre    = custParts[0] || 'Sin nombre';
     const telNum    = custParts[1] || '';
+
+    if (isLiquidado) {
+      return `<div class="apc-card" onclick="openAptDetail(${s.id})">
+  <div class="apc-top">
+    <span class="apc-name">👤 ${_esc(nombre)}</span>
+    <span class="apc-pending zero">✓ Liquidado</span>
+  </div>
+  <div class="apc-meta">${t} · ${nItems} prod.${telNum ? ' · 📱 ' + telNum : ''} · $${total.toLocaleString('es-MX')}</div>
+</div>`;
+    }
+
     let dueHTML = '';
     let isOverdue = false;
     if (s.due_date) {
@@ -453,17 +469,24 @@ function openAptDetail(id) {
     </div>
     ${abonosVisible ? `<div class="apt-abonos-section"><div class="adm-section-title">Historial de pagos</div>${abonosVisible}</div>` : ''}`;
 
-  // Footer buttons
-  const editBtn = canEditApartado()
-    ? `<button class="btn-edit-apt adm-footer" onclick="closeAptDetail();openEditApartado(${id})" title="Editar" style="width:40px;height:40px;border-radius:10px;border:1.5px solid var(--border);background:#F7F2EB;color:var(--charcoal);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0">✏️</button>` : '';
-  const cancelBtn = canEditApartado()
-    ? `<button class="btn-cancelar-apt" onclick="cancelApartado(${id})" title="Cancelar apartado" style="width:40px;height:40px;border-radius:10px;margin-left:16px;flex-shrink:0">✕</button>` : '';
-  document.getElementById('adm-footer').innerHTML = `
-    <button class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" title="Recordatorio WhatsApp">💬</button>
-    ${editBtn}
-    <button class="btn-abonar" onclick="closeAptDetail();abonarApartado('${id}','${total}','${pagado}','${_esc(nombre).replace(/'/g,"\\'")}')">+ Abonar</button>
-    <button class="btn-liquidar" onclick="closeAptDetail();openLiqModal(${id})">✓ Liquidar</button>
-    ${cancelBtn}`;
+  // Footer buttons — un apartado ya liquidado (type='venta') no admite abonar/liquidar/editar/cancelar
+  const isLiquidado = s.type === 'venta';
+  if (isLiquidado) {
+    document.getElementById('adm-footer').innerHTML =
+      `<button class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" title="Recordatorio WhatsApp">💬</button>
+       <span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--green)">✓ Liquidado</span>`;
+  } else {
+    const editBtn = canEditApartado()
+      ? `<button class="btn-edit-apt adm-footer" onclick="closeAptDetail();openEditApartado(${id})" title="Editar" style="width:40px;height:40px;border-radius:10px;border:1.5px solid var(--border);background:#F7F2EB;color:var(--charcoal);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0">✏️</button>` : '';
+    const cancelBtn = canEditApartado()
+      ? `<button class="btn-cancelar-apt" onclick="cancelApartado(${id})" title="Cancelar apartado" style="width:40px;height:40px;border-radius:10px;margin-left:16px;flex-shrink:0">✕</button>` : '';
+    document.getElementById('adm-footer').innerHTML = `
+      <button class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" title="Recordatorio WhatsApp">💬</button>
+      ${editBtn}
+      <button class="btn-abonar" onclick="closeAptDetail();abonarApartado('${id}','${total}','${pagado}','${_esc(nombre).replace(/'/g,"\\'")}')">+ Abonar</button>
+      <button class="btn-liquidar" onclick="closeAptDetail();openLiqModal(${id})">✓ Liquidar</button>
+      ${cancelBtn}`;
+  }
 
   const modal = document.getElementById('apt-detail-modal');
   modal.style.display = 'flex';

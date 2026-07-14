@@ -523,6 +523,10 @@
     <button class="history-oc-close" onclick="closeApartados()">✕</button>
   </div>
   <div style="padding:8px 12px 4px;border-bottom:1px solid var(--border)">
+    <div class="apt-view-toggle" id="apt-view-toggle-oc" style="margin-bottom:8px">
+      <button class="active" data-mode="activos" onclick="toggleAptView('activos','oc')">Activos</button>
+      <button data-mode="liquidados" onclick="toggleAptView('liquidados','oc')">Liquidados</button>
+    </div>
     <div style="position:relative">
       <input type="text" id="apt-search" placeholder="🔍 Buscar cliente..." autocomplete="off"
         style="width:100%;padding:8px 32px 8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;outline:none;font-family:inherit;box-sizing:border-box"
@@ -542,6 +546,10 @@
     <button class="apt-page-back" onclick="closeAptPage()">← Caja</button>
     <span class="apt-page-title">📌 Apartados</span>
     <span class="apt-page-count" id="apt-page-count"></span>
+    <div class="apt-view-toggle" id="apt-view-toggle-page">
+      <button class="active" data-mode="activos" onclick="toggleAptView('activos','page')">Activos</button>
+      <button data-mode="liquidados" onclick="toggleAptView('liquidados','page')">Liquidados</button>
+    </div>
     <div class="apt-page-search-wrap">
       <input type="text" id="apt-page-search" placeholder="🔍 Buscar cliente..." autocomplete="off"
         oninput="filterApartados(this.value,'page')"
