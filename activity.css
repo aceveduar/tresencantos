@@ -20,6 +20,13 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal
 /* MAIN */
 .main{flex:1;max-width:800px;width:100%;margin:0 auto;padding:20px 16px 48px}
 
+/* SEARCH */
+.act-search-wrap{position:relative;margin-bottom:10px}
+.act-search-input{width:100%;padding:10px 36px 10px 14px;border:1.5px solid var(--border);border-radius:50px;font-size:.85rem;outline:none;font-family:inherit;background:#fff;color:var(--charcoal)}
+.act-search-input:focus{border-color:var(--gold)}
+.act-search-input::-webkit-search-cancel-button{display:none}
+.act-search-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:.85rem;cursor:pointer;padding:8px;line-height:1}
+
 /* FILTERS */
 .filters-bar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
 .filter-select{

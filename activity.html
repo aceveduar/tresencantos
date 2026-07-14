@@ -44,6 +44,11 @@
 </div>
 
 <div class="main">
+  <div class="act-search-wrap">
+    <input type="search" class="act-search-input" id="filter-search" placeholder="🔍 Buscar cliente, producto o nota…" oninput="onSearchInput()" autocomplete="off">
+    <button type="button" class="act-search-clear" id="filter-search-clear" onclick="clearSearch()" style="display:none" title="Limpiar búsqueda">✕</button>
+  </div>
+
   <div class="filters-bar">
     <select class="filter-select" id="filter-period" onchange="load()">
       <option value="1" selected>Hoy</option>

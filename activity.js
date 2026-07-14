@@ -60,6 +60,7 @@ async function api(path, opts = {}) {
 /* ── STATE ── */
 let allData     = [];
 let currentType = '';
+let currentSearch = '';
 let nameMap     = {}; // { email: displayName }
 let _prodMap    = {}; // { id: {name, image, price} } — para popup de eventos de producto
 
@@ -105,6 +106,41 @@ function setType(btn, type) {
   currentType = type;
   document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.type === type));
   render(allData);
+}
+
+/* ── BÚSQUEDA — rastrea cliente/producto/nota en todo el historial cargado ── */
+function onSearchInput() {
+  const el  = document.getElementById('filter-search');
+  const val = (el.value || '').trim();
+  const wasEmpty = !currentSearch;
+  currentSearch = val.toLowerCase();
+  document.getElementById('filter-search-clear').style.display = currentSearch ? '' : 'none';
+
+  // Al empezar a buscar, ampliar el período a "Todo" — si no, solo busca en lo ya cargado (ej. "Hoy")
+  const periodSel = document.getElementById('filter-period');
+  if (currentSearch && wasEmpty && periodSel.value !== '0') {
+    periodSel.value = '0';
+    load();
+    return;
+  }
+  render(allData);
+}
+function clearSearch() {
+  document.getElementById('filter-search').value = '';
+  currentSearch = '';
+  document.getElementById('filter-search-clear').style.display = 'none';
+  render(allData);
+}
+function _matchesSearch(item, q) {
+  const meta = item.meta || {};
+  const haystack = [
+    item.summary,
+    meta.customer,
+    meta.name,
+    displayName(item.user_email),
+    ...(Array.isArray(meta.itemsDetail) ? meta.itemsDetail.map(i => i.name) : [])
+  ].filter(Boolean).join(' ').toLowerCase();
+  return haystack.includes(q);
 }
 
 /* ── ACTION CONFIG ── */
@@ -210,9 +246,10 @@ function updateSummary(logData, salesData, allApartados) {
 }
 
 function render(data) {
-  const filtered = currentType
+  let filtered = currentType
     ? data.filter(d => (ACTION_CFG[d.action]?.type || 'inventario') === currentType)
     : data;
+  if (currentSearch) filtered = filtered.filter(d => _matchesSearch(d, currentSearch));
 
   const feed = document.getElementById('feed');
   if (!filtered.length) {

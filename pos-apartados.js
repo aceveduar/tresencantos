@@ -859,7 +859,8 @@ async function confirmLiquidar() {
   await Promise.all(saleItems.map(item =>
     api(`products?id=eq.${item.id}`, { method:'PATCH', body:JSON.stringify({ is_apartado: false }) }).catch(()=>{})
   ));
-  logActivity('apartado_liquidado', `Liquidó apartado — ${method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo'}`, { method, restante });
+  const nombreLiq = (sale?.customer || '').split(' · 📱 ')[0] || 'cliente';
+  logActivity('apartado_liquidado', `Liquidó apartado de ${nombreLiq} — ${method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo'}`, { customer: nombreLiq, method, restante, itemsDetail: saleItems });
   closeLiqModal();
   toast(`Apartado liquidado ✓ — $${restante.toLocaleString('es-MX')} recibido`, 'success');
   loadApartados(); loadHistory(); loadTodayStats();
