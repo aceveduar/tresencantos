@@ -4,7 +4,7 @@ let _topFromSales = [];
 
 async function loadTopProductsFromSales() {
   const desde = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
-  const r = await api(`sales?created_at=gte.${desde}T00:00:00&type=eq.venta&select=items`);
+  const r = await api(`sales?created_at=gte.${desde}T00:00:00&type=eq.venta&cancelled_at=is.null&select=items`);
   if (!r.ok || !Array.isArray(r.data)) return;
   const counts = {};
   for (const sale of r.data) {
@@ -412,7 +412,7 @@ async function loadCorte() {
   const queryFrom  = hoyInicio.toISOString();
   periodoEl.textContent = `Ventas del día · ${ahoraMX}`;
 
-  const result = await api(`sales?created_at=gte.${queryFrom}&select=id,total,paid_amount,payment_method,type,discount,items,abonos,created_at,customer`);
+  const result = await api(`sales?created_at=gte.${queryFrom}&cancelled_at=is.null&select=id,total,paid_amount,payment_method,type,discount,items,abonos,created_at,customer`);
   if (!result.ok) { content.innerHTML = '<div style="color:var(--red);text-align:center">Error al cargar datos</div>'; return; }
 
   const sales = result.data || [];

@@ -217,7 +217,7 @@ async function loadCategories() {
 async function loadSales() {
   const { from, to } = getRange(_statsMode, _statsOffset);
   const filter = `&created_at=gte.${from}&created_at=lte.${to}`;
-  const r = await api(`sales?select=id,total,created_at,items,payment_method,type,seller_email,discount,customer,abonos&order=created_at.desc${filter}&limit=500`);
+  const r = await api(`sales?select=id,total,created_at,items,payment_method,type,seller_email,discount,customer,abonos&cancelled_at=is.null&order=created_at.desc${filter}&limit=500`);
   const data = (r.ok && Array.isArray(r.data)) ? r.data : [];
   salesAll = data;
   sales = data.filter(s => s.type !== 'apartado');
@@ -225,7 +225,7 @@ async function loadSales() {
 
 async function loadPreviousSales() {
   const [from, to] = _prevRange();
-  const r = await api(`sales?select=id,total,created_at,type,abonos&created_at=gte.${from}&created_at=lte.${to}&limit=500`);
+  const r = await api(`sales?select=id,total,created_at,type,abonos&cancelled_at=is.null&created_at=gte.${from}&created_at=lte.${to}&limit=500`);
   const prevData = (r.ok && Array.isArray(r.data)) ? r.data : [];
   prevSalesAll = prevData;
   prevSales = prevData.filter(s => s.type !== 'apartado');
@@ -239,7 +239,7 @@ async function loadProducts() {
 let todaySales = [];
 async function loadTodaySales() {
   const from = new Date(); from.setHours(0,0,0,0);
-  const r = await api(`sales?select=id,total,created_at,items,payment_method,type,discount,note,seller_email,customer,abonos&order=created_at.desc&created_at=gte.${from.toISOString()}&limit=200`);
+  const r = await api(`sales?select=id,total,created_at,items,payment_method,type,discount,note,seller_email,customer,abonos&cancelled_at=is.null&order=created_at.desc&created_at=gte.${from.toISOString()}&limit=200`);
   todaySales = (r.ok && Array.isArray(r.data)) ? r.data : [];
 }
 
@@ -1062,7 +1062,7 @@ function renderBestSeller() {
 async function loadApartadosPendientes() {
   const body = document.getElementById('apt-pending-body');
   const label = document.getElementById('apt-summary-label');
-  const result = await api(`sales?type=eq.apartado&select=id,total,paid_amount,customer,created_at,due_date,items&order=created_at.asc`);
+  const result = await api(`sales?type=eq.apartado&cancelled_at=is.null&select=id,total,paid_amount,customer,created_at,due_date,items&order=created_at.asc`);
   if (!result.ok || !result.data?.length) {
     body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:.84rem">Sin apartados pendientes</div>';
     return;

@@ -372,7 +372,7 @@ async function loadTodayStats() {
   const hoyMX  = mxDateKey(new Date().toISOString());
   // Fetch últimos 8 días para capturar abonos de apartados viejos
   const desde  = new Date(Date.now() - 8*24*3600*1000).toISOString();
-  const result = await api(`sales?created_at=gte.${desde}&select=total,paid_amount,payment_method,type,abonos,created_at`);
+  const result = await api(`sales?created_at=gte.${desde}&cancelled_at=is.null&select=total,paid_amount,payment_method,type,abonos,created_at`);
   const mob    = document.getElementById('daily-summary-mobile');
   if (!result.ok || !result.data?.length) return;
 

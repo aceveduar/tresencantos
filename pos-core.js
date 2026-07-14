@@ -69,7 +69,13 @@ async function _confirmCancelApartado() {
   const btn = document.getElementById('cancel-apt-confirm-btn');
   btn.disabled = true; btn.textContent = 'Cancelando…';
 
-  const delResult = await api(`sales?id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': 'return=representation' } });
+  // Soft-cancel: se marca cancelled_at en vez de borrar la fila — el registro completo
+  // (productos, montos, fechas) queda recuperable para siempre, no depende del log
+  const delResult = await api(`sales?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: { 'Prefer': 'return=representation' },
+    body: JSON.stringify({ cancelled_at: new Date().toISOString() })
+  });
   if (!delResult.ok || (Array.isArray(delResult.data) && delResult.data.length === 0)) {
     toast('Error al cancelar apartado — sin permiso o registro no encontrado', 'error');
     btn.disabled = false; btn.textContent = 'Sí, cancelar apartado';
@@ -346,7 +352,7 @@ async function loadPosRecentlyEdited() {
 
 async function loadSalesStats() {
   try {
-    const r = await api('sales?select=items&order=created_at.desc&limit=200');
+    const r = await api('sales?select=items&cancelled_at=is.null&order=created_at.desc&limit=200');
     if (!r.ok) return;
     salesStats = {};
     (r.data || []).forEach(sale => {

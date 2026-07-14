@@ -146,12 +146,12 @@ async function load() {
   if (from) logQ += `&created_at=gte.${encodeURIComponent(from)}`;
   if (user) logQ += `&user_email=eq.${encodeURIComponent(user)}`;
 
-  // Query sales del período (fuente de verdad para KPIs)
-  let salesQ = `sales?select=id,total,type,paid_amount`;
+  // Query sales del período (fuente de verdad para KPIs) — excluye canceladas (soft-cancel)
+  let salesQ = `sales?select=id,total,type,paid_amount&cancelled_at=is.null`;
   if (from) salesQ += `&created_at=gte.${encodeURIComponent(from)}`;
 
   // Apartados con pendiente (todos, sin filtro de período)
-  const aptQ = `sales?select=id,total,paid_amount&type=eq.apartado`;
+  const aptQ = `sales?select=id,total,paid_amount&type=eq.apartado&cancelled_at=is.null`;
 
   const [logRes, salesRes, aptRes] = await Promise.all([
     api(logQ), api(salesQ), api(aptQ)

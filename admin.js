@@ -937,7 +937,7 @@ function mapProduct(p) {
 
 async function loadSalesCounts() {
   try {
-    const r = await supabaseApi('sales?select=items&type=eq.venta&limit=5000');
+    const r = await supabaseApi('sales?select=items&type=eq.venta&cancelled_at=is.null&limit=5000');
     if (!r.ok || !Array.isArray(r.data)) return;
     const map = new Map();
     r.data.forEach(sale => {

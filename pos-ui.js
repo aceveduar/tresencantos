@@ -457,7 +457,7 @@ function openAptDetail(id) {
   const editBtn = canEditApartado()
     ? `<button class="btn-edit-apt adm-footer" onclick="closeAptDetail();openEditApartado(${id})" title="Editar" style="width:40px;height:40px;border-radius:10px;border:1.5px solid var(--border);background:#F7F2EB;color:var(--charcoal);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0">✏️</button>` : '';
   const cancelBtn = canEditApartado()
-    ? `<button class="btn-cancelar-apt" onclick="cancelApartado(${id})" title="Cancelar apartado" style="width:40px;height:40px;border-radius:10px;margin-left:auto">✕</button>` : '';
+    ? `<button class="btn-cancelar-apt" onclick="cancelApartado(${id})" title="Cancelar apartado" style="width:40px;height:40px;border-radius:10px;margin-left:16px;flex-shrink:0">✕</button>` : '';
   document.getElementById('adm-footer').innerHTML = `
     <button class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" title="Recordatorio WhatsApp">💬</button>
     ${editBtn}
@@ -501,7 +501,7 @@ function closeHistory() {
 }
 
 async function loadHistory() {
-  const result = await api(`sales?select=id,total,created_at,items,payment_method,type,customer,discount,note,paid_amount,abonos,seller_email&order=created_at.desc&limit=50`);
+  const result = await api(`sales?select=id,total,created_at,items,payment_method,type,customer,discount,note,paid_amount,abonos,seller_email&cancelled_at=is.null&order=created_at.desc&limit=50`);
   const el = document.getElementById('history-list');
   if (!result.ok || !result.data?.length) {
     salesCache = {};
@@ -646,8 +646,12 @@ async function deleteSale(id) {
     if (!confirm(`¿Cancelar el ${label} de $${total} (${itemCount} artículo${itemCount !== 1 ? 's' : ''})?\n\nSe restaurará el stock de los productos.`)) return;
   }
 
-  // 1. Eliminar el registro
-  const delResult = await api(`sales?id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': 'return=representation' } });
+  // 1. Soft-cancel: marcar cancelled_at en vez de borrar la fila (recuperable para siempre)
+  const delResult = await api(`sales?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: { 'Prefer': 'return=representation' },
+    body: JSON.stringify({ cancelled_at: new Date().toISOString() })
+  });
   if (!delResult.ok || (Array.isArray(delResult.data) && delResult.data.length === 0)) { toast(`Error al cancelar el ${label} — sin permiso o registro no encontrado`, 'error'); return; }
 
   // 2. Restaurar stock en paralelo

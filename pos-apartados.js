@@ -271,7 +271,7 @@ function updateAnticipoInfo() {
 
 
 async function loadApartados() {
-  const result = await api(`sales?type=eq.apartado&select=id,total,paid_amount,customer,created_at,due_date,items,abonos,discount&order=created_at.desc&limit=100`);
+  const result = await api(`sales?type=eq.apartado&cancelled_at=is.null&select=id,total,paid_amount,customer,created_at,due_date,items,abonos,discount&order=created_at.desc&limit=100`);
   const ocList    = document.getElementById('apt-offcanvas-list');
   const ocCount   = document.getElementById('apt-oc-count');
   const tabBadge  = document.getElementById('tab-apt-badge');
