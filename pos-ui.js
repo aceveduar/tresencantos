@@ -426,9 +426,9 @@ function openAptDetail(id) {
 
   const abonos = Array.isArray(s.abonos) ? s.abonos : [];
 
-  // Due date
+  // Due date — sin sentido para un apartado ya liquidado
   let dueAlertHTML = '';
-  if (s.due_date) {
+  if (s.due_date && s.type !== 'venta') {
     const hoy = new Date(); hoy.setHours(0,0,0,0);
     const due = new Date(s.due_date + 'T00:00:00');
     const diff = Math.round((due - hoy) / 86400000);

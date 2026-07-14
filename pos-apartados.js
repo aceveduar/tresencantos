@@ -383,8 +383,18 @@ async function loadApartados() {
 }
 
 function _renderApartadoCards(data, isLiquidado) {
-  const ocList = document.getElementById('apt-offcanvas-list');
+  const ocList  = document.getElementById('apt-offcanvas-list');
+  const ocTitle = document.getElementById('apt-oc-title');
+  const ocCount = document.getElementById('apt-oc-count');
   if (!ocList) return;
+  // El conteo de "activos" (con vencidos) ya lo arma loadApartados() con más detalle —
+  // aquí solo se toca cuando se muestra la vista de liquidados, para no pisarlo
+  if (isLiquidado) {
+    if (ocTitle) ocTitle.textContent = '✅ Apartados liquidados';
+    if (ocCount) ocCount.textContent = data.length ? `${data.length} liquidado${data.length !== 1 ? 's' : ''}` : '';
+  } else if (ocTitle) {
+    ocTitle.textContent = '📌 Apartados pendientes';
+  }
   if (!data.length) {
     ocList.innerHTML = `<div class="history-empty" style="grid-column:1/-1"><div style="font-size:2rem;margin-bottom:8px">${isLiquidado ? '✅' : '🔍'}</div>Sin ${isLiquidado ? 'apartados liquidados' : 'resultados'}</div>`;
     return;
@@ -449,7 +459,7 @@ function _renderApartadoCards(data, isLiquidado) {
     <div class="apt-header-r1">
       <span class="apt-h-name">👤 ${_esc(nombre)}</span>
       <div class="apt-h-right">
-        <span class="apt-h-pending${pendiente===0?' zero':''}">${pendiente===0?'✓ Pagado':'$'+pendiente.toLocaleString('es-MX')}</span>
+        <span class="apt-h-pending${pendiente===0?' zero':''}">${pendiente===0?(isLiquidado?'✓ Liquidado':'✓ Pagado'):'$'+pendiente.toLocaleString('es-MX')}</span>
         <span class="apt-chevron">›</span>
       </div>
     </div>
