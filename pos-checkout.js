@@ -135,20 +135,22 @@ async function cobrar() {
 
   btn.removeAttribute('data-loading');
 
-  // Registrar actividad
+  // Guardar para el ticket WA (y para el log de actividad, más abajo)
+  const dueDateVal = isApartado ? document.getElementById('pos-due-date')?.value : null;
+
+  // Registrar actividad — itemsDetail guarda nombre/precio/qty en el momento,
+  // así queda recuperable aunque el apartado se cancele o el producto cambie después
   if (isApartado) {
     logActivity('apartado_nuevo',
       `Apartado de ${customerName} — $${total.toLocaleString('es-MX')}`,
-      { customer: customerName, total, anticipo: paidAmount, pendiente: total - paidAmount });
+      { customer: customerName, total, anticipo: paidAmount, pendiente: total - paidAmount,
+        dueDate: dueDateVal || null, itemsDetail: items });
   } else {
     logActivity('venta',
       `Cobró $${total.toLocaleString('es-MX')} — ${items.length} producto${items.length !== 1 ? 's' : ''}`,
       { total, items: items.length, method: payMethod, discount: disc || 0,
-        itemIds: items.map(i => i.id) });
+        itemIds: items.map(i => i.id), itemsDetail: items });
   }
-
-  // Guardar para el ticket WA
-  const dueDateVal = isApartado ? document.getElementById('pos-due-date')?.value : null;
   _lastSale = { total, paidAmount, change, disc, note, items, payMethod, isApartado, customer, dueDate: dueDateVal };
 
   // Reset UI

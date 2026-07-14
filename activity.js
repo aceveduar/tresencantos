@@ -278,6 +278,21 @@ function render(data) {
 
 /* ── POPUP DE DETALLE ── */
 const DEFAULT_IMG = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22400%22%20viewBox%3D%220%200%20400%20400%22%3E%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22%23F7F2EB%22%2F%3E%3Crect%20x%3D%22130%22%20y%3D%22100%22%20width%3D%22140%22%20height%3D%22140%22%20rx%3D%2210%22%20fill%3D%22none%22%20stroke%3D%22%23D4BC94%22%20stroke-width%3D%223%22%2F%3E%3Ccircle%20cx%3D%22158%22%20cy%3D%22127%22%20r%3D%2214%22%20fill%3D%22%23D4BC94%22%2F%3E%3Cpath%20d%3D%22M130%20210%20L175%20165%20L210%20195%20L255%20150%20L280%20180%20L280%20240%20L130%20240Z%22%20fill%3D%22%23D4BC94%22%20fill-opacity%3D%22.4%22%2F%3E%3C%2Fsvg%3E';
+// Detalle de productos guardado en el momento del evento (nombre/precio/qty) —
+// autosuficiente: sigue siendo correcto aunque el producto se borre o cambie después
+function _renderItemsDetail(meta) {
+  if (!Array.isArray(meta.itemsDetail) || !meta.itemsDetail.length) return '';
+  const rows = meta.itemsDetail.map(i => {
+    const qty = i.qty || 1;
+    const sub = parseFloat(i.subtotal ?? (i.price * qty) ?? 0);
+    return `<div style="display:flex;justify-content:space-between;gap:8px;font-size:.78rem;padding:3px 0;border-bottom:1px solid #F0EBE3">
+      <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(i.name || 'Producto')}${qty>1?` ×${qty}`:''}</span>
+      <span style="font-weight:600;flex-shrink:0">$${sub.toLocaleString('es-MX')}</span>
+    </div>`;
+  }).join('');
+  return `<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #EDE5DC">${rows}</div>`;
+}
+
 function _actPopup(idx) {
   const item = allData[idx];
   if (!item) return;
@@ -316,6 +331,7 @@ function _actPopup(idx) {
     bodyHtml += `<div style="font-size:.82rem;color:#1C1817;margin-bottom:4px">${meta.items||0} producto${(meta.items||0)!==1?'s':''}</div>`;
     bodyHtml += `<div style="font-size:.82rem;color:#8A7564">${meta.method==='transferencia'?'📱 Transferencia':'💵 Efectivo'}</div>`;
     if (meta.discount > 0) bodyHtml += `<div style="font-size:.78rem;color:#059669;margin-top:4px">Descuento −$${parseFloat(meta.discount).toLocaleString('es-MX')}</div>`;
+    bodyHtml += _renderItemsDetail(meta);
   } else if (isApt) {
     bodyHtml = `<div style="font-size:.9rem;font-weight:700;margin-bottom:6px">${_esc(meta.customer || item.summary)}</div>`;
     if (meta.total != null)    bodyHtml += `<div style="font-size:.82rem;color:#8A7564">Total: $${parseFloat(meta.total).toLocaleString('es-MX')}</div>`;
@@ -323,6 +339,8 @@ function _actPopup(idx) {
     if (meta.pendiente != null) bodyHtml += `<div style="font-size:.82rem;color:#B45309;margin-top:2px">Pendiente: $${parseFloat(meta.pendiente).toLocaleString('es-MX')}</div>`;
     if (meta.amount != null)   bodyHtml += `<div style="font-size:.82rem;color:#059669;margin-top:2px">Abono: $${parseFloat(meta.amount).toLocaleString('es-MX')}</div>`;
     if (meta.pagado != null)   bodyHtml += `<div style="font-size:.82rem;color:#E85D5D;margin-top:2px">Pagado (perdido): $${parseFloat(meta.pagado).toLocaleString('es-MX')}</div>`;
+    if (meta.dueDate)          bodyHtml += `<div style="font-size:.78rem;color:#8A7564;margin-top:2px">📅 Vencía: ${new Date(meta.dueDate+'T00:00:00').toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'})}</div>`;
+    bodyHtml += _renderItemsDetail(meta);
   } else {
     bodyHtml = `<div style="font-size:.85rem;color:#1C1817">${_esc(item.summary)}</div>`;
   }

@@ -799,7 +799,7 @@ async function saveEditApt() {
   btn.disabled = false; btn.textContent = 'Guardar cambios';
   if (!r.ok) { toast('Error al guardar cambios', 'error'); return; }
   const nombre = (sale.customer || '').split(' · 📱 ')[0] || 'cliente';
-  logActivity('apartado_editado', `Editó apartado de ${nombre} — nuevo total $${newTotal.toLocaleString('es-MX')}`, { id, total: newTotal });
+  logActivity('apartado_editado', `Editó apartado de ${nombre} — nuevo total $${newTotal.toLocaleString('es-MX')}`, { id, total: newTotal, itemsDetail: items });
   closeEditApt();
   toast('Apartado actualizado ✓', 'success');
   loadApartados();
