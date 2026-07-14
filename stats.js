@@ -217,17 +217,39 @@ async function loadCategories() {
 async function loadSales() {
   const { from, to } = getRange(_statsMode, _statsOffset);
   const filter = `&created_at=gte.${from}&created_at=lte.${to}`;
-  const r = await api(`sales?select=id,total,created_at,items,payment_method,type,seller_email,discount,customer,abonos&cancelled_at=is.null&order=created_at.desc${filter}&limit=500`);
-  const data = (r.ok && Array.isArray(r.data)) ? r.data : [];
-  salesAll = data;
+  const cols = 'id,total,created_at,items,payment_method,type,seller_email,discount,customer,abonos,due_date,paid_amount';
+  // Un apartado guarda TODOS sus abonos en un solo registro fechado el día de creación —
+  // un abono hecho después (ej. 6 jul) queda invisible para cualquier consulta filtrada por
+  // esa fecha. Por eso traemos aparte, sin filtro de fecha, cualquier venta/apartado con abonos,
+  // y _abonoRevenue() ya se encarga de contar solo los abonos que caen dentro del período pedido.
+  const [r, abonosR] = await Promise.all([
+    api(`sales?select=${cols}&cancelled_at=is.null&order=created_at.desc${filter}&limit=500`),
+    api(`sales?select=${cols}&cancelled_at=is.null&abonos=not.is.null&limit=1000`)
+  ]);
+  const data       = (r.ok && Array.isArray(r.data)) ? r.data : [];
+  const abonosData = (abonosR.ok && Array.isArray(abonosR.data)) ? abonosR.data : [];
+  const byId = new Map();
+  data.forEach(s => byId.set(s.id, s));
+  abonosData.forEach(s => byId.set(s.id, s));
+  salesAll = [...byId.values()];
   sales = data.filter(s => s.type !== 'apartado');
 }
 
 async function loadPreviousSales() {
   const [from, to] = _prevRange();
-  const r = await api(`sales?select=id,total,created_at,type,abonos&cancelled_at=is.null&created_at=gte.${from}&created_at=lte.${to}&limit=500`);
-  const prevData = (r.ok && Array.isArray(r.data)) ? r.data : [];
-  prevSalesAll = prevData;
+  const cols = 'id,total,created_at,type,abonos';
+  // Mismo fix que loadSales() — un abono hecho en el período anterior debe contar aunque
+  // el registro se haya creado antes de ese período
+  const [r, abonosR] = await Promise.all([
+    api(`sales?select=${cols}&cancelled_at=is.null&created_at=gte.${from}&created_at=lte.${to}&limit=500`),
+    api(`sales?select=${cols}&cancelled_at=is.null&abonos=not.is.null&limit=1000`)
+  ]);
+  const prevData   = (r.ok && Array.isArray(r.data)) ? r.data : [];
+  const abonosData = (abonosR.ok && Array.isArray(abonosR.data)) ? abonosR.data : [];
+  const byId = new Map();
+  prevData.forEach(s => byId.set(s.id, s));
+  abonosData.forEach(s => byId.set(s.id, s));
+  prevSalesAll = [...byId.values()];
   prevSales = prevData.filter(s => s.type !== 'apartado');
 }
 
@@ -243,77 +265,114 @@ async function loadTodaySales() {
   todaySales = (r.ok && Array.isArray(r.data)) ? r.data : [];
 }
 
+// Miniaturas + nombre/precio de cada producto — compartido entre venta y abono
+function _dvItemsHtml(items) {
+  return items.map(i => {
+    const prod = products.find(p => +p.id === +i.id);
+    const img = _driveSz(_prodImg(prod), 80) || _DV_PH;
+    const fullImg = _driveSz(_prodImg(prod), 600) || img;
+    const qty = i.qty || 1;
+    const sub = parseFloat(i.subtotal ?? i.price * qty);
+    const meta = qty > 1
+      ? `${qty} × $${parseFloat(i.price).toLocaleString('es-MX',{maximumFractionDigits:0})}`
+      : `$${parseFloat(i.price).toLocaleString('es-MX',{maximumFractionDigits:0})}`;
+    const stockInfo = prod ? (prod.out_of_stock || prod.stock === 0 ? '● Agotado' : `● ${prod.stock} en stock`) : '';
+    const stockColor = prod && !prod.out_of_stock && prod.stock > 0 ? '#2D6A4F' : '#E85D5D';
+    const nameEsc = _esc(i.name).replace(/'/g, "\\'");
+    return `<div class="dv-item">
+  <img class="dv-thumb" src="${img}" data-full="${_esc(fullImg)}" alt="${_esc(i.name)}" onerror="_dvImgErr(this)" style="cursor:pointer" onclick="event.stopPropagation();_dvImgPopup(this,this.dataset.full||this.src,'${nameEsc}',${parseFloat(i.price)},${qty},'${stockInfo}','${stockColor}')">
+  <div style="flex:1;min-width:0"><div class="dv-item-name">${_esc(i.name)}</div><div class="dv-item-meta">${meta}</div></div>
+  <div class="dv-item-sub">$${sub.toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
+</div>`;
+  }).join('');
+}
+
 function renderTodaySales() {
   const el = document.getElementById('today-sales-list');
   const countEl = document.getElementById('today-sales-count');
   const titleEl = document.getElementById('today-sales-title');
   if (!el) return;
   const isToday = _statsMode === 'day' && _statsOffset === 0;
-  const all = [...(isToday ? todaySales : sales)].sort((a,b) => new Date(b.created_at)-new Date(a.created_at));
   if (titleEl) titleEl.textContent = isToday ? 'Ventas de hoy' : `Ventas — ${PERIOD_LABELS[currentPeriod]}`;
-  const ventas = all.filter(s => s.type !== 'apartado');
-  const apartados = all.filter(s => s.type === 'apartado');
-  const hoy = new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
-  if (countEl) countEl.textContent = all.length
-    ? `${ventas.length} venta${ventas.length!==1?'s':''}${apartados.length?` · ${apartados.length} apt.`:''}`
-    : isToday ? hoy : PERIOD_LABELS[currentPeriod];
-  if (!all.length) { el.innerHTML = `<p class="no-data">Sin ventas ${isToday ? 'hoy' : 'en este período'}</p>`; return; }
+
   const fromIso = _currentFrom();
   const _listToIso = _currentTo();
-  el.innerHTML = all.map((s, idx) => {
+  const fromMs = new Date(fromIso).getTime();
+  const toMs   = new Date(_listToIso).getTime();
+
+  // Ventas de una sola exhibición (sin abonos) — ya vienen acotadas al período desde salesAll
+  const oneShot = salesAll.filter(s => s.type !== 'apartado' && (!Array.isArray(s.abonos) || !s.abonos.length));
+
+  // Abonos/anticipos — de CUALQUIER venta o apartado con abonos, sin importar cuándo se creó
+  // el registro; cada uno se cuenta el día real en que se recibió el dinero, no el de creación
+  const abonoEvents = [];
+  salesAll.forEach(s => {
+    if (!Array.isArray(s.abonos) || !s.abonos.length) return;
+    s.abonos.forEach(a => {
+      const t = new Date(a.date).getTime();
+      if (t >= fromMs && t <= toMs) abonoEvents.push({ sale: s, abono: a });
+    });
+  });
+
+  const displayItems = [
+    ...oneShot.map(s => ({ kind: 'venta', sale: s, ts: new Date(s.created_at).getTime() })),
+    ...abonoEvents.map(e => ({ kind: 'abono', sale: e.sale, abono: e.abono, ts: new Date(e.abono.date).getTime() }))
+  ].sort((a, b) => b.ts - a.ts);
+
+  const hoy = new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
+  if (countEl) countEl.textContent = displayItems.length
+    ? `${oneShot.length} venta${oneShot.length!==1?'s':''}${abonoEvents.length?` · ${abonoEvents.length} abono${abonoEvents.length!==1?'s':''}`:''}`
+    : isToday ? hoy : PERIOD_LABELS[currentPeriod];
+  if (!displayItems.length) { el.innerHTML = `<p class="no-data">Sin movimientos ${isToday ? 'hoy' : 'en este período'}</p>`; return; }
+
+  el.innerHTML = displayItems.map((entry, idx) => {
+    if (entry.kind === 'abono') {
+      const s = entry.sale, a = entry.abono;
+      const t = new Date(a.date);
+      const time = `${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')}`;
+      const isTrans = a.method === 'transferencia';
+      const payIcon = `<span class="dv-sale-pay ${isTrans ? 'dv-pay-trans' : 'dv-pay-efec'}">${isTrans ? '📱' : '💵'}</span>`;
+      const nombre = (s.customer || '').split(' · 📱 ')[0] || 'Cliente';
+      const items = Array.isArray(s.items) ? s.items : [];
+      const productLbl = items.length === 1 ? items[0]?.name : (items.length ? `${items[0]?.name || ''} +${items.length - 1} más` : '');
+      const abonoTag = `<span style="font-size:.62rem;background:#DCFCE7;color:#166534;padding:1px 6px;border-radius:50px;font-weight:700;flex-shrink:0">ABONO</span>`;
+      const itemsHtml = _dvItemsHtml(items);
+      return `<div class="dv-sale" id="dv-${idx}">
+  <div class="dv-sale-head" onclick="dvToggle(${idx})">
+    <span class="dv-sale-time">${time}</span>
+    ${payIcon}
+    ${abonoTag}
+    <span class="dv-sale-names">${_esc(nombre)}${productLbl ? ` · ${_esc(productLbl)}` : ''}</span>
+    <span class="dv-sale-total">$${parseFloat(a.amount||0).toLocaleString('es-MX')}</span>
+    <span class="dv-sale-arrow">›</span>
+  </div>
+  <div class="dv-body">${itemsHtml}<div style="font-size:.7rem;color:var(--muted);padding-top:4px">Abono de apartado — pendiente $${Math.max(0,(parseFloat(s.total||0))-(parseFloat(s.paid_amount||0))).toLocaleString('es-MX')}</div></div>
+</div>`;
+    }
+
+    const s = entry.sale;
     const t = new Date(s.created_at);
-    const h = t.getHours(), m = t.getMinutes();
-    const time = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+    const time = `${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')}`;
     const isTrans = s.payment_method === 'transferencia';
     const payIcon = `<span class="dv-sale-pay ${isTrans ? 'dv-pay-trans' : 'dv-pay-efec'}">${isTrans ? '📱' : '💵'}</span>`;
-    const isAp = s.type === 'apartado';
     const items = Array.isArray(s.items) ? s.items : [];
     // Preview corto y predecible — con muchos productos, el listado completo se corta a media palabra
     const names = items.length <= 2
       ? items.map(i => i.name).join(', ')
       : `${items[0]?.name || ''} +${items.length - 1} más`;
-    const apTag = isAp ? `<span style="font-size:.62rem;background:#FEF3C7;color:#92400E;padding:1px 6px;border-radius:50px;font-weight:700;flex-shrink:0">APT</span>` : '';
-
-    // Monto del período: si hay abonos mostramos solo lo cobrado en el período activo
-    const abonos = Array.isArray(s.abonos) ? s.abonos : [];
     const fullTotal = parseFloat(s.total || 0);
-    const periodAmt = abonos.length ? _abonoRevenue(s, fromIso, _listToIso) : fullTotal;
-    const showOf = abonos.length && Math.round(periodAmt) !== Math.round(fullTotal);
-    const totalHtml = showOf
-      ? `$${Math.round(periodAmt).toLocaleString('es-MX')}<span class="dv-total-of">/ $${Math.round(fullTotal).toLocaleString('es-MX')}</span>`
-      : `$${Math.round(fullTotal).toLocaleString('es-MX')}`;
-
-    const itemsHtml = items.map(i => {
-      const prod = products.find(p => +p.id === +i.id);
-      const img = _driveSz(_prodImg(prod), 80) || _DV_PH;
-      const fullImg = _driveSz(_prodImg(prod), 600) || img;
-      const qty = i.qty || 1;
-      const sub = parseFloat(i.subtotal ?? i.price * qty);
-      const meta = qty > 1
-        ? `${qty} × $${parseFloat(i.price).toLocaleString('es-MX',{maximumFractionDigits:0})}`
-        : `$${parseFloat(i.price).toLocaleString('es-MX',{maximumFractionDigits:0})}`;
-      const stockInfo = prod ? (prod.out_of_stock || prod.stock === 0 ? '● Agotado' : `● ${prod.stock} en stock`) : '';
-      const stockColor = prod && !prod.out_of_stock && prod.stock > 0 ? '#2D6A4F' : '#E85D5D';
-      const nameEsc = _esc(i.name).replace(/'/g, "\\'");
-      return `<div class="dv-item">
-  <img class="dv-thumb" src="${img}" data-full="${_esc(fullImg)}" alt="${_esc(i.name)}" onerror="_dvImgErr(this)" style="cursor:pointer" onclick="event.stopPropagation();_dvImgPopup(this,this.dataset.full||this.src,'${nameEsc}',${parseFloat(i.price)},${qty},'${stockInfo}','${stockColor}')">
-  <div style="flex:1;min-width:0"><div class="dv-item-name">${_esc(i.name)}</div><div class="dv-item-meta">${meta}</div></div>
-  <div class="dv-item-sub">$${sub.toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
-</div>`;
-    }).join('');
+    const itemsHtml = _dvItemsHtml(items);
     const discRow = s.discount>0
       ? `<div style="font-size:.7rem;color:var(--muted);text-align:right;padding-top:4px">Descuento −$${parseFloat(s.discount).toLocaleString('es-MX',{maximumFractionDigits:0})}</div>` : '';
-    const custRow = isAp && s.customer ? `<div style="font-size:.7rem;color:var(--muted);padding-top:2px">Cliente: ${_esc(s.customer)}</div>` : '';
     return `<div class="dv-sale" id="dv-${idx}">
   <div class="dv-sale-head" onclick="dvToggle(${idx})">
     <span class="dv-sale-time">${time}</span>
     ${payIcon}
-    ${apTag}
     <span class="dv-sale-names">${_esc(names)}</span>
-    <span class="dv-sale-total">${totalHtml}</span>
+    <span class="dv-sale-total">$${fullTotal.toLocaleString('es-MX')}</span>
     <span class="dv-sale-arrow">›</span>
   </div>
-  <div class="dv-body">${itemsHtml}${discRow}${custRow}</div>
+  <div class="dv-body">${itemsHtml}${discRow}</div>
 </div>`;
   }).join('');
 }
