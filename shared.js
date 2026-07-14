@@ -163,24 +163,51 @@
     if (!tok) return;
 
     try {
-      const r = await fetch(`${url}/rest/v1/sales?select=id,total,type,customer,seller_email&order=id.desc&limit=10`,
+      // cancelled_at=is.null: una venta cancelada segundos después de crearse no debe notificar.
+      // limit=50 (antes 10): margen contra ráfagas de ventas entre una revisión y la siguiente.
+      const r = await fetch(`${url}/rest/v1/sales?select=id,type,total,paid_amount,customer,seller_email,abonos&cancelled_at=is.null&order=id.desc&limit=50`,
         { headers: { apikey: key, Authorization: `Bearer ${tok}` } });
       if (!r.ok) return;
       const rows = await r.json();
       if (!Array.isArray(rows) || !rows.length) return;
 
-      const maxId  = Math.max(...rows.map(s => s.id));
-      const lastId = parseInt(localStorage.getItem('te_last_seen_sale_id') || '0', 10);
+      const maxId      = Math.max(...rows.map(s => s.id));
+      const lastId     = parseInt(localStorage.getItem('te_last_seen_sale_id') || '0', 10);
+      const prevAbonoTs = parseInt(localStorage.getItem('te_last_seen_abono_ts') || '0', 10);
 
+      // Primera vez que corre en este dispositivo — solo ancla el punto de partida, no notifica retroactivo
       if (!lastId) {
-        // Primera vez que corre en este dispositivo — solo ancla el punto de partida, no notifica retroactivo
         localStorage.setItem('te_last_seen_sale_id', String(maxId));
+        let anchorAbonoTs = prevAbonoTs;
+        rows.forEach(s => (s.abonos || []).forEach(a => {
+          const t = new Date(a.date).getTime();
+          if (t > anchorAbonoTs) anchorAbonoTs = t;
+        }));
+        localStorage.setItem('te_last_seen_abono_ts', String(anchorAbonoTs));
         return;
       }
 
+      // Ventas/apartados recién creados
       const nuevas = rows.filter(s => s.id > lastId).sort((a, b) => a.id - b.id);
-      if (nuevas.length) {
+
+      // Abonos/liquidaciones sobre filas que YA existían — un abono o una liquidación
+      // modifican una fila que ya existe (no crean una nueva), así que sin esto nunca se
+      // avisaba cuando llegaba dinero después de la creación del apartado
+      let maxAbonoTs = prevAbonoTs;
+      const abonoEvents = [];
+      rows.forEach(s => {
+        if (!Array.isArray(s.abonos) || !s.abonos.length) return;
+        const isNewRow = s.id > lastId;
+        s.abonos.forEach(a => {
+          const t = new Date(a.date).getTime();
+          if (t > maxAbonoTs) maxAbonoTs = t;
+          if (!isNewRow && prevAbonoTs && t > prevAbonoTs) abonoEvents.push({ sale: s, abono: a });
+        });
+      });
+
+      if (nuevas.length || abonoEvents.length) {
         const nameMap = await _getNotifNameMap(url, key, tok);
+
         nuevas.forEach(s => {
           const monto   = `$${parseFloat(s.total || 0).toLocaleString('es-MX')}`;
           const cliente = (s.customer || '').split(' · 📱 ')[0];
@@ -189,8 +216,21 @@
           const body    = [monto, cliente, quien].filter(Boolean).join(' · ');
           _showSaleNotification(title, body, 'te-sale-' + s.id);
         });
+
+        abonoEvents.sort((a, b) => new Date(a.abono.date) - new Date(b.abono.date));
+        abonoEvents.forEach(({ sale: s, abono: a }) => {
+          const monto     = `$${parseFloat(a.amount || 0).toLocaleString('es-MX')}`;
+          const cliente   = (s.customer || '').split(' · 📱 ')[0];
+          const quien     = s.seller_email ? (nameMap[s.seller_email] || s.seller_email.split('@')[0]) : '';
+          const pendiente = Math.max(0, parseFloat(s.total || 0) - parseFloat(s.paid_amount || 0));
+          const title     = pendiente <= 0 ? '✅ Apartado liquidado' : '💳 Abono recibido';
+          const body      = [monto, cliente, quien].filter(Boolean).join(' · ');
+          _showSaleNotification(title, body, 'te-abono-' + s.id + '-' + a.date);
+        });
       }
+
       if (maxId > lastId) localStorage.setItem('te_last_seen_sale_id', String(maxId));
+      localStorage.setItem('te_last_seen_abono_ts', String(maxAbonoTs));
     } catch {}
   }
 
