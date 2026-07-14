@@ -385,7 +385,9 @@ function _actPopup(idx) {
     if (meta.anticipo != null) bodyHtml += `<div style="font-size:.82rem;color:#059669;margin-top:2px">Anticipo: $${parseFloat(meta.anticipo).toLocaleString('es-MX')}</div>`;
     if (meta.pendiente != null) bodyHtml += `<div style="font-size:.82rem;color:#B45309;margin-top:2px">Pendiente: $${parseFloat(meta.pendiente).toLocaleString('es-MX')}</div>`;
     if (meta.amount != null)   bodyHtml += `<div style="font-size:.82rem;color:#059669;margin-top:2px">Abono: $${parseFloat(meta.amount).toLocaleString('es-MX')}</div>`;
+    if (meta.restante != null) bodyHtml += `<div style="font-size:.82rem;color:#059669;margin-top:2px">Liquidado: $${parseFloat(meta.restante).toLocaleString('es-MX')}</div>`;
     if (meta.pagado != null)   bodyHtml += `<div style="font-size:.82rem;color:#E85D5D;margin-top:2px">Pagado (perdido): $${parseFloat(meta.pagado).toLocaleString('es-MX')}</div>`;
+    if (meta.method)           bodyHtml += `<div style="font-size:.78rem;color:#8A7564;margin-top:2px">${meta.method==='transferencia'?'📱 Transferencia':'💵 Efectivo'}</div>`;
     if (meta.dueDate)          bodyHtml += `<div style="font-size:.78rem;color:#8A7564;margin-top:2px">📅 Vencía: ${new Date(meta.dueDate+'T00:00:00').toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'})}</div>`;
     bodyHtml += _renderItemsDetail(meta);
   } else {
