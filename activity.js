@@ -108,7 +108,8 @@ function setType(btn, type) {
   render(allData);
 }
 
-/* ── BÚSQUEDA — rastrea cliente/producto/nota en todo el historial cargado ── */
+/* ── BÚSQUEDA — consulta el servidor directo, no se limita a lo ya cargado (tope de 300) ── */
+let _searchDebounce = null;
 function onSearchInput() {
   const el  = document.getElementById('filter-search');
   const val = (el.value || '').trim();
@@ -116,20 +117,20 @@ function onSearchInput() {
   currentSearch = val.toLowerCase();
   document.getElementById('filter-search-clear').style.display = currentSearch ? '' : 'none';
 
-  // Al empezar a buscar, ampliar el período a "Todo" — si no, solo busca en lo ya cargado (ej. "Hoy")
+  // Al empezar a buscar, ampliar el período a "Todo" — una búsqueda de cliente casi
+  // siempre quiere ver su historial completo, no solo el período activo
   const periodSel = document.getElementById('filter-period');
-  if (currentSearch && wasEmpty && periodSel.value !== '0') {
-    periodSel.value = '0';
-    load();
-    return;
-  }
-  render(allData);
+  if (currentSearch && wasEmpty && periodSel.value !== '0') periodSel.value = '0';
+
+  clearTimeout(_searchDebounce);
+  _searchDebounce = setTimeout(load, 350);
 }
 function clearSearch() {
   document.getElementById('filter-search').value = '';
   currentSearch = '';
   document.getElementById('filter-search-clear').style.display = 'none';
-  render(allData);
+  clearTimeout(_searchDebounce);
+  load();
 }
 function _matchesSearch(item, q) {
   const meta = item.meta || {};
@@ -178,7 +179,16 @@ async function load() {
   }
 
   // Query activity_log (feed de auditoría)
-  let logQ = `activity_log?select=*&order=created_at.desc&limit=300`;
+  // Con búsqueda activa: filtra en el servidor (summary/cliente/producto) con un tope más alto —
+  // si no, solo se ven los últimos 300 registros y una búsqueda de hace semanas nunca aparece
+  let logQ = `activity_log?select=*&order=created_at.desc`;
+  if (currentSearch) {
+    const qSafe = currentSearch.replace(/[,()]/g, ' ').trim();
+    const pat = encodeURIComponent(`*${qSafe}*`);
+    logQ += `&or=(summary.ilike.${pat},meta->>customer.ilike.${pat},meta->>name.ilike.${pat})&limit=1000`;
+  } else {
+    logQ += `&limit=300`;
+  }
   if (from) logQ += `&created_at=gte.${encodeURIComponent(from)}`;
   if (user) logQ += `&user_email=eq.${encodeURIComponent(user)}`;
 
@@ -290,7 +300,7 @@ function render(data) {
           meta.discount > 0 ? `Desc. $${(meta.discount).toLocaleString('es-MX')}` : ''
         ].filter(Boolean).join(' · ');
       else if (item.action === 'apartado_nuevo' && meta.anticipo != null)
-        detail = `Anticipo $${meta.anticipo.toLocaleString('es-MX')} · Pendiente $${meta.pendiente.toLocaleString('es-MX')}`;
+        detail = `Anticipo $${meta.anticipo.toLocaleString('es-MX')} · Pendiente $${(meta.pendiente ?? 0).toLocaleString('es-MX')}`;
       else if (item.action === 'apartado_abono' && meta.amount != null)
         detail = `$${meta.amount.toLocaleString('es-MX')} · ${meta.method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo'}`;
 
