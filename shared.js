@@ -140,7 +140,12 @@
 
   function _showSaleNotification(title, body, tag) {
     const opts = { body, icon: 'icono-192.png', badge: 'icono-192.png', tag };
-    const fallback = () => { try { new Notification(title, opts); } catch {} };
+    const fallback = () => {
+      try {
+        const n = new Notification(title, opts);
+        n.onclick = () => { window.focus(); n.close(); };
+      } catch {}
+    };
     if (navigator.serviceWorker) {
       // navigator.serviceWorker.ready nunca resuelve ni rechaza si no hay SW activo —
       // sin timeout, la notificación se perdería en silencio para siempre en ese caso

@@ -1,5 +1,5 @@
 // ⚠️ Incrementar CACHE_VERSION en cada deploy para invalidar caché anterior
-const CACHE_VERSION = 'v174';
+const CACHE_VERSION = 'v175';
 const CACHE = `tres-encantos-${CACHE_VERSION}`;
 
 // Base path dinámica — funciona en GitHub Pages (/tresencantos) y en dominio raíz ("")
@@ -33,6 +33,21 @@ self.addEventListener('activate', e => {
         keys.filter(k => k !== CACHE).map(k => caches.delete(k))
       ))
       .then(() => self.clients.claim())
+  );
+});
+
+// Notificación de venta tocada — enfoca una pestaña ya abierta de la app (sin navegarla,
+// para no interrumpir una venta a medias en Caja) o abre Actividad si no hay ninguna
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const targetUrl = `${BASE}/activity.html`;
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientsList => {
+      for (const client of clientsList) {
+        if ('focus' in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
+    })
   );
 });
 
