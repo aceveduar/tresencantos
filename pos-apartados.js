@@ -565,19 +565,23 @@ let _apartadosAll  = []; // lista completa para filtrar sin refetch
 
 function filterApartados(q, target) {
   // target: 'page' | 'offcanvas' | undefined (= both)
+  // Filtra sobre la lista de la vista activa (Activos o Liquidados) — antes siempre
+  // buscaba en _apartadosAll aunque estuvieras viendo Liquidados, y no encontraba nada
   const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const isLiq  = _aptViewMode === 'liquidados';
+  const source = isLiq ? _apartadosLiquidadosAll : _apartadosAll;
   const filtered = q.trim()
-    ? (_apartadosAll||[]).filter(s => norm(s.customer).includes(norm(q)))
-    : (_apartadosAll||[]);
+    ? (source||[]).filter(s => norm(s.customer).includes(norm(q)))
+    : (source||[]);
   if (!target || target === 'offcanvas') {
     const clearBtn = document.getElementById('apt-search-clear');
     if (clearBtn) clearBtn.style.display = q.trim() ? '' : 'none';
-    _renderApartadoCards(filtered);
+    _renderApartadoCards(filtered, isLiq);
   }
   if (!target || target === 'page') {
     const clearBtn = document.getElementById('apt-page-search-clear');
     if (clearBtn) clearBtn.style.display = q.trim() ? '' : 'none';
-    _renderAptPageCards(filtered);
+    _renderAptPageCards(filtered, isLiq);
   }
 }
 
