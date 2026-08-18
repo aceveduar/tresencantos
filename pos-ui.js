@@ -300,39 +300,143 @@ function closeLightbox() {
   document.body.style.overscrollBehaviorY = '';
 }
 
-function openApartados() {
+let _aptDueFilter = 'todos';
+let _aptPanelLastFocus = null;
+let _aptDetailLastFocus = null;
+
+function _aptDueFiltered(data, filter = _aptDueFilter) {
+  const rows = Array.isArray(data) ? data : [];
+  if (filter === 'todos') return rows;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const inSevenDays = new Date(today);
+  inSevenDays.setDate(inSevenDays.getDate() + 7);
+
+  return rows.filter(sale => {
+    if (!sale.due_date) return filter === 'sin-fecha';
+    const due = new Date(sale.due_date + 'T00:00:00');
+    if (Number.isNaN(due.getTime())) return filter === 'sin-fecha';
+    if (filter === 'vencidos') return due < today;
+    if (filter === 'proximos') return due >= today && due <= inSevenDays;
+    return true;
+  }).sort((a, b) => String(a.due_date || '').localeCompare(String(b.due_date || '')));
+}
+
+function _syncAptDueFilterUI() {
+  document.querySelectorAll('.apt-due-filter').forEach(button => {
+    const selected = button.dataset.dueFilter === _aptDueFilter;
+    button.classList.toggle('active', selected);
+    button.setAttribute('aria-pressed', String(selected));
+  });
+}
+
+function _aptFilterByCustomer(data, query) {
+  const normalizedQuery = (query || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (!normalizedQuery) return data;
+  return data.filter(sale => (sale.customer || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(normalizedQuery));
+}
+
+function filterApartadosWithDue(query, target = 'offcanvas') {
+  const isLiquidado = _aptViewMode === 'liquidados';
+  const source = isLiquidado
+    ? (_apartadosLiquidadosAll || [])
+    : _aptDueFiltered(_apartadosAll || []);
+  const filtered = _aptFilterByCustomer(source, query);
+  const clearButton = document.getElementById(target === 'page' ? 'apt-page-search-clear' : 'apt-search-clear');
+  if (clearButton) clearButton.style.display = query.trim() ? '' : 'none';
+  if (target === 'page') _renderAptPageCards(filtered, isLiquidado);
+  else _renderApartadoCards(filtered, isLiquidado);
+}
+
+function setAptDueFilter(filter, target = window.innerWidth >= 768 ? 'page' : 'offcanvas') {
+  _aptDueFilter = ['todos', 'vencidos', 'proximos', 'sin-fecha'].includes(filter) ? filter : 'todos';
+  _syncAptDueFilterUI();
+  const search = document.getElementById(target === 'page' ? 'apt-page-search' : 'apt-search');
+  filterApartadosWithDue(search?.value || '', target);
+}
+
+function aptViewTabKeydown(event, target) {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+  const tabs = [...document.querySelectorAll(`#apt-view-toggle-${target} [role="tab"]`)];
+  if (!tabs.length) return;
+  event.preventDefault();
+  const current = Math.max(0, tabs.indexOf(document.activeElement));
+  const next = event.key === 'Home'
+    ? tabs[0]
+    : event.key === 'End'
+      ? tabs[tabs.length - 1]
+      : tabs[(current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+  next.focus();
+  next.click();
+}
+
+async function selectAptView(mode, target) {
+  await toggleAptView(mode, target);
+  document.querySelectorAll(`#apt-view-toggle-${target} [role="tab"]`).forEach(button => {
+    const selected = button.dataset.mode === mode;
+    button.setAttribute('aria-selected', String(selected));
+    button.tabIndex = selected ? 0 : -1;
+  });
+  const dueFilters = document.getElementById(`apt-due-filters-${target}`);
+  if (dueFilters) dueFilters.hidden = mode === 'liquidados';
+  const search = document.getElementById(target === 'page' ? 'apt-page-search' : 'apt-search');
+  filterApartadosWithDue(search?.value || '', target);
+}
+
+function openApartados(dueFilter = 'todos') {
   // Siempre regresa a "Activos" al abrir, sin importar cómo se dejó la última vez
+  _aptPanelLastFocus = document.activeElement;
+  _aptDueFilter = ['todos', 'vencidos', 'proximos', 'sin-fecha'].includes(dueFilter) ? dueFilter : 'todos';
   _aptViewMode = 'activos';
-  document.querySelectorAll('.apt-view-toggle button').forEach(b => b.classList.toggle('active', b.dataset.mode === 'activos'));
+  document.querySelectorAll('.apt-view-toggle button').forEach(b => {
+    const selected = b.dataset.mode === 'activos';
+    b.classList.toggle('active', selected);
+    b.setAttribute('aria-selected', String(selected));
+    b.tabIndex = selected ? 0 : -1;
+  });
+  document.querySelectorAll('.apt-due-filters').forEach(filters => { filters.hidden = false; });
+  _syncAptDueFilterUI();
 
   if (window.innerWidth >= 768) {
     const page = document.getElementById('apt-page');
     page.style.display = 'flex';
+    page.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
-    _renderAptPageCards(_apartadosAll || []);
+    _renderAptPageCards(_aptDueFiltered(_apartadosAll || []));
     const ps = document.getElementById('apt-page-search');
     if (ps) { ps.value = ''; }
     const pc = document.getElementById('apt-page-search-clear');
     if (pc) pc.style.display = 'none';
+    requestAnimationFrame(() => document.querySelector('#apt-page .apt-page-back')?.focus());
   } else {
-    document.getElementById('apt-offcanvas').classList.add('open');
+    const offcanvas = document.getElementById('apt-offcanvas');
+    offcanvas.classList.add('open');
+    offcanvas.setAttribute('aria-hidden', 'false');
     const bd = document.getElementById('apt-backdrop');
     if (bd) { bd.style.display = ''; bd.classList.add('open'); }
     document.body.style.overflow = 'hidden';
-    _renderApartadoCards(_apartadosAll || []);
+    _renderApartadoCards(_aptDueFiltered(_apartadosAll || []));
+    requestAnimationFrame(() => offcanvas.querySelector('.history-oc-close')?.focus());
   }
 }
 
 function closeApartados() {
-  document.getElementById('apt-offcanvas').classList.remove('open');
+  const offcanvas = document.getElementById('apt-offcanvas');
+  offcanvas.classList.remove('open');
+  offcanvas.setAttribute('aria-hidden', 'true');
   const bd = document.getElementById('apt-backdrop');
   if (bd) { bd.classList.remove('open'); setTimeout(() => { bd.style.display = 'none'; }, 280); }
   document.body.style.overflow = '';
+  _aptPanelLastFocus?.focus?.();
 }
 
 function closeAptPage() {
-  document.getElementById('apt-page').style.display = 'none';
+  const page = document.getElementById('apt-page');
+  page.style.display = 'none';
+  page.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
+  _aptPanelLastFocus?.focus?.();
 }
 
 function _renderAptPageCards(data, isLiquidado) {
@@ -356,13 +460,13 @@ function _renderAptPageCards(data, isLiquidado) {
     const telNum    = custParts[1] || '';
 
     if (isLiquidado) {
-      return `<div class="apc-card" onclick="openAptDetail(${s.id})">
-  <div class="apc-top">
+      return `<button type="button" class="apc-card" onclick="openAptDetail(${s.id})" aria-label="Ver apartado liquidado de ${_esc(nombre)}, total $${total.toLocaleString('es-MX')}">
+  <span class="apc-top">
     <span class="apc-name">👤 ${_esc(nombre)}</span>
     <span class="apc-pending zero">✓ Liquidado</span>
-  </div>
-  <div class="apc-meta">${t} · ${nItems} prod.${telNum ? ' · 📱 ' + telNum : ''} · $${total.toLocaleString('es-MX')}</div>
-</div>`;
+  </span>
+  <span class="apc-meta">${t} · ${nItems} prod.${telNum ? ' · 📱 ' + telNum : ''} · $${total.toLocaleString('es-MX')}</span>
+</button>`;
     }
 
     let dueHTML = '';
@@ -374,23 +478,24 @@ function _renderAptPageCards(data, isLiquidado) {
       isOverdue = diff < 0;
       const dueColor = diff < 0 ? '#E85D5D' : diff <= 7 ? '#D97706' : '#6B9E78';
       const dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)}d` : diff === 0 ? 'Vence hoy' : `Vence ${due.toLocaleDateString('es-MX',{day:'numeric',month:'short'})}`;
-      dueHTML = `<div class="apc-due" style="color:${dueColor}">📅 ${dueText}</div>`;
+      dueHTML = `<span class="apc-due" style="color:${dueColor}">📅 ${dueText}</span>`;
     }
-    return `<div class="apc-card${isOverdue ? ' apt-overdue' : ''}" onclick="openAptDetail(${s.id})">
-  <div class="apc-top">
+    return `<button type="button" class="apc-card${isOverdue ? ' apt-overdue' : ''}" onclick="openAptDetail(${s.id})" aria-label="Ver apartado de ${_esc(nombre)}, falta $${pendiente.toLocaleString('es-MX')}${isOverdue ? ', vencido' : ''}">
+  <span class="apc-top">
     <span class="apc-name">👤 ${_esc(nombre)}</span>
-    <span class="apc-pending${pendiente === 0 ? ' zero' : ''}">${pendiente === 0 ? '✓ Listo' : '$' + pendiente.toLocaleString('es-MX')}</span>
-  </div>
-  <div class="apc-meta">${t} · ${nItems} prod.${telNum ? ' · 📱 ' + telNum : ''}</div>
+    <span class="apc-pending${pendiente === 0 ? ' zero' : ''}">${pendiente === 0 ? '✓ Listo' : 'Falta $' + pendiente.toLocaleString('es-MX')}</span>
+  </span>
+  <span class="apc-meta">${t} · ${nItems} prod.${telNum ? ' · 📱 ' + telNum : ''}</span>
   ${dueHTML}
-  <div class="apc-bar"><div class="apc-fill" style="width:${pct}%"></div></div>
-</div>`;
+  <span class="apc-bar" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span class="apc-fill" style="width:${pct}%"></span></span>
+</button>`;
   }).join('');
 }
 
 function openAptDetail(id) {
   const s = (_apartadosData || {})[id];
   if (!s) return;
+  _aptDetailLastFocus = document.activeElement;
   const total     = parseFloat(s.total) || 0;
   const pagado    = parseFloat(s.paid_amount || 0);
   const pendiente = Math.max(0, total - pagado);
@@ -417,7 +522,7 @@ function openAptDetail(id) {
     const priceLabel = qty > 1
       ? `<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span><span class="apt-item-qty">$${i.price.toLocaleString('es-MX')} ×${qty}</span>`
       : `<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span>`;
-    return `<div class="apt-item-row" onclick="_aptItemPopup(${i.id},this)">
+    return `<div class="apt-item-row"${prod?.image ? ` role="button" tabindex="0" aria-label="Ver imagen de ${_esc(i.name)}" onclick="_aptItemPopup(${i.id},this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_aptItemPopup(${i.id},this)}"` : ''}>
       <img class="apt-item-thumb" src="${img}" onerror="this.style.visibility='hidden'" alt="">
       <div class="apt-item-info"><div class="apt-item-name">${_esc(i.name)}</div>${kitHTML}</div>
       <div class="apt-item-right">${priceLabel}</div>
@@ -461,7 +566,7 @@ function openAptDetail(id) {
       ${summaryRows.join('')}
     </div>
     <div class="apt-progress-section">
-      <div class="apt-progress-track"><div class="apt-progress-fill" style="width:${pct}%"></div></div>
+      <div class="apt-progress-track" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="apt-progress-fill" style="width:${pct}%"></div></div>
       <div class="apt-amounts-row">
         <span class="apt-paid-lbl">✓ Pagado $${pagado.toLocaleString('es-MX')}</span>
         <span class="apt-pending-lbl">${pendiente > 0 ? 'Pendiente $' + pendiente.toLocaleString('es-MX') : '✓ Liquidado'}</span>
@@ -473,27 +578,32 @@ function openAptDetail(id) {
   const isLiquidado = s.type === 'venta';
   if (isLiquidado) {
     document.getElementById('adm-footer').innerHTML =
-      `<button class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" title="Recordatorio WhatsApp">💬</button>
+      `<button type="button" class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" aria-label="Enviar por WhatsApp" title="Enviar por WhatsApp">💬</button>
        <span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--green)">✓ Liquidado</span>`;
   } else {
     const editBtn = canEditApartado()
-      ? `<button class="btn-edit-apt adm-footer" onclick="closeAptDetail();openEditApartado(${id})" title="Editar" style="width:40px;height:40px;border-radius:10px;border:1.5px solid var(--border);background:#F7F2EB;color:var(--charcoal);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0">✏️</button>` : '';
+      ? `<button type="button" class="btn-edit-apt" onclick="closeAptDetail();openEditApartado(${id})" aria-label="Editar apartado" title="Editar apartado">✏️</button>` : '';
     const cancelBtn = canEditApartado()
-      ? `<button class="btn-cancelar-apt" onclick="cancelApartado(${id})" title="Cancelar apartado" style="width:40px;height:40px;border-radius:10px;margin-left:16px;flex-shrink:0">✕</button>` : '';
+      ? `<button type="button" class="btn-cancelar-apt" onclick="cancelApartado(${id})" aria-label="Cancelar apartado" title="Cancelar apartado">✕</button>` : '';
     document.getElementById('adm-footer').innerHTML = `
-      <button class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" title="Recordatorio WhatsApp">💬</button>
+      <button type="button" class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" aria-label="Enviar recordatorio por WhatsApp" title="Recordatorio WhatsApp">💬</button>
       ${editBtn}
-      <button class="btn-abonar" onclick="closeAptDetail();abonarApartado('${id}','${total}','${pagado}','${_esc(nombre).replace(/'/g,"\\'")}')">+ Abonar</button>
-      <button class="btn-liquidar" onclick="closeAptDetail();openLiqModal(${id})">✓ Liquidar</button>
+      <button type="button" class="btn-abonar" onclick="closeAptDetail();abonarApartado('${id}','${total}','${pagado}','${_esc(nombre).replace(/'/g,"\\'")}')">Registrar abono</button>
+      <button type="button" class="btn-liquidar" onclick="closeAptDetail();openLiqModal(${id})">Cobrar saldo $${pendiente.toLocaleString('es-MX')}</button>
       ${cancelBtn}`;
   }
 
   const modal = document.getElementById('apt-detail-modal');
   modal.style.display = 'flex';
+  modal.setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => document.getElementById('adm-customer')?.focus());
 }
 
 function closeAptDetail() {
-  document.getElementById('apt-detail-modal').style.display = 'none';
+  const modal = document.getElementById('apt-detail-modal');
+  modal.style.display = 'none';
+  modal.setAttribute('aria-hidden', 'true');
+  _aptDetailLastFocus?.focus?.();
 }
 
 function _aptDetailBackdrop(e) {
@@ -505,11 +615,48 @@ function clearAptPageSearch() {
   if (el) { el.value = ''; el.focus(); }
   const c = document.getElementById('apt-page-search-clear');
   if (c) c.style.display = 'none';
-  _renderAptPageCards(_apartadosAll || []);
-  const count = document.getElementById('apt-page-count');
-  const n = (_apartadosAll || []).length;
-  if (count) count.textContent = n ? `${n} activo${n !== 1 ? 's' : ''}` : '';
+  filterApartadosWithDue('', 'page');
 }
+
+function clearAptSearchWithDue(target = 'offcanvas') {
+  const input = document.getElementById(target === 'page' ? 'apt-page-search' : 'apt-search');
+  if (input) { input.value = ''; input.focus(); }
+  filterApartadosWithDue('', target);
+}
+
+document.addEventListener('keydown', event => {
+  const modal = document.getElementById('apt-detail-modal');
+  const page = document.getElementById('apt-page');
+  const offcanvas = document.getElementById('apt-offcanvas');
+  const activeLayer = modal?.style.display === 'flex'
+    ? modal
+    : page?.style.display === 'flex'
+      ? page
+      : offcanvas?.classList.contains('open')
+        ? offcanvas
+        : null;
+  if (!activeLayer) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    if (activeLayer === modal) closeAptDetail();
+    else if (activeLayer === page) closeAptPage();
+    else closeApartados();
+    return;
+  }
+  if (event.key !== 'Tab') return;
+  const focusable = [...activeLayer.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+    .filter(element => element.offsetParent !== null);
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+});
 
 function openHistory() {
   document.getElementById('history-offcanvas').classList.add('open');

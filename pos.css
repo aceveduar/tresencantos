@@ -223,6 +223,7 @@ button,a{touch-action:manipulation}
 .history-oc-close{
   background:none;border:none;font-size:1.2rem;cursor:pointer;
   padding:6px 8px;border-radius:8px;color:#9B8B78;transition:.15s;
+  min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;
 }
 .history-oc-close:hover{background:#F0E8E0}
 .history-oc-body{flex:1;overflow-y:auto;padding:8px 12px 16px;overscroll-behavior-y:contain}
@@ -473,8 +474,18 @@ button,a{touch-action:manipulation}
 
 /* APARTADOS — toggle Activos/Liquidados */
 .apt-view-toggle{display:flex;gap:4px;background:#F0EBE3;border-radius:50px;padding:3px}
-.apt-view-toggle button{padding:5px 12px;border-radius:50px;border:none;background:transparent;font-size:.76rem;font-weight:700;cursor:pointer;color:#9B8B78;transition:.15s;font-family:inherit}
+.apt-view-toggle button{padding:5px 12px;min-height:44px;border-radius:50px;border:none;background:transparent;font-size:.76rem;font-weight:700;cursor:pointer;color:#9B8B78;transition:.15s;font-family:inherit}
 .apt-view-toggle button.active{background:#fff;color:var(--charcoal);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.apt-due-filters{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:0 0 8px;scrollbar-width:thin}
+.apt-due-filters[hidden]{display:none}
+.apt-due-filter{min-height:44px;padding:7px 12px;border:1.5px solid var(--border);border-radius:50px;background:#fff;color:#786B5B;font-size:.74rem;font-weight:700;font-family:inherit;white-space:nowrap;cursor:pointer;transition:.15s}
+.apt-due-filter:hover{border-color:var(--gold);color:var(--gold-dark)}
+.apt-due-filter.active{background:var(--charcoal);border-color:var(--charcoal);color:#fff}
+#apt-venc-banner{display:none;width:100%;min-height:44px;background:#FEE2E2;border:0;border-bottom:2px solid #FECACA;padding:9px 16px;align-items:center;gap:8px;color:#B91C1C;font-size:.82rem;font-weight:700;font-family:inherit;text-align:left;cursor:pointer;touch-action:manipulation}
+#apt-vencidos-alert{min-height:44px}
+#apt-search{min-height:44px;padding-right:44px!important}
+#apt-search-clear{width:44px;height:44px}
+.apt-view-toggle button:focus-visible,.apt-due-filter:focus-visible,#apt-venc-banner:focus-visible,#apt-vencidos-alert:focus-visible{outline:3px solid rgba(201,164,98,.55);outline-offset:2px}
 
 /* CHECKOUT EXTRAS */
 .discount-row{display:flex;align-items:center;gap:5px;margin-bottom:5px}
@@ -564,7 +575,7 @@ button,a{touch-action:manipulation}
 .apt-abonos-section{border-top:1px solid #F0E8DC;padding-top:10px}
 .apt-abonos-section-inline{border-top:1px solid #F0E8DC;padding-top:8px;margin-bottom:10px}
 .apt-btns{display:flex;gap:6px;align-items:stretch;flex-wrap:wrap}
-.btn-cancelar-apt{flex-shrink:0;width:42px;height:42px;padding:0;border-radius:8px;border:1.5px solid #FECACA;background:#FEF2F2;color:#DC2626;font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;line-height:1;font-weight:700}
+.btn-cancelar-apt{flex-shrink:0;width:44px;height:44px;padding:0;border-radius:8px;border:1.5px solid #FECACA;background:#FEF2F2;color:#DC2626;font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;line-height:1;font-weight:700}
 .btn-cancelar-apt:hover{background:#FEE2E2;border-color:#FCA5A5}
 /* Desktop grid */
 @media(min-width:768px){
@@ -581,51 +592,53 @@ button,a{touch-action:manipulation}
 /* ── APT PAGE — overlay full-screen en desktop ── */
 #apt-page{display:none;position:fixed;inset:0;z-index:1100;background:#F5EFE7;flex-direction:column}
 .apt-page-head{background:var(--charcoal);color:#fff;padding:0 20px;height:54px;display:flex;align-items:center;gap:12px;flex-shrink:0}
-.apt-page-back{background:none;border:none;color:rgba(255,255,255,.75);font-size:.82rem;font-weight:600;cursor:pointer;padding:6px 10px;border-radius:8px;font-family:inherit;transition:.15s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.apt-page-back{background:none;border:none;color:rgba(255,255,255,.75);font-size:.82rem;font-weight:600;cursor:pointer;padding:6px 10px;min-height:44px;border-radius:8px;font-family:inherit;transition:.15s;display:flex;align-items:center;gap:5px;white-space:nowrap}
 .apt-page-back:hover{background:rgba(255,255,255,.1);color:#fff}
 .apt-page-title{font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;white-space:nowrap}
 .apt-page-count{font-size:.72rem;color:rgba(255,255,255,.55);margin-left:2px}
 .apt-page-search-wrap{flex:1;max-width:340px;margin-left:auto;position:relative}
-.apt-page-search-wrap input{width:100%;padding:7px 30px 7px 12px;border:1.5px solid rgba(255,255,255,.2);border-radius:8px;background:rgba(255,255,255,.1);color:#fff;font-size:.83rem;font-family:inherit;outline:none;transition:.15s}
+.apt-page-search-wrap input{width:100%;height:44px;padding:7px 44px 7px 12px;border:1.5px solid rgba(255,255,255,.2);border-radius:8px;background:rgba(255,255,255,.1);color:#fff;font-size:.83rem;font-family:inherit;outline:none;transition:.15s}
 .apt-page-search-wrap input::placeholder{color:rgba(255,255,255,.45)}
 .apt-page-search-wrap input:focus{border-color:var(--gold);background:rgba(255,255,255,.15)}
-.apt-page-search-clear{position:absolute;right:7px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,.5);font-size:.95rem;line-height:1;padding:2px;display:none}
+.apt-page-search-clear{position:absolute;right:0;top:50%;transform:translateY(-50%);width:44px;height:44px;background:none;border:none;cursor:pointer;color:rgba(255,255,255,.5);font-size:.95rem;line-height:1;padding:2px;display:none}
 .apt-page-body{flex:1;overflow-y:auto;padding:18px 20px}
+.apt-page-body>.apt-due-filters{margin-bottom:10px;padding-bottom:0}
 .apt-page-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;align-content:start}
 /* Compact card */
-.apc-card{background:#fff;border-radius:12px;border:1.5px solid #EDE0CF;box-shadow:0 1px 4px rgba(28,24,23,.06);padding:12px 14px;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .1s}
+.apc-card{display:block;width:100%;background:#fff;border-radius:12px;border:1.5px solid #EDE0CF;box-shadow:0 1px 4px rgba(28,24,23,.06);padding:12px 14px;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .1s}
 .apc-card:hover{border-color:var(--gold);box-shadow:0 3px 10px rgba(201,164,98,.18);transform:translateY(-1px)}
+.apc-card:focus-visible,.apt-page-back:focus-visible,.apt-page-search-clear:focus-visible,.adm-close:focus-visible,.adm-footer button:focus-visible,.apt-item-row[role="button"]:focus-visible{outline:3px solid rgba(201,164,98,.55);outline-offset:2px}
 .apc-card.apt-overdue{border-color:#FECACA;border-width:2.5px}
 .apc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px}
 .apc-name{font-size:.88rem;font-weight:700;color:var(--charcoal);line-height:1.2}
 .apc-pending{font-size:.92rem;font-weight:800;color:var(--red);white-space:nowrap;flex-shrink:0}
 .apc-pending.zero{color:#6B9E78}
-.apc-meta{font-size:.72rem;color:#9B8B78;margin-bottom:4px}
-.apc-due{font-size:.7rem;font-weight:700;margin-bottom:6px}
-.apc-bar{height:4px;background:#EDE6DC;border-radius:50px;overflow:hidden}
-.apc-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-dark));border-radius:50px}
+.apc-meta{display:block;font-size:.72rem;color:#9B8B78;margin-bottom:4px}
+.apc-due{display:block;font-size:.7rem;font-weight:700;margin-bottom:6px}
+.apc-bar{display:block;height:4px;background:#EDE6DC;border-radius:50px;overflow:hidden}
+.apc-fill{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-dark));border-radius:50px}
 /* Detail modal */
 #apt-detail-modal{display:none;position:fixed;inset:0;z-index:1200;background:rgba(20,15,12,.5);align-items:center;justify-content:center;padding:16px}
 .adm-box{background:#fff;border-radius:16px;width:min(520px,100%);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.28)}
 .adm-head{padding:18px 20px 14px;border-bottom:1px solid #EDE0CF;display:flex;align-items:flex-start;gap:12px;flex-shrink:0}
 .adm-head-info{flex:1;min-width:0}
-.adm-customer{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:600;line-height:1.2;margin-bottom:3px}
+.adm-customer{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:600;line-height:1.2;margin:0 0 3px}
 .adm-meta{font-size:.74rem;color:#9B8B78}
-.adm-close{background:none;border:none;font-size:1.1rem;cursor:pointer;color:#9B8B78;padding:2px;flex-shrink:0;line-height:1;margin-top:-2px}
+.adm-close{background:none;border:none;font-size:1.1rem;cursor:pointer;color:#9B8B78;padding:2px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;margin-top:-8px}
 .adm-close:hover{color:var(--charcoal)}
 .adm-body{flex:1;overflow-y:auto;padding:16px 20px}
 .adm-section-title{font-size:.68rem;font-weight:700;color:#9B8B78;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
 .adm-footer{padding:12px 20px 16px;border-top:1px solid #EDE0CF;flex-shrink:0;display:flex;gap:8px}
-.adm-footer .btn-wa-reminder{width:40px;height:40px;border-radius:10px}
-.adm-footer .btn-abonar{flex:1;height:40px;font-size:.82rem}
-.adm-footer .btn-liquidar{flex:1;height:40px;font-size:.82rem}
-.adm-footer .btn-edit-apt{width:40px;height:40px;border-radius:10px;border:1.5px solid var(--border);background:#F7F2EB;color:var(--charcoal);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0}
+.adm-footer .btn-wa-reminder{width:44px;height:44px;border-radius:10px}
+.adm-footer .btn-abonar{flex:1;height:44px;font-size:.82rem}
+.adm-footer .btn-liquidar{flex:1;height:44px;font-size:.82rem}
+.adm-footer .btn-edit-apt{width:44px;height:44px;border-radius:10px;border:1.5px solid var(--border);background:#F7F2EB;color:var(--charcoal);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0}
 .adm-footer .btn-edit-apt:hover{background:var(--gold-light);border-color:var(--gold)}
-.btn-abonar{flex:1;height:42px;padding:0 9px;border-radius:8px;border:1.5px solid var(--gold);background:#fff;color:var(--gold-dark);font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;display:flex;align-items:center;justify-content:center}
+.btn-abonar{flex:1;height:44px;padding:0 9px;border-radius:8px;border:1.5px solid var(--gold);background:#fff;color:var(--gold-dark);font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;display:flex;align-items:center;justify-content:center}
 .btn-abonar:hover{background:var(--gold-light)}
-.btn-liquidar{flex:1;height:42px;padding:0 9px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;display:flex;align-items:center;justify-content:center}
+.btn-liquidar{flex:1;height:44px;padding:0 9px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;display:flex;align-items:center;justify-content:center}
 .btn-liquidar:hover{background:#1B4332}
-.btn-wa-reminder{flex-shrink:0;width:42px;height:42px;padding:0;border-radius:8px;border:none;background:#25D366;color:#fff;font-size:1.05rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;line-height:1}
+.btn-wa-reminder{flex-shrink:0;width:44px;height:44px;padding:0;border-radius:8px;border:none;background:#25D366;color:#fff;font-size:1.05rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;line-height:1}
 .btn-wa-reminder:hover{background:#1da851;transform:scale(1.05)}
 /* HISTORIAL DE ABONOS */
 .apt-abonos{margin:0 0 4px;border-top:1px solid #F0E8DC;padding-top:7px}
@@ -831,8 +844,8 @@ button,a{touch-action:manipulation}
   .pos-view-toggle + .pos-sort-sep{display:none}
   .apt-btns{gap:5px}
   .apt-btns>.btn-wa-reminder:first-child{display:none}
-  .btn-abonar,.btn-liquidar{font-size:.74rem;padding:0 7px;height:38px}
-  .btn-cancelar-apt{width:38px;height:38px;font-size:.9rem}
+  .btn-abonar,.btn-liquidar{font-size:.74rem;padding:0 7px;height:44px}
+  .btn-cancelar-apt{width:44px;height:44px;font-size:.9rem}
   /* Frecuentes — versión compacta (solo imagen + precio) */
   .pos-freq-bar.visible{padding:6px 10px 8px;gap:6px}
   .pos-freq-card{width:58px;padding:3px 2px;gap:2px}

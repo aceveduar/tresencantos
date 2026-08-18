@@ -26,7 +26,7 @@
   </div>
   <!-- DERECHA: acciones de Caja + nav de módulos + usuario + salir -->
   <div class="topbar-right">
-    <button id="apt-vencidos-alert" style="display:none;background:#FEE2E2;color:#E85D5D;border:1.5px solid #FECACA;border-radius:50px;padding:4px 12px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s" onclick="openApartados()" title="Ver apartados vencidos">⚠️ <span id="apt-vencidos-count"></span></button>
+    <button type="button" id="apt-vencidos-alert" style="display:none;background:#FEE2E2;color:#E85D5D;border:1.5px solid #FECACA;border-radius:50px;padding:4px 12px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s" onclick="openApartados('vencidos')" aria-label="Ver apartados vencidos" title="Ver apartados vencidos">⚠️ <span id="apt-vencidos-count"></span></button>
     <button id="btn-apt-pos" onclick="openApartados()" title="Apartados">
       <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
       <span class="btn-label">Apartados</span>
@@ -72,11 +72,11 @@
 </div>
 
 <!-- BANNER APARTADOS VENCIDOS -->
-<div id="apt-venc-banner" style="display:none;background:#FEE2E2;border-bottom:2px solid #FECACA;padding:9px 16px;cursor:pointer;display:none;align-items:center;gap:8px;font-size:.82rem;font-weight:700;color:#B91C1C;touch-action:manipulation" onclick="openApartados()">
+<button type="button" id="apt-venc-banner" onclick="openApartados('vencidos')" aria-label="Ver apartados vencidos">
   <span style="font-size:1rem">⚠️</span>
   <span id="apt-venc-banner-txt"></span>
   <span style="margin-left:auto;font-size:.75rem;font-weight:600;opacity:.7">Ver →</span>
-</div>
+</button>
 
 <!-- MAIN -->
 <div class="pos-body">
@@ -513,66 +513,80 @@
 </div>
 
 <!-- APARTADOS OFFCANVAS -->
-<div class="history-backdrop" id="apt-backdrop" onclick="closeApartados()" style="display:none"></div>
-<div class="history-offcanvas" id="apt-offcanvas">
+<div class="history-backdrop" id="apt-backdrop" onclick="closeApartados()" style="display:none" aria-hidden="true"></div>
+<aside class="history-offcanvas" id="apt-offcanvas" role="dialog" aria-modal="true" aria-labelledby="apt-oc-title" aria-hidden="true">
   <div class="history-oc-head">
     <div>
       <div class="history-oc-title" id="apt-oc-title">📌 Apartados pendientes</div>
       <div id="apt-oc-count" style="font-size:.74rem;color:var(--muted);margin-top:1px"></div>
     </div>
-    <button class="history-oc-close" onclick="closeApartados()">✕</button>
+    <button type="button" class="history-oc-close" onclick="closeApartados()" aria-label="Cerrar apartados">✕</button>
   </div>
   <div style="padding:8px 12px 4px;border-bottom:1px solid var(--border)">
-    <div class="apt-view-toggle" id="apt-view-toggle-oc" style="margin-bottom:8px">
-      <button class="active" data-mode="activos" onclick="toggleAptView('activos','oc')">Activos</button>
-      <button data-mode="liquidados" onclick="toggleAptView('liquidados','oc')">Liquidados</button>
+    <div class="apt-view-toggle" id="apt-view-toggle-oc" style="margin-bottom:8px" role="tablist" aria-label="Estado de los apartados" onkeydown="aptViewTabKeydown(event,'oc')">
+      <button type="button" class="active" role="tab" aria-selected="true" aria-controls="apt-offcanvas-list" data-mode="activos" onclick="selectAptView('activos','oc')">Activos</button>
+      <button type="button" role="tab" aria-selected="false" aria-controls="apt-offcanvas-list" tabindex="-1" data-mode="liquidados" onclick="selectAptView('liquidados','oc')">Liquidados</button>
+    </div>
+    <div class="apt-due-filters" id="apt-due-filters-oc" role="group" aria-label="Filtrar activos por vencimiento">
+      <button type="button" class="apt-due-filter active" data-due-filter="todos" aria-pressed="true" onclick="setAptDueFilter('todos','offcanvas')">Todos</button>
+      <button type="button" class="apt-due-filter" data-due-filter="vencidos" aria-pressed="false" onclick="setAptDueFilter('vencidos','offcanvas')">Vencidos</button>
+      <button type="button" class="apt-due-filter" data-due-filter="proximos" aria-pressed="false" onclick="setAptDueFilter('proximos','offcanvas')">Próximos 7 días</button>
+      <button type="button" class="apt-due-filter" data-due-filter="sin-fecha" aria-pressed="false" onclick="setAptDueFilter('sin-fecha','offcanvas')">Sin fecha</button>
     </div>
     <div style="position:relative">
       <input type="text" id="apt-search" placeholder="🔍 Buscar cliente..." autocomplete="off"
+        aria-label="Buscar apartado por cliente"
         style="width:100%;padding:8px 32px 8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;outline:none;font-family:inherit;box-sizing:border-box"
-        oninput="filterApartados(this.value)"
+        oninput="filterApartadosWithDue(this.value,'offcanvas')"
         onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
-      <button id="apt-search-clear" onclick="clearAptSearch()" style="display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:1rem;line-height:1;padding:2px">✕</button>
+      <button type="button" id="apt-search-clear" onclick="clearAptSearchWithDue('offcanvas')" aria-label="Limpiar búsqueda" style="display:none;position:absolute;right:2px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:1rem;line-height:1;padding:2px">✕</button>
     </div>
   </div>
-  <div class="history-oc-body" id="apt-offcanvas-list">
+  <div class="history-oc-body" id="apt-offcanvas-list" role="tabpanel" aria-live="polite">
     <div class="history-empty">Cargando…</div>
   </div>
-</div>
+</aside>
 
 <!-- APT PAGE — full-screen overlay en desktop -->
-<div id="apt-page">
+<div id="apt-page" role="dialog" aria-modal="true" aria-labelledby="apt-page-title" aria-hidden="true">
   <div class="apt-page-head">
-    <button class="apt-page-back" onclick="closeAptPage()">← Caja</button>
-    <span class="apt-page-title">📌 Apartados</span>
+    <button type="button" class="apt-page-back" onclick="closeAptPage()" aria-label="Volver a Caja">← Caja</button>
+    <span class="apt-page-title" id="apt-page-title">📌 Apartados</span>
     <span class="apt-page-count" id="apt-page-count"></span>
-    <div class="apt-view-toggle" id="apt-view-toggle-page">
-      <button class="active" data-mode="activos" onclick="toggleAptView('activos','page')">Activos</button>
-      <button data-mode="liquidados" onclick="toggleAptView('liquidados','page')">Liquidados</button>
+    <div class="apt-view-toggle" id="apt-view-toggle-page" role="tablist" aria-label="Estado de los apartados" onkeydown="aptViewTabKeydown(event,'page')">
+      <button type="button" class="active" role="tab" aria-selected="true" aria-controls="apt-page-list" data-mode="activos" onclick="selectAptView('activos','page')">Activos</button>
+      <button type="button" role="tab" aria-selected="false" aria-controls="apt-page-list" tabindex="-1" data-mode="liquidados" onclick="selectAptView('liquidados','page')">Liquidados</button>
     </div>
     <div class="apt-page-search-wrap">
       <input type="text" id="apt-page-search" placeholder="🔍 Buscar cliente..." autocomplete="off"
-        oninput="filterApartados(this.value,'page')"
+        aria-label="Buscar apartado por cliente"
+        oninput="filterApartadosWithDue(this.value,'page')"
         onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor=''">
-      <button class="apt-page-search-clear" id="apt-page-search-clear" onclick="clearAptPageSearch()">✕</button>
+      <button type="button" class="apt-page-search-clear" id="apt-page-search-clear" onclick="clearAptPageSearch()" aria-label="Limpiar búsqueda">✕</button>
     </div>
   </div>
   <div class="apt-page-body">
-    <div class="apt-page-grid" id="apt-page-list">
+    <div class="apt-due-filters" id="apt-due-filters-page" role="group" aria-label="Filtrar activos por vencimiento">
+      <button type="button" class="apt-due-filter active" data-due-filter="todos" aria-pressed="true" onclick="setAptDueFilter('todos','page')">Todos</button>
+      <button type="button" class="apt-due-filter" data-due-filter="vencidos" aria-pressed="false" onclick="setAptDueFilter('vencidos','page')">Vencidos</button>
+      <button type="button" class="apt-due-filter" data-due-filter="proximos" aria-pressed="false" onclick="setAptDueFilter('proximos','page')">Próximos 7 días</button>
+      <button type="button" class="apt-due-filter" data-due-filter="sin-fecha" aria-pressed="false" onclick="setAptDueFilter('sin-fecha','page')">Sin fecha</button>
+    </div>
+    <div class="apt-page-grid" id="apt-page-list" role="tabpanel" aria-live="polite">
       <div class="history-empty" style="grid-column:1/-1">Cargando…</div>
     </div>
   </div>
 </div>
 
 <!-- APT DETAIL MODAL -->
-<div id="apt-detail-modal" onclick="_aptDetailBackdrop(event)">
-  <div class="adm-box">
+<div id="apt-detail-modal" role="dialog" aria-modal="true" aria-labelledby="adm-customer" aria-hidden="true" onclick="_aptDetailBackdrop(event)">
+  <div class="adm-box" role="document">
     <div class="adm-head">
       <div class="adm-head-info">
-        <div class="adm-customer" id="adm-customer"></div>
+        <h2 class="adm-customer" id="adm-customer" tabindex="-1"></h2>
         <div class="adm-meta" id="adm-meta"></div>
       </div>
-      <button class="adm-close" onclick="closeAptDetail()">✕</button>
+      <button type="button" class="adm-close" onclick="closeAptDetail()" aria-label="Cerrar detalle del apartado">✕</button>
     </div>
     <div class="adm-body" id="adm-body"></div>
     <div class="adm-footer" id="adm-footer"></div>
