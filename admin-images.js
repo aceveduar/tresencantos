@@ -7,6 +7,74 @@ let _showBatch   = false;
 let _showRecv    = false;
 let _userNames   = {};  // { "email@x.com": "Nombre visible" }
 
+// Fuente única para las tres entradas de IA del Inventario: formulario,
+// Captura rápida y Carga masiva.
+const GROQ_VISION_MODEL = 'qwen/qwen3.6-27b';
+const GROQ_VISION_URL   = 'https://api.groq.com/openai/v1/chat/completions';
+
+function _groqErrorMessage(status, apiMessage) {
+  if (status === 401) return 'La clave de Groq no es válida o fue revocada';
+  if (status === 413) return 'La imagen es demasiado pesada para analizarla';
+  if (status === 429) return 'Groq alcanzó su límite temporal; intenta de nuevo en un momento';
+  if (status >= 500) return 'Groq no está disponible temporalmente; intenta de nuevo';
+  return apiMessage || `Groq respondió con error ${status}`;
+}
+
+async function _groqVisionJson(imageDataUrl, { systemPrompt = '', userPrompt = '', maxCompletionTokens = 700 } = {}) {
+  if (!groqApiKey) throw new Error('Configura la IA en Configuración');
+  if (!imageDataUrl) throw new Error('Primero agrega una imagen');
+
+  // Qwen recomienda concentrar las instrucciones en el mensaje de usuario.
+  // JSON mode evita depender de que el modelo respete “sin markdown”.
+  const prompt = [systemPrompt, userPrompt, 'Responde únicamente con un objeto JSON válido.']
+    .filter(Boolean)
+    .join('\n\n');
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+  let response;
+  try {
+    response = await fetch(GROQ_VISION_URL, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqApiKey}` },
+      body: JSON.stringify({
+        model: GROQ_VISION_MODEL,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: imageDataUrl } }
+          ]
+        }],
+        response_format: { type: 'json_object' },
+        reasoning_effort: 'none',
+        temperature: 0.3,
+        max_completion_tokens: maxCompletionTokens,
+        stream: false
+      })
+    });
+  } catch (err) {
+    if (err?.name === 'AbortError') throw new Error('La IA tardó demasiado; intenta con otra foto');
+    throw new Error('No se pudo conectar con Groq; revisa tu conexión');
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(_groqErrorMessage(response.status, data?.error?.message));
+
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('La IA devolvió una respuesta vacía');
+  try {
+    const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+    if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') throw new Error();
+    return parsed;
+  } catch {
+    throw new Error('La IA devolvió datos con un formato inválido');
+  }
+}
+
 function _creatorName(email) {
   if (!email) return '';
   const name = _userNames[email] || email.split('@')[0];
@@ -284,8 +352,7 @@ function hideAiFormBtn() {
 
 async function analyzeFormImage() {
   if (!currentFormImageDataUrl) { toast('Primero sube una imagen', 'error'); return; }
-  const key = groqApiKey;
-  if (!key) {
+  if (!groqApiKey) {
     const kp = document.getElementById('ai-key-prompt');
     if (kp) { kp.style.display = ''; document.getElementById('ai-key-prompt-input')?.focus(); }
     return;
@@ -400,30 +467,11 @@ OPCIONALES:
 • "price": número de etiqueta/plumón/empaque (ej: 350). Solo dígitos. NO confundas con ml, oz, g, tallas, %, lotes, códigos de barras. null si duda.
 
 Formato: {"name":"...","description":"...","category":"","price":null}`;
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({
-        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: [
-            { type: 'text', text: userPrompt },
-            { type: 'image_url', image_url: { url: currentFormImageDataUrl } }
-          ]}
-        ],
-        temperature: 0.3, max_tokens: 500
-      })
+    const parsed = await _groqVisionJson(currentFormImageDataUrl, {
+      systemPrompt,
+      userPrompt,
+      maxCompletionTokens: 700
     });
-    if (!response.ok) {
-      const eb = await response.json().catch(() => ({}));
-      throw new Error(eb?.error?.message || `Error ${response.status}`);
-    }
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || '';
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('La IA no devolvió un formato reconocible');
-    const parsed = JSON.parse(jsonMatch[0]);
     const flash = el => { el.classList.add('ai-filled'); setTimeout(() => el.classList.remove('ai-filled'), 1600); };
     if (parsed.name)        { const el = document.getElementById('f-name');        el.value = toTitleCase(_cleanAiName(parsed.name));  flash(el); }
     if (parsed.description) { const el = document.getElementById('f-description'); el.value = formatDescription(parsed.description); flash(el); }

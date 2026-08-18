@@ -40,7 +40,7 @@ async function _batchProcessFiles(files) {
   const btn = document.getElementById('batch-analyze-all-btn');
   for (const file of files) {
     const dataUrl = await _fileToBase64Resized(file);
-    _batchItems.push({ dataUrl, name: '', description: '', category: '', status: 'pending' });
+    _batchItems.push({ dataUrl, name: '', description: '', category: '', status: 'pending', error: '' });
   }
   _batchRenderCards();
   if (btn) btn.style.display = '';
@@ -68,7 +68,7 @@ function _batchRenderCards() {
       : item.status === 'done'
       ? '<div class="batch-status done">✓ Listo</div>'
       : item.status === 'error'
-      ? '<div class="batch-status error">✗ Error — reintenta</div>'
+      ? `<div class="batch-status error">✗ ${_esc(item.error || 'Error — reintenta')}</div>`
       : '';
     return `
 <div class="batch-card" id="bcard-${i}">
@@ -118,35 +118,17 @@ async function _batchCallGroq(dataUrl) {
   const catList = categories.map(c => c.code).join(', ');
   const systemPrompt = `Eres experto en productos de boutique mexicana. Analiza la imagen y responde SOLO JSON válido sin markdown.\nCategorías disponibles: ${catList}`;
   const userPrompt = `Devuelve JSON: {"name":"45-70 chars, marca+tipo+material+color/variante","description":"copy máx 160 chars, empieza con verbo activo, nunca con Este es","category":"código exacto o vacío si dudas","price":null}`;
-  const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqApiKey}` },
-    body: JSON.stringify({
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: [
-          { type: 'text', text: userPrompt },
-          { type: 'image_url', image_url: { url: dataUrl } }
-        ]}
-      ],
-      temperature: 0.3, max_tokens: 400
-    })
+  return _groqVisionJson(dataUrl, {
+    systemPrompt,
+    userPrompt,
+    maxCompletionTokens: 600
   });
-  if (!resp.ok) {
-    const eb = await resp.json().catch(() => ({}));
-    throw new Error(eb?.error?.message || `Error ${resp.status}`);
-  }
-  const data = await resp.json();
-  const text = data.choices?.[0]?.message?.content || '';
-  const m = text.match(/\{[\s\S]*\}/);
-  if (!m) throw new Error('Respuesta IA inválida');
-  return JSON.parse(m[0]);
 }
 
 async function _batchAnalyzeOne(idx) {
   if (!_batchItems[idx]) return;
   _batchItems[idx].status = 'analyzing';
+  _batchItems[idx].error = '';
   _batchRenderCards();
   try {
     const parsed = await _batchCallGroq(_batchItems[idx].dataUrl);
@@ -158,6 +140,8 @@ async function _batchAnalyzeOne(idx) {
   } catch (err) {
     console.error('Batch IA error:', err);
     _batchItems[idx].status = 'error';
+    _batchItems[idx].error = err?.message || 'Error — reintenta';
+    toast('Error IA: ' + _batchItems[idx].error, 'error');
   }
   _batchRenderCards();
 }
@@ -169,6 +153,7 @@ async function _batchAnalyzeAll() {
   for (let i = 0; i < _batchItems.length; i++) {
     if (_batchItems[i].status === 'analyzing') continue;
     _batchItems[i].status = 'analyzing';
+    _batchItems[i].error = '';
     _batchRenderCards();
     try {
       const parsed = await _batchCallGroq(_batchItems[i].dataUrl);
@@ -178,12 +163,19 @@ async function _batchAnalyzeAll() {
       _batchItems[i].category    = match ? match.code : '';
       _batchItems[i].status      = 'done';
     } catch (err) {
+      console.error('Batch IA error:', err);
       _batchItems[i].status = 'error';
+      _batchItems[i].error = err?.message || 'Error — reintenta';
     }
     _batchRenderCards();
     if (i < _batchItems.length - 1) await new Promise(r => setTimeout(r, 1500));
   }
   btn.disabled = false; btn.textContent = '✨ Analizar todo';
+  const failed = _batchItems.filter(item => item.status === 'error');
+  if (failed.length) {
+    const firstError = failed[0].error || 'No disponible';
+    toast(`IA: ${failed.length} imagen${failed.length !== 1 ? 'es' : ''} sin analizar — ${firstError}`, 'error');
+  }
 }
 
 async function _batchPublish() {

@@ -1,6 +1,8 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última actualización: 2026-06-18 (rev 41).
+Documentación técnica del proyecto. Última reconciliación con el repositorio: 2026-08-18 (rev 43).
+
+> **Fuente de verdad:** para comportamiento ejecutable manda el código actual; para reglas de negocio y decisiones UX manda este documento. Si una nota histórica contradice una sección vigente, prevalece la sección vigente más cercana al final del documento. Snapshot verificado: `sw.js` usa `CACHE_VERSION = 'v178'`.
 
 ## Rol de Claude en este proyecto
 
@@ -77,7 +79,6 @@ tresencantos/
 ├── admin-form.js        # Formulario CRUD, validación, save, kit editor, imágenes adicionales
 ├── admin-bulk.js        # Bulk actions, export/import JSON
 ├── admin-scanner.js     # Escáner, detección de duplicados, revisión, archivar
-├── admin-categories.js  # Category manager UI + drag&drop de categorías
 ├── admin-utils.js       # Voz, toast, revista, nombres de usuario, flags
 ├── admin-recv.js        # Modo Recepción de inventario
 ├── admin-capture.js     # Captura rápida + swipe + modal similar
@@ -109,13 +110,26 @@ tresencantos/
 ├── shared.js            # JS compartido entre módulos admin
 ├── manifest.json        # PWA manifest
 ├── sw.js                # Service Worker (PWA offline)
-├── icono-192.png        # Icono PWA
-├── icono-512.png        # Icono PWA
-├── logo.png
-├── ofelia.jpeg
-├── CLAUDE.md
-└── MANUAL.md            # Manual de usuario para Ofelia, Areli y Eduardo
+├── img/                  # Imágenes locales y recursos PWA
+│   ├── icono-192.png
+│   ├── icono-512.png
+│   ├── icono.png
+│   ├── logo.png
+│   ├── ofelia.jpeg
+│   ├── portada.jpg
+│   └── tresencantos_default.png
+├── assets/               # Documentación y archivos operativos internos
+│   ├── MANUAL.md         # Manual de usuario para Ofelia, Areli y Eduardo
+│   ├── Inventario_Maestro.xlsx
+│   ├── querys.sql
+│   └── tikets.md
+├── hero-image-brief.md   # Brief de la imagen del hero
+├── _update-operador-perms.sql # Migración puntual de permisos
+├── tiket.txt             # Archivo vacío legado; no es fuente de verdad
+└── CLAUDE.md
 ```
+
+El gestor de categorías no vive en un `admin-categories.js` separado: su interfaz y lógica vigentes están integradas en Configuración (`settings.html` / `settings.js`). Las carpetas `.git/`, `.vscode/` y `.claude/` son metadatos de herramientas y no forman parte de la aplicación desplegable. La carpeta local `Microsoft/` contiene caché de PowerShell y tampoco es parte de la aplicación.
 
 ### Navegación entre módulos
 Todos los módulos admin comparten una **topbar unificada** con íconos para: Caja, Inventario, Reportes, Actividad, Configuración, Tienda y Cerrar sesión. No hay botón "atrás" — la navegación es siempre desde la topbar.
@@ -126,14 +140,16 @@ En mobile algunos módulos pueden ocultar ítems según rol. `settings.html` red
 
 ## Supabase
 
-### Credenciales (hardcodeadas por archivo)
-| Archivo | Key | Razón |
+### Autenticación y claves en el cliente
+| Archivo | Credencial pública | Autorización efectiva |
 |---|---|---|
-| `app.js` | Anon key | Solo SELECT público — seguro |
-| `admin.js` (y todos los `admin-*.js`), `pos-core.js`, `stats.js`, `activity.js`, `settings.js` | Service role key | Bypasea RLS para escritura |
+| `app.js` | `SUPABASE_ANON_KEY` | Anon; solo lecturas permitidas por RLS |
+| `admin.js` y `admin-*.js` | `SUPABASE_ANON_KEY` como `apikey` | JWT de `te_admin_session` como Bearer |
+| `pos-core.js` y `pos-*.js` | `SUPABASE_ANON_KEY` como `apikey` | JWT de `te_admin_session` como Bearer |
+| `stats.js`, `activity.js`, `settings.js` | `SUPABASE_ANON_KEY` como `apikey` | JWT de `te_admin_session` como Bearer |
 
 - **Project URL:** `https://qxvrggmpaqhslgdmbhqw.supabase.co`
-- **Regla de oro:** nunca poner service role key en `app.js`
+- **Regla de oro:** nunca incluir una `service_role key` en ningún archivo servido al navegador. Las operaciones privilegiadas se controlan con RLS, JWT y RPC `SECURITY DEFINER` de alcance limitado.
 
 ### Tablas
 
@@ -338,7 +354,8 @@ Incluye **migración automática**: si los valores no están en Supabase pero s�
 ### IA en formulario de producto
 Aparece el botón **"✨ Completar con IA"** al subir una imagen (galería, cámara o drag & drop):
 - Usa `groqApiKey` global (cargado de Supabase)
-- Modelo: `meta-llama/llama-4-scout-17b-16e-instruct` vía `https://api.groq.com/openai/v1/chat/completions`
+- Modelo de visión vigente: `qwen/qwen3.6-27b` vía `https://api.groq.com/openai/v1/chat/completions`
+- Las tres entradas usan `_groqVisionJson()` (`admin-images.js`) con JSON mode, `reasoning_effort:'none'`, timeout y mensajes de error legibles
 - Rellena: nombre, descripción, categoría con animación de destello dorado
 - Si no hay key configurada: muestra mini input inline para pegarla (se guarda en Supabase al confirmar)
 - `currentFormImageDataUrl` guarda el base64 de la imagen actual para el análisis
@@ -610,6 +627,7 @@ Si se quitan todas las imágenes, la tira muestra "Sin imágenes — sube una ar
   - Tienda pública sin cambios — mostrar caducidad a la clienta es una decisión de negocio (ej. liquidación) que Ofelia no ha pedido.
   - CACHE_VERSION v138→v139.
 - **Fix datos — 95 productos huérfanos por categorías eliminadas sin migrar (2026-07-01)** — reportado como "no encuentro los aretes al filtrar por categoría". Diagnóstico vía REST API con la anon key (solo lectura, sin tocar código): los 95 productos seguían con `category` apuntando a códigos que ya no existían en `config.id='categories'` (raíz "Joyería" con sus subcategorías, y raíz "Regalos" — ver detalle en "Categorías dinámicas" arriba). No fue un bug de código — el filtro funciona correctamente, el problema era la BD. Corregido con SQL directo en Supabase (mismo flujo que otras migraciones de este documento): 88 productos de joyería reasignados a `bisuteria` (Bisutería & Joyería), y la raíz `regalos` restaurada en la configuración de categorías para los 7 productos que ya la usaban. Sin cambios de código — pura corrección de datos.
+- **IA de productos — migración de modelo y cliente unificado (2026-08-18)** — Groq retiró `meta-llama/llama-4-scout-17b-16e-instruct` el 2026-07-17, dejando sin servicio el formulario con foto, Captura rápida y Carga masiva. Los tres flujos ahora usan `qwen/qwen3.6-27b` mediante `_groqVisionJson()` en `admin-images.js`, con JSON mode, `reasoning_effort:'none'`, timeout de 45 s y errores legibles para clave inválida, límites, tamaño de imagen y conexión. Captura rápida ahora conserva en `products.description` la descripción que ya solicitaba a la IA pero antes descartaba. `CACHE_VERSION` v177→v178.
 
 ---
 
@@ -670,9 +688,9 @@ Bottom sheet `#restock-prompt` que aparece en dos situaciones:
 
 ---
 
-## Stats (`stats.html`)
+## Reportes (`stats.html`)
 
-- Auth: mismo JWT check; service role key
+- Auth: mismo JWT check; `SUPABASE_ANON_KEY` como `apikey` + JWT activo como Bearer
 - Períodos: Hoy / 7 días / 30 días / Todo
 - **KPIs con comparación:** Ingresos, ventas y ticket promedio muestran delta % vs período anterior equivalente
 - **Gráficas (Chart.js CDN):** ingresos por día (barra), ventas por categoría (donut), hora pico por hora del día (barra, dorado = hora más rentable)
@@ -699,9 +717,10 @@ Overlay dentro del Inventario — botón 📸 Masivo en topbar (solo superadmin)
 4. "Publicar listas" → crea productos en Supabase con `is_published=false` y `price=0`
 5. En el Inventario: ajustar precio y activar "Publicar en sitio web" cuando estén listos
 
-**IA con Groq (Llama 4 Scout Vision):**
+**IA con Groq (Qwen 3.6 Vision):**
 - API Key leída de `config.id='groq_key'` en Supabase — compartida con admin
-- Modelo: `meta-llama/llama-4-scout-17b-16e-instruct` vía `https://api.groq.com/openai/v1/chat/completions`
+- Modelo: `qwen/qwen3.6-27b` vía `https://api.groq.com/openai/v1/chat/completions`
+- Helper compartido: `_groqVisionJson()` en `admin-images.js`; también lo usan el formulario y Captura rápida
 - Extrae nombre (<60 chars), descripción (<200 chars) y categoría
 - 1.5s de pausa entre llamadas en análisis masivo (free tier: ~30 req/min)
 - Free tier de Groq: sin restricción regional, sin tarjeta de crédito, ~1000 req/día
@@ -925,7 +944,7 @@ El QV (`#qv-overlay`) es el modal de vista rápida del producto en el Inventario
 
 La deuda técnica de `service_role_key` expuesta en JS estáticos fue resuelta con RLS + JWT del usuario autenticado:
 
-**Cambios en Supabase (correr `_rls-setup.sql` en SQL Editor):**
+**Cambios ya aplicados en Supabase:**
 - `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` en: `products`, `sales`, `config`, `activity_log`, `recently_edited`
 - Función helper `get_user_role()` extrae `user_metadata.role` del JWT activo
 - Políticas por tabla y operación — alineadas con la matriz de roles del documento
@@ -940,23 +959,28 @@ La deuda técnica de `service_role_key` expuesta en JS estáticos fue resuelta c
 - Clientes Realtime (`window.supabase.createClient`) actualizados con `global.headers.Authorization` usando el JWT del usuario
 - CACHE_VERSION v48→v49
 
-**Archivo de referencia:** `_rls-setup.sql` en raíz del proyecto — SQL completo para correr en Supabase SQL Editor. Eliminarlo después de aplicar (o mantenerlo para referencia).
+**Estado del archivo:** `_rls-setup.sql` ya fue ejecutado y eliminado del repositorio. La referencia histórica detallada permanece en este documento; no asumir que existe un archivo local para volver a ejecutarlo.
 
-**Rollback de emergencia:** si algo falla después del deploy, restaurar en el archivo afectado:
+**Patrón vigente de autorización:**
 ```
 apikey: SUPABASE_ANON_KEY,
 Authorization: `Bearer ${_getXXXToken()}`,
 ```
-→ volver a `SUPABASE_SERVICE_KEY` / `Bearer ${SUPABASE_SERVICE_KEY}` mientras se diagnostica.
+Si una operación falla, revisar primero sesión, JWT, políticas RLS y permisos del RPC. **Nunca usar una `service_role key` en el cliente como rollback.**
 
 ## Deudas Técnicas
 
-No hay deudas técnicas conocidas. El sistema está production-ready:
+El sistema está en estado operativo y cuenta con estas protecciones:
 - Seguridad: RLS + JWT, sin service_role_key en cliente, XSS sweep completo
 - Ventas: atómicas via `record_sale_atomic` (validación server-side, sin oversell)
 - Performance: lazy loading CDN, Drive thumbnails sized, Chart.js diferido, font preconnects
 - Offline: banner + caché de productos en localStorage + cobrar() bloqueado sin conexión
 - UX/UI: auditoría completa de 6 módulos (mobile-first 360–430px)
+
+Pendientes de higiene documental/local que no afectan la ejecución:
+- `tiket.txt` está vacío y es legado; la documentación útil de tickets está en `assets/tikets.md`.
+- `Microsoft/Windows/PowerShell/ModuleAnalysisCache` es caché local de PowerShell y no debe desplegarse.
+- `_update-operador-perms.sql` es una migración puntual; confirmar su estado en Supabase antes de volver a ejecutarla.
 
 ---
 
@@ -971,12 +995,12 @@ No hay deudas técnicas conocidas. El sistema está production-ready:
 - **Batch upsert:** body array JSON + header `Prefer: resolution=merge-duplicates`
 - **PostgREST batch PATCH:** usar lotes de máx 10 IDs en `?id=in.(...)` — listas más largas pueden retornar 204 sin aplicar cambios
 - **Librerías CDN:** @ericblade/quagga2 (escáner, carga dinámica desde unpkg sin pin de versión), Chart.js@4 (stats)
-- **IA:** Groq Llama 4 Scout Vision — key en `config` Supabase (`groq_key`), compartida entre admin (`admin-images.js`) y carga masiva (`admin-batch.js`)
+- **IA:** Groq Qwen 3.6 Vision (`qwen/qwen3.6-27b`) — key en `config` Supabase (`groq_key`); `_groqVisionJson()` en `admin-images.js` centraliza formulario, Captura rápida y Carga masiva. Llama 4 Scout fue retirado por Groq el 2026-07-17 y no debe reintroducirse.
 - **Google Drive:** Apps Script como proxy. Secreto en `config` Supabase (`drive_secret`), nunca en código fuente. Al cambiar el secreto → siempre desplegar nueva versión del Apps Script.
 - `position` lo gestiona el admin — sitio público y POS ordenan por él
-- **PWA:** `manifest.json` + `sw.js` + íconos `icono-192.png` / `icono-512.png`. En iOS Safari no hay prompt automático de instalación — el usuario debe ir a Compartir → Agregar a pantalla de inicio.
+- **PWA:** `manifest.json` + `sw.js` + íconos `img/icono-192.png` / `img/icono-512.png`. En iOS Safari no hay prompt automático de instalación — el usuario debe ir a Compartir → Agregar a pantalla de inicio.
 - **⚠️ `sw.js` cachea TODOS los archivos propios (stale-while-revalidate), no solo `STATIC`** — cualquier `.js`/`.html`/`.css` del proyecto (incluye `admin-scanner.js`, `pos-checkout.js`, etc.) se sirve desde caché en cada carga aunque ya exista una versión nueva en el servidor; la red solo actualiza el caché para la *siguiente* carga. Por eso, tras un `git push` con cambios de JS/HTML/CSS, **subir `CACHE_VERSION` en `sw.js`** (ej. `v24` → `v25`) — esto borra el caché viejo en `activate`. Aun así, por el ciclo de vida de Service Workers (`skipWaiting`+`clients.claim` activa el nuevo SW pero no reemplaza assets ya cargados en la pestaña actual), el usuario puede necesitar **recargar dos veces** (o cerrar y reabrir la pestaña/PWA) para ver el cambio reflejado. Sin este bump, los cambios de código pueden tardar varias cargas en aparecer — causa de confusión real durante pruebas en dispositivo (2026-06-11: 4 commits de fixes de escáner sin bump de `CACHE_VERSION`).
-- **Documentación de usuario:** `MANUAL.md` en la raíz — guía para Ofelia, Areli y Eduardo, sin tecnicismos
+- **Documentación de usuario:** `assets/MANUAL.md` — guía para Ofelia, Areli y Eduardo, sin tecnicismos
 - **Galería de imágenes:** CSS en `style.css` (modal tienda) y en `admin.html` `<style>` inline (QV). Clases: `.modal-gallery`, `.mgd` (tienda) / `.qv-gallery`, `.qv-gd` (admin)
 - **Gestos táctiles:** nunca usar `stopPropagation` en handlers de swipe — rompe la detección de dirección. Siempre `{ passive: true }` salvo que se necesite `preventDefault` (en ese caso documentarlo)
 - **Drag & drop en mobile:** la API HTML5 de drag & drop no funciona en iOS Safari. Usar "📌 Al inicio" como alternativa para reordenar desde móvil.
