@@ -684,7 +684,9 @@ let _historyLoadGeneration = 0;
 async function loadHistory() {
   const loadGeneration = ++_historyLoadGeneration;
   const saleFields = 'id,total,created_at,items,payment_method,type,origin_type,status,customer,discount,note,paid_amount,abonos,seller_email,cancelled_at,version';
-  const result = await _posFetchAll(`sale_payments?select=id,request_id,request_line,amount,kind,method,paid_at,recorded_at,is_estimated,source,collected_by_email,sale:sales(${saleFields})&order=paid_at.desc.nullslast,recorded_at.desc,id.desc`);
+  // "Movimientos recientes" es una vista acotada, no el ledger completo —
+  // limit=50 evita traer toda la vida de la tienda en cada apertura.
+  const result = await api(`sale_payments?select=id,request_id,request_line,amount,kind,method,paid_at,recorded_at,is_estimated,source,collected_by_email,sale:sales(${saleFields})&order=paid_at.desc.nullslast,recorded_at.desc,id.desc&limit=50`);
   if (loadGeneration !== _historyLoadGeneration) return false;
   const el = document.getElementById('history-list');
   if (!result.ok) {
