@@ -59,6 +59,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .kpi-card:nth-child(6)::before{background:linear-gradient(90deg,#2dd4bf,#0d9488)}
 .kpi-icon{font-size:1.3rem;margin-bottom:10px;display:block}
 .kpi-value{font-family:'Playfair Display',serif;font-size:1.85rem;font-weight:600;line-height:1;color:var(--charcoal)}
+.kpi-value-money{font-family:'Inter',sans-serif;font-size:.7rem;font-weight:600;color:var(--muted);vertical-align:middle}
 .kpi-label{font-size:.68rem;color:var(--muted);margin-top:7px;letter-spacing:.07em;text-transform:uppercase;font-weight:500}
 .kpi-sub{font-size:.72rem;color:var(--muted-light);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 

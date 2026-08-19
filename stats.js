@@ -727,12 +727,12 @@ function renderVendedores() {
 
 // Anticipos, abonos y liquidaciones cobrados sobre apartados — mismo criterio
 // que "💳 Anticipos y abonos" en sendDailySummaryWA().
-function _abonoCount(paymentsArr) {
+function _abonoPayments(paymentsArr) {
   return (paymentsArr || []).filter(payment => {
     const sale = paymentSalesById.get(String(payment.sale_id));
     return payment.kind !== 'refund' && payment.kind !== 'adjustment'
       && _saleOrigin(sale) === 'apartado' && _paymentAmount(payment) > 0;
-  }).length;
+  });
 }
 
 /* KPIs con delta vs período anterior */
@@ -751,9 +751,12 @@ function renderKPIs() {
   const count     = sales.length;
   const units     = sales.reduce((s,v) => s + (v.items||[]).reduce((a,i) => a + (i.qty||1), 0), 0);
 
+  const salesTotal     = sales.reduce((s,v) => s + (parseFloat(v.total)||0), 0);
+
   const prevRev   = _paymentTotal(prevPayments);
   const prevCount = prevSales.length;
   const prevUnits = prevSales.reduce((s,v) => s + (v.items||[]).reduce((a,i) => a + (i.qty||1), 0), 0);
+  const prevSalesTotal = prevSales.reduce((s,v) => s + (parseFloat(v.total)||0), 0);
 
   const fmt = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX', {maximumFractionDigits:0})}`;
 
@@ -764,9 +767,10 @@ function renderKPIs() {
   document.getElementById('kpi-sales').innerHTML = salesLoaded
     ? count + (prevSalesLoaded ? kpiDelta(count, prevCount) : '')
     : '—';
+  document.getElementById('kpi-sales-money').textContent = salesLoaded && count > 0 ? fmt(salesTotal) : '';
   document.getElementById('kpi-sales-sub').textContent = !salesLoaded
     ? 'No disponible'
-    : prevSalesLoaded && prevCount > 0 ? `Período ant.: ${prevCount}` : '';
+    : prevSalesLoaded && prevCount > 0 ? `Período ant.: ${prevCount} · ${fmt(prevSalesTotal)}` : '';
   document.getElementById('kpi-avg').innerHTML = salesLoaded
     ? units + (prevSalesLoaded ? kpiDelta(units, prevUnits) : '')
     : '—';
@@ -789,14 +793,19 @@ function renderKPIs() {
     ? 'No disponible'
     : prevAptNewLoaded && prevAptNewCount > 0 ? `Período ant.: ${prevAptNewCount}` : '';
 
-  const abonoCount     = _abonoCount(payments);
-  const prevAbonoCount = _abonoCount(prevPayments);
+  const abonoPaymentsArr     = _abonoPayments(payments);
+  const prevAbonoPaymentsArr = _abonoPayments(prevPayments);
+  const abonoCount     = abonoPaymentsArr.length;
+  const prevAbonoCount = prevAbonoPaymentsArr.length;
+  const abonoTotal     = _paymentTotal(abonoPaymentsArr);
+  const prevAbonoTotal = _paymentTotal(prevAbonoPaymentsArr);
   document.getElementById('kpi-abonos').innerHTML = paymentsLoaded
     ? abonoCount + (prevPaymentsLoaded ? kpiDelta(abonoCount, prevAbonoCount) : '')
     : '—';
+  document.getElementById('kpi-abonos-money').textContent = paymentsLoaded && abonoCount > 0 ? fmt(abonoTotal) : '';
   document.getElementById('kpi-abonos-sub').textContent = !paymentsLoaded
     ? 'No disponible'
-    : prevPaymentsLoaded && prevAbonoCount > 0 ? `Período ant.: ${prevAbonoCount}` : '';
+    : prevPaymentsLoaded && prevAbonoCount > 0 ? `Período ant.: ${prevAbonoCount} · ${fmt(prevAbonoTotal)}` : '';
 }
 
 /* Hora pico */
