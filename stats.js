@@ -752,6 +752,16 @@ function renderKPIs() {
     : _aptResumen.count > 0
     ? `${_aptResumen.count} apartado${_aptResumen.count!==1?'s':''}${_aptResumen.vencidos ? ` · ⚠️ ${_aptResumen.vencidos} venc.` : ''}`
     : 'Sin apartados activos';
+
+  const aovLoaded = paymentsLoaded && salesLoaded;
+  const aov     = count > 0 ? totalRev / count : 0;
+  const prevAov = prevCount > 0 ? prevRev / prevCount : 0;
+  document.getElementById('kpi-aov').innerHTML = aovLoaded
+    ? (count > 0 ? fmt(aov) + (prevPaymentsLoaded && prevSalesLoaded ? kpiDelta(aov, prevAov) : '') : fmt(0))
+    : '—';
+  document.getElementById('kpi-aov-sub').textContent = !aovLoaded
+    ? 'No disponible'
+    : prevPaymentsLoaded && prevSalesLoaded && prevCount > 0 ? `Período ant.: ${fmt(prevAov)}` : '';
 }
 
 /* Hora pico */
