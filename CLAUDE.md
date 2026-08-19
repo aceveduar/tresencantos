@@ -1,8 +1,8 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación técnica del proyecto. Última reconciliación con el repositorio: 2026-08-18 (rev 43).
+Documentación técnica del proyecto. Última reconciliación con el repositorio: 2026-08-18 (rev 45).
 
-> **Fuente de verdad:** para comportamiento ejecutable manda el código actual; para reglas de negocio y decisiones UX manda este documento. Si una nota histórica contradice una sección vigente, prevalece la sección vigente más cercana al final del documento. Snapshot verificado: `sw.js` usa `CACHE_VERSION = 'v178'`.
+> **Fuente de verdad:** para comportamiento ejecutable manda el código actual; para reglas de negocio y decisiones UX manda este documento. Si una nota histórica contradice una sección vigente, prevalece la sección vigente más cercana al final del documento. Snapshot verificado: `sw.js` usa `CACHE_VERSION = 'v180'`.
 
 ## Rol de Claude en este proyecto
 
@@ -110,6 +110,9 @@ tresencantos/
 ├── shared.js            # JS compartido entre módulos admin
 ├── manifest.json        # PWA manifest
 ├── sw.js                # Service Worker (PWA offline)
+├── supabase/migrations/ # Migraciones SQL versionadas (Caja/Apartados v2)
+│   ├── 20260818_01_apartados_atomic_additive.sql
+│   └── 20260818_02_sales_rpc_lockdown.sql
 ├── img/                  # Imágenes locales y recursos PWA
 │   ├── icono-192.png
 │   ├── icono-512.png
@@ -134,7 +137,7 @@ El gestor de categorías no vive en un `admin-categories.js` separado: su interf
 ### Navegación entre módulos
 Todos los módulos admin comparten una **topbar unificada** con íconos para: Caja, Inventario, Reportes, Actividad, Configuración, Tienda y Cerrar sesión. No hay botón "atrás" — la navegación es siempre desde la topbar.
 
-En mobile algunos módulos pueden ocultar ítems según rol. `settings.html` redirige a `admin.html` si el rol no es `superadmin`.
+Los módulos ocultan ítems según los permisos efectivos del usuario. Reportes, Actividad y Configuración consultan `get_my_permissions()` antes de mostrar información; no autorizan únicamente por el rol o por un caché de otra sesión.
 
 ---
 
@@ -188,8 +191,8 @@ En mobile algunos módulos pueden ocultar ítems según rol. `settings.html` red
 |---|---|---|
 | `id` | serial PK | |
 | `total` | numeric | Total cobrado (con descuento) |
-| `created_at` | timestamptz | Auto |
-| `items` | jsonb | `[{id, name, price, qty, subtotal}]` |
+| `created_at` | timestamptz | Fecha original inmutable de alta |
+| `items` | jsonb | `[{id, name, price, qty, subtotal, kit_items?}]`; `kit_items` es el snapshot histórico del kit |
 | `discount` | numeric nullable | Monto descontado |
 | `payment_method` | text | `'efectivo'` o `'transferencia'` |
 | `note` | text nullable | Nota libre de la venta |
@@ -198,6 +201,20 @@ En mobile algunos módulos pueden ocultar ítems según rol. `settings.html` red
 | `customer` | text nullable | Nombre del cliente (obligatorio en apartados) |
 | `due_date` | date nullable | Fecha límite de pago (solo apartados) |
 | `seller_email` | text nullable | Email del usuario que registró la venta |
+| `origin_type` | text | Origen inmutable: `venta` o `apartado` |
+| `status` | text | Estado actual: `activo`, `liquidado` o `cancelado` |
+| `liquidated_at` | timestamptz nullable | Momento real de liquidación |
+| `last_payment_at` | timestamptz nullable | Fecha del último movimiento de pago |
+| `updated_at` | timestamptz | Última transición |
+| `version` | int8 | Versión optimista para detectar dos cajas editando el mismo registro |
+
+`type` se conserva por compatibilidad con clientes antiguos, pero la lógica nueva debe usar `origin_type` + `status`. Nunca cambiar `created_at` al abonar o liquidar.
+
+#### `sale_payments`
+Libro monetario append-only. Cada venta, anticipo, abono, ajuste o devolución tiene su propia fila con `sale_id`, `request_id`, `request_line`, `kind`, `amount`, `method`, `paid_at`, `collected_by`, `collected_by_email`, `is_estimated`, `source` y `meta`. Caja, Corte, Historial, Reportes y Actividad calculan dinero por `paid_at`; no por la fecha de creación de `sales`. Las devoluciones pueden ocupar varias filas (una por método) con el mismo `request_id` y se presentan como una sola operación.
+
+#### `pos_rpc_requests`
+Tabla privada de idempotencia para las RPC de Caja. Conserva el resultado por UUID para que reintentar después de una respuesta perdida no duplique ventas, abonos, devoluciones ni movimientos de stock. No tiene acceso directo para `anon`/`authenticated`.
 
 #### `config`
 | `id` | Contenido |
@@ -222,7 +239,7 @@ En mobile algunos módulos pueden ocultar ítems según rol. `settings.html` red
 | `created_at` | timestamptz | Auto |
 
 **Tipos de acción (`action`):**
-`venta`, `venta_cancelada`, `apartado_nuevo`, `apartado_abono`, `apartado_editado`, `apartado_liquidado`, `apartado_cancelado`, `producto_creado`, `producto_editado`, `producto_eliminado`, `duplicado_descartado`
+`venta`, `venta_cancelada`, `apartado_nuevo`, `apartado_abono`, `apartado_editado`, `apartado_liquidado`, `apartado_reembolso`, `apartado_cancelado`, `producto_creado`, `producto_editado`, `producto_eliminado`, `duplicado_descartado`
 
 Cada tipo tiene su entrada en `ACTION_CFG` (`activity.js`) con `{type, badge, icon, label}` — un `action` sin entrada cae en un badge genérico "•" bajo el filtro "Inventario", por lo que cualquier `logActivity()` nuevo debe agregarse también a `ACTION_CFG`.
 
@@ -236,6 +253,8 @@ Cada tipo tiene su entrada en `ACTION_CFG` (`activity.js`) con `{type, badge, ic
 ### Roles y permisos (implementado 2026-05-16)
 
 El rol se lee de `user_metadata.role` en el JWT. Sin rol definido → `'operador'` (nunca escala permisos).
+
+La fuente autoritativa para la interfaz es la RPC autenticada `get_my_permissions()`, que combina rol y overrides de `config.id='user_permissions'` y devuelve el rol efectivo más 12 booleanos. `shared.js` guarda temporalmente `{email, permissions}` en `sessionStorage.te_user_can`; el email debe coincidir con la sesión actual. Si existe el mapa de overrides y el usuario no aparece, PostgreSQL aplica exactamente los defaults de `operador`. El caché solo es respaldo offline y nunca debe sustituir la consulta al servidor al entrar a un módulo restringido.
 
 **Asignar o cambiar rol — SQL Editor en Supabase:**
 ```sql
@@ -627,14 +646,23 @@ Si se quitan todas las imágenes, la tira muestra "Sin imágenes — sube una ar
   - Tienda pública sin cambios — mostrar caducidad a la clienta es una decisión de negocio (ej. liquidación) que Ofelia no ha pedido.
   - CACHE_VERSION v138→v139.
 - **Fix datos — 95 productos huérfanos por categorías eliminadas sin migrar (2026-07-01)** — reportado como "no encuentro los aretes al filtrar por categoría". Diagnóstico vía REST API con la anon key (solo lectura, sin tocar código): los 95 productos seguían con `category` apuntando a códigos que ya no existían en `config.id='categories'` (raíz "Joyería" con sus subcategorías, y raíz "Regalos" — ver detalle en "Categorías dinámicas" arriba). No fue un bug de código — el filtro funciona correctamente, el problema era la BD. Corregido con SQL directo en Supabase (mismo flujo que otras migraciones de este documento): 88 productos de joyería reasignados a `bisuteria` (Bisutería & Joyería), y la raíz `regalos` restaurada en la configuración de categorías para los 7 productos que ya la usaban. Sin cambios de código — pura corrección de datos.
-- **IA de productos — migración de modelo y cliente unificado (2026-08-18)** — Groq retiró `meta-llama/llama-4-scout-17b-16e-instruct` el 2026-07-17, dejando sin servicio el formulario con foto, Captura rápida y Carga masiva. Los tres flujos ahora usan `qwen/qwen3.6-27b` mediante `_groqVisionJson()` en `admin-images.js`, con JSON mode, `reasoning_effort:'none'`, timeout de 45 s y errores legibles para clave inválida, límites, tamaño de imagen y conexión. Captura rápida ahora conserva en `products.description` la descripción que ya solicitaba a la IA pero antes descartaba. `CACHE_VERSION` v177→v178.
+- **IA de productos — migración de modelo y cliente unificado (2026-08-18, validado en producción)** — Groq retiró `meta-llama/llama-4-scout-17b-16e-instruct` el 2026-07-17, dejando sin servicio el formulario con foto, Captura rápida y Carga masiva. Los tres flujos ahora usan `qwen/qwen3.6-27b` mediante `_groqVisionJson()` en `admin-images.js`, con JSON mode, `reasoning_effort:'none'`, timeout de 45 s y errores legibles para clave inválida, límites, tamaño de imagen y conexión. Captura rápida ahora conserva en `products.description` la descripción que ya solicitaba a la IA pero antes descartaba. El usuario probó la IA después del despliegue y confirmó que vuelve a funcionar correctamente. `CACHE_VERSION` v177→v178.
+- **Apartados y Caja transaccionales v2 (2026-08-18)** — el origen del problema era más amplio que la pestaña Activos: abonos, edición, cancelación y stock se guardaban con varios `PATCH` desde estado local, por lo que dos cajas podían pisarse y los reportes omitían abonos de apartados antiguos. Se reemplazó ese flujo por `record_sale_atomic_v2`, `record_apartado_payment_atomic`, `edit_apartado_atomic`, `cancel_sale_atomic` y `refund_apartado_atomic`, todas idempotentes, con locks, validación de `version`, snapshots de kits y actividad dentro de la misma transacción. `sales.origin_type/status` determinan Activos/Liquidados/Cancelados y `sale_payments` es la fuente monetaria. `created_at` ya no se modifica. Editar preserva descuento y rechaza un total menor a lo pagado; cancelar restaura stock una sola vez; reembolsar conserva historial y puede reabrir el apartado. Corte/Historial/Reportes usan la fecha real del movimiento y zona `America/Mexico_City`. La UI añade filtros Todos/Vencidos/Próximos 7 días/Sin fecha, mensajes de error/reintento, controles táctiles de 44px, ARIA/foco y refresco al abrir. Migraciones: `supabase/migrations/20260818_01_apartados_atomic_additive.sql` y `20260818_02_sales_rpc_lockdown.sql`. `CACHE_VERSION` v179→v180.
+
+### Despliegue obligatorio de Caja v2
+
+1. Ejecutar primero `20260818_01_apartados_atomic_additive.sql`. Es aditiva y mantiene temporalmente compatibilidad con clientes antiguos.
+2. Desplegar el frontend con `CACHE_VERSION='v180'`, cerrar/reabrir cada PWA o recargarla dos veces y probar alta, abono, liquidación, edición, cancelación y reembolso.
+3. Solo después de confirmar que **todas** las cajas/dispositivos usan la versión nueva, ejecutar `20260818_02_sales_rpc_lockdown.sql`. Esta fase quita INSERT/UPDATE/DELETE directos sobre `sales` y revoca la RPC v1.
+
+No ejecutar ambas fases juntas. Un cliente PWA antiguo todavía puede intentar modificar `products` antes de que fase 2 le rechace el `PATCH` de `sales`; por eso verificar la actualización de todos los dispositivos es un requisito de integridad.
 
 ---
 
 ## POS (`pos.html`)
 
 - Auth: mismo JWT check
-- Anon key + JWT del usuario para leer/escribir (RLS en Supabase valida permisos)
+- Anon key + JWT del usuario; las mutaciones financieras y de stock pasan por RPC transaccionales, no por `PATCH` desde el navegador
 - Productos cargados en memoria; búsqueda filtra en cliente
 - **Vista lista / tarjetas** — toggle ☰/⊞ en barra de búsqueda
 - **Filtro por categoría** — chips horizontales sobre la lista
@@ -643,13 +671,13 @@ Si se quitan todas las imágenes, la tira muestra "Sin imágenes — sube una ar
 - **Método de pago** — 💵 Efectivo / 📱 Transferencia. Transferencia oculta campos de cambio
 - **Nota de venta** — texto libre que aparece en ticket WA
 - **Cliente (opcional en venta normal)** — botón colapsable "👤 Agregar cliente" (mismo patrón que Nota), junto a `#pos-customer`. En venta normal es opcional; al activar "Es apartado" se expande automáticamente y se vuelve obligatorio. El nombre se guarda en `sales.customer`, aparece como tag en Historial y personaliza el saludo del ticket WA ("¡Gracias por tu compra, {nombre}!")
-- **Apartados/anticipos** — checkbox "Es apartado", requiere nombre de cliente + anticipo. Panel "📌 Apartados" muestra pendientes con botón "Completar"
+- **Apartados/anticipos** — checkbox "Es apartado", requiere nombre de cliente; el anticipo puede ser cero. Panel "📌 Apartados" separa Activos/Liquidados y permite abonar, cobrar saldo, editar, cancelar o registrar un reembolso según permisos.
 - **Ticket por WhatsApp** — botón en modal post-venta. Al enviarlo el modal se cierra automáticamente (400ms delay) — sin tap extra. Incluye productos, total, método, cambio, nota y aviso de transferencia pendiente si aplica
-- **Historial** — últimas 50 ventas en **offcanvas lateral**. Botón en topbar (`#btn-history-pos`, visible ≥641px) + tab bar mobile. Cancelar venta → borra `sales` → restaura stock. Solo superadmin puede cancelar (`CAN_CANCEL_SALE`)
-- **Corte de caja** — botón 🧾 Corte (`#btn-corte-pos`, visible ≥641px) + tab bar mobile. Muestra totales del turno (efectivo, transferencia, ventas, apartados) con opción de compartir por WhatsApp. Turno se registra en `localStorage` keys `te_shift_start` / `te_shift_date` al abrir el POS cada día
-- **Cierre de caja (reconciliación de efectivo)** — sección "💵 Cierre de caja" dentro de Corte: input "Fondo inicial" (efectivo con el que se abrió el día) → calcula "Efectivo esperado" = fondo + efectivo recibido − gastos del turno. Input "Conteo físico" (efectivo real contado al cerrar) → muestra "Diferencia" (✓ Cuadra / sobrante / faltante, verde-dorado-rojo). Ambos valores en `localStorage` keys `te_fondo_<fecha>` / `te_conteo_<fecha>` (mismo patrón que `te_gastos_<fecha>`), se resetean solos cada día. Incluido en el mensaje de WhatsApp del corte (`compartirCorteWA()`)
-- **Apartados con fecha límite** — campo `📅 Fecha límite de pago` en el formulario de apartado (default 30 días). En la lista de apartados muestra el estado con color: rojo=vencido, ámbar=≤7 días, verde=ok
-- **Banner apartados vencidos** — franja roja debajo del topbar (`#apt-venc-banner`), clickeable → abre pestaña Apartados. Se muestra/oculta al cargar apartados.
+- **Historial** — movimientos monetarios paginados desde `sale_payments`, agrupados por fecha real y operación. Las devoluciones multimétodo aparecen una vez con desglose. Cancelar hace soft-cancel atómico, registra devolución y restaura stock una sola vez; nunca borra el registro histórico.
+- **Corte de caja** — botón 🧾 Corte (`#btn-corte-pos`, visible ≥641px) + tab bar mobile. Consulta movimientos desde el inicio del turno del usuario actual y separa cobros de otras cajas/no asignados. Totales y diferencias se redondean a centavos.
+- **Cierre de caja (reconciliación de efectivo)** — fondo, gastos y conteo se guardan por email + fecha México (`te_<dato>_<usuario>_<YYYY-MM-DD>`), evitando que dos cuentas del mismo navegador mezclen turnos. Efectivo esperado = fondo + efectivo neto del cajero − gastos.
+- **Apartados con fecha límite** — campo `📅 Fecha límite de pago` (default 30 días de calendario México). Estado rojo=vencido, ámbar=≤7 días, verde=ok; chips funcionales Todos/Vencidos/Próximos/Sin fecha combinables con búsqueda.
+- **Banner apartados vencidos** — abre directamente Activos filtrado por Vencidos.
 - **Modal post-venta protegido** — `onclick="void 0"` (no cierra al tocar fuera) + Escape bloqueado con `_escGuard`. Se limpia al cerrar con `closeSaleDone()`.
 - **Modo Recepción** (`openRecvMode`) — overlay `#recv-overlay` para recibir inventario desde la Caja sin salir al Inventario. CSS en admin.html, JS en admin.js línea ~4164.
 - **Productos OOS ocultos en Caja** — `getFilteredProducts()` filtra `outOfStock || stock === 0`. Aplica a lista, grid y búsqueda.
@@ -691,9 +719,9 @@ Bottom sheet `#restock-prompt` que aparece en dos situaciones:
 ## Reportes (`stats.html`)
 
 - Auth: mismo JWT check; `SUPABASE_ANON_KEY` como `apikey` + JWT activo como Bearer
-- Períodos: Hoy / 7 días / 30 días / Todo
-- **KPIs con comparación:** Ingresos, ventas y ticket promedio muestran delta % vs período anterior equivalente
-- **Gráficas (Chart.js CDN):** ingresos por día (barra), ventas por categoría (donut), hora pico por hora del día (barra, dorado = hora más rentable)
+- Períodos navegables: Día / Semana / Mes, con anterior/siguiente y regreso al período actual; límites y agrupaciones usan `America/Mexico_City`
+- **KPIs con comparación:** ingresos netos provienen de `sale_payments.paid_at`; ventas/unidades se cuentan al completarse (`created_at` para venta directa, `liquidated_at` para apartado). Los fallos de consulta se muestran como “No disponible”, nunca como cero real.
+- **Gráficas (Chart.js CDN):** ingresos netos por día, categoría, hora y día de semana. Abonos de apartados antiguos aparecen el día real del cobro y reembolsos/ajustes conservan signo.
 - **Top productos** por ingresos con barra de progreso relativa
 - **Ventas recientes** — últimas 10 del período
 - **Apartados pendientes** — sección siempre visible (no filtrada por período): lista todos los apartados activos con barra de progreso, monto pendiente y estado de vencimiento
@@ -968,11 +996,18 @@ Authorization: `Bearer ${_getXXXToken()}`,
 ```
 Si una operación falla, revisar primero sesión, JWT, políticas RLS y permisos del RPC. **Nunca usar una `service_role key` en el cliente como rollback.**
 
+### Seguridad y concurrencia de Caja v2 (preparada 2026-08-18)
+
+- Fase 1 agrega el ledger, estados/versiones, idempotencia, compatibilidad legacy, RPC transaccionales y `get_my_permissions()` sin retirar políticas antiguas.
+- Cada transición valida permisos otra vez en PostgreSQL; la UI no es frontera de seguridad.
+- Fase 2 elimina las políticas de escritura directa de `sales` y revoca `record_sale_atomic` v1. Conserva `sales_auth_select`.
+- Las migraciones fueron compiladas y probadas en PostgreSQL 17, incluida reejecución idempotente de fase 2. **Aún deben ejecutarse en Supabase siguiendo el orden de despliegue indicado arriba.**
+
 ## Deudas Técnicas
 
 El sistema está en estado operativo y cuenta con estas protecciones:
 - Seguridad: RLS + JWT, sin service_role_key en cliente, XSS sweep completo
-- Ventas: atómicas via `record_sale_atomic` (validación server-side, sin oversell)
+- Ventas/Apartados: RPC v2 atómicas e idempotentes, ledger append-only, locks de stock, snapshots de kits y control de versión entre cajas
 - Performance: lazy loading CDN, Drive thumbnails sized, Chart.js diferido, font preconnects
 - Offline: banner + caché de productos en localStorage + cobrar() bloqueado sin conexión
 - UX/UI: auditoría completa de 6 módulos (mobile-first 360–430px)

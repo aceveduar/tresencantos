@@ -46,14 +46,20 @@ async function cobrar() {
   const customer     = customerName + (phone ? ` · 📱 ${phone}` : '');
   const note       = document.getElementById('pos-note')?.value.trim() || '';
   const disc       = getDiscount();
-  const total      = getDiscountedTotal();
+  const total      = Math.round(getDiscountedTotal() * 100) / 100;
+  if (total <= 0) {
+    toast('El total debe ser mayor a $0', 'error');
+    _cobrandoAhora = false;
+    return;
+  }
 
   let paidAmount, change;
 
   if (isApartado) {
-    if (!customer) { toast('Ingresa el nombre del cliente', 'error'); document.getElementById('pos-customer').focus(); _cobrandoAhora = false; return; }
-    paidAmount = parseFloat(document.getElementById('pos-anticipo')?.value) || 0;
-    if (paidAmount > total) { toast('El anticipo no puede ser mayor al total del pedido', 'error'); document.getElementById('pos-anticipo').focus(); _cobrandoAhora = false; return; }
+    if (!customerName) { toast('Ingresa el nombre del cliente', 'error'); document.getElementById('pos-apt-customer')?.focus(); _cobrandoAhora = false; return; }
+    paidAmount = Math.round((parseFloat(document.getElementById('pos-anticipo')?.value) || 0) * 100) / 100;
+    if (paidAmount > total + _APT_MONEY_EPSILON) { toast('El anticipo no puede ser mayor al total del pedido', 'error'); document.getElementById('pos-anticipo').focus(); _cobrandoAhora = false; return; }
+    if (paidAmount >= total - _APT_MONEY_EPSILON) paidAmount = total;
     change = 0;
   } else if (payMethod === 'efectivo') {
     const cash = parseFloat(document.getElementById('pos-cash').value) || 0;
@@ -67,91 +73,84 @@ async function cobrar() {
   } else {
     paidAmount = total; change = 0;
   }
+  const apartadoPagadoCompleto = !!isApartado && total > 0 && paidAmount >= total - _APT_MONEY_EPSILON;
+  const apartadoActivo = !!isApartado && !apartadoPagadoCompleto;
 
   const btn = document.getElementById('cobrar-btn');
   btn.setAttribute('data-loading', '1'); btn.disabled = true;
 
-  const items = cart.map(({ product: p, qty, customPrice }) => { const pr = customPrice ?? p.price; return { id:p.id, name:p.name, price:pr, qty, subtotal:pr*qty }; });
+  const items = cart.map(({ product: p, qty, customPrice }) => {
+    const pr = Math.round((customPrice ?? p.price) * 100) / 100;
+    return {
+      id: p.id,
+      name: p.name,
+      price: pr,
+      qty,
+      subtotal: Math.round(pr * qty * 100) / 100,
+      ...(p.kitItems?.length ? { kit_items: p.kitItems.map(c => ({ id:c.id, name:c.name, qty:c.qty || 1 })) } : {})
+    };
+  });
 
   const dueDateEl = document.getElementById('pos-due-date');
-  const sellerEmail = getSession()?.user?.email || null;
   const saleData = {
     total, items,
     discount:        disc || null,
     payment_method:  payMethod,
     note:            note || null,
-    type:            isApartado ? 'apartado' : 'venta',
+    type:            apartadoActivo ? 'apartado' : 'venta',
     paid_amount:     paidAmount,
     customer:        customer || null,
-    due_date:        isApartado && dueDateEl?.value ? dueDateEl.value : null,
-    seller_email:    sellerEmail,
+    due_date:        apartadoActivo && dueDateEl?.value ? dueDateEl.value : null,
     abonos:          isApartado && paidAmount > 0
                        ? [{ amount: paidAmount, method: payMethod, date: new Date().toISOString() }]
                        : null
   };
 
-  // Una sola llamada atómica: valida stock + inserta venta + descuenta stock en una transacción
-  const rpcResult = await api('rpc/record_sale_atomic', {
-    method: 'POST',
-    body: JSON.stringify({
+  // Una sola llamada idempotente y atómica: valida demanda agregada, guarda
+  // snapshot de kits, registra el pago y descuenta stock en una transacción.
+  const saleFingerprint = JSON.stringify({ items, total, disc, payMethod, note, isApartado, paidAmount, customer, dueDate: saleData.due_date });
+  const rpcResult = await posRpc('record_sale_atomic_v2', {
+    operation: 'record_sale',
+    context: 'checkout',
+    fingerprint: saleFingerprint,
+    body: {
       p_items:           saleData.items,
       p_total:           saleData.total,
       p_discount:        saleData.discount || 0,
       p_payment_method:  saleData.payment_method,
       p_note:            saleData.note || null,
-      p_type:            saleData.type,
+      p_is_apartado:     !!isApartado,
       p_paid_amount:     saleData.paid_amount ?? null,
       p_customer:        saleData.customer || null,
-      p_due_date:        saleData.due_date || null,
-      p_abonos:          saleData.abonos || null
-    })
+      p_due_date:        saleData.due_date || null
+    }
   });
   if (!rpcResult.ok) {
     btn.removeAttribute('data-loading'); btn.disabled = false; _cobrandoAhora = false;
-    const msg = rpcResult.data?.message || rpcResult.data?.details || '';
-    toast(msg.includes('Sin stock') ? msg : 'Error al registrar la venta — intenta de nuevo', 'error');
+    const msg = _posRpcError(rpcResult, 'Error al registrar la venta — intenta de nuevo');
+    toast(msg, 'error');
+    if (rpcResult.resolvedPrior) await _refreshPosFinancialState();
     return;
   }
 
-  // Actualizar array local optimistamente (Realtime también sincronizará)
-  for (const { product: p, qty } of cart) {
-    if (p.kitItems?.length) {
-      for (const comp of p.kitItems) {
-        const lc = products.find(x => x.id === comp.id);
-        if (!lc) continue;
-        lc.stock = Math.max(0, lc.stock - qty * comp.qty);
-        if (lc.stock === 0 && !isApartado) { lc.outOfStock = true; lc.isPublished = false; }
-        if (lc.stock === 0 &&  isApartado) { lc.isApartado = true; }
-      }
-    } else {
-      const lp = products.find(x => x.id === p.id);
-      if (lp) {
-        lp.stock = Math.max(0, lp.stock - qty);
-        if (lp.stock === 0 && !isApartado) { lp.outOfStock = true; lp.isPublished = false; }
-        if (lp.stock === 0 &&  isApartado) { lp.isApartado = true; }
-      }
-    }
-  }
+  // El RPC devuelve estados absolutos. Aplicarlos evita una doble resta si el
+  // evento Realtime llegó antes que la respuesta HTTP.
+  (Array.isArray(rpcResult.data?.products) ? rpcResult.data.products : []).forEach(state => {
+    const product = products.find(item => item.id === state.id);
+    if (!product) return;
+    product.stock = parseInt(state.stock, 10) || 0;
+    product.outOfStock = !!state.out_of_stock;
+  });
 
   btn.removeAttribute('data-loading');
 
-  // Guardar para el ticket WA (y para el log de actividad, más abajo)
-  const dueDateVal = isApartado ? document.getElementById('pos-due-date')?.value : null;
+  // Guardar para el ticket y la confirmación por WhatsApp.
+  const dueDateVal = apartadoActivo ? document.getElementById('pos-due-date')?.value : null;
 
-  // Registrar actividad — itemsDetail guarda nombre/precio/qty en el momento,
-  // así queda recuperable aunque el apartado se cancele o el producto cambie después
-  if (isApartado) {
-    logActivity('apartado_nuevo',
-      `Apartado de ${customerName} — $${total.toLocaleString('es-MX')}`,
-      { customer: customerName, total, anticipo: paidAmount, pendiente: total - paidAmount,
-        dueDate: dueDateVal || null, itemsDetail: items });
-  } else {
-    logActivity('venta',
-      `Cobró $${total.toLocaleString('es-MX')} — ${items.length} producto${items.length !== 1 ? 's' : ''}`,
-      { total, items: items.length, method: payMethod, discount: disc || 0,
-        itemIds: items.map(i => i.id), itemsDetail: items });
-  }
-  _lastSale = { total, paidAmount, change, disc, note, items, payMethod, isApartado, customer, dueDate: dueDateVal };
+  // La actividad y el libro de pagos quedaron registrados dentro del mismo RPC.
+  _lastSale = { total, paidAmount, change, disc, note, items, payMethod,
+    isApartado: apartadoActivo, apartadoLiquidado: apartadoPagadoCompleto,
+    customer, dueDate: dueDateVal };
 
   // Reset UI
   cart = [];
@@ -178,11 +177,12 @@ function showSaleDone() {
   const s = _lastSale;
   const fmt = n => `$${parseFloat(n||0).toLocaleString('es-MX')} MXN`;
   const isApt = s.isApartado;
+  const isAptFlow = isApt || s.apartadoLiquidado;
 
-  document.getElementById('sd-icon').textContent         = isApt ? '📌' : '✓';
-  document.getElementById('sd-title').textContent        = isApt ? 'Apartado registrado' : 'Venta completada';
-  document.getElementById('sd-total-label').textContent  = isApt ? 'Total del pedido' : 'Total cobrado';
-  document.getElementById('sd-cash-label').textContent   = isApt ? 'Anticipo recibido' : 'Recibido';
+  document.getElementById('sd-icon').textContent         = isAptFlow ? '📌' : '✓';
+  document.getElementById('sd-title').textContent        = isApt ? 'Apartado registrado' : s.apartadoLiquidado ? 'Apartado liquidado' : 'Venta completada';
+  document.getElementById('sd-total-label').textContent  = isAptFlow ? 'Total del pedido' : 'Total cobrado';
+  document.getElementById('sd-cash-label').textContent   = isApt ? 'Anticipo recibido' : s.apartadoLiquidado ? 'Pago completo recibido' : 'Recibido';
   document.getElementById('sd-total').textContent        = fmt(s.total);
   document.getElementById('sd-cash').textContent         = s.paidAmount > 0 ? fmt(s.paidAmount) : '—';
   document.getElementById('sd-change').textContent       = s.change > 0 ? fmt(s.change) : s.payMethod === 'transferencia' ? '—' : '$0';
@@ -212,7 +212,7 @@ function showSaleDone() {
   document.getElementById('sd-note').textContent           = s.note || '';
   // Texto del botón WA y "Nueva venta" según contexto
   const waBtn = document.querySelector('.btn-wa-ticket');
-  if (waBtn) waBtn.childNodes[waBtn.childNodes.length - 1].textContent = isApt ? ' Enviar confirmación por WhatsApp' : ' Enviar ticket por WhatsApp';
+  if (waBtn) waBtn.childNodes[waBtn.childNodes.length - 1].textContent = isAptFlow ? ' Enviar confirmación por WhatsApp' : ' Enviar ticket por WhatsApp';
   const newSaleBtn = document.querySelector('#sale-done-overlay .btn-green');
   if (newSaleBtn) newSaleBtn.textContent = isApt ? '+ Nueva venta' : '+ Nueva venta';
   document.getElementById('sale-done-overlay').classList.add('open');
@@ -230,12 +230,14 @@ function sendWhatsAppTicket() {
   const note     = s.note ? `\n📝 ${s.note}` : '';
   const metodo   = s.payMethod === 'transferencia' ? '📱 Transferencia bancaria' : '💵 Efectivo';
   let msg;
-  if (s.isApartado) {
+  if (s.isApartado || s.apartadoLiquidado) {
     const custParts = (s.customer||'').split(' · 📱 ');
     const nombre    = custParts[0] || 'Cliente';
     const telNum    = custParts[1] || '';
     const pendiente = Math.max(0, (s.total||0) - (s.paidAmount||0));
-    const anticipoLine = (s.paidAmount||0) > 0
+    const anticipoLine = s.apartadoLiquidado
+      ? `✅ *Pago completo recibido: $${(s.total||0).toLocaleString('es-MX')} MXN* (${metodo})`
+      : (s.paidAmount||0) > 0
       ? `✅ Anticipo recibido: $${(s.paidAmount||0).toLocaleString('es-MX')} (${metodo})\n⏳ *Pendiente: $${pendiente.toLocaleString('es-MX')} MXN*`
       : `⏳ *Total a pagar al entregar: $${pendiente.toLocaleString('es-MX')} MXN*`;
     let dueLine = '';
@@ -243,7 +245,9 @@ function sendWhatsAppTicket() {
       const due = new Date(s.dueDate + 'T00:00:00');
       dueLine = `\n📅 Fecha límite: *${due.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'})}*`;
     }
-    msg = `📌 *Apartado — Tres Encantos*\n━━━━━━━━━━━━━━\n👤 ${nombre}\n${lines}${disc}\n━━━━━━━━━━━━━━\n*Total pedido: $${(s.total||0).toLocaleString('es-MX')} MXN*\n${anticipoLine}${dueLine}${note}\n\nTe avisamos cuando esté listo. ¡Gracias! 💛`;
+    const title = s.apartadoLiquidado ? 'Apartado liquidado' : 'Apartado';
+    const closing = s.apartadoLiquidado ? 'Tu apartado quedó pagado por completo. ¡Gracias! 💛' : 'Te avisamos cuando esté listo. ¡Gracias! 💛';
+    msg = `📌 *${title} — Tres Encantos*\n━━━━━━━━━━━━━━\n👤 ${nombre}\n${lines}${disc}\n━━━━━━━━━━━━━━\n*Total pedido: $${(s.total||0).toLocaleString('es-MX')} MXN*\n${anticipoLine}${dueLine}${note}\n\n${closing}`;
     const telLimpio = telNum.replace(/\D/g,'');
     window.open(telLimpio ? `https://wa.me/52${telLimpio}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
     setTimeout(() => closeSaleDone(), 400);
@@ -366,41 +370,43 @@ function toast(msg, type = '') {
 }
 
 /* ── TODAY'S STATS ── */
+let _todayStatsLoadGeneration = 0;
+
 async function loadTodayStats() {
+  const loadGeneration = ++_todayStatsLoadGeneration;
   const TZ = 'America/Mexico_City';
   const mxDateKey = iso => new Intl.DateTimeFormat('en-CA', { timeZone:TZ, year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date(iso));
   const hoyMX  = mxDateKey(new Date().toISOString());
-  // Fetch últimos 8 días para capturar abonos de apartados viejos
-  const desde  = new Date(Date.now() - 8*24*3600*1000).toISOString();
-  const result = await api(`sales?created_at=gte.${desde}&cancelled_at=is.null&select=total,paid_amount,payment_method,type,abonos,created_at`);
+  // Ciudad de México permanece en UTC−06:00; consultar el libro por fecha del
+  // movimiento incluye abonos de apartados antiguos y devoluciones de hoy.
+  const start = new Date(`${hoyMX}T00:00:00-06:00`);
+  const end   = new Date(start.getTime() + 86400000);
+  const result = await _posFetchAll(`sale_payments?paid_at=gte.${encodeURIComponent(start.toISOString())}&paid_at=lt.${encodeURIComponent(end.toISOString())}&select=amount,method&order=paid_at.asc,id.asc`);
+  if (loadGeneration !== _todayStatsLoadGeneration) return false;
   const mob    = document.getElementById('daily-summary-mobile');
-  if (!result.ok || !result.data?.length) return;
-
-  let efectivo = 0, transferencia = 0;
-  result.data.forEach(s => {
-    const abonos = Array.isArray(s.abonos) ? s.abonos : [];
-    if (abonos.length) {
-      // Contar solo abonos de hoy (pueden ser de apartados de días anteriores)
-      abonos.forEach(a => {
-        if (mxDateKey(a.date) === hoyMX) {
-          const amt = parseFloat(a.amount) || 0;
-          if (a.method === 'transferencia') transferencia += amt;
-          else efectivo += amt;
-        }
-      });
-    } else if (mxDateKey(s.created_at) === hoyMX && s.type !== 'apartado') {
-      // Venta simple de hoy: usar total (no paid_amount que incluye efectivo tendered con cambio)
-      const amt = parseFloat(s.total) || 0;
-      if (s.payment_method === 'transferencia') transferencia += amt;
-      else efectivo += amt;
+  if (!result.ok) {
+    if (mob) {
+      mob.innerHTML = '<span style="color:var(--red);font-weight:600">No se pudo cargar el resumen de hoy</span>';
+      mob.style.display = 'flex';
     }
+    return false;
+  }
+  if (!result.data?.length) {
+    if (mob) { mob.style.display = 'none'; mob.innerHTML = ''; }
+    return true;
+  }
+
+  let efectivo = 0, transferencia = 0, otros = 0;
+  result.data.forEach(payment => {
+    const amount = parseFloat(payment.amount) || 0;
+    if (payment.method === 'transferencia') transferencia += amount;
+    else if (payment.method === 'efectivo') efectivo += amount;
+    else otros += amount;
   });
 
-  const total = efectivo + transferencia;
-  if (total === 0) return;
-
-  const fmt = n => `$${n.toLocaleString('es-MX')}`;
-  mob.innerHTML = `<span style="color:var(--gold-dark);font-weight:700">Hoy</span> &nbsp;💵 ${fmt(efectivo)} &nbsp;📱 ${fmt(transferencia)} &nbsp;<strong>${fmt(total)}</strong>`;
+  const total = efectivo + transferencia + otros;
+  const fmt = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX')}`;
+  mob.innerHTML = `<span style="color:var(--gold-dark);font-weight:700">Hoy</span> &nbsp;💵 ${fmt(efectivo)} &nbsp;📱 ${fmt(transferencia)}${Math.abs(otros) >= .005 ? ` &nbsp;🧾 ${fmt(otros)}` : ''} &nbsp;<strong>${fmt(total)}</strong>`;
   mob.style.display = 'flex';
 }
 
@@ -454,18 +460,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     const canStats    = up?.canViewReports    ?? (_posRole === 'superadmin' || _posRole === 'duena');
     const canActivity = up?.canViewActivity   ?? (_posRole === 'superadmin' || _posRole === 'duena');
     const canSettings = up?.canManageSettings ?? (_posRole === 'superadmin');
-    if (!canStats)    document.querySelectorAll('a.tbn-icon[href="stats.html"]').forEach(a => a.style.display = 'none');
-    if (!canActivity) document.querySelectorAll('a.tbn-icon[href="activity.html"]').forEach(a => a.style.display = 'none');
-    if (!canSettings) document.querySelectorAll('a.tbn-icon[href="settings.html"]').forEach(a => a.style.display = 'none');
+    document.querySelectorAll('a.tbn-icon[href="stats.html"]').forEach(a => a.style.display = canStats ? '' : 'none');
+    document.querySelectorAll('a.tbn-icon[href="activity.html"]').forEach(a => a.style.display = canActivity ? '' : 'none');
+    document.querySelectorAll('a.tbn-icon[href="settings.html"]').forEach(a => a.style.display = canSettings ? '' : 'none');
   };
   _applyPosNav(_getMyPermsCached());
-  _loadMyPerms().then(up => { if (up) _applyPosNav(up); });
-  // Registrar inicio de turno (se resetea cada día)
-  const hoyKey = new Date().toISOString().split('T')[0];
-  if (localStorage.getItem('te_shift_date') !== hoyKey) {
-    localStorage.setItem('te_shift_start', new Date().toISOString());
-    localStorage.setItem('te_shift_date', hoyKey);
-  }
+  _loadMyPerms().then(up => {
+    if (!up) return;
+    _applyPosNav(up);
+    if (typeof filterApartados === 'function' && _apartadosAll?.length) {
+      filterApartados(document.getElementById('apt-search')?.value || '', 'offcanvas');
+      filterApartados(document.getElementById('apt-page-search')?.value || '', 'page');
+    }
+  });
+  // Registrar inicio de turno por usuario y por fecha de Ciudad de México.
+  _posEnsureCurrentShift();
   // Nombre del usuario en topbar
   try {
     const _s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
@@ -500,8 +509,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   initSwipeDown(document.querySelector('.sale-done-modal'), closeSaleDone, saleDoneOv);
   initSwipeDown(document.querySelector('#abonar-overlay .abonar-modal'), closeAbonarModal,
     document.getElementById('abonar-overlay'));
-  initSwipeDown(document.querySelector('#liq-overlay .abonar-modal'), closeLiqModal,
-    document.getElementById('liq-overlay'));
+  initSwipeDown(document.querySelector('#liquidar-overlay .abonar-modal'), closeLiqModal,
+    document.getElementById('liquidar-overlay'));
 
   // Inicializar pestañas en teléfonos
   if (isTabMode()) switchPosTab('catalog');
@@ -574,7 +583,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if ((tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') && active?.id !== 'scan-trap') return;
       // No interceptar si hay un modal abierto
       if (document.getElementById('pos-scanner-overlay')?.classList.contains('open')) return;
-      if (document.getElementById('sale-done')?.style.display === 'flex') return;
+      if (document.getElementById('sale-done-overlay')?.classList.contains('open')) return;
 
       if (e.key === 'Enter') {
         if (buf.length >= 4) {

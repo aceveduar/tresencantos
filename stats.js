@@ -3,43 +3,17 @@ const SUPABASE_URL = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjYyMjYsImV4cCI6MjA5NDEwMjIyNn0.irCFwOR5HL_ZOVjFGVw9LqmzYicDZTNEmxcknu_j6cI';
 const SESSION_KEY = 'te_admin_session';
 
-/* ── AUTH + ROL ── */
+/* ── AUTH ── */
 (function(){
   try {
     const s = JSON.parse(localStorage.getItem(SESSION_KEY));
     if (!(s?.access_token && s.expires_at > Math.floor(Date.now()/1000)+60))
       return window.location.href = 'admin.html';
-    const role = s?.user?.user_metadata?.role ||
-      (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.user_metadata?.role; } catch{} })() ||
-      'operador';
-    // Verificar permiso individual antes de usar el rol por defecto
-    const _up = (() => { try { return JSON.parse(sessionStorage.getItem('te_user_can')||'{}'); } catch { return {}; } })();
-    const canViewReports = 'canViewReports' in _up ? _up.canViewReports : (role === 'superadmin' || role === 'duena');
-    if (!canViewReports) return window.location.href = 'admin.html';
-    const userEmail = s?.user?.email ||
-      (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.email; } catch{} })() || '';
-    if (role === 'superadmin' && userEmail === 'eacevedo@sunname.com.mx') {
-      document.addEventListener('DOMContentLoaded', () => {
-        const ga = document.getElementById('ga4-link-card');
-        if (ga) ga.style.display = '';
-      });
-    }
-    const canViewActivity = 'canViewActivity' in _up ? _up.canViewActivity : (role === 'superadmin' || role === 'duena');
-    if (!canViewActivity) {
-      document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll(`a[href="activity.html"]`).forEach(a => a.style.display = 'none');
-      });
-    }
-    const canSettings = 'canManageSettings' in _up ? _up.canManageSettings : (role === 'superadmin');
-    if (!canSettings) {
-      document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll(`a[href="settings.html"]`).forEach(a => a.style.display = 'none');
-      });
-    }
   } catch { window.location.href = 'admin.html'; }
 })();
 
 function doLogout() {
+  sessionStorage.removeItem('te_user_can');
   localStorage.removeItem(SESSION_KEY);
   window.location.href = 'admin.html';
 }
@@ -82,14 +56,141 @@ async function api(path, opts={}) {
     const data = await r.json().catch(() => null);
     return { ok: r.ok, status: r.status, data };
   });
-  const r = await _call(_getStatsToken());
-  if (r.status === 401 && await _refreshStatsToken()) return _call(_getStatsToken());
-  return r;
+  try {
+    const r = await _call(_getStatsToken());
+    if (r.status === 401 && await _refreshStatsToken()) return await _call(_getStatsToken());
+    return r;
+  } catch {
+    return { ok: false, status: 0, data: null };
+  }
+}
+
+// PostgREST/Supabase puede limitar silenciosamente una respuesta a 1,000 filas.
+// Paginar siempre las colecciones que alimentan reportes evita cortes invisibles.
+async function _fetchAll(path, pageSize = 1000) {
+  const rows = [];
+  let offset = 0;
+  while (true) {
+    const sep = path.includes('?') ? '&' : '?';
+    const r = await api(`${path}${sep}limit=${pageSize}&offset=${offset}`);
+    if (!r.ok) return { ...r, data: null };
+    const page = Array.isArray(r.data) ? r.data : [];
+    rows.push(...page);
+    if (page.length < pageSize) return { ok: true, status: r.status, data: rows };
+    offset += page.length;
+  }
 }
 
 const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const _driveSz = (url, w) => (url && url.includes('drive.google.com')) ? url.replace(/sz=w\d+/, `sz=w${w}`) : (url || '');
-function _localDay(iso) { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+
+// Los reportes pertenecen al calendario operativo de la tienda, no a la zona
+// configurada en el dispositivo desde el que se consultan.
+const _REPORT_TIME_ZONE = 'America/Mexico_City';
+const _MX_DATE_TIME = new Intl.DateTimeFormat('en-CA', {
+  timeZone: _REPORT_TIME_ZONE,
+  year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+});
+
+function _mxParts(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const parts = {};
+  _MX_DATE_TIME.formatToParts(date).forEach(part => {
+    if (part.type !== 'literal') parts[part.type] = Number(part.value);
+  });
+  return {
+    year: parts.year, month: parts.month, day: parts.day,
+    hour: parts.hour, minute: parts.minute, second: parts.second
+  };
+}
+
+function _dayKey(civil) {
+  if (!civil) return '';
+  return `${civil.year}-${String(civil.month).padStart(2, '0')}-${String(civil.day).padStart(2, '0')}`;
+}
+
+function _parseDayKey(key) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(key || ''));
+  if (!match) return null;
+  const civil = { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) };
+  const check = new Date(Date.UTC(civil.year, civil.month - 1, civil.day));
+  return check.getUTCFullYear() === civil.year && check.getUTCMonth() === civil.month - 1 && check.getUTCDate() === civil.day
+    ? civil
+    : null;
+}
+
+function _civilDayNumber(civil) {
+  return civil ? Math.floor(Date.UTC(civil.year, civil.month - 1, civil.day) / 86400000) : NaN;
+}
+
+function _addCivilDays(civil, amount) {
+  const date = new Date(Date.UTC(civil.year, civil.month - 1, civil.day + amount));
+  return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() };
+}
+
+function _addCivilMonths(civil, amount) {
+  const date = new Date(Date.UTC(civil.year, civil.month - 1 + amount, 1));
+  return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: 1 };
+}
+
+function _civilWeekday(civil) {
+  return (new Date(Date.UTC(civil.year, civil.month - 1, civil.day)).getUTCDay() + 6) % 7; // Lun=0
+}
+
+function _civilDaysInMonth(civil) {
+  return new Date(Date.UTC(civil.year, civil.month, 0)).getUTCDate();
+}
+
+// Convierte una pared horaria mexicana a un instante real. La corrección
+// iterativa también cubre cambios históricos de offset de la zona IANA.
+function _mxInstant(civil, endOfDay = false) {
+  const target = {
+    ...civil,
+    hour: endOfDay ? 23 : 0,
+    minute: endOfDay ? 59 : 0,
+    second: endOfDay ? 59 : 0,
+    millisecond: endOfDay ? 999 : 0
+  };
+  const targetWall = Date.UTC(
+    target.year, target.month - 1, target.day,
+    target.hour, target.minute, target.second, target.millisecond
+  );
+  let instant = targetWall;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const represented = _mxParts(new Date(instant));
+    if (!represented) break;
+    const representedWall = Date.UTC(
+      represented.year, represented.month - 1, represented.day,
+      represented.hour, represented.minute, represented.second,
+      ((instant % 1000) + 1000) % 1000
+    );
+    const correction = targetWall - representedWall;
+    if (!correction) break;
+    instant += correction;
+  }
+  return new Date(instant);
+}
+
+function _localDay(value) { return _dayKey(_mxParts(value)); }
+function _mxHour(value) { return _mxParts(value)?.hour ?? -1; }
+function _mxTime(value) {
+  const parts = _mxParts(value);
+  return parts ? `${String(parts.hour).padStart(2, '0')}:${String(parts.minute).padStart(2, '0')}` : '--:--';
+}
+function _mxDateLabel(value, options) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('es-MX', { timeZone: _REPORT_TIME_ZONE, ...options }).format(date);
+}
+function _dayKeyLabel(key, options) {
+  const civil = _parseDayKey(key);
+  if (!civil) return '';
+  // Mediodía UTC evita que el formateador cruce de día en cualquier offset de México.
+  return new Intl.DateTimeFormat('es-MX', { timeZone: 'UTC', ...options })
+    .format(new Date(Date.UTC(civil.year, civil.month - 1, civil.day, 12)));
+}
 
 function _chartNoData(canvasId, msg) {
   const c = document.getElementById(canvasId);
@@ -114,9 +215,20 @@ let _statsMode = 'day';
 let _statsOffset = 0;
 let currentPeriod = 'today'; // derived — updated by _updateNavUI()
 let sales = [];
-let salesAll = [];
 let prevSales = [];
-let prevSalesAll = [];
+let payments = [];
+let prevPayments = [];
+let todayPayments = [];
+let todayLiquidatedSales = [];
+let paymentsLoaded = false;
+let prevPaymentsLoaded = false;
+let todayPaymentsLoaded = false;
+let salesLoaded = false;
+let prevSalesLoaded = false;
+let productsLoaded = false;
+let todaySummaryLoaded = false;
+let apartadosPendientesLoaded = false;
+const paymentSalesById = new Map();
 let products = [];
 let revenueChart = null;
 let catChart = null;
@@ -124,44 +236,121 @@ let hourChart = null;
 let weekdayChart = null;
 let nameMap = {};
 let categories = [];
+let _statsReloadGeneration = 0;
+
+const _SALE_COLS = 'id,total,created_at,items,payment_method,type,origin_type,status,liquidated_at,seller_email,discount,customer,due_date,paid_amount,note,cancelled_at';
+const _PAYMENT_COLS = 'id,sale_id,request_id,request_line,amount,kind,method,paid_at,collected_by,collected_by_email,is_estimated,source';
+
+function _paymentAmount(payment) {
+  const amount = parseFloat(payment?.amount) || 0;
+  return payment?.kind === 'refund' ? -Math.abs(amount) : amount;
+}
+
+function _paymentTotal(list) {
+  const total = (list || []).reduce((sum, payment) => sum + _paymentAmount(payment), 0);
+  return Math.round((total + Number.EPSILON) * 100) / 100;
+}
+
+function _refundOperationCount(list) {
+  const keys = new Set();
+  (list || []).forEach(payment => {
+    if (payment?.kind !== 'refund') return;
+    keys.add(payment.request_id ? `${payment.sale_id}:${payment.request_id}` : `legacy:${payment.id}`);
+  });
+  return keys.size;
+}
+
+function _groupRefundOperations(list) {
+  const grouped = [];
+  const byKey = new Map();
+  (list || []).forEach(payment => {
+    if (payment.kind !== 'refund' || !payment.request_id) {
+      grouped.push(payment);
+      return;
+    }
+    const key = `${payment.sale_id}:${payment.request_id}`;
+    const existing = byKey.get(key);
+    if (!existing) {
+      const operation = { ...payment, refund_breakdown: [{ method: payment.method, amount: _paymentAmount(payment) }] };
+      byKey.set(key, operation);
+      grouped.push(operation);
+      return;
+    }
+    existing.amount = _paymentAmount(existing) + _paymentAmount(payment);
+    existing.is_estimated = Boolean(existing.is_estimated || payment.is_estimated);
+    existing.refund_breakdown.push({ method: payment.method, amount: _paymentAmount(payment) });
+    if (existing.method !== payment.method) existing.method = 'multiple';
+  });
+  return grouped;
+}
+
+function _saleOrigin(sale) {
+  return sale?.origin_type || (sale?.type === 'apartado' ? 'apartado' : 'venta');
+}
+
+function _isCompletedSale(sale) {
+  if (sale?.status) return sale.status === 'liquidado';
+  return sale?.type !== 'apartado';
+}
+
+function _rememberSales(rows) {
+  (rows || []).forEach(sale => paymentSalesById.set(String(sale.id), sale));
+}
+
+async function _loadPaymentSales(paymentRows) {
+  const ids = [...new Set((paymentRows || [])
+    .map(payment => Number(payment.sale_id))
+    .filter(Number.isFinite))]
+    .filter(id => !paymentSalesById.has(String(id)));
+  let loaded = true;
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100);
+    const r = await _fetchAll(`sales?select=${_SALE_COLS}&id=in.(${chunk.join(',')})&order=id.asc`);
+    if (r.ok) _rememberSales(r.data);
+    else loaded = false;
+  }
+  return loaded && ids.every(id => paymentSalesById.has(String(id)));
+}
 
 /* ── PERIOD NAV ── */
 const _MN  = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const _MNF = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-function _fmt(d)  { return d.getDate()+' '+_MN[d.getMonth()]+' '+d.getFullYear(); }
+function _fmt(d)  { return d.day+' '+_MN[d.month-1]+' '+d.year; }
 function _fmtRange(a,b) {
-  if (a.getMonth()===b.getMonth()&&a.getFullYear()===b.getFullYear())
-    return a.getDate()+'–'+b.getDate()+' '+_MN[a.getMonth()]+' '+a.getFullYear();
-  if (a.getFullYear()===b.getFullYear())
-    return a.getDate()+' '+_MN[a.getMonth()]+'–'+b.getDate()+' '+_MN[b.getMonth()]+' '+a.getFullYear();
+  if (a.month===b.month&&a.year===b.year)
+    return a.day+'–'+b.day+' '+_MN[a.month-1]+' '+a.year;
+  if (a.year===b.year)
+    return a.day+' '+_MN[a.month-1]+'–'+b.day+' '+_MN[b.month-1]+' '+a.year;
   return _fmt(a)+' – '+_fmt(b);
 }
-function _fmtMonth(d) { return _MNF[d.getMonth()]+' '+d.getFullYear(); }
+function _fmtMonth(d) { return _MNF[d.month-1]+' '+d.year; }
 
 function getRange(mode, offset) {
-  const now = new Date();
-  let from, to, label, rangeStr;
+  const today = _mxParts(new Date());
+  let fromDay, toDay, label, rangeStr;
   if (mode === 'day') {
-    from = new Date(now); from.setDate(from.getDate()+offset); from.setHours(0,0,0,0);
-    to   = new Date(from); to.setHours(23,59,59,999);
-    rangeStr = _fmt(from);
+    fromDay = _addCivilDays(today, offset);
+    toDay = fromDay;
+    rangeStr = _fmt(fromDay);
     label = offset===0 ? 'Hoy' : offset===-1 ? 'Ayer' : rangeStr;
   } else if (mode === 'week') {
-    const base = new Date(now);
-    const dow = base.getDay();
-    base.setDate(base.getDate()+(dow===0?-6:1-dow)+offset*7);
-    base.setHours(0,0,0,0);
-    from = new Date(base);
-    to   = new Date(base); to.setDate(to.getDate()+6); to.setHours(23,59,59,999);
-    rangeStr = _fmtRange(from, to);
+    fromDay = _addCivilDays(today, -_civilWeekday(today) + offset * 7);
+    toDay = _addCivilDays(fromDay, 6);
+    rangeStr = _fmtRange(fromDay, toDay);
     label = offset===0 ? 'Esta semana' : offset===-1 ? 'Semana pasada' : rangeStr;
   } else {
-    from = new Date(now.getFullYear(), now.getMonth()+offset, 1, 0,0,0,0);
-    to   = new Date(from.getFullYear(), from.getMonth()+1, 0, 23,59,59,999);
-    rangeStr = _fmtMonth(from);
+    fromDay = _addCivilMonths(today, offset);
+    toDay = { ...fromDay, day: _civilDaysInMonth(fromDay) };
+    rangeStr = _fmtMonth(fromDay);
     label = offset===0 ? 'Este mes' : offset===-1 ? 'Mes pasado' : rangeStr;
   }
-  return { from: from.toISOString(), to: to.toISOString(), label, rangeStr };
+  return {
+    from: _mxInstant(fromDay).toISOString(),
+    to: _mxInstant(toDay, true).toISOString(),
+    label, rangeStr,
+    fromDay: _dayKey(fromDay),
+    toDay: _dayKey(toDay)
+  };
 }
 function _currentFrom() { return getRange(_statsMode, _statsOffset).from; }
 function _currentTo()   { return getRange(_statsMode, _statsOffset).to; }
@@ -194,8 +383,16 @@ function navigate(delta) {
 function setMode(mode) { _statsMode=mode; _statsOffset=0; _updateNavUI(); _reloadStats(); }
 function resetToNow()  { _statsOffset=0; _updateNavUI(); _reloadStats(); }
 async function _reloadStats() {
+  const generation = ++_statsReloadGeneration;
+  const mode = _statsMode;
+  const offset = _statsOffset;
   ['kpi-revenue','kpi-sales','kpi-avg'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '…'; });
-  await Promise.all([loadSales(),loadPreviousSales()]);
+  await Promise.all([
+    loadSales(mode, offset, generation),
+    loadPreviousSales(mode, offset, generation),
+    loadTodaySales(generation)
+  ]);
+  if (generation !== _statsReloadGeneration) return;
   renderAll();
 }
 
@@ -214,55 +411,76 @@ async function loadCategories() {
   }
 }
 
-async function loadSales() {
-  const { from, to } = getRange(_statsMode, _statsOffset);
-  const filter = `&created_at=gte.${from}&created_at=lte.${to}`;
-  const cols = 'id,total,created_at,items,payment_method,type,seller_email,discount,customer,abonos,due_date,paid_amount';
-  // Un apartado guarda TODOS sus abonos en un solo registro fechado el día de creación —
-  // un abono hecho después (ej. 6 jul) queda invisible para cualquier consulta filtrada por
-  // esa fecha. Por eso traemos aparte, sin filtro de fecha, cualquier venta/apartado con abonos,
-  // y _abonoRevenue() ya se encarga de contar solo los abonos que caen dentro del período pedido.
-  const [r, abonosR] = await Promise.all([
-    api(`sales?select=${cols}&cancelled_at=is.null&order=created_at.desc${filter}&limit=500`),
-    api(`sales?select=${cols}&cancelled_at=is.null&abonos=not.is.null&limit=1000`)
+async function loadSales(mode = _statsMode, offset = _statsOffset, generation = null) {
+  const { from, to } = getRange(mode, offset);
+  const [directSalesR, apartadoSalesR, paymentsR] = await Promise.all([
+    // Una venta directa se completa al crearla; un apartado, al liquidarlo.
+    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.venta&status=eq.liquidado&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=created_at.desc,id.desc`),
+    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(from)}&liquidated_at=lte.${encodeURIComponent(to)}&order=liquidated_at.desc,id.desc`),
+    // Dinero sigue exclusivamente la fecha real del movimiento; no se filtra por
+    // el estado actual de la venta para no borrar cobros históricos al cancelar.
+    _fetchAll(`sale_payments?select=${_PAYMENT_COLS}&paid_at=gte.${encodeURIComponent(from)}&paid_at=lte.${encodeURIComponent(to)}&order=paid_at.desc,id.desc`)
   ]);
-  const data       = (r.ok && Array.isArray(r.data)) ? r.data : [];
-  const abonosData = (abonosR.ok && Array.isArray(abonosR.data)) ? abonosR.data : [];
-  const byId = new Map();
-  data.forEach(s => byId.set(s.id, s));
-  abonosData.forEach(s => byId.set(s.id, s));
-  salesAll = [...byId.values()];
-  sales = data.filter(s => s.type !== 'apartado');
+  const directSales = (directSalesR.ok && Array.isArray(directSalesR.data)) ? directSalesR.data : [];
+  const apartadoSales = (apartadoSalesR.ok && Array.isArray(apartadoSalesR.data)) ? apartadoSalesR.data : [];
+  const nextPayments = (paymentsR.ok && Array.isArray(paymentsR.data)) ? paymentsR.data : [];
+  await _loadPaymentSales(nextPayments);
+  if (generation !== null && generation !== _statsReloadGeneration) return;
+  salesLoaded = directSalesR.ok && apartadoSalesR.ok;
+  paymentsLoaded = paymentsR.ok;
+  payments = nextPayments;
+  sales = salesLoaded ? [...directSales, ...apartadoSales] : [];
+  _rememberSales(sales);
 }
 
-async function loadPreviousSales() {
-  const [from, to] = _prevRange();
-  const cols = 'id,total,created_at,type,abonos';
-  // Mismo fix que loadSales() — un abono hecho en el período anterior debe contar aunque
-  // el registro se haya creado antes de ese período
-  const [r, abonosR] = await Promise.all([
-    api(`sales?select=${cols}&cancelled_at=is.null&created_at=gte.${from}&created_at=lte.${to}&limit=500`),
-    api(`sales?select=${cols}&cancelled_at=is.null&abonos=not.is.null&limit=1000`)
+async function loadPreviousSales(mode = _statsMode, offset = _statsOffset, generation = null) {
+  const previous = getRange(mode, offset - 1);
+  const { from, to } = previous;
+  const [directSalesR, apartadoSalesR, paymentsR] = await Promise.all([
+    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.venta&status=eq.liquidado&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=created_at.desc,id.desc`),
+    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(from)}&liquidated_at=lte.${encodeURIComponent(to)}&order=liquidated_at.desc,id.desc`),
+    _fetchAll(`sale_payments?select=${_PAYMENT_COLS}&paid_at=gte.${encodeURIComponent(from)}&paid_at=lte.${encodeURIComponent(to)}&order=paid_at.desc,id.desc`)
   ]);
-  const prevData   = (r.ok && Array.isArray(r.data)) ? r.data : [];
-  const abonosData = (abonosR.ok && Array.isArray(abonosR.data)) ? abonosR.data : [];
-  const byId = new Map();
-  prevData.forEach(s => byId.set(s.id, s));
-  abonosData.forEach(s => byId.set(s.id, s));
-  prevSalesAll = [...byId.values()];
-  prevSales = prevData.filter(s => s.type !== 'apartado');
+  const nextSalesLoaded = directSalesR.ok && apartadoSalesR.ok;
+  const nextPayments = (paymentsR.ok && Array.isArray(paymentsR.data)) ? paymentsR.data : [];
+  const nextSales = nextSalesLoaded ? [
+    ...((directSalesR.ok && Array.isArray(directSalesR.data)) ? directSalesR.data : []),
+    ...((apartadoSalesR.ok && Array.isArray(apartadoSalesR.data)) ? apartadoSalesR.data : [])
+  ] : [];
+  if (generation !== null && generation !== _statsReloadGeneration) return;
+  prevSalesLoaded = nextSalesLoaded;
+  prevPaymentsLoaded = paymentsR.ok;
+  prevPayments = nextPayments;
+  prevSales = nextSales;
 }
 
 async function loadProducts() {
-  const r = await api('products?select=id,name,category,category_label,price,cost,stock,out_of_stock,image,images,expiry_date&order=position.asc&limit=2000');
+  const r = await _fetchAll('products?select=id,name,category,category_label,price,cost,stock,out_of_stock,image,images,expiry_date&order=position.asc,id.asc');
+  productsLoaded = r.ok;
   products = (r.ok && Array.isArray(r.data)) ? r.data : [];
 }
 
 let todaySales = [];
-async function loadTodaySales() {
-  const from = new Date(); from.setHours(0,0,0,0);
-  const r = await api(`sales?select=id,total,created_at,items,payment_method,type,discount,note,seller_email,customer,abonos&cancelled_at=is.null&order=created_at.desc&created_at=gte.${from.toISOString()}&limit=200`);
-  todaySales = (r.ok && Array.isArray(r.data)) ? r.data : [];
+async function loadTodaySales(generation = null) {
+  todaySummaryLoaded = false;
+  const { from, to } = getRange('day', 0);
+  const [salesR, paymentsR, liquidatedR] = await Promise.all([
+    _fetchAll(`sales?select=${_SALE_COLS}&cancelled_at=is.null&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=created_at.desc,id.desc`),
+    _fetchAll(`sale_payments?select=${_PAYMENT_COLS}&paid_at=gte.${encodeURIComponent(from)}&paid_at=lte.${encodeURIComponent(to)}&order=paid_at.desc,id.desc`),
+    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(from)}&liquidated_at=lte.${encodeURIComponent(to)}&order=liquidated_at.desc,id.desc`)
+  ]);
+  const nextSales = (salesR.ok && Array.isArray(salesR.data)) ? salesR.data : [];
+  const nextPayments = (paymentsR.ok && Array.isArray(paymentsR.data)) ? paymentsR.data : [];
+  const nextLiquidated = (liquidatedR.ok && Array.isArray(liquidatedR.data)) ? liquidatedR.data : [];
+  const paymentSalesLoaded = await _loadPaymentSales(nextPayments);
+  if (generation !== null && generation !== _statsReloadGeneration) return;
+  todaySummaryLoaded = salesR.ok && paymentsR.ok && liquidatedR.ok && paymentSalesLoaded;
+  todaySales = salesR.ok ? nextSales : [];
+  todayPaymentsLoaded = paymentsR.ok;
+  todayPayments = nextPayments;
+  todayLiquidatedSales = liquidatedR.ok ? nextLiquidated : [];
+  _rememberSales(todaySales);
+  _rememberSales(todayLiquidatedSales);
 }
 
 // Miniaturas + nombre/precio de cada producto — compartido entre venta y abono
@@ -293,93 +511,76 @@ function renderTodaySales() {
   const titleEl = document.getElementById('today-sales-title');
   if (!el) return;
   const isToday = _statsMode === 'day' && _statsOffset === 0;
-  if (titleEl) titleEl.textContent = isToday ? 'Ventas de hoy' : `Ventas — ${PERIOD_LABELS[currentPeriod]}`;
+  if (titleEl) titleEl.textContent = isToday ? 'Movimientos de hoy' : `Movimientos — ${PERIOD_LABELS[currentPeriod]}`;
+  if (!paymentsLoaded) {
+    if (countEl) countEl.textContent = '';
+    el.innerHTML = '<p class="no-data" style="color:var(--red)">No se pudieron cargar los movimientos</p>';
+    return;
+  }
 
-  const fromIso = _currentFrom();
-  const _listToIso = _currentTo();
-  const fromMs = new Date(fromIso).getTime();
-  const toMs   = new Date(_listToIso).getTime();
+  const displayItems = _groupRefundOperations(payments)
+    .sort((a, b) => new Date(b.paid_at) - new Date(a.paid_at));
+  const receipts = displayItems.filter(p => p.kind !== 'refund' && p.kind !== 'adjustment').length;
+  const refunds = _refundOperationCount(payments);
+  const adjustments = displayItems.filter(p => p.kind === 'adjustment').length;
 
-  // Ventas de una sola exhibición (sin abonos) — salesAll mezcla el período actual con TODAS
-  // las ventas que tengan abonos!=null (incluye [] vacío, que en Postgres no es null), traídas
-  // sin filtro de fecha para el fix de abonos de otros días — hay que acotar aquí por fecha
-  // o se cuelan ventas viejas con abonos:[] como si fueran de hoy
-  const oneShot = salesAll.filter(s => {
-    if (s.type === 'apartado' || (Array.isArray(s.abonos) && s.abonos.length)) return false;
-    const t = new Date(s.created_at).getTime();
-    return t >= fromMs && t <= toMs;
-  });
-
-  // Abonos/anticipos — de CUALQUIER venta o apartado con abonos, sin importar cuándo se creó
-  // el registro; cada uno se cuenta el día real en que se recibió el dinero, no el de creación
-  const abonoEvents = [];
-  salesAll.forEach(s => {
-    if (!Array.isArray(s.abonos) || !s.abonos.length) return;
-    s.abonos.forEach(a => {
-      const t = new Date(a.date).getTime();
-      if (t >= fromMs && t <= toMs) abonoEvents.push({ sale: s, abono: a });
-    });
-  });
-
-  const displayItems = [
-    ...oneShot.map(s => ({ kind: 'venta', sale: s, ts: new Date(s.created_at).getTime() })),
-    ...abonoEvents.map(e => ({ kind: 'abono', sale: e.sale, abono: e.abono, ts: new Date(e.abono.date).getTime() }))
-  ].sort((a, b) => b.ts - a.ts);
-
-  const hoy = new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
+  const hoy = _mxDateLabel(new Date(), {weekday:'long',day:'numeric',month:'long'});
   if (countEl) countEl.textContent = displayItems.length
-    ? `${oneShot.length} venta${oneShot.length!==1?'s':''}${abonoEvents.length?` · ${abonoEvents.length} abono${abonoEvents.length!==1?'s':''}`:''}`
+    ? [
+        receipts ? `${receipts} cobro${receipts!==1?'s':''}` : '',
+        refunds ? `${refunds} devolución${refunds!==1?'es':''}` : '',
+        adjustments ? `${adjustments} ajuste${adjustments!==1?'s':''}` : ''
+      ].filter(Boolean).join(' · ')
     : isToday ? hoy : PERIOD_LABELS[currentPeriod];
   if (!displayItems.length) { el.innerHTML = `<p class="no-data">Sin movimientos ${isToday ? 'hoy' : 'en este período'}</p>`; return; }
 
-  el.innerHTML = displayItems.map((entry, idx) => {
-    if (entry.kind === 'abono') {
-      const s = entry.sale, a = entry.abono;
-      const t = new Date(a.date);
-      const time = `${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')}`;
-      const isTrans = a.method === 'transferencia';
-      const payIcon = `<span class="dv-sale-pay ${isTrans ? 'dv-pay-trans' : 'dv-pay-efec'}">${isTrans ? '📱' : '💵'}</span>`;
-      const nombre = (s.customer || '').split(' · 📱 ')[0] || 'Cliente';
-      const items = Array.isArray(s.items) ? s.items : [];
-      const productLbl = items.length === 1 ? items[0]?.name : (items.length ? `${items[0]?.name || ''} +${items.length - 1} más` : '');
-      const abonoTag = `<span style="font-size:.62rem;background:#DCFCE7;color:#166534;padding:1px 6px;border-radius:50px;font-weight:700;flex-shrink:0">ABONO</span>`;
-      const itemsHtml = _dvItemsHtml(items);
-      return `<div class="dv-sale" id="dv-${idx}">
-  <div class="dv-sale-head" onclick="dvToggle(${idx})">
-    <span class="dv-sale-time">${time}</span>
-    ${payIcon}
-    ${abonoTag}
-    <span class="dv-sale-names">${_esc(nombre)}${productLbl ? ` · ${_esc(productLbl)}` : ''}</span>
-    <span class="dv-sale-total">$${parseFloat(a.amount||0).toLocaleString('es-MX')}</span>
-    <span class="dv-sale-arrow">›</span>
-  </div>
-  <div class="dv-body">${itemsHtml}<div style="font-size:.7rem;color:var(--muted);padding-top:4px">Abono de apartado — pendiente $${Math.max(0,(parseFloat(s.total||0))-(parseFloat(s.paid_amount||0))).toLocaleString('es-MX')}</div></div>
-</div>`;
-    }
-
-    const s = entry.sale;
-    const t = new Date(s.created_at);
-    const time = `${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')}`;
-    const isTrans = s.payment_method === 'transferencia';
-    const payIcon = `<span class="dv-sale-pay ${isTrans ? 'dv-pay-trans' : 'dv-pay-efec'}">${isTrans ? '📱' : '💵'}</span>`;
-    const items = Array.isArray(s.items) ? s.items : [];
-    // Preview corto y predecible — con muchos productos, el listado completo se corta a media palabra
-    const names = items.length <= 2
-      ? items.map(i => i.name).join(', ')
-      : `${items[0]?.name || ''} +${items.length - 1} más`;
-    const fullTotal = parseFloat(s.total || 0);
+  el.innerHTML = displayItems.map((payment, idx) => {
+    const s = paymentSalesById.get(String(payment.sale_id));
+    const time = _mxTime(payment.paid_at);
+    const isTrans = payment.method === 'transferencia';
+    const isMultiMethod = payment.method === 'multiple';
+    const payIcon = `<span class="dv-sale-pay ${isTrans ? 'dv-pay-trans' : 'dv-pay-efec'}">${isMultiMethod ? '🧾' : isTrans ? '📱' : '💵'}</span>`;
+    const items = Array.isArray(s?.items) ? s.items : [];
+    const origin = _saleOrigin(s);
+    const amount = _paymentAmount(payment);
+    const isRefund = payment.kind === 'refund';
+    const isAdjustment = payment.kind === 'adjustment';
+    const isHistorical = payment.is_estimated || payment.source?.startsWith('legacy_');
+    const isLiquidation = payment.source === 'rpc_apartado_liquidation'
+      || (payment.source === 'rpc_apartado_initial' && s && Math.abs(amount - (parseFloat(s.total) || 0)) < .005);
+    const tagText = isRefund ? 'DEVOLUCIÓN' : isAdjustment ? 'AJUSTE' : isHistorical ? 'HISTÓRICO' : isLiquidation ? 'LIQUIDADO' : origin === 'apartado' ? 'ABONO' : 'VENTA';
+    const tagStyle = isRefund
+      ? 'background:#FEE2E2;color:#991B1B'
+      : isAdjustment || isHistorical
+        ? 'background:#FEF3C7;color:#92400E'
+        : 'background:#DCFCE7;color:#166534';
+    const tag = `<span style="font-size:.62rem;${tagStyle};padding:1px 6px;border-radius:50px;font-weight:700;flex-shrink:0">${tagText}</span>`;
+    const nombre = origin === 'apartado'
+      ? ((s?.customer || '').split(' · 📱 ')[0] || `Apartado #${payment.sale_id}`)
+      : (items.length <= 2 ? items.map(i => i.name).join(', ') : `${items[0]?.name || ''} +${items.length - 1} más`) || `Venta #${payment.sale_id}`;
     const itemsHtml = _dvItemsHtml(items);
-    const discRow = s.discount>0
-      ? `<div style="font-size:.7rem;color:var(--muted);text-align:right;padding-top:4px">Descuento −$${parseFloat(s.discount).toLocaleString('es-MX',{maximumFractionDigits:0})}</div>` : '';
+    const collectorEmail = payment.collected_by_email || '';
+    const collector = collectorEmail ? (nameMap[collectorEmail] || collectorEmail.split('@')[0]) : '';
+    const refundBreakdown = payment.refund_breakdown?.length > 1
+      ? payment.refund_breakdown.map(line => `${line.method === 'transferencia' ? '📱' : line.method === 'efectivo' ? '💵' : '🧾'} ${line.method}: −$${Math.abs(line.amount).toLocaleString('es-MX')}`).join(' · ')
+      : '';
+    const detail = [
+      collector ? `Registró ${_esc(collector)}` : '',
+      payment.is_estimated ? 'Dato histórico estimado' : '',
+      refundBreakdown,
+      origin === 'apartado' && !isRefund && s ? `Pendiente actual $${Math.max(0, (parseFloat(s.total)||0) - (parseFloat(s.paid_amount)||0)).toLocaleString('es-MX')}` : ''
+    ].filter(Boolean).join(' · ');
+    const amountText = `${amount < 0 ? '−' : ''}$${Math.abs(amount).toLocaleString('es-MX')}`;
     return `<div class="dv-sale" id="dv-${idx}">
   <div class="dv-sale-head" onclick="dvToggle(${idx})">
     <span class="dv-sale-time">${time}</span>
     ${payIcon}
-    <span class="dv-sale-names">${_esc(names)}</span>
-    <span class="dv-sale-total">$${fullTotal.toLocaleString('es-MX')}</span>
+    ${tag}
+    <span class="dv-sale-names">${_esc(nombre)}</span>
+    <span class="dv-sale-total"${amount < 0 ? ' style="color:var(--red)"' : ''}>${amountText}</span>
     <span class="dv-sale-arrow">›</span>
   </div>
-  <div class="dv-body">${itemsHtml}${discRow}</div>
+  <div class="dv-body">${itemsHtml}${detail ? `<div style="font-size:.7rem;color:var(--muted);padding-top:4px">${detail}</div>` : ''}</div>
 </div>`;
   }).join('');
 }
@@ -447,16 +648,20 @@ function renderVendedores() {
   const body  = document.getElementById('vendedores-body');
   const label = document.getElementById('vendedores-label');
   if (!card || !body) return;
+  if (!paymentsLoaded) {
+    card.style.display = '';
+    label.textContent = 'No disponible';
+    body.innerHTML = '<p class="no-data">No disponible</p>';
+    return;
+  }
 
-  // Agrupar por seller_email
+  // Cada movimiento pertenece a quien realmente cobró, no a quien creó la venta.
   const map = {};
-  const _fromIso = _currentFrom();
-  const _toIso   = _currentTo();
-  salesAll.forEach(s => {
-    const key = s.seller_email || '__sin_sesion__';
-    if (!map[key]) map[key] = { ventas: 0, total: 0 };
-    if (s.type !== 'apartado') map[key].ventas++; // solo ventas completas en el conteo
-    map[key].total += _abonoRevenue(s, _fromIso, _toIso);
+  payments.forEach(payment => {
+    const key = payment.collected_by_email || '__sin_sesion__';
+    if (!map[key]) map[key] = { movimientos: 0, total: 0 };
+    map[key].movimientos++;
+    map[key].total += _paymentAmount(payment);
   });
 
   const entries = Object.entries(map).sort((a,b) => b[1].total - a[1].total);
@@ -465,16 +670,16 @@ function renderVendedores() {
   if (identificados < 2) { card.style.display = 'none'; return; }
 
   card.style.display = '';
-  const maxTotal = entries[0][1].total;
+  const maxTotal = Math.max(1, ...entries.map(([, d]) => Math.abs(d.total)));
   label.textContent = PERIOD_LABELS[currentPeriod];
 
   body.innerHTML = entries.map(([email, d]) => {
-    const pct  = maxTotal > 0 ? Math.round(d.total / maxTotal * 100) : 0;
-    const fmt  = n => `$${n.toLocaleString('es-MX')}`;
+    const pct  = Math.round(Math.abs(d.total) / maxTotal * 100);
+    const fmt  = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX')}`;
     const isSinSesion = email === '__sin_sesion__';
-    const name = isSinSesion ? 'Ventas sin sesión activa' : (nameMap[email] || email.split('@')[0]);
+    const name = isSinSesion ? 'Cobros sin sesión identificada' : (nameMap[email] || email.split('@')[0]);
     const icon = isSinSesion ? '🕐' : '👤';
-    const barColor = isSinSesion ? '#B5A696' : 'var(--gold)';
+    const barColor = d.total < 0 ? 'var(--red)' : isSinSesion ? '#B5A696' : 'var(--gold)';
     const nameStyle = isSinSesion ? 'color:var(--muted);font-weight:500' : 'font-weight:600';
     return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -484,29 +689,9 @@ function renderVendedores() {
       <div style="background:var(--border);border-radius:50px;height:5px;overflow:hidden;margin-bottom:4px">
         <div style="width:${pct}%;height:100%;background:${barColor};border-radius:50px"></div>
       </div>
-      <div style="font-size:.7rem;color:var(--muted)">${d.ventas} venta${d.ventas!==1?'s':''}${isSinSesion?' · registradas antes del sistema de sesiones':''}</div>
+      <div style="font-size:.7rem;color:var(--muted)">${d.movimientos} movimiento${d.movimientos!==1?'s':''}${isSinSesion?' · sin cobrador identificado':''}</div>
     </div>`;
   }).join('');
-}
-
-// Retorna el ingreso de una venta/apartado que cae dentro del período [fromIso, toIso].
-// Si tiene abonos, suma solo los abonos dentro del rango; si no, usa total.
-// Apartados sin abonos (anticipo=0) retornan 0 — aún no se ha cobrado nada.
-function _abonoRevenue(sale, fromIso, toIso) {
-  const abonos = Array.isArray(sale.abonos) ? sale.abonos : [];
-  const from = fromIso ? new Date(fromIso).getTime() : 0;
-  const to   = toIso   ? new Date(toIso).getTime()   : Date.now() + 86400000;
-  if (!abonos.length) {
-    if (sale.type === 'apartado') return 0;
-    // Sin abonos reales (abonos:[] cuenta como "not null" en Postgres, no solo NULL) —
-    // salesAll trae estas filas sin filtro de fecha, así que hay que acotar aquí por su
-    // propia fecha de creación o se cuela el total completo de ventas de otros períodos
-    const created = new Date(sale.created_at).getTime();
-    return (created >= from && created <= to) ? parseFloat(sale.total || 0) : 0;
-  }
-  return abonos
-    .filter(a => { const t = new Date(a.date).getTime(); return t >= from && t <= to; })
-    .reduce((s, a) => s + parseFloat(a.amount || 0), 0);
 }
 
 /* KPIs con delta vs período anterior */
@@ -521,30 +706,38 @@ function kpiDelta(curr, prev) {
 }
 
 function renderKPIs() {
-  const fromIso   = _currentFrom();
-  const toIso     = _currentTo();
-  const [prevFromIso, prevToIso] = _prevRange();
-
-  const totalRev  = salesAll.reduce((s,x) => s + _abonoRevenue(x, fromIso, toIso), 0);
+  const totalRev  = _paymentTotal(payments);
   const count     = sales.length;
   const units     = sales.reduce((s,v) => s + (v.items||[]).reduce((a,i) => a + (i.qty||1), 0), 0);
 
-  const prevRev   = prevSalesAll.reduce((s,x) => s + _abonoRevenue(x, prevFromIso, prevToIso), 0);
+  const prevRev   = _paymentTotal(prevPayments);
   const prevCount = prevSales.length;
   const prevUnits = prevSales.reduce((s,v) => s + (v.items||[]).reduce((a,i) => a + (i.qty||1), 0), 0);
 
-  const fmt = n => `$${n.toLocaleString('es-MX', {maximumFractionDigits:0})}`;
+  const fmt = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX', {maximumFractionDigits:0})}`;
 
-  document.getElementById('kpi-revenue').innerHTML = fmt(totalRev) + kpiDelta(totalRev, prevRev);
-  document.getElementById('kpi-revenue-sub').textContent = prevRev > 0 ? `Período ant.: ${fmt(prevRev)}` : '';
-  document.getElementById('kpi-sales').innerHTML = count + kpiDelta(count, prevCount);
-  document.getElementById('kpi-sales-sub').textContent = prevCount > 0 ? `Período ant.: ${prevCount}` : '';
-  document.getElementById('kpi-avg').innerHTML = (units || '—') + kpiDelta(units, prevUnits);
-  document.getElementById('kpi-avg-sub').textContent = prevUnits > 0 ? `Período ant.: ${prevUnits}` : '';
+  document.getElementById('kpi-revenue').innerHTML = paymentsLoaded ? fmt(totalRev) + (prevPaymentsLoaded ? kpiDelta(totalRev, prevRev) : '') : '—';
+  document.getElementById('kpi-revenue-sub').textContent = !paymentsLoaded
+    ? 'No se pudieron cargar movimientos'
+    : prevPaymentsLoaded && prevRev !== 0 ? `Período ant.: ${fmt(prevRev)}` : '';
+  document.getElementById('kpi-sales').innerHTML = salesLoaded
+    ? count + (prevSalesLoaded ? kpiDelta(count, prevCount) : '')
+    : '—';
+  document.getElementById('kpi-sales-sub').textContent = !salesLoaded
+    ? 'No disponible'
+    : prevSalesLoaded && prevCount > 0 ? `Período ant.: ${prevCount}` : '';
+  document.getElementById('kpi-avg').innerHTML = salesLoaded
+    ? units + (prevSalesLoaded ? kpiDelta(units, prevUnits) : '')
+    : '—';
+  document.getElementById('kpi-avg-sub').textContent = !salesLoaded
+    ? 'No disponible'
+    : prevSalesLoaded && prevUnits > 0 ? `Período ant.: ${prevUnits}` : '';
 
   const aptAmt = _aptResumen.pendiente || 0;
-  document.getElementById('kpi-apt').textContent = aptAmt > 0 ? fmt(aptAmt) : '$0';
-  document.getElementById('kpi-apt-sub').textContent = _aptResumen.count > 0
+  document.getElementById('kpi-apt').textContent = apartadosPendientesLoaded ? fmt(aptAmt) : '—';
+  document.getElementById('kpi-apt-sub').textContent = !apartadosPendientesLoaded
+    ? 'No disponible'
+    : _aptResumen.count > 0
     ? `${_aptResumen.count} apartado${_aptResumen.count!==1?'s':''}${_aptResumen.vencidos ? ` · ⚠️ ${_aptResumen.vencidos} venc.` : ''}`
     : 'Sin apartados activos';
 }
@@ -552,32 +745,24 @@ function renderKPIs() {
 /* Hora pico */
 function renderHourChart() {
   const byHour  = Array(24).fill(0);
-  const fromMs  = new Date(_currentFrom()).getTime();
-  const toMs    = new Date(_currentTo()).getTime();
-  salesAll.forEach(s => {
-    const abonos = Array.isArray(s.abonos) ? s.abonos : [];
-    if (abonos.length) {
-      abonos.forEach(a => {
-        const t = new Date(a.date).getTime();
-        if (t >= fromMs && t <= toMs) byHour[new Date(a.date).getHours()] += parseFloat(a.amount || 0);
-      });
-    } else {
-      const t = new Date(s.created_at).getTime();
-      if (t >= fromMs && t <= toMs) byHour[new Date(s.created_at).getHours()] += parseFloat(s.total || 0);
-    }
+  payments.forEach(payment => {
+    const hour = _mxHour(payment.paid_at);
+    if (hour >= 0) byHour[hour] += _paymentAmount(payment);
   });
   if (hourChart) { hourChart.destroy(); hourChart = null; }
-  if (salesAll.length === 0) { _chartNoData('hour-chart', 'Sin datos en el período'); return; }
+  if (!paymentsLoaded) { _chartNoData('hour-chart', 'Error al cargar movimientos'); return; }
+  if (payments.length === 0) { _chartNoData('hour-chart', 'Sin movimientos en el período'); return; }
   const ctx = _chartReady('hour-chart');
   if (!ctx) return;
-  const maxH = byHour.indexOf(Math.max(...byHour));
+  const maxAbs = Math.max(...byHour.map(Math.abs));
+  const maxH = byHour.findIndex(value => Math.abs(value) === maxAbs && value !== 0);
   hourChart = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: Array.from({length:24}, (_,i) => `${i}h`),
       datasets: [{
         data: byHour,
-        backgroundColor: byHour.map((_, i) => i === maxH ? '#C9A462' : 'rgba(201,164,98,.35)'),
+        backgroundColor: byHour.map((value, i) => value < 0 ? '#E85D5D' : i === maxH ? '#C9A462' : 'rgba(201,164,98,.35)'),
         borderRadius: 4, borderSkipped: false
       }]
     },
@@ -595,30 +780,28 @@ function renderHourChart() {
 /* Revenue chart */
 function renderRevenueChart() {
   const byDay = {};
-  const from  = _currentFrom();
-  const to    = _currentTo();
-  const start = new Date(from);
-  const end   = new Date(to);
+  const range = getRange(_statsMode, _statsOffset);
   if (revenueChart) { revenueChart.destroy(); revenueChart = null; }
-  if (salesAll.length === 0) { _chartNoData('revenue-chart', 'Sin ventas registradas'); return; }
+  if (!paymentsLoaded) {
+    const summary = document.getElementById('week-summary');
+    if (summary) summary.style.display = 'none';
+    _chartNoData('revenue-chart', 'Error al cargar movimientos');
+    return;
+  }
+  if (payments.length === 0) { _chartNoData('revenue-chart', 'Sin movimientos registrados'); return; }
   const ctx = _chartReady('revenue-chart');
   if (!ctx) return;
 
   // Build daily revenue map for current period
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
-    byDay[_localDay(d)] = 0;
+  let cursor = _parseDayKey(range.fromDay);
+  const endDayNumber = _civilDayNumber(_parseDayKey(range.toDay));
+  while (cursor && _civilDayNumber(cursor) <= endDayNumber) {
+    byDay[_dayKey(cursor)] = 0;
+    cursor = _addCivilDays(cursor, 1);
   }
-  salesAll.forEach(s => {
-    const abonos = Array.isArray(s.abonos) ? s.abonos : [];
-    if (abonos.length) {
-      abonos.forEach(a => {
-        const day = _localDay(a.date);
-        if (day in byDay) byDay[day] += parseFloat(a.amount||0);
-      });
-    } else {
-      const day = _localDay(s.created_at);
-      if (day in byDay) byDay[day] += parseFloat(s.total||0);
-    }
+  payments.forEach(payment => {
+    const day = _localDay(payment.paid_at);
+    if (day in byDay) byDay[day] += _paymentAmount(payment);
   });
 
   if (_statsMode === 'week') {
@@ -643,9 +826,10 @@ function renderRevenueChart() {
       ctx.textAlign='center'; ctx.textBaseline='bottom';
       chart.getDatasetMeta(0).data.forEach((bar,i) => {
         const val = chart.data.datasets[0].data[i];
-        if (val > 0) {
-          const lbl = val>=1000?'$'+(val/1000).toFixed(1)+'k':'$'+Math.round(val);
-          ctx.fillText(lbl, bar.x, bar.y-3);
+        if (val !== 0) {
+          const abs = Math.abs(val);
+          const lbl = `${val<0?'−':''}$${abs>=1000?(abs/1000).toFixed(1)+'k':Math.round(abs)}`;
+          ctx.fillText(lbl, bar.x, val < 0 ? bar.y + 12 : bar.y - 3);
         }
       });
       ctx.restore();
@@ -687,25 +871,24 @@ function renderRevenueChart() {
 
 function _renderWeekComparison(ctx, byDayCurr) {
   const _DOW = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-  const [prevFrom, prevTo] = _prevRange();
-
   const currByDow = Array(7).fill(0);
   Object.entries(byDayCurr).forEach(([key, val]) => {
-    const dow = (new Date(key+'T12:00:00').getDay()+6)%7;
-    currByDow[dow] = val;
+    const civil = _parseDayKey(key);
+    if (civil) currByDow[_civilWeekday(civil)] = val;
   });
 
   const prevByDow = Array(7).fill(0);
-  prevSalesAll.forEach(s => {
-    const dow = (new Date(s.created_at).getDay()+6)%7;
-    prevByDow[dow] += _abonoRevenue(s, prevFrom, prevTo);
+  prevPayments.forEach(payment => {
+    const civil = _mxParts(payment.paid_at);
+    if (!civil) return;
+    prevByDow[_civilWeekday(civil)] += _paymentAmount(payment);
   });
 
-  const hasPrev = prevByDow.some(v=>v>0);
+  const hasPrev = prevByDow.some(v => v !== 0);
   const currTotal = currByDow.reduce((a,b)=>a+b,0);
   const prevTotal = prevByDow.reduce((a,b)=>a+b,0);
   const _currLabel = PERIOD_LABELS[currentPeriod] || 'Esta semana';
-  const _fmt = n => '$'+Math.round(n).toLocaleString('es-MX');
+  const _fmt = n => `${n<0?'−':''}$${Math.abs(Math.round(n)).toLocaleString('es-MX')}`;
 
   // Week summary pills
   const ws = document.getElementById('week-summary');
@@ -731,8 +914,8 @@ function _renderWeekComparison(ctx, byDayCurr) {
     </div>`;
   }
 
-  const maxCurr = Math.max(...currByDow, 1);
-  const currColors = currByDow.map(v => v===maxCurr&&v>0 ? '#C9A462' : 'rgba(201,164,98,.7)');
+  const maxCurr = Math.max(...currByDow.map(Math.abs), 1);
+  const currColors = currByDow.map(v => v < 0 ? '#E85D5D' : Math.abs(v)===maxCurr&&v!==0 ? '#C9A462' : 'rgba(201,164,98,.7)');
 
   const datasets = [{
     label: _currLabel,
@@ -763,7 +946,10 @@ function _renderWeekComparison(ctx, byDayCurr) {
       ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       chart.getDatasetMeta(0).data.forEach((bar, i) => {
         const val = chart.data.datasets[0].data[i];
-        if (val > 0) ctx.fillText(val>=1000?'$'+(val/1000).toFixed(1)+'k':'$'+Math.round(val), bar.x, bar.y - 3);
+        if (val !== 0) {
+          const abs = Math.abs(val);
+          ctx.fillText(`${val<0?'−':''}$${abs>=1000?(abs/1000).toFixed(1)+'k':Math.round(abs)}`, bar.x, val < 0 ? bar.y + 12 : bar.y - 3);
+        }
       });
       ctx.restore();
     }
@@ -793,29 +979,19 @@ function _renderWeekComparison(ctx, byDayCurr) {
 
 function _renderDayHourly(ctx) {
   const byHour = Array(24).fill(0);
-  const fromMs = new Date(_currentFrom()).getTime();
-  const toMs   = new Date(_currentTo()).getTime();
-  salesAll.forEach(s => {
-    const abonos = Array.isArray(s.abonos) ? s.abonos : [];
-    if (abonos.length) {
-      abonos.forEach(a => {
-        const t = new Date(a.date).getTime();
-        if (t >= fromMs && t <= toMs) byHour[new Date(a.date).getHours()] += parseFloat(a.amount||0);
-      });
-    } else {
-      const t = new Date(s.created_at).getTime();
-      if (t >= fromMs && t <= toMs) byHour[new Date(s.created_at).getHours()] += parseFloat(s.total||0);
-    }
+  payments.forEach(payment => {
+    const hour = _mxHour(payment.paid_at);
+    if (hour >= 0) byHour[hour] += _paymentAmount(payment);
   });
 
-  const active = byHour.reduce((acc,v,i) => v>0?[...acc,i]:acc, []);
+  const active = byHour.reduce((acc,v,i) => v!==0?[...acc,i]:acc, []);
   const first  = active.length ? active[0] : 8;
   const last   = active.length ? active[active.length-1] : 20;
   const hours  = [];
   for (let h=Math.max(0,first-1); h<=Math.min(23,last+1); h++) hours.push(h);
 
-  const maxH = Math.max(...hours.map(h=>byHour[h]),1);
-  const colors = hours.map(h => byHour[h]===maxH&&byHour[h]>0?'#C9A462':'rgba(201,164,98,.55)');
+  const maxH = Math.max(...hours.map(h=>Math.abs(byHour[h])),1);
+  const colors = hours.map(h => byHour[h] < 0 ? '#E85D5D' : Math.abs(byHour[h])===maxH&&byHour[h]!==0?'#C9A462':'rgba(201,164,98,.55)');
 
   revenueChart = new Chart(ctx, {
     type:'bar',
@@ -841,6 +1017,13 @@ function _renderDayHourly(ctx) {
 
 /* Category chart */
 function renderCatChart() {
+  if (catChart) { catChart.destroy(); catChart = null; }
+  if (!salesLoaded || !productsLoaded) {
+    _chartNoData('cat-chart', 'No disponible');
+    const list = document.getElementById('cat-list');
+    if (list) list.innerHTML = '';
+    return;
+  }
   const catMap = {};
   sales.forEach(s => {
     if (!Array.isArray(s.items)) return;
@@ -852,7 +1035,6 @@ function renderCatChart() {
   });
 
   const entries = Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
-  if (catChart) { catChart.destroy(); catChart = null; }
   if (!entries.length) { _chartNoData('cat-chart', 'Sin datos de categorías'); const _cl=document.getElementById('cat-list'); if(_cl) _cl.innerHTML=''; return; }
   const ctx = _chartReady('cat-chart');
   if (!ctx) return;
@@ -916,6 +1098,7 @@ const _TP_PH = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://ww
 function renderTopProducts() {
   const prods = aggregateProducts().slice(0,8);
   const el = document.getElementById('top-products');
+  if (!salesLoaded) { el.innerHTML = '<p class="no-data">No disponible</p>'; return; }
   if (!prods.length) { el.innerHTML = '<p class="no-data">Sin ventas en el período</p>'; return; }
   const maxQty = prods[0].qty || 1;
   el.innerHTML = prods.map((p,i) => {
@@ -938,6 +1121,14 @@ function renderTopProducts() {
 
 /* Inventario */
 function renderInventory() {
+  if (!productsLoaded) {
+    ['inv-out', 'inv-low', 'inv-ok'].forEach(id => { document.getElementById(id).textContent = '—'; });
+    document.getElementById('inv-total-label').textContent = 'No disponible';
+    document.getElementById('inv-valor-venta').textContent = '—';
+    document.getElementById('inv-valor-costo-wrap').style.display = 'none';
+    document.getElementById('inv-list').innerHTML = '<p class="no-data" style="padding:16px 0">No disponible</p>';
+    return;
+  }
   const out  = products.filter(p => p.stock===0 || p.out_of_stock);
   const low  = products.filter(p => p.stock===1 && !p.out_of_stock);
   const ok   = products.filter(p => p.stock>1  && !p.out_of_stock);
@@ -981,6 +1172,12 @@ function renderCapitalCategoria() {
   const body    = document.getElementById('capital-cat-body');
   const totalEl = document.getElementById('capital-cat-total');
   if (!card || !body) return;
+  if (!productsLoaded) {
+    card.style.display = '';
+    totalEl.textContent = 'No disponible';
+    body.innerHTML = '<p class="no-data">No disponible</p>';
+    return;
+  }
 
   const withStock = products.filter(p => p.price > 0 && p.stock > 0);
   if (!withStock.length) { card.style.display = 'none'; return; }
@@ -1030,11 +1227,18 @@ function renderExpiringProducts() {
   const body  = document.getElementById('expiring-body');
   const label = document.getElementById('expiring-label');
   if (!card || !body) return;
+  if (!productsLoaded) {
+    label.textContent = 'No disponible';
+    body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:.84rem">No disponible</div>';
+    return;
+  }
 
-  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const todayKey = _localDay(new Date());
+  const todayNumber = _civilDayNumber(_parseDayKey(todayKey));
   const withExpiry = products
     .filter(p => p.expiry_date)
-    .map(p => ({ ...p, _days: Math.round((new Date(p.expiry_date + 'T00:00:00') - hoy) / 86400000) }))
+    .map(p => ({ ...p, _days: _civilDayNumber(_parseDayKey(p.expiry_date)) - todayNumber }))
+    .filter(p => Number.isFinite(p._days))
     .filter(p => p._days <= 60)
     .sort((a, b) => a._days - b._days);
 
@@ -1051,7 +1255,7 @@ function renderExpiringProducts() {
   body.innerHTML = withExpiry.map(p => {
     const color = p._days < 0 ? '#E85D5D' : p._days <= 7 ? '#D97706' : '#B45309';
     const text  = p._days < 0 ? `Caducó hace ${Math.abs(p._days)}d` : p._days === 0 ? 'Caduca hoy' : `Caduca en ${p._days}d`;
-    const fecha = new Date(p.expiry_date + 'T00:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+    const fecha = _dayKeyLabel(p.expiry_date, { day: 'numeric', month: 'short' });
     const valor = (p.price || 0) * (p.stock || 0);
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="min-width:0">
@@ -1068,6 +1272,13 @@ function renderExpiringProducts() {
 
 /* ── RENTABILIDAD ── */
 function renderRentabilidad() {
+  if (!productsLoaded) {
+    ['rent-high', 'rent-mid', 'rent-low'].forEach(id => { document.getElementById(id).textContent = '—'; });
+    document.getElementById('rent-label').textContent = 'No disponible';
+    document.getElementById('rent-no-cost').style.display = 'none';
+    document.getElementById('rent-list').innerHTML = '<p class="no-data">No disponible</p>';
+    return;
+  }
   const margin = p => p.cost > 0 && p.price > 0
     ? Math.round((p.price - p.cost) / p.price * 100) : null;
 
@@ -1118,11 +1329,14 @@ let _aptResumen = { count: 0, pendiente: 0, vencidos: 0 };
 function renderBestSeller() {
   const el = document.getElementById('ds-best-row');
   if (!el) return;
-  const isDay = _statsMode === 'day';
-  // sales (no salesAll) — ya viene acotado al período actual; salesAll mezcla ventas de
-  // cualquier fecha con abonos:[] (no-null en Postgres) y contaminaría el conteo de productos
-  const src = isDay && _statsOffset === 0 ? todaySales : sales;
-  const ventas = src.filter(s => s.type !== 'apartado');
+  if (!salesLoaded) {
+    el.style.display = '';
+    el.innerHTML = '<div style="font-size:.76rem;color:var(--muted);padding:0 2px 10px">Productos vendidos: No disponible</div>';
+    return;
+  }
+  // Productos/unidades siguen la fecha real de finalización: created_at en
+  // venta directa y liquidated_at en apartado.
+  const ventas = sales;
   if (!ventas.length) { el.style.display = 'none'; return; }
   const freq = {};
   ventas.forEach(v => (v.items || []).forEach(i => {
@@ -1138,15 +1352,28 @@ function renderBestSeller() {
 async function loadApartadosPendientes() {
   const body = document.getElementById('apt-pending-body');
   const label = document.getElementById('apt-summary-label');
-  const result = await api(`sales?type=eq.apartado&cancelled_at=is.null&select=id,total,paid_amount,customer,created_at,due_date,items&order=created_at.asc`);
-  if (!result.ok || !result.data?.length) {
+  const result = await _fetchAll(`sales?origin_type=eq.apartado&status=eq.activo&select=id,total,paid_amount,customer,created_at,due_date,items&order=created_at.asc,id.asc`);
+  apartadosPendientesLoaded = result.ok;
+  if (!result.ok) {
+    _aptResumen = { count: 0, pendiente: 0, vencidos: 0 };
+    label.textContent = 'No disponible';
+    body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:.84rem">No disponible</div>';
+    return;
+  }
+  if (!result.data?.length) {
+    _aptResumen = { count: 0, pendiente: 0, vencidos: 0 };
+    label.textContent = '0 activos';
     body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:.84rem">Sin apartados pendientes</div>';
     return;
   }
   const data = result.data;
   const totalPendiente = data.reduce((s, a) => s + Math.max(0, (parseFloat(a.total)||0) - (parseFloat(a.paid_amount)||0)), 0);
-  const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const vencidos = data.filter(a => a.due_date && new Date(a.due_date+'T00:00:00') < hoy).length;
+  const todayKey = _localDay(new Date());
+  const todayNumber = _civilDayNumber(_parseDayKey(todayKey));
+  const vencidos = data.filter(a => {
+    const dueNumber = _civilDayNumber(_parseDayKey(a.due_date));
+    return Number.isFinite(dueNumber) && dueNumber < todayNumber;
+  }).length;
   _aptResumen = { count: data.length, pendiente: totalPendiente, vencidos };
 
   label.textContent = `${data.length} activos · $${totalPendiente.toLocaleString('es-MX')} por cobrar${vencidos ? ` · ⚠️ ${vencidos} vencido${vencidos>1?'s':''}` : ''}`;
@@ -1158,16 +1385,20 @@ async function loadApartadosPendientes() {
     const pct       = total > 0 ? Math.min(100, Math.round(pagado / total * 100)) : 0;
     const custParts = (s.customer || '').split(' · 📱 ');
     const nombre    = custParts[0] || 'Sin nombre';
-    const fecha     = new Date(s.created_at).toLocaleDateString('es-MX', { day:'numeric', month:'short' });
+    const fecha     = _mxDateLabel(s.created_at, { day:'numeric', month:'short' });
     const summary   = Array.isArray(s.items) ? s.items.map(i=>i.name).join(', ') : '';
 
     let dueBadge = '';
     if (s.due_date) {
-      const due      = new Date(s.due_date + 'T00:00:00');
-      const diffDays = Math.round((due - hoy) / 86400000);
+      const dueNumber = _civilDayNumber(_parseDayKey(s.due_date));
+      const diffDays = dueNumber - todayNumber;
       const dueColor = diffDays < 0 ? '#E85D5D' : diffDays <= 7 ? '#D97706' : '#2D6A4F';
-      const dueText  = diffDays < 0 ? `Vencido hace ${Math.abs(diffDays)}d` : diffDays === 0 ? 'Vence hoy' : `Vence ${due.toLocaleDateString('es-MX',{day:'numeric',month:'short'})}`;
-      dueBadge = `<span style="font-size:.68rem;font-weight:700;color:${dueColor}">📅 ${dueText}</span>`;
+      if (Number.isFinite(diffDays)) {
+        const dueText = diffDays < 0
+          ? `Vencido hace ${Math.abs(diffDays)}d`
+          : diffDays === 0 ? 'Vence hoy' : `Vence ${_dayKeyLabel(s.due_date, {day:'numeric',month:'short'})}`;
+        dueBadge = `<span style="font-size:.68rem;font-weight:700;color:${dueColor}">📅 ${dueText}</span>`;
+      }
     }
 
     return `<div style="display:flex;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px solid var(--border)">
@@ -1194,26 +1425,41 @@ async function loadApartadosPendientes() {
 
 /* ── INIT ── */
 function sendDailySummaryWA() {
-  const fmt = n => '$' + parseFloat(n||0).toLocaleString('es-MX', {maximumFractionDigits:0});
-  const today = sales.filter(s => {
-    const d = new Date(s.created_at);
-    const now = new Date();
-    return d.toDateString() === now.toDateString();
+  if (!todaySummaryLoaded) {
+    alert('El resumen de hoy no está completo. Recarga la página antes de enviarlo.');
+    return;
+  }
+  const fmt = n => `${n < 0 ? '−' : ''}$${Math.abs(parseFloat(n)||0).toLocaleString('es-MX', {maximumFractionDigits:0})}`;
+  const ventas = todaySales.filter(s => _saleOrigin(s) === 'venta' && _isCompletedSale(s));
+  const aptos = todaySales.filter(s => _saleOrigin(s) === 'apartado');
+  const ingresos = _paymentTotal(todayPayments);
+  const efectivo = todayPayments
+    .filter(payment => payment.method === 'efectivo')
+    .reduce((sum, payment) => sum + _paymentAmount(payment), 0);
+  const transf = todayPayments
+    .filter(payment => payment.method === 'transferencia')
+    .reduce((sum, payment) => sum + _paymentAmount(payment), 0);
+  const refundLines = todayPayments.filter(payment => payment.kind === 'refund');
+  const refundCount = _refundOperationCount(todayPayments);
+  const adjustmentLines = todayPayments.filter(payment => payment.kind === 'adjustment');
+  const apartadoPayments = todayPayments.filter(payment => {
+    const sale = paymentSalesById.get(String(payment.sale_id));
+    return payment.kind !== 'refund' && payment.kind !== 'adjustment'
+      && _saleOrigin(sale) === 'apartado' && _paymentAmount(payment) > 0;
   });
-  const ventas  = today.filter(s => s.type !== 'apartado');
-  const aptos   = today.filter(s => s.type === 'apartado');
-  const ingresos = ventas.reduce((s,x) => s + parseFloat(x.total||0), 0);
-  const efectivo = ventas.filter(s=>s.payment_method==='efectivo').reduce((s,x)=>s+parseFloat(x.total||0),0);
-  const transf   = ventas.filter(s=>s.payment_method==='transferencia').reduce((s,x)=>s+parseFloat(x.total||0),0);
-  const now = new Date();
-  const fecha = now.toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const apartadoAmount = _paymentTotal(apartadoPayments);
+  const fecha = _mxDateLabel(new Date(), {weekday:'long',year:'numeric',month:'long',day:'numeric'});
   let msg = `📊 *Resumen del día — Tres Encantos*\n${fecha}\n\n`;
-  msg += `💰 *Ingresos del día:* ${fmt(ingresos)}\n`;
-  msg += `🔢 *Ventas completadas:* ${ventas.length}\n`;
-  if (efectivo > 0) msg += `💵 Efectivo: ${fmt(efectivo)}\n`;
-  if (transf > 0)   msg += `📱 Transferencia: ${fmt(transf)}\n`;
-  if (aptos.length > 0) msg += `\n📌 *Apartados nuevos:* ${aptos.length} (anticipo ${fmt(aptos.reduce((s,x)=>s+parseFloat(x.paid_amount||0),0))})\n`;
-  if (!ventas.length && !aptos.length) msg += `_Sin ventas registradas hoy._\n`;
+  msg += `💰 *Ingreso neto del día:* ${fmt(ingresos)}\n`;
+  msg += `🔢 *Ventas directas:* ${ventas.length}\n`;
+  if (efectivo !== 0) msg += `💵 Efectivo: ${fmt(efectivo)}\n`;
+  if (transf !== 0)   msg += `📱 Transferencia: ${fmt(transf)}\n`;
+  if (refundCount) msg += `↩️ Devoluciones: ${refundCount} (${fmt(_paymentTotal(refundLines))})\n`;
+  if (adjustmentLines.length) msg += `🧾 Ajustes: ${adjustmentLines.length} (${fmt(_paymentTotal(adjustmentLines))})\n`;
+  if (aptos.length) msg += `\n📌 *Apartados nuevos:* ${aptos.length}\n`;
+  if (apartadoPayments.length) msg += `💳 *Anticipos y abonos:* ${apartadoPayments.length} (${fmt(apartadoAmount)})\n`;
+  if (todayLiquidatedSales.length) msg += `✅ *Apartados liquidados:* ${todayLiquidatedSales.length}\n`;
+  if (!todayPayments.length && !ventas.length && !aptos.length && !todayLiquidatedSales.length) msg += `_Sin movimientos registrados hoy._\n`;
   msg += `\n¡Hasta mañana! 🌟`;
   const WA = '5215534548417';
   window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -1226,21 +1472,25 @@ function renderCalendar() {
   if (!card||!el) return;
   if (_statsMode !== 'month') { card.style.display='none'; return; }
   card.style.display='';
+  if (!paymentsLoaded) {
+    el.innerHTML = '<p class="no-data">No disponible</p>';
+    return;
+  }
 
-  const fromIso = _currentFrom(), toIso = _currentTo();
-  const today = new Date(); today.setHours(0,0,0,0);
+  const range = getRange(_statsMode, _statsOffset);
+  const todayKey = _localDay(new Date());
 
   const byDay = {};
-  salesAll.forEach(s => {
-    const day = _localDay(s.created_at);
-    byDay[day] = (byDay[day]||0) + _abonoRevenue(s, fromIso, toIso);
+  payments.forEach(payment => {
+    const day = _localDay(payment.paid_at);
+    byDay[day] = (byDay[day]||0) + _paymentAmount(payment);
   });
-  const maxRev = Math.max(1, ...Object.values(byDay));
+  const maxRev = Math.max(1, ...Object.values(byDay).map(Math.abs));
 
-  const d0 = new Date(fromIso);
-  const year = d0.getFullYear(), month = d0.getMonth();
-  const firstDow = (new Date(year,month,1).getDay()+6)%7; // Mon=0
-  const lastD    = new Date(year,month+1,0).getDate();
+  const firstCivil = _parseDayKey(range.fromDay);
+  const year = firstCivil.year, month = firstCivil.month - 1;
+  const firstDow = _civilWeekday(firstCivil);
+  const lastD = _civilDaysInMonth(firstCivil);
 
   const _DOWS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
   let html = '<div class="cal-grid">';
@@ -1250,21 +1500,21 @@ function renderCalendar() {
   for (let d=1;d<=lastD;d++) {
     const key = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const rev = byDay[key]||0;
-    const cellDate = new Date(year,month,d);
-    const isToday  = cellDate.getTime()===today.getTime();
-    const isFuture = cellDate > today;
+    const isToday = key === todayKey;
+    const isFuture = key > todayKey;
 
     let cls = 'cal-zero';
     if (isFuture) cls = 'cal-future';
-    else if (rev>0) {
-      const pct = rev/maxRev;
+    else if (rev!==0) {
+      const pct = Math.abs(rev)/maxRev;
       cls = pct>0.8?'cal-l5':pct>0.55?'cal-l4':pct>0.33?'cal-l3':pct>0.12?'cal-l2':'cal-l1';
     }
     const todayCls = isToday?' cal-today':'';
-    const fmtRev   = rev>=1000?'$'+(rev/1000).toFixed(1)+'k':'$'+Math.round(rev);
-    const amtStr   = rev>0?`<span class="cal-cell-amt">${fmtRev}</span>`:'';
-    const tooltip  = rev>0?`<span class="cal-tooltip">${d} ${_MN[month]} · $${Math.round(rev).toLocaleString('es-MX')}</span>`
-      : (!isFuture?`<span class="cal-tooltip">${d} ${_MN[month]} · Sin ventas</span>`:'');
+    const absRev   = Math.abs(rev);
+    const fmtRev   = `${rev<0?'−':''}$${absRev>=1000?(absRev/1000).toFixed(1)+'k':Math.round(absRev)}`;
+    const amtStr   = rev!==0?`<span class="cal-cell-amt"${rev<0?' style="color:var(--red)"':''}>${fmtRev}</span>`:'';
+    const tooltip  = rev!==0?`<span class="cal-tooltip">${d} ${_MN[month]} · ${rev<0?'−':''}$${Math.round(absRev).toLocaleString('es-MX')}</span>`
+      : (!isFuture?`<span class="cal-tooltip">${d} ${_MN[month]} · Sin movimientos</span>`:'');
     const tapAttr = !isFuture ? ' onclick="_calTap(this)"' : '';
     html += `<div class="cal-cell ${cls}${todayCls}"${tapAttr}>${tooltip}<span class="cal-cell-n">${d}</span>${amtStr}</div>`;
   }
@@ -1287,24 +1537,30 @@ function renderWeekdayChart() {
   const card = document.getElementById('weekday-card');
   if (!card) return;
   if (_statsMode!=='month') { card.style.display='none'; if(weekdayChart){weekdayChart.destroy();weekdayChart=null;} return; }
+  if (!paymentsLoaded) {
+    card.style.display = '';
+    if (weekdayChart) { weekdayChart.destroy(); weekdayChart = null; }
+    _chartNoData('weekday-chart', 'No disponible');
+    return;
+  }
 
-  const fromIso = _currentFrom(), toIso = _currentTo();
   const _DOW = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
   const byDow = Array(7).fill(0);
 
-  salesAll.forEach(s => {
-    const dow = (new Date(s.created_at).getDay()+6)%7;
-    byDow[dow] += _abonoRevenue(s, fromIso, toIso);
+  payments.forEach(payment => {
+    const civil = _mxParts(payment.paid_at);
+    if (!civil) return;
+    byDow[_civilWeekday(civil)] += _paymentAmount(payment);
   });
   if (byDow.every(v=>v===0)) { card.style.display='none'; return; }
 
-  const ctx = document.getElementById('weekday-chart')?.getContext('2d');
+  const ctx = _chartReady('weekday-chart');
   if (!ctx) return;
   if (weekdayChart) { weekdayChart.destroy(); weekdayChart=null; }
   card.style.display='';
 
-  const maxDow = Math.max(...byDow);
-  const colors = byDow.map(v => v===maxDow&&v>0?'#C9A462':'rgba(201,164,98,.4)');
+  const maxDow = Math.max(...byDow.map(Math.abs));
+  const colors = byDow.map(v => v<0?'#E85D5D':Math.abs(v)===maxDow&&v!==0?'#C9A462':'rgba(201,164,98,.4)');
 
   const lbl = document.getElementById('weekday-period-label');
   if (lbl) lbl.textContent = PERIOD_LABELS[currentPeriod]||'';
@@ -1329,7 +1585,29 @@ function renderWeekdayChart() {
   });
 }
 
+function _applyStatsPermissions(permissions) {
+  document.querySelectorAll('a[href="activity.html"]').forEach(link => {
+    link.style.display = permissions?.canViewActivity === true ? '' : 'none';
+  });
+  document.querySelectorAll('a[href="settings.html"]').forEach(link => {
+    link.style.display = permissions?.canManageSettings === true ? '' : 'none';
+  });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+  let permissionState = null;
+  try {
+    permissionState = typeof _loadMyPerms === 'function'
+      ? await _loadMyPerms({ requireFresh: true, withMeta: true })
+      : null;
+  } catch {}
+  const permissions = permissionState?.permissions;
+  if (permissionState?.source !== 'server' || permissions?.canViewReports !== true) {
+    window.location.replace('admin.html');
+    return;
+  }
+  _applyStatsPermissions(permissions);
+
   try {
     const _s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
     const _meta = _s?.user?.user_metadata || {};
@@ -1338,21 +1616,48 @@ document.addEventListener('DOMContentLoaded', async () => {
     const _nl = document.getElementById('user-name-label');
     if (_av) _av.textContent = _name ? _name[0].toUpperCase() : '?';
     if (_nl) _nl.textContent = _name;
+    const ga = document.getElementById('ga4-link-card');
+    if (ga) ga.style.display = _meta.role === 'superadmin'
+      && String(_s?.user?.email || '').toLowerCase() === 'eacevedo@sunname.com.mx' ? '' : 'none';
   } catch {}
   const timeout = new Promise((_, reject) =>
     setTimeout(() => reject(new Error('timeout')), 12000)
   );
+  const initialGeneration = ++_statsReloadGeneration;
+  const initialMode = _statsMode;
+  const initialOffset = _statsOffset;
   try {
     _updateNavUI();
     await Promise.race([
-      Promise.all([loadProducts(), loadSales(), loadPreviousSales(), loadApartadosPendientes(), loadNameMap(), loadTodaySales(), loadCategories()]),
+      Promise.all([
+        loadProducts(),
+        loadSales(initialMode, initialOffset, initialGeneration),
+        loadPreviousSales(initialMode, initialOffset, initialGeneration),
+        loadApartadosPendientes(),
+        loadNameMap(),
+        loadTodaySales(initialGeneration),
+        loadCategories()
+      ]),
       timeout
     ]);
+    if (initialGeneration !== _statsReloadGeneration) return;
     renderAll();
   } catch {
-    document.querySelectorAll('.loading-state').forEach(el => {
-      el.innerHTML = '<span style="color:#E85D5D;font-size:.82rem">⚠️ Error al cargar — revisa tu conexión y recarga la página</span>';
-    });
+    if (initialGeneration !== _statsReloadGeneration) return;
+    _statsReloadGeneration++;
+    salesLoaded = false;
+    prevSalesLoaded = false;
+    paymentsLoaded = false;
+    prevPaymentsLoaded = false;
+    productsLoaded = false;
+    todayPaymentsLoaded = false;
+    todaySummaryLoaded = false;
+    apartadosPendientesLoaded = false;
+    renderAll();
+    const aptLabel = document.getElementById('apt-summary-label');
+    const aptBody = document.getElementById('apt-pending-body');
+    if (aptLabel) aptLabel.textContent = 'No disponible';
+    if (aptBody) aptBody.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:.84rem">No disponible</div>';
   }
 });
 

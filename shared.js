@@ -32,7 +32,13 @@
 
     const roleLabel = { superadmin:'Super Admin', duena:'Dueña', operador:'Operador' }[role] || role;
 
-    const _up = (() => { try { return JSON.parse(sessionStorage.getItem('te_user_can')||'{}'); } catch { return {}; } })();
+    const _up = (() => {
+      try {
+        const cached = JSON.parse(sessionStorage.getItem('te_user_can') || '{}');
+        return cached?.email?.toLowerCase() === email.toLowerCase() && cached?.permissions
+          ? cached.permissions : {};
+      } catch { return {}; }
+    })();
     const canConfig   = 'canManageSettings' in _up ? _up.canManageSettings : role === 'superadmin';
     const canActivity = 'canViewActivity'   in _up ? _up.canViewActivity   : (role === 'superadmin' || role === 'duena');
     const configLink = (canConfig
@@ -158,7 +164,7 @@
     }
   }
 
-  async function _pollNewSales() {
+  async function _pollNewSalesLegacy() {
     if (!_notifEnabled()) return;
     const url = typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : '';
     const key = typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : '';
@@ -239,6 +245,108 @@
     } catch {}
   }
 
+  async function _pollNewSales() {
+    if (!_notifEnabled()) return;
+    const url = typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : '';
+    const key = typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : '';
+    if (!url || !key) return;
+    let token = '';
+    try { token = JSON.parse(localStorage.getItem('te_admin_session') || '{}')?.access_token || ''; } catch {}
+    if (!token) return;
+
+    const headers = { apikey: key, Authorization: `Bearer ${token}` };
+    const lastSaleId = parseInt(localStorage.getItem('te_last_seen_sale_id') || '0', 10);
+    const lastPaymentId = parseInt(localStorage.getItem('te_last_seen_payment_id') || '0', 10);
+    const salesFilter = lastSaleId
+      ? `id=gt.${lastSaleId}&order=id.asc&limit=1000`
+      : 'order=id.desc&limit=1';
+    const paymentsFilter = lastPaymentId
+      ? `id=gt.${lastPaymentId}&order=id.asc&limit=1000`
+      : 'order=id.desc&limit=1';
+    const saleFields = 'id,total,paid_amount,customer,seller_email,origin_type,status';
+
+    try {
+      const [salesResponse, paymentsResponse] = await Promise.all([
+        fetch(`${url}/rest/v1/sales?select=${saleFields}&cancelled_at=is.null&${salesFilter}`, { headers }),
+        fetch(`${url}/rest/v1/sale_payments?select=id,sale_id,request_id,amount,kind,method,paid_at,collected_by_email,source,sale:sales(${saleFields})&${paymentsFilter}`, { headers })
+      ]);
+      // Compatibilidad durante el despliegue de fase 1.
+      if (paymentsResponse.status === 404) return _pollNewSalesLegacy();
+      if (!salesResponse.ok || !paymentsResponse.ok) return;
+      const salesRows = await salesResponse.json();
+      const paymentRows = await paymentsResponse.json();
+      if (!Array.isArray(salesRows) || !Array.isArray(paymentRows)) return;
+
+      const maxSaleId = salesRows.reduce((max, sale) => Math.max(max, Number(sale.id) || 0), lastSaleId);
+      const maxPaymentId = paymentRows.reduce((max, payment) => Math.max(max, Number(payment.id) || 0), lastPaymentId);
+      if (!lastSaleId) localStorage.setItem('te_last_seen_sale_id', String(maxSaleId));
+      if (!lastPaymentId) localStorage.setItem('te_last_seen_payment_id', String(maxPaymentId));
+
+      const newSales = lastSaleId ? salesRows : [];
+      const newSaleIds = new Set(newSales.map(sale => Number(sale.id)));
+      const newPayments = lastPaymentId
+        ? paymentRows.map(payment => ({
+            ...payment,
+            sale: Array.isArray(payment.sale) ? payment.sale[0] : payment.sale
+          })).filter(payment => payment.sale && !newSaleIds.has(Number(payment.sale_id)))
+        : [];
+      if (!newSales.length && !newPayments.length) return;
+
+      const nameMap = await _getNotifNameMap(url, key, token);
+      const personName = email => email ? (nameMap[email] || email.split('@')[0]) : '';
+      newSales.forEach(sale => {
+        const amount = `$${parseFloat(sale.total || 0).toLocaleString('es-MX')}`;
+        const customer = (sale.customer || '').split(' · 📱 ')[0];
+        const actor = personName(sale.seller_email);
+        const isApartado = sale.origin_type === 'apartado';
+        const title = isApartado
+          ? (sale.status === 'liquidado' ? '✅ Apartado liquidado' : '📌 Nuevo apartado')
+          : '🛍️ Nueva venta';
+        _showSaleNotification(title, [amount, customer, actor].filter(Boolean).join(' · '), `te-sale-${sale.id}`);
+      });
+
+      // Una devolución puede generar una línea por método; agrupar por request_id
+      // evita dos notificaciones para una sola operación del cajero.
+      const events = [];
+      const refundsByRequest = new Map();
+      newPayments.forEach(payment => {
+        if (payment.kind !== 'refund' || !payment.request_id) {
+          events.push(payment);
+          return;
+        }
+        const groupKey = `${payment.sale_id}:${payment.request_id}`;
+        const existing = refundsByRequest.get(groupKey);
+        if (!existing) {
+          const grouped = { ...payment };
+          refundsByRequest.set(groupKey, grouped);
+          events.push(grouped);
+        } else {
+          existing.amount = (parseFloat(existing.amount) || 0) + (parseFloat(payment.amount) || 0);
+        }
+      });
+
+      events.forEach(payment => {
+        const sale = payment.sale;
+        const rawAmount = parseFloat(payment.amount) || 0;
+        const amount = `${rawAmount < 0 ? '−' : ''}$${Math.abs(rawAmount).toLocaleString('es-MX')}`;
+        const customer = (sale.customer || '').split(' · 📱 ')[0];
+        const actor = personName(payment.collected_by_email || sale.seller_email);
+        let title = '💳 Cobro registrado';
+        if (payment.kind === 'refund') title = '↩️ Devolución registrada';
+        else if (payment.kind === 'adjustment') title = '🧾 Ajuste registrado';
+        else if (sale.origin_type === 'apartado') {
+          title = payment.source === 'rpc_apartado_liquidation' || sale.status === 'liquidado'
+            ? '✅ Apartado liquidado' : '💳 Abono recibido';
+        }
+        _showSaleNotification(title, [amount, customer, actor].filter(Boolean).join(' · '),
+          `te-payment-${payment.request_id || payment.id}`);
+      });
+
+      if (maxSaleId > lastSaleId) localStorage.setItem('te_last_seen_sale_id', String(maxSaleId));
+      if (maxPaymentId > lastPaymentId) localStorage.setItem('te_last_seen_payment_id', String(maxPaymentId));
+    } catch {}
+  }
+
   window._startSalesNotifPolling = function () {
     if (_salesNotifTimer) return;
     _pollNewSales();
@@ -276,23 +384,67 @@ const UP_ROLE_DEFAULTS = {
   operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:false, canPublishProduct:false, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:false, canViewReports:false, canViewActivity:false, canManageSettings:false},
 };
 function _getMyPermsCached() {
-  try { const c=sessionStorage.getItem('te_user_can'); return c?JSON.parse(c):null; } catch { return null; }
-}
-async function _loadMyPerms() {
-  const cached=_getMyPermsCached(); if(cached) return cached;
   try {
-    const _s=JSON.parse(localStorage.getItem('te_admin_session')||'{}');
-    const tok=_s?.access_token||'';
-    const url=typeof SUPABASE_URL!=='undefined'?SUPABASE_URL:'';
-    const key=typeof SUPABASE_ANON_KEY!=='undefined'?SUPABASE_ANON_KEY:'';
-    const r=await fetch(`${url}/rest/v1/config?id=eq.user_permissions&select=value`,
-      {headers:{apikey:key,Authorization:`Bearer ${tok}`}});
-    if(!r.ok) return null;
-    const data=await r.json();
-    const all=JSON.parse(data?.[0]?.value||'{}');
-    const email=_s?.user?.email||null;
-    const my=email?all[email]||null:null;
-    if(my) sessionStorage.setItem('te_user_can',JSON.stringify(my));
-    return my;
+    const session = JSON.parse(localStorage.getItem('te_admin_session') || '{}');
+    const email = String(session?.user?.email || '').toLowerCase();
+    const cached = JSON.parse(sessionStorage.getItem('te_user_can') || 'null');
+    return email && cached?.email?.toLowerCase() === email && cached?.permissions
+      ? cached.permissions : null;
   } catch { return null; }
+}
+async function _loadMyPerms(options = {}) {
+  const requireFresh = options?.requireFresh === true;
+  const withMeta = options?.withMeta === true;
+  const cached = _getMyPermsCached();
+  const result = (permissions, source) => {
+    const state = {
+      permissions: permissions || null,
+      source,
+      fresh: source === 'server'
+    };
+    if (withMeta) return state;
+    return requireFresh && !state.fresh ? null : state.permissions;
+  };
+  try {
+    const session = JSON.parse(localStorage.getItem('te_admin_session') || '{}');
+    const token = session?.access_token || '';
+    const email = String(session?.user?.email || '').toLowerCase();
+    const url = typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : '';
+    const key = typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : '';
+    if (!token || !email || !url || !key) return result(cached, cached ? 'cache' : 'unavailable');
+
+    // La autorización efectiva se calcula en PostgreSQL a partir del usuario
+    // autenticado. El caché solo sirve para pintar navegación mientras no hay
+    // conexión; una pantalla restringida debe usar { requireFresh: true }.
+    const request = async currentToken => fetch(`${url}/rest/v1/rpc/get_my_permissions`, {
+      method: 'POST',
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${currentToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: '{}'
+    });
+    let response = await request(token);
+    const refreshToken =
+      (typeof _refreshPosToken === 'function' && _refreshPosToken) ||
+      (typeof _refreshStatsToken === 'function' && _refreshStatsToken) ||
+      (typeof _refreshActivityToken === 'function' && _refreshActivityToken) ||
+      (typeof _refreshSettingsToken === 'function' && _refreshSettingsToken) ||
+      (typeof refreshSessionIfNeeded === 'function' && refreshSessionIfNeeded) ||
+      null;
+    if (response.status === 401 && refreshToken && await refreshToken()) {
+      const refreshed = JSON.parse(localStorage.getItem('te_admin_session') || '{}');
+      response = await request(refreshed?.access_token || '');
+    }
+    if (!response.ok) return result(cached, cached ? 'cache' : 'unavailable');
+    const permissions = await response.json().catch(() => null);
+    if (!permissions || typeof permissions !== 'object' || Array.isArray(permissions)) {
+      return result(cached, cached ? 'cache' : 'unavailable');
+    }
+    sessionStorage.setItem('te_user_can', JSON.stringify({ email, permissions }));
+    return result(permissions, 'server');
+  } catch {
+    return result(cached, cached ? 'cache' : 'unavailable');
+  }
 }

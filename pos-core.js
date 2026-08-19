@@ -34,11 +34,14 @@ function canEditApartado() {
   if (up && 'canEditApartado' in up) return up.canEditApartado;
   const r = getPosRole(); return r === 'superadmin' || r === 'duena';
 }
+function canCancelApartado() {
+  return canEditApartado() || canCancelSale();
+}
 
 let _cancelAptCtx = null;
 
 function cancelApartado(id) {
-  if (!canEditApartado()) { toast('Sin permiso para cancelar apartados', 'error'); return; }
+  if (!canCancelApartado()) { toast('Sin permiso para cancelar apartados', 'error'); return; }
   const sale = (_apartadosData || {})[id];
   if (!sale) { toast('Apartado no encontrado', 'error'); return; }
 
@@ -53,7 +56,7 @@ function cancelApartado(id) {
   document.getElementById('cancel-apt-info').textContent = `${nombre} · $${total.toLocaleString('es-MX')} MXN · ${nItems} producto${nItems !== 1 ? 's' : ''}`;
   const warnEl = document.getElementById('cancel-apt-warning');
   warnEl.innerHTML = pagado > 0
-    ? `⚠️ Ya se pagaron <strong>$${pagado.toLocaleString('es-MX')}</strong> de anticipo — se perderán al cancelar.<br>Se restaurará el stock. Esta acción no se puede deshacer.`
+    ? `⚠️ Ya se pagaron <strong>$${pagado.toLocaleString('es-MX')}</strong>. Al cancelar se registrará la devolución por los mismos métodos de pago y se restaurará el stock.<br>Esta acción no se puede deshacer.`
     : `Se restaurará el stock. Esta acción no se puede deshacer.`;
   document.getElementById('cancel-apt-overlay').style.display = 'flex';
 }
@@ -69,49 +72,33 @@ async function _confirmCancelApartado() {
   const btn = document.getElementById('cancel-apt-confirm-btn');
   btn.disabled = true; btn.textContent = 'Cancelando…';
 
-  // Soft-cancel: se marca cancelled_at en vez de borrar la fila — el registro completo
-  // (productos, montos, fechas) queda recuperable para siempre, no depende del log
-  const delResult = await api(`sales?id=eq.${id}`, {
-    method: 'PATCH',
-    headers: { 'Prefer': 'return=representation' },
-    body: JSON.stringify({ cancelled_at: new Date().toISOString() })
+  const delResult = await posRpc('cancel_sale_atomic', {
+    operation: 'cancel_sale',
+    context: id,
+    fingerprint: `${id}:${sale.version ?? 0}:${pagado}`,
+    body: {
+      p_sale_id: id,
+      p_expected_version: sale.version ?? 0,
+      p_reason: 'Cancelado desde Caja'
+    }
   });
-  if (!delResult.ok || (Array.isArray(delResult.data) && delResult.data.length === 0)) {
-    toast('Error al cancelar apartado — sin permiso o registro no encontrado', 'error');
+  if (!delResult.ok) {
+    toast(_posRpcError(delResult, 'Error al cancelar apartado'), 'error');
     btn.disabled = false; btn.textContent = 'Sí, cancelar apartado';
+    if (delResult.resolvedPrior || delResult.staleConflict) {
+      _closeCancelAptModal();
+      closeAptDetail();
+      await _refreshPosFinancialState();
+    }
     return;
   }
-
-  if (Array.isArray(sale.items)) {
-    const restores = [];
-    for (const item of sale.items) {
-      const p = products.find(x => x.id === item.id);
-      if (p?.kitItems?.length) {
-        for (const comp of p.kitItems) {
-          const lc = products.find(x => x.id === comp.id);
-          const newStock = (lc ? lc.stock : 0) + (item.qty || 1) * comp.qty;
-          restores.push(api(`products?id=eq.${comp.id}`, { method:'PATCH', body:JSON.stringify({ stock: newStock, out_of_stock: false, is_apartado: false }) })
-            .then(() => { if (lc) { lc.stock = newStock; lc.outOfStock = false; lc.isApartado = false; } }));
-        }
-      } else {
-        const newStock = (p ? p.stock : 0) + (item.qty || 1);
-        restores.push(api(`products?id=eq.${item.id}`, { method:'PATCH', body:JSON.stringify({ stock: newStock, out_of_stock: false, is_apartado: false }) })
-          .then(() => { if (p) { p.stock = newStock; p.outOfStock = false; p.isApartado = false; } }));
-      }
-    }
-    await Promise.all(restores);
-  }
-
-  logActivity('apartado_cancelado',
-    `Canceló apartado de ${nombre} — $${total.toLocaleString('es-MX')}`,
-    { customer: nombre, total, pagado, items: nItems, itemsDetail: sale.items || null, dueDate: sale.due_date || null });
 
   btn.disabled = false; btn.textContent = 'Sí, cancelar apartado';
   _closeCancelAptModal();
   closeAptDetail();
-  await loadApartados();
-  showAllProducts();
-  toast(`Apartado de ${nombre} cancelado — stock restaurado ✓`, 'success');
+  await _refreshPosFinancialState();
+  const refundAmount = parseFloat(delResult.data?.sale?.refund_amount) || 0;
+  toast(`Apartado de ${nombre} cancelado — stock restaurado${refundAmount > 0 ? ` y devolución de $${refundAmount.toLocaleString('es-MX')} registrada` : ''} ✓`, 'success');
 }
 
 /* ── AUTH CHECK ── */
@@ -127,6 +114,7 @@ if (!isAuthenticated()) {
 }
 
 function doLogout() {
+  sessionStorage.removeItem('te_user_can');
   localStorage.removeItem(SESSION_KEY);
   window.location.href = 'admin.html';
 }
@@ -204,9 +192,254 @@ async function api(path, opts = {}) {
     let data; try { data = JSON.parse(text); } catch { data = null; }
     return { ok: r.ok, status: r.status, data };
   });
-  const r = await _call(_getPosToken());
-  if (r.status === 401 && await _refreshPosToken()) return _call(_getPosToken());
-  return r;
+  try {
+    const r = await _call(_getPosToken());
+    if (r.status === 401 && await _refreshPosToken()) return await _call(_getPosToken());
+    return r;
+  } catch {
+    return { ok: false, status: 0, data: null };
+  }
+}
+
+async function _posFetchAll(path, pageSize = 500, maxRows = 20000) {
+  const rows = [];
+  for (let offset = 0; offset < maxRows; offset += pageSize) {
+    const separator = path.includes('?') ? '&' : '?';
+    const result = await api(`${path}${separator}limit=${pageSize}&offset=${offset}`);
+    if (!result.ok) return result;
+    const page = Array.isArray(result.data) ? result.data : [];
+    rows.push(...page);
+    if (page.length < pageSize) return { ok: true, status: result.status, data: rows };
+  }
+  return { ok: false, status: 413, data: { message: 'Hay demasiados movimientos para completar la consulta' } };
+}
+
+function _posMexicoDayKey(date = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(date);
+}
+
+function _posDayKeyValue(dayKey) {
+  const [year, month, day] = String(dayKey || '').split('-').map(Number);
+  return Date.UTC(year || 0, (month || 1) - 1, day || 1);
+}
+
+function _posDayKeyDiff(dayKey, baseKey = _posMexicoDayKey()) {
+  return Math.round((_posDayKeyValue(dayKey) - _posDayKeyValue(baseKey)) / 86400000);
+}
+
+function _posFormatDayKey(dayKey, options = {}) {
+  const date = new Date(`${dayKey}T12:00:00Z`);
+  return new Intl.DateTimeFormat('es-MX', {
+    timeZone: 'America/Mexico_City', ...options
+  }).format(date);
+}
+
+function _posFormatTimestamp(value, options = {}) {
+  return new Intl.DateTimeFormat('es-MX', {
+    timeZone: 'America/Mexico_City', ...options
+  }).format(new Date(value));
+}
+
+function _posCurrentUserEmail() {
+  return String(getSession()?.user?.email || '').trim().toLowerCase();
+}
+
+function _posShiftScope() {
+  return (_posCurrentUserEmail() || 'sin_usuario').replace(/[^a-z0-9]+/g, '_');
+}
+
+function _posShiftStorageKey(name) {
+  return `te_${name}_${_posShiftScope()}`;
+}
+
+function _posDailyStorageKey(name, date = null) {
+  const day = date || localStorage.getItem(_posShiftStorageKey('shift_date')) || _posMexicoDayKey();
+  return `te_${name}_${_posShiftScope()}_${day}`;
+}
+
+function _posEnsureCurrentShift() {
+  const today = _posMexicoDayKey();
+  const dateKey = _posShiftStorageKey('shift_date');
+  const startKey = _posShiftStorageKey('shift_start');
+  let storedDate = localStorage.getItem(dateKey);
+
+  // Primera ejecución tras actualizar: conservar el turno/caja local anterior
+  // para el usuario que tiene abierta la sesión, sin borrar las llaves legado.
+  if (!storedDate) {
+    const legacyDate = localStorage.getItem('te_shift_date');
+    const migrationOwnerKey = 'te_shift_legacy_migrated_owner';
+    const migrationOwner = localStorage.getItem(migrationOwnerKey);
+    if (legacyDate === today && (!migrationOwner || migrationOwner === _posShiftScope())) {
+      storedDate = legacyDate;
+      localStorage.setItem(dateKey, legacyDate);
+      const legacyStart = localStorage.getItem('te_shift_start');
+      if (legacyStart) localStorage.setItem(startKey, legacyStart);
+      ['gastos', 'fondo', 'conteo'].forEach(name => {
+        const legacyValue = localStorage.getItem(`te_${name}_${legacyDate}`);
+        const scopedKey = _posDailyStorageKey(name, legacyDate);
+        if (legacyValue != null && localStorage.getItem(scopedKey) == null) {
+          localStorage.setItem(scopedKey, legacyValue);
+        }
+      });
+      localStorage.setItem(migrationOwnerKey, _posShiftScope());
+    }
+  }
+
+  if (storedDate !== today) {
+    localStorage.setItem(dateKey, today);
+    localStorage.setItem(startKey, new Date().toISOString());
+  } else if (!localStorage.getItem(startKey)) {
+    localStorage.setItem(startKey, new Date().toISOString());
+  }
+  return {
+    date: today,
+    start: localStorage.getItem(startKey),
+    actorEmail: _posCurrentUserEmail()
+  };
+}
+
+/* ── RPC IDEMPOTENTES ──
+ * Conserva el request_id antes de enviar. Si la red se corta después de que
+ * PostgreSQL hizo commit, el siguiente intento reutiliza el mismo UUID y el
+ * servidor devuelve la respuesta guardada sin repetir cobros ni movimientos.
+ */
+const _POS_RPC_PENDING_KEY = 'te_pos_pending_rpc_v2';
+
+function _posUuid() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 3 | 8)).toString(16);
+  });
+}
+
+function _posRpcPendingRead() {
+  try { return JSON.parse(localStorage.getItem(_POS_RPC_PENDING_KEY) || '{}'); }
+  catch { return {}; }
+}
+
+function _posRpcPendingWrite(all) {
+  try {
+    if (Object.keys(all).length) localStorage.setItem(_POS_RPC_PENDING_KEY, JSON.stringify(all));
+    else localStorage.removeItem(_POS_RPC_PENDING_KEY);
+  } catch {}
+}
+
+function _posRpcRequest(operation, context, fingerprint) {
+  const all = _posRpcPendingRead();
+  const key = `${operation}:${context}`;
+  const pending = all[key];
+  if (pending && pending.fingerprint !== fingerprint) {
+    return { key, conflict: true, requestId: pending.requestId, pending };
+  }
+  if (!pending) {
+    all[key] = { requestId: _posUuid(), fingerprint, createdAt: new Date().toISOString() };
+    _posRpcPendingWrite(all);
+  }
+  return { key, conflict: false, requestId: (pending || all[key]).requestId };
+}
+
+function _posRpcRequestDone(key) {
+  const all = _posRpcPendingRead();
+  delete all[key];
+  _posRpcPendingWrite(all);
+}
+
+async function posRpc(path, { operation, context = 'global', fingerprint = '', body = {} }) {
+  const requestFingerprint = fingerprint || JSON.stringify(body);
+  let request = _posRpcRequest(operation, context, requestFingerprint);
+  if (request.conflict) {
+    // Después de una respuesta perdida, una recarga puede cambiar el formulario.
+    // Preguntar al servidor bajo el mismo advisory lock evita tanto duplicar como
+    // dejar el dispositivo bloqueado para siempre con un UUID pendiente.
+    try {
+      const check = await api('rpc/get_pos_rpc_result', {
+        method: 'POST',
+        body: JSON.stringify({ p_request_id: request.requestId })
+      });
+      if (check.ok && check.data?.found === false) {
+        _posRpcRequestDone(request.key);
+        request = _posRpcRequest(operation, context, requestFingerprint);
+      } else if (check.ok && check.data?.found === true) {
+        _posRpcRequestDone(request.key);
+        return {
+          ok: false,
+          status: 409,
+          resolvedPrior: true,
+          priorResponse: check.data.response,
+          data: { message: 'La operación anterior sí quedó registrada. Actualizamos los datos; revisa el resultado y vuelve a intentar la nueva operación.' }
+        };
+      } else {
+        return {
+          ok: false,
+          status: check.status || 0,
+          pendingConflict: true,
+          data: { message: 'Hay una operación anterior sin confirmar. Repite primero esa operación con los mismos datos.' }
+        };
+      }
+    } catch {
+      return {
+        ok: false,
+        status: 0,
+        pendingConflict: true,
+        data: { message: 'Hay una operación anterior sin confirmar. Repite primero esa operación con los mismos datos.' }
+      };
+    }
+  }
+  try {
+    const result = await api(`rpc/${path}`, {
+      method: 'POST',
+      body: JSON.stringify({ p_request_id: request.requestId, ...body })
+    });
+    if (result.status === 0) {
+      return {
+        ...result,
+        ambiguous: true,
+        data: { message: 'No se pudo confirmar la operación. Reintenta para consultar el mismo movimiento sin duplicarlo.' }
+      };
+    }
+    // PostgreSQL usa 40001 para avisar que la versión leída por la caja ya
+    // cambió. PostgREST puede exponerlo como HTTP 500, pero la transacción hizo
+    // rollback: es un conflicto definitivo, no una respuesta ambigua.
+    const staleConflict = result?.data?.code === '40001';
+    if (result.ok || staleConflict || (result.status >= 400 && result.status < 500 && ![408, 429].includes(result.status))) {
+      _posRpcRequestDone(request.key);
+    }
+    return staleConflict ? { ...result, staleConflict: true } : result;
+  } catch {
+    return {
+      ok: false,
+      status: 0,
+      ambiguous: true,
+      data: { message: 'No se pudo confirmar la operación. Reintenta para consultar el mismo movimiento sin duplicarlo.' }
+    };
+  }
+}
+
+function _posRpcError(result, fallback) {
+  const message = result?.data?.message || result?.data?.details || '';
+  if (result?.pendingConflict || result?.ambiguous) return message;
+  if (result?.status === 404 || /function .* does not exist|schema cache|PGRST202/i.test(message)) {
+    return 'Falta aplicar la migración de Apartados en Supabase. No se modificó ningún dato.';
+  }
+  return message || fallback;
+}
+
+async function _refreshPosFinancialState() {
+  const tasks = [];
+  if (typeof loadProducts === 'function') tasks.push(loadProducts());
+  if (typeof loadApartados === 'function') tasks.push(loadApartados());
+  if (typeof loadApartadosLiquidados === 'function') tasks.push(loadApartadosLiquidados());
+  if (typeof loadHistory === 'function') tasks.push(loadHistory());
+  if (typeof loadTodayStats === 'function') tasks.push(loadTodayStats());
+  await Promise.allSettled(tasks);
+  if (typeof showAllProducts === 'function') showAllProducts();
+  if (typeof filterApartadosWithDue === 'function') {
+    filterApartadosWithDue(document.getElementById('apt-search')?.value || '', 'offcanvas');
+    filterApartadosWithDue(document.getElementById('apt-page-search')?.value || '', 'page');
+  }
 }
 
 /* ── LOAD PRODUCTS ── */
@@ -230,8 +463,11 @@ function _mapPosProduct(p) {
   };
 }
 
+let _productsLoadGeneration = 0;
 async function loadProducts() {
-  const result = await api('products?select=id,name,category,category_label,price,original_price,description,image,barcode,stock,out_of_stock,badge,badge_type,kit_items,expiry_date&is_archived=eq.false&order=position.asc');
+  const loadGeneration = ++_productsLoadGeneration;
+  const result = await _posFetchAll('products?select=id,name,category,category_label,price,original_price,description,image,barcode,stock,out_of_stock,badge,badge_type,kit_items,expiry_date&is_archived=eq.false&order=position.asc,id.asc');
+  if (loadGeneration !== _productsLoadGeneration) return false;
   if (result.ok && Array.isArray(result.data)) {
     products = result.data.map(_mapPosProduct);
     try {

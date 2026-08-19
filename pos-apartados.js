@@ -118,7 +118,7 @@ function toggleApartadoMode() {
     const dueEl = document.getElementById('pos-due-date');
     if (dueEl && !dueEl.value) {
       const d = new Date(); d.setDate(d.getDate() + 30);
-      dueEl.value = d.toISOString().split('T')[0];
+      dueEl.value = _posMexicoDayKey(d);
     }
     // El cliente ahora vive en el sheet del apartado, no en la columna principal
     document.getElementById('cliente-normal-row').style.display = 'none';
@@ -186,7 +186,7 @@ function _renderApartadoSummary() {
   const total     = getDiscountedTotal();
   const pendiente = Math.max(0, total - anticipo);
   const dueVal    = document.getElementById('pos-due-date')?.value;
-  const dueStr    = dueVal ? new Date(dueVal + 'T00:00:00').toLocaleDateString('es-MX', { day:'numeric', month:'short' }) : '';
+  const dueStr    = dueVal ? _posFormatDayKey(dueVal, { day:'numeric', month:'short' }) : '';
   const parts = [_esc(customerName)];
   if (anticipo > 0 && pendiente > 0) {
     parts.push(`anticipo $${anticipo.toLocaleString('es-MX')}`, `pendiente $${pendiente.toLocaleString('es-MX')}`);
@@ -272,16 +272,86 @@ function updateAnticipoInfo() {
 
 let _apartadosLiquidadosAll = [];
 let _aptViewMode = 'activos'; // 'activos' | 'liquidados'
+let _aptViewRequestGeneration = 0;
+let _apartadosLoadGeneration = 0;
+let _apartadosLiquidatedLoadGeneration = 0;
+const _APT_MONEY_EPSILON = 0.005;
+
+function _aptMoney(value) {
+  return Math.round((parseFloat(value) || 0) * 100) / 100;
+}
+
+function _apartadoPaymentMeta(payment) {
+  const rawAmount = parseFloat(payment?.amount) || 0;
+  const amount = payment?.kind === 'refund' ? -Math.abs(rawAmount) : rawAmount;
+  const isLedgerEntry = Object.prototype.hasOwnProperty.call(payment || {}, 'paid_at');
+  const date = isLedgerEntry ? payment.paid_at : payment?.date;
+  const dateLabel = date && !Number.isNaN(new Date(date).getTime())
+    ? new Date(date).toLocaleDateString('es-MX', { timeZone:'America/Mexico_City', day:'numeric', month:'short' })
+    : 'Histórico';
+  const method = payment?.method === 'transferencia' ? 'transferencia'
+    : payment?.method === 'efectivo' ? 'efectivo' : 'método sin registrar';
+  const icon = amount < 0 ? '↩️' : method === 'transferencia' ? '📱' : method === 'efectivo' ? '💵' : '🧾';
+  return { amount, dateLabel, method, icon };
+}
+
+async function _hydrateApartadoPayments(rows) {
+  const ids = [...new Set((rows || []).map(sale => Number(sale.id)).filter(Number.isFinite))];
+  const bySale = new Map();
+  for (let index = 0; index < ids.length; index += 100) {
+    const chunk = ids.slice(index, index + 100);
+    const result = await _posFetchAll(
+      `sale_payments?sale_id=in.(${chunk.join(',')})&select=id,sale_id,amount,kind,method,paid_at,recorded_at,is_estimated,source&order=paid_at.asc.nullsfirst,recorded_at.asc,id.asc`
+    );
+    if (!result.ok) {
+      (rows || []).forEach(sale => { sale.payment_history_error = true; });
+      return false;
+    }
+    (result.data || []).forEach(payment => {
+      const key = String(payment.sale_id);
+      if (!bySale.has(key)) bySale.set(key, []);
+      bySale.get(key).push(payment);
+    });
+  }
+  (rows || []).forEach(sale => {
+    sale.payment_history = bySale.get(String(sale.id)) || [];
+    sale.payment_history_error = false;
+  });
+  return true;
+}
+
+async function _loadApartadoPages(query, pageSize = 500) {
+  const rows = [];
+  for (let offset = 0; offset < 10000; offset += pageSize) {
+    const join = query.includes('?') ? '&' : '?';
+    const result = await api(`${query}${join}limit=${pageSize}&offset=${offset}`);
+    if (!result.ok) return result;
+    const page = Array.isArray(result.data) ? result.data : [];
+    rows.push(...page);
+    if (page.length < pageSize) return { ok: true, status: result.status, data: rows };
+  }
+  return { ok: false, status: 413, data: { message: 'Demasiados apartados para cargar en una sola vista' } };
+}
 
 async function loadApartadosLiquidados() {
-  const result = await api(`sales?type=eq.venta&abonos=not.is.null&cancelled_at=is.null&select=id,type,total,paid_amount,customer,created_at,due_date,items,abonos,discount&order=created_at.desc&limit=200`);
-  _apartadosLiquidadosAll = (result.ok && Array.isArray(result.data)) ? result.data : [];
-  // Se fusiona a _apartadosData (no se reemplaza) para que openAptDetail() los encuentre también
-  _apartadosLiquidadosAll.forEach(s => { _apartadosData[s.id] = s; });
+  const loadGeneration = ++_apartadosLiquidatedLoadGeneration;
+  const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,updated_at,version,items,abonos,discount';
+  const result = await _loadApartadoPages(`sales?origin_type=eq.apartado&status=eq.liquidado&select=${fields}&order=liquidated_at.desc.nullslast,created_at.desc,id.desc`);
+  if (loadGeneration !== _apartadosLiquidatedLoadGeneration) return false;
+  if (!result.ok) return null;
+  const rows = Array.isArray(result.data) ? result.data : [];
+  await _hydrateApartadoPayments(rows);
+  if (loadGeneration !== _apartadosLiquidatedLoadGeneration) return false;
+  _apartadosLiquidadosAll = rows;
+  _apartadosData = {};
+  // Activos al final: si un reembolso reabrió un apartado, nunca gana una copia
+  // liquidada que hubiera quedado en memoria de una carga anterior.
+  [..._apartadosLiquidadosAll, ..._apartadosAll].forEach(s => { _apartadosData[s.id] = s; });
   return _apartadosLiquidadosAll;
 }
 
 async function toggleAptView(mode, target) {
+  const requestGeneration = ++_aptViewRequestGeneration;
   _aptViewMode = mode;
   document.querySelectorAll(`#apt-view-toggle-${target} button`).forEach(b => {
     b.classList.toggle('active', b.dataset.mode === mode);
@@ -291,32 +361,51 @@ async function toggleAptView(mode, target) {
   if (isLiq) {
     const listEl = document.getElementById(target === 'page' ? 'apt-page-list' : 'apt-offcanvas-list');
     if (listEl) listEl.innerHTML = '<div class="history-empty" style="grid-column:1/-1">Cargando…</div>';
-    await loadApartadosLiquidados();
+    const rows = await loadApartadosLiquidados();
+    if (requestGeneration !== _aptViewRequestGeneration || _aptViewMode !== mode) return false;
+    if (rows === false) return false;
+    if (rows === null) {
+      if (listEl) listEl.innerHTML = `<div class="history-empty" style="grid-column:1/-1"><div style="font-size:2rem;margin-bottom:8px">⚠️</div>No se pudieron cargar los liquidados.<br><button type="button" class="btn btn-outline" style="margin-top:12px" onclick="selectAptView('liquidados','${target}')">Reintentar</button></div>`;
+      return;
+    }
     renderFn(_apartadosLiquidadosAll, true);
   } else {
     renderFn(_apartadosAll, false);
   }
+  return true;
 }
 
 async function loadApartados() {
-  const result = await api(`sales?type=eq.apartado&cancelled_at=is.null&select=id,total,paid_amount,customer,created_at,due_date,items,abonos,discount&order=created_at.desc&limit=100`);
+  const loadGeneration = ++_apartadosLoadGeneration;
+  const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,updated_at,version,items,abonos,discount';
+  const result = await _loadApartadoPages(`sales?origin_type=eq.apartado&status=eq.activo&select=${fields}&order=created_at.desc,id.desc`);
+  if (loadGeneration !== _apartadosLoadGeneration) return false;
   const ocList    = document.getElementById('apt-offcanvas-list');
   const ocCount   = document.getElementById('apt-oc-count');
   const tabBadge  = document.getElementById('tab-apt-badge');
   const btnBadge  = document.getElementById('btn-apt-badge');
+  const failed = !result.ok;
+  const rows = !failed && Array.isArray(result.data) ? result.data : [];
+  if (!failed) await _hydrateApartadoPayments(rows);
+  if (loadGeneration !== _apartadosLoadGeneration) return false;
+  const empty = rows.length === 0;
+  const todayKey = _posMexicoDayKey();
 
-  const empty = !result.ok || !result.data?.length;
-  const hoyMs = new Date().setHours(0,0,0,0);
+  // Limpiar siempre el estado anterior antes de cualquier early return. Así,
+  // liquidar el último apartado no puede hacer reaparecer tarjetas obsoletas.
+  _apartadosAll = rows;
+  _apartadosData = {};
+  [..._apartadosLiquidadosAll, ...rows].forEach(s => { _apartadosData[s.id] = s; });
 
   // Detectar apartados vencidos
-  const vencidos = empty ? 0 : result.data.filter(s => {
+  const vencidos = rows.filter(s => {
     if (!s.due_date) return false;
-    return new Date(s.due_date + 'T00:00:00') < hoyMs;
+    return s.due_date < todayKey;
   }).length;
 
   // Badge del tab mobile — rojo si hay vencidos
   if (tabBadge) {
-    tabBadge.textContent = empty ? '' : result.data.length;
+    tabBadge.textContent = empty ? '' : rows.length;
     tabBadge.style.display = empty ? 'none' : 'flex';
     tabBadge.style.background = vencidos > 0 ? '#E85D5D' : '';
   }
@@ -326,7 +415,7 @@ async function loadApartados() {
     if (empty) {
       btnBadge.style.display = 'none';
     } else {
-      btnBadge.textContent = result.data.length;
+      btnBadge.textContent = rows.length;
       btnBadge.style.display = 'flex';
       btnBadge.style.background = vencidos > 0 ? '#E85D5D' : 'var(--gold)';
     }
@@ -351,34 +440,34 @@ async function loadApartados() {
     }
   }
 
+  if (failed) {
+    const errorHTML = '<div class="history-empty"><div style="font-size:2rem;margin-bottom:8px">⚠️</div>No se pudieron cargar los apartados.<br><button type="button" class="btn btn-outline" style="margin-top:12px" onclick="loadApartados()">Reintentar</button></div>';
+    if (_aptViewMode === 'activos' && ocList) ocList.innerHTML = errorHTML;
+    const pageList = document.getElementById('apt-page-list');
+    if (_aptViewMode === 'activos' && pageList) pageList.innerHTML = errorHTML;
+    if (ocCount) ocCount.textContent = 'Error de conexión o migración pendiente';
+    return;
+  }
+
   if (empty) {
-    if (ocList)  ocList.innerHTML = '<div class="history-empty"><div style="font-size:2rem;margin-bottom:8px">📌</div>Sin apartados pendientes</div>';
+    const emptyHTML = '<div class="history-empty"><div style="font-size:2rem;margin-bottom:8px">📌</div>Sin apartados pendientes</div>';
+    if (_aptViewMode === 'activos' && ocList) ocList.innerHTML = emptyHTML;
+    const pageList = document.getElementById('apt-page-list');
+    if (_aptViewMode === 'activos' && pageList) pageList.innerHTML = emptyHTML;
     if (ocCount) ocCount.textContent = '';
     return;
   }
 
-  if (ocCount) ocCount.textContent = `${result.data.length} apartado${result.data.length !== 1 ? 's' : ''} activo${result.data.length !== 1 ? 's' : ''}${vencidos > 0 ? ` · ${vencidos} vencido${vencidos > 1 ? 's' : ''}` : ''}`;
+  if (ocCount) ocCount.textContent = `${rows.length} apartado${rows.length !== 1 ? 's' : ''} activo${rows.length !== 1 ? 's' : ''}${vencidos > 0 ? ` · ${vencidos} vencido${vencidos > 1 ? 's' : ''}` : ''}`;
 
-  // Guardar datos para acceso en abonarApartado y filtrado
-  _apartadosData = {};
-  _apartadosAll  = result.data || [];
-  _apartadosAll.forEach(s => { _apartadosData[s.id] = s; });
-
-  // Resetear búsqueda al recargar
-  const aptSearch = document.getElementById('apt-search');
-  if (aptSearch) aptSearch.value = '';
-  const aptClear = document.getElementById('apt-search-clear');
-  if (aptClear) aptClear.style.display = 'none';
-
-  _renderApartadoCards(_apartadosAll);
-  // Actualizar page view si está abierta
-  const page = document.getElementById('apt-page');
-  if (page && page.style.display !== 'none') {
-    _renderAptPageCards(_apartadosAll);
-    const ps = document.getElementById('apt-page-search');
-    if (ps) ps.value = '';
-    const pc = document.getElementById('apt-page-search-clear');
-    if (pc) pc.style.display = 'none';
+  if (_aptViewMode === 'activos') {
+    if (typeof filterApartadosWithDue === 'function') {
+      filterApartadosWithDue(document.getElementById('apt-search')?.value || '', 'offcanvas');
+      filterApartadosWithDue(document.getElementById('apt-page-search')?.value || '', 'page');
+    } else {
+      _renderApartadoCards(rows, false);
+      _renderAptPageCards(rows, false);
+    }
   }
 }
 
@@ -404,7 +493,8 @@ function _renderApartadoCards(data, isLiquidado) {
     const pagado    = parseFloat(s.paid_amount || 0);
     const pendiente = Math.max(0, total - pagado);
     const pct       = total > 0 ? Math.min(100, Math.round(pagado / total * 100)) : 0;
-    const t         = new Date(s.created_at).toLocaleDateString('es-MX', {day:'numeric',month:'short'});
+    const cardDate  = isLiquidado ? (s.liquidated_at || s.last_payment_at || s.created_at) : s.created_at;
+    const t         = _posFormatTimestamp(cardDate, {day:'numeric',month:'short'});
     const nItems    = Array.isArray(s.items) ? s.items.length : 0;
     const custParts = (s.customer || '').split(' · 📱 ');
     const nombre    = custParts[0] || 'Sin nombre';
@@ -413,25 +503,26 @@ function _renderApartadoCards(data, isLiquidado) {
     // Fecha de vencimiento — sin sentido para un apartado ya liquidado
     let dueColor = '', dueText = '', dueHTML = '';
     if (s.due_date && !isLiquidado) {
-      const hoy = new Date(); hoy.setHours(0,0,0,0);
-      const due = new Date(s.due_date + 'T00:00:00');
-      const diff = Math.round((due - hoy) / 86400000);
+      const diff = _posDayKeyDiff(s.due_date);
       dueColor = diff < 0 ? '#E85D5D' : diff <= 7 ? '#D97706' : '#6B9E78';
-      dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)}d` : diff === 0 ? 'Vence hoy' : `Vence ${due.toLocaleDateString('es-MX',{day:'numeric',month:'short'})}`;
+      dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)}d` : diff === 0 ? 'Vence hoy' : `Vence ${_posFormatDayKey(s.due_date,{day:'numeric',month:'short'})}`;
       dueHTML  = `<span class="apt-h-due" style="color:${dueColor}">📅 ${dueText}</span>`;
     }
-    const isOverdue = !isLiquidado && s.due_date && (() => { const h=new Date();h.setHours(0,0,0,0);return new Date(s.due_date+'T00:00:00') < h; })();
+    const isOverdue = !isLiquidado && s.due_date && _posDayKeyDiff(s.due_date) < 0;
 
-    const abonos = Array.isArray(s.abonos) ? s.abonos : [];
-    const abonosHTML = abonos.length ? `
+    const abonos = Array.isArray(s.payment_history) ? s.payment_history
+      : Array.isArray(s.abonos) ? s.abonos : [];
+    const historyWarning = s.payment_history_error
+      ? '<div style="font-size:.72rem;color:var(--red);padding:6px 0">⚠ Historial incompleto; recarga para consultar el libro de pagos.</div>'
+      : '';
+    const abonosHTML = historyWarning + (abonos.length ? `
 <div class="apt-abonos-section-inline">
   <div class="adm-section-title" style="font-size:.65rem;margin-bottom:4px">Pagos realizados</div>
   ${abonos.map(a => {
-    const fecha = new Date(a.date).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
-    const ico   = a.method === 'transferencia' ? '📱' : '💵';
-    return `<div class="apt-abono-row"><span>${fecha} · ${ico} ${_esc(a.method)}</span><span class="apt-abono-amount">$${parseFloat(a.amount).toLocaleString('es-MX')}</span></div>`;
+    const meta = _apartadoPaymentMeta(a);
+    return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${meta.amount < 0 ? '−' : ''}$${Math.abs(meta.amount).toLocaleString('es-MX')}</span></div>`;
   }).join('')}
-</div>` : '';
+</div>` : '');
 
     // Items
     const itemsListHTML = nItems ? s.items.map(i => {
@@ -449,17 +540,15 @@ function _renderApartadoCards(data, isLiquidado) {
       </div>`;
     }).join('') : '';
 
-    const telLink = telNum ? `<a href="tel:${telNum.replace(/\D/g,'')}" onclick="event.stopPropagation()" style="color:#9B8B78;text-decoration:none;font-size:.72rem">📱 ${telNum}</a>` : '';
-
     const disc = parseFloat(s.discount) || 0;
 
     return `
-<div class="apartado-item${isOverdue ? ' apt-overdue' : ''}" onclick="_toggleApt(this,${s.id})">
-  <div class="apt-header">
+<div class="apartado-item${isOverdue ? ' apt-overdue' : ''}">
+  <div class="apt-header" role="button" tabindex="0" aria-expanded="false" aria-label="Ver detalle del apartado de ${_esc(nombre)}" onclick="_toggleApt(this.parentElement,${s.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_toggleApt(this.parentElement,${s.id})}">
     <div class="apt-header-r1">
       <span class="apt-h-name">👤 ${_esc(nombre)}</span>
       <div class="apt-h-right">
-        <span class="apt-h-pending${pendiente===0?' zero':''}">${pendiente===0?(isLiquidado?'✓ Liquidado':'✓ Pagado'):'$'+pendiente.toLocaleString('es-MX')}</span>
+        <span class="apt-h-pending${pendiente===0?' zero':''}">${pendiente===0?(isLiquidado?'✓ Liquidado':'✓ Pagado'):'Falta $'+pendiente.toLocaleString('es-MX')}</span>
         <span class="apt-chevron">›</span>
       </div>
     </div>
@@ -467,7 +556,7 @@ function _renderApartadoCards(data, isLiquidado) {
       <span class="apt-h-meta">${t} · ${nItems} prod.${telNum ? ' · '+telNum : ''}</span>
       ${dueHTML}
     </div>
-    <div class="apt-mini-bar"><div class="apt-mini-fill" style="width:${pct}%"></div></div>
+    <div class="apt-mini-bar" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="apt-mini-fill" style="width:${pct}%"></div></div>
   </div>
   <div class="apt-body">
     ${isOverdue ? '<div class="apt-overdue-badge">⚠️ Vencido</div>' : ''}
@@ -477,20 +566,20 @@ function _renderApartadoCards(data, isLiquidado) {
       <div class="apt-sum-row apt-sum-total"><span>Total</span><span>$${total.toLocaleString('es-MX')}</span></div>
     </div>
     <div class="apt-progress-section">
-      <div class="apt-progress-track"><div class="apt-progress-fill" style="width:${pct}%"></div></div>
+      <div class="apt-progress-track" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="apt-progress-fill" style="width:${pct}%"></div></div>
       <div class="apt-amounts-row">
         <span class="apt-paid-lbl">✓ Pagado $${pagado.toLocaleString('es-MX')}</span>
         <span class="apt-pending-lbl">${pendiente > 0 ? 'Falta $' + pendiente.toLocaleString('es-MX') : '✓ Liquidado'}</span>
       </div>
     </div>
-    ${abonosHTML ? `<div class="apt-abonos-section-inline">${abonosHTML}</div>` : ''}
+    ${abonosHTML}
     <div class="apt-btns">
-      <button class="btn-wa-reminder" onclick="event.stopPropagation();sendApartadoReminder(${s.id})" title="Recordatorio WhatsApp">💬</button>
+      <button class="btn-wa-reminder" onclick="event.stopPropagation();sendApartadoReminder(${s.id})" title="${isLiquidado ? 'Enviar confirmación por WhatsApp' : 'Enviar recordatorio por WhatsApp'}" aria-label="${isLiquidado ? 'Enviar confirmación por WhatsApp' : 'Enviar recordatorio por WhatsApp'}">💬</button>
       ${isLiquidado ? `<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--green)">✓ Liquidado</span>` : `
       ${canEditApartado() ? `<button class="btn-wa-reminder" onclick="event.stopPropagation();openEditApartado(${s.id})" title="Editar" style="background:#F7F2EB;color:var(--charcoal);border:1.5px solid var(--border)">✏️</button>` : ''}
-      <button class="btn-abonar" onclick="event.stopPropagation();abonarApartado('${s.id}','${total}','${pagado}','${_esc(nombre).replace(/'/g,"\\'")}')">+ Abonar</button>
-      <button class="btn-liquidar" onclick="event.stopPropagation();openLiqModal(${s.id})">✓ Liquidar</button>
-      ${canEditApartado() ? `<button class="btn-cancelar-apt" onclick="event.stopPropagation();cancelApartado(${s.id})" title="Cancelar apartado">✕</button>` : ''}`}
+      <button class="btn-abonar" onclick="event.stopPropagation();abonarApartado('${s.id}','${total}','${pagado}','${_esc(nombre).replace(/'/g,"\\'")}')">Registrar abono</button>
+      <button class="btn-liquidar" onclick="event.stopPropagation();openLiqModal(${s.id})">Cobrar saldo $${pendiente.toLocaleString('es-MX')}</button>
+      ${canCancelApartado() ? `<button class="btn-cancelar-apt" onclick="event.stopPropagation();cancelApartado(${s.id})" title="Cancelar apartado">✕</button>` : ''}`}
     </div>
   </div>
 </div>`;
@@ -501,8 +590,14 @@ function _renderApartadoCards(data, isLiquidado) {
 /* ── APARTADO TOGGLE ── */
 function _toggleApt(el, id) {
   const isOpen = el.classList.contains('open');
-  document.querySelectorAll('#apt-offcanvas-list .apartado-item.open').forEach(c => c.classList.remove('open'));
-  if (!isOpen) el.classList.add('open');
+  document.querySelectorAll('#apt-offcanvas-list .apartado-item.open').forEach(c => {
+    c.classList.remove('open');
+    c.querySelector('.apt-header')?.setAttribute('aria-expanded', 'false');
+  });
+  if (!isOpen) {
+    el.classList.add('open');
+    el.querySelector('.apt-header')?.setAttribute('aria-expanded', 'true');
+  }
 }
 
 /* ── HISTORIAL TOGGLE ── */
@@ -537,19 +632,20 @@ function sendApartadoReminder(id) {
   const pagado    = parseFloat(s.paid_amount || 0);
   const pendiente = Math.max(0, total - pagado);
   const productos = Array.isArray(s.items) ? s.items.map(i => `• ${i.name}`).join('\n') : '';
+  const liquidado = s.status === 'liquidado' || (s.origin_type === 'apartado' && s.type === 'venta');
   let fechaTexto  = '';
   if (s.due_date) {
-    const due = new Date(s.due_date + 'T00:00:00');
-    const hoy = new Date(); hoy.setHours(0,0,0,0);
-    const dias = Math.round((due - hoy) / 86400000);
-    const label = due.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
+    const dias = _posDayKeyDiff(s.due_date);
+    const label = _posFormatDayKey(s.due_date, { weekday:'long', day:'numeric', month:'long' });
     fechaTexto = dias < 0
       ? `⚠️ Tu apartado venció hace ${Math.abs(dias)} día${Math.abs(dias)>1?'s':''}. Por favor contáctanos para arreglar tu pedido.`
       : dias === 0
         ? `📅 Tu apartado *vence hoy*. ¡Pasa a recogerlo cuando puedas!`
         : `📅 Tu apartado vence el *${label}* (en ${dias} día${dias>1?'s':''}).`;
   }
-  const msg = `Hola *${nombre}* 👋\n\nTe escribimos de *Tres Encantos* con un recordatorio de tu apartado 📌\n\n*Productos:*\n${productos}\n\n💰 Anticipo pagado: *$${pagado.toLocaleString('es-MX')}*\n⏳ Pendiente: *$${pendiente.toLocaleString('es-MX')}*\n${fechaTexto}\n\n¡Te esperamos! 🛍`;
+  const msg = liquidado
+    ? `Hola *${nombre}* 👋\n\nTe confirmamos que tu apartado de *Tres Encantos* quedó liquidado ✅\n\n*Productos:*\n${productos}\n\n💰 Total pagado: *$${total.toLocaleString('es-MX')} MXN*\n\n¡Gracias por tu compra! 💛`
+    : `Hola *${nombre}* 👋\n\nTe escribimos de *Tres Encantos* con un recordatorio de tu apartado 📌\n\n*Productos:*\n${productos}\n\n💰 Anticipo pagado: *$${pagado.toLocaleString('es-MX')}*\n⏳ Pendiente: *$${pendiente.toLocaleString('es-MX')}*\n${fechaTexto}\n\n¡Te esperamos! 🛍`;
   const telLimpio = telRaw.replace(/\D/g, '');
   const url = telLimpio
     ? `https://wa.me/52${telLimpio}?text=${encodeURIComponent(msg)}`
@@ -564,6 +660,15 @@ let _apartadosData = {}; // id → sale data (para acceder a abonos al abonar)
 let _apartadosAll  = []; // lista completa para filtrar sin refetch
 
 function filterApartados(q, target) {
+  if (typeof filterApartadosWithDue === 'function') {
+    if (!target) {
+      filterApartadosWithDue(q, 'offcanvas');
+      filterApartadosWithDue(q, 'page');
+    } else {
+      filterApartadosWithDue(q, target === 'page' ? 'page' : 'offcanvas');
+    }
+    return;
+  }
   // target: 'page' | 'offcanvas' | undefined (= both)
   // Filtra sobre la lista de la vista activa (Activos o Liquidados) — antes siempre
   // buscaba en _apartadosAll aunque estuvieras viendo Liquidados, y no encontraba nada
@@ -586,17 +691,22 @@ function filterApartados(q, target) {
 }
 
 function clearAptSearch() {
+  if (typeof clearAptSearchWithDue === 'function') {
+    clearAptSearchWithDue('offcanvas');
+    return;
+  }
   const el = document.getElementById('apt-search');
   if (el) { el.value = ''; el.focus(); }
   document.getElementById('apt-search-clear').style.display = 'none';
-  _renderApartadoCards(_apartadosAll);
+  const isLiq = _aptViewMode === 'liquidados';
+  _renderApartadoCards(isLiq ? _apartadosLiquidadosAll : _apartadosAll, isLiq);
 }
 
 function abonarApartado(id, total, pagado, nombre) {
   total  = parseFloat(total)  || 0;
   pagado = parseFloat(pagado) || 0;
-  const abonos = Array.isArray(_apartadosData[id]?.abonos) ? _apartadosData[id].abonos : [];
-  _abonarCtx = { id, total, pagado, pendiente: total - pagado, nombre, abonos };
+  const sale = _apartadosData[id];
+  _abonarCtx = { id, total, pagado, pendiente: Math.max(0, total - pagado), nombre, version: sale?.version ?? 0 };
   _abonarMethod = 'efectivo';
   document.getElementById('abonar-info').textContent =
     `${nombre} · Pendiente $${(total - pagado).toLocaleString('es-MX')}`;
@@ -621,7 +731,7 @@ function validateAbonarAmount() {
   const val  = parseFloat(document.getElementById('abonar-amount').value) || 0;
   const btn  = document.getElementById('abonar-confirm-btn');
   const hint = document.getElementById('abonar-max-hint');
-  const over = _abonarCtx && val > _abonarCtx.pendiente;
+  const over = _abonarCtx && val > _abonarCtx.pendiente + _APT_MONEY_EPSILON;
   const valid = val > 0 && _abonarCtx && !over;
   btn.disabled = !valid;
   document.getElementById('abonar-amount').style.borderColor = val > 0 && !valid ? 'var(--red)' : '';
@@ -635,27 +745,40 @@ function closeAbonarModal() {
 
 async function confirmAbonar() {
   if (!_abonarCtx) return;
-  const monto   = parseFloat(document.getElementById('abonar-amount').value) || 0;
-  if (monto <= 0 || monto > _abonarCtx.pendiente) return;
-  const nuevoPagado = _abonarCtx.pagado + monto;
+  let monto = Math.round((parseFloat(document.getElementById('abonar-amount').value) || 0) * 100) / 100;
+  if (monto <= 0 || monto > _abonarCtx.pendiente + _APT_MONEY_EPSILON) return;
+  if (monto >= _abonarCtx.pendiente - _APT_MONEY_EPSILON) monto = _abonarCtx.pendiente;
+  const expectedFinal = _abonarCtx.pagado + monto >= _abonarCtx.total - _APT_MONEY_EPSILON;
   const btn = document.getElementById('abonar-confirm-btn');
   btn.disabled = true; btn.textContent = 'Registrando…';
-  const nuevoAbono = { amount: monto, method: _abonarMethod, date: new Date().toISOString() };
-  const abonosActualizados = [...(_abonarCtx.abonos || []), nuevoAbono];
-  const patch = { paid_amount: nuevoPagado, abonos: abonosActualizados };
-  // Primer pago en apartado sin anticipo → anclar fecha de venta a hoy
-  if ((_abonarCtx.pagado || 0) === 0) patch.created_at = new Date().toISOString();
-  const r = await api(`sales?id=eq.${_abonarCtx.id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(patch)
+  const r = await posRpc('record_apartado_payment_atomic', {
+    operation: 'apartado_payment',
+    context: _abonarCtx.id,
+    fingerprint: `${_abonarCtx.id}:${_abonarCtx.version}:${monto}:${_abonarMethod}`,
+    body: {
+      p_sale_id: _abonarCtx.id,
+      p_expected_version: _abonarCtx.version,
+      p_method: _abonarMethod,
+      p_amount: monto
+    }
   });
-  if (!r.ok) { toast('Error al registrar abono', 'error'); btn.disabled = false; btn.textContent = 'Confirmar abono'; return; }
-  logActivity('apartado_abono',
-    `Abono de $${monto.toLocaleString('es-MX')} a ${_abonarCtx.nombre || 'cliente'}`,
-    { amount: monto, method: _abonarMethod });
+  if (!r.ok) {
+    toast(_posRpcError(r, 'Error al registrar abono'), 'error');
+    btn.disabled = false; btn.textContent = 'Confirmar abono';
+    if (r.resolvedPrior || r.staleConflict) {
+      closeAbonarModal();
+      await _refreshPosFinancialState();
+    }
+    else if (!r.ambiguous && !r.pendingConflict) loadApartados();
+    return;
+  }
+  const amountReceived = _aptMoney(r.data?.payment?.amount ?? monto);
+  const isFinal = r.data?.sale?.status === 'liquidado' || r.data?.liquidated === true || expectedFinal;
   closeAbonarModal();
-  toast(`Abono de $${monto.toLocaleString('es-MX')} registrado ✓`, 'success');
-  loadApartados();
+  toast(isFinal
+    ? `Apartado liquidado ✓ — $${amountReceived.toLocaleString('es-MX')} recibido`
+    : `Abono de $${amountReceived.toLocaleString('es-MX')} registrado ✓`, 'success');
+  await _refreshPosFinancialState();
 }
 
 /* ── EDITAR APARTADO ────────────────────────────────────────────────── */
@@ -664,7 +787,12 @@ let _editAptCtx = null;
 function openEditApartado(id) {
   const sale = _apartadosData[id];
   if (!sale) return;
-  _editAptCtx = { id, sale, items: (sale.items || []).map(i => ({ ...i })), anularPago: false };
+  if (sale.status && sale.status !== 'activo') {
+    toast('Este apartado ya no está activo. Actualiza la lista.', 'error');
+    loadApartados();
+    return;
+  }
+  _editAptCtx = { id, sale, items: (sale.items || []).map(i => ({ ...i })) };
   const nombre = (sale.customer || '').split(' · 📱 ')[0] || 'Cliente';
   document.getElementById('edit-apt-info').textContent = `${nombre} · Total $${parseFloat(sale.total||0).toLocaleString('es-MX')} MXN`;
   document.getElementById('edit-apt-search').value = '';
@@ -676,6 +804,8 @@ function openEditApartado(id) {
   if (pagado > 0 && pagadoRow) {
     pagadoRow.style.display = 'flex';
     if (pagadoAmt) pagadoAmt.textContent = `$${pagado.toLocaleString('es-MX')} MXN`;
+    const refundBtn = document.getElementById('edit-apt-refund-btn');
+    if (refundBtn) { refundBtn.disabled = false; refundBtn.textContent = 'Reembolsar'; }
   } else if (pagadoRow) {
     pagadoRow.style.display = 'none';
   }
@@ -683,13 +813,49 @@ function openEditApartado(id) {
   document.getElementById('edit-apt-overlay').style.display = 'flex';
 }
 
-function _editAptAnularPago() {
+async function _editAptAnularPago() {
   if (!_editAptCtx) return;
-  const pagado = parseFloat(_editAptCtx.sale.paid_amount || 0);
-  if (!confirm(`¿Anular el anticipo de $${pagado.toLocaleString('es-MX')} MXN?\n\nEsto dejará el apartado con $0 pagado. No se puede deshacer desde aquí.`)) return;
-  _editAptCtx.anularPago = true;
-  const row = document.getElementById('edit-apt-pagado-row');
-  if (row) row.innerHTML = `<div style="font-size:.82rem;color:var(--red);font-weight:600">✕ Anticipo anulado — se guardará como $0</div>`;
+  return refundApartado(_editAptCtx.id, 'edit');
+}
+
+async function refundApartado(id, source = 'detail') {
+  const sale = _apartadosData[id] || (source === 'edit' ? _editAptCtx?.sale : null);
+  if (!sale) { toast('Apartado no encontrado', 'error'); return; }
+  const pagado = _aptMoney(sale.paid_amount);
+  if (pagado <= 0) return;
+  const wasLiquidated = sale.status === 'liquidado' || (sale.origin_type === 'apartado' && sale.type === 'venta');
+  const consequence = wasLiquidated
+    ? 'El apartado volverá a Activos y el inventario seguirá reservado.'
+    : 'El apartado seguirá activo y el inventario continuará reservado.';
+  if (!confirm(`¿Registrar la devolución de $${pagado.toLocaleString('es-MX')} MXN?\n\n${consequence}\nSe conservará el historial y la devolución se descontará de la caja de hoy por los mismos métodos usados al cobrar. Esta acción no se puede deshacer.`)) return;
+  const btn = document.getElementById(source === 'edit' ? 'edit-apt-refund-btn' : 'adm-refund-btn');
+  const originalText = btn?.textContent || 'Reembolsar';
+  if (btn) { btn.disabled = true; btn.textContent = 'Registrando…'; }
+  const r = await posRpc('refund_apartado_atomic', {
+    operation: 'apartado_refund',
+    context: id,
+    fingerprint: `${id}:${sale.version ?? 0}:${pagado}`,
+    body: {
+      p_sale_id: id,
+      p_expected_version: sale.version ?? 0,
+      p_reason: wasLiquidated ? 'Pago revertido; apartado reabierto desde Caja' : 'Devolución total registrada desde edición de apartado'
+    }
+  });
+  if (!r.ok) {
+    toast(_posRpcError(r, 'No se pudo registrar la devolución'), 'error');
+    if (btn) { btn.disabled = false; btn.textContent = originalText; }
+    if (r.resolvedPrior || r.staleConflict) {
+      if (source === 'edit') closeEditApt();
+      else closeAptDetail();
+      await _refreshPosFinancialState();
+    }
+    return;
+  }
+  if (source === 'edit') closeEditApt();
+  else closeAptDetail();
+  await _refreshPosFinancialState();
+  const refunded = _aptMoney(r.data?.refund_amount || pagado);
+  toast(`${wasLiquidated ? 'Apartado reabierto' : 'Devolución registrada'} — $${refunded.toLocaleString('es-MX')} devueltos ✓`, 'success');
 }
 
 function closeEditApt() {
@@ -718,11 +884,11 @@ function renderEditAptItems() {
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-        <button onclick="_editAptChangeQty(${idx},-1)" style="width:26px;height:26px;border:1.5px solid var(--border);border-radius:7px;background:#fff;cursor:pointer;font-size:.95rem;line-height:1;font-family:inherit">−</button>
+        <button onclick="_editAptChangeQty(${idx},-1)" aria-label="Quitar una unidad de ${_esc(item.name)}" style="width:44px;height:44px;border:1.5px solid var(--border);border-radius:7px;background:#fff;cursor:pointer;font-size:.95rem;line-height:1;font-family:inherit">−</button>
         <span style="font-size:.9rem;font-weight:700;min-width:22px;text-align:center">${item.qty||1}</span>
-        <button onclick="_editAptChangeQty(${idx},1)" style="width:26px;height:26px;border:1.5px solid var(--border);border-radius:7px;background:#fff;cursor:pointer;font-size:.95rem;line-height:1;font-family:inherit">+</button>
+        <button onclick="_editAptChangeQty(${idx},1)" aria-label="Agregar una unidad de ${_esc(item.name)}" style="width:44px;height:44px;border:1.5px solid var(--border);border-radius:7px;background:#fff;cursor:pointer;font-size:.95rem;line-height:1;font-family:inherit">+</button>
       </div>
-      <button onclick="_editAptRemove(${idx})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:1.1rem;padding:4px;line-height:1;flex-shrink:0">✕</button>
+      <button onclick="_editAptRemove(${idx})" aria-label="Quitar ${_esc(item.name)} del apartado" style="width:44px;height:44px;background:none;border:none;cursor:pointer;color:var(--red);font-size:1.1rem;padding:4px;line-height:1;flex-shrink:0">✕</button>
     </div>`).join('');
   _updateEditAptTotal();
 }
@@ -736,6 +902,10 @@ function _editAptChangePrice(idx, val) {
 
 function _editAptChangeQty(idx, delta) {
   const item = _editAptCtx.items[idx];
+  if (delta > 0 && !_editAptCanAdd(item.id)) {
+    toast('No hay más existencias disponibles para agregar', 'error');
+    return;
+  }
   item.qty = Math.max(1, (item.qty || 1) + delta);
   item.subtotal = item.price * item.qty;
   renderEditAptItems();
@@ -747,9 +917,38 @@ function _editAptRemove(idx) {
 }
 
 function _updateEditAptTotal() {
-  const total = _editAptCtx.items.reduce((s, i) => s + (i.price || 0) * (i.qty || 1), 0);
+  const subtotal = _aptMoney(_editAptCtx.items.reduce((s, i) => s + (i.price || 0) * (i.qty || 1), 0));
+  const discount = _aptMoney(_editAptCtx.sale.discount);
+  const total = _aptMoney(subtotal - discount);
   const el = document.getElementById('edit-apt-total');
-  if (el) el.textContent = `$${total.toLocaleString('es-MX')} MXN`;
+  if (!el) return;
+  el.innerHTML = discount > 0
+    ? `<div style="font-family:inherit;font-size:.74rem;font-weight:500;color:var(--muted)">Subtotal $${subtotal.toLocaleString('es-MX')} · Descuento −$${discount.toLocaleString('es-MX')}</div><div>Total $${total.toLocaleString('es-MX')} MXN</div>`
+    : `Total $${total.toLocaleString('es-MX')} MXN`;
+}
+
+function _editAptCanAdd(productId) {
+  if (!_editAptCtx) return false;
+  const p = products.find(x => x.id === productId);
+  if (!p) return false;
+  const originalItem = (_editAptCtx.sale.items || []).find(i => i.id === productId);
+  const originalQty = originalItem?.qty || 0;
+  const currentQty = _editAptCtx.items.find(i => i.id === productId)?.qty || 0;
+  const snapshot = originalItem && Object.prototype.hasOwnProperty.call(originalItem, 'kit_items')
+    ? originalItem.kit_items : p.kitItems;
+  let available;
+  if (Array.isArray(snapshot) && snapshot.length) {
+    available = snapshot.reduce((min, component) => {
+      const currentComponent = products.find(item => item.id === component.id);
+      const perKit = Math.max(1, parseInt(component.qty, 10) || 1);
+      const componentStock = Math.max(0, parseInt(currentComponent?.stock, 10) || 0);
+      return Math.min(min, Math.floor(componentStock / perKit));
+    }, Infinity);
+    if (!Number.isFinite(available)) available = 0;
+  } else {
+    available = Math.max(0, parseInt(p.stock, 10) || 0);
+  }
+  return currentQty < originalQty + available;
 }
 
 function searchEditApt(q) {
@@ -758,31 +957,38 @@ function searchEditApt(q) {
   const matches = products.filter(p =>
     p.name.toLowerCase().includes(q.toLowerCase())
   ).sort((a, b) => {
-    const aOos = a.outOfStock || a.stock === 0;
-    const bOos = b.outOfStock || b.stock === 0;
+    const aOos = !_editAptCanAdd(a.id);
+    const bOos = !_editAptCanAdd(b.id);
     return aOos - bOos;
   }).slice(0, 7);
   if (!matches.length) { res.style.display = 'none'; return; }
   res.style.display = 'block';
   res.innerHTML = matches.map(p => {
-    const oos = p.outOfStock || p.stock === 0;
-    return `<div onclick="_editAptAddProduct(${p.id})" style="cursor:pointer;padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:.82rem;border-bottom:1px solid var(--border);${oos?'opacity:.65':''}">
+    const oos = !_editAptCanAdd(p.id);
+    return `<button type="button" ${oos ? 'disabled' : `onclick="_editAptAddProduct(${p.id})"`} aria-disabled="${oos}" style="width:100%;cursor:${oos?'not-allowed':'pointer'};padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:.82rem;border:0;border-bottom:1px solid var(--border);background:#fff;text-align:left;font-family:inherit;${oos?'opacity:.65':''}">
       <img src="${_driveSz(p.image, 80)}" style="width:28px;height:28px;object-fit:cover;border-radius:5px;flex-shrink:0" onerror="this.style.display='none'">
       <span style="flex:1;font-weight:600">${_esc(p.name)}</span>
       <span style="color:${oos?'var(--red)':'var(--muted)'};font-size:.74rem">${oos?'Sin stock':'$'+p.price.toLocaleString('es-MX')}</span>
-    </div>`;
+    </button>`;
   }).join('');
 }
 
 function _editAptAddProduct(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
+  if (!_editAptCanAdd(id)) {
+    toast('Producto sin existencias disponibles', 'error');
+    return;
+  }
   const existing = _editAptCtx.items.find(i => i.id === id);
   if (existing) {
     existing.qty = (existing.qty || 1) + 1;
     existing.subtotal = existing.price * existing.qty;
   } else {
-    _editAptCtx.items.push({ id: p.id, name: p.name, price: p.price, qty: 1, subtotal: p.price });
+    _editAptCtx.items.push({
+      id: p.id, name: p.name, price: p.price, qty: 1, subtotal: p.price,
+      ...(p.kitItems?.length ? { kit_items: p.kitItems.map(c => ({ id:c.id, name:c.name, qty:c.qty || 1 })) } : {})
+    });
   }
   document.getElementById('edit-apt-search').value = '';
   document.getElementById('edit-apt-search-results').style.display = 'none';
@@ -793,59 +999,50 @@ async function saveEditApt() {
   if (!_editAptCtx) return;
   if (!_editAptCtx.items.length) { toast('El apartado debe tener al menos un producto', 'error'); return; }
   const { id, sale, items } = _editAptCtx;
-  const oldItems = sale.items || [];
-  items.forEach(i => { i.subtotal = i.price * (i.qty || 1); });
-  const newTotal = items.reduce((s, i) => s + i.subtotal, 0);
+  items.forEach(i => {
+    i.price = _aptMoney(i.price);
+    i.qty = Math.max(1, parseInt(i.qty, 10) || 1);
+    i.subtotal = _aptMoney(i.price * i.qty);
+  });
+  const subtotal = _aptMoney(items.reduce((s, i) => s + i.subtotal, 0));
+  const discount = _aptMoney(sale.discount);
+  const newTotal = _aptMoney(subtotal - discount);
+  const paid = _aptMoney(sale.paid_amount);
+  if (newTotal <= 0) {
+    toast('El total debe ser mayor a $0. Revisa productos y descuento.', 'error');
+    return;
+  }
+  if (newTotal < paid - _APT_MONEY_EPSILON) {
+    toast(`El total no puede quedar debajo de los $${paid.toLocaleString('es-MX')} ya pagados. Registra primero un reembolso.`, 'error');
+    return;
+  }
   const btn = document.getElementById('edit-apt-save-btn');
   btn.disabled = true; btn.textContent = 'Guardando…';
-
-  // Ajustes de stock: comparar items viejos vs nuevos
-  const stockUpdates = [];
-  // Restaurar stock de productos quitados o reducidos
-  for (const old of oldItems) {
-    const nw = items.find(i => i.id === old.id);
-    const diff = (old.qty || 1) - (nw ? nw.qty || 1 : 0);
-    if (diff > 0) {
-      const p = products.find(x => x.id === old.id);
-      if (p) {
-        const ns = p.stock + diff;
-        stockUpdates.push(api(`products?id=eq.${old.id}`, { method:'PATCH', body:JSON.stringify({ stock: ns, out_of_stock: false }) })
-          .then(() => { p.stock = ns; p.outOfStock = false; }));
-      }
+  const r = await posRpc('edit_apartado_atomic', {
+    operation: 'apartado_edit',
+    context: id,
+    fingerprint: `${id}:${sale.version ?? 0}:${JSON.stringify(items)}:${discount}`,
+    body: {
+      p_sale_id: id,
+      p_expected_version: sale.version ?? 0,
+      p_items: items,
+      p_discount: null
     }
-  }
-  // Reducir stock de productos agregados o aumentados
-  for (const nw of items) {
-    const old = oldItems.find(i => i.id === nw.id);
-    const diff = (nw.qty || 1) - (old ? old.qty || 1 : 0);
-    if (diff > 0) {
-      const p = products.find(x => x.id === nw.id);
-      if (p) {
-        const ns = Math.max(0, p.stock - diff);
-        const patch = { stock: ns };
-        if (ns === 0) { patch.out_of_stock = false; patch.is_apartado = true; }
-        stockUpdates.push(api(`products?id=eq.${nw.id}`, { method:'PATCH', body:JSON.stringify(patch) })
-          .then(() => { p.stock = ns; }));
-      }
-    }
-  }
-  await Promise.all(stockUpdates);
-
-  // Anticipo: anular si se solicitó, si no ajustar para que no supere el nuevo total
-  const pagado = _editAptCtx.anularPago ? 0 : Math.min(parseFloat(sale.paid_amount || 0), newTotal);
-  const patchData = { items, total: newTotal, paid_amount: pagado, discount: null };
-  if (_editAptCtx.anularPago) patchData.abonos = null;
-  const r = await api(`sales?id=eq.${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(patchData)
   });
   btn.disabled = false; btn.textContent = 'Guardar cambios';
-  if (!r.ok) { toast('Error al guardar cambios', 'error'); return; }
-  const nombre = (sale.customer || '').split(' · 📱 ')[0] || 'cliente';
-  logActivity('apartado_editado', `Editó apartado de ${nombre} — nuevo total $${newTotal.toLocaleString('es-MX')}`, { id, total: newTotal, itemsDetail: items });
+  if (!r.ok) {
+    toast(_posRpcError(r, 'Error al guardar cambios'), 'error');
+    if (r.resolvedPrior || r.staleConflict) {
+      closeEditApt();
+      await _refreshPosFinancialState();
+    }
+    else if (!r.ambiguous && !r.pendingConflict) loadApartados();
+    return;
+  }
+  const quedaLiquidado = r.data?.sale?.status === 'liquidado' || r.data?.liquidated === true;
   closeEditApt();
-  toast('Apartado actualizado ✓', 'success');
-  loadApartados();
+  toast(quedaLiquidado ? 'Apartado actualizado y movido a Liquidados ✓' : 'Apartado actualizado ✓', 'success');
+  await _refreshPosFinancialState();
 }
 
 let _liqCtx = null, _liqMethod = 'efectivo';
@@ -881,32 +1078,36 @@ function closeLiqModal() {
 
 async function confirmLiquidar() {
   if (!_liqCtx) return;
-  const { id, total, restante, sale } = _liqCtx;
-  if (restante <= 0) { toast('Este apartado ya está pagado completo ✓', 'success'); closeLiqModal(); return; }
+  const { id, restante, sale } = _liqCtx;
+  const alreadyPaid = restante <= _APT_MONEY_EPSILON;
   const method = _liqMethod;
   const btn    = document.getElementById('liq-confirm-btn');
   btn.disabled = true; btn.textContent = 'Liquidando…';
-  const abonos     = Array.isArray(sale?.abonos) ? sale.abonos : [];
-  const abonoFinal = { amount: restante, method, date: new Date().toISOString() };
-  const liqPatch   = { type:'venta', payment_method:method, paid_amount:total, abonos:[...abonos, abonoFinal] };
-  // Apartado sin anticipo (ni abonos previos) → fecha de venta = hoy (día de cobro real)
-  if ((parseFloat(sale?.paid_amount) || 0) === 0 && !abonos.length) liqPatch.created_at = new Date().toISOString();
-  const r = await api(`sales?id=eq.${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(liqPatch)
+  const r = await posRpc('record_apartado_payment_atomic', {
+    operation: 'apartado_payment',
+    context: id,
+    fingerprint: `${id}:${sale.version ?? 0}:${method}:saldo`,
+    body: {
+      p_sale_id: id,
+      p_expected_version: sale.version ?? 0,
+      p_method: method,
+      p_amount: null
+    }
   });
   btn.disabled = false; btn.textContent = '✓ Liquidar';
-  if (!r.ok) { toast('Error al completar apartado', 'error'); return; }
-  // Limpiar is_apartado en los productos de este apartado
-  const saleItems = sale?.items || [];
-  await Promise.all(saleItems.map(item =>
-    api(`products?id=eq.${item.id}`, { method:'PATCH', body:JSON.stringify({ is_apartado: false }) }).catch(()=>{})
-  ));
-  const nombreLiq = (sale?.customer || '').split(' · 📱 ')[0] || 'cliente';
-  logActivity('apartado_liquidado',
-    `Liquidó apartado de ${nombreLiq} — $${restante.toLocaleString('es-MX')} (${method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo'})`,
-    { customer: nombreLiq, method, restante, total, itemsDetail: saleItems });
+  if (!r.ok) {
+    toast(_posRpcError(r, 'Error al completar apartado'), 'error');
+    if (r.resolvedPrior || r.staleConflict) {
+      closeLiqModal();
+      await _refreshPosFinancialState();
+    }
+    else if (!r.ambiguous && !r.pendingConflict) loadApartados();
+    return;
+  }
+  const amountReceived = _aptMoney(r.data?.payment?.amount ?? restante);
   closeLiqModal();
-  toast(`Apartado liquidado ✓ — $${restante.toLocaleString('es-MX')} recibido`, 'success');
-  loadApartados(); loadHistory(); loadTodayStats();
+  toast(alreadyPaid
+    ? 'Apartado pagado movido a Liquidados ✓'
+    : `Apartado liquidado ✓ — $${amountReceived.toLocaleString('es-MX')} recibido`, 'success');
+  await _refreshPosFinancialState();
 }

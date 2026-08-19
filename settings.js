@@ -12,14 +12,11 @@ let ROLE = 'operador';
     ROLE = s?.user?.user_metadata?.role ||
       (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.user_metadata?.role; } catch{} })() ||
       'operador';
-    const _up = (() => { try { return JSON.parse(sessionStorage.getItem('te_user_can')||'{}'); } catch { return {}; } })();
-    if (_up.role) ROLE = _up.role;
-    const canSettings = 'canManageSettings' in _up ? _up.canManageSettings : (ROLE === 'superadmin');
-    if (!canSettings) window.location.href = 'admin.html';
   } catch { window.location.href = 'admin.html'; }
 })();
 
 function doLogout() {
+  sessionStorage.removeItem('te_user_can');
   localStorage.removeItem(SESSION_KEY);
   window.location.href = 'admin.html';
 }
@@ -1122,7 +1119,14 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') document.querySelectorAll('.overlay.open').forEach(ov => { ov.classList.remove('open'); document.body.style.overflow = ''; });
 });
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  const permissionState = await _loadMyPerms({ requireFresh: true, withMeta: true });
+  const permissions = permissionState?.permissions;
+  if (permissionState?.source !== 'server' || permissions?.canManageSettings !== true) {
+    window.location.replace('admin.html');
+    return;
+  }
+  if (permissions.role) ROLE = permissions.role;
   try {
     const _s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
     const _m = _s?.user?.user_metadata || {};

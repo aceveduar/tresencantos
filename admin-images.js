@@ -117,18 +117,6 @@ async function loadAppConfig() {
       if (row.id === 'user_names') {
         try { _userNames = JSON.parse(row.value || '{}'); } catch { _userNames = {}; }
       }
-      if (row.id === 'user_permissions') {
-        try {
-          const allPerms = JSON.parse(row.value || '{}');
-          const myEmail  = (()=>{ try{ return JSON.parse(localStorage.getItem('te_admin_session')||'{}')?.user?.email||null; }catch{return null;} })();
-          const myPerms  = myEmail ? allPerms[myEmail] || null : null;
-          if (myPerms) {
-            sessionStorage.setItem('te_user_can', JSON.stringify(myPerms));
-            _applyUserPermsToAdmin(myPerms);
-            _applyRoleUI();
-          }
-        } catch {}
-      }
     });
   }
   // Migración automática: si había config en localStorage la subimos a Supabase una sola vez

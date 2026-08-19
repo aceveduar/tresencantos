@@ -1,23 +1,37 @@
 const SUPABASE_URL         = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
 const SUPABASE_ANON_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjYyMjYsImV4cCI6MjA5NDEwMjIyNn0.irCFwOR5HL_ZOVjFGVw9LqmzYicDZTNEmxcknu_j6cI';
 const SESSION_KEY          = 'te_admin_session';
+const ACTIVITY_TZ           = 'America/Mexico_City';
 const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+const _activityDateFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: ACTIVITY_TZ, year: 'numeric', month: '2-digit', day: '2-digit'
+});
+function _activityDayKey(value = Date.now()) {
+  return _activityDateFormatter.format(new Date(value));
+}
+function _activityAddDays(dayKey, amount) {
+  const [year, month, day] = dayKey.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + amount));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+}
+function _activityDayStartIso(dayKey) {
+  return new Date(`${dayKey}T00:00:00-06:00`).toISOString();
+}
+function _activityFormat(value, options) {
+  return new Intl.DateTimeFormat('es-MX', { timeZone: ACTIVITY_TZ, ...options }).format(new Date(value));
+}
 
 /* ── AUTH + ROL ── */
 (function(){
   try {
     const s = JSON.parse(localStorage.getItem(SESSION_KEY));
     if (!s?.access_token || s.expires_at <= Date.now()/1000 + 60) return window.location.href = 'admin.html';
-    const role = s?.user?.user_metadata?.role ||
-      (() => { try { return JSON.parse(atob(s.access_token.split('.')[1]))?.user_metadata?.role; } catch{} })() ||
-      'operador';
-    const _up = (() => { try { return JSON.parse(sessionStorage.getItem('te_user_can')||'{}'); } catch { return {}; } })();
-    const canViewActivity = 'canViewActivity' in _up ? _up.canViewActivity : (role === 'superadmin' || role === 'duena');
-    if (!canViewActivity) return window.location.href = 'admin.html';
   } catch { window.location.href = 'admin.html'; }
 })();
 
 function doLogout() {
+  sessionStorage.removeItem('te_user_can');
   localStorage.removeItem(SESSION_KEY);
   window.location.href = 'admin.html';
 }
@@ -52,15 +66,49 @@ async function api(path, opts = {}) {
     ...opts,
     headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json', ...opts.headers }
   }).then(async r => ({ ok: r.ok, status: r.status, data: r.status !== 204 ? await r.json().catch(()=>null) : null }));
-  const r = await _call(_getActivityToken());
-  if (r.status === 401 && await _refreshActivityToken()) return _call(_getActivityToken());
-  return r;
+  try {
+    const r = await _call(_getActivityToken());
+    if (r.status === 401 && await _refreshActivityToken()) return await _call(_getActivityToken());
+    return r;
+  } catch {
+    return { ok: false, status: 0, data: null };
+  }
+}
+
+async function _fetchAllActivity(path, pageSize = 1000) {
+  const rows = [];
+  let offset = 0;
+  while (true) {
+    const sep = path.includes('?') ? '&' : '?';
+    const r = await api(`${path}${sep}limit=${pageSize}&offset=${offset}`);
+    if (!r.ok) return { ...r, data: null };
+    const page = Array.isArray(r.data) ? r.data : [];
+    rows.push(...page);
+    if (page.length < pageSize) return { ok: true, status: r.status, data: rows };
+    offset += page.length;
+  }
+}
+
+function _activityPaymentAmount(payment) {
+  const amount = parseFloat(payment?.amount) || 0;
+  return payment?.kind === 'refund' ? -Math.abs(amount) : amount;
+}
+
+function _activityRefundCount(payments) {
+  const keys = new Set();
+  (payments || []).forEach(payment => {
+    if (payment?.kind !== 'refund') return;
+    keys.add(payment.request_id ? `${payment.sale_id}:${payment.request_id}` : `legacy:${payment.id}`);
+  });
+  return keys.size;
 }
 
 /* ── STATE ── */
 let allData     = [];
 let currentType = '';
 let currentSearch = '';
+let _activityLoadGeneration = 0;
+const _knownActivityUsers = new Set();
 let nameMap     = {}; // { email: displayName }
 let _prodMap    = {}; // { id: {name, image, price} } — para popup de eventos de producto
 
@@ -89,7 +137,10 @@ function avatarColor(email) {
 async function loadNameMap() {
   const { ok, data } = await api('config?id=eq.user_names&select=value');
   if (ok && data?.[0]?.value) {
-    try { nameMap = JSON.parse(data[0].value); } catch {}
+    try {
+      nameMap = JSON.parse(data[0].value);
+      Object.keys(nameMap).filter(Boolean).forEach(email => _knownActivityUsers.add(email));
+    } catch {}
   }
 }
 
@@ -152,6 +203,7 @@ const ACTION_CFG = {
   apartado_abono:     { type:'apartado',   badge:'apartado',  icon:'💳', label:'Abono'     },
   apartado_editado:   { type:'apartado',   badge:'apartado',  icon:'✏️', label:'Apartado editado' },
   apartado_liquidado: { type:'apartado',   badge:'apartado',  icon:'✅', label:'Liquidado' },
+  apartado_reembolso: { type:'apartado',   badge:'eliminado', icon:'↩️', label:'Reembolso' },
   apartado_cancelado: { type:'apartado',   badge:'eliminado', icon:'❌', label:'Apartado cancelado' },
   producto_creado:       { type:'inventario', badge:'creado',    icon:'➕', label:'Creado'    },
   producto_editado:      { type:'inventario', badge:'editado',   icon:'✏️', label:'Editado'   },
@@ -161,6 +213,7 @@ const ACTION_CFG = {
 
 /* ── LOAD ── */
 async function load() {
+  const loadGeneration = ++_activityLoadGeneration;
   document.getElementById('feed').innerHTML = '<div class="spinner"></div>';
   document.getElementById('summary-row').style.display = 'none';
 
@@ -171,37 +224,35 @@ async function load() {
   // Fecha de inicio del período
   // "Hoy" (days=1) usa medianoche del día actual, no "hace 24h"
   let from;
-  if (days === 1) {
-    const t = new Date(); t.setHours(0, 0, 0, 0);
-    from = t.toISOString();
-  } else {
-    from = days > 0 ? new Date(Date.now() - days * 86400000).toISOString() : null;
-  }
+  if (days > 0) {
+    const firstDay = _activityAddDays(_activityDayKey(), -(days - 1));
+    from = _activityDayStartIso(firstDay);
+  } else from = null;
 
-  // Query activity_log (feed de auditoría)
-  // Con búsqueda activa: filtra en el servidor (summary/cliente/producto) con un tope más alto —
-  // si no, solo se ven los últimos 300 registros y una búsqueda de hace semanas nunca aparece
-  let logQ = `activity_log?select=*&order=created_at.desc`;
+  // Query activity_log (feed y conteos de acciones reales).
+  let logQ = `activity_log?select=*&order=created_at.desc,id.desc`;
   if (currentSearch) {
     const qSafe = currentSearch.replace(/[,()]/g, ' ').trim();
     const pat = encodeURIComponent(`*${qSafe}*`);
-    logQ += `&or=(summary.ilike.${pat},meta->>customer.ilike.${pat},meta->>name.ilike.${pat})&limit=1000`;
-  } else {
-    logQ += `&limit=300`;
+    logQ += `&or=(summary.ilike.${pat},meta->>customer.ilike.${pat},meta->>name.ilike.${pat})`;
   }
   if (from) logQ += `&created_at=gte.${encodeURIComponent(from)}`;
   if (user) logQ += `&user_email=eq.${encodeURIComponent(user)}`;
 
-  // Query sales del período (fuente de verdad para KPIs) — excluye canceladas (soft-cancel)
-  let salesQ = `sales?select=id,total,type,paid_amount&cancelled_at=is.null`;
-  if (from) salesQ += `&created_at=gte.${encodeURIComponent(from)}`;
+  // El dinero se consulta por la fecha real del movimiento. No se filtra por el
+  // estado actual de la venta: una cancelación posterior no debe borrar un cobro histórico.
+  let paymentsQ = `sale_payments?select=id,sale_id,request_id,request_line,amount,kind,method,paid_at,collected_by,collected_by_email,is_estimated,source&order=paid_at.desc,id.desc`;
+  if (from) paymentsQ += `&paid_at=gte.${encodeURIComponent(from)}`;
+  if (user) paymentsQ += `&collected_by_email=eq.${encodeURIComponent(user)}`;
 
   // Apartados con pendiente (todos, sin filtro de período)
-  const aptQ = `sales?select=id,total,paid_amount&type=eq.apartado&cancelled_at=is.null`;
+  let aptQ = `sales?select=id,total,paid_amount&origin_type=eq.apartado&status=eq.activo&order=id.asc`;
+  if (user) aptQ += `&seller_email=eq.${encodeURIComponent(user)}`;
 
-  const [logRes, salesRes, aptRes] = await Promise.all([
-    api(logQ), api(salesQ), api(aptQ)
+  const [logRes, paymentsRes, aptRes] = await Promise.all([
+    _fetchAllActivity(logQ), _fetchAllActivity(paymentsQ), _fetchAllActivity(aptQ)
   ]);
+  if (loadGeneration !== _activityLoadGeneration) return;
 
   if (!logRes.ok) {
     document.getElementById('feed').innerHTML = '<div class="empty-state"><div class="em">⚠️</div>Error al cargar actividad</div>';
@@ -210,14 +261,20 @@ async function load() {
 
   allData = logRes.data || [];
   populateUsers(allData);
-  updateSummary(allData, salesRes.data || [], aptRes.data || []);
+  updateSummary(
+    allData,
+    paymentsRes.ok && Array.isArray(paymentsRes.data) ? paymentsRes.data : null,
+    aptRes.ok && Array.isArray(aptRes.data) ? aptRes.data : null
+  );
   render(allData);
 }
 
 function populateUsers(data) {
-  const emails  = [...new Set(data.map(d => d.user_email))].filter(Boolean).sort();
   const sel     = document.getElementById('filter-user');
   const current = sel.value;
+  data.map(d => d.user_email).filter(Boolean).forEach(email => _knownActivityUsers.add(email));
+  if (current) _knownActivityUsers.add(current);
+  const emails = [..._knownActivityUsers].sort();
   sel.innerHTML = '<option value="">Todos</option>';
   emails.forEach(e => {
     const o = document.createElement('option');
@@ -227,20 +284,34 @@ function populateUsers(data) {
   });
 }
 
-function updateSummary(logData, salesData, allApartados) {
-  // ── Ventas: desde tabla sales (fuente de verdad)
-  const ventas      = salesData.filter(s => s.type === 'venta');
-  const ventasTotal = ventas.reduce((s, v) => s + (v.total || 0), 0);
-  document.getElementById('sum-ventas').textContent = ventas.length;
-  document.getElementById('sum-ventas-sub').textContent =
-    ventas.length > 0 ? `$${ventasTotal.toLocaleString('es-MX')}` : '';
+function updateSummary(logData, paymentData, allApartados) {
+  // Acciones se cuentan desde el log en su fecha real; importes, solo desde el ledger.
+  const ventas = logData.filter(item => item.action === 'venta').length;
+  const paymentsAvailable = Array.isArray(paymentData);
+  const movements = paymentData || [];
+  const rawNetReceived = movements.reduce((sum, payment) => sum + _activityPaymentAmount(payment), 0);
+  const netReceived = Math.round((rawNetReceived + Number.EPSILON) * 100) / 100;
+  const refunds = _activityRefundCount(movements);
+  document.getElementById('sum-ventas').textContent = ventas;
+  document.getElementById('sum-ventas-sub').textContent = paymentsAvailable
+    ? `${netReceived < 0 ? '−' : ''}$${Math.abs(netReceived).toLocaleString('es-MX')} neto${refunds ? ` · ${refunds} devolución${refunds !== 1 ? 'es' : ''}` : ''}`
+    : 'Ingresos no disponibles';
 
-  // ── Apartados: nuevos en el período + pendientes totales
-  const aptNuevos     = salesData.filter(s => s.type === 'apartado').length;
-  const aptPendientes = allApartados.filter(s => (s.paid_amount || 0) < s.total).length;
+  // ── Apartados: acciones del período + pendientes actuales globales
+  const aptNuevos = logData.filter(item => item.action === 'apartado_nuevo').length;
+  const aptAbonos = logData.filter(item => item.action === 'apartado_abono').length;
+  const aptLiquidados = logData.filter(item => item.action === 'apartado_liquidado').length;
+  const aptReembolsos = logData.filter(item => item.action === 'apartado_reembolso').length;
+  const aptPendientes = Array.isArray(allApartados)
+    ? allApartados.filter(s => (parseFloat(s.paid_amount) || 0) < (parseFloat(s.total) || 0)).length
+    : null;
   document.getElementById('sum-apt').textContent = aptNuevos;
-  document.getElementById('sum-apt-sub').textContent =
-    aptPendientes > 0 ? `${aptPendientes} por cobrar (total)` : 'sin pendientes';
+  document.getElementById('sum-apt-sub').textContent = [
+    aptAbonos ? `${aptAbonos} abono${aptAbonos !== 1 ? 's' : ''}` : '',
+    aptLiquidados ? `${aptLiquidados} liquidado${aptLiquidados !== 1 ? 's' : ''}` : '',
+    aptReembolsos ? `${aptReembolsos} reembolso${aptReembolsos !== 1 ? 's' : ''}` : '',
+    aptPendientes == null ? 'Pendientes no disponibles' : aptPendientes > 0 ? `${aptPendientes} por cobrar (total)` : 'sin pendientes'
+  ].filter(Boolean).join(' · ');
 
   // ── Inventario: desglosado desde activity_log
   const creados   = logData.filter(d => d.action === 'producto_creado').length;
@@ -251,7 +322,7 @@ function updateSummary(logData, salesData, allApartados) {
   document.getElementById('sum-inv-sub').textContent =
     invTotal > 0 ? `➕${creados} ✏️${editados} 🗑${eliminados}` : '';
 
-  const anyData = ventas.length + aptNuevos + invTotal > 0;
+  const anyData = ventas + aptNuevos + aptAbonos + aptLiquidados + aptReembolsos + movements.length + invTotal > 0;
   if (anyData) document.getElementById('summary-row').style.display = '';
 }
 
@@ -268,15 +339,15 @@ function render(data) {
   }
 
   const groups = {};
-  const today     = new Date(); today.setHours(0,0,0,0);
-  const yesterday = new Date(today - 86400000);
+  const today = _activityDayKey();
+  const yesterday = _activityAddDays(today, -1);
 
   filtered.forEach(item => {
-    const d = new Date(item.created_at); d.setHours(0,0,0,0);
+    const dayKey = _activityDayKey(item.created_at);
     let key;
-    if (d.getTime() === today.getTime())     key = 'HOY';
-    else if (d.getTime() === yesterday.getTime()) key = 'AYER';
-    else key = new Date(item.created_at).toLocaleDateString('es-MX', {weekday:'short', day:'numeric', month:'short'});
+    if (dayKey === today) key = 'HOY';
+    else if (dayKey === yesterday) key = 'AYER';
+    else key = _activityFormat(item.created_at, {weekday:'short', day:'numeric', month:'short'});
     if (!groups[key]) groups[key] = [];
     groups[key].push(item);
   });
@@ -286,7 +357,7 @@ function render(data) {
     html += `<div class="date-sep">${date}</div>`;
     items.forEach(item => {
       const cfg   = ACTION_CFG[item.action] || { badge:'inventario', icon:'•', label: item.action };
-      const time  = new Date(item.created_at).toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+      const time  = _activityFormat(item.created_at, {hour:'2-digit', minute:'2-digit'});
       const meta  = item.meta || {};
       const color = avatarColor(item.user_email);
       const name  = displayName(item.user_email);
@@ -296,13 +367,17 @@ function render(data) {
       if (item.action === 'venta' || item.action === 'venta_cancelada')
         detail = [
           meta.items != null ? `${meta.items} producto${meta.items !== 1 ? 's' : ''}` : '',
-          meta.method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo',
+          meta.method ? (meta.method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo') : '',
           meta.discount > 0 ? `Desc. $${(meta.discount).toLocaleString('es-MX')}` : ''
         ].filter(Boolean).join(' · ');
       else if (item.action === 'apartado_nuevo' && meta.anticipo != null)
         detail = `Anticipo $${meta.anticipo.toLocaleString('es-MX')} · Pendiente $${(meta.pendiente ?? 0).toLocaleString('es-MX')}`;
       else if (item.action === 'apartado_abono' && meta.amount != null)
         detail = `$${meta.amount.toLocaleString('es-MX')} · ${meta.method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo'}`;
+      else if (item.action === 'apartado_reembolso' && meta.refund != null)
+        detail = `Devuelto $${parseFloat(meta.refund).toLocaleString('es-MX')}`;
+      else if (item.action === 'apartado_cancelado' && meta.refund > 0)
+        detail = `Devuelto $${parseFloat(meta.refund).toLocaleString('es-MX')} · stock restaurado`;
 
       const idx = allData.indexOf(item);
       html += `<div class="act-card" onclick="_actPopup(${idx})" style="cursor:pointer">
@@ -347,7 +422,7 @@ function _actPopup(idx) {
 
   const meta = item.meta || {};
   const cfg  = ACTION_CFG[item.action] || { icon:'•', label: item.action };
-  const time = new Date(item.created_at).toLocaleString('es-MX',
+  const time = _activityFormat(item.created_at,
     {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
 
   // Contenido según tipo de acción
@@ -384,11 +459,12 @@ function _actPopup(idx) {
     if (meta.total != null)    bodyHtml += `<div style="font-size:.82rem;color:#8A7564">Total: $${parseFloat(meta.total).toLocaleString('es-MX')}</div>`;
     if (meta.anticipo != null) bodyHtml += `<div style="font-size:.82rem;color:#059669;margin-top:2px">Anticipo: $${parseFloat(meta.anticipo).toLocaleString('es-MX')}</div>`;
     if (meta.pendiente != null) bodyHtml += `<div style="font-size:.82rem;color:#B45309;margin-top:2px">Pendiente: $${parseFloat(meta.pendiente).toLocaleString('es-MX')}</div>`;
-    if (meta.amount != null)   bodyHtml += `<div style="font-size:.82rem;color:#059669;margin-top:2px">Abono: $${parseFloat(meta.amount).toLocaleString('es-MX')}</div>`;
+    if (meta.amount != null)   bodyHtml += `<div style="font-size:.82rem;color:#059669;margin-top:2px">Pago: $${parseFloat(meta.amount).toLocaleString('es-MX')}</div>`;
     if (meta.restante != null) bodyHtml += `<div style="font-size:.82rem;color:#059669;margin-top:2px">Liquidado: $${parseFloat(meta.restante).toLocaleString('es-MX')}</div>`;
-    if (meta.pagado != null)   bodyHtml += `<div style="font-size:.82rem;color:#E85D5D;margin-top:2px">Pagado (perdido): $${parseFloat(meta.pagado).toLocaleString('es-MX')}</div>`;
+    if (meta.pagado != null)   bodyHtml += `<div style="font-size:.82rem;color:#8A7564;margin-top:2px">Cobrado antes de cancelar: $${parseFloat(meta.pagado).toLocaleString('es-MX')}</div>`;
+    if (meta.refund != null)   bodyHtml += `<div style="font-size:.82rem;color:#E85D5D;margin-top:2px">Devuelto: $${parseFloat(meta.refund).toLocaleString('es-MX')}</div>`;
     if (meta.method)           bodyHtml += `<div style="font-size:.78rem;color:#8A7564;margin-top:2px">${meta.method==='transferencia'?'📱 Transferencia':'💵 Efectivo'}</div>`;
-    if (meta.dueDate)          bodyHtml += `<div style="font-size:.78rem;color:#8A7564;margin-top:2px">📅 Vencía: ${new Date(meta.dueDate+'T00:00:00').toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'})}</div>`;
+    if (meta.dueDate)          bodyHtml += `<div style="font-size:.78rem;color:#8A7564;margin-top:2px">📅 Vencía: ${_activityFormat(meta.dueDate+'T12:00:00Z',{day:'numeric',month:'short',year:'numeric'})}</div>`;
     bodyHtml += _renderItemsDetail(meta);
   } else {
     bodyHtml = `<div style="font-size:.85rem;color:#1C1817">${_esc(item.summary)}</div>`;
@@ -411,6 +487,15 @@ function _actPopup(idx) {
 
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
+  const permissionState = await _loadMyPerms({ requireFresh: true, withMeta: true });
+  const permissions = permissionState?.permissions;
+  if (permissionState?.source !== 'server' || permissions?.canViewActivity !== true) {
+    window.location.replace('admin.html');
+    return;
+  }
+  document.querySelectorAll('a[href="stats.html"]').forEach(link => {
+    link.style.display = permissions.canViewReports ? '' : 'none';
+  });
   try {
     const _s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
     const _m = _s?.user?.user_metadata || {};
@@ -420,10 +505,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (_av) _av.textContent = _n ? _n[0].toUpperCase() : '?';
     if (_nl) _nl.textContent = _n;
   } catch {}
-  await loadNameMap();
-  api('products?select=id,name,image,price&limit=2000').then(r => {
-    if (r.ok && Array.isArray(r.data)) r.data.forEach(p => { _prodMap[p.id] = p; });
-  });
+  const [, productsResult] = await Promise.all([
+    loadNameMap(),
+    _fetchAllActivity('products?select=id,name,image,price&order=id.asc')
+  ]);
+  if (productsResult.ok && Array.isArray(productsResult.data)) {
+    productsResult.data.forEach(p => { _prodMap[p.id] = p; });
+  }
   load();
   _chipsScroll();
 });

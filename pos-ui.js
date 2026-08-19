@@ -308,17 +308,14 @@ function _aptDueFiltered(data, filter = _aptDueFilter) {
   const rows = Array.isArray(data) ? data : [];
   if (filter === 'todos') return rows;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const inSevenDays = new Date(today);
-  inSevenDays.setDate(inSevenDays.getDate() + 7);
+  const todayKey = _posMexicoDayKey();
 
   return rows.filter(sale => {
     if (!sale.due_date) return filter === 'sin-fecha';
-    const due = new Date(sale.due_date + 'T00:00:00');
-    if (Number.isNaN(due.getTime())) return filter === 'sin-fecha';
-    if (filter === 'vencidos') return due < today;
-    if (filter === 'proximos') return due >= today && due <= inSevenDays;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(sale.due_date)) return filter === 'sin-fecha';
+    const diff = _posDayKeyDiff(sale.due_date, todayKey);
+    if (filter === 'vencidos') return diff < 0;
+    if (filter === 'proximos') return diff >= 0 && diff <= 7;
     return true;
   }).sort((a, b) => String(a.due_date || '').localeCompare(String(b.due_date || '')));
 }
@@ -372,7 +369,8 @@ function aptViewTabKeydown(event, target) {
 }
 
 async function selectAptView(mode, target) {
-  await toggleAptView(mode, target);
+  const current = await toggleAptView(mode, target);
+  if (current === false) return;
   document.querySelectorAll(`#apt-view-toggle-${target} [role="tab"]`).forEach(button => {
     const selected = button.dataset.mode === mode;
     button.setAttribute('aria-selected', String(selected));
@@ -419,6 +417,7 @@ function openApartados(dueFilter = 'todos') {
     _renderApartadoCards(_aptDueFiltered(_apartadosAll || []));
     requestAnimationFrame(() => offcanvas.querySelector('.history-oc-close')?.focus());
   }
+  loadApartados();
 }
 
 function closeApartados() {
@@ -453,7 +452,8 @@ function _renderAptPageCards(data, isLiquidado) {
     const pagado    = parseFloat(s.paid_amount || 0);
     const pendiente = Math.max(0, total - pagado);
     const pct       = total > 0 ? Math.min(100, Math.round(pagado / total * 100)) : 0;
-    const t         = new Date(s.created_at).toLocaleDateString('es-MX', {day:'numeric',month:'short'});
+    const cardDate  = isLiquidado ? (s.liquidated_at || s.last_payment_at || s.created_at) : s.created_at;
+    const t         = _posFormatTimestamp(cardDate, {day:'numeric',month:'short'});
     const nItems    = Array.isArray(s.items) ? s.items.length : 0;
     const custParts = (s.customer || '').split(' · 📱 ');
     const nombre    = custParts[0] || 'Sin nombre';
@@ -472,12 +472,10 @@ function _renderAptPageCards(data, isLiquidado) {
     let dueHTML = '';
     let isOverdue = false;
     if (s.due_date) {
-      const hoy = new Date(); hoy.setHours(0,0,0,0);
-      const due = new Date(s.due_date + 'T00:00:00');
-      const diff = Math.round((due - hoy) / 86400000);
+      const diff = _posDayKeyDiff(s.due_date);
       isOverdue = diff < 0;
       const dueColor = diff < 0 ? '#E85D5D' : diff <= 7 ? '#D97706' : '#6B9E78';
-      const dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)}d` : diff === 0 ? 'Vence hoy' : `Vence ${due.toLocaleDateString('es-MX',{day:'numeric',month:'short'})}`;
+      const dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)}d` : diff === 0 ? 'Vence hoy' : `Vence ${_posFormatDayKey(s.due_date,{day:'numeric',month:'short'})}`;
       dueHTML = `<span class="apc-due" style="color:${dueColor}">📅 ${dueText}</span>`;
     }
     return `<button type="button" class="apc-card${isOverdue ? ' apt-overdue' : ''}" onclick="openAptDetail(${s.id})" aria-label="Ver apartado de ${_esc(nombre)}, falta $${pendiente.toLocaleString('es-MX')}${isOverdue ? ', vencido' : ''}">
@@ -500,7 +498,7 @@ function openAptDetail(id) {
   const pagado    = parseFloat(s.paid_amount || 0);
   const pendiente = Math.max(0, total - pagado);
   const pct       = total > 0 ? Math.min(100, Math.round(pagado / total * 100)) : 0;
-  const t         = new Date(s.created_at).toLocaleDateString('es-MX', {day:'numeric',month:'short', year:'numeric'});
+  const t         = _posFormatTimestamp(s.created_at, {day:'numeric',month:'short', year:'numeric'});
   const nItems    = Array.isArray(s.items) ? s.items.length : 0;
   const custParts = (s.customer || '').split(' · 📱 ');
   const nombre    = custParts[0] || 'Sin nombre';
@@ -515,7 +513,7 @@ function openAptDetail(id) {
     const img      = _driveSz(prod?.image || i.image || '', 80);
     const qty      = i.qty || 1;
     const sub      = i.subtotal ?? i.price * qty;
-    const kitComps = prod?.kitItems || i.kit_items;
+    const kitComps = Object.prototype.hasOwnProperty.call(i, 'kit_items') ? i.kit_items : prod?.kitItems;
     const kitHTML  = Array.isArray(kitComps) && kitComps.length
       ? kitComps.map(c => `<div style="font-size:.68rem;color:#9B8B78;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${_esc(c.name)}${c.qty > 1 ? ' ×' + c.qty : ''}</div>`).join('')
       : '';
@@ -529,16 +527,22 @@ function openAptDetail(id) {
     </div>`;
   }).join('');
 
-  const abonos = Array.isArray(s.abonos) ? s.abonos : [];
+  const abonos = Array.isArray(s.payment_history) ? s.payment_history
+    : Array.isArray(s.abonos) ? s.abonos : [];
+  const paymentHistoryWarning = s.payment_history_error
+    ? '<div style="font-size:.74rem;color:var(--red);margin-top:8px">⚠ Historial incompleto; recarga para consultar el libro de pagos.</div>'
+    : '';
+
+  const isLiquidado = s.status === 'liquidado'
+    || (!s.status && s.origin_type === 'apartado' && s.type === 'venta')
+    || (!s.status && s.type === 'venta' && abonos.length > 0);
 
   // Due date — sin sentido para un apartado ya liquidado
   let dueAlertHTML = '';
-  if (s.due_date && s.type !== 'venta') {
-    const hoy = new Date(); hoy.setHours(0,0,0,0);
-    const due = new Date(s.due_date + 'T00:00:00');
-    const diff = Math.round((due - hoy) / 86400000);
+  if (s.due_date && !isLiquidado) {
+    const diff = _posDayKeyDiff(s.due_date);
     const dueColor = diff < 0 ? '#E85D5D' : diff <= 7 ? '#D97706' : '#6B9E78';
-    const dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)} día${Math.abs(diff)!==1?'s':''}` : diff === 0 ? 'Vence hoy' : `Vence el ${due.toLocaleDateString('es-MX',{day:'numeric',month:'long'})}`;
+    const dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)} día${Math.abs(diff)!==1?'s':''}` : diff === 0 ? 'Vence hoy' : `Vence el ${_posFormatDayKey(s.due_date,{day:'numeric',month:'long'})}`;
     dueAlertHTML = `<div style="font-size:.76rem;font-weight:700;color:${dueColor};margin-bottom:10px">📅 ${dueText}</div>`;
   }
 
@@ -553,9 +557,11 @@ function openAptDetail(id) {
   summaryRows.push(`<div class="apt-sum-row apt-sum-total"><span>Total</span><span>$${total.toLocaleString('es-MX')}</span></div>`);
 
   const abonosVisible = abonos.length ? abonos.map(a => {
-    const fecha = new Date(a.date).toLocaleDateString('es-MX', { day:'numeric', month:'short' });
-    const ico = a.method === 'transferencia' ? '📱' : '💵';
-    return `<div class="apt-abono-row"><span>${fecha} · ${ico} ${_esc(a.method)}</span><span class="apt-abono-amount">$${parseFloat(a.amount).toLocaleString('es-MX')}</span></div>`;
+    const meta = typeof _apartadoPaymentMeta === 'function'
+      ? _apartadoPaymentMeta(a)
+      : { amount: parseFloat(a.amount) || 0, dateLabel: 'Histórico', method: a.method || 'sin registrar', icon: '🧾' };
+    const amountLabel = `${meta.amount < 0 ? '−' : ''}$${Math.abs(meta.amount).toLocaleString('es-MX')}`;
+    return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${amountLabel}</span></div>`;
   }).join('') : '';
 
   document.getElementById('adm-body').innerHTML = `
@@ -572,18 +578,20 @@ function openAptDetail(id) {
         <span class="apt-pending-lbl">${pendiente > 0 ? 'Pendiente $' + pendiente.toLocaleString('es-MX') : '✓ Liquidado'}</span>
       </div>
     </div>
-    ${abonosVisible ? `<div class="apt-abonos-section"><div class="adm-section-title">Historial de pagos</div>${abonosVisible}</div>` : ''}`;
+    ${abonosVisible || paymentHistoryWarning ? `<div class="apt-abonos-section"><div class="adm-section-title">Historial de pagos</div>${paymentHistoryWarning}${abonosVisible}</div>` : ''}`;
 
-  // Footer buttons — un apartado ya liquidado (type='venta') no admite abonar/liquidar/editar/cancelar
-  const isLiquidado = s.type === 'venta';
+  // Un apartado liquidado no admite abonar, liquidar, editar ni cancelar desde esta ficha.
   if (isLiquidado) {
+    const reopenBtn = canEditApartado() && pagado > 0
+      ? `<button type="button" class="btn-abonar" id="adm-refund-btn" onclick="refundApartado(${id},'detail')" style="border-color:var(--red);color:var(--red)">↩ Reabrir y reembolsar</button>`
+      : '';
     document.getElementById('adm-footer').innerHTML =
       `<button type="button" class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" aria-label="Enviar por WhatsApp" title="Enviar por WhatsApp">💬</button>
-       <span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--green)">✓ Liquidado</span>`;
+       ${reopenBtn || '<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--green)">✓ Liquidado</span>'}`;
   } else {
     const editBtn = canEditApartado()
       ? `<button type="button" class="btn-edit-apt" onclick="closeAptDetail();openEditApartado(${id})" aria-label="Editar apartado" title="Editar apartado">✏️</button>` : '';
-    const cancelBtn = canEditApartado()
+    const cancelBtn = canCancelApartado()
       ? `<button type="button" class="btn-cancelar-apt" onclick="cancelApartado(${id})" aria-label="Cancelar apartado" title="Cancelar apartado">✕</button>` : '';
     document.getElementById('adm-footer').innerHTML = `
       <button type="button" class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" aria-label="Enviar recordatorio por WhatsApp" title="Recordatorio WhatsApp">💬</button>
@@ -662,6 +670,7 @@ function openHistory() {
   document.getElementById('history-offcanvas').classList.add('open');
   document.getElementById('history-backdrop').classList.add('open');
   document.body.style.overflow = 'hidden';
+  loadHistory();
 }
 
 function closeHistory() {
@@ -670,90 +679,141 @@ function closeHistory() {
   document.body.style.overflow = '';
 }
 
+let _historyLoadGeneration = 0;
+
 async function loadHistory() {
-  const result = await api(`sales?select=id,total,created_at,items,payment_method,type,customer,discount,note,paid_amount,abonos,seller_email&cancelled_at=is.null&order=created_at.desc&limit=50`);
+  const loadGeneration = ++_historyLoadGeneration;
+  const saleFields = 'id,total,created_at,items,payment_method,type,origin_type,status,customer,discount,note,paid_amount,abonos,seller_email,cancelled_at,version';
+  const result = await _posFetchAll(`sale_payments?select=id,request_id,request_line,amount,kind,method,paid_at,recorded_at,is_estimated,source,collected_by_email,sale:sales(${saleFields})&order=paid_at.desc.nullslast,recorded_at.desc,id.desc`);
+  if (loadGeneration !== _historyLoadGeneration) return false;
   const el = document.getElementById('history-list');
-  if (!result.ok || !result.data?.length) {
+  if (!result.ok) {
     salesCache = {};
-    el.innerHTML = '<div class="history-empty">Sin ventas registradas</div>';
+    el.innerHTML = '<div class="history-empty">No se pudo cargar el historial.<br><button class="btn-outline" onclick="loadHistory()" style="margin-top:10px">Reintentar</button></div>';
+    return;
+  }
+  if (!result.data?.length) {
+    salesCache = {};
+    el.innerHTML = '<div class="history-empty">Sin cobros registrados</div>';
     return;
   }
   salesCache = {};
-  result.data.forEach(s => { salesCache[s.id] = s; });
+  const rawMovements = result.data.map(p => ({
+    ...p,
+    sale: Array.isArray(p.sale) ? p.sale[0] : p.sale
+  })).filter(p => p.sale);
+  const movements = [];
+  const refundGroups = new Map();
+  rawMovements.forEach(payment => {
+    if (payment.kind !== 'refund' || !payment.request_id) {
+      movements.push(payment);
+      return;
+    }
+    const key = `${payment.sale.id}:${payment.request_id}`;
+    const existing = refundGroups.get(key);
+    if (!existing) {
+      const grouped = { ...payment, refund_breakdown: [{ method: payment.method, amount: parseFloat(payment.amount) || 0 }] };
+      refundGroups.set(key, grouped);
+      movements.push(grouped);
+      return;
+    }
+    existing.amount = (parseFloat(existing.amount) || 0) + (parseFloat(payment.amount) || 0);
+    existing.is_estimated = Boolean(existing.is_estimated || payment.is_estimated);
+    existing.refund_breakdown.push({ method: payment.method, amount: parseFloat(payment.amount) || 0 });
+    if (existing.method !== payment.method) existing.method = 'multiple';
+  });
+  movements.forEach(p => { salesCache[p.sale.id] = p.sale; });
 
   // Convertir fecha UTC → clave YYYY-MM-DD en horario de México
   const TZ = 'America/Mexico_City';
-  const mxDateKey = iso => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date(iso));
+  const mxDateKey = iso => {
+    if (!iso || Number.isNaN(new Date(iso).getTime())) return 'historico';
+    return new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date(iso));
+  };
   const hoy  = mxDateKey(new Date().toISOString());
   const ayer = mxDateKey(new Date(Date.now() - 86400000).toISOString());
-  const ventas = result.data;
 
-  // Agrupar por día en horario México
+  // Agrupar por fecha del movimiento, no por la fecha original del apartado.
   const grupos = {};
-  ventas.forEach(s => {
-    // Apartados sin anticipo: no son dinero recibido, se omiten del historial
-    if (s.type === 'apartado' && !(parseFloat(s.paid_amount) > 0)) return;
-    const dia = mxDateKey(s.created_at);
+  movements.forEach(p => {
+    const dia = mxDateKey(p.paid_at);
     if (!grupos[dia]) grupos[dia] = [];
-    grupos[dia].push(s);
+    grupos[dia].push(p);
   });
 
-  const html = Object.entries(grupos).map(([dia, sales]) => {
-    const titulo = dia === hoy  ? 'Hoy'
+  const newestMovementBySale = new Map();
+  movements.forEach(p => {
+    if (!newestMovementBySale.has(p.sale.id)) newestMovementBySale.set(p.sale.id, p.id);
+  });
+
+  const html = Object.entries(grupos).map(([dia, dayMovements]) => {
+    const titulo = dia === 'historico' ? 'Fecha no disponible'
+                 : dia === hoy  ? 'Hoy'
                  : dia === ayer ? 'Ayer'
                  : new Date(dia + 'T12:00:00').toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
 
-    const cards = sales.map(s => {
-      const t = new Date(s.created_at);
-      const hora = t.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit', timeZone: TZ });
+    const cards = dayMovements.map(payment => {
+      const s = payment.sale;
+      const paymentDate = payment.paid_at && !Number.isNaN(new Date(payment.paid_at).getTime()) ? new Date(payment.paid_at) : null;
+      const hora = paymentDate ? paymentDate.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit', timeZone: TZ }) : 'Hora no disponible';
       const total    = parseFloat(s.total) || 0;
       const disc     = parseFloat(s.discount) || 0;
       const items    = Array.isArray(s.items) ? s.items : [];
       const totalQty = items.reduce((n, i) => n + (i.qty || 1), 0);
-
-      const isApt  = s.type === 'apartado';
-      const abonos = Array.isArray(s.abonos) ? s.abonos : [];
-      const isLiquidado = !isApt && abonos.length > 0; // Apartado que se completó
-      const pagado = parseFloat(s.paid_amount || 0);
-      const payBadge = isApt
-        ? '<span class="pay-badge" style="font-size:.62rem;background:#FFF8EE;color:#C9A462;border:1px solid #C9A462;padding:2px 6px;border-radius:50px;font-weight:700">📌 Apartado</span>'
-        : isLiquidado
-          ? '<span class="pay-badge" style="font-size:.62rem;background:#ECFDF5;color:#2D6A4F;border:1px solid #2D6A4F;padding:2px 6px;border-radius:50px;font-weight:700">✅ Completado</span>'
-          : s.payment_method === 'transferencia'
-            ? '<span class="pay-badge pay-transferencia" style="font-size:.62rem">📱</span>'
-            : '<span class="pay-badge pay-efectivo" style="font-size:.62rem">💵</span>';
+      const amount = parseFloat(payment.amount) || 0;
+      const isApt = s.origin_type === 'apartado' || (!s.origin_type && (s.type === 'apartado' || (s.abonos || []).length));
+      const methodIcon = payment.method === 'transferencia' ? '📱' : payment.method === 'efectivo' ? '💵' : '🧾';
+      let badgeText;
+      let badgeStyle = 'background:#F5F1EB;color:#6B625A;border:1px solid #D8CEC3';
+      if (payment.kind === 'refund') {
+        badgeText = '↩ Devolución';
+        badgeStyle = 'background:#FEE2E2;color:var(--red);border:1px solid #FCA5A5';
+      } else if (payment.kind === 'adjustment') {
+        badgeText = '🧾 Ajuste histórico';
+      } else if (isApt && (/liquidation/.test(payment.source || '') ||
+        (payment.source === 'rpc_apartado_initial' && Math.abs(amount - total) < .005))) {
+        badgeText = '✅ Apartado liquidado';
+        badgeStyle = 'background:#ECFDF5;color:#2D6A4F;border:1px solid #2D6A4F';
+      } else if (isApt && payment.source === 'rpc_apartado_initial') {
+        badgeText = '📌 Anticipo';
+        badgeStyle = 'background:#FFF8EE;color:#9A742D;border:1px solid #C9A462';
+      } else if (isApt) {
+        badgeText = '📌 Abono';
+        badgeStyle = 'background:#FFF8EE;color:#9A742D;border:1px solid #C9A462';
+      } else {
+        badgeText = `${methodIcon} Venta`;
+      }
+      const payBadge = `<span class="pay-badge" style="font-size:.62rem;${badgeStyle};padding:2px 6px;border-radius:50px;font-weight:700">${badgeText}</span>`;
 
       const THUMB_PH = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2228%22 height=%2228%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23D1C4B8%22 stroke-width=%221.5%22%3E%3Crect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/%3E%3Ccircle cx=%228.5%22 cy=%228.5%22 r=%221.5%22/%3E%3Cpath d=%22m21 15-5-5L5 21%22/%3E%3C/svg%3E';
       const itemsHTML = items.map(i => {
         const cur = products.find(p => p.id === i.id);
         const img = _driveSz(cur?.image, 80) || THUMB_PH;
-        const displayName = _esc(cur?.name || i.name);
+        const displayName = _esc(i.name || cur?.name);
         return `
 <div class="hi-item">
-  <img class="hi-item-thumb" src="${img}" alt="${displayName}" onerror="this.src='${THUMB_PH}'" data-name="${displayName}" data-price="${i.price}" data-qty="${i.qty||1}" data-seller="${s.seller_email||''}" onclick="event.stopPropagation();openLightbox(this)" style="cursor:zoom-in">
+  <img class="hi-item-thumb" src="${img}" alt="${displayName}" onerror="this.src='${THUMB_PH}'" data-name="${displayName}" data-price="${i.price}" data-qty="${i.qty||1}" data-seller="${payment.collected_by_email||s.seller_email||''}" onclick="event.stopPropagation();openLightbox(this)" style="cursor:zoom-in">
   <span class="hi-item-name">${displayName}</span>
   <span class="hi-item-qty">×${i.qty || 1}</span>
   <span class="hi-item-sub">$${((i.subtotal ?? i.price * (i.qty || 1))).toLocaleString('es-MX')}</span>
 </div>`;
       }).join('');
 
-      // Historial de pagos (abonos ya declarado arriba)
-      const abonosHiHTML = abonos.length ? `
-<div style="margin:5px 0 2px;display:flex;flex-direction:column;gap:3px;border-top:1px dashed #EDE5DC;padding-top:5px">
-  ${abonos.map(a => {
-    const fd  = new Date(a.date).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
-    const ico = a.method === 'transferencia' ? '📱' : '💵';
-    return `<div style="display:flex;justify-content:space-between;font-size:.72rem;color:#9B8B78"><span>${fd} · ${ico} ${a.method}</span><span style="font-weight:700;color:var(--charcoal)">$${parseFloat(a.amount).toLocaleString('es-MX')}</span></div>`;
-  }).join('')}
-</div>` : '';
-
       const tags = [];
       if (disc > 0)   tags.push(`<span class="hi-tag discount">🏷 −$${disc.toLocaleString('es-MX')}</span>`);
       if (s.note)     tags.push(`<span class="hi-tag note">📝 ${_esc(s.note)}</span>`);
       if (s.customer) tags.push(`<span class="hi-tag customer">👤 ${_esc((s.customer||'').split(' · 📱 ')[0])}</span>`);
+      if (payment.is_estimated) tags.push('<span class="hi-tag note">⚠ Histórico estimado</span>');
+      if (payment.refund_breakdown?.length > 1) {
+        const breakdown = payment.refund_breakdown.map(line =>
+          `${line.method === 'transferencia' ? '📱' : line.method === 'efectivo' ? '💵' : '🧾'} $${Math.abs(line.amount).toLocaleString('es-MX')}`
+        ).join(' · ');
+        tags.push(`<span class="hi-tag note">${breakdown}</span>`);
+      }
+      if (s.cancelled_at) tags.push('<span class="hi-tag note">Cancelado</span>');
       const footerHTML = tags.length ? `<div class="hi-footer">${tags.join('')}</div>` : '';
-
-      const displayTotal = isApt ? pagado : total;
+      const displayTotal = `${amount < 0 ? '−' : ''}$${Math.abs(amount).toLocaleString('es-MX')}`;
+      const canCancelThis = canCancelSale() && payment.kind === 'payment' && !s.cancelled_at && newestMovementBySale.get(s.id) === payment.id;
 
       return `
 <div class="hi-card">
@@ -761,11 +821,10 @@ async function loadHistory() {
     <span class="hi-time">${hora} · ${totalQty} art.</span>
     ${payBadge}
     <span class="hi-spacer"></span>
-    <span class="hi-total">$${displayTotal.toLocaleString('es-MX')}</span>
-    ${canCancelSale() ? `<button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar">✕</button>` : ''}
+    <span class="hi-total"${amount < 0 ? ' style="color:var(--red)"' : ''}>${displayTotal}</span>
+    ${canCancelThis ? `<button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar registro completo" aria-label="Cancelar registro completo">✕</button>` : ''}
   </div>
   <div class="hi-items">${itemsHTML || '<div style="color:#9B8B78;font-size:.78rem;padding:4px 0">Sin detalle</div>'}</div>
-  ${abonosHiHTML}
   ${footerHTML}
 </div>`;
     }).join('');
@@ -781,92 +840,36 @@ async function deleteSale(id) {
   const sale = salesCache[id];
   if (!sale) { toast('Registro no encontrado', 'error'); return; }
 
-  const isApt      = sale.type === 'apartado';
   const abonos     = Array.isArray(sale.abonos) ? sale.abonos : [];
-  const wasApartado = !isApt && abonos.length > 0; // venta que vino de un apartado liquidado
-  const total      = parseFloat(sale.total).toLocaleString('es-MX');
+  const isApartadoOrigin = sale.origin_type === 'apartado' || sale.type === 'apartado' || abonos.length > 0;
+  const totalNum   = parseFloat(sale.total) || 0;
+  const total      = totalNum.toLocaleString('es-MX');
   const itemCount  = Array.isArray(sale.items) ? sale.items.length : 0;
-  const label      = isApt ? 'apartado' : 'venta';
+  const label      = isApartadoOrigin ? 'apartado' : 'venta';
+  const pagado     = isApartadoOrigin ? (parseFloat(sale.paid_amount) || 0) : totalNum;
+  const refundText = pagado > 0
+    ? `\n\nSe registrará una devolución de $${pagado.toLocaleString('es-MX')} por los mismos métodos de pago.`
+    : '';
+  if (!confirm(`¿Cancelar el ${label} de $${total} (${itemCount} artículo${itemCount !== 1 ? 's' : ''})?\n\nSe restaurará el stock.${refundText}\n\nEsta acción no se puede deshacer.`)) return;
 
-  // Si fue un apartado liquidado, ofrecer revertir antes de eliminar
-  if (wasApartado) {
-    const custParts = (sale.customer || '').split(' · 📱 ');
-    const nombre    = custParts[0] || 'Sin nombre';
-    const revert = confirm(`Esta venta viene de un apartado liquidado de ${nombre}.\n\n¿Regresar como apartado pendiente?\n\nAceptar = regresar como apartado (no restaura stock)\nCancelar = eliminar completamente (restaura stock)`);
-    if (revert) {
-      const prevAbonos = abonos.slice(0, -1); // quitar el último abono (la liquidación)
-      const prevPagado = prevAbonos.reduce((s, a) => s + parseFloat(a.amount || 0), 0);
-      const r = await api(`sales?id=eq.${id}`, { method:'PATCH', body: JSON.stringify({
-        type: 'apartado',
-        paid_amount: prevPagado,
-        abonos: prevAbonos.length > 0 ? prevAbonos : null
-      })});
-      if (!r.ok) { toast('Error al revertir', 'error'); return; }
-      logActivity('apartado_editado',
-        `Revirtió apartado liquidado de ${nombre} a pendiente`,
-        { id, total: parseFloat(sale.total) || 0, pagado: prevPagado });
-      delete salesCache[id];
-      await loadHistory();
-      await loadApartados();
-      toast(`Apartado de ${nombre} restaurado ✓`, 'success');
-      return;
+  const delResult = await posRpc('cancel_sale_atomic', {
+    operation: 'cancel_sale',
+    context: id,
+    fingerprint: `${id}:${sale.version ?? 0}:${pagado}`,
+    body: {
+      p_sale_id: id,
+      p_expected_version: sale.version ?? 0,
+      p_reason: 'Cancelado desde Historial de Caja'
     }
-    if (!confirm(`¿Eliminar la venta de $${total} (${itemCount} artículo${itemCount !== 1 ? 's' : ''}) completamente?\n\nSe restaurará el stock.`)) return;
-  } else {
-    if (!confirm(`¿Cancelar el ${label} de $${total} (${itemCount} artículo${itemCount !== 1 ? 's' : ''})?\n\nSe restaurará el stock de los productos.`)) return;
-  }
-
-  // 1. Soft-cancel: marcar cancelled_at en vez de borrar la fila (recuperable para siempre)
-  const delResult = await api(`sales?id=eq.${id}`, {
-    method: 'PATCH',
-    headers: { 'Prefer': 'return=representation' },
-    body: JSON.stringify({ cancelled_at: new Date().toISOString() })
   });
-  if (!delResult.ok || (Array.isArray(delResult.data) && delResult.data.length === 0)) { toast(`Error al cancelar el ${label} — sin permiso o registro no encontrado`, 'error'); return; }
-
-  // 2. Restaurar stock en paralelo
-  if (Array.isArray(sale.items)) {
-    const restores = [];
-    for (const item of sale.items) {
-      const p = products.find(x => x.id === item.id);
-      if (p?.kitItems?.length) {
-        for (const comp of p.kitItems) {
-          const lc = products.find(x => x.id === comp.id);
-          const newStock = (lc ? lc.stock : 0) + (item.qty || 1) * comp.qty;
-          restores.push(
-            api(`products?id=eq.${comp.id}`, { method:'PATCH', body:JSON.stringify({ stock: newStock, out_of_stock: false, is_apartado: false }) })
-              .then(() => { if (lc) { lc.stock = newStock; lc.outOfStock = false; } })
-          );
-        }
-      } else {
-        const newStock = (p ? p.stock : 0) + (item.qty || 1);
-        restores.push(
-          api(`products?id=eq.${item.id}`, { method:'PATCH', body:JSON.stringify({ stock: newStock, out_of_stock: false, is_apartado: false }) })
-            .then(() => { if (p) { p.stock = newStock; p.outOfStock = false; } })
-        );
-      }
-    }
-    await Promise.all(restores);
+  if (!delResult.ok) {
+    toast(_posRpcError(delResult, `Error al cancelar el ${label}`), 'error');
+    if (delResult.resolvedPrior || delResult.staleConflict) await _refreshPosFinancialState();
+    return;
   }
 
-  // 3. Registrar actividad
-  const totalNum = parseFloat(sale.total) || 0;
-  if (isApt) {
-    const nombre = (sale.customer || '').split(' · 📱 ')[0] || 'Sin nombre';
-    logActivity('apartado_cancelado',
-      `Canceló apartado de ${nombre} — $${totalNum.toLocaleString('es-MX')}`,
-      { customer: nombre, total: totalNum, pagado: parseFloat(sale.paid_amount || 0), items: itemCount, itemsDetail: sale.items || null, dueDate: sale.due_date || null });
-  } else {
-    logActivity('venta_cancelada',
-      `Canceló venta de $${totalNum.toLocaleString('es-MX')} — ${itemCount} producto${itemCount !== 1 ? 's' : ''}`,
-      { total: totalNum, items: itemCount, method: sale.payment_method, itemIds: (sale.items || []).map(i => i.id), itemsDetail: sale.items || null });
-  }
-
-  // 4. Refrescar UI
   delete salesCache[id];
-  await loadHistory();
-  await loadTodayStats();
-  if (isApt) await loadApartados();
-  showAllProducts();
-  toast(`${isApt ? 'Apartado cancelado' : 'Venta eliminada'} y stock restaurado ✓`, 'success');
+  await _refreshPosFinancialState();
+  const refundAmount = parseFloat(delResult.data?.sale?.refund_amount) || 0;
+  toast(`${isApartadoOrigin ? 'Apartado cancelado' : 'Venta cancelada'} — stock restaurado${refundAmount > 0 ? ` y devolución de $${refundAmount.toLocaleString('es-MX')} registrada` : ''} ✓`, 'success');
 }

@@ -788,6 +788,7 @@ async function doLogout() {
       });
     }
   } catch {}
+  sessionStorage.removeItem('te_user_can');
   localStorage.removeItem(SESSION_KEY);
   location.reload();
 }
@@ -865,6 +866,7 @@ function _getUserDisplay() {
 
 async function showApp() {
   if (!await requireAuth()) return;
+  const userPerms = await _loadMyPerms();
   try {
     const { name, initial } = _getUserDisplay();
     const avatarEl = document.getElementById('user-avatar');
@@ -874,11 +876,9 @@ async function showApp() {
   } catch {}
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
-  // Aplicar permisos cacheados de sesión antes del render de UI (evita flash)
-  _applyUserPermsToAdmin(_getMyPermsCached());
+  // Aplicar la respuesta autoritativa antes de mostrar acciones restringidas.
+  _applyUserPermsToAdmin(userPerms || _getMyPermsCached());
   _applyRoleUI();
-  // Actualizar async en caso de que el caché estuviera vacío (primera visita o sesión nueva)
-  _loadMyPerms().then(up => { if (up) { _applyUserPermsToAdmin(up); _applyRoleUI(); } });
 
   // Mostrar skeleton mientras cargan datos
   const tbody = document.getElementById('products-table');

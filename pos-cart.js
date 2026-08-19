@@ -3,11 +3,15 @@
 let _topFromSales = [];
 
 async function loadTopProductsFromSales() {
-  const desde = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
-  const r = await api(`sales?created_at=gte.${desde}T00:00:00&type=eq.venta&cancelled_at=is.null&select=items`);
-  if (!r.ok || !Array.isArray(r.data)) return;
+  const desde = new Date(Date.now() - 30 * 86400000).toISOString();
+  const [directResult, apartadoResult] = await Promise.all([
+    _posFetchAll(`sales?origin_type=eq.venta&status=eq.liquidado&created_at=gte.${encodeURIComponent(desde)}&select=id,items&order=created_at.asc,id.asc`),
+    _posFetchAll(`sales?origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(desde)}&select=id,items&order=liquidated_at.asc,id.asc`)
+  ]);
+  if (!directResult.ok || !apartadoResult.ok) return;
+  const rows = [...(directResult.data || []), ...(apartadoResult.data || [])];
   const counts = {};
-  for (const sale of r.data) {
+  for (const sale of rows) {
     const seen = new Set();
     for (const item of (Array.isArray(sale.items) ? sale.items : [])) {
       if (item.id && !seen.has(item.id)) { seen.add(item.id); counts[item.id] = (counts[item.id] || 0) + 1; }
@@ -402,64 +406,87 @@ function closeCorte() {
 async function loadCorte() {
   const content = document.getElementById('corte-content');
   const periodoEl = document.getElementById('corte-periodo');
+  const shareButton = document.getElementById('corte-wa-btn');
+  _corteData = null;
+  if (shareButton) shareButton.disabled = true;
   content.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Calculando...</div>';
 
   const TZ = 'America/Mexico_City';
-  const ahoraMX   = new Intl.DateTimeFormat('es-MX', { timeZone:TZ, dateStyle:'full', timeStyle:'short' }).format(new Date());
-  // Siempre desde medianoche del día (todas las ventas de hoy, sin importar cuándo se abrió el POS)
-  const hoyInicio = new Date();
-  hoyInicio.setHours(0, 0, 0, 0);
-  const queryFrom  = hoyInicio.toISOString();
-  periodoEl.textContent = `Ventas del día · ${ahoraMX}`;
+  const now = new Date();
+  const ahoraMX = new Intl.DateTimeFormat('es-MX', { timeZone:TZ, dateStyle:'full', timeStyle:'short' }).format(now);
+  const shift = _posEnsureCurrentShift();
+  if (!shift.actorEmail) {
+    content.innerHTML = '<div style="color:var(--red);text-align:center">No se pudo identificar al usuario de esta caja. Vuelve a iniciar sesión.</div>';
+    return;
+  }
+  const hoyMX = _posMexicoDayKey(now);
+  const hoyInicio = new Date(`${hoyMX}T00:00:00-06:00`);
+  const rawShiftStart = new Date(shift.start || '');
+  const shiftStart = !Number.isNaN(rawShiftStart.getTime()) && rawShiftStart >= hoyInicio && rawShiftStart <= now
+    ? rawShiftStart : hoyInicio;
+  const from = encodeURIComponent(shiftStart.toISOString());
+  const to   = encodeURIComponent(now.toISOString());
+  const inicioMX = new Intl.DateTimeFormat('es-MX', { timeZone:TZ, hour:'2-digit', minute:'2-digit' }).format(shiftStart);
+  const actorLabel = shift.actorEmail.split('@')[0];
+  periodoEl.textContent = `Turno de ${actorLabel} desde ${inicioMX}`;
 
-  const result = await api(`sales?created_at=gte.${queryFrom}&cancelled_at=is.null&select=id,total,paid_amount,payment_method,type,discount,items,abonos,created_at,customer`);
-  if (!result.ok) { content.innerHTML = '<div style="color:var(--red);text-align:center">Error al cargar datos</div>'; return; }
+  const [paymentsResult, createdResult] = await Promise.all([
+    _posFetchAll(`sale_payments?paid_at=gte.${from}&paid_at=lte.${to}&select=sale_id,amount,kind,method,paid_at,source,collected_by_email,sale:sales(origin_type,status)&order=paid_at.asc,id.asc`),
+    _posFetchAll(`sales?created_at=gte.${from}&created_at=lte.${to}&select=id,origin_type,status,seller_email&order=created_at.asc,id.asc`)
+  ]);
+  if (!paymentsResult.ok || !createdResult.ok) {
+    content.innerHTML = '<div style="color:var(--red);text-align:center">No se pudo calcular el corte. Verifica la migración de pagos y reintenta.</div>';
+    return;
+  }
 
-  const sales = result.data || [];
-  let efectivo = 0, transferencia = 0, numVentas = 0, numApartados = 0, numLiquidados = 0, anticipos = 0;
+  const allPayments = paymentsResult.data || [];
+  const money = value => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+  const payments = allPayments.filter(payment =>
+    String(payment.collected_by_email || '').toLowerCase() === shift.actorEmail
+  );
+  const unassignedPayments = allPayments.filter(payment => !payment.collected_by_email);
+  const otherCashiers = allPayments.filter(payment =>
+    payment.collected_by_email && String(payment.collected_by_email).toLowerCase() !== shift.actorEmail
+  );
+  const created = (createdResult.data || []).filter(sale =>
+    String(sale.seller_email || '').toLowerCase() === shift.actorEmail
+  );
+  let efectivo = 0, transferencia = 0, otros = 0, devoluciones = 0, anticipos = 0;
 
-  sales.forEach(s => {
-    const abonos = Array.isArray(s.abonos) ? s.abonos : [];
+  payments.forEach(payment => {
+    const amount = parseFloat(payment.amount) || 0;
+    if (payment.method === 'transferencia') transferencia += amount;
+    else if (payment.method === 'efectivo') efectivo += amount;
+    else otros += amount;
+    if (payment.kind === 'refund') devoluciones += Math.abs(amount);
 
-    if (abonos.length) {
-      // Venta con historial de pagos: apartado activo o apartado liquidado
-      let abonosDelTurno = 0;
-      let hayAbonosDelTurno = false;
-      abonos.forEach(a => {
-        if (new Date(a.date) >= hoyInicio) {
-          const amt = parseFloat(a.amount) || 0;
-          if (a.method === 'transferencia') transferencia += amt; else efectivo += amt;
-          abonosDelTurno += amt;
-          hayAbonosDelTurno = true;
-        }
-      });
-      // Contar una vez por venta, no por abono
-      if (hayAbonosDelTurno) {
-        if (s.type === 'apartado') {
-          numApartados++;
-          anticipos += abonosDelTurno;
-        } else {
-          // Apartado que se liquidó en este turno (type cambió a 'venta')
-          numLiquidados++;
-          numVentas++;
-        }
-      }
-    } else if (s.type !== 'apartado') {
-      // Venta directa: usar total (lo que quedó en caja, ya descontado el cambio)
-      const amt = parseFloat(s.total) || 0;
-      if (s.payment_method === 'transferencia') transferencia += amt; else efectivo += amt;
-      numVentas++;
-    } else {
-      // Apartado sin anticipo todavía (paid_amount=0, abonos=null)
-      numApartados++;
-    }
+    const sale = Array.isArray(payment.sale) ? payment.sale[0] : payment.sale;
+    if (amount > 0 && sale?.origin_type === 'apartado' && sale?.status === 'activo') anticipos += amount;
   });
+  efectivo = money(efectivo);
+  transferencia = money(transferencia);
+  otros = money(otros);
+  devoluciones = money(devoluciones);
+  anticipos = money(anticipos);
 
-  const total = efectivo + transferencia;
+  const numVentas = created.filter(s => s.origin_type === 'venta' && s.status !== 'cancelado').length;
+  const numApartados = created.filter(s => s.origin_type === 'apartado' && s.status !== 'cancelado').length;
+  const numLiquidados = new Set(payments
+    .filter(payment => {
+      const sale = Array.isArray(payment.sale) ? payment.sale[0] : payment.sale;
+      return payment.source === 'rpc_apartado_liquidation'
+        || (payment.source === 'rpc_apartado_initial' && sale?.origin_type === 'apartado' && sale?.status === 'liquidado');
+    })
+    .map(payment => payment.sale_id)).size;
+  const unassignedNet = money(unassignedPayments.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0));
+  const otherCashiersNet = money(otherCashiers.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0));
+
+  const total = money(efectivo + transferencia + otros);
   const fmt = n => `$${n.toLocaleString('es-MX')}`;
-  _corteData = { efectivo, transferencia, total, numVentas, numApartados, numLiquidados, anticipos, ahoraMX };
+  _corteData = { efectivo, transferencia, otros, devoluciones, total, numVentas, numApartados,
+    numLiquidados, anticipos, ahoraMX, inicioMX, actorLabel, unassignedNet, otherCashiersNet };
+  if (shareButton) shareButton.disabled = false;
 
-  const ventasDirectas = numVentas - numLiquidados;
   const row = (label, value, sub='') => `
     <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
       <span style="font-size:.8rem;color:var(--muted);font-weight:600">${label}${sub ? `<span style="font-weight:400;margin-left:6px;color:#B5A696">${sub}</span>` : ''}</span>
@@ -468,29 +495,33 @@ async function loadCorte() {
 
   content.innerHTML = `
     <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
-      ${row('🛍 Ventas directas', ventasDirectas)}
+      ${row('🛍 Ventas directas', numVentas)}
       ${numLiquidados ? row('✅ Apartados liquidados', numLiquidados) : ''}
-      ${numApartados  ? row('📌 Apartados activos', numApartados, anticipos > 0 ? `anticipo ${fmt(anticipos)}` : '') : ''}
+      ${numApartados  ? row('📌 Apartados nuevos', numApartados, anticipos > 0 ? `anticipos activos ${fmt(anticipos)}` : '') : ''}
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:.8rem;color:var(--muted);font-weight:600">💵 Efectivo recibido</span>
+        <span style="font-size:.8rem;color:var(--muted);font-weight:600">💵 Efectivo neto</span>
         <span style="font-weight:700;font-size:.9rem;color:var(--charcoal)">${fmt(efectivo)}</span>
       </div>
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:.8rem;color:var(--muted);font-weight:600">📱 Transferencia recibida</span>
+        <span style="font-size:.8rem;color:var(--muted);font-weight:600">📱 Transferencia neta</span>
         <span style="font-weight:700;font-size:.9rem;color:var(--charcoal)">${fmt(transferencia)}</span>
       </div>
+      ${Math.abs(otros) >= .005 ? row('🧾 Ajustes sin método', fmt(otros)) : ''}
+      ${devoluciones > 0 ? row('↩️ Devoluciones registradas', `−${fmt(devoluciones)}`) : ''}
       <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;background:#F7F2EB">
-        <span style="font-size:.88rem;font-weight:700">Total del turno</span>
+        <span style="font-size:.88rem;font-weight:700">Neto del turno</span>
         <span style="font-size:1.15rem;font-weight:800;color:var(--green)">${fmt(total)}</span>
       </div>
     </div>
-    ${anticipos > 0 ? `<div style="background:#FFF8EE;border:1px solid var(--gold);border-radius:10px;padding:10px 14px;font-size:.78rem;color:var(--gold-dark)">📌 <strong>${fmt(anticipos)}</strong> en anticipos de apartados abiertos — pendiente completar cobro</div>` : ''}
+    ${anticipos > 0 ? `<div style="background:#FFF8EE;border:1px solid var(--gold);border-radius:10px;padding:10px 14px;font-size:.78rem;color:var(--gold-dark)">📌 <strong>${fmt(anticipos)}</strong> cobrados en este turno en apartados que continúan activos</div>` : ''}
+    ${unassignedPayments.length ? `<div style="background:#FFF3F3;border:1px solid #FCA5A5;border-radius:10px;padding:10px 14px;font-size:.76rem;color:#991B1B">⚠ ${unassignedPayments.length} movimiento${unassignedPayments.length!==1?'s':''} histórico${unassignedPayments.length!==1?'s':''} sin cajero (${fmt(unassignedNet)}) no se incluye${unassignedPayments.length===1?'':'n'} en el arqueo.</div>` : ''}
+    ${otherCashiers.length ? `<div style="background:#F7F2EB;border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:.76rem;color:var(--muted)">👥 Cobros de otros usuarios en el mismo horario: ${fmt(otherCashiersNet)} (no incluidos).</div>` : ''}
     <div style="text-align:center;font-size:.72rem;color:var(--muted);padding:4px 0">Generado ${ahoraMX}</div>
   `;
 }
 
 /* ── GASTOS DEL TURNO ────────────────────────────────────────────── */
-function _gastosKey() { return 'te_gastos_' + (localStorage.getItem('te_shift_date') || new Date().toISOString().split('T')[0]); }
+function _gastosKey() { return _posDailyStorageKey('gastos'); }
 function _getGastos() { try { return JSON.parse(localStorage.getItem(_gastosKey())) || []; } catch { return []; } }
 function _saveGastos(g) { localStorage.setItem(_gastosKey(), JSON.stringify(g)); }
 
@@ -509,7 +540,7 @@ function agregarGasto() {
   const monto = parseFloat(document.getElementById('gasto-monto').value) || 0;
   if (!desc || monto <= 0) return;
   const gastos = _getGastos();
-  gastos.push({ desc, amount: monto, time: new Date().toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' }) });
+  gastos.push({ desc, amount: monto, time: new Date().toLocaleTimeString('es-MX', { timeZone:'America/Mexico_City', hour:'2-digit', minute:'2-digit' }) });
   _saveGastos(gastos);
   hideGastoForm();
   renderGastos();
@@ -551,17 +582,19 @@ function renderGastos() {
   totRow.style.display = 'flex';
   totEl.textContent = '-$' + totalGastos.toLocaleString('es-MX');
   if (_corteData) {
-    const utilidad = _corteData.total - totalGastos;
+    const utilidad = Math.round((_corteData.total - totalGastos + Number.EPSILON) * 100) / 100;
     utilRow.style.display = 'flex';
     utilEl.textContent = '$' + utilidad.toLocaleString('es-MX');
     utilEl.style.color = utilidad >= 0 ? 'var(--gold-dark)' : 'var(--red)';
+  } else {
+    utilRow.style.display = 'none';
   }
   _renderCierre();
 }
 
 /* ── CIERRE DE CAJA (FONDO INICIAL + CONTEO FÍSICO) ──────────────── */
-function _fondoKey()  { return 'te_fondo_'  + (localStorage.getItem('te_shift_date') || new Date().toISOString().split('T')[0]); }
-function _conteoKey() { return 'te_conteo_' + (localStorage.getItem('te_shift_date') || new Date().toISOString().split('T')[0]); }
+function _fondoKey()  { return _posDailyStorageKey('fondo'); }
+function _conteoKey() { return _posDailyStorageKey('conteo'); }
 
 function _initCierreInputs() {
   const fondo  = localStorage.getItem(_fondoKey());
@@ -586,10 +619,16 @@ function _onConteoChange() {
 }
 
 function _renderCierre() {
-  if (!_corteData) return;
+  if (!_corteData) {
+    const expected = document.getElementById('corte-esperado');
+    const diffRow = document.getElementById('corte-diff-row');
+    if (expected) expected.textContent = '—';
+    if (diffRow) diffRow.style.display = 'none';
+    return;
+  }
   const fondo = parseFloat(localStorage.getItem(_fondoKey())) || 0;
   const totalGastos = _getGastos().reduce((s, g) => s + g.amount, 0);
-  const esperado = fondo + _corteData.efectivo - totalGastos;
+  const esperado = Math.round((fondo + _corteData.efectivo - totalGastos + Number.EPSILON) * 100) / 100;
   document.getElementById('corte-esperado').textContent = '$' + esperado.toLocaleString('es-MX');
 
   const conteoRaw = localStorage.getItem(_conteoKey());
@@ -597,9 +636,9 @@ function _renderCierre() {
   const diffVal = document.getElementById('corte-diff-val');
   if (conteoRaw == null) { diffRow.style.display = 'none'; return; }
 
-  const diff = (parseFloat(conteoRaw) || 0) - esperado;
+  const diff = Math.round(((parseFloat(conteoRaw) || 0) - esperado + Number.EPSILON) * 100) / 100;
   diffRow.style.display = 'flex';
-  if (diff === 0) {
+  if (Math.abs(diff) < .005) {
     diffVal.textContent = '✓ Cuadra';
     diffVal.style.color = 'var(--green)';
   } else if (diff > 0) {
@@ -613,17 +652,21 @@ function _renderCierre() {
 
 function compartirCorteWA() {
   if (!_corteData) return;
-  const { efectivo, transferencia, total, numVentas, numApartados, numLiquidados, anticipos, ahoraMX } = _corteData;
-  const fmt = n => `$${n.toLocaleString('es-MX')}`;
+  const { efectivo, transferencia, otros, devoluciones, total, numVentas, numApartados,
+    numLiquidados, anticipos, ahoraMX, inicioMX, actorLabel, unassignedNet, otherCashiersNet } = _corteData;
+  const fmt = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX')}`;
   const gastos = _getGastos();
   const totalGastos = gastos.reduce((s, g) => s + g.amount, 0);
-  const ventasDirectas = numVentas - (numLiquidados || 0);
-  let msg = `🧾 *Corte de caja — Tres Encantos*\n${ahoraMX}\n\n`;
-  if (ventasDirectas > 0) msg += `🛍 Ventas directas: ${ventasDirectas}\n`;
+  let msg = `🧾 *Corte de caja — Tres Encantos*\n${actorLabel} · desde ${inicioMX}\n${ahoraMX}\n\n`;
+  if (numVentas > 0)      msg += `🛍 Ventas directas: ${numVentas}\n`;
   if (numLiquidados)      msg += `✅ Apartados liquidados: ${numLiquidados}\n`;
-  if (numApartados)       msg += `📌 Apartados activos: ${numApartados}${anticipos > 0 ? ` (anticipo ${fmt(anticipos)})` : ''}\n`;
-  msg += `\n💵 Efectivo: ${fmt(efectivo)}\n📱 Transferencia: ${fmt(transferencia)}\n*Total recibido: ${fmt(total)}*`;
-  if (anticipos > 0) msg += `\n⚠️ Incluye ${fmt(anticipos)} en anticipos — pendiente completar cobro`;
+  if (numApartados)       msg += `📌 Apartados nuevos: ${numApartados}${anticipos > 0 ? ` (anticipos activos ${fmt(anticipos)})` : ''}\n`;
+  msg += `\n💵 Efectivo neto: ${fmt(efectivo)}\n📱 Transferencia neta: ${fmt(transferencia)}\n*Neto del turno: ${fmt(total)}*`;
+  if (Math.abs(otros || 0) >= .005) msg += `\n🧾 Ajustes sin método: ${fmt(otros)}`;
+  if (devoluciones > 0) msg += `\n↩️ Devoluciones registradas: −${fmt(devoluciones)}`;
+  if (anticipos > 0) msg += `\n📌 Incluye ${fmt(anticipos)} cobrados en apartados aún activos`;
+  if (Math.abs(unassignedNet || 0) >= .005) msg += `\n⚠ Movimientos sin cajero no incluidos: ${fmt(unassignedNet)}`;
+  if (Math.abs(otherCashiersNet || 0) >= .005) msg += `\n👥 Otros usuarios no incluidos: ${fmt(otherCashiersNet)}`;
   if (gastos.length) {
     msg += `\n\n💸 *Gastos del turno:*\n` + gastos.map(g => `• ${g.desc}: ${fmt(g.amount)}`).join('\n');
     msg += `\nTotal gastos: ${fmt(totalGastos)}`;

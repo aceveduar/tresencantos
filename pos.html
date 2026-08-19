@@ -431,7 +431,7 @@
         <div style="font-size:.74rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Anticipo registrado</div>
         <div id="edit-apt-pagado-amt" style="font-size:.95rem;font-weight:700;color:var(--charcoal);margin-top:2px"></div>
       </div>
-      <button onclick="_editAptAnularPago()" style="background:#FEE2E2;color:var(--red);border:none;border-radius:7px;padding:6px 12px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit">Anular</button>
+      <button id="edit-apt-refund-btn" onclick="_editAptAnularPago()" style="background:#FEE2E2;color:var(--red);border:none;border-radius:7px;padding:8px 12px;min-height:44px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit" aria-label="Registrar devolución total del dinero pagado">Reembolsar</button>
     </div>
     <div class="abonar-footer">
       <button class="btn-cancel" onclick="closeEditApt()">Cancelar</button>
@@ -597,11 +597,11 @@
 <div class="history-backdrop" id="history-backdrop" onclick="closeHistory()"></div>
 <div class="history-offcanvas" id="history-offcanvas">
   <div class="history-oc-head">
-    <span class="history-oc-title">🕐 Ventas recientes</span>
+    <span class="history-oc-title">🕐 Movimientos recientes</span>
     <button class="history-oc-close" onclick="closeHistory()">✕</button>
   </div>
   <div class="history-oc-body" id="history-list">
-    <div class="history-empty">Cargando ventas…</div>
+    <div class="history-empty">Cargando movimientos…</div>
   </div>
 </div>
 
