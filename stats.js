@@ -565,7 +565,12 @@ function renderTodaySales() {
     const time = _mxTime(payment.paid_at);
     const isTrans = payment.method === 'transferencia';
     const isMultiMethod = payment.method === 'multiple';
-    const payIcon = `<span class="dv-sale-pay ${isTrans ? 'dv-pay-trans' : 'dv-pay-efec'}">${isMultiMethod ? '🧾' : isTrans ? '📱' : '💵'}</span>`;
+    const payIconSvg = isMultiMethod
+      ? '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8M8 11h8M8 15h5"/>'
+      : isTrans
+        ? '<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>'
+        : '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>';
+    const payIcon = `<span class="dv-sale-pay ${isTrans ? 'dv-pay-trans' : 'dv-pay-efec'}"><svg class="dv-icon" viewBox="0 0 24 24">${payIconSvg}</svg></span>`;
     const items = Array.isArray(s?.items) ? s.items : [];
     const origin = _saleOrigin(s);
     const amount = _paymentAmount(payment);
@@ -709,12 +714,14 @@ function renderVendedores() {
     const fmt  = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX')}`;
     const isSinSesion = email === '__sin_sesion__';
     const name = isSinSesion ? 'Cobros sin sesión identificada' : (nameMap[email] || email.split('@')[0]);
-    const icon = isSinSesion ? '🕐' : '👤';
+    const icon = isSinSesion
+      ? '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'
+      : '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>';
     const barColor = d.total < 0 ? 'var(--red)' : isSinSesion ? '#B5A696' : 'var(--gold)';
     const nameStyle = isSinSesion ? 'color:var(--muted);font-weight:500' : 'font-weight:600';
     return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:.84rem;${nameStyle}">${icon} ${_esc(name)}</span>
+        <span style="font-size:.84rem;${nameStyle};display:inline-flex;align-items:center;gap:5px"><svg style="width:13px;height:13px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24">${icon}</svg>${_esc(name)}</span>
         <span style="font-weight:700;font-size:.88rem;${isSinSesion?'color:var(--muted)':''}">${fmt(d.total)}</span>
       </div>
       <div style="background:var(--border);border-radius:50px;height:5px;overflow:hidden;margin-bottom:4px">
@@ -1421,7 +1428,7 @@ function renderBestSeller() {
   const best = Object.entries(freq).sort((a,b) => b[1]-a[1])[0];
   if (!best) { el.style.display = 'none'; return; }
   el.style.display = '';
-  el.innerHTML = `<div style="font-size:.76rem;color:var(--muted);padding:0 2px 10px;display:flex;align-items:center;gap:5px;overflow:hidden"><span style="flex-shrink:0">⭐</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Más vendido: <strong style="color:var(--charcoal)">${_esc(best[0])}</strong> · $${Math.round(best[1]).toLocaleString('es-MX')} en ventas</span></div>`;
+  el.innerHTML = `<div style="font-size:.76rem;color:var(--muted);padding:0 2px 10px;display:flex;align-items:center;gap:5px;overflow:hidden"><svg style="width:13px;height:13px;flex-shrink:0;fill:var(--gold-dark);stroke:none" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Más vendido: <strong style="color:var(--charcoal)">${_esc(best[0])}</strong> · $${Math.round(best[1]).toLocaleString('es-MX')} en ventas</span></div>`;
 }
 
 /* ── APARTADOS PENDIENTES ── */
@@ -1473,14 +1480,14 @@ async function loadApartadosPendientes() {
         const dueText = diffDays < 0
           ? `Vencido hace ${Math.abs(diffDays)}d`
           : diffDays === 0 ? 'Vence hoy' : `Vence ${_dayKeyLabel(s.due_date, {day:'numeric',month:'short'})}`;
-        dueBadge = `<span style="font-size:.68rem;font-weight:700;color:${dueColor}">📅 ${dueText}</span>`;
+        dueBadge = `<span style="font-size:.68rem;font-weight:700;color:${dueColor};display:inline-flex;align-items:center;gap:3px"><svg style="width:11px;height:11px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${dueText}</span>`;
       }
     }
 
     return `<div style="display:flex;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div>
-          <div style="font-weight:600;font-size:.84rem">👤 ${_esc(nombre)}</div>
+          <div style="font-weight:600;font-size:.84rem;display:inline-flex;align-items:center;gap:5px"><svg style="width:13px;height:13px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${_esc(nombre)}</div>
           <div style="font-size:.72rem;color:var(--muted);margin-top:2px">${_esc(fecha + ' · ' + summary.substring(0,50) + (summary.length>50?'…':''))}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">

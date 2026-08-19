@@ -153,7 +153,8 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .dv-sale-head{display:flex;align-items:center;gap:8px;padding:10px 6px;cursor:pointer;transition:background .15s;border-radius:8px;margin:0 -6px}
 .dv-sale-head:hover,.dv-sale-head:active{background:#FFF8EE}
 .dv-sale-time{font-size:.76rem;color:var(--muted);font-weight:500;white-space:nowrap}
-.dv-sale-pay{font-size:.82rem}
+.dv-sale-pay{flex-shrink:0;display:flex}
+.dv-icon{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .dv-sale-names{flex:1;min-width:0;font-size:.78rem;color:var(--charcoal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dv-sale-total{font-family:'Playfair Display',serif;font-weight:700;font-size:.92rem;color:var(--green);white-space:nowrap;display:flex;align-items:baseline;gap:3px}
 .dv-total-of{font-size:.7rem;font-weight:500;color:var(--muted);font-family:inherit}
