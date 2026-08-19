@@ -138,7 +138,7 @@ function renderCartBody() {
   const totalEl = document.getElementById('cart-total');
   if (!body) return;
   if (!cart.length) {
-    body.innerHTML = '<div class="cart-empty">🛒<br>Tu pedido está vacío.<br>Agrega productos para continuar.</div>';
+    body.innerHTML = '<div class="cart-empty"><svg width="34" height="34" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><br>Tu pedido está vacío.<br>Agrega productos para continuar.</div>';
     if (foot) foot.style.display = 'none';
     return;
   }
@@ -262,10 +262,10 @@ function _showCatalogError() {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
   grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:56px 24px">
-    <div style="font-size:2.5rem;margin-bottom:14px">😕</div>
+    <div style="margin-bottom:14px"><svg width="40" height="40" viewBox="0 0 24 24" stroke="#C9A462" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg></div>
     <p style="font-size:.95rem;color:#6B5C48;margin-bottom:6px;font-weight:600">No pudimos cargar el catálogo</p>
     <p style="font-size:.82rem;color:#9B8B78;margin-bottom:22px">Revisa tu conexión e intenta de nuevo</p>
-    <button onclick="location.reload()" style="background:#C9A462;color:#fff;border:none;border-radius:50px;padding:12px 28px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">↺ Reintentar</button>
+    <button onclick="location.reload()" style="background:#C9A462;color:#fff;border:none;border-radius:50px;padding:12px 28px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation;display:inline-flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Reintentar</button>
   </div>`;
 }
 
@@ -449,7 +449,10 @@ function render() {
     const msg = searchQuery
       ? `No encontramos "${searchQuery}". <a href="https://wa.me/${WA}?text=${encodeURIComponent(`¡Hola! Busco: ${searchQuery}`)}" target="_blank" rel="noopener" style="color:var(--gold)">Pregunta por WhatsApp →</a>`
       : 'No hay productos aquí todavía.<br>¡Escríbenos y te decimos qué tenemos!';
-    grid.innerHTML = `<div class="empty-msg"><div class="em-icon">${searchQuery ? '🔍' : '🛍️'}</div><p>${msg}</p></div>`;
+    const emIconSvg = searchQuery
+      ? '<svg width="42" height="42" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+      : '<svg width="42" height="42" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>';
+    grid.innerHTML = `<div class="empty-msg"><div class="em-icon">${emIconSvg}</div><p>${msg}</p></div>`;
     return;
   }
 
@@ -510,7 +513,7 @@ function cardHTML(p) {
   const apt = p.isApartado && p.stock <= 1;
   const pct = discountPct(p);
   const oosTag = apt
-    ? `<span class="product-badge badge-apartado">📌 Apartado</span>`
+    ? `<span class="product-badge badge-apartado"><svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Apartado</span>`
     : oos ? `<span class="product-badge badge-oos" style="background:#9B8B78">Agotado</span>` : '';
 
   let badgeArea = '';
@@ -532,7 +535,7 @@ function cardHTML(p) {
   const buyBtn = apt
     ? `<button class="btn-buy btn-buy-oos" onclick="event.stopPropagation();whatsapp(${p.id},this)" style="background:#92400E">${WA_SVG} Consultar</button>`
     : oos ? `<button class="btn-buy btn-buy-oos" disabled>Agotado</button>`
-    : `<button class="btn-buy btn-cart-add" onclick="event.stopPropagation();addToCartFromCard(${p.id},this)">🛒 Agregar</button>`;
+    : `<button class="btn-buy btn-cart-add" onclick="event.stopPropagation();addToCartFromCard(${p.id},this)"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Agregar</button>`;
   return `
 <article class="product-card reveal${oos ? ' card-oos' : ''}" onclick="openModal(${p.id})">
   <div class="product-img-wrap">
@@ -1000,7 +1003,7 @@ function openModal(id) {
     modalBadgeArea = `<span class="product-badge badge-${p.badgeType||'best'}" style="position:absolute;top:10px;left:10px">${_esc(p.badge)}</span>`;
   }
   const urgencyText = isLastPiece(p)
-    ? `<p class="modal-urgency">⚡ Última pieza disponible</p>`
+    ? `<p class="modal-urgency"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="vertical-align:-2px;margin-right:3px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Última pieza disponible</p>`
     : '';
   const ctaPriceHTML = pct > 0
     ? `<div class="modal-cta-price">
@@ -1016,14 +1019,14 @@ function openModal(id) {
   const modalBtn = apt
     ? `<button class="btn modal-btn-oos" onclick="whatsapp(${p.id})" style="background:#92400E;color:#fff;border-color:#92400E">${WA_SVG} Consultar por WhatsApp</button>`
     : oos
-    ? `<button class="btn modal-btn-oos" onclick="notifyRestock(${p.id},this)">🔔 Avisarme cuando haya stock</button>`
+    ? `<button class="btn modal-btn-oos" onclick="notifyRestock(${p.id},this)"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>Avisarme cuando haya stock</button>`
     : `<div class="modal-qty-row">
         <button class="modal-qty-btn" onclick="changeModalQty(-1)">−</button>
         <span class="modal-qty-num" id="modal-qty-num">1</span>
         <button class="modal-qty-btn" id="modal-qty-plus" onclick="changeModalQty(1)">+</button>
       </div>
       <button class="btn btn-modal-addcart" id="modal-addcart-btn" onclick="modalAddToCart(${p.id})">
-        🛒 Agregar al carrito
+        <svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Agregar al carrito
       </button>
       <button class="modal-wa-mobile" onclick="whatsapp(${p.id})">${WA_SVG} Pedir directo por WhatsApp</button>`;
   const descHTML = p.description
@@ -1031,7 +1034,7 @@ function openModal(id) {
     : '';
   const kitHTML = Array.isArray(p.kitItems) && p.kitItems.length
     ? `<div class="modal-kit-includes">
-        <div class="modal-kit-title">🎁 Incluye</div>
+        <div class="modal-kit-title"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>Incluye</div>
         ${p.kitItems.map(item => {
           const comp = products.find(x => x.id === item.id);
           const img  = comp?.image || item.image;
@@ -1060,7 +1063,7 @@ function openModal(id) {
   <div class="modal-img-wrap${hasGallery ? ' has-gallery' : ''}">
     ${galleryHTML}
     <button class="modal-close" onclick="closeModal()" aria-label="Cerrar">✕</button>
-    ${apt ? `<span class="product-badge badge-apartado" style="position:absolute;top:10px;left:10px">📌 Apartado</span>`
+    ${apt ? `<span class="product-badge badge-apartado" style="position:absolute;top:10px;left:10px"><svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Apartado</span>`
       : oos ? `<span class="product-badge badge-oos" style="position:absolute;top:10px;left:10px;background:#9B8B78">Agotado</span>` : ''}
     ${modalBadgeArea}
   </div>
@@ -1121,7 +1124,7 @@ function modalAddToCart(id) {
     btn.classList.add('added');
     btn.onclick = () => { closeModal(); openCart(); };
     setTimeout(() => {
-      btn.innerHTML = '🛒 Agregar al carrito';
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Agregar al carrito';
       btn.classList.remove('added');
       btn.onclick = () => modalAddToCart(id);
     }, 3000);
