@@ -314,7 +314,15 @@ async function _hydrateApartadoPayments(rows) {
     });
   }
   (rows || []).forEach(sale => {
-    sale.payment_history = bySale.get(String(sale.id)) || [];
+    const hydrated = bySale.get(String(sale.id));
+    // Si sale_payments no tiene filas para este apartado pero sí hay abonos
+    // en el formato legado (backfill incompleto), no fijar payment_history
+    // como [] — dejarlo sin definir para que el fallback a sale.abonos en
+    // los renders (openAptDetail, _renderApartadoCards) sí se use. Si de
+    // verdad no hay nada que mostrar en ningún formato, [] es correcto.
+    if (hydrated || !Array.isArray(sale.abonos) || !sale.abonos.length) {
+      sale.payment_history = hydrated || [];
+    }
     sale.payment_history_error = false;
   });
   return true;
