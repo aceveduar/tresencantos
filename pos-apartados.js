@@ -793,6 +793,12 @@ function abonarApartado(id, total, pagado, nombre) {
   setTimeout(() => document.getElementById('abonar-amount').focus(), 100);
 }
 
+function _fillAbonarMax() {
+  if (!_abonarCtx) return;
+  document.getElementById('abonar-amount').value = _abonarCtx.pendiente;
+  validateAbonarAmount();
+}
+
 function setAbonarMethod(m) {
   _abonarMethod = m;
   document.getElementById('abpay-efectivo').classList.toggle('active', m === 'efectivo');
@@ -807,7 +813,22 @@ function validateAbonarAmount() {
   const valid = val > 0 && _abonarCtx && !over;
   btn.disabled = !valid;
   document.getElementById('abonar-amount').style.borderColor = val > 0 && !valid ? 'var(--red)' : '';
-  if (hint) hint.style.color = over ? 'var(--red)' : 'var(--muted)';
+  if (hint) hint.style.color = over ? 'var(--red)' : 'var(--gold-dark)';
+
+  const preview = document.getElementById('abonar-restante-preview');
+  if (preview && _abonarCtx) {
+    if (val <= 0) {
+      preview.textContent = '';
+    } else if (over) {
+      preview.textContent = '';
+    } else {
+      const restante = Math.round((_abonarCtx.pendiente - val) * 100) / 100;
+      preview.textContent = restante <= _APT_MONEY_EPSILON
+        ? '✓ Liquida el apartado por completo'
+        : `Quedará pendiente: $${restante.toLocaleString('es-MX')}`;
+      preview.style.color = restante <= _APT_MONEY_EPSILON ? 'var(--green)' : 'var(--muted)';
+    }
+  }
 }
 
 function closeAbonarModal() {

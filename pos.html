@@ -274,10 +274,11 @@
     <p class="apt-info-lbl" id="abonar-info"></p>
     <label style="display:flex;justify-content:space-between;align-items:center">
       Monto del abono
-      <span id="abonar-max-hint" style="font-size:.75rem;font-weight:400;color:var(--muted)"></span>
+      <button type="button" id="abonar-max-hint" onclick="_fillAbonarMax()" style="font-size:.75rem;font-weight:600;color:var(--gold-dark);background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:2px;font-family:inherit;padding:4px"></button>
     </label>
     <input type="number" id="abonar-amount" min="1" step="1" placeholder="0" inputmode="numeric"
            oninput="validateAbonarAmount()">
+    <div id="abonar-restante-preview" style="font-size:.78rem;color:var(--muted);margin-top:4px;min-height:1.1em"></div>
     <label>Método de pago</label>
     <div class="abonar-pay-btns">
       <button class="abonar-pay-btn active" id="abpay-efectivo" onclick="setAbonarMethod('efectivo')">💵 Efectivo</button>
