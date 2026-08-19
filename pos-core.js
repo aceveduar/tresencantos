@@ -4,6 +4,8 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const SESSION_KEY = 'te_admin_session';
 const TE = null; // tracking removed — stub keeps TE?.track() calls safe
 const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const _giftIconSvg  = (px = 12) => `<svg style="width:${px}px;height:${px}px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>`;
+const _clockIconSvg = (px = 12) => `<svg style="width:${px}px;height:${px}px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
 const _posSession = (() => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; } })();
 const KNOWN_ROLES = ['superadmin', 'encargado', 'operador', 'duena'];
 const _posRole = (() => {
@@ -56,7 +58,7 @@ function cancelApartado(id) {
   document.getElementById('cancel-apt-info').textContent = `${nombre} · $${total.toLocaleString('es-MX')} MXN · ${nItems} producto${nItems !== 1 ? 's' : ''}`;
   const warnEl = document.getElementById('cancel-apt-warning');
   warnEl.innerHTML = pagado > 0
-    ? `⚠️ Ya se pagaron <strong>$${pagado.toLocaleString('es-MX')}</strong>. Al cancelar se registrará la devolución por los mismos métodos de pago y se restaurará el stock.<br>Esta acción no se puede deshacer.`
+    ? `<svg style="width:13px;height:13px;vertical-align:-2px;margin-right:3px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Ya se pagaron <strong>$${pagado.toLocaleString('es-MX')}</strong>. Al cancelar se registrará la devolución por los mismos métodos de pago y se restaurará el stock.<br>Esta acción no se puede deshacer.`
     : `Se restaurará el stock. Esta acción no se puede deshacer.`;
   document.getElementById('cancel-apt-overlay').style.display = 'flex';
 }
@@ -704,7 +706,7 @@ function posCard(p) {
   const oos = isKit ? effStock === 0 : (effStock === 0 || p.outOfStock);
   const stockCls = isKit ? (oos ? 'stock-sold' : 'stock-ok') : (effStock === 0 ? 'stock-sold' : effStock === 1 ? 'stock-one' : 'stock-ok');
   const stockTxt = isKit
-    ? (isKit && !p.kitItems.length ? 'Sin componentes' : oos ? 'Sin stock' : `🎁 ${effStock} kit${effStock!==1?'s':''}`)
+    ? (isKit && !p.kitItems.length ? 'Sin componentes' : oos ? 'Sin stock' : `${_giftIconSvg(11)} ${effStock} kit${effStock!==1?'s':''}`)
     : (effStock === 0 ? 'Sin stock' : `${effStock} ud${effStock!==1?'s':''}`);
   const kitComps = isKit && p.kitItems.length
     ? p.kitItems.map(c => `<div style="font-size:.6rem;color:#9B8B78;line-height:1.3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.qty > 1 ? c.qty + '× ' : ''}${_esc(c.name)}</div>`).join('')
@@ -713,8 +715,8 @@ function posCard(p) {
   if (p.expiryDate) {
     const hoy  = new Date(); hoy.setHours(0, 0, 0, 0);
     const days = Math.round((new Date(p.expiryDate + 'T00:00:00') - hoy) / 86400000);
-    if (days < 0) expBadge = `<span class="pos-card-stock stock-sold" style="margin-left:4px" title="Caducó hace ${Math.abs(days)}d">⏰</span>`;
-    else if (days <= 60) expBadge = `<span class="pos-card-stock stock-one" style="margin-left:4px" title="Caduca en ${days}d">⏰ ${days}d</span>`;
+    if (days < 0) expBadge = `<span class="pos-card-stock stock-sold" style="margin-left:4px" title="Caducó hace ${Math.abs(days)}d">${_clockIconSvg(11)}</span>`;
+    else if (days <= 60) expBadge = `<span class="pos-card-stock stock-one" style="margin-left:4px" title="Caduca en ${days}d">${_clockIconSvg(11)} ${days}d</span>`;
   }
   return `
 <div class="pos-card${oos?' card-sold':''}" onclick="${oos?`_showRestockPrompt(${p.id})`:` addToCart(${p.id},this.querySelector('.pos-card-add-icon'),event)`}">
@@ -727,7 +729,7 @@ function posCard(p) {
     </div>
   </div>
   <div class="pos-card-body">
-    <div class="pos-card-name">${isKit ? '🎁 ' : ''}${_esc(p.name)}</div>
+    <div class="pos-card-name">${isKit ? _giftIconSvg(12) + ' ' : ''}${_esc(p.name)}</div>
     ${kitComps}
     <div class="pos-card-price">$${p.price.toLocaleString('es-MX')}</div>
     <span class="pos-card-stock ${stockCls}">${stockTxt}</span>${expBadge}
@@ -835,12 +837,12 @@ function renderPosProducts(list, groupByCategory = false) {
 function showAllProducts() {
   const el = document.getElementById('pos-results');
   if (!products.length) {
-    el.innerHTML = '<div class="pos-empty"><div class="em">📦</div>No hay productos cargados</div>';
+    el.innerHTML = '<div class="pos-empty"><div class="em"><svg style="width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>No hay productos cargados</div>';
     return;
   }
   const filtered = getFilteredProducts();
   if (!filtered.length) {
-    el.innerHTML = '<div class="pos-empty"><div class="em">🔍</div>Sin productos en esta categoría</div>';
+    el.innerHTML = '<div class="pos-empty"><div class="em"><svg style="width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>Sin productos en esta categoría</div>';
     return;
   }
   const groupCat = currentCat === 'all' && posView === 'list' && posSort === 'az';
@@ -871,7 +873,7 @@ function searchProducts(q) {
   const matches = getFilteredProducts(q, !!q.trim()).slice(0, 40);
   if (!q.trim() && currentCat === 'all') { showAllProducts(); return; }
   if (!matches.length) {
-    el.innerHTML = `<div class="pos-empty"><div class="em">🔍</div>Sin resultados</div>`;
+    el.innerHTML = `<div class="pos-empty"><div class="em"><svg style="width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>Sin resultados</div>`;
     return;
   }
   renderPosProducts(matches, false);
@@ -888,7 +890,7 @@ function productCard(p) {
     ? p.kitItems.map(c => `<div style="font-size:.7rem;color:#9B8B78;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.qty > 1 ? c.qty + '× ' : ''}${_esc(c.name)}</div>`).join('')
     : '';
   const stockSub = isKit
-    ? (isKit && !p.kitItems.length ? ' · <span style="color:var(--red)">Sin componentes</span>' : oos ? ' · <span style="color:var(--red)">Sin stock</span>' : ` · <span style="color:#6B9E78;font-weight:600">🎁 ${effStock} kit${effStock!==1?'s':''}</span>`)
+    ? (isKit && !p.kitItems.length ? ' · <span style="color:var(--red)">Sin componentes</span>' : oos ? ' · <span style="color:var(--red)">Sin stock</span>' : ` · <span style="color:#6B9E78;font-weight:600">${_giftIconSvg(11)} ${effStock} kit${effStock!==1?'s':''}</span>`)
     : effStock === 1
       ? ' · <span style="color:#C9A462;font-weight:700">Última</span>'
       : effStock >= 2 && effStock <= 5
@@ -900,14 +902,14 @@ function productCard(p) {
   if (p.expiryDate) {
     const hoy  = new Date(); hoy.setHours(0, 0, 0, 0);
     const days = Math.round((new Date(p.expiryDate + 'T00:00:00') - hoy) / 86400000);
-    if (days < 0) expSub = ' · <span style="color:var(--red);font-weight:700">⏰ Caducado</span>';
-    else if (days <= 60) expSub = ` · <span style="color:#D97706;font-weight:700">⏰ ${days}d</span>`;
+    if (days < 0) expSub = ` · <span style="color:var(--red);font-weight:700">${_clockIconSvg(11)} Caducado</span>`;
+    else if (days <= 60) expSub = ` · <span style="color:#D97706;font-weight:700">${_clockIconSvg(11)} ${days}d</span>`;
   }
   return `
 <div class="pos-prod" onclick="${oos ? `_showRestockPrompt(${p.id})` : `addToCart(${p.id},null,event)`}" ${oos ? '' : ''}>
   <img class="pos-prod-img" src="${_driveSz(p.image,200)}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'" onclick="event.stopPropagation();${oos ? `_showRestockPrompt(${p.id})` : `openPosPreview(${p.id})`}" style="cursor:${oos?'pointer':'zoom-in'}">
   <div class="pos-prod-info">
-    <div class="pos-prod-name">${isKit ? '🎁 ' : ''}${_esc(p.name)}</div>
+    <div class="pos-prod-name">${isKit ? _giftIconSvg(12) + ' ' : ''}${_esc(p.name)}</div>
     ${kitCompsLine}
     <div class="pos-prod-sub"${kitCompsLine ? ' style="margin-top:5px;padding-top:4px;border-top:1px solid #EDE0CF"' : ''}>${_esc(p.categoryLabel)}${stockSub}${expSub}</div>
   </div>
