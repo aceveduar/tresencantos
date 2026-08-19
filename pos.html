@@ -534,11 +534,13 @@
       <button type="button" class="active" role="tab" aria-selected="true" aria-controls="apt-offcanvas-list" data-mode="activos" onclick="selectAptView('activos','oc')">Activos</button>
       <button type="button" role="tab" aria-selected="false" aria-controls="apt-offcanvas-list" tabindex="-1" data-mode="liquidados" onclick="selectAptView('liquidados','oc')">Liquidados</button>
     </div>
-    <div class="apt-due-filters" id="apt-due-filters-oc" role="group" aria-label="Filtrar activos por vencimiento">
-      <button type="button" class="apt-due-filter active" data-due-filter="todos" aria-pressed="true" onclick="setAptDueFilter('todos','offcanvas')">Todos</button>
-      <button type="button" class="apt-due-filter" data-due-filter="vencidos" aria-pressed="false" onclick="setAptDueFilter('vencidos','offcanvas')">Vencidos</button>
-      <button type="button" class="apt-due-filter" data-due-filter="proximos" aria-pressed="false" onclick="setAptDueFilter('proximos','offcanvas')">Próximos 7 días</button>
-      <button type="button" class="apt-due-filter" data-due-filter="sin-fecha" aria-pressed="false" onclick="setAptDueFilter('sin-fecha','offcanvas')">Sin fecha</button>
+    <div class="apt-due-filters-wrap" id="apt-due-filters-wrap-oc">
+      <div class="apt-due-filters" id="apt-due-filters-oc" role="group" aria-label="Filtrar activos por vencimiento" onscroll="_aptDueFiltersScroll('oc')">
+        <button type="button" class="apt-due-filter active" data-due-filter="todos" aria-pressed="true" onclick="setAptDueFilter('todos','offcanvas')">Todos</button>
+        <button type="button" class="apt-due-filter" data-due-filter="vencidos" aria-pressed="false" onclick="setAptDueFilter('vencidos','offcanvas')">Vencidos</button>
+        <button type="button" class="apt-due-filter" data-due-filter="proximos" aria-pressed="false" onclick="setAptDueFilter('proximos','offcanvas')">Próximos 7 días</button>
+        <button type="button" class="apt-due-filter" data-due-filter="sin-fecha" aria-pressed="false" onclick="setAptDueFilter('sin-fecha','offcanvas')">Sin fecha</button>
+      </div>
     </div>
     <div style="position:relative">
       <input type="text" id="apt-search" placeholder="🔍 Buscar cliente..." autocomplete="off"
@@ -573,11 +575,13 @@
     </div>
   </div>
   <div class="apt-page-body">
-    <div class="apt-due-filters" id="apt-due-filters-page" role="group" aria-label="Filtrar activos por vencimiento">
-      <button type="button" class="apt-due-filter active" data-due-filter="todos" aria-pressed="true" onclick="setAptDueFilter('todos','page')">Todos</button>
-      <button type="button" class="apt-due-filter" data-due-filter="vencidos" aria-pressed="false" onclick="setAptDueFilter('vencidos','page')">Vencidos</button>
-      <button type="button" class="apt-due-filter" data-due-filter="proximos" aria-pressed="false" onclick="setAptDueFilter('proximos','page')">Próximos 7 días</button>
-      <button type="button" class="apt-due-filter" data-due-filter="sin-fecha" aria-pressed="false" onclick="setAptDueFilter('sin-fecha','page')">Sin fecha</button>
+    <div class="apt-due-filters-wrap" id="apt-due-filters-wrap-page">
+      <div class="apt-due-filters" id="apt-due-filters-page" role="group" aria-label="Filtrar activos por vencimiento" onscroll="_aptDueFiltersScroll('page')">
+        <button type="button" class="apt-due-filter active" data-due-filter="todos" aria-pressed="true" onclick="setAptDueFilter('todos','page')">Todos</button>
+        <button type="button" class="apt-due-filter" data-due-filter="vencidos" aria-pressed="false" onclick="setAptDueFilter('vencidos','page')">Vencidos</button>
+        <button type="button" class="apt-due-filter" data-due-filter="proximos" aria-pressed="false" onclick="setAptDueFilter('proximos','page')">Próximos 7 días</button>
+        <button type="button" class="apt-due-filter" data-due-filter="sin-fecha" aria-pressed="false" onclick="setAptDueFilter('sin-fecha','page')">Sin fecha</button>
+      </div>
     </div>
     <div class="apt-page-grid" id="apt-page-list" role="tabpanel" aria-live="polite">
       <div class="history-empty" style="grid-column:1/-1">Cargando…</div>

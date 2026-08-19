@@ -368,6 +368,13 @@ function aptViewTabKeydown(event, target) {
   next.click();
 }
 
+function _aptDueFiltersScroll(target) {
+  const el = document.getElementById(`apt-due-filters-${target}`);
+  const wrap = document.getElementById(`apt-due-filters-wrap-${target}`);
+  if (!el || !wrap) return;
+  wrap.classList.toggle('at-end', el.scrollLeft + el.clientWidth >= el.scrollWidth - 4);
+}
+
 async function selectAptView(mode, target) {
   const current = await toggleAptView(mode, target);
   if (current === false) return;
@@ -376,7 +383,7 @@ async function selectAptView(mode, target) {
     button.setAttribute('aria-selected', String(selected));
     button.tabIndex = selected ? 0 : -1;
   });
-  const dueFilters = document.getElementById(`apt-due-filters-${target}`);
+  const dueFilters = document.getElementById(`apt-due-filters-wrap-${target}`);
   if (dueFilters) dueFilters.hidden = mode === 'liquidados';
   const search = document.getElementById(target === 'page' ? 'apt-page-search' : 'apt-search');
   filterApartadosWithDue(search?.value || '', target);
@@ -393,8 +400,9 @@ function openApartados(dueFilter = 'todos') {
     b.setAttribute('aria-selected', String(selected));
     b.tabIndex = selected ? 0 : -1;
   });
-  document.querySelectorAll('.apt-due-filters').forEach(filters => { filters.hidden = false; });
+  document.querySelectorAll('.apt-due-filters-wrap').forEach(wrap => { wrap.hidden = false; });
   _syncAptDueFilterUI();
+  ['oc', 'page'].forEach(_aptDueFiltersScroll);
 
   if (window.innerWidth >= 768) {
     const page = document.getElementById('apt-page');
