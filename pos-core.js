@@ -4,8 +4,8 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const SESSION_KEY = 'te_admin_session';
 const TE = null; // tracking removed — stub keeps TE?.track() calls safe
 const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const _giftIconSvg  = (px = 12) => `<svg style="width:${px}px;height:${px}px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>`;
-const _clockIconSvg = (px = 12) => `<svg style="width:${px}px;height:${px}px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+const _giftIconSvg  = (px = 14) => `<svg style="width:${px}px;height:${px}px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>`;
+const _clockIconSvg = (px = 14) => `<svg style="width:${px}px;height:${px}px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
 const _posSession = (() => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; } })();
 const KNOWN_ROLES = ['superadmin', 'encargado', 'operador', 'duena'];
 const _posRole = (() => {
@@ -706,7 +706,7 @@ function posCard(p) {
   const oos = isKit ? effStock === 0 : (effStock === 0 || p.outOfStock);
   const stockCls = isKit ? (oos ? 'stock-sold' : 'stock-ok') : (effStock === 0 ? 'stock-sold' : effStock === 1 ? 'stock-one' : 'stock-ok');
   const stockTxt = isKit
-    ? (isKit && !p.kitItems.length ? 'Sin componentes' : oos ? 'Sin stock' : `${_giftIconSvg(11)} ${effStock} kit${effStock!==1?'s':''}`)
+    ? (isKit && !p.kitItems.length ? 'Sin componentes' : oos ? 'Sin stock' : `${_giftIconSvg(13)} ${effStock} kit${effStock!==1?'s':''}`)
     : (effStock === 0 ? 'Sin stock' : `${effStock} ud${effStock!==1?'s':''}`);
   const kitComps = isKit && p.kitItems.length
     ? p.kitItems.map(c => `<div style="font-size:.6rem;color:#9B8B78;line-height:1.3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.qty > 1 ? c.qty + '× ' : ''}${_esc(c.name)}</div>`).join('')
@@ -715,8 +715,8 @@ function posCard(p) {
   if (p.expiryDate) {
     const hoy  = new Date(); hoy.setHours(0, 0, 0, 0);
     const days = Math.round((new Date(p.expiryDate + 'T00:00:00') - hoy) / 86400000);
-    if (days < 0) expBadge = `<span class="pos-card-stock stock-sold" style="margin-left:4px" title="Caducó hace ${Math.abs(days)}d">${_clockIconSvg(11)}</span>`;
-    else if (days <= 60) expBadge = `<span class="pos-card-stock stock-one" style="margin-left:4px" title="Caduca en ${days}d">${_clockIconSvg(11)} ${days}d</span>`;
+    if (days < 0) expBadge = `<span class="pos-card-stock stock-sold" style="margin-left:4px" title="Caducó hace ${Math.abs(days)}d">${_clockIconSvg(13)}</span>`;
+    else if (days <= 60) expBadge = `<span class="pos-card-stock stock-one" style="margin-left:4px" title="Caduca en ${days}d">${_clockIconSvg(13)} ${days}d</span>`;
   }
   return `
 <div class="pos-card${oos?' card-sold':''}" onclick="${oos?`_showRestockPrompt(${p.id})`:` addToCart(${p.id},this.querySelector('.pos-card-add-icon'),event)`}">
@@ -729,7 +729,7 @@ function posCard(p) {
     </div>
   </div>
   <div class="pos-card-body">
-    <div class="pos-card-name">${isKit ? _giftIconSvg(12) + ' ' : ''}${_esc(p.name)}</div>
+    <div class="pos-card-name">${isKit ? _giftIconSvg(14) + ' ' : ''}${_esc(p.name)}</div>
     ${kitComps}
     <div class="pos-card-price">$${p.price.toLocaleString('es-MX')}</div>
     <span class="pos-card-stock ${stockCls}">${stockTxt}</span>${expBadge}
@@ -890,7 +890,7 @@ function productCard(p) {
     ? p.kitItems.map(c => `<div style="font-size:.7rem;color:#9B8B78;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.qty > 1 ? c.qty + '× ' : ''}${_esc(c.name)}</div>`).join('')
     : '';
   const stockSub = isKit
-    ? (isKit && !p.kitItems.length ? ' · <span style="color:var(--red)">Sin componentes</span>' : oos ? ' · <span style="color:var(--red)">Sin stock</span>' : ` · <span style="color:#6B9E78;font-weight:600">${_giftIconSvg(11)} ${effStock} kit${effStock!==1?'s':''}</span>`)
+    ? (isKit && !p.kitItems.length ? ' · <span style="color:var(--red)">Sin componentes</span>' : oos ? ' · <span style="color:var(--red)">Sin stock</span>' : ` · <span style="color:#6B9E78;font-weight:600">${_giftIconSvg(13)} ${effStock} kit${effStock!==1?'s':''}</span>`)
     : effStock === 1
       ? ' · <span style="color:#C9A462;font-weight:700">Última</span>'
       : effStock >= 2 && effStock <= 5
@@ -902,14 +902,14 @@ function productCard(p) {
   if (p.expiryDate) {
     const hoy  = new Date(); hoy.setHours(0, 0, 0, 0);
     const days = Math.round((new Date(p.expiryDate + 'T00:00:00') - hoy) / 86400000);
-    if (days < 0) expSub = ` · <span style="color:var(--red);font-weight:700">${_clockIconSvg(11)} Caducado</span>`;
-    else if (days <= 60) expSub = ` · <span style="color:#D97706;font-weight:700">${_clockIconSvg(11)} ${days}d</span>`;
+    if (days < 0) expSub = ` · <span style="color:var(--red);font-weight:700">${_clockIconSvg(13)} Caducado</span>`;
+    else if (days <= 60) expSub = ` · <span style="color:#D97706;font-weight:700">${_clockIconSvg(13)} ${days}d</span>`;
   }
   return `
 <div class="pos-prod" onclick="${oos ? `_showRestockPrompt(${p.id})` : `addToCart(${p.id},null,event)`}" ${oos ? '' : ''}>
   <img class="pos-prod-img" src="${_driveSz(p.image,200)}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'" onclick="event.stopPropagation();${oos ? `_showRestockPrompt(${p.id})` : `openPosPreview(${p.id})`}" style="cursor:${oos?'pointer':'zoom-in'}">
   <div class="pos-prod-info">
-    <div class="pos-prod-name">${isKit ? _giftIconSvg(12) + ' ' : ''}${_esc(p.name)}</div>
+    <div class="pos-prod-name">${isKit ? _giftIconSvg(14) + ' ' : ''}${_esc(p.name)}</div>
     ${kitCompsLine}
     <div class="pos-prod-sub"${kitCompsLine ? ' style="margin-top:5px;padding-top:4px;border-top:1px solid #EDE0CF"' : ''}>${_esc(p.categoryLabel)}${stockSub}${expSub}</div>
   </div>
