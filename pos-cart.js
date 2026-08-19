@@ -535,7 +535,7 @@ async function loadCorte() {
       ${devoluciones > 0 ? row('↩️ Devoluciones registradas', `−${fmt(devoluciones)}`) : ''}
       <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;background:#F7F2EB">
         <span style="font-size:.88rem;font-weight:700">${isGeneral ? 'Neto del día' : 'Neto del turno'}<span style="font-weight:400;font-size:.7rem;color:#B5A696;display:block;margin-top:1px">${isGeneral ? 'Todas las cajeras, hoy' : 'Solo lo que cobraste tú en este horario'}</span></span>
-        <span style="font-size:1.15rem;font-weight:800;color:var(--green)">${fmt(total)}</span>
+        <span style="font-size:1.15rem;font-weight:800;color:${total > 0 ? 'var(--green)' : 'var(--muted)'}">${fmt(total)}</span>
       </div>
     </div>
     ${anticipos > 0 ? `<div style="background:#FFF8EE;border:1px solid var(--gold);border-radius:10px;padding:10px 14px;font-size:.78rem;color:var(--gold-dark)">📌 <strong>${fmt(anticipos)}</strong> cobrados ${isGeneral ? 'hoy' : 'en este turno'} en apartados que continúan activos</div>` : ''}
