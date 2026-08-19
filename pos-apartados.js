@@ -271,10 +271,12 @@ function updateAnticipoInfo() {
 
 
 let _apartadosLiquidadosAll = [];
-let _aptViewMode = 'activos'; // 'activos' | 'liquidados'
+let _apartadosCanceladosAll = [];
+let _aptViewMode = 'activos'; // 'activos' | 'liquidados' | 'cancelados'
 let _aptViewRequestGeneration = 0;
 let _apartadosLoadGeneration = 0;
 let _apartadosLiquidatedLoadGeneration = 0;
+let _apartadosCanceladosLoadGeneration = 0;
 const _APT_MONEY_EPSILON = 0.005;
 
 function _aptMoney(value) {
@@ -330,7 +332,7 @@ async function _hydrateApartadoPayments(rows) {
 
 async function loadApartadosLiquidados() {
   const loadGeneration = ++_apartadosLiquidatedLoadGeneration;
-  const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,updated_at,version,items,abonos,discount';
+  const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,cancelled_at,updated_at,version,items,abonos,discount';
   // Vista acotada a los más recientes, igual que antes de la reescritura —
   // no una consulta paginada sin tope de todo el histórico de la tienda.
   const result = await api(`sales?origin_type=eq.apartado&status=eq.liquidado&select=${fields}&order=liquidated_at.desc.nullslast,created_at.desc,id.desc&limit=200`);
@@ -343,8 +345,23 @@ async function loadApartadosLiquidados() {
   _apartadosData = {};
   // Activos al final: si un reembolso reabrió un apartado, nunca gana una copia
   // liquidada que hubiera quedado en memoria de una carga anterior.
-  [..._apartadosLiquidadosAll, ..._apartadosAll].forEach(s => { _apartadosData[s.id] = s; });
+  [..._apartadosCanceladosAll, ..._apartadosLiquidadosAll, ..._apartadosAll].forEach(s => { _apartadosData[s.id] = s; });
   return _apartadosLiquidadosAll;
+}
+
+async function loadApartadosCancelados() {
+  const loadGeneration = ++_apartadosCanceladosLoadGeneration;
+  const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,cancelled_at,updated_at,version,items,abonos,discount';
+  const result = await api(`sales?origin_type=eq.apartado&status=eq.cancelado&select=${fields}&order=cancelled_at.desc.nullslast,created_at.desc,id.desc&limit=200`);
+  if (loadGeneration !== _apartadosCanceladosLoadGeneration) return false;
+  if (!result.ok) return null;
+  const rows = Array.isArray(result.data) ? result.data : [];
+  await _hydrateApartadoPayments(rows);
+  if (loadGeneration !== _apartadosCanceladosLoadGeneration) return false;
+  _apartadosCanceladosAll = rows;
+  _apartadosData = {};
+  [..._apartadosCanceladosAll, ..._apartadosLiquidadosAll, ..._apartadosAll].forEach(s => { _apartadosData[s.id] = s; });
+  return _apartadosCanceladosAll;
 }
 
 async function toggleAptView(mode, target) {
@@ -353,21 +370,29 @@ async function toggleAptView(mode, target) {
   document.querySelectorAll(`#apt-view-toggle-${target} button`).forEach(b => {
     b.classList.toggle('active', b.dataset.mode === mode);
   });
-  const isLiq = mode === 'liquidados';
   const renderFn = target === 'page' ? _renderAptPageCards : _renderApartadoCards;
-  if (isLiq) {
+  const canceladosRenderFn = target === 'page' ? _renderAptPageCanceladosCards : _renderApartadoCanceladosCards;
+  if (mode === 'liquidados' || mode === 'cancelados') {
+    const isCanc = mode === 'cancelados';
     const listEl = document.getElementById(target === 'page' ? 'apt-page-list' : 'apt-offcanvas-list');
     if (listEl) listEl.innerHTML = '<div class="history-empty" style="grid-column:1/-1">Cargando…</div>';
-    const rows = await loadApartadosLiquidados();
+    const rows = await (isCanc ? loadApartadosCancelados() : loadApartadosLiquidados());
     if (requestGeneration !== _aptViewRequestGeneration || _aptViewMode !== mode) return false;
     if (rows === false) return false;
     if (rows === null) {
-      if (listEl) listEl.innerHTML = `<div class="history-empty" style="grid-column:1/-1"><div style="font-size:2rem;margin-bottom:8px">⚠️</div>No se pudieron cargar los liquidados.<br><button type="button" class="btn btn-outline" style="margin-top:12px" onclick="selectAptView('liquidados','${target}')">Reintentar</button></div>`;
+      const label = isCanc ? 'cancelados' : 'liquidados';
+      if (listEl) listEl.innerHTML = `<div class="history-empty" style="grid-column:1/-1"><div style="font-size:2rem;margin-bottom:8px">⚠️</div>No se pudieron cargar los ${label}.<br><button type="button" class="btn btn-outline" style="margin-top:12px" onclick="selectAptView('${mode}','${target}')">Reintentar</button></div>`;
       return;
     }
-    renderFn(_apartadosLiquidadosAll, true);
+    if (isCanc) canceladosRenderFn(_apartadosCanceladosAll);
+    else renderFn(_apartadosLiquidadosAll, true);
   } else {
     renderFn(_apartadosAll, false);
+    // _renderApartadoCards() no toca #apt-oc-count en Activos (a propósito,
+    // para no pisar el conteo con vencidos de loadApartados() mientras esa
+    // carga sigue en curso) — volver aquí desde Liquidados/Cancelados con el
+    // toggle nunca recarga del servidor, así que hay que restaurarlo aparte.
+    _updateAptOcActivosCount();
   }
   return true;
 }
@@ -407,7 +432,7 @@ async function loadApartados() {
   // liquidar el último apartado no puede hacer reaparecer tarjetas obsoletas.
   _apartadosAll = rows;
   _apartadosData = {};
-  [..._apartadosLiquidadosAll, ...rows].forEach(s => { _apartadosData[s.id] = s; });
+  [..._apartadosCanceladosAll, ..._apartadosLiquidadosAll, ...rows].forEach(s => { _apartadosData[s.id] = s; });
 
   // Detectar apartados vencidos
   const vencidos = rows.filter(s => {
@@ -481,6 +506,37 @@ async function loadApartados() {
       _renderAptPageCards(rows, false);
     }
   }
+}
+
+// Vista de solo lectura — un apartado cancelado no admite abonar, liquidar,
+// editar ni volver a cancelar, así que no reutiliza el cuerpo completo de
+// _renderApartadoCards (que sí construye esos botones).
+function _renderApartadoCanceladosCards(data) {
+  const ocList  = document.getElementById('apt-offcanvas-list');
+  const ocTitle = document.getElementById('apt-oc-title');
+  const ocCount = document.getElementById('apt-oc-count');
+  if (!ocList) return;
+  if (ocTitle) ocTitle.textContent = '✕ Apartados cancelados';
+  if (ocCount) ocCount.textContent = data.length ? `${data.length} cancelado${data.length !== 1 ? 's' : ''}` : '';
+  if (!data.length) {
+    ocList.innerHTML = '<div class="history-empty"><div style="font-size:2rem;margin-bottom:8px">✕</div>Sin apartados cancelados</div>';
+    return;
+  }
+  ocList.innerHTML = data.map(s => {
+    const total = parseFloat(s.total) || 0;
+    const t = _posFormatTimestamp(s.cancelled_at || s.updated_at || s.created_at, { day:'numeric', month:'short' });
+    const nItems = Array.isArray(s.items) ? s.items.length : 0;
+    const custParts = (s.customer || '').split(' · 📱 ');
+    const nombre = custParts[0] || 'Sin nombre';
+    const telNum = custParts[1] || '';
+    return `<button type="button" class="apc-card apc-card-cancelado" onclick="openAptDetail(${s.id})" aria-label="Ver apartado cancelado de ${_esc(nombre)}, total $${total.toLocaleString('es-MX')}">
+  <span class="apc-top">
+    <span class="apc-name">👤 ${_esc(nombre)}</span>
+    <span class="apt-h-pending cancelado">✕ Cancelado</span>
+  </span>
+  <span class="apc-meta">${t} · ${nItems} prod.${telNum ? ' · '+telNum : ''} · $${total.toLocaleString('es-MX')}</span>
+</button>`;
+  }).join('');
 }
 
 function _renderApartadoCards(data, isLiquidado) {

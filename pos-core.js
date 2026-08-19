@@ -429,6 +429,7 @@ async function _refreshPosFinancialState() {
   if (typeof loadProducts === 'function') tasks.push(loadProducts());
   if (typeof loadApartados === 'function') tasks.push(loadApartados());
   if (typeof loadApartadosLiquidados === 'function') tasks.push(loadApartadosLiquidados());
+  if (typeof loadApartadosCancelados === 'function') tasks.push(loadApartadosCancelados());
   if (typeof loadHistory === 'function') tasks.push(loadHistory());
   if (typeof loadTodayStats === 'function') tasks.push(loadTodayStats());
   await Promise.allSettled(tasks);

@@ -548,6 +548,8 @@ button,a{touch-action:manipulation}
 .apt-h-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .apt-h-pending{font-size:.88rem;font-weight:700;color:var(--red)}
 .apt-h-pending.zero{color:var(--green)}
+.apt-h-pending.cancelado{color:var(--muted)}
+.apc-card-cancelado{opacity:.82}
 .apt-h-meta{font-size:.72rem;color:#9B8B78}
 .apt-h-due{font-size:.7rem;font-weight:700}
 .apt-chevron{font-size:.75rem;color:var(--muted);transition:transform .22s;display:inline-block;margin-left:2px}

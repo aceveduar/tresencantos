@@ -345,14 +345,22 @@ function _aptFilterByCustomer(data, query) {
 
 function filterApartadosWithDue(query, target = 'offcanvas') {
   const isLiquidado = _aptViewMode === 'liquidados';
-  const source = isLiquidado
-    ? (_apartadosLiquidadosAll || [])
-    : _aptDueFiltered(_apartadosAll || []);
+  const isCancelado = _aptViewMode === 'cancelados';
+  const source = isCancelado
+    ? (_apartadosCanceladosAll || [])
+    : isLiquidado
+      ? (_apartadosLiquidadosAll || [])
+      : _aptDueFiltered(_apartadosAll || []);
   const filtered = _aptFilterByCustomer(source, query);
   const clearButton = document.getElementById(target === 'page' ? 'apt-page-search-clear' : 'apt-search-clear');
   if (clearButton) clearButton.style.display = query.trim() ? '' : 'none';
-  if (target === 'page') _renderAptPageCards(filtered, isLiquidado);
-  else _renderApartadoCards(filtered, isLiquidado);
+  if (isCancelado) {
+    (target === 'page' ? _renderAptPageCanceladosCards : _renderApartadoCanceladosCards)(filtered);
+  } else if (target === 'page') {
+    _renderAptPageCards(filtered, isLiquidado);
+  } else {
+    _renderApartadoCards(filtered, isLiquidado);
+  }
 }
 
 function setAptDueFilter(filter, target = window.innerWidth >= 768 ? 'page' : 'offcanvas') {
@@ -393,7 +401,7 @@ async function selectAptView(mode, target) {
     button.tabIndex = selected ? 0 : -1;
   });
   const dueFilters = document.getElementById(`apt-due-filters-wrap-${target}`);
-  if (dueFilters) dueFilters.hidden = mode === 'liquidados';
+  if (dueFilters) dueFilters.hidden = mode !== 'activos';
   const search = document.getElementById(target === 'page' ? 'apt-page-search' : 'apt-search');
   filterApartadosWithDue(search?.value || '', target);
 }
@@ -453,6 +461,32 @@ function closeAptPage() {
   page.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
   _aptPanelLastFocus?.focus?.();
+}
+
+function _renderAptPageCanceladosCards(data) {
+  const grid = document.getElementById('apt-page-list');
+  if (!grid) return;
+  const count = document.getElementById('apt-page-count');
+  if (count) count.textContent = data.length ? `${data.length} cancelado${data.length !== 1 ? 's' : ''}` : '';
+  if (!data.length) {
+    grid.innerHTML = '<div class="history-empty" style="grid-column:1/-1"><div style="font-size:2rem;margin-bottom:8px">✕</div>Sin apartados cancelados</div>';
+    return;
+  }
+  grid.innerHTML = data.map(s => {
+    const total = parseFloat(s.total) || 0;
+    const t = _posFormatTimestamp(s.cancelled_at || s.updated_at || s.created_at, { day:'numeric', month:'short' });
+    const nItems = Array.isArray(s.items) ? s.items.length : 0;
+    const custParts = (s.customer || '').split(' · 📱 ');
+    const nombre = custParts[0] || 'Sin nombre';
+    const telNum = custParts[1] || '';
+    return `<button type="button" class="apc-card apc-card-cancelado" onclick="openAptDetail(${s.id})" aria-label="Ver apartado cancelado de ${_esc(nombre)}, total $${total.toLocaleString('es-MX')}">
+  <span class="apc-top">
+    <span class="apc-name">👤 ${_esc(nombre)}</span>
+    <span class="apt-h-pending cancelado">✕ Cancelado</span>
+  </span>
+  <span class="apc-meta">${t} · ${nItems} prod.${telNum ? ' · 📱 ' + telNum : ''} · $${total.toLocaleString('es-MX')}</span>
+</button>`;
+  }).join('');
 }
 
 function _renderAptPageCards(data, isLiquidado) {
@@ -554,6 +588,7 @@ function openAptDetail(id) {
     : '';
 
   const isLiquidado = _isApartadoLiquidado(s);
+  const isCancelado = s.status === 'cancelado';
 
   // Due date — sin sentido para un apartado ya liquidado
   let dueAlertHTML = '';
@@ -589,14 +624,29 @@ function openAptDetail(id) {
     <div class="apt-summary">
       ${summaryRows.join('')}
     </div>
-    <div class="apt-progress-section">
+    ${isCancelado ? '' : `<div class="apt-progress-section">
       <div class="apt-progress-track" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="apt-progress-fill" style="width:${pct}%"></div></div>
       <div class="apt-amounts-row">
         <span class="apt-paid-lbl">✓ Pagado $${pagado.toLocaleString('es-MX')}</span>
         <span class="apt-pending-lbl">${pendiente > 0 ? 'Pendiente $' + pendiente.toLocaleString('es-MX') : '✓ Liquidado'}</span>
       </div>
-    </div>
+    </div>`}
     ${abonosVisible || paymentHistoryWarning ? `<div class="apt-abonos-section"><div class="adm-section-title">Historial de pagos</div>${paymentHistoryWarning}${abonosVisible}</div>` : ''}`;
+
+  // Un apartado cancelado no admite ninguna acción — ni siquiera reabrir
+  // (no hay RPC para eso; cancelar es terminal, a diferencia de liquidar).
+  if (isCancelado) {
+    const canceladoFecha = s.cancelled_at
+      ? ` · ${_posFormatTimestamp(s.cancelled_at, {day:'numeric',month:'short'})}`
+      : '';
+    document.getElementById('adm-footer').innerHTML =
+      `<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--muted)">✕ Cancelado${canceladoFecha}</span>`;
+    const modal = document.getElementById('apt-detail-modal');
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => document.getElementById('adm-customer')?.focus());
+    return;
+  }
 
   // Un apartado liquidado no admite abonar, liquidar, editar ni cancelar desde esta ficha.
   // pendiente<=0 cubre el caso de un registro local desfasado (otra caja ya liquidó

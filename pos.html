@@ -533,6 +533,7 @@
     <div class="apt-view-toggle" id="apt-view-toggle-oc" style="margin-bottom:8px" role="tablist" aria-label="Estado de los apartados" onkeydown="aptViewTabKeydown(event,'oc')">
       <button type="button" class="active" role="tab" aria-selected="true" aria-controls="apt-offcanvas-list" data-mode="activos" onclick="selectAptView('activos','oc')">Activos</button>
       <button type="button" role="tab" aria-selected="false" aria-controls="apt-offcanvas-list" tabindex="-1" data-mode="liquidados" onclick="selectAptView('liquidados','oc')">Liquidados</button>
+      <button type="button" role="tab" aria-selected="false" aria-controls="apt-offcanvas-list" tabindex="-1" data-mode="cancelados" onclick="selectAptView('cancelados','oc')">Cancelados</button>
     </div>
     <div class="apt-due-filters-wrap" id="apt-due-filters-wrap-oc">
       <div class="apt-due-filters" id="apt-due-filters-oc" role="group" aria-label="Filtrar activos por vencimiento" onscroll="_aptDueFiltersScroll('oc')">
@@ -565,6 +566,7 @@
     <div class="apt-view-toggle" id="apt-view-toggle-page" role="tablist" aria-label="Estado de los apartados" onkeydown="aptViewTabKeydown(event,'page')">
       <button type="button" class="active" role="tab" aria-selected="true" aria-controls="apt-page-list" data-mode="activos" onclick="selectAptView('activos','page')">Activos</button>
       <button type="button" role="tab" aria-selected="false" aria-controls="apt-page-list" tabindex="-1" data-mode="liquidados" onclick="selectAptView('liquidados','page')">Liquidados</button>
+      <button type="button" role="tab" aria-selected="false" aria-controls="apt-page-list" tabindex="-1" data-mode="cancelados" onclick="selectAptView('cancelados','page')">Cancelados</button>
     </div>
     <div class="apt-page-search-wrap">
       <input type="text" id="apt-page-search" placeholder="🔍 Buscar cliente..." autocomplete="off"
