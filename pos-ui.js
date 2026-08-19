@@ -791,7 +791,7 @@ async function loadHistory() {
       const itemsHTML = items.map(i => {
         const cur = products.find(p => p.id === i.id);
         const img = _driveSz(cur?.image, 80) || THUMB_PH;
-        const displayName = _esc(i.name || cur?.name);
+        const displayName = _esc(cur?.name || i.name);
         return `
 <div class="hi-item">
   <img class="hi-item-thumb" src="${img}" alt="${displayName}" onerror="this.src='${THUMB_PH}'" data-name="${displayName}" data-price="${i.price}" data-qty="${i.qty||1}" data-seller="${payment.collected_by_email||s.seller_email||''}" onclick="event.stopPropagation();openLightbox(this)" style="cursor:zoom-in">
