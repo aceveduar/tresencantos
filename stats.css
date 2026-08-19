@@ -235,6 +235,8 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   #today-sales-list{max-height:240px!important}
   /* Apartados pendientes: mismo trato, evita alargar toda la página con 40+ activos */
   #apt-pending-body{max-height:240px!important}
+  /* Valor en venta por categoría: mismo trato con catálogos de muchas categorías */
+  #capital-cat-body{max-height:240px!important}
   /* Calendar: montos ilegibles en celdas pequeñas — solo color y número */
   .cal-cell-amt{display:none}
   .cal-cell:hover .cal-tooltip{display:none}

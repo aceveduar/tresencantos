@@ -205,6 +205,7 @@
         <div id="inv-valor-costo-wrap" style="flex:1;min-width:130px;padding:10px 14px;background:#F0FDF4;border:1px solid #A7F3D0;border-radius:10px;display:none">
           <div style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:3px">Capital invertido</div>
           <div id="inv-valor-costo" style="font-size:1.05rem;font-weight:700;color:var(--charcoal);font-family:'Playfair Display',serif">$0</div>
+          <div id="inv-valor-costo-note" style="font-size:.66rem;color:var(--muted);margin-top:3px;display:none"></div>
         </div>
       </div>
       <div id="inv-list"></div>
@@ -217,7 +218,7 @@
       <h2>💰 Valor en venta por categoría</h2>
       <span id="capital-cat-total" style="font-size:.75rem;color:var(--muted)"></span>
     </div>
-    <div class="card-body" id="capital-cat-body">
+    <div class="card-body" id="capital-cat-body" style="max-height:400px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain">
       <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
     </div>
   </div>

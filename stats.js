@@ -1168,9 +1168,19 @@ function renderInventory() {
   document.getElementById('inv-valor-venta').textContent = '$' + Math.round(valorVenta).toLocaleString('es-MX');
   const valorCosto = products.reduce((s, p) => s + (p.cost > 0 && p.stock > 0 ? p.cost * p.stock : 0), 0);
   const costoWrap = document.getElementById('inv-valor-costo-wrap');
+  const costoNote = document.getElementById('inv-valor-costo-note');
   if (valorCosto > 0) {
     document.getElementById('inv-valor-costo').textContent = '$' + Math.round(valorCosto).toLocaleString('es-MX');
     costoWrap.style.display = '';
+    const withCostCount = products.filter(p => p.cost > 0).length;
+    if (costoNote) {
+      if (withCostCount < products.length) {
+        costoNote.textContent = `${withCostCount} de ${products.length} con costo registrado`;
+        costoNote.style.display = '';
+      } else {
+        costoNote.style.display = 'none';
+      }
+    }
   } else {
     costoWrap.style.display = 'none';
   }
