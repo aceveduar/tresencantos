@@ -416,7 +416,7 @@ function _updateAptOcActivosCount() {
 async function loadApartados() {
   const loadGeneration = ++_apartadosLoadGeneration;
   const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,updated_at,version,items,abonos,discount';
-  const result = await api(`sales?origin_type=eq.apartado&status=eq.activo&select=${fields}&order=due_date.asc.nullslast,created_at.desc,id.desc&limit=100`);
+  const result = await api(`sales?origin_type=eq.apartado&status=eq.activo&select=${fields}&order=created_at.desc,id.desc&limit=100`);
   if (loadGeneration !== _apartadosLoadGeneration) return false;
   const ocList    = document.getElementById('apt-offcanvas-list');
   const ocCount   = document.getElementById('apt-oc-count');
