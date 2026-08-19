@@ -238,10 +238,11 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   .cal-cell-amt{display:none}
   .cal-cell:hover .cal-tooltip{display:none}
   .cal-cell:hover{transform:none!important}
-  /* Secciones de baja prioridad — ocultas en mobile */
+  /* Secciones de baja prioridad — ocultas en mobile. Rentabilidad se queda
+     visible: es información de decisión de negocio (qué surtir/descontar
+     según margen), no un extra de conveniencia como estas dos. */
   #hora-pico-card{display:none!important}
   #weekday-card{display:none!important}
-  #rentabilidad-card{display:none!important}
 }
 
 @media(max-width:360px){
