@@ -349,7 +349,7 @@ function _renderSalesNotifHint() {
   const hint = document.getElementById('sales-notif-hint');
   if (!row || !hint) return;
   if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
-    hint.textContent = '⚠️ Bloqueadas en este navegador — actívalas en los ajustes del sitio (candado en la barra de direcciones) para poder usarlas aquí.';
+    hint.innerHTML = '<svg style="width:13px;height:13px;vertical-align:-2px;margin-right:3px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Bloqueadas en este navegador — actívalas en los ajustes del sitio (candado en la barra de direcciones) para poder usarlas aquí.';
     row.style.display = '';
   } else if (localStorage.getItem('te_sales_notif_enabled') === '1') {
     hint.textContent = 'Activas en este dispositivo. Solo llegan mientras tengas una pestaña de Tres Encantos abierta (puede estar en segundo plano) — si cierras el navegador del todo, no llegan.';
