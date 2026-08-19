@@ -72,7 +72,8 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 /* ── CARDS ── */
 .card{background:#fff;border-radius:var(--r);border:1px solid var(--border);box-shadow:0 2px 8px rgba(28,24,23,.06);overflow:hidden}
 .card-head{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.card-head h2{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--charcoal)}
+.card-head h2{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--charcoal);display:flex;align-items:center;gap:7px}
+.card-h-icon{width:18px;height:18px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;color:var(--gold-dark)}
 .card-head span{font-size:.75rem;color:var(--muted)}
 .card-body{padding:20px 22px}
 
