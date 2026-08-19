@@ -234,7 +234,11 @@ async function load() {
   if (currentSearch) {
     const qSafe = currentSearch.replace(/[,()]/g, ' ').trim();
     const pat = encodeURIComponent(`*${qSafe}*`);
-    logQ += `&or=(summary.ilike.${pat},meta->>customer.ilike.${pat},meta->>name.ilike.${pat})`;
+    logQ += `&or=(summary.ilike.${pat},meta->>customer.ilike.${pat},meta->>name.ilike.${pat})&limit=1000`;
+  } else {
+    // Tope al feed de auditoría — sin esto, período "Todo" trae el
+    // activity_log completo desde el primer día de la tienda.
+    logQ += `&limit=300`;
   }
   if (from) logQ += `&created_at=gte.${encodeURIComponent(from)}`;
   if (user) logQ += `&user_email=eq.${encodeURIComponent(user)}`;
@@ -249,8 +253,10 @@ async function load() {
   let aptQ = `sales?select=id,total,paid_amount&origin_type=eq.apartado&status=eq.activo&order=id.asc`;
   if (user) aptQ += `&seller_email=eq.${encodeURIComponent(user)}`;
 
+  // logQ ya trae su propio limit= — usar _fetchAllActivity aquí anexaría un
+  // segundo &limit= (el de paginación, sin tope) que gana sobre el nuestro.
   const [logRes, paymentsRes, aptRes] = await Promise.all([
-    _fetchAllActivity(logQ), _fetchAllActivity(paymentsQ), _fetchAllActivity(aptQ)
+    api(logQ), _fetchAllActivity(paymentsQ), _fetchAllActivity(aptQ)
   ]);
   if (loadGeneration !== _activityLoadGeneration) return;
 
