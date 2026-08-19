@@ -813,7 +813,11 @@ async function loadHistory() {
       if (s.cancelled_at) tags.push('<span class="hi-tag note">Cancelado</span>');
       const footerHTML = tags.length ? `<div class="hi-footer">${tags.join('')}</div>` : '';
       const displayTotal = `${amount < 0 ? '−' : ''}$${Math.abs(amount).toLocaleString('es-MX')}`;
-      const canCancelThis = canCancelSale() && payment.kind === 'payment' && !s.cancelled_at && newestMovementBySale.get(s.id) === payment.id;
+      // Ancla el botón al movimiento más reciente de la venta (evita un ✕ por
+      // cada fila cuando hay varios pagos/reembolsos) sin exigir que ese
+      // movimiento más reciente sea justo un 'payment' — una venta con algún
+      // reembolso parcial también debe poder cancelarse.
+      const canCancelThis = canCancelSale() && !s.cancelled_at && newestMovementBySale.get(s.id) === payment.id;
 
       return `
 <div class="hi-card">
