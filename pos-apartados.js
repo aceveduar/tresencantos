@@ -407,8 +407,9 @@ function _updateAptOcActivosCount() {
   const todayKey = _posMexicoDayKey();
   const vencidos = (_apartadosAll || []).filter(s => s.due_date && s.due_date < todayKey).length;
   const rows = _apartadosAll || [];
+  const totalFalta = rows.reduce((sum, s) => sum + Math.max(0, (parseFloat(s.total) || 0) - parseFloat(s.paid_amount || 0)), 0);
   ocCount.textContent = rows.length
-    ? `${rows.length} apartado${rows.length !== 1 ? 's' : ''} activo${rows.length !== 1 ? 's' : ''}${vencidos > 0 ? ` · ${vencidos} vencido${vencidos > 1 ? 's' : ''}` : ''}`
+    ? `${rows.length} apartado${rows.length !== 1 ? 's' : ''} activo${rows.length !== 1 ? 's' : ''}${vencidos > 0 ? ` · ${vencidos} vencido${vencidos > 1 ? 's' : ''}` : ''} · $${totalFalta.toLocaleString('es-MX')} por cobrar`
     : '';
 }
 

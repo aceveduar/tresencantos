@@ -493,7 +493,12 @@ function _renderAptPageCards(data, isLiquidado) {
   const grid = document.getElementById('apt-page-list');
   if (!grid) return;
   const count = document.getElementById('apt-page-count');
-  if (count) count.textContent = data.length ? `${data.length} ${isLiquidado ? 'liquidado' : 'activo'}${data.length !== 1 ? 's' : ''}` : '';
+  if (count) {
+    const totalFalta = isLiquidado ? 0 : data.reduce((sum, s) => sum + Math.max(0, (parseFloat(s.total) || 0) - parseFloat(s.paid_amount || 0)), 0);
+    count.textContent = data.length
+      ? `${data.length} ${isLiquidado ? 'liquidado' : 'activo'}${data.length !== 1 ? 's' : ''}${!isLiquidado ? ` · $${totalFalta.toLocaleString('es-MX')} por cobrar` : ''}`
+      : '';
+  }
   if (!data.length) {
     grid.innerHTML = `<div class="history-empty" style="grid-column:1/-1"><div style="font-size:2rem;margin-bottom:8px">${isLiquidado ? '✅' : '🔍'}</div>Sin ${isLiquidado ? 'apartados liquidados' : 'resultados'}</div>`;
     return;
