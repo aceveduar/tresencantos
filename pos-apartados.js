@@ -320,23 +320,12 @@ async function _hydrateApartadoPayments(rows) {
   return true;
 }
 
-async function _loadApartadoPages(query, pageSize = 500) {
-  const rows = [];
-  for (let offset = 0; offset < 10000; offset += pageSize) {
-    const join = query.includes('?') ? '&' : '?';
-    const result = await api(`${query}${join}limit=${pageSize}&offset=${offset}`);
-    if (!result.ok) return result;
-    const page = Array.isArray(result.data) ? result.data : [];
-    rows.push(...page);
-    if (page.length < pageSize) return { ok: true, status: result.status, data: rows };
-  }
-  return { ok: false, status: 413, data: { message: 'Demasiados apartados para cargar en una sola vista' } };
-}
-
 async function loadApartadosLiquidados() {
   const loadGeneration = ++_apartadosLiquidatedLoadGeneration;
   const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,updated_at,version,items,abonos,discount';
-  const result = await _loadApartadoPages(`sales?origin_type=eq.apartado&status=eq.liquidado&select=${fields}&order=liquidated_at.desc.nullslast,created_at.desc,id.desc`);
+  // Vista acotada a los más recientes, igual que antes de la reescritura —
+  // no una consulta paginada sin tope de todo el histórico de la tienda.
+  const result = await api(`sales?origin_type=eq.apartado&status=eq.liquidado&select=${fields}&order=liquidated_at.desc.nullslast,created_at.desc,id.desc&limit=200`);
   if (loadGeneration !== _apartadosLiquidatedLoadGeneration) return false;
   if (!result.ok) return null;
   const rows = Array.isArray(result.data) ? result.data : [];
@@ -378,7 +367,7 @@ async function toggleAptView(mode, target) {
 async function loadApartados() {
   const loadGeneration = ++_apartadosLoadGeneration;
   const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,updated_at,version,items,abonos,discount';
-  const result = await _loadApartadoPages(`sales?origin_type=eq.apartado&status=eq.activo&select=${fields}&order=created_at.desc,id.desc`);
+  const result = await api(`sales?origin_type=eq.apartado&status=eq.activo&select=${fields}&order=created_at.desc,id.desc&limit=100`);
   if (loadGeneration !== _apartadosLoadGeneration) return false;
   const ocList    = document.getElementById('apt-offcanvas-list');
   const ocCount   = document.getElementById('apt-oc-count');
