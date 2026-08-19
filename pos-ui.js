@@ -1,3 +1,20 @@
+/* ── ÍCONOS INLINE (apartados escritorio + historial) ── */
+const _uiIco = (p, px = 13, sw = 1.75) => `<svg style="width:${px}px;height:${px}px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:${sw};stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24">${p}</svg>`;
+const _uiIcoUser     = () => _uiIco('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>');
+const _uiIcoCalendar = () => _uiIco('<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>');
+const _uiIcoBookmark = () => _uiIco('<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>');
+const _uiIcoCheck    = (color, px = 13) => `<svg style="width:${px}px;height:${px}px;vertical-align:-2px;stroke:${color||'currentColor'};fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>`;
+const _uiIcoX        = (color, px = 13) => `<svg style="width:${px}px;height:${px}px;vertical-align:-2px;stroke:${color||'currentColor'};fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
+const _uiIcoSearch   = (px = 20) => _uiIco('<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>', px, 1.5);
+const _uiIcoTag      = () => _uiIco('<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42Z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>');
+const _uiIcoEdit     = () => _uiIco('<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>');
+const _uiIcoCash     = () => _uiIco('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>');
+const _uiIcoPhone    = () => _uiIco('<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>');
+const _uiIcoReceipt  = () => _uiIco('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>');
+const _uiIcoWarn     = () => _uiIco('<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>');
+const _uiIcoZap      = () => `<svg style="width:13px;height:13px;vertical-align:-2px;fill:currentColor;stroke:none" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`;
+const _uiIcoWA       = () => `<svg width="18" height="18" fill="#fff" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.374 0 0 5.373 0 12c0 2.124.553 4.118 1.522 5.85L.057 23.499l5.772-1.513A11.94 11.94 0 0012 24c6.626 0 12-5.373 12-12S18.626 0 12 0z"/></svg>`;
+
 /* ── SWIPE TO CLOSE (offcanvas desde la derecha) ── */
 function initSwipeToClose(panelId, backdropId, closeFn, backdropBaseOpacity = 0.35, ignoreSelector = null) {
   const panel    = document.getElementById(panelId);
@@ -215,15 +232,15 @@ function openPosPreview(id) {
   img.dataset.qty = 1;
 
   document.getElementById('pos-preview-cat').textContent   = p.categoryLabel || '';
-  document.getElementById('pos-preview-name').textContent  = (isKit ? '🎁 ' : '') + p.name;
+  document.getElementById('pos-preview-name').innerHTML     = (isKit ? _giftIconSvg(14) + ' ' : '') + _esc(p.name);
   document.getElementById('pos-preview-price').textContent = '$' + p.price.toLocaleString('es-MX') + ' MXN';
 
   let stockHTML = '';
   if (oos)                          stockHTML = '<span style="color:var(--red)">⊘ Agotado</span>';
-  else if (isKit)                   stockHTML = `<span style="color:#6B9E78">🎁 ${effStock} kit${effStock!==1?'s':''} disponibles</span>`;
-  else if (effStock === 1)          stockHTML = '<span style="color:var(--gold-dark)">⚡ Última pieza</span>';
+  else if (isKit)                   stockHTML = `<span style="color:#6B9E78">${_giftIconSvg(13)} ${effStock} kit${effStock!==1?'s':''} disponibles</span>`;
+  else if (effStock === 1)          stockHTML = `<span style="color:var(--gold-dark)">${_uiIcoZap()} Última pieza</span>`;
   else if (effStock >= 2 && effStock <= 5) stockHTML = `<span style="color:var(--gold-dark)">${effStock} piezas disponibles</span>`;
-  else                              stockHTML = '<span style="color:#6B9E78">✓ Disponible</span>';
+  else                              stockHTML = `<span style="color:#6B9E78">${_uiIcoCheck()} Disponible</span>`;
   document.getElementById('pos-preview-stock').innerHTML = stockHTML;
 
   const descEl = document.getElementById('pos-preview-desc');
@@ -469,7 +486,7 @@ function _renderAptPageCanceladosCards(data) {
   const count = document.getElementById('apt-page-count');
   if (count) count.textContent = data.length ? `${data.length} cancelado${data.length !== 1 ? 's' : ''}` : '';
   if (!data.length) {
-    grid.innerHTML = '<div class="history-empty" style="grid-column:1/-1"><div style="font-size:2rem;margin-bottom:8px">✕</div>Sin apartados cancelados</div>';
+    grid.innerHTML = `<div class="history-empty" style="grid-column:1/-1"><div style="margin-bottom:8px">${_uiIcoX('var(--red)', 30)}</div>Sin apartados cancelados</div>`;
     return;
   }
   grid.innerHTML = data.map(s => {
@@ -481,7 +498,7 @@ function _renderAptPageCanceladosCards(data) {
     const telNum = custParts[1] || '';
     return `<button type="button" class="apc-card apc-card-cancelado" onclick="openAptDetail(${s.id})" aria-label="Ver apartado cancelado de ${_esc(nombre)}, total $${total.toLocaleString('es-MX')}">
   <span class="apc-top">
-    <span class="apc-name">👤 ${_esc(nombre)}</span>
+    <span class="apc-name">${_uiIcoUser()} ${_esc(nombre)}</span>
     <span class="apt-h-pending cancelado">✕ Cancelado</span>
   </span>
   <span class="apc-meta">${t} · ${nItems} prod.${telNum ? ' · 📱 ' + telNum : ''} · $${total.toLocaleString('es-MX')}</span>
@@ -500,7 +517,7 @@ function _renderAptPageCards(data, isLiquidado) {
       : '';
   }
   if (!data.length) {
-    grid.innerHTML = `<div class="history-empty" style="grid-column:1/-1"><div style="font-size:2rem;margin-bottom:8px">${isLiquidado ? '✅' : '🔍'}</div>Sin ${isLiquidado ? 'apartados liquidados' : 'resultados'}</div>`;
+    grid.innerHTML = `<div class="history-empty" style="grid-column:1/-1"><div style="margin-bottom:8px">${isLiquidado ? _uiIcoCheck('var(--green)', 30) : _uiIcoSearch(30)}</div>Sin ${isLiquidado ? 'apartados liquidados' : 'resultados'}</div>`;
     return;
   }
   grid.innerHTML = data.map(s => {
@@ -518,7 +535,7 @@ function _renderAptPageCards(data, isLiquidado) {
     if (isLiquidado) {
       return `<button type="button" class="apc-card" onclick="openAptDetail(${s.id})" aria-label="Ver apartado liquidado de ${_esc(nombre)}, total $${total.toLocaleString('es-MX')}">
   <span class="apc-top">
-    <span class="apc-name">👤 ${_esc(nombre)}</span>
+    <span class="apc-name">${_uiIcoUser()} ${_esc(nombre)}</span>
     <span class="apc-pending zero">✓ Liquidado</span>
   </span>
   <span class="apc-meta">${t} · ${nItems} prod.${telNum ? ' · 📱 ' + telNum : ''} · $${total.toLocaleString('es-MX')}</span>
@@ -532,11 +549,11 @@ function _renderAptPageCards(data, isLiquidado) {
       isOverdue = diff < 0;
       const dueColor = diff < 0 ? '#E85D5D' : diff <= 7 ? '#D97706' : '#6B9E78';
       const dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)}d` : diff === 0 ? 'Vence hoy' : `Vence ${_posFormatDayKey(s.due_date,{day:'numeric',month:'short'})}`;
-      dueHTML = `<span class="apc-due" style="color:${dueColor}">📅 ${dueText}</span>`;
+      dueHTML = `<span class="apc-due" style="color:${dueColor}">${_uiIcoCalendar()} ${dueText}</span>`;
     }
     return `<button type="button" class="apc-card${isOverdue ? ' apt-overdue' : ''}" onclick="openAptDetail(${s.id})" aria-label="Ver apartado de ${_esc(nombre)}, falta $${pendiente.toLocaleString('es-MX')}${isOverdue ? ', vencido' : ''}">
   <span class="apc-top">
-    <span class="apc-name">👤 ${_esc(nombre)}</span>
+    <span class="apc-name">${_uiIcoUser()} ${_esc(nombre)}</span>
     <span class="apc-pending${pendiente === 0 ? ' zero' : ''}">${pendiente === 0 ? '✓ Listo' : 'Falta $' + pendiente.toLocaleString('es-MX')}</span>
   </span>
   <span class="apc-meta">${t} · ${nItems} prod.${telNum ? ' · 📱 ' + telNum : ''}</span>
@@ -560,8 +577,8 @@ function openAptDetail(id) {
   const nombre    = custParts[0] || 'Sin nombre';
   const telNum    = custParts[1] || '';
 
-  document.getElementById('adm-customer').textContent = '👤 ' + nombre;
-  document.getElementById('adm-meta').textContent = t + ' · ' + nItems + ' producto' + (nItems !== 1 ? 's' : '') + (telNum ? ' · 📱 ' + telNum : '');
+  document.getElementById('adm-customer').innerHTML = _uiIcoUser() + ' ' + _esc(nombre);
+  document.getElementById('adm-meta').innerHTML = _esc(t + ' · ' + nItems + ' producto' + (nItems !== 1 ? 's' : '')) + (telNum ? ' · ' + _uiIcoPhone() + ' ' + _esc(telNum) : '');
 
   // Items
   const itemsHTML = (s.items || []).map(i => {
@@ -589,7 +606,7 @@ function openAptDetail(id) {
   const abonos = Array.isArray(s.payment_history) ? s.payment_history
     : Array.isArray(s.abonos) ? s.abonos : [];
   const paymentHistoryWarning = s.payment_history_error
-    ? '<div style="font-size:.74rem;color:var(--red);margin-top:8px">⚠ Historial incompleto; recarga para consultar el libro de pagos.</div>'
+    ? `<div style="font-size:.74rem;color:var(--red);margin-top:8px">${_uiIcoWarn()} Historial incompleto; recarga para consultar el libro de pagos.</div>`
     : '';
 
   const isLiquidado = _isApartadoLiquidado(s);
@@ -601,7 +618,7 @@ function openAptDetail(id) {
     const diff = _posDayKeyDiff(s.due_date);
     const dueColor = diff < 0 ? '#E85D5D' : diff <= 7 ? '#D97706' : '#6B9E78';
     const dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)} día${Math.abs(diff)!==1?'s':''}` : diff === 0 ? 'Vence hoy' : `Vence el ${_posFormatDayKey(s.due_date,{day:'numeric',month:'long'})}`;
-    dueAlertHTML = `<div style="font-size:.76rem;font-weight:700;color:${dueColor};margin-bottom:10px">📅 ${dueText}</div>`;
+    dueAlertHTML = `<div style="font-size:.76rem;font-weight:700;color:${dueColor};margin-bottom:10px">${_uiIcoCalendar()} ${dueText}</div>`;
   }
 
   const disc = Math.round(((parseFloat(s.discount) || 0) + _itemsDiscountTotal(s.items)) * 100) / 100;
@@ -610,14 +627,14 @@ function openAptDetail(id) {
   const summaryRows = [];
   if (disc > 0) {
     summaryRows.push(`<div class="apt-sum-row"><span>Subtotal</span><span>$${subtotal.toLocaleString('es-MX')}</span></div>`);
-    summaryRows.push(`<div class="apt-sum-row apt-sum-disc"><span>🏷 Descuento</span><span>−$${disc.toLocaleString('es-MX')}</span></div>`);
+    summaryRows.push(`<div class="apt-sum-row apt-sum-disc"><span>${_uiIcoTag()} Descuento</span><span>−$${disc.toLocaleString('es-MX')}</span></div>`);
   }
   summaryRows.push(`<div class="apt-sum-row apt-sum-total"><span>Total</span><span>$${total.toLocaleString('es-MX')}</span></div>`);
 
   const abonosVisible = abonos.length ? abonos.map(a => {
     const meta = typeof _apartadoPaymentMeta === 'function'
       ? _apartadoPaymentMeta(a)
-      : { amount: parseFloat(a.amount) || 0, dateLabel: 'Histórico', method: a.method || 'sin registrar', icon: '🧾' };
+      : { amount: parseFloat(a.amount) || 0, dateLabel: 'Histórico', method: a.method || 'sin registrar', icon: _uiIcoReceipt() };
     const amountLabel = `${meta.amount < 0 ? '−' : ''}$${Math.abs(meta.amount).toLocaleString('es-MX')}`;
     return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${amountLabel}</span></div>`;
   }).join('') : '';
@@ -661,15 +678,15 @@ function openAptDetail(id) {
       ? `<button type="button" class="btn-abonar" id="adm-refund-btn" onclick="refundApartado(${id},'detail')" style="border-color:var(--red);color:var(--red)">↩ Reabrir y reembolsar</button>`
       : '';
     document.getElementById('adm-footer').innerHTML =
-      `<button type="button" class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" aria-label="Enviar por WhatsApp" title="Enviar por WhatsApp">💬</button>
+      `<button type="button" class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" aria-label="Enviar por WhatsApp" title="Enviar por WhatsApp">${_uiIcoWA()}</button>
        ${reopenBtn || '<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--green)">✓ Liquidado</span>'}`;
   } else {
     const editBtn = canEditApartado()
-      ? `<button type="button" class="btn-edit-apt" onclick="closeAptDetail();openEditApartado(${id})" aria-label="Editar apartado" title="Editar apartado">✏️</button>` : '';
+      ? `<button type="button" class="btn-edit-apt" onclick="closeAptDetail();openEditApartado(${id})" aria-label="Editar apartado" title="Editar apartado">${_uiIcoEdit()}</button>` : '';
     const cancelBtn = canCancelApartado()
       ? `<button type="button" class="btn-cancelar-apt" onclick="cancelApartado(${id})" aria-label="Cancelar apartado" title="Cancelar apartado">✕</button>` : '';
     document.getElementById('adm-footer').innerHTML = `
-      <button type="button" class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" aria-label="Enviar recordatorio por WhatsApp" title="Recordatorio WhatsApp">💬</button>
+      <button type="button" class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" aria-label="Enviar recordatorio por WhatsApp" title="Recordatorio WhatsApp">${_uiIcoWA()}</button>
       ${editBtn}
       <button type="button" class="btn-abonar" onclick="closeAptDetail();abonarApartado('${id}','${total}','${pagado}','${_esc(nombre).replace(/'/g,"\\'")}')">Registrar abono</button>
       <button type="button" class="btn-liquidar" onclick="closeAptDetail();openLiqModal(${id})">Cobrar saldo $${pendiente.toLocaleString('es-MX')}</button>
@@ -859,25 +876,25 @@ async function loadHistory() {
       const totalQty = items.reduce((n, i) => n + (i.qty || 1), 0);
       const amount = parseFloat(payment.amount) || 0;
       const isApt = s.origin_type === 'apartado' || (!s.origin_type && (s.type === 'apartado' || (s.abonos || []).length));
-      const methodIcon = payment.method === 'transferencia' ? '📱' : payment.method === 'efectivo' ? '💵' : '🧾';
+      const methodIcon = payment.method === 'transferencia' ? _uiIcoPhone() : payment.method === 'efectivo' ? _uiIcoCash() : _uiIcoReceipt();
       let badgeText;
       let badgeStyle = 'background:#F5F1EB;color:#6B625A;border:1px solid #D8CEC3';
       if (payment.kind === 'apartado_created') {
-        badgeText = '📌 Apartado nuevo';
+        badgeText = _uiIcoBookmark() + ' Apartado nuevo';
         badgeStyle = 'background:#FFF8EE;color:#9A742D;border:1px solid #C9A462';
       } else if (payment.kind === 'refund') {
-        badgeText = '↩ Devolución';
+        badgeText = _uiIco('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>') + ' Devolución';
         badgeStyle = 'background:#FEE2E2;color:var(--red);border:1px solid #FCA5A5';
       } else if (payment.kind === 'adjustment') {
-        badgeText = '🧾 Ajuste histórico';
+        badgeText = _uiIcoReceipt() + ' Ajuste histórico';
       } else if (isApt && _isApartadoLiquidationPayment(payment, s)) {
-        badgeText = '✅ Apartado liquidado';
+        badgeText = _uiIcoCheck('#2D6A4F') + ' Apartado liquidado';
         badgeStyle = 'background:#ECFDF5;color:#2D6A4F;border:1px solid #2D6A4F';
       } else if (isApt && payment.source === 'rpc_apartado_initial') {
-        badgeText = '📌 Anticipo';
+        badgeText = _uiIcoBookmark() + ' Anticipo';
         badgeStyle = 'background:#FFF8EE;color:#9A742D;border:1px solid #C9A462';
       } else if (isApt) {
-        badgeText = '📌 Abono';
+        badgeText = _uiIcoBookmark() + ' Abono';
         badgeStyle = 'background:#FFF8EE;color:#9A742D;border:1px solid #C9A462';
       } else {
         badgeText = `${methodIcon} Venta`;
@@ -903,13 +920,13 @@ async function loadHistory() {
 
       const totalDisc = Math.round((disc + _itemsDiscountTotal(items)) * 100) / 100;
       const tags = [];
-      if (totalDisc > 0) tags.push(`<span class="hi-tag discount">🏷 −$${totalDisc.toLocaleString('es-MX')}</span>`);
-      if (s.note)     tags.push(`<span class="hi-tag note">📝 ${_esc(s.note)}</span>`);
-      if (s.customer) tags.push(`<span class="hi-tag customer">👤 ${_esc((s.customer||'').split(' · 📱 ')[0])}</span>`);
-      if (payment.is_estimated) tags.push('<span class="hi-tag note">⚠ Histórico estimado</span>');
+      if (totalDisc > 0) tags.push(`<span class="hi-tag discount">${_uiIcoTag()} −$${totalDisc.toLocaleString('es-MX')}</span>`);
+      if (s.note)     tags.push(`<span class="hi-tag note">${_uiIcoEdit()} ${_esc(s.note)}</span>`);
+      if (s.customer) tags.push(`<span class="hi-tag customer">${_uiIcoUser()} ${_esc((s.customer||'').split(' · 📱 ')[0])}</span>`);
+      if (payment.is_estimated) tags.push(`<span class="hi-tag note">${_uiIcoWarn()} Histórico estimado</span>`);
       if (payment.refund_breakdown?.length > 1) {
         const breakdown = payment.refund_breakdown.map(line =>
-          `${line.method === 'transferencia' ? '📱' : line.method === 'efectivo' ? '💵' : '🧾'} $${Math.abs(line.amount).toLocaleString('es-MX')}`
+          `${line.method === 'transferencia' ? _uiIcoPhone() : line.method === 'efectivo' ? _uiIcoCash() : _uiIcoReceipt()} $${Math.abs(line.amount).toLocaleString('es-MX')}`
         ).join(' · ');
         tags.push(`<span class="hi-tag note">${breakdown}</span>`);
       }
