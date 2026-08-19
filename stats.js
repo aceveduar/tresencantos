@@ -359,6 +359,10 @@ function _updateNavUI() {
   if (fwd) fwd.disabled = _statsOffset >= 0;
   const now = document.getElementById('stats-nav-now');
   if (now) now.style.display = _statsOffset < 0 ? '' : 'none';
+  // El botón de WhatsApp siempre resume el día calendario real (no el período
+  // navegado) — solo debe verse cuando eso coincide con lo que está en pantalla.
+  const waBtn = document.getElementById('stats-wa-btn');
+  if (waBtn) waBtn.style.display = (_statsMode==='day'&&_statsOffset===0) ? '' : 'none';
   if (_statsMode==='day'&&_statsOffset===0) currentPeriod='today';
   else if (_statsMode==='day') currentPeriod='day_custom';
   else if (_statsMode==='week') currentPeriod='week';
