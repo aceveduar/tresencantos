@@ -57,7 +57,13 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .kpi-card:nth-child(4)::before{background:linear-gradient(90deg,var(--red),#c84444)}
 .kpi-card:nth-child(5)::before{background:linear-gradient(90deg,#a78bfa,#7c3aed)}
 .kpi-card:nth-child(6)::before{background:linear-gradient(90deg,#2dd4bf,#0d9488)}
-.kpi-icon{font-size:1.3rem;margin-bottom:10px;display:block}
+.kpi-icon{width:22px;height:22px;margin-bottom:10px;display:block;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.kpi-icon.si-gold{color:var(--gold-dark)}
+.kpi-icon.si-green{color:#059669}
+.kpi-icon.si-blue{color:#2563eb}
+.kpi-icon.si-red{color:var(--red)}
+.kpi-icon.si-violet{color:#7c3aed}
+.kpi-icon.si-teal{color:#0d9488}
 .kpi-value{font-family:'Playfair Display',serif;font-size:1.85rem;font-weight:600;line-height:1;color:var(--charcoal)}
 .kpi-value-money{font-family:'Inter',sans-serif;font-size:.7rem;font-weight:600;color:var(--muted);vertical-align:middle}
 .kpi-label{font-size:.68rem;color:var(--muted);margin-top:7px;letter-spacing:.07em;text-transform:uppercase;font-weight:500}
@@ -224,7 +230,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 }
 
 @media(max-width:480px){
-  .kpi-icon{font-size:1rem;margin-bottom:6px}
+  .kpi-icon{width:18px;height:18px;margin-bottom:6px}
   .kpi-value{font-size:1.2rem}
 
   /* Inventario: 3 col muy pequeño → 2+1 */
