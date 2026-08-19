@@ -405,22 +405,37 @@ async function loadCategories() {
 
 async function loadSales(mode = _statsMode, offset = _statsOffset, generation = null) {
   const { from, to } = getRange(mode, offset);
-  const [directSalesR, apartadoSalesR, paymentsR] = await Promise.all([
+  const [directSalesR, apartadoSalesR, paymentsR, apartadoZeroR] = await Promise.all([
     // Una venta directa se completa al crearla; un apartado, al liquidarlo.
     _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.venta&status=eq.liquidado&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=created_at.desc,id.desc`),
     _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(from)}&liquidated_at=lte.${encodeURIComponent(to)}&order=liquidated_at.desc,id.desc`),
     // Dinero sigue exclusivamente la fecha real del movimiento; no se filtra por
     // el estado actual de la venta para no borrar cobros históricos al cancelar.
-    _fetchAll(`sale_payments?select=${_PAYMENT_COLS}&paid_at=gte.${encodeURIComponent(from)}&paid_at=lte.${encodeURIComponent(to)}&order=paid_at.desc,id.desc`)
+    _fetchAll(`sale_payments?select=${_PAYMENT_COLS}&paid_at=gte.${encodeURIComponent(from)}&paid_at=lte.${encodeURIComponent(to)}&order=paid_at.desc,id.desc`),
+    // Un apartado creado con $0 de anticipo no genera fila en sale_payments
+    // (record_sale_atomic_v2 solo inserta pago si v_paid>0) — sin esto,
+    // "Movimientos de hoy" no reflejaba que se creó un apartado nuevo.
+    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&paid_amount=eq.0&cancelled_at=is.null&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=created_at.desc,id.desc`)
   ]);
   const directSales = (directSalesR.ok && Array.isArray(directSalesR.data)) ? directSalesR.data : [];
   const apartadoSales = (apartadoSalesR.ok && Array.isArray(apartadoSalesR.data)) ? apartadoSalesR.data : [];
   const nextPayments = (paymentsR.ok && Array.isArray(paymentsR.data)) ? paymentsR.data : [];
+  const apartadoZero = (apartadoZeroR.ok && Array.isArray(apartadoZeroR.data)) ? apartadoZeroR.data : [];
   await _loadPaymentSales(nextPayments);
   if (generation !== null && generation !== _statsReloadGeneration) return;
   salesLoaded = directSalesR.ok && apartadoSalesR.ok;
   paymentsLoaded = paymentsR.ok;
-  payments = nextPayments;
+  _rememberSales(apartadoZero);
+  payments = [...nextPayments, ...apartadoZero.map(sale => ({
+    id: `apartado-created-${sale.id}`,
+    sale_id: sale.id,
+    kind: 'apartado_created',
+    amount: 0,
+    method: null,
+    paid_at: sale.created_at,
+    is_estimated: false,
+    collected_by_email: sale.seller_email || null
+  }))];
   sales = salesLoaded ? [...directSales, ...apartadoSales] : [];
   _rememberSales(sales);
 }
@@ -512,7 +527,7 @@ function renderTodaySales() {
 
   const displayItems = _groupRefundOperations(payments)
     .sort((a, b) => new Date(b.paid_at) - new Date(a.paid_at));
-  const receipts = displayItems.filter(p => p.kind !== 'refund' && p.kind !== 'adjustment').length;
+  const receipts = displayItems.filter(p => p.kind !== 'refund' && p.kind !== 'adjustment' && p.kind !== 'apartado_created').length;
   const refunds = _refundOperationCount(payments);
   const adjustments = displayItems.filter(p => p.kind === 'adjustment').length;
 
@@ -537,14 +552,17 @@ function renderTodaySales() {
     const amount = _paymentAmount(payment);
     const isRefund = payment.kind === 'refund';
     const isAdjustment = payment.kind === 'adjustment';
+    const isCreated = payment.kind === 'apartado_created';
     const isHistorical = payment.is_estimated || payment.source?.startsWith('legacy_');
     const isLiquidation = _isApartadoLiquidationPayment(payment, s);
-    const tagText = isRefund ? 'DEVOLUCIÓN' : isAdjustment ? 'AJUSTE' : isHistorical ? 'HISTÓRICO' : isLiquidation ? 'LIQUIDADO' : origin === 'apartado' ? 'ABONO' : 'VENTA';
+    const tagText = isRefund ? 'DEVOLUCIÓN' : isAdjustment ? 'AJUSTE' : isCreated ? 'APARTADO NUEVO' : isHistorical ? 'HISTÓRICO' : isLiquidation ? 'LIQUIDADO' : origin === 'apartado' ? 'ABONO' : 'VENTA';
     const tagStyle = isRefund
       ? 'background:#FEE2E2;color:#991B1B'
       : isAdjustment || isHistorical
         ? 'background:#FEF3C7;color:#92400E'
-        : 'background:#DCFCE7;color:#166534';
+        : isCreated
+          ? 'background:#FFF8EE;color:#9A742D'
+          : 'background:#DCFCE7;color:#166534';
     const tag = `<span style="font-size:.62rem;${tagStyle};padding:1px 6px;border-radius:50px;font-weight:700;flex-shrink:0">${tagText}</span>`;
     const nombre = origin === 'apartado'
       ? ((s?.customer || '').split(' · 📱 ')[0] || `Apartado #${payment.sale_id}`)

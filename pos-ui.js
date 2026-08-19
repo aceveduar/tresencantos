@@ -689,7 +689,13 @@ async function loadHistory() {
   const saleFields = 'id,total,created_at,items,payment_method,type,origin_type,status,customer,discount,note,paid_amount,abonos,seller_email,cancelled_at,version';
   // "Movimientos recientes" es una vista acotada, no el ledger completo —
   // limit=50 evita traer toda la vida de la tienda en cada apertura.
-  const result = await api(`sale_payments?select=id,request_id,request_line,amount,kind,method,paid_at,recorded_at,is_estimated,source,collected_by_email,sale:sales(${saleFields})&order=paid_at.desc.nullslast,recorded_at.desc,id.desc&limit=50`);
+  // Un apartado creado con $0 de anticipo no genera fila en sale_payments
+  // (record_sale_atomic_v2 solo inserta pago si v_paid>0) — se consulta
+  // aparte para no desaparecer de Historial hasta el primer abono.
+  const [result, createdResult] = await Promise.all([
+    api(`sale_payments?select=id,request_id,request_line,amount,kind,method,paid_at,recorded_at,is_estimated,source,collected_by_email,sale:sales(${saleFields})&order=paid_at.desc.nullslast,recorded_at.desc,id.desc&limit=50`),
+    api(`sales?select=${saleFields}&origin_type=eq.apartado&paid_amount=eq.0&cancelled_at=is.null&order=created_at.desc&limit=20`)
+  ]);
   if (loadGeneration !== _historyLoadGeneration) return false;
   const el = document.getElementById('history-list');
   if (!result.ok) {
@@ -697,13 +703,8 @@ async function loadHistory() {
     el.innerHTML = '<div class="history-empty">No se pudo cargar el historial.<br><button class="btn-outline" onclick="loadHistory()" style="margin-top:10px">Reintentar</button></div>';
     return;
   }
-  if (!result.data?.length) {
-    salesCache = {};
-    el.innerHTML = '<div class="history-empty">Sin cobros registrados</div>';
-    return;
-  }
   salesCache = {};
-  const rawMovements = result.data.map(p => ({
+  const rawMovements = (result.data || []).map(p => ({
     ...p,
     sale: Array.isArray(p.sale) ? p.sale[0] : p.sale
   })).filter(p => p.sale);
@@ -727,6 +728,25 @@ async function loadHistory() {
     existing.refund_breakdown.push({ method: payment.method, amount: parseFloat(payment.amount) || 0 });
     if (existing.method !== payment.method) existing.method = 'multiple';
   });
+  if (createdResult.ok) {
+    (createdResult.data || []).forEach(sale => {
+      movements.push({
+        id: `apartado-created-${sale.id}`,
+        kind: 'apartado_created',
+        amount: 0,
+        method: null,
+        paid_at: sale.created_at,
+        is_estimated: false,
+        collected_by_email: sale.seller_email || null,
+        sale
+      });
+    });
+  }
+  if (!movements.length) {
+    el.innerHTML = '<div class="history-empty">Sin cobros registrados</div>';
+    return;
+  }
+  movements.sort((a, b) => new Date(b.paid_at || 0) - new Date(a.paid_at || 0));
   movements.forEach(p => { salesCache[p.sale.id] = p.sale; });
 
   // Convertir fecha UTC → clave YYYY-MM-DD en horario de México
@@ -770,7 +790,10 @@ async function loadHistory() {
       const methodIcon = payment.method === 'transferencia' ? '📱' : payment.method === 'efectivo' ? '💵' : '🧾';
       let badgeText;
       let badgeStyle = 'background:#F5F1EB;color:#6B625A;border:1px solid #D8CEC3';
-      if (payment.kind === 'refund') {
+      if (payment.kind === 'apartado_created') {
+        badgeText = '📌 Apartado nuevo';
+        badgeStyle = 'background:#FFF8EE;color:#9A742D;border:1px solid #C9A462';
+      } else if (payment.kind === 'refund') {
         badgeText = '↩ Devolución';
         badgeStyle = 'background:#FEE2E2;color:var(--red);border:1px solid #FCA5A5';
       } else if (payment.kind === 'adjustment') {
