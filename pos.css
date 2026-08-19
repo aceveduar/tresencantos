@@ -540,6 +540,7 @@ button,a{touch-action:manipulation}
 .apartado-item:hover{box-shadow:0 3px 14px rgba(28,24,23,.12)}
 .apartado-item.open{border-color:var(--gold)}
 .apt-overdue{border-color:#FECACA!important;background:#FFF5F5}
+.apt-cancelado{opacity:.82}
 /* Header */
 .apt-header{padding:12px 14px}
 .apt-header-r1{display:flex;align-items:center;justify-content:space-between;gap:8px}

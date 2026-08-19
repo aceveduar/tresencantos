@@ -510,8 +510,10 @@ async function loadApartados() {
 }
 
 // Vista de solo lectura — un apartado cancelado no admite abonar, liquidar,
-// editar ni volver a cancelar, así que no reutiliza el cuerpo completo de
-// _renderApartadoCards (que sí construye esos botones).
+// editar ni volver a cancelar, así que el cuerpo expandido no construye esos
+// botones. Sí reutiliza el mismo acordeón .apartado-item de Activos/Liquidados
+// (en vez de un modal aparte) para que tocar una tarjeta se comporte igual en
+// las 3 pestañas del panel mobile.
 function _renderApartadoCanceladosCards(data) {
   const ocList  = document.getElementById('apt-offcanvas-list');
   const ocTitle = document.getElementById('apt-oc-title');
@@ -524,19 +526,70 @@ function _renderApartadoCanceladosCards(data) {
     return;
   }
   ocList.innerHTML = data.map(s => {
-    const total = parseFloat(s.total) || 0;
-    const t = _posFormatTimestamp(s.cancelled_at || s.updated_at || s.created_at, { day:'numeric', month:'short' });
-    const nItems = Array.isArray(s.items) ? s.items.length : 0;
+    const total     = parseFloat(s.total) || 0;
+    const cardDate  = s.cancelled_at || s.updated_at || s.created_at;
+    const t         = _posFormatTimestamp(cardDate, {day:'numeric',month:'short'});
+    const cancelLabel = _posFormatTimestamp(cardDate, {day:'numeric',month:'long',year:'numeric'});
+    const nItems    = Array.isArray(s.items) ? s.items.length : 0;
     const custParts = (s.customer || '').split(' · 📱 ');
-    const nombre = custParts[0] || 'Sin nombre';
-    const telNum = custParts[1] || '';
-    return `<button type="button" class="apc-card apc-card-cancelado" onclick="openAptDetail(${s.id})" aria-label="Ver apartado cancelado de ${_esc(nombre)}, total $${total.toLocaleString('es-MX')}">
-  <span class="apc-top">
-    <span class="apc-name">👤 ${_esc(nombre)}</span>
-    <span class="apt-h-pending cancelado">✕ Cancelado</span>
-  </span>
-  <span class="apc-meta">${t} · ${nItems} prod.${telNum ? ' · '+telNum : ''} · $${total.toLocaleString('es-MX')}</span>
-</button>`;
+    const nombre    = custParts[0] || 'Sin nombre';
+    const telNum    = custParts[1] || '';
+
+    const abonos = Array.isArray(s.payment_history) ? s.payment_history
+      : Array.isArray(s.abonos) ? s.abonos : [];
+    const historyWarning = s.payment_history_error
+      ? '<div style="font-size:.72rem;color:var(--red);padding:6px 0">⚠ Historial incompleto; recarga para consultar el libro de pagos.</div>'
+      : '';
+    const abonosHTML = historyWarning + (abonos.length ? `
+<div class="apt-abonos-section-inline">
+  <div class="adm-section-title" style="font-size:.65rem;margin-bottom:4px">Pagos realizados</div>
+  ${abonos.map(a => {
+    const meta = _apartadoPaymentMeta(a);
+    return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${meta.amount < 0 ? '−' : ''}$${Math.abs(meta.amount).toLocaleString('es-MX')}</span></div>`;
+  }).join('')}
+</div>` : '');
+
+    const itemsListHTML = nItems ? s.items.map(i => {
+      const prod  = products.find(x => x.id === i.id);
+      const img   = _driveSz(prod?.image || i.image || '', 80);
+      const qty   = i.qty || 1;
+      const sub   = i.subtotal ?? i.price * qty;
+      const priceLabel = qty > 1
+        ? `<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span><span class="apt-item-qty">$${i.price.toLocaleString('es-MX')} ×${qty}</span>`
+        : `<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span>`;
+      return `<div class="apt-item-row" onclick="event.stopPropagation();_aptItemPopup(${i.id},this)">
+        <img class="apt-item-thumb" src="${img}" onerror="this.style.visibility='hidden'" alt="">
+        <div class="apt-item-info"><div class="apt-item-name">${_esc(i.name)}</div></div>
+        <div class="apt-item-right">${priceLabel}</div>
+      </div>`;
+    }).join('') : '';
+
+    const disc = Math.round(((parseFloat(s.discount) || 0) + _itemsDiscountTotal(s.items)) * 100) / 100;
+
+    return `
+<div class="apartado-item apt-cancelado">
+  <div class="apt-header" role="button" tabindex="0" aria-expanded="false" aria-label="Ver detalle del apartado cancelado de ${_esc(nombre)}" onclick="_toggleApt(this.parentElement,${s.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_toggleApt(this.parentElement,${s.id})}">
+    <div class="apt-header-r1">
+      <span class="apt-h-name">👤 ${_esc(nombre)}</span>
+      <div class="apt-h-right">
+        <span class="apt-h-pending cancelado">✕ Cancelado</span>
+        <span class="apt-chevron">›</span>
+      </div>
+    </div>
+    <div class="apt-header-r2">
+      <span class="apt-h-meta">${t} · ${nItems} prod.${telNum ? ' · '+telNum : ''}</span>
+    </div>
+  </div>
+  <div class="apt-body">
+    <div class="apt-items-list">${itemsListHTML}</div>
+    <div class="apt-summary">
+      ${disc > 0 ? `<div class="apt-sum-row"><span>Subtotal</span><span>$${(total+disc).toLocaleString('es-MX')}</span></div><div class="apt-sum-row apt-sum-disc"><span>🏷 Descuento</span><span>−$${disc.toLocaleString('es-MX')}</span></div>` : ''}
+      <div class="apt-sum-row apt-sum-total"><span>Total</span><span>$${total.toLocaleString('es-MX')}</span></div>
+    </div>
+    <div style="font-size:.76rem;color:var(--muted);font-weight:600;margin:10px 0 2px">✕ Cancelado el ${cancelLabel}</div>
+    ${abonosHTML}
+  </div>
+</div>`;
   }).join('');
 }
 
