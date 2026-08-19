@@ -768,7 +768,7 @@ button,a{touch-action:manipulation}
   font-family:inherit;transition:color .15s;position:relative;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation;
 }
-.pos-tab-icon{font-size:1.25rem;line-height:1;display:block}
+.pos-tab-icon{width:20px;height:20px;display:block;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .pos-tab.active{color:var(--charcoal)}
 .pos-tab.active::before{
   content:'';position:absolute;top:0;left:28%;right:28%;
