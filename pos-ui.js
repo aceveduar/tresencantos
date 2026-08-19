@@ -857,19 +857,9 @@ async function deleteSale(id) {
     : '';
   if (!confirm(`¿Cancelar el ${label} de $${total} (${itemCount} artículo${itemCount !== 1 ? 's' : ''})?\n\nSe restaurará el stock.${refundText}\n\nEsta acción no se puede deshacer.`)) return;
 
-  const delResult = await posRpc('cancel_sale_atomic', {
-    operation: 'cancel_sale',
-    context: id,
-    fingerprint: `${id}:${sale.version ?? 0}:${pagado}`,
-    body: {
-      p_sale_id: id,
-      p_expected_version: sale.version ?? 0,
-      p_reason: 'Cancelado desde Historial de Caja'
-    }
-  });
+  const delResult = await _posCancelSaleAtomic(id, sale, 'Cancelado desde Historial de Caja');
   if (!delResult.ok) {
     toast(_posRpcError(delResult, `Error al cancelar el ${label}`), 'error');
-    if (delResult.resolvedPrior || delResult.staleConflict) await _refreshPosFinancialState();
     return;
   }
 

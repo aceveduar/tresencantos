@@ -72,23 +72,13 @@ async function _confirmCancelApartado() {
   const btn = document.getElementById('cancel-apt-confirm-btn');
   btn.disabled = true; btn.textContent = 'Cancelando…';
 
-  const delResult = await posRpc('cancel_sale_atomic', {
-    operation: 'cancel_sale',
-    context: id,
-    fingerprint: `${id}:${sale.version ?? 0}:${pagado}`,
-    body: {
-      p_sale_id: id,
-      p_expected_version: sale.version ?? 0,
-      p_reason: 'Cancelado desde Caja'
-    }
-  });
+  const delResult = await _posCancelSaleAtomic(id, sale, 'Cancelado desde Caja');
   if (!delResult.ok) {
     toast(_posRpcError(delResult, 'Error al cancelar apartado'), 'error');
     btn.disabled = false; btn.textContent = 'Sí, cancelar apartado';
     if (delResult.resolvedPrior || delResult.staleConflict) {
       _closeCancelAptModal();
       closeAptDetail();
-      await _refreshPosFinancialState();
     }
     return;
   }
@@ -456,6 +446,31 @@ async function _refreshPosFinancialState() {
     filterApartadosWithDue(document.getElementById('apt-search')?.value || '', 'offcanvas');
     filterApartadosWithDue(document.getElementById('apt-page-search')?.value || '', 'page');
   }
+}
+
+// Único punto de entrada para cancel_sale_atomic — usado tanto desde el
+// panel de Apartados como desde Historial, para que ambos flujos no puedan
+// desincronizarse en el fingerprint, el pago considerado o cuándo refrescar.
+// Refresca en cualquier falla que no sea ambiguous/pendingConflict (no solo
+// resolvedPrior/staleConflict), igual que ya hacían abonar/editar/reembolsar
+// en pos-apartados.js — evita dejar el botón de cancelar accionable sobre
+// datos locales desactualizados tras un rechazo del servidor.
+async function _posCancelSaleAtomic(id, sale, reason) {
+  const pagado = parseFloat(sale?.paid_amount ?? sale?.total) || 0;
+  const result = await posRpc('cancel_sale_atomic', {
+    operation: 'cancel_sale',
+    context: id,
+    fingerprint: `${id}:${sale?.version ?? 0}:${pagado}`,
+    body: {
+      p_sale_id: id,
+      p_expected_version: sale?.version ?? 0,
+      p_reason: reason
+    }
+  });
+  if (!result.ok && !result.ambiguous && !result.pendingConflict) {
+    await _refreshPosFinancialState();
+  }
+  return result;
 }
 
 /* ── LOAD PRODUCTS ── */
