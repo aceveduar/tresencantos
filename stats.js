@@ -1357,7 +1357,7 @@ function renderBestSeller() {
   const best = Object.entries(freq).sort((a,b) => b[1]-a[1])[0];
   if (!best) { el.style.display = 'none'; return; }
   el.style.display = '';
-  el.innerHTML = `<div style="font-size:.76rem;color:var(--muted);padding:0 2px 10px;display:flex;align-items:center;gap:5px;overflow:hidden"><span style="flex-shrink:0">⭐</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><strong style="color:var(--charcoal)">${_esc(best[0])}</strong> · $${Math.round(best[1]).toLocaleString('es-MX')}</span></div>`;
+  el.innerHTML = `<div style="font-size:.76rem;color:var(--muted);padding:0 2px 10px;display:flex;align-items:center;gap:5px;overflow:hidden"><span style="flex-shrink:0">⭐</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Más vendido: <strong style="color:var(--charcoal)">${_esc(best[0])}</strong> · $${Math.round(best[1]).toLocaleString('es-MX')} en ventas</span></div>`;
 }
 
 /* ── APARTADOS PENDIENTES ── */
