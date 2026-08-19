@@ -196,7 +196,7 @@ function _renderApartadoSummary() {
     parts.push(`$${total.toLocaleString('es-MX')} al entregar`);
   }
   if (dueStr) parts.push(`vence ${dueStr}`);
-  summary.innerHTML = `<span>📌 ${parts.join(' · ')}</span><span class="apt-summary-edit">✏️ Editar</span>`;
+  summary.innerHTML = `<span>${_uiIcoBookmark()} ${parts.join(' · ')}</span><span class="apt-summary-edit">${_uiIcoEdit()} Editar</span>`;
 }
 
 function setAnticipo(pct) {
@@ -257,7 +257,7 @@ function updateAnticipoInfo() {
         hint.textContent = 'Ingresa el nombre del cliente para continuar';
         hint.style.color = '#9B8B78'; hint.style.display = '';
       } else if (anticipo <= 0) {
-        hint.textContent = '📦 Sin anticipo — se cobrará al entregar';
+        hint.innerHTML = '<svg style="width:13px;height:13px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> Sin anticipo — se cobrará al entregar';
         hint.style.color = 'var(--gold-dark)'; hint.style.display = '';
       } else {
         hint.style.display = 'none';
@@ -386,7 +386,7 @@ async function toggleAptView(mode, target) {
     if (rows === false) return false;
     if (rows === null) {
       const label = isCanc ? 'cancelados' : 'liquidados';
-      if (listEl) listEl.innerHTML = `<div class="history-empty" style="grid-column:1/-1"><div style="font-size:2rem;margin-bottom:8px">⚠️</div>No se pudieron cargar los ${label}.<br><button type="button" class="btn btn-outline" style="margin-top:12px" onclick="selectAptView('${mode}','${target}')">Reintentar</button></div>`;
+      if (listEl) listEl.innerHTML = `<div class="history-empty" style="grid-column:1/-1"><div style="margin-bottom:8px">${_uiIcoWarn(30)}</div>No se pudieron cargar los ${label}.<br><button type="button" class="btn btn-outline" style="margin-top:12px" onclick="selectAptView('${mode}','${target}')">Reintentar</button></div>`;
       return;
     }
     if (isCanc) canceladosRenderFn(_apartadosCanceladosAll);
@@ -484,7 +484,7 @@ async function loadApartados() {
   }
 
   if (failed) {
-    const errorHTML = '<div class="history-empty"><div style="font-size:2rem;margin-bottom:8px">⚠️</div>No se pudieron cargar los apartados.<br><button type="button" class="btn btn-outline" style="margin-top:12px" onclick="loadApartados()">Reintentar</button></div>';
+    const errorHTML = `<div class="history-empty"><div style="margin-bottom:8px">${_uiIcoWarn(30)}</div>No se pudieron cargar los apartados.<br><button type="button" class="btn btn-outline" style="margin-top:12px" onclick="loadApartados()">Reintentar</button></div>`;
     if (_aptViewMode === 'activos' && ocList) ocList.innerHTML = errorHTML;
     const pageList = document.getElementById('apt-page-list');
     if (_aptViewMode === 'activos' && pageList) pageList.innerHTML = errorHTML;
@@ -493,7 +493,7 @@ async function loadApartados() {
   }
 
   if (empty) {
-    const emptyHTML = '<div class="history-empty"><div style="font-size:2rem;margin-bottom:8px">📌</div>Sin apartados pendientes</div>';
+    const emptyHTML = `<div class="history-empty"><div style="margin-bottom:8px">${_uiIcoBookmark(30)}</div>Sin apartados pendientes</div>`;
     if (_aptViewMode === 'activos' && ocList) ocList.innerHTML = emptyHTML;
     const pageList = document.getElementById('apt-page-list');
     if (_aptViewMode === 'activos' && pageList) pageList.innerHTML = emptyHTML;
@@ -527,7 +527,7 @@ function _renderApartadoCanceladosCards(data) {
   if (ocTitle) ocTitle.innerHTML = '<svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:var(--red);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Apartados cancelados';
   if (ocCount) ocCount.textContent = data.length ? `${data.length} cancelado${data.length !== 1 ? 's' : ''}` : '';
   if (!data.length) {
-    ocList.innerHTML = '<div class="history-empty"><div style="font-size:2rem;margin-bottom:8px">✕</div>Sin apartados cancelados</div>';
+    ocList.innerHTML = `<div class="history-empty"><div style="margin-bottom:8px">${_uiIcoX('var(--red)', 30)}</div>Sin apartados cancelados</div>`;
     return;
   }
   ocList.innerHTML = data.map(s => {
@@ -543,7 +543,7 @@ function _renderApartadoCanceladosCards(data) {
     const abonos = Array.isArray(s.payment_history) ? s.payment_history
       : Array.isArray(s.abonos) ? s.abonos : [];
     const historyWarning = s.payment_history_error
-      ? '<div style="font-size:.72rem;color:var(--red);padding:6px 0">⚠ Historial incompleto; recarga para consultar el libro de pagos.</div>'
+      ? `<div style="font-size:.72rem;color:var(--red);padding:6px 0">${_uiIcoWarn()} Historial incompleto; recarga para consultar el libro de pagos.</div>`
       : '';
     const abonosHTML = historyWarning + (abonos.length ? `
 <div class="apt-abonos-section-inline">
@@ -575,7 +575,7 @@ function _renderApartadoCanceladosCards(data) {
 <div class="apartado-item apt-cancelado">
   <div class="apt-header" role="button" tabindex="0" aria-expanded="false" aria-label="Ver detalle del apartado cancelado de ${_esc(nombre)}" onclick="_toggleApt(this.parentElement,${s.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_toggleApt(this.parentElement,${s.id})}">
     <div class="apt-header-r1">
-      <span class="apt-h-name">👤 ${_esc(nombre)}</span>
+      <span class="apt-h-name">${_uiIcoUser()} ${_esc(nombre)}</span>
       <div class="apt-h-right">
         <span class="apt-h-pending cancelado">✕ Cancelado</span>
         <span class="apt-chevron">›</span>
@@ -588,10 +588,10 @@ function _renderApartadoCanceladosCards(data) {
   <div class="apt-body">
     <div class="apt-items-list">${itemsListHTML}</div>
     <div class="apt-summary">
-      ${disc > 0 ? `<div class="apt-sum-row"><span>Subtotal</span><span>$${(total+disc).toLocaleString('es-MX')}</span></div><div class="apt-sum-row apt-sum-disc"><span>🏷 Descuento</span><span>−$${disc.toLocaleString('es-MX')}</span></div>` : ''}
+      ${disc > 0 ? `<div class="apt-sum-row"><span>Subtotal</span><span>$${(total+disc).toLocaleString('es-MX')}</span></div><div class="apt-sum-row apt-sum-disc"><span>${_uiIcoTag()} Descuento</span><span>−$${disc.toLocaleString('es-MX')}</span></div>` : ''}
       <div class="apt-sum-row apt-sum-total"><span>Total</span><span>$${total.toLocaleString('es-MX')}</span></div>
     </div>
-    <div style="font-size:.76rem;color:var(--muted);font-weight:600;margin:10px 0 2px">✕ Cancelado el ${cancelLabel}</div>
+    <div style="font-size:.76rem;color:var(--muted);font-weight:600;margin:10px 0 2px">${_uiIcoX('var(--red)')} Cancelado el ${cancelLabel}</div>
     ${abonosHTML}
   </div>
 </div>`;
@@ -612,7 +612,7 @@ function _renderApartadoCards(data, isLiquidado) {
     ocTitle.innerHTML = '<svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Apartados pendientes';
   }
   if (!data.length) {
-    ocList.innerHTML = `<div class="history-empty" style="grid-column:1/-1"><div style="font-size:2rem;margin-bottom:8px">${isLiquidado ? '✅' : '🔍'}</div>Sin ${isLiquidado ? 'apartados liquidados' : 'resultados'}</div>`;
+    ocList.innerHTML = `<div class="history-empty" style="grid-column:1/-1"><div style="margin-bottom:8px">${isLiquidado ? _uiIcoCheck('var(--green)', 30) : _uiIcoSearch(30)}</div>Sin ${isLiquidado ? 'apartados liquidados' : 'resultados'}</div>`;
     return;
   }
   const itemsHTML = data.map(s => {
@@ -633,14 +633,14 @@ function _renderApartadoCards(data, isLiquidado) {
       const diff = _posDayKeyDiff(s.due_date);
       dueColor = diff < 0 ? '#E85D5D' : diff <= 7 ? '#D97706' : '#6B9E78';
       dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)}d` : diff === 0 ? 'Vence hoy' : `Vence ${_posFormatDayKey(s.due_date,{day:'numeric',month:'short'})}`;
-      dueHTML  = `<span class="apt-h-due" style="color:${dueColor}">📅 ${dueText}</span>`;
+      dueHTML  = `<span class="apt-h-due" style="color:${dueColor}">${_uiIcoCalendar()} ${dueText}</span>`;
     }
     const isOverdue = !isLiquidado && s.due_date && _posDayKeyDiff(s.due_date) < 0;
 
     const abonos = Array.isArray(s.payment_history) ? s.payment_history
       : Array.isArray(s.abonos) ? s.abonos : [];
     const historyWarning = s.payment_history_error
-      ? '<div style="font-size:.72rem;color:var(--red);padding:6px 0">⚠ Historial incompleto; recarga para consultar el libro de pagos.</div>'
+      ? `<div style="font-size:.72rem;color:var(--red);padding:6px 0">${_uiIcoWarn()} Historial incompleto; recarga para consultar el libro de pagos.</div>`
       : '';
     const abonosHTML = historyWarning + (abonos.length ? `
 <div class="apt-abonos-section-inline">
@@ -676,7 +676,7 @@ function _renderApartadoCards(data, isLiquidado) {
 <div class="apartado-item${isOverdue ? ' apt-overdue' : ''}">
   <div class="apt-header" role="button" tabindex="0" aria-expanded="false" aria-label="Ver detalle del apartado de ${_esc(nombre)}" onclick="_toggleApt(this.parentElement,${s.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_toggleApt(this.parentElement,${s.id})}">
     <div class="apt-header-r1">
-      <span class="apt-h-name">👤 ${_esc(nombre)}</span>
+      <span class="apt-h-name">${_uiIcoUser()} ${_esc(nombre)}</span>
       <div class="apt-h-right">
         <span class="apt-h-pending${pendiente===0?' zero':''}">${pendiente===0?(isLiquidado?'✓ Liquidado':'✓ Pagado'):'Falta $'+pendiente.toLocaleString('es-MX')}</span>
         <span class="apt-chevron">›</span>
@@ -689,10 +689,10 @@ function _renderApartadoCards(data, isLiquidado) {
     <div class="apt-mini-bar" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="apt-mini-fill" style="width:${pct}%"></div></div>
   </div>
   <div class="apt-body">
-    ${isOverdue ? '<div class="apt-overdue-badge">⚠️ Vencido</div>' : ''}
+    ${isOverdue ? `<div class="apt-overdue-badge">${_uiIcoWarn()} Vencido</div>` : ''}
     <div class="apt-items-list">${itemsListHTML}</div>
     <div class="apt-summary">
-      ${disc > 0 ? `<div class="apt-sum-row"><span>Subtotal</span><span>$${(total+disc).toLocaleString('es-MX')}</span></div><div class="apt-sum-row apt-sum-disc"><span>🏷 Descuento</span><span>−$${disc.toLocaleString('es-MX')}</span></div>` : ''}
+      ${disc > 0 ? `<div class="apt-sum-row"><span>Subtotal</span><span>$${(total+disc).toLocaleString('es-MX')}</span></div><div class="apt-sum-row apt-sum-disc"><span>${_uiIcoTag()} Descuento</span><span>−$${disc.toLocaleString('es-MX')}</span></div>` : ''}
       <div class="apt-sum-row apt-sum-total"><span>Total</span><span>$${total.toLocaleString('es-MX')}</span></div>
     </div>
     <div class="apt-progress-section">
@@ -704,9 +704,9 @@ function _renderApartadoCards(data, isLiquidado) {
     </div>
     ${abonosHTML}
     <div class="apt-btns">
-      <button class="btn-wa-reminder" onclick="event.stopPropagation();sendApartadoReminder(${s.id})" title="${isLiquidado ? 'Enviar confirmación por WhatsApp' : 'Enviar recordatorio por WhatsApp'}" aria-label="${isLiquidado ? 'Enviar confirmación por WhatsApp' : 'Enviar recordatorio por WhatsApp'}">💬</button>
+      <button class="btn-wa-reminder" onclick="event.stopPropagation();sendApartadoReminder(${s.id})" title="${isLiquidado ? 'Enviar confirmación por WhatsApp' : 'Enviar recordatorio por WhatsApp'}" aria-label="${isLiquidado ? 'Enviar confirmación por WhatsApp' : 'Enviar recordatorio por WhatsApp'}">${_uiIcoWA()}</button>
       ${(isLiquidado || pendiente <= _APT_MONEY_EPSILON) ? `<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--green)">✓ Liquidado</span>` : `
-      ${canEditApartado() ? `<button class="btn-wa-reminder" onclick="event.stopPropagation();openEditApartado(${s.id})" title="Editar" style="background:#F7F2EB;color:var(--charcoal);border:1.5px solid var(--border)">✏️</button>` : ''}
+      ${canEditApartado() ? `<button class="btn-wa-reminder" onclick="event.stopPropagation();openEditApartado(${s.id})" title="Editar" style="background:#F7F2EB;color:var(--charcoal);border:1.5px solid var(--border)">${_uiIcoEdit()}</button>` : ''}
       <button class="btn-abonar" onclick="event.stopPropagation();abonarApartado('${s.id}','${total}','${pagado}','${_esc(nombre).replace(/'/g,"\\'")}')">Registrar abono</button>
       <button class="btn-liquidar" onclick="event.stopPropagation();openLiqModal(${s.id})">Cobrar saldo $${pendiente.toLocaleString('es-MX')}</button>
       ${canCancelApartado() ? `<button class="btn-cancelar-apt" onclick="event.stopPropagation();cancelApartado(${s.id})" title="Cancelar apartado">✕</button>` : ''}`}
