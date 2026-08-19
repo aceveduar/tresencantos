@@ -170,6 +170,20 @@ async function _refreshPosToken() {
     return true;
   } catch { return false; }
 }
+// El servidor atribuye cada cobro al email del token de la sesión que hace la
+// llamada (auth.jwt()->>'email'); si ese token no trae email, el pago igual
+// se registra pero queda sin dueño ("Sin cajero registrado" en el Corte).
+// posRpc() revisa esto antes de cualquier operación de dinero para atajarlo
+// en el momento, no días después en Reportes.
+function _posSessionEmailClaim() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY));
+    if (s?.user?.email) return String(s.user.email).toLowerCase();
+    const jwtEmail = JSON.parse(atob(s?.access_token?.split('.')[1]))?.email;
+    return jwtEmail ? String(jwtEmail).toLowerCase() : '';
+  } catch { return ''; }
+}
+
 async function api(path, opts = {}) {
   const _call = (tk) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...opts,
@@ -331,6 +345,16 @@ function _posRpcRequestDone(key) {
 }
 
 async function posRpc(path, { operation, context = 'global', fingerprint = '', body = {} }) {
+  if (!_posSessionEmailClaim()) {
+    const refreshed = await _refreshPosToken().catch(() => false);
+    if (!refreshed || !_posSessionEmailClaim()) {
+      return {
+        ok: false,
+        status: 401,
+        data: { message: 'Tu sesión no tiene email registrado — cierra sesión y vuelve a entrar antes de continuar, así el cobro queda bien atribuido.' }
+      };
+    }
+  }
   const requestFingerprint = fingerprint || JSON.stringify(body);
   let request = _posRpcRequest(operation, context, requestFingerprint);
   if (request.conflict) {
