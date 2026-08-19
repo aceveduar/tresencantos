@@ -355,12 +355,6 @@ td,th{overflow:hidden}
 .ac-dot-avail{background:#10B981;box-shadow:0 0 0 3px rgba(16,185,129,.18)}
 .ac-dot-sold {background:#EF4444;box-shadow:0 0 0 3px rgba(239,68,68,.18)}
 .ac-status-dot:active{transform:scale(.75)}
-.ac-pub-dot{
-  background:none;border:none;cursor:pointer;
-  font-size:.82rem;padding:0;line-height:1;flex-shrink:0;
-  transition:transform .15s;
-}
-.ac-pub-dot:active{transform:scale(.85)}
 /* OOS overlay label */
 .ac-oos-label{
   position:absolute;top:0;left:0;right:0;bottom:0;

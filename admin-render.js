@@ -315,8 +315,6 @@ function adminCard(p, editable = false) {
       : `<span class="ac-price ac-price-tap" onclick="editPriceInlineAdmin(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar precio">$${p.price.toLocaleString('es-MX')}</span>`;
   const priceHTML = priceDisplay;
   const oosTitle  = oos ? 'Agotado — toca para marcar disponible' : 'Disponible — toca para agotar';
-  const pubTitle  = p.isPublished === false ? 'Oculto del sitio — toca para publicar' : p.outOfStock ? 'Publicado pero agotado — no aparece en el sitio' : 'Visible en sitio — toca para ocultar';
-  const pubEmoji  = p.isPublished === false ? '🙈' : p.outOfStock ? '⚠️' : '🌐';
   const flagData  = _flagItem(p.id);
   const flagDotAC = flagData ? `<span class="flag-dot" title="${_esc(flagData.note || 'Pendiente de revisión')}">🚩</span>` : '';
   const isSinCat  = p.category === 'por_revisar';
@@ -364,15 +362,11 @@ function adminCard(p, editable = false) {
     </div>
     <div class="ac-price-row">${priceHTML}</div>
     <div class="ac-footer">
-      <div style="display:flex;align-items:center;gap:6px">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         ${stockChip(p, editable)}
         ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip" title="${_aptTitle(p.id)}">📌 Apartado</span>` : ''}
         ${expiryChip(p)}
-        <button class="ac-pub-dot" onclick="togglePublished(${p.id})"
-                ontouchstart="event.stopPropagation()"
-                title="${pubTitle}">
-          ${pubEmoji}
-        </button>
+        ${publishedToggle(p)}
       </div>
     </div>
   </div>
@@ -693,8 +687,6 @@ function mobileCard(p) {
   const sel = selectedIds.has(p.id);
   const oos = Array.isArray(p.kitItems) ? false : (p.outOfStock || p.stock === 0);
   const catColor = getCatColor(p.category);
-  const pubTitle  = p.isPublished === false ? 'Oculto del sitio — toca para publicar' : p.outOfStock ? 'Publicado pero agotado — no aparece en el sitio' : 'Visible en sitio — toca para ocultar';
-  const pubEmoji  = p.isPublished === false ? '🙈' : p.outOfStock ? '⚠️' : '🌐';
   const flagDataMC = _flagItem(p.id);
   const isSinCatMC = p.category === 'por_revisar';
 
@@ -742,12 +734,7 @@ function mobileCard(p) {
             ${priceHTML}${stockInfo}
             ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip" title="${_aptTitle(p.id)}">📌 Apartado</span>` : ''}
             ${expiryChip(p)}
-            <button class="ac-pub-dot"
-                    onclick="togglePublished(${p.id})"
-                    ontouchstart="event.stopPropagation()"
-                    title="${pubTitle}">
-              ${pubEmoji}
-            </button>
+            ${publishedToggle(p)}
           </div>
         </div>
         <div class="mpc-top-actions">
