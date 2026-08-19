@@ -519,7 +519,7 @@ function _renderApartadoCanceladosCards(data) {
   const ocTitle = document.getElementById('apt-oc-title');
   const ocCount = document.getElementById('apt-oc-count');
   if (!ocList) return;
-  if (ocTitle) ocTitle.textContent = '✕ Apartados cancelados';
+  if (ocTitle) ocTitle.innerHTML = '<svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:var(--red);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Apartados cancelados';
   if (ocCount) ocCount.textContent = data.length ? `${data.length} cancelado${data.length !== 1 ? 's' : ''}` : '';
   if (!data.length) {
     ocList.innerHTML = '<div class="history-empty"><div style="font-size:2rem;margin-bottom:8px">✕</div>Sin apartados cancelados</div>';
@@ -601,10 +601,10 @@ function _renderApartadoCards(data, isLiquidado) {
   // El conteo de "activos" (con vencidos) ya lo arma loadApartados() con más detalle —
   // aquí solo se toca cuando se muestra la vista de liquidados, para no pisarlo
   if (isLiquidado) {
-    if (ocTitle) ocTitle.textContent = '✅ Apartados liquidados';
+    if (ocTitle) ocTitle.innerHTML = '<svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:var(--green);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>Apartados liquidados';
     if (ocCount) ocCount.textContent = data.length ? `${data.length} liquidado${data.length !== 1 ? 's' : ''}` : '';
   } else if (ocTitle) {
-    ocTitle.textContent = '📌 Apartados pendientes';
+    ocTitle.innerHTML = '<svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Apartados pendientes';
   }
   if (!data.length) {
     ocList.innerHTML = `<div class="history-empty" style="grid-column:1/-1"><div style="font-size:2rem;margin-bottom:8px">${isLiquidado ? '✅' : '🔍'}</div>Sin ${isLiquidado ? 'apartados liquidados' : 'resultados'}</div>`;

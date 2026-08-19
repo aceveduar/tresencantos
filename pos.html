@@ -112,7 +112,7 @@
     <!-- Resumen de caja diario — solo mobile -->
     <div id="daily-summary-mobile" style="display:none;align-items:center;gap:8px;padding:5px 14px;background:#FFFBF4;border-bottom:1px solid var(--border);font-size:.73rem;color:var(--charcoal);flex-shrink:0"></div>
     <div class="pos-results" id="pos-results">
-      <div class="pos-empty"><div class="em">🛍️</div>Cargando productos…</div>
+      <div class="pos-empty"><div class="em"><svg style="width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>Cargando productos…</div>
     </div>
   </div>
 
@@ -122,12 +122,12 @@
   <!-- DERECHO: carrito + cobro -->
   <div class="pos-right" id="pos-right">
     <div class="cart-header">
-      <span>🛒 Carrito <span id="cart-count" style="color:#9B8B78;font-weight:400"></span></span>
+      <span><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Carrito <span id="cart-count" style="color:#9B8B78;font-weight:400"></span></span>
       <button class="cart-clear" onclick="clearCart()">Vaciar</button>
     </div>
 
     <div class="cart-items" id="cart-items">
-      <div class="cart-empty"><div class="em">🛒</div>El carrito está vacío</div>
+      <div class="cart-empty"><div class="em"><svg style="width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>El carrito está vacío</div>
     </div>
 
     <!-- Apartados movidos al offcanvas -->
@@ -160,8 +160,8 @@
 
       <!-- Método de pago — se oculta en apartado, donde vive dentro del sheet junto al anticipo -->
       <div class="pay-method-row" id="pay-method-row-main">
-        <button class="pay-btn active" id="pay-efectivo" onclick="setPayMethod('efectivo')">💵 Efectivo</button>
-        <button class="pay-btn" id="pay-transferencia" onclick="setPayMethod('transferencia')">📱 Transferencia</button>
+        <button class="pay-btn active" id="pay-efectivo" onclick="setPayMethod('efectivo')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>Efectivo</button>
+        <button class="pay-btn" id="pay-transferencia" onclick="setPayMethod('transferencia')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>Transferencia</button>
       </div>
 
       <!-- Efectivo (solo si pago en efectivo) -->
@@ -197,15 +197,15 @@
       <div class="apartado-group" id="apartado-group">
         <label class="apartado-toggle-label">
           <input type="checkbox" id="pos-is-apartado" onchange="toggleApartadoMode()">
-          📌 Es apartado / anticipo
+          <svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Es apartado / anticipo
         </label>
-        <button type="button" class="note-toggle-btn" id="apartado-details-btn" style="display:none" onclick="openApartadoSheet()">📌 Agregar cliente y datos del apartado</button>
+        <button type="button" class="note-toggle-btn" id="apartado-details-btn" style="display:none" onclick="openApartadoSheet()"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Agregar cliente y datos del apartado</button>
         <div class="apartado-summary-row" id="apartado-summary" style="display:none" onclick="openApartadoSheet()"></div>
       </div>
 
       <!-- Cliente (venta normal, opcional) — oculto durante apartado, donde el cliente vive en el sheet -->
       <div class="note-cliente-row" id="cliente-normal-row">
-        <button type="button" class="note-toggle-btn" id="customer-toggle-btn" onclick="toggleCustomerField()">👤 Agregar cliente</button>
+        <button type="button" class="note-toggle-btn" id="customer-toggle-btn" onclick="toggleCustomerField()"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Agregar cliente</button>
         <div class="note-input-wrap" id="customer-input-wrap" style="display:none">
           <input type="text" id="pos-customer" placeholder="Nombre del cliente" oninput="updateAnticipoInfo()" onblur="autoCollapseCustomer()">
           <button type="button" class="note-clear-btn" onclick="clearCustomerField()" title="Quitar cliente">✕</button>
@@ -257,7 +257,7 @@
 <div class="cart-preview-backdrop" id="cart-preview-backdrop" onclick="closeCartPreview()"></div>
 <div class="cart-preview" id="cart-preview">
   <div class="cp-head">
-    <span>🛒 Carrito</span>
+    <span><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Carrito</span>
     <button class="cp-close" onclick="closeCartPreview()">✕</button>
   </div>
   <div class="cp-items" id="cp-items"></div>
@@ -281,8 +281,8 @@
     <div id="abonar-restante-preview" style="font-size:.78rem;color:var(--muted);margin-top:4px;min-height:1.1em"></div>
     <label>Método de pago</label>
     <div class="abonar-pay-btns">
-      <button class="abonar-pay-btn active" id="abpay-efectivo" onclick="setAbonarMethod('efectivo')">💵 Efectivo</button>
-      <button class="abonar-pay-btn" id="abpay-transferencia" onclick="setAbonarMethod('transferencia')">📱 Transferencia</button>
+      <button class="abonar-pay-btn active" id="abpay-efectivo" onclick="setAbonarMethod('efectivo')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>Efectivo</button>
+      <button class="abonar-pay-btn" id="abpay-transferencia" onclick="setAbonarMethod('transferencia')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>Transferencia</button>
     </div>
     <div class="abonar-footer">
       <button class="btn-cancel" onclick="closeAbonarModal()">Cancelar</button>
@@ -294,7 +294,7 @@
 <!-- APARTADO SHEET — todo lo que conlleva un apartado: cliente, teléfono, anticipo y fecha límite -->
 <div class="abonar-overlay" id="apartado-sheet-overlay" style="display:none" onclick="if(event.target===this)closeApartadoSheet()">
   <div class="abonar-modal">
-    <h3>📌 Datos del apartado</h3>
+    <h3><svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Datos del apartado</h3>
     <p class="apt-info-lbl">El anticipo es opcional — déjalo en 0 si se cobrará todo al entregar</p>
     <label>Nombre del cliente <span style="color:var(--red)">*</span></label>
     <input type="text" id="pos-apt-customer" placeholder="Nombre del cliente" oninput="updateAnticipoInfo()" style="padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;outline:none;font-family:inherit;width:100%;margin-bottom:14px">
@@ -319,12 +319,12 @@
     <div class="cash-field" style="margin-bottom:14px">
       <label>Método del anticipo</label>
       <div class="pay-method-row" style="margin:0">
-        <button class="pay-btn active" id="apt-pay-efectivo" onclick="setPayMethod('efectivo')">💵 Efectivo</button>
-        <button class="pay-btn" id="apt-pay-transferencia" onclick="setPayMethod('transferencia')">📱 Transferencia</button>
+        <button class="pay-btn active" id="apt-pay-efectivo" onclick="setPayMethod('efectivo')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>Efectivo</button>
+        <button class="pay-btn" id="apt-pay-transferencia" onclick="setPayMethod('transferencia')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>Transferencia</button>
       </div>
     </div>
     <div class="cash-field">
-      <label>📅 Fecha límite de pago</label>
+      <label><svg style="width:13px;height:13px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Fecha límite de pago</label>
       <input type="date" id="pos-due-date" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%;background:#fff">
     </div>
     <div class="abonar-footer" style="margin-top:16px">
@@ -338,7 +338,7 @@
 <div id="restock-prompt" style="display:none;position:fixed;inset:0;z-index:520;background:rgba(0,0,0,.45);align-items:flex-end;justify-content:center" onclick="if(event.target===this)_closeRestockPrompt()">
   <div style="background:#fff;border-radius:20px 20px 0 0;padding:22px 20px 32px;width:100%;max-width:480px;box-shadow:0 -8px 32px rgba(0,0,0,.18)">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-      <span style="font-weight:700;font-size:.95rem;color:var(--charcoal)">📦 Sin stock — ¿Reabastecer?</span>
+      <span style="font-weight:700;font-size:.95rem;color:var(--charcoal)"><svg style="width:15px;height:15px;vertical-align:-2px;margin-right:5px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>Sin stock — ¿Reabastecer?</span>
       <button onclick="_closeRestockPrompt()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted);touch-action:manipulation">✕</button>
     </div>
     <div id="restock-prod-name" style="font-size:.82rem;color:var(--muted);margin-bottom:20px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis"></div>
@@ -380,7 +380,7 @@
     <div class="sd-row" id="sd-cash-row"><span id="sd-cash-label">Recibido</span><strong id="sd-cash"></strong></div>
     <div class="sd-row sd-change" id="sd-change-row"><span>Cambio</span><strong id="sd-change"></strong></div>
     <div class="sd-row" id="sd-pending-row" style="display:none"><span>Pendiente</span><strong id="sd-pending" style="color:var(--red)"></strong></div>
-    <div class="sd-row" id="sd-due-row" style="display:none"><span>📅 Fecha límite</span><strong id="sd-due"></strong></div>
+    <div class="sd-row" id="sd-due-row" style="display:none"><span><svg style="width:13px;height:13px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Fecha límite</span><strong id="sd-due"></strong></div>
     <div class="sd-row" id="sd-customer-row" style="display:none"><span>Cliente</span><strong id="sd-customer" style="font-size:.85rem"></strong></div>
     <div class="sd-row" id="sd-note-row" style="display:none"><span>Nota</span><strong id="sd-note" style="font-size:.85rem"></strong></div>
     <div id="sd-transfer-alert" style="display:none;margin-top:10px;padding:10px 14px;background:#FEF3C7;border-radius:10px;font-size:.82rem;color:#92400E;text-align:left">
@@ -403,8 +403,8 @@
     <div style="font-family:'Playfair Display',serif;font-size:1.7rem;font-weight:700;color:var(--charcoal);margin-bottom:16px" id="liq-amount-display"></div>
     <label>Método de pago</label>
     <div class="abonar-pay-btns">
-      <button class="abonar-pay-btn active" id="liq-pay-efectivo" onclick="setLiqMethod('efectivo')">💵 Efectivo</button>
-      <button class="abonar-pay-btn" id="liq-pay-transf" onclick="setLiqMethod('transferencia')">📱 Transferencia</button>
+      <button class="abonar-pay-btn active" id="liq-pay-efectivo" onclick="setLiqMethod('efectivo')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>Efectivo</button>
+      <button class="abonar-pay-btn" id="liq-pay-transf" onclick="setLiqMethod('transferencia')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>Transferencia</button>
     </div>
     <div class="abonar-footer">
       <button class="btn-cancel" onclick="closeLiqModal()">Cancelar</button>
@@ -445,7 +445,7 @@
 <div class="history-backdrop" id="corte-backdrop" onclick="closeCorte()" style="display:none"></div>
 <div class="history-offcanvas" id="corte-offcanvas" style="max-width:420px">
   <div class="history-oc-head">
-    <span class="history-oc-title">🧾 Corte de caja</span>
+    <span class="history-oc-title"><svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Corte de caja</span>
     <button class="history-oc-close" onclick="closeCorte()">✕</button>
   </div>
   <div style="padding:16px;overflow-y:auto;flex:1">
@@ -525,7 +525,7 @@
 <aside class="history-offcanvas" id="apt-offcanvas" role="dialog" aria-modal="true" aria-labelledby="apt-oc-title" aria-hidden="true">
   <div class="history-oc-head">
     <div>
-      <div class="history-oc-title" id="apt-oc-title">📌 Apartados pendientes</div>
+      <div class="history-oc-title" id="apt-oc-title"><svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Apartados pendientes</div>
       <div id="apt-oc-count" style="font-size:.74rem;color:var(--muted);margin-top:1px"></div>
     </div>
     <button type="button" class="history-oc-close" onclick="closeApartados()" aria-label="Cerrar apartados">✕</button>
@@ -562,7 +562,7 @@
 <div id="apt-page" role="dialog" aria-modal="true" aria-labelledby="apt-page-title" aria-hidden="true">
   <div class="apt-page-head">
     <button type="button" class="apt-page-back" onclick="closeAptPage()" aria-label="Volver a Caja">← Caja</button>
-    <span class="apt-page-title" id="apt-page-title">📌 Apartados</span>
+    <span class="apt-page-title" id="apt-page-title"><svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Apartados</span>
     <span class="apt-page-count" id="apt-page-count"></span>
     <div class="apt-view-toggle" id="apt-view-toggle-page" role="tablist" aria-label="Estado de los apartados" onkeydown="aptViewTabKeydown(event,'page')">
       <button type="button" class="active" role="tab" aria-selected="true" aria-controls="apt-page-list" data-mode="activos" onclick="selectAptView('activos','page')">Activos</button>
@@ -611,7 +611,7 @@
 <div class="history-backdrop" id="history-backdrop" onclick="closeHistory()"></div>
 <div class="history-offcanvas" id="history-offcanvas">
   <div class="history-oc-head">
-    <span class="history-oc-title">🕐 Movimientos recientes</span>
+    <span class="history-oc-title"><svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Movimientos recientes</span>
     <button class="history-oc-close" onclick="closeHistory()">✕</button>
   </div>
   <div class="history-oc-body" id="history-list">
