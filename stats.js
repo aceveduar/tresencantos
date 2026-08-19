@@ -220,6 +220,10 @@ let prevSalesLoaded = false;
 let productsLoaded = false;
 let todaySummaryLoaded = false;
 let apartadosPendientesLoaded = false;
+let aptNewCount = 0;
+let aptNewLoaded = false;
+let prevAptNewCount = 0;
+let prevAptNewLoaded = false;
 const paymentSalesById = new Map();
 let products = [];
 let revenueChart = null;
@@ -409,7 +413,7 @@ async function loadCategories() {
 
 async function loadSales(mode = _statsMode, offset = _statsOffset, generation = null) {
   const { from, to } = getRange(mode, offset);
-  const [directSalesR, apartadoSalesR, paymentsR, apartadoZeroR] = await Promise.all([
+  const [directSalesR, apartadoSalesR, paymentsR, apartadoZeroR, aptNewR] = await Promise.all([
     // Una venta directa se completa al crearla; un apartado, al liquidarlo.
     _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.venta&status=eq.liquidado&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=created_at.desc,id.desc`),
     _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(from)}&liquidated_at=lte.${encodeURIComponent(to)}&order=liquidated_at.desc,id.desc`),
@@ -419,7 +423,10 @@ async function loadSales(mode = _statsMode, offset = _statsOffset, generation = 
     // Un apartado creado con $0 de anticipo no genera fila en sale_payments
     // (record_sale_atomic_v2 solo inserta pago si v_paid>0) — sin esto,
     // "Movimientos de hoy" no reflejaba que se creó un apartado nuevo.
-    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&paid_amount=eq.0&cancelled_at=is.null&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=created_at.desc,id.desc`)
+    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&paid_amount=eq.0&cancelled_at=is.null&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=created_at.desc,id.desc`),
+    // Apartados nuevos del período (KPI) — se cuentan por fecha de creación,
+    // sin importar su estado actual (activo/liquidado), igual que "cuántos abrí".
+    _fetchAll(`sales?select=id&origin_type=eq.apartado&cancelled_at=is.null&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=id.asc`)
   ]);
   const directSales = (directSalesR.ok && Array.isArray(directSalesR.data)) ? directSalesR.data : [];
   const apartadoSales = (apartadoSalesR.ok && Array.isArray(apartadoSalesR.data)) ? apartadoSalesR.data : [];
@@ -429,6 +436,8 @@ async function loadSales(mode = _statsMode, offset = _statsOffset, generation = 
   if (generation !== null && generation !== _statsReloadGeneration) return;
   salesLoaded = directSalesR.ok && apartadoSalesR.ok;
   paymentsLoaded = paymentsR.ok;
+  aptNewLoaded = aptNewR.ok;
+  aptNewCount = aptNewR.ok && Array.isArray(aptNewR.data) ? aptNewR.data.length : 0;
   _rememberSales(apartadoZero);
   payments = [...nextPayments, ...apartadoZero.map(sale => ({
     id: `apartado-created-${sale.id}`,
@@ -447,10 +456,11 @@ async function loadSales(mode = _statsMode, offset = _statsOffset, generation = 
 async function loadPreviousSales(mode = _statsMode, offset = _statsOffset, generation = null) {
   const previous = getRange(mode, offset - 1);
   const { from, to } = previous;
-  const [directSalesR, apartadoSalesR, paymentsR] = await Promise.all([
+  const [directSalesR, apartadoSalesR, paymentsR, aptNewR] = await Promise.all([
     _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.venta&status=eq.liquidado&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=created_at.desc,id.desc`),
     _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(from)}&liquidated_at=lte.${encodeURIComponent(to)}&order=liquidated_at.desc,id.desc`),
-    _fetchAll(`sale_payments?select=${_PAYMENT_COLS}&paid_at=gte.${encodeURIComponent(from)}&paid_at=lte.${encodeURIComponent(to)}&order=paid_at.desc,id.desc`)
+    _fetchAll(`sale_payments?select=${_PAYMENT_COLS}&paid_at=gte.${encodeURIComponent(from)}&paid_at=lte.${encodeURIComponent(to)}&order=paid_at.desc,id.desc`),
+    _fetchAll(`sales?select=id&origin_type=eq.apartado&cancelled_at=is.null&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=id.asc`)
   ]);
   const nextSalesLoaded = directSalesR.ok && apartadoSalesR.ok;
   const nextPayments = (paymentsR.ok && Array.isArray(paymentsR.data)) ? paymentsR.data : [];
@@ -459,6 +469,8 @@ async function loadPreviousSales(mode = _statsMode, offset = _statsOffset, gener
     ...((apartadoSalesR.ok && Array.isArray(apartadoSalesR.data)) ? apartadoSalesR.data : [])
   ] : [];
   if (generation !== null && generation !== _statsReloadGeneration) return;
+  prevAptNewLoaded = aptNewR.ok;
+  prevAptNewCount = aptNewR.ok && Array.isArray(aptNewR.data) ? aptNewR.data.length : 0;
   prevSalesLoaded = nextSalesLoaded;
   prevPaymentsLoaded = paymentsR.ok;
   prevPayments = nextPayments;
@@ -757,15 +769,12 @@ function renderKPIs() {
     ? `${_aptResumen.count} apartado${_aptResumen.count!==1?'s':''}${_aptResumen.vencidos ? ` · ⚠️ ${_aptResumen.vencidos} venc.` : ''}`
     : 'Sin apartados activos';
 
-  const aovLoaded = paymentsLoaded && salesLoaded;
-  const aov     = count > 0 ? totalRev / count : 0;
-  const prevAov = prevCount > 0 ? prevRev / prevCount : 0;
-  document.getElementById('kpi-aov').innerHTML = aovLoaded
-    ? (count > 0 ? fmt(aov) + (prevPaymentsLoaded && prevSalesLoaded ? kpiDelta(aov, prevAov) : '') : fmt(0))
+  document.getElementById('kpi-aptnew').innerHTML = aptNewLoaded
+    ? aptNewCount + (prevAptNewLoaded ? kpiDelta(aptNewCount, prevAptNewCount) : '')
     : '—';
-  document.getElementById('kpi-aov-sub').textContent = !aovLoaded
+  document.getElementById('kpi-aptnew-sub').textContent = !aptNewLoaded
     ? 'No disponible'
-    : prevPaymentsLoaded && prevSalesLoaded && prevCount > 0 ? `Período ant.: ${fmt(prevAov)}` : '';
+    : prevAptNewLoaded && prevAptNewCount > 0 ? `Período ant.: ${prevAptNewCount}` : '';
 }
 
 /* Hora pico */
