@@ -1,4 +1,17 @@
 /* ── CART ── */
+/* ── ÍCONOS INLINE PARA EL CORTE DE CAJA ── */
+const _ico = (p, px = 13, sw = 1.75) => `<svg style="width:${px}px;height:${px}px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:${sw};stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24">${p}</svg>`;
+const _icoBag      = () => _ico('<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>');
+const _icoCheck    = () => _ico('<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>');
+const _icoBookmark = () => _ico('<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>');
+const _icoCash     = () => _ico('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>');
+const _icoPhone    = () => _ico('<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>');
+const _icoReceipt  = () => _ico('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>');
+const _icoUndo     = () => _ico('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>');
+const _icoWarn     = () => _ico('<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>');
+const _icoUsers    = () => _ico('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>');
+const _icoUser     = () => _ico('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>');
+const _icoHelp     = () => _ico('<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>');
 /* ── FRECUENTES ── */
 let _topFromSales = [];
 
@@ -335,7 +348,7 @@ function renderCart() {
   if (document.getElementById('pos-is-apartado')?.checked) updateAnticipoInfo();
 
   if (!cart.length) {
-    el.innerHTML = '<div class="cart-empty"><div class="em">🛒</div>El carrito está vacío</div>';
+    el.innerHTML = '<div class="cart-empty"><div class="em"><svg style="width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>El carrito está vacío</div>';
     _saveCart();
     return;
   }
@@ -347,7 +360,7 @@ function renderCart() {
       ? `<span style="text-decoration:line-through;opacity:.45;font-size:.65rem;margin-right:3px">$${p.price.toLocaleString('es-MX')}</span>$${effPrice.toLocaleString('es-MX')}`
       : `$${effPrice.toLocaleString('es-MX')}`;
     const kitSub = Array.isArray(p.kitItems) && p.kitItems.length
-      ? `<div style="font-size:.7rem;color:#9B8B78;margin-top:1px">🎁 ${_esc(p.kitItems.map(c=>`${c.qty>1?c.qty+'× ':''}${c.name}`).join(', '))}</div>`
+      ? `<div style="font-size:.7rem;color:#9B8B78;margin-top:1px">${_giftIconSvg(13)} ${_esc(p.kitItems.map(c=>`${c.qty>1?c.qty+'× ':''}${c.name}`).join(', '))}</div>`
       : '';
     return `
 <div class="cart-item" data-pid="${p.id}">
@@ -520,27 +533,27 @@ async function loadCorte() {
 
   content.innerHTML = `
     <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
-      ${row('🛍 Ventas directas', numVentas)}
-      ${numLiquidados ? row('✅ Apartados liquidados', numLiquidados) : ''}
-      ${numApartados  ? row('📌 Apartados nuevos', numApartados, anticipos > 0 ? `anticipos activos ${fmt(anticipos)}` : '') : ''}
+      ${row(_icoBag() + ' Ventas directas', numVentas)}
+      ${numLiquidados ? row(_icoCheck() + ' Apartados liquidados', numLiquidados) : ''}
+      ${numApartados  ? row(_icoBookmark() + ' Apartados nuevos', numApartados, anticipos > 0 ? `anticipos activos ${fmt(anticipos)}` : '') : ''}
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:.8rem;color:var(--muted);font-weight:600">💵 Efectivo neto</span>
+        <span style="font-size:.8rem;color:var(--muted);font-weight:600">${_icoCash()} Efectivo neto</span>
         <span style="font-weight:700;font-size:.9rem;color:var(--charcoal)">${fmt(efectivo)}</span>
       </div>
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:.8rem;color:var(--muted);font-weight:600">📱 Transferencia neta</span>
+        <span style="font-size:.8rem;color:var(--muted);font-weight:600">${_icoPhone()} Transferencia neta</span>
         <span style="font-weight:700;font-size:.9rem;color:var(--charcoal)">${fmt(transferencia)}</span>
       </div>
-      ${Math.abs(otros) >= .005 ? row('🧾 Ajustes sin método', fmt(otros)) : ''}
-      ${devoluciones > 0 ? row('↩️ Devoluciones registradas', `−${fmt(devoluciones)}`) : ''}
+      ${Math.abs(otros) >= .005 ? row(_icoReceipt() + ' Ajustes sin método', fmt(otros)) : ''}
+      ${devoluciones > 0 ? row(_icoUndo() + ' Devoluciones registradas', `−${fmt(devoluciones)}`) : ''}
       <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;background:#F7F2EB">
         <span style="font-size:.88rem;font-weight:700">${isGeneral ? 'Neto del día' : 'Neto del turno'}<span style="font-weight:400;font-size:.7rem;color:#B5A696;display:block;margin-top:1px">${isGeneral ? 'Todas las cajeras, hoy' : 'Solo lo que cobraste tú en este horario'}</span></span>
         <span style="font-size:1.15rem;font-weight:800;color:${total > 0 ? 'var(--green)' : 'var(--muted)'}">${fmt(total)}</span>
       </div>
     </div>
-    ${anticipos > 0 ? `<div style="background:#FFF8EE;border:1px solid var(--gold);border-radius:10px;padding:10px 14px;font-size:.78rem;color:var(--gold-dark)">📌 <strong>${fmt(anticipos)}</strong> cobrados ${isGeneral ? 'hoy' : 'en este turno'} en apartados que continúan activos</div>` : ''}
-    ${!isGeneral && unassignedPayments.length ? `<div style="background:#FFF3F3;border:1px solid #FCA5A5;border-radius:10px;padding:10px 14px;font-size:.76rem;color:#991B1B">⚠ ${fmt(unassignedNet)} en ${unassignedPayments.length} abono${unassignedPayments.length!==1?'s':''} antiguo${unassignedPayments.length!==1?'s':''} sin registro de quién los cobró (datos de antes de esta actualización) — no cuentan en tu corte.</div>` : ''}
-    ${!isGeneral && otherCashiers.length ? `<div style="background:#F7F2EB;border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:.76rem;color:var(--muted)">👥 ${fmt(otherCashiersNet)} los cobró otra cuenta en este mismo horario — no cuentan en tu corte.</div>` : ''}
+    ${anticipos > 0 ? `<div style="background:#FFF8EE;border:1px solid var(--gold);border-radius:10px;padding:10px 14px;font-size:.78rem;color:var(--gold-dark)">${_icoBookmark()} <strong>${fmt(anticipos)}</strong> cobrados ${isGeneral ? 'hoy' : 'en este turno'} en apartados que continúan activos</div>` : ''}
+    ${!isGeneral && unassignedPayments.length ? `<div style="background:#FFF3F3;border:1px solid #FCA5A5;border-radius:10px;padding:10px 14px;font-size:.76rem;color:#991B1B">${_icoWarn()} ${fmt(unassignedNet)} en ${unassignedPayments.length} abono${unassignedPayments.length!==1?'s':''} antiguo${unassignedPayments.length!==1?'s':''} sin registro de quién los cobró (datos de antes de esta actualización) — no cuentan en tu corte.</div>` : ''}
+    ${!isGeneral && otherCashiers.length ? `<div style="background:#F7F2EB;border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:.76rem;color:var(--muted)">${_icoUsers()} ${fmt(otherCashiersNet)} los cobró otra cuenta en este mismo horario — no cuentan en tu corte.</div>` : ''}
     <div style="text-align:center;font-size:.72rem;color:var(--muted);padding:4px 0">Generado ${ahoraMX}</div>
   `;
 
@@ -568,10 +581,10 @@ function _renderCorteBreakdown(rows, fmt) {
   if (!rows.length) return '';
   return `
     <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
-      <div style="padding:10px 16px;border-bottom:1px solid var(--border)"><span style="font-size:.82rem;font-weight:700;color:var(--charcoal)">👥 Por cajero</span></div>
+      <div style="padding:10px 16px;border-bottom:1px solid var(--border)"><span style="font-size:.82rem;font-weight:700;color:var(--charcoal)">${_icoUsers()} Por cajero</span></div>
       ${rows.map(r => `
         <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:.8rem;color:var(--muted);font-weight:600">${r.email ? '👤 ' + _esc(r.email.split('@')[0]) : '❓ Sin cajero registrado'}</span>
+          <span style="font-size:.8rem;color:var(--muted);font-weight:600">${r.email ? _icoUser() + ' ' + _esc(r.email.split('@')[0]) : _icoHelp() + ' Sin cajero registrado'}</span>
           <span style="font-weight:700;font-size:.9rem">${fmt(r.net)}</span>
         </div>`).join('')}
     </div>`;
