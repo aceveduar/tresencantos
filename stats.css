@@ -43,7 +43,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .srn-wa:hover{background:#C8E6C9}
 
 /* ── KPI GRID ── */
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
 .kpi-card{
   background:#fff;border-radius:var(--r);padding:20px 20px 18px;
   border:1px solid var(--border);box-shadow:0 2px 8px rgba(28,24,23,.06);
@@ -56,6 +56,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .kpi-card:nth-child(3)::before{background:linear-gradient(90deg,#60a5fa,#2563eb)}
 .kpi-card:nth-child(4)::before{background:linear-gradient(90deg,var(--red),#c84444)}
 .kpi-card:nth-child(5)::before{background:linear-gradient(90deg,#a78bfa,#7c3aed)}
+.kpi-card:nth-child(6)::before{background:linear-gradient(90deg,#2dd4bf,#0d9488)}
 .kpi-icon{font-size:1.3rem;margin-bottom:10px;display:block}
 .kpi-value{font-family:'Playfair Display',serif;font-size:1.85rem;font-weight:600;line-height:1;color:var(--charcoal)}
 .kpi-label{font-size:.68rem;color:var(--muted);margin-top:7px;letter-spacing:.07em;text-transform:uppercase;font-weight:500}

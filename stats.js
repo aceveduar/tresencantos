@@ -468,6 +468,9 @@ async function loadPreviousSales(mode = _statsMode, offset = _statsOffset, gener
     ...((directSalesR.ok && Array.isArray(directSalesR.data)) ? directSalesR.data : []),
     ...((apartadoSalesR.ok && Array.isArray(apartadoSalesR.data)) ? apartadoSalesR.data : [])
   ] : [];
+  // Necesario para que _saleOrigin(paymentSalesById.get(...)) resuelva bien el
+  // origen de cada pago del período anterior (si no, cae al default 'venta').
+  await _loadPaymentSales(nextPayments);
   if (generation !== null && generation !== _statsReloadGeneration) return;
   prevAptNewLoaded = aptNewR.ok;
   prevAptNewCount = aptNewR.ok && Array.isArray(aptNewR.data) ? aptNewR.data.length : 0;
@@ -722,6 +725,16 @@ function renderVendedores() {
   }).join('');
 }
 
+// Anticipos, abonos y liquidaciones cobrados sobre apartados — mismo criterio
+// que "💳 Anticipos y abonos" en sendDailySummaryWA().
+function _abonoCount(paymentsArr) {
+  return (paymentsArr || []).filter(payment => {
+    const sale = paymentSalesById.get(String(payment.sale_id));
+    return payment.kind !== 'refund' && payment.kind !== 'adjustment'
+      && _saleOrigin(sale) === 'apartado' && _paymentAmount(payment) > 0;
+  }).length;
+}
+
 /* KPIs con delta vs período anterior */
 function kpiDelta(curr, prev) {
   if (!prev) return '';
@@ -775,6 +788,15 @@ function renderKPIs() {
   document.getElementById('kpi-aptnew-sub').textContent = !aptNewLoaded
     ? 'No disponible'
     : prevAptNewLoaded && prevAptNewCount > 0 ? `Período ant.: ${prevAptNewCount}` : '';
+
+  const abonoCount     = _abonoCount(payments);
+  const prevAbonoCount = _abonoCount(prevPayments);
+  document.getElementById('kpi-abonos').innerHTML = paymentsLoaded
+    ? abonoCount + (prevPaymentsLoaded ? kpiDelta(abonoCount, prevAbonoCount) : '')
+    : '—';
+  document.getElementById('kpi-abonos-sub').textContent = !paymentsLoaded
+    ? 'No disponible'
+    : prevPaymentsLoaded && prevAbonoCount > 0 ? `Período ant.: ${prevAbonoCount}` : '';
 }
 
 /* Hora pico */
