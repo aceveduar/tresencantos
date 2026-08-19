@@ -376,12 +376,30 @@ function _posBarcodeNotFound(code) {
 }
 
 /* ── TOAST ── */
-function toast(msg, type = '') {
+// action = {label, onClick} — botón opcional dentro del toast (p.ej. "Avisar"
+// para notificar a la clienta justo después de registrar un abono, sin
+// forzar el envío automático). Sin action, se comporta exactamente igual
+// que antes: todos los demás llamadores de toast() en el proyecto no cambian.
+function toast(msg, type = '', action = null) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = 'toast show' + (type ? ' ' + type : '');
   clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.remove('show'), type === 'error' ? 4000 : 2500);
+  if (action && action.label && typeof action.onClick === 'function') {
+    el.innerHTML = '';
+    const span = document.createElement('span');
+    span.textContent = msg;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'toast-action-btn';
+    btn.textContent = action.label;
+    btn.onclick = () => { el.classList.remove('show'); action.onClick(); };
+    el.append(span, btn);
+    el.className = 'toast show has-action' + (type ? ' ' + type : '');
+    el._t = setTimeout(() => el.classList.remove('show'), 6000);
+  } else {
+    el.textContent = msg;
+    el.className = 'toast show' + (type ? ' ' + type : '');
+    el._t = setTimeout(() => el.classList.remove('show'), type === 'error' ? 4000 : 2500);
+  }
 }
 
 /* ── TODAY'S STATS ── */

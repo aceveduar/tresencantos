@@ -789,10 +789,16 @@ async function confirmAbonar() {
   }
   const amountReceived = _aptMoney(r.data?.payment?.amount ?? monto);
   const isFinal = _isApartadoLiquidado(r.data?.sale) || expectedFinal;
+  const aptId = _abonarCtx.id;
   closeAbonarModal();
+  // A diferencia de una venta/apartado nuevo (que sí abre el modal de "enviar
+  // por WhatsApp"), un abono solo mostraba un toast interno — avisarle a la
+  // clienta quedaba en que la cajera se acordara de tocar 💬 después. El botón
+  // "Avisar" deja la misma acción a un toque, sin forzar el envío.
   toast(isFinal
     ? `Apartado liquidado ✓ — $${amountReceived.toLocaleString('es-MX')} recibido`
-    : `Abono de $${amountReceived.toLocaleString('es-MX')} registrado ✓`, 'success');
+    : `Abono de $${amountReceived.toLocaleString('es-MX')} registrado ✓`, 'success',
+    { label: '📲 Avisar', onClick: () => sendApartadoReminder(aptId) });
   await _refreshPosFinancialState();
 }
 

@@ -172,6 +172,9 @@ button,a{touch-action:manipulation}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 .toast.success{background:var(--green)}
 .toast.error{background:var(--red)}
+.toast.has-action{display:flex;align-items:center;gap:10px;text-align:left;padding:8px 10px 8px 20px;max-width:min(92vw,400px)}
+.toast-action-btn{flex-shrink:0;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;padding:7px 14px;border-radius:50px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;touch-action:manipulation}
+.toast-action-btn:active{background:rgba(255,255,255,.35)}
 @media(max-width:640px){.toast{bottom:calc(68px + env(safe-area-inset-bottom))}}
 /* CART ADD FEEDBACK */
 .pos-prod-add.btn-added,.pos-card-add-icon.btn-added{background:var(--green)!important;color:#fff!important;border-color:var(--green)!important;transform:scale(1.15)}
