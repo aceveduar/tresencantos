@@ -388,10 +388,28 @@ function setCash(amount) {
 /* ── CORTE DE CAJA ── */
 let _corteData = null;
 
+let _corteMode = 'mio'; // 'mio' | 'general'
+
+function setCorteMode(mode) {
+  if (_corteMode === mode) return;
+  _corteMode = mode;
+  document.getElementById('corte-mode-mio')?.classList.toggle('active', mode === 'mio');
+  document.getElementById('corte-mode-general')?.classList.toggle('active', mode === 'general');
+  const personal = document.getElementById('corte-personal-sections');
+  if (personal) personal.style.display = mode === 'general' ? 'none' : '';
+  loadCorte();
+}
+
 async function openCorte() {
   document.getElementById('corte-offcanvas').classList.add('open');
   document.getElementById('corte-backdrop').style.display = 'block';
   document.body.style.overflow = 'hidden';
+  // Siempre abre en "Mi turno" — el toggle "General" es una consulta aparte,
+  // no debe quedar pegado de una vez anterior de este mismo dispositivo.
+  _corteMode = 'mio';
+  document.getElementById('corte-mode-mio')?.classList.add('active');
+  document.getElementById('corte-mode-general')?.classList.remove('active');
+  document.getElementById('corte-personal-sections').style.display = '';
   await loadCorte();
   renderGastos();
   _initCierreInputs();
@@ -419,16 +437,23 @@ async function loadCorte() {
     content.innerHTML = '<div style="color:var(--red);text-align:center">No se pudo identificar al usuario de esta caja. Vuelve a iniciar sesión.</div>';
     return;
   }
+  const isGeneral = _corteMode === 'general';
   const hoyMX = _posMexicoDayKey(now);
   const hoyInicio = new Date(`${hoyMX}T00:00:00-06:00`);
   const rawShiftStart = new Date(shift.start || '');
   const shiftStart = !Number.isNaN(rawShiftStart.getTime()) && rawShiftStart >= hoyInicio && rawShiftStart <= now
     ? rawShiftStart : hoyInicio;
-  const from = encodeURIComponent(shiftStart.toISOString());
+  // General suma la tienda completa desde medianoche — otras cajeras pueden
+  // haber empezado su turno antes que el actual, no tendría sentido acotar
+  // al horario de quien está viendo la pantalla.
+  const rangeStart = isGeneral ? hoyInicio : shiftStart;
+  const from = encodeURIComponent(rangeStart.toISOString());
   const to   = encodeURIComponent(now.toISOString());
-  const inicioMX = new Intl.DateTimeFormat('es-MX', { timeZone:TZ, hour:'2-digit', minute:'2-digit' }).format(shiftStart);
+  const inicioMX = new Intl.DateTimeFormat('es-MX', { timeZone:TZ, hour:'2-digit', minute:'2-digit' }).format(rangeStart);
   const actorLabel = shift.actorEmail.split('@')[0];
-  periodoEl.textContent = `Turno de ${actorLabel} desde ${inicioMX}`;
+  periodoEl.textContent = isGeneral
+    ? `General — hoy desde las ${inicioMX}, todas las cajeras`
+    : `Turno de ${actorLabel} desde ${inicioMX}`;
 
   const [paymentsResult, createdResult] = await Promise.all([
     _posFetchAll(`sale_payments?paid_at=gte.${from}&paid_at=lte.${to}&select=sale_id,amount,kind,method,paid_at,source,collected_by_email,sale:sales(origin_type,status)&order=paid_at.asc,id.asc`),
@@ -441,14 +466,14 @@ async function loadCorte() {
 
   const allPayments = paymentsResult.data || [];
   const money = value => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
-  const payments = allPayments.filter(payment =>
+  const payments = isGeneral ? allPayments : allPayments.filter(payment =>
     String(payment.collected_by_email || '').toLowerCase() === shift.actorEmail
   );
   const unassignedPayments = allPayments.filter(payment => !payment.collected_by_email);
   const otherCashiers = allPayments.filter(payment =>
     payment.collected_by_email && String(payment.collected_by_email).toLowerCase() !== shift.actorEmail
   );
-  const created = (createdResult.data || []).filter(sale =>
+  const created = isGeneral ? (createdResult.data || []) : (createdResult.data || []).filter(sale =>
     String(sale.seller_email || '').toLowerCase() === shift.actorEmail
   );
   let efectivo = 0, transferencia = 0, otros = 0, devoluciones = 0, anticipos = 0;
@@ -482,8 +507,9 @@ async function loadCorte() {
 
   const total = money(efectivo + transferencia + otros);
   const fmt = n => `$${n.toLocaleString('es-MX')}`;
+  const breakdown = isGeneral ? _corteBreakdownRows(allPayments) : [];
   _corteData = { efectivo, transferencia, otros, devoluciones, total, numVentas, numApartados,
-    numLiquidados, anticipos, ahoraMX, inicioMX, actorLabel, unassignedNet, otherCashiersNet };
+    numLiquidados, anticipos, ahoraMX, inicioMX, actorLabel, unassignedNet, otherCashiersNet, isGeneral, breakdown };
   if (shareButton) shareButton.disabled = false;
 
   const row = (label, value, sub='') => `
@@ -508,15 +534,47 @@ async function loadCorte() {
       ${Math.abs(otros) >= .005 ? row('🧾 Ajustes sin método', fmt(otros)) : ''}
       ${devoluciones > 0 ? row('↩️ Devoluciones registradas', `−${fmt(devoluciones)}`) : ''}
       <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;background:#F7F2EB">
-        <span style="font-size:.88rem;font-weight:700">Neto del turno</span>
+        <span style="font-size:.88rem;font-weight:700">${isGeneral ? 'Neto del día' : 'Neto del turno'}<span style="font-weight:400;font-size:.7rem;color:#B5A696;display:block;margin-top:1px">${isGeneral ? 'Todas las cajeras, hoy' : 'Solo lo que cobraste tú en este horario'}</span></span>
         <span style="font-size:1.15rem;font-weight:800;color:var(--green)">${fmt(total)}</span>
       </div>
     </div>
-    ${anticipos > 0 ? `<div style="background:#FFF8EE;border:1px solid var(--gold);border-radius:10px;padding:10px 14px;font-size:.78rem;color:var(--gold-dark)">📌 <strong>${fmt(anticipos)}</strong> cobrados en este turno en apartados que continúan activos</div>` : ''}
-    ${unassignedPayments.length ? `<div style="background:#FFF3F3;border:1px solid #FCA5A5;border-radius:10px;padding:10px 14px;font-size:.76rem;color:#991B1B">⚠ ${unassignedPayments.length} movimiento${unassignedPayments.length!==1?'s':''} histórico${unassignedPayments.length!==1?'s':''} sin cajero (${fmt(unassignedNet)}) no se incluye${unassignedPayments.length===1?'':'n'} en el arqueo.</div>` : ''}
-    ${otherCashiers.length ? `<div style="background:#F7F2EB;border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:.76rem;color:var(--muted)">👥 Cobros de otros usuarios en el mismo horario: ${fmt(otherCashiersNet)} (no incluidos).</div>` : ''}
+    ${anticipos > 0 ? `<div style="background:#FFF8EE;border:1px solid var(--gold);border-radius:10px;padding:10px 14px;font-size:.78rem;color:var(--gold-dark)">📌 <strong>${fmt(anticipos)}</strong> cobrados ${isGeneral ? 'hoy' : 'en este turno'} en apartados que continúan activos</div>` : ''}
+    ${!isGeneral && unassignedPayments.length ? `<div style="background:#FFF3F3;border:1px solid #FCA5A5;border-radius:10px;padding:10px 14px;font-size:.76rem;color:#991B1B">⚠ ${fmt(unassignedNet)} en ${unassignedPayments.length} abono${unassignedPayments.length!==1?'s':''} antiguo${unassignedPayments.length!==1?'s':''} sin registro de quién los cobró (datos de antes de esta actualización) — no cuentan en tu corte.</div>` : ''}
+    ${!isGeneral && otherCashiers.length ? `<div style="background:#F7F2EB;border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:.76rem;color:var(--muted)">👥 ${fmt(otherCashiersNet)} los cobró otra cuenta en este mismo horario — no cuentan en tu corte.</div>` : ''}
     <div style="text-align:center;font-size:.72rem;color:var(--muted);padding:4px 0">Generado ${ahoraMX}</div>
   `;
+
+  const breakdownEl = document.getElementById('corte-breakdown');
+  if (breakdownEl) breakdownEl.innerHTML = isGeneral ? _renderCorteBreakdown(breakdown, fmt) : '';
+}
+
+// Quién cobró qué, sumado en efectivo+transferencia (mismo criterio que el
+// neto de arriba) — así "General" no solo da un total, deja ver la parte de
+// cada cajera para que Ofelia pueda repartir/verificar sin abrir Reportes.
+function _corteBreakdownRows(payments) {
+  const byPerson = new Map();
+  (payments || []).forEach(payment => {
+    const key = payment.collected_by_email ? String(payment.collected_by_email).toLowerCase() : '';
+    const amount = parseFloat(payment.amount) || 0;
+    byPerson.set(key, (byPerson.get(key) || 0) + amount);
+  });
+  return [...byPerson.entries()]
+    .map(([email, net]) => ({ email, net: Math.round((net + Number.EPSILON) * 100) / 100 }))
+    .filter(r => Math.abs(r.net) >= .005)
+    .sort((a, b) => b.net - a.net);
+}
+
+function _renderCorteBreakdown(rows, fmt) {
+  if (!rows.length) return '';
+  return `
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div style="padding:10px 16px;border-bottom:1px solid var(--border)"><span style="font-size:.82rem;font-weight:700;color:var(--charcoal)">👥 Por cajero</span></div>
+      ${rows.map(r => `
+        <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:.8rem;color:var(--muted);font-weight:600">${r.email ? '👤 ' + _esc(r.email.split('@')[0]) : '❓ Sin cajero registrado'}</span>
+          <span style="font-weight:700;font-size:.9rem">${fmt(r.net)}</span>
+        </div>`).join('')}
+    </div>`;
 }
 
 /* ── GASTOS DEL TURNO ────────────────────────────────────────────── */
@@ -652,39 +710,53 @@ function _renderCierre() {
 function compartirCorteWA() {
   if (!_corteData) return;
   const { efectivo, transferencia, otros, devoluciones, total, numVentas, numApartados,
-    numLiquidados, anticipos, ahoraMX, inicioMX, actorLabel, unassignedNet, otherCashiersNet } = _corteData;
+    numLiquidados, anticipos, ahoraMX, inicioMX, actorLabel, unassignedNet, otherCashiersNet,
+    isGeneral, breakdown } = _corteData;
   const fmt = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX')}`;
   const gastos = _getGastos();
   const totalGastos = gastos.reduce((s, g) => s + g.amount, 0);
-  let msg = `🧾 *Corte de caja — Tres Encantos*\n${actorLabel} · desde ${inicioMX}\n${ahoraMX}\n\n`;
+  let msg = isGeneral
+    ? `🧾 *Corte general — Tres Encantos*\nHoy desde las ${inicioMX} · todas las cajeras\n${ahoraMX}\n\n`
+    : `🧾 *Corte de caja — Tres Encantos*\n${actorLabel} · desde ${inicioMX}\n${ahoraMX}\n\n`;
   if (numVentas > 0)      msg += `🛍 Ventas directas: ${numVentas}\n`;
   if (numLiquidados)      msg += `✅ Apartados liquidados: ${numLiquidados}\n`;
   if (numApartados)       msg += `📌 Apartados nuevos: ${numApartados}${anticipos > 0 ? ` (anticipos activos ${fmt(anticipos)})` : ''}\n`;
-  msg += `\n💵 Efectivo neto: ${fmt(efectivo)}\n📱 Transferencia neta: ${fmt(transferencia)}\n*Neto del turno: ${fmt(total)}*`;
+  msg += `\n💵 Efectivo neto: ${fmt(efectivo)}\n📱 Transferencia neta: ${fmt(transferencia)}\n*${isGeneral ? 'Neto del día' : 'Neto del turno'}: ${fmt(total)}*`;
   if (Math.abs(otros || 0) >= .005) msg += `\n🧾 Ajustes sin método: ${fmt(otros)}`;
   if (devoluciones > 0) msg += `\n↩️ Devoluciones registradas: −${fmt(devoluciones)}`;
   if (anticipos > 0) msg += `\n📌 Incluye ${fmt(anticipos)} cobrados en apartados aún activos`;
-  if (Math.abs(unassignedNet || 0) >= .005) msg += `\n⚠ Movimientos sin cajero no incluidos: ${fmt(unassignedNet)}`;
-  if (Math.abs(otherCashiersNet || 0) >= .005) msg += `\n👥 Otros usuarios no incluidos: ${fmt(otherCashiersNet)}`;
-  if (gastos.length) {
+  if (isGeneral) {
+    if (breakdown?.length) {
+      msg += `\n\n👥 *Por cajero:*\n` + breakdown.map(r =>
+        `• ${r.email ? r.email.split('@')[0] : 'Sin cajero registrado'}: ${fmt(r.net)}`
+      ).join('\n');
+    }
+  } else {
+    if (Math.abs(unassignedNet || 0) >= .005) msg += `\n⚠ ${fmt(unassignedNet)} en abonos antiguos sin registro de quién los cobró — no incluidos`;
+    if (Math.abs(otherCashiersNet || 0) >= .005) msg += `\n👥 ${fmt(otherCashiersNet)} cobrados por otra cuenta — no incluidos`;
+  }
+  if (gastos.length && !isGeneral) {
     msg += `\n\n💸 *Gastos del turno:*\n` + gastos.map(g => `• ${g.desc}: ${fmt(g.amount)}`).join('\n');
     msg += `\nTotal gastos: ${fmt(totalGastos)}`;
     msg += `\n\n🏆 *Utilidad: ${fmt(total - totalGastos)}*`;
   }
 
-  // Cierre de caja (fondo + conteo)
-  const fondo = parseFloat(localStorage.getItem(_fondoKey())) || 0;
-  const esperado = fondo + efectivo - totalGastos;
-  const conteoRaw = localStorage.getItem(_conteoKey());
-  if (fondo > 0 || conteoRaw != null) {
-    msg += `\n\n💵 *Cierre de caja:*`;
-    msg += `\nFondo inicial: ${fmt(fondo)}`;
-    msg += `\nEfectivo esperado: ${fmt(esperado)}`;
-    if (conteoRaw != null) {
-      const conteo = parseFloat(conteoRaw) || 0;
-      const diff = conteo - esperado;
-      msg += `\nConteo físico: ${fmt(conteo)}`;
-      msg += diff === 0 ? `\n✓ Cuadra` : diff > 0 ? `\n+${fmt(diff)} sobrante` : `\n-${fmt(Math.abs(diff))} faltante`;
+  // Cierre de caja (fondo + conteo) — es del cajón de quien tiene la sesión
+  // abierta en este dispositivo, no tiene sentido combinado en "General".
+  if (!isGeneral) {
+    const fondo = parseFloat(localStorage.getItem(_fondoKey())) || 0;
+    const esperado = fondo + efectivo - totalGastos;
+    const conteoRaw = localStorage.getItem(_conteoKey());
+    if (fondo > 0 || conteoRaw != null) {
+      msg += `\n\n💵 *Cierre de caja:*`;
+      msg += `\nFondo inicial: ${fmt(fondo)}`;
+      msg += `\nEfectivo esperado: ${fmt(esperado)}`;
+      if (conteoRaw != null) {
+        const conteo = parseFloat(conteoRaw) || 0;
+        const diff = conteo - esperado;
+        msg += `\nConteo físico: ${fmt(conteo)}`;
+        msg += diff === 0 ? `\n✓ Cuadra` : diff > 0 ? `\n+${fmt(diff)} sobrante` : `\n-${fmt(Math.abs(diff))} faltante`;
+      }
     }
   }
 
