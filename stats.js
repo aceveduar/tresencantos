@@ -546,8 +546,7 @@ function renderTodaySales() {
     const isRefund = payment.kind === 'refund';
     const isAdjustment = payment.kind === 'adjustment';
     const isHistorical = payment.is_estimated || payment.source?.startsWith('legacy_');
-    const isLiquidation = payment.source === 'rpc_apartado_liquidation'
-      || (payment.source === 'rpc_apartado_initial' && s && Math.abs(amount - (parseFloat(s.total) || 0)) < .005);
+    const isLiquidation = _isApartadoLiquidationPayment(payment, s);
     const tagText = isRefund ? 'DEVOLUCIÓN' : isAdjustment ? 'AJUSTE' : isHistorical ? 'HISTÓRICO' : isLiquidation ? 'LIQUIDADO' : origin === 'apartado' ? 'ABONO' : 'VENTA';
     const tagStyle = isRefund
       ? 'background:#FEE2E2;color:#991B1B'

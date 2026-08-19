@@ -772,8 +772,7 @@ async function loadHistory() {
         badgeStyle = 'background:#FEE2E2;color:var(--red);border:1px solid #FCA5A5';
       } else if (payment.kind === 'adjustment') {
         badgeText = '🧾 Ajuste histórico';
-      } else if (isApt && (/liquidation/.test(payment.source || '') ||
-        (payment.source === 'rpc_apartado_initial' && Math.abs(amount - total) < .005))) {
+      } else if (isApt && _isApartadoLiquidationPayment(payment, s)) {
         badgeText = '✅ Apartado liquidado';
         badgeStyle = 'background:#ECFDF5;color:#2D6A4F;border:1px solid #2D6A4F';
       } else if (isApt && payment.source === 'rpc_apartado_initial') {

@@ -474,8 +474,7 @@ async function loadCorte() {
   const numLiquidados = new Set(payments
     .filter(payment => {
       const sale = Array.isArray(payment.sale) ? payment.sale[0] : payment.sale;
-      return payment.source === 'rpc_apartado_liquidation'
-        || (payment.source === 'rpc_apartado_initial' && sale?.origin_type === 'apartado' && sale?.status === 'liquidado');
+      return _isApartadoLiquidationPayment(payment, sale);
     })
     .map(payment => payment.sale_id)).size;
   const unassignedNet = money(unassignedPayments.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0));

@@ -335,7 +335,7 @@
         if (payment.kind === 'refund') title = '↩️ Devolución registrada';
         else if (payment.kind === 'adjustment') title = '🧾 Ajuste registrado';
         else if (sale.origin_type === 'apartado') {
-          title = payment.source === 'rpc_apartado_liquidation' || sale.status === 'liquidado'
+          title = _isApartadoLiquidationPayment(payment, sale)
             ? '✅ Apartado liquidado' : '💳 Abono recibido';
         }
         _showSaleNotification(title, [amount, customer, actor].filter(Boolean).join(' · '),
@@ -383,6 +383,22 @@ const UP_ROLE_DEFAULTS = {
   duena:     {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:true, canViewReports:true, canViewActivity:true, canManageSettings:false},
   operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:false, canPublishProduct:false, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:false, canViewReports:false, canViewActivity:false, canManageSettings:false},
 };
+// Única fuente de verdad para "¿este pago dejó liquidado el apartado?",
+// usada por stats.js, pos-ui.js, pos-cart.js y el poller de notificaciones
+// de este mismo archivo. rpc_apartado_liquidation siempre lo es por
+// construcción; un anticipo (rpc_apartado_initial) solo cuenta si el status
+// actual de la venta ya es 'liquidado' — más confiable que adivinar por
+// comparación de montos, que solo se usa si no hay sale.status disponible.
+function _isApartadoLiquidationPayment(payment, sale) {
+  if (!payment) return false;
+  if (payment.source === 'rpc_apartado_liquidation') return true;
+  if (payment.source !== 'rpc_apartado_initial') return false;
+  if (sale && sale.status) return sale.status === 'liquidado';
+  const total = parseFloat(sale?.total) || 0;
+  const amount = parseFloat(payment.amount) || 0;
+  return total > 0 && Math.abs(amount - total) < .005;
+}
+
 function _getMyPermsCached() {
   try {
     const session = JSON.parse(localStorage.getItem('te_admin_session') || '{}');
