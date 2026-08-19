@@ -195,20 +195,38 @@ function _matchesSearch(item, q) {
   return haystack.includes(q);
 }
 
+/* ── ÍCONOS INLINE ── */
+const _actIco = (p, px = 13, sw = 1.75) => `<svg style="width:${px}px;height:${px}px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:${sw};stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24">${p}</svg>`;
+const _actIcoCash     = (px) => _actIco('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', px);
+const _actIcoX        = (px) => _actIco('<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>', px);
+const _actIcoBookmark = (px) => _actIco('<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>', px);
+const _actIcoCard     = (px) => _actIco('<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>', px);
+const _actIcoEdit     = (px) => _actIco('<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>', px);
+const _actIcoCheck    = (px) => _actIco('<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>', px);
+const _actIcoUndo     = (px) => _actIco('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>', px);
+const _actIcoPlus     = (px) => _actIco('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', px);
+const _actIcoTrash    = (px) => _actIco('<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>', px);
+const _actIcoEye      = (px) => _actIco('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>', px);
+const _actIcoWarn     = (px) => _actIco('<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>', px);
+const _actIcoClipboard= (px) => _actIco('<rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>', px);
+const _actIcoPhone    = (px) => _actIco('<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>', px);
+const _actIcoCalendar = (px) => _actIco('<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>', px);
+const _actIcoPackage  = (px) => _actIco('<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>', px);
+
 /* ── ACTION CONFIG ── */
 const ACTION_CFG = {
-  venta:              { type:'venta',      badge:'venta',     icon:'💰', label:'Venta'     },
-  venta_cancelada:    { type:'venta',      badge:'eliminado', icon:'❌', label:'Venta cancelada' },
-  apartado_nuevo:     { type:'apartado',   badge:'apartado',  icon:'📌', label:'Apartado'  },
-  apartado_abono:     { type:'apartado',   badge:'apartado',  icon:'💳', label:'Abono'     },
-  apartado_editado:   { type:'apartado',   badge:'apartado',  icon:'✏️', label:'Apartado editado' },
-  apartado_liquidado: { type:'apartado',   badge:'apartado',  icon:'✅', label:'Liquidado' },
-  apartado_reembolso: { type:'apartado',   badge:'eliminado', icon:'↩️', label:'Reembolso' },
-  apartado_cancelado: { type:'apartado',   badge:'eliminado', icon:'❌', label:'Apartado cancelado' },
-  producto_creado:       { type:'inventario', badge:'creado',    icon:'➕', label:'Creado'    },
-  producto_editado:      { type:'inventario', badge:'editado',   icon:'✏️', label:'Editado'   },
-  producto_eliminado:    { type:'inventario', badge:'eliminado', icon:'🗑', label:'Eliminado' },
-  duplicado_descartado:  { type:'inventario', badge:'revisado',  icon:'👁', label:'Revisado'  },
+  venta:              { type:'venta',      badge:'venta',     icon:_actIcoCash(),     label:'Venta'     },
+  venta_cancelada:    { type:'venta',      badge:'eliminado', icon:_actIcoX(),        label:'Venta cancelada' },
+  apartado_nuevo:     { type:'apartado',   badge:'apartado',  icon:_actIcoBookmark(), label:'Apartado'  },
+  apartado_abono:     { type:'apartado',   badge:'apartado',  icon:_actIcoCard(),     label:'Abono'     },
+  apartado_editado:   { type:'apartado',   badge:'apartado',  icon:_actIcoEdit(),     label:'Apartado editado' },
+  apartado_liquidado: { type:'apartado',   badge:'apartado',  icon:_actIcoCheck(),    label:'Liquidado' },
+  apartado_reembolso: { type:'apartado',   badge:'eliminado', icon:_actIcoUndo(),     label:'Reembolso' },
+  apartado_cancelado: { type:'apartado',   badge:'eliminado', icon:_actIcoX(),        label:'Apartado cancelado' },
+  producto_creado:       { type:'inventario', badge:'creado',    icon:_actIcoPlus(),  label:'Creado'    },
+  producto_editado:      { type:'inventario', badge:'editado',   icon:_actIcoEdit(),  label:'Editado'   },
+  producto_eliminado:    { type:'inventario', badge:'eliminado', icon:_actIcoTrash(), label:'Eliminado' },
+  duplicado_descartado:  { type:'inventario', badge:'revisado',  icon:_actIcoEye(),   label:'Revisado'  },
 };
 
 /* ── LOAD ── */
@@ -261,7 +279,7 @@ async function load() {
   if (loadGeneration !== _activityLoadGeneration) return;
 
   if (!logRes.ok) {
-    document.getElementById('feed').innerHTML = '<div class="empty-state"><div class="em">⚠️</div>Error al cargar actividad</div>';
+    document.getElementById('feed').innerHTML = `<div class="empty-state"><div class="em">${_actIcoWarn(32)}</div>Error al cargar actividad</div>`;
     return;
   }
 
@@ -325,8 +343,8 @@ function updateSummary(logData, paymentData, allApartados) {
   const eliminados= logData.filter(d => d.action === 'producto_eliminado').length;
   const invTotal  = creados + editados + eliminados;
   document.getElementById('sum-inv').textContent = invTotal;
-  document.getElementById('sum-inv-sub').textContent =
-    invTotal > 0 ? `➕${creados} ✏️${editados} 🗑${eliminados}` : '';
+  document.getElementById('sum-inv-sub').innerHTML =
+    invTotal > 0 ? `${_actIcoPlus(11)}${creados} ${_actIcoEdit(11)}${editados} ${_actIcoTrash(11)}${eliminados}` : '';
 
   const anyData = ventas + aptNuevos + aptAbonos + aptLiquidados + aptReembolsos + movements.length + invTotal > 0;
   if (anyData) document.getElementById('summary-row').style.display = '';
@@ -340,7 +358,7 @@ function render(data) {
 
   const feed = document.getElementById('feed');
   if (!filtered.length) {
-    feed.innerHTML = '<div class="empty-state"><div class="em">📋</div>Sin actividad en este período</div>';
+    feed.innerHTML = `<div class="empty-state"><div class="em">${_actIcoClipboard(32)}</div>Sin actividad en este período</div>`;
     return;
   }
 
@@ -373,13 +391,13 @@ function render(data) {
       if (item.action === 'venta' || item.action === 'venta_cancelada')
         detail = [
           meta.items != null ? `${meta.items} producto${meta.items !== 1 ? 's' : ''}` : '',
-          meta.method ? (meta.method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo') : '',
+          meta.method ? (meta.method === 'transferencia' ? _actIcoPhone(12)+' Transferencia' : _actIcoCash(12)+' Efectivo') : '',
           meta.discount > 0 ? `Desc. $${(meta.discount).toLocaleString('es-MX')}` : ''
         ].filter(Boolean).join(' · ');
       else if (item.action === 'apartado_nuevo' && meta.anticipo != null)
         detail = `Anticipo $${meta.anticipo.toLocaleString('es-MX')} · Pendiente $${(meta.pendiente ?? 0).toLocaleString('es-MX')}`;
       else if (item.action === 'apartado_abono' && meta.amount != null)
-        detail = `$${meta.amount.toLocaleString('es-MX')} · ${meta.method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo'}`;
+        detail = `$${meta.amount.toLocaleString('es-MX')} · ${meta.method === 'transferencia' ? _actIcoPhone(12)+' Transferencia' : _actIcoCash(12)+' Efectivo'}`;
       else if (item.action === 'apartado_reembolso' && meta.refund != null)
         detail = `Devuelto $${parseFloat(meta.refund).toLocaleString('es-MX')}`;
       else if (item.action === 'apartado_cancelado' && meta.refund > 0)
@@ -457,7 +475,7 @@ function _actPopup(idx) {
     }
     bodyHtml = `<div style="font-size:1.1rem;font-weight:700;font-family:'Playfair Display',serif;color:#C9A462;margin-bottom:6px">$${parseFloat(meta.total||0).toLocaleString('es-MX')} MXN</div>`;
     bodyHtml += `<div style="font-size:.82rem;color:#1C1817;margin-bottom:4px">${meta.items||0} producto${(meta.items||0)!==1?'s':''}</div>`;
-    bodyHtml += `<div style="font-size:.82rem;color:#8A7564">${meta.method==='transferencia'?'📱 Transferencia':'💵 Efectivo'}</div>`;
+    bodyHtml += `<div style="font-size:.82rem;color:#8A7564">${meta.method==='transferencia'?_actIcoPhone(12)+' Transferencia':_actIcoCash(12)+' Efectivo'}</div>`;
     if (meta.discount > 0) bodyHtml += `<div style="font-size:.78rem;color:#059669;margin-top:4px">Descuento −$${parseFloat(meta.discount).toLocaleString('es-MX')}</div>`;
     bodyHtml += _renderItemsDetail(meta);
   } else if (isApt) {
@@ -469,8 +487,8 @@ function _actPopup(idx) {
     if (meta.restante != null) bodyHtml += `<div style="font-size:.82rem;color:#059669;margin-top:2px">Liquidado: $${parseFloat(meta.restante).toLocaleString('es-MX')}</div>`;
     if (meta.pagado != null)   bodyHtml += `<div style="font-size:.82rem;color:#8A7564;margin-top:2px">Cobrado antes de cancelar: $${parseFloat(meta.pagado).toLocaleString('es-MX')}</div>`;
     if (meta.refund != null)   bodyHtml += `<div style="font-size:.82rem;color:#E85D5D;margin-top:2px">Devuelto: $${parseFloat(meta.refund).toLocaleString('es-MX')}</div>`;
-    if (meta.method)           bodyHtml += `<div style="font-size:.78rem;color:#8A7564;margin-top:2px">${meta.method==='transferencia'?'📱 Transferencia':'💵 Efectivo'}</div>`;
-    if (meta.dueDate)          bodyHtml += `<div style="font-size:.78rem;color:#8A7564;margin-top:2px">📅 Vencía: ${_activityFormat(meta.dueDate+'T12:00:00Z',{day:'numeric',month:'short',year:'numeric'})}</div>`;
+    if (meta.method)           bodyHtml += `<div style="font-size:.78rem;color:#8A7564;margin-top:2px">${meta.method==='transferencia'?_actIcoPhone(12)+' Transferencia':_actIcoCash(12)+' Efectivo'}</div>`;
+    if (meta.dueDate)          bodyHtml += `<div style="font-size:.78rem;color:#8A7564;margin-top:2px">${_actIcoCalendar(12)} Vencía: ${_activityFormat(meta.dueDate+'T12:00:00Z',{day:'numeric',month:'short',year:'numeric'})}</div>`;
     bodyHtml += _renderItemsDetail(meta);
   } else {
     bodyHtml = `<div style="font-size:.85rem;color:#1C1817">${_esc(item.summary)}</div>`;
