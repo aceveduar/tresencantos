@@ -1205,7 +1205,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .ac-img{border-radius:0;display:block}
   .ac-actions{
     position:absolute;bottom:0;left:0;right:0;
-    justify-content:space-between;
+    justify-content:flex-end;
     padding:6px 8px;gap:0;
     background:linear-gradient(transparent,rgba(247,242,235,.72));
     border-radius:0 0 12px 12px;
@@ -1219,12 +1219,15 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     color:var(--charcoal);border-radius:8px;
     box-shadow:0 1px 5px rgba(0,0,0,.18);
   }
-  .ac-actions .action-btn.del{color:var(--red);background:rgba(255,236,236,.94);border-color:rgba(232,93,93,.2)}
   .ac-body{margin-top:0}
   /* Estrella arriba-derecha — visible sobre imagen */
   .ac-star{bottom:auto;top:8px;right:10px}
   /* Duplicar no cabe en 2 columnas */
   .ac-actions .btn-duplicate{display:none}
+  /* Eliminar no vive sobre la imagen en Grid mobile: es la esquina que más
+     roza el dedo al hacer tap/scroll en la tarjeta. Sigue disponible desde
+     Quick View (que abre justo al tocar la tarjeta), sin ese riesgo. */
+  .ac-actions .action-btn.del{display:none}
   /* Agotados: sin acciones visibles — via QV */
   .admin-card.card-oos .ac-actions{display:none}
   /* En mobile la tabla pasa a block cuando está visible */
