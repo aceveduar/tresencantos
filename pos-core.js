@@ -439,6 +439,16 @@ async function _refreshPosFinancialState() {
   }
 }
 
+// Suma el descuento implícito en items con precio editado a mano en el
+// carrito (item.original_price != item.price), separado del campo plano
+// "Agregar descuento" (sales.discount). Usado por el modal post-venta, el
+// ticket de WhatsApp, Historial y la ficha de apartado para que un precio
+// negociado por producto también cuente como descuento visible.
+function _itemsDiscountTotal(items) {
+  return (Array.isArray(items) ? items : []).reduce((sum, i) =>
+    sum + (i.original_price != null ? (i.original_price - i.price) * (i.qty || 1) : 0), 0);
+}
+
 // Único punto de entrada para cancel_sale_atomic — usado tanto desde el
 // panel de Apartados como desde Historial, para que ambos flujos no puedan
 // desincronizarse en el fingerprint, el pago considerado o cuándo refrescar.

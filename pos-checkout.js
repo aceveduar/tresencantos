@@ -81,12 +81,17 @@ async function cobrar() {
 
   const items = cart.map(({ product: p, qty, customPrice }) => {
     const pr = Math.round((customPrice ?? p.price) * 100) / 100;
+    const isCustom = customPrice != null && customPrice !== p.price;
     return {
       id: p.id,
       name: p.name,
       price: pr,
       qty,
       subtotal: Math.round(pr * qty * 100) / 100,
+      // El precio de catálogo se recalcula y valida en el servidor
+      // (te_snapshot_sale_items); esto solo alimenta el ticket/modal
+      // inmediatos, que no esperan la respuesta del RPC con el snapshot.
+      ...(isCustom ? { original_price: p.price } : {}),
       ...(p.kitItems?.length ? { kit_items: p.kitItems.map(c => ({ id:c.id, name:c.name, qty:c.qty || 1 })) } : {})
     };
   });
@@ -206,8 +211,12 @@ function showSaleDone() {
 
   const transAlert = document.getElementById('sd-transfer-alert');
   if (transAlert) transAlert.style.display = (!isApt && s.payMethod === 'transferencia') ? '' : 'none';
-  document.getElementById('sd-discount-row').style.display = s.disc > 0 ? '' : 'none';
-  document.getElementById('sd-discount').textContent       = `−${fmt(s.disc)}`;
+  // El descuento por artículo (precio editado en el carrito) no pasa por el
+  // campo "Agregar descuento" — sin sumarlo aquí, un precio negociado por
+  // producto parecía no dejar rastro de descuento en la confirmación.
+  const totalDiscount = Math.round(((s.disc || 0) + _itemsDiscountTotal(s.items)) * 100) / 100;
+  document.getElementById('sd-discount-row').style.display = totalDiscount > 0 ? '' : 'none';
+  document.getElementById('sd-discount').textContent       = `−${fmt(totalDiscount)}`;
   document.getElementById('sd-note-row').style.display     = s.note ? '' : 'none';
   document.getElementById('sd-note').textContent           = s.note || '';
   // Texto del botón WA y "Nueva venta" según contexto
@@ -224,9 +233,15 @@ function sendWhatsAppTicket() {
   const lines    = s.items.map(i => {
     const prod = products.find(p => p.id === i.id);
     const imgUrl = prod?.image && !prod.image.startsWith('data:') ? `\n  🖼 ${prod.image}` : '';
-    return `• ${i.name} x${i.qty} — $${(i.subtotal||0).toLocaleString('es-MX')}${imgUrl}`;
+    // WhatsApp renderiza ~texto~ como tachado — mismo lenguaje visual que
+    // ya usa el carrito para un precio editado manualmente.
+    const origPrice = i.original_price != null
+      ? ` ~$${(i.original_price * i.qty).toLocaleString('es-MX')}~`
+      : '';
+    return `• ${i.name} x${i.qty} —${origPrice} $${(i.subtotal||0).toLocaleString('es-MX')}${imgUrl}`;
   }).join('\n');
-  const disc     = s.disc > 0 ? `\n🏷 Descuento: −$${s.disc.toLocaleString('es-MX')}` : '';
+  const totalDisc = Math.round(((s.disc || 0) + _itemsDiscountTotal(s.items)) * 100) / 100;
+  const disc     = totalDisc > 0 ? `\n🏷 Descuento: −$${totalDisc.toLocaleString('es-MX')}` : '';
   const note     = s.note ? `\n📝 ${s.note}` : '';
   const metodo   = s.payMethod === 'transferencia' ? '📱 Transferencia bancaria' : '💵 Efectivo';
   let msg;

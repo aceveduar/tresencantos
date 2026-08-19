@@ -517,9 +517,12 @@ function openAptDetail(id) {
     const kitHTML  = Array.isArray(kitComps) && kitComps.length
       ? kitComps.map(c => `<div style="font-size:.68rem;color:#9B8B78;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${_esc(c.name)}${c.qty > 1 ? ' ×' + c.qty : ''}</div>`).join('')
       : '';
+    const origSub = i.original_price != null
+      ? `<span style="text-decoration:line-through;opacity:.45;font-size:.68rem;margin-right:3px">$${(i.original_price * qty).toLocaleString('es-MX')}</span>`
+      : '';
     const priceLabel = qty > 1
-      ? `<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span><span class="apt-item-qty">$${i.price.toLocaleString('es-MX')} ×${qty}</span>`
-      : `<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span>`;
+      ? `${origSub}<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span><span class="apt-item-qty">$${i.price.toLocaleString('es-MX')} ×${qty}</span>`
+      : `${origSub}<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span>`;
     return `<div class="apt-item-row"${prod?.image ? ` role="button" tabindex="0" aria-label="Ver imagen de ${_esc(i.name)}" onclick="_aptItemPopup(${i.id},this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_aptItemPopup(${i.id},this)}"` : ''}>
       <img class="apt-item-thumb" src="${img}" onerror="this.style.visibility='hidden'" alt="">
       <div class="apt-item-info"><div class="apt-item-name">${_esc(i.name)}</div>${kitHTML}</div>
@@ -544,7 +547,7 @@ function openAptDetail(id) {
     dueAlertHTML = `<div style="font-size:.76rem;font-weight:700;color:${dueColor};margin-bottom:10px">📅 ${dueText}</div>`;
   }
 
-  const disc = parseFloat(s.discount) || 0;
+  const disc = Math.round(((parseFloat(s.discount) || 0) + _itemsDiscountTotal(s.items)) * 100) / 100;
   const subtotal = disc > 0 ? total + disc : 0;
 
   const summaryRows = [];
@@ -791,17 +794,21 @@ async function loadHistory() {
         const cur = products.find(p => p.id === i.id);
         const img = _driveSz(cur?.image, 80) || THUMB_PH;
         const displayName = _esc(cur?.name || i.name);
+        const origSub = i.original_price != null
+          ? `<span style="text-decoration:line-through;opacity:.45;font-size:.68rem;margin-right:3px">$${(i.original_price * (i.qty || 1)).toLocaleString('es-MX')}</span>`
+          : '';
         return `
 <div class="hi-item">
   <img class="hi-item-thumb" src="${img}" alt="${displayName}" onerror="this.src='${THUMB_PH}'" data-name="${displayName}" data-price="${i.price}" data-qty="${i.qty||1}" data-seller="${payment.collected_by_email||s.seller_email||''}" onclick="event.stopPropagation();openLightbox(this)" style="cursor:zoom-in">
   <span class="hi-item-name">${displayName}</span>
   <span class="hi-item-qty">×${i.qty || 1}</span>
-  <span class="hi-item-sub">$${((i.subtotal ?? i.price * (i.qty || 1))).toLocaleString('es-MX')}</span>
+  <span class="hi-item-sub">${origSub}$${((i.subtotal ?? i.price * (i.qty || 1))).toLocaleString('es-MX')}</span>
 </div>`;
       }).join('');
 
+      const totalDisc = Math.round((disc + _itemsDiscountTotal(items)) * 100) / 100;
       const tags = [];
-      if (disc > 0)   tags.push(`<span class="hi-tag discount">🏷 −$${disc.toLocaleString('es-MX')}</span>`);
+      if (totalDisc > 0) tags.push(`<span class="hi-tag discount">🏷 −$${totalDisc.toLocaleString('es-MX')}</span>`);
       if (s.note)     tags.push(`<span class="hi-tag note">📝 ${_esc(s.note)}</span>`);
       if (s.customer) tags.push(`<span class="hi-tag customer">👤 ${_esc((s.customer||'').split(' · 📱 ')[0])}</span>`);
       if (payment.is_estimated) tags.push('<span class="hi-tag note">⚠ Histórico estimado</span>');

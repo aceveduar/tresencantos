@@ -527,9 +527,12 @@ function _renderApartadoCards(data, isLiquidado) {
       const img   = _driveSz(prod?.image || i.image || '', 80);
       const qty   = i.qty || 1;
       const sub   = i.subtotal ?? i.price * qty;
+      const origSub = i.original_price != null
+        ? `<span style="text-decoration:line-through;opacity:.45;font-size:.68rem;margin-right:3px">$${(i.original_price * qty).toLocaleString('es-MX')}</span>`
+        : '';
       const priceLabel = qty > 1
-        ? `<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span><span class="apt-item-qty">$${i.price.toLocaleString('es-MX')} ×${qty}</span>`
-        : `<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span>`;
+        ? `${origSub}<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span><span class="apt-item-qty">$${i.price.toLocaleString('es-MX')} ×${qty}</span>`
+        : `${origSub}<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span>`;
       return `<div class="apt-item-row" onclick="event.stopPropagation();_aptItemPopup(${i.id},this)">
         <img class="apt-item-thumb" src="${img}" onerror="this.style.visibility='hidden'" alt="">
         <div class="apt-item-info"><div class="apt-item-name">${_esc(i.name)}</div></div>
@@ -537,7 +540,7 @@ function _renderApartadoCards(data, isLiquidado) {
       </div>`;
     }).join('') : '';
 
-    const disc = parseFloat(s.discount) || 0;
+    const disc = Math.round(((parseFloat(s.discount) || 0) + _itemsDiscountTotal(s.items)) * 100) / 100;
 
     return `
 <div class="apartado-item${isOverdue ? ' apt-overdue' : ''}">
