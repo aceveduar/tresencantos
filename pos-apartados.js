@@ -632,7 +632,7 @@ function sendApartadoReminder(id) {
   const pagado    = parseFloat(s.paid_amount || 0);
   const pendiente = Math.max(0, total - pagado);
   const productos = Array.isArray(s.items) ? s.items.map(i => `• ${i.name}`).join('\n') : '';
-  const liquidado = s.status === 'liquidado' || (s.origin_type === 'apartado' && s.type === 'venta');
+  const liquidado = _isApartadoLiquidado(s);
   let fechaTexto  = '';
   if (s.due_date) {
     const dias = _posDayKeyDiff(s.due_date);
@@ -773,7 +773,7 @@ async function confirmAbonar() {
     return;
   }
   const amountReceived = _aptMoney(r.data?.payment?.amount ?? monto);
-  const isFinal = r.data?.sale?.status === 'liquidado' || r.data?.liquidated === true || expectedFinal;
+  const isFinal = _isApartadoLiquidado(r.data?.sale) || expectedFinal;
   closeAbonarModal();
   toast(isFinal
     ? `Apartado liquidado ✓ — $${amountReceived.toLocaleString('es-MX')} recibido`
@@ -823,7 +823,7 @@ async function refundApartado(id, source = 'detail') {
   if (!sale) { toast('Apartado no encontrado', 'error'); return; }
   const pagado = _aptMoney(sale.paid_amount);
   if (pagado <= 0) return;
-  const wasLiquidated = sale.status === 'liquidado' || (sale.origin_type === 'apartado' && sale.type === 'venta');
+  const wasLiquidated = _isApartadoLiquidado(sale);
   const consequence = wasLiquidated
     ? 'El apartado volverá a Activos y el inventario seguirá reservado.'
     : 'El apartado seguirá activo y el inventario continuará reservado.';
@@ -1039,7 +1039,7 @@ async function saveEditApt() {
     else if (!r.ambiguous && !r.pendingConflict) loadApartados();
     return;
   }
-  const quedaLiquidado = r.data?.sale?.status === 'liquidado' || r.data?.liquidated === true;
+  const quedaLiquidado = _isApartadoLiquidado(r.data?.sale);
   closeEditApt();
   toast(quedaLiquidado ? 'Apartado actualizado y movido a Liquidados ✓' : 'Apartado actualizado ✓', 'success');
   await _refreshPosFinancialState();

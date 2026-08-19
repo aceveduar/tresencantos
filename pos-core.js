@@ -427,6 +427,22 @@ function _posRpcError(result, fallback) {
   return message || fallback;
 }
 
+// Única fuente de verdad para "¿este apartado ya está liquidado?", usada por
+// pos-apartados.js y pos-ui.js. Las dos cláusulas !sale.status son compat con
+// filas anteriores a la migración v2 (sin status poblado todavía) — sin ese
+// guard, un apartado reabierto por refund_apartado_atomic (status vuelve a
+// 'activo' pero type puede seguir en 'venta', legacy) se clasificaría como
+// liquidado otra vez. No quitar el guard sin volver a probar ese flujo.
+function _isApartadoLiquidado(sale) {
+  if (!sale) return false;
+  if (sale.status === 'liquidado') return true;
+  if (sale.status) return false;
+  if (sale.origin_type === 'apartado' && sale.type === 'venta') return true;
+  const abonos = Array.isArray(sale.payment_history) ? sale.payment_history
+    : Array.isArray(sale.abonos) ? sale.abonos : [];
+  return sale.type === 'venta' && abonos.length > 0;
+}
+
 async function _refreshPosFinancialState() {
   const tasks = [];
   if (typeof loadProducts === 'function') tasks.push(loadProducts());

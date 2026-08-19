@@ -533,9 +533,7 @@ function openAptDetail(id) {
     ? '<div style="font-size:.74rem;color:var(--red);margin-top:8px">⚠ Historial incompleto; recarga para consultar el libro de pagos.</div>'
     : '';
 
-  const isLiquidado = s.status === 'liquidado'
-    || (!s.status && s.origin_type === 'apartado' && s.type === 'venta')
-    || (!s.status && s.type === 'venta' && abonos.length > 0);
+  const isLiquidado = _isApartadoLiquidado(s);
 
   // Due date — sin sentido para un apartado ya liquidado
   let dueAlertHTML = '';
