@@ -553,12 +553,15 @@ function renderTodaySales() {
     const isRefund = payment.kind === 'refund';
     const isAdjustment = payment.kind === 'adjustment';
     const isCreated = payment.kind === 'apartado_created';
-    const isHistorical = payment.is_estimated || payment.source?.startsWith('legacy_');
     const isLiquidation = _isApartadoLiquidationPayment(payment, s);
-    const tagText = isRefund ? 'DEVOLUCIÓN' : isAdjustment ? 'AJUSTE' : isCreated ? 'APARTADO NUEVO' : isHistorical ? 'HISTÓRICO' : isLiquidation ? 'LIQUIDADO' : origin === 'apartado' ? 'ABONO' : 'VENTA';
+    // El tag siempre dice qué fue realmente (venta/abono/liquidado) — que un
+    // pago venga del backfill de datos viejos (source legacy_*) no cambia esa
+    // respuesta, solo si el dato es confiable (eso ya lo indica por separado
+    // "Dato histórico estimado" en el detalle, cuando is_estimated es true).
+    const tagText = isRefund ? 'DEVOLUCIÓN' : isAdjustment ? 'AJUSTE' : isCreated ? 'APARTADO NUEVO' : isLiquidation ? 'LIQUIDADO' : origin === 'apartado' ? 'ABONO' : 'VENTA';
     const tagStyle = isRefund
       ? 'background:#FEE2E2;color:#991B1B'
-      : isAdjustment || isHistorical
+      : isAdjustment
         ? 'background:#FEF3C7;color:#92400E'
         : isCreated
           ? 'background:#FFF8EE;color:#9A742D'
