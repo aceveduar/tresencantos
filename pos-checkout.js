@@ -184,14 +184,18 @@ function showSaleDone() {
   const isApt = s.isApartado;
   const isAptFlow = isApt || s.apartadoLiquidado;
 
-  document.getElementById('sd-icon').textContent         = isAptFlow ? '📌' : '✓';
+  document.getElementById('sd-icon').innerHTML = isAptFlow
+    ? '<svg style="width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>'
+    : '<svg style="width:32px;height:32px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
   document.getElementById('sd-title').textContent        = isApt ? 'Apartado registrado' : s.apartadoLiquidado ? 'Apartado liquidado' : 'Venta completada';
   document.getElementById('sd-total-label').textContent  = isAptFlow ? 'Total del pedido' : 'Total cobrado';
   document.getElementById('sd-cash-label').textContent   = isApt ? 'Anticipo recibido' : s.apartadoLiquidado ? 'Pago completo recibido' : 'Recibido';
   document.getElementById('sd-total').textContent        = fmt(s.total);
   document.getElementById('sd-cash').textContent         = s.paidAmount > 0 ? fmt(s.paidAmount) : '—';
   document.getElementById('sd-change').textContent       = s.change > 0 ? fmt(s.change) : s.payMethod === 'transferencia' ? '—' : '$0';
-  document.getElementById('sd-method').textContent       = s.payMethod === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo';
+  document.getElementById('sd-method').innerHTML = s.payMethod === 'transferencia'
+    ? '<svg style="width:13px;height:13px;vertical-align:-2px;margin-right:3px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>Transferencia'
+    : '<svg style="width:13px;height:13px;vertical-align:-2px;margin-right:3px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>Efectivo';
 
   const pendiente = Math.max(0, (s.total || 0) - (s.paidAmount || 0));
   document.getElementById('sd-pending-row').style.display  = isApt ? '' : 'none';
@@ -439,7 +443,11 @@ async function loadTodayStats() {
 
   const total = efectivo + transferencia + otros;
   const fmt = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX')}`;
-  mob.innerHTML = `<span style="color:var(--gold-dark);font-weight:700">Hoy</span> &nbsp;💵 ${fmt(efectivo)} &nbsp;📱 ${fmt(transferencia)}${Math.abs(otros) >= .005 ? ` &nbsp;🧾 ${fmt(otros)}` : ''} &nbsp;<strong>${fmt(total)}</strong>`;
+  const _svgIco = p => `<svg style="width:12px;height:12px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24">${p}</svg>`;
+  const _icoEfec  = _svgIco('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>');
+  const _icoTrans = _svgIco('<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>');
+  const _icoOtros = _svgIco('<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8M8 11h8M8 15h5"/>');
+  mob.innerHTML = `<span style="color:var(--gold-dark);font-weight:700">Hoy</span> &nbsp;${_icoEfec} ${fmt(efectivo)} &nbsp;${_icoTrans} ${fmt(transferencia)}${Math.abs(otros) >= .005 ? ` &nbsp;${_icoOtros} ${fmt(otros)}` : ''} &nbsp;<strong>${fmt(total)}</strong>`;
   mob.style.display = 'flex';
 }
 
