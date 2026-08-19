@@ -575,7 +575,7 @@ function _renderApartadoCards(data, isLiquidado) {
     ${abonosHTML}
     <div class="apt-btns">
       <button class="btn-wa-reminder" onclick="event.stopPropagation();sendApartadoReminder(${s.id})" title="${isLiquidado ? 'Enviar confirmación por WhatsApp' : 'Enviar recordatorio por WhatsApp'}" aria-label="${isLiquidado ? 'Enviar confirmación por WhatsApp' : 'Enviar recordatorio por WhatsApp'}">💬</button>
-      ${isLiquidado ? `<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--green)">✓ Liquidado</span>` : `
+      ${(isLiquidado || pendiente <= _APT_MONEY_EPSILON) ? `<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--green)">✓ Liquidado</span>` : `
       ${canEditApartado() ? `<button class="btn-wa-reminder" onclick="event.stopPropagation();openEditApartado(${s.id})" title="Editar" style="background:#F7F2EB;color:var(--charcoal);border:1.5px solid var(--border)">✏️</button>` : ''}
       <button class="btn-abonar" onclick="event.stopPropagation();abonarApartado('${s.id}','${total}','${pagado}','${_esc(nombre).replace(/'/g,"\\'")}')">Registrar abono</button>
       <button class="btn-liquidar" onclick="event.stopPropagation();openLiqModal(${s.id})">Cobrar saldo $${pendiente.toLocaleString('es-MX')}</button>
@@ -1080,6 +1080,14 @@ async function confirmLiquidar() {
   if (!_liqCtx) return;
   const { id, restante, sale } = _liqCtx;
   const alreadyPaid = restante <= _APT_MONEY_EPSILON;
+  if (alreadyPaid) {
+    // Dato local desfasado (otra caja ya liquidó, o doble tap) — evita mandar
+    // p_amount:null al RPC, que rechaza con error de "sin saldo pendiente".
+    closeLiqModal();
+    toast('Apartado pagado movido a Liquidados ✓', 'success');
+    await _refreshPosFinancialState();
+    return;
+  }
   const method = _liqMethod;
   const btn    = document.getElementById('liq-confirm-btn');
   btn.disabled = true; btn.textContent = 'Liquidando…';
@@ -1106,8 +1114,6 @@ async function confirmLiquidar() {
   }
   const amountReceived = _aptMoney(r.data?.payment?.amount ?? restante);
   closeLiqModal();
-  toast(alreadyPaid
-    ? 'Apartado pagado movido a Liquidados ✓'
-    : `Apartado liquidado ✓ — $${amountReceived.toLocaleString('es-MX')} recibido`, 'success');
+  toast(`Apartado liquidado ✓ — $${amountReceived.toLocaleString('es-MX')} recibido`, 'success');
   await _refreshPosFinancialState();
 }

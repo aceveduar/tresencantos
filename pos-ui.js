@@ -581,7 +581,9 @@ function openAptDetail(id) {
     ${abonosVisible || paymentHistoryWarning ? `<div class="apt-abonos-section"><div class="adm-section-title">Historial de pagos</div>${paymentHistoryWarning}${abonosVisible}</div>` : ''}`;
 
   // Un apartado liquidado no admite abonar, liquidar, editar ni cancelar desde esta ficha.
-  if (isLiquidado) {
+  // pendiente<=0 cubre el caso de un registro local desfasado (otra caja ya liquidó
+  // o dato aún no refrescado) que isLiquidado no detectaría por venir de status/type.
+  if (isLiquidado || pendiente <= _APT_MONEY_EPSILON) {
     const reopenBtn = canEditApartado() && pagado > 0
       ? `<button type="button" class="btn-abonar" id="adm-refund-btn" onclick="refundApartado(${id},'detail')" style="border-color:var(--red);color:var(--red)">↩ Reabrir y reembolsar</button>`
       : '';
