@@ -313,6 +313,10 @@ function _aptDueFiltered(data, filter = _aptDueFilter) {
   return rows.filter(sale => {
     if (!sale.due_date) return filter === 'sin-fecha';
     if (!/^\d{4}-\d{2}-\d{2}$/.test(sale.due_date)) return filter === 'sin-fecha';
+    // Llegar aquí significa que sí hay una fecha válida — nunca debe contar
+    // para "Sin fecha" (antes caía al `return true` final de abajo, el mismo
+    // que usa "Todos", así que "Sin fecha" mostraba todo).
+    if (filter === 'sin-fecha') return false;
     const diff = _posDayKeyDiff(sale.due_date, todayKey);
     if (filter === 'vencidos') return diff < 0;
     if (filter === 'proximos') return diff >= 0 && diff <= 7;

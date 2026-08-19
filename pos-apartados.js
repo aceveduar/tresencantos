@@ -372,6 +372,21 @@ async function toggleAptView(mode, target) {
   return true;
 }
 
+// _renderApartadoCards() solo toca #apt-oc-count al mostrar Liquidados (para
+// no pisar este texto mientras loadApartados() sigue en vuelo) — pero volver
+// a Activos con el toggle (sin recargar del servidor) nunca lo restauraba,
+// dejando "N liquidados" pegado bajo el título "Apartados pendientes".
+function _updateAptOcActivosCount() {
+  const ocCount = document.getElementById('apt-oc-count');
+  if (!ocCount) return;
+  const todayKey = _posMexicoDayKey();
+  const vencidos = (_apartadosAll || []).filter(s => s.due_date && s.due_date < todayKey).length;
+  const rows = _apartadosAll || [];
+  ocCount.textContent = rows.length
+    ? `${rows.length} apartado${rows.length !== 1 ? 's' : ''} activo${rows.length !== 1 ? 's' : ''}${vencidos > 0 ? ` · ${vencidos} vencido${vencidos > 1 ? 's' : ''}` : ''}`
+    : '';
+}
+
 async function loadApartados() {
   const loadGeneration = ++_apartadosLoadGeneration;
   const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,updated_at,version,items,abonos,discount';
@@ -455,7 +470,7 @@ async function loadApartados() {
     return;
   }
 
-  if (ocCount) ocCount.textContent = `${rows.length} apartado${rows.length !== 1 ? 's' : ''} activo${rows.length !== 1 ? 's' : ''}${vencidos > 0 ? ` · ${vencidos} vencido${vencidos > 1 ? 's' : ''}` : ''}`;
+  _updateAptOcActivosCount();
 
   if (_aptViewMode === 'activos') {
     if (typeof filterApartadosWithDue === 'function') {

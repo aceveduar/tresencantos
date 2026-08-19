@@ -480,7 +480,8 @@ button,a{touch-action:manipulation}
 .apt-due-filters-wrap[hidden]{display:none}
 .apt-due-filters-wrap::after{content:'›';position:absolute;top:0;bottom:8px;right:0;width:24px;display:flex;align-items:center;justify-content:flex-end;padding-right:2px;background:linear-gradient(to right,transparent,#fff 65%);color:var(--muted);font-size:1.2rem;font-weight:800;pointer-events:none;opacity:1;transition:opacity .15s}
 .apt-due-filters-wrap.at-end::after{opacity:0}
-.apt-due-filters{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:0 0 8px;scrollbar-width:thin}
+.apt-due-filters{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:0 0 8px;scrollbar-width:none}
+.apt-due-filters::-webkit-scrollbar{display:none}
 .apt-due-filter{min-height:44px;padding:7px 12px;border:1.5px solid var(--border);border-radius:50px;background:#fff;color:#786B5B;font-size:.74rem;font-weight:700;font-family:inherit;white-space:nowrap;cursor:pointer;transition:.15s}
 .apt-due-filter:hover{border-color:var(--gold);color:var(--gold-dark)}
 .apt-due-filter.active{background:var(--charcoal);border-color:var(--charcoal);color:#fff}
