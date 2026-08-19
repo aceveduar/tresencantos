@@ -732,13 +732,33 @@ function renderVendedores() {
   }).join('');
 }
 
-// Anticipos, abonos y liquidaciones cobrados sobre apartados — mismo criterio
-// que "💳 Anticipos y abonos" en sendDailySummaryWA().
+// Abonos = dinero que se queda "en curso" (anticipos y abonos parciales sobre
+// apartados aún no liquidados). La liquidación se cuenta en Ventas, no aquí,
+// para que Ventas$ + Abonos$ = Ingresos, sin contar el mismo pago dos veces.
 function _abonoPayments(paymentsArr) {
   return (paymentsArr || []).filter(payment => {
     const sale = paymentSalesById.get(String(payment.sale_id));
-    return payment.kind !== 'refund' && payment.kind !== 'adjustment'
-      && _saleOrigin(sale) === 'apartado' && _paymentAmount(payment) > 0;
+    if (payment.kind === 'refund' || payment.kind === 'adjustment') return false;
+    if (_saleOrigin(sale) !== 'apartado') return false;
+    if (_paymentAmount(payment) <= 0) return false;
+    return !_isApartadoLiquidationPayment(payment, sale);
+  });
+}
+
+// Ventas = dinero realmente cobrado hoy por transacciones que se completaron
+// hoy: el pago de una venta directa (siempre se paga completa el mismo día)
+// y, si un apartado se liquidó hoy, solo el pago de la liquidación — no el
+// total histórico de la venta (que puede incluir abonos de días anteriores,
+// ya contados como Ingresos ese día).
+function _salesCashPayments(paymentsArr) {
+  return (paymentsArr || []).filter(payment => {
+    if (payment.kind === 'refund' || payment.kind === 'adjustment' || payment.kind === 'apartado_created') return false;
+    if (_paymentAmount(payment) <= 0) return false;
+    const sale = paymentSalesById.get(String(payment.sale_id));
+    const origin = _saleOrigin(sale);
+    if (origin === 'venta') return true;
+    if (origin === 'apartado') return _isApartadoLiquidationPayment(payment, sale);
+    return false;
   });
 }
 
@@ -758,12 +778,12 @@ function renderKPIs() {
   const count     = sales.length;
   const units     = sales.reduce((s,v) => s + (v.items||[]).reduce((a,i) => a + (i.qty||1), 0), 0);
 
-  const salesTotal     = sales.reduce((s,v) => s + (parseFloat(v.total)||0), 0);
+  const salesTotal     = _paymentTotal(_salesCashPayments(payments));
 
   const prevRev   = _paymentTotal(prevPayments);
   const prevCount = prevSales.length;
   const prevUnits = prevSales.reduce((s,v) => s + (v.items||[]).reduce((a,i) => a + (i.qty||1), 0), 0);
-  const prevSalesTotal = prevSales.reduce((s,v) => s + (parseFloat(v.total)||0), 0);
+  const prevSalesTotal = _paymentTotal(_salesCashPayments(prevPayments));
 
   const fmt = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX', {maximumFractionDigits:0})}`;
 
