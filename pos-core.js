@@ -192,16 +192,7 @@ async function api(path, opts = {}) {
 }
 
 async function _posFetchAll(path, pageSize = 500, maxRows = 20000) {
-  const rows = [];
-  for (let offset = 0; offset < maxRows; offset += pageSize) {
-    const separator = path.includes('?') ? '&' : '?';
-    const result = await api(`${path}${separator}limit=${pageSize}&offset=${offset}`);
-    if (!result.ok) return result;
-    const page = Array.isArray(result.data) ? result.data : [];
-    rows.push(...page);
-    if (page.length < pageSize) return { ok: true, status: result.status, data: rows };
-  }
-  return { ok: false, status: 413, data: { message: 'Hay demasiados movimientos para completar la consulta' } };
+  return _posPaginatedFetch(path, { pageSize, maxRows, tooManyMessage: 'Hay demasiados movimientos para completar la consulta' });
 }
 
 function _posMexicoDayKey(date = new Date()) {

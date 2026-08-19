@@ -383,6 +383,29 @@ const UP_ROLE_DEFAULTS = {
   duena:     {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:true, canViewReports:true, canViewActivity:true, canManageSettings:false},
   operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:false, canPublishProduct:false, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:false, canViewReports:false, canViewActivity:false, canManageSettings:false},
 };
+
+// Bucle de paginación por offset/limit compartido por _posFetchAll
+// (pos-core.js) y _fetchAll (stats.js) — cada uno llama a través de su
+// propio api() (con el token del módulo correspondiente), así que solo se
+// deduplica el bucle, no el transporte. maxRows=Infinity reproduce el
+// comportamiento original de stats.js (traer la colección completa para
+// que los reportes no corten datos en silencio); pos-core.js sigue
+// pasando su propio tope de 20000.
+async function _posPaginatedFetch(path, { pageSize = 500, maxRows = Infinity, tooManyMessage } = {}) {
+  const rows = [];
+  let offset = 0;
+  while (offset < maxRows) {
+    const sep = path.includes('?') ? '&' : '?';
+    const r = await api(`${path}${sep}limit=${pageSize}&offset=${offset}`);
+    if (!r.ok) return { ...r, data: null };
+    const page = Array.isArray(r.data) ? r.data : [];
+    rows.push(...page);
+    if (page.length < pageSize) return { ok: true, status: r.status, data: rows };
+    offset += page.length;
+  }
+  return { ok: false, status: 413, data: { message: tooManyMessage || 'Demasiados registros para completar la consulta' } };
+}
+
 // Única fuente de verdad para "¿este pago dejó liquidado el apartado?",
 // usada por stats.js, pos-ui.js, pos-cart.js y el poller de notificaciones
 // de este mismo archivo. rpc_apartado_liquidation siempre lo es por

@@ -66,19 +66,11 @@ async function api(path, opts={}) {
 }
 
 // PostgREST/Supabase puede limitar silenciosamente una respuesta a 1,000 filas.
-// Paginar siempre las colecciones que alimentan reportes evita cortes invisibles.
+// Paginar siempre las colecciones que alimentan reportes evita cortes invisibles
+// (a diferencia de las vistas de Caja, Reportes sí necesita la colección completa
+// para que los totales no queden truncados en silencio).
 async function _fetchAll(path, pageSize = 1000) {
-  const rows = [];
-  let offset = 0;
-  while (true) {
-    const sep = path.includes('?') ? '&' : '?';
-    const r = await api(`${path}${sep}limit=${pageSize}&offset=${offset}`);
-    if (!r.ok) return { ...r, data: null };
-    const page = Array.isArray(r.data) ? r.data : [];
-    rows.push(...page);
-    if (page.length < pageSize) return { ok: true, status: r.status, data: rows };
-    offset += page.length;
-  }
+  return _posPaginatedFetch(path, { pageSize });
 }
 
 const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
