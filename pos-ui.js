@@ -1,18 +1,23 @@
 /* ── SWIPE TO CLOSE (offcanvas desde la derecha) ── */
-function initSwipeToClose(panelId, backdropId, closeFn, backdropBaseOpacity = 0.35) {
+function initSwipeToClose(panelId, backdropId, closeFn, backdropBaseOpacity = 0.35, ignoreSelector = null) {
   const panel    = document.getElementById(panelId);
   const backdrop = document.getElementById(backdropId);
   if (!panel) return;
 
-  let startX = 0, startY = 0, curX = 0, dragging = false;
+  let startX = 0, startY = 0, curX = 0, dragging = false, ignored = false;
 
   panel.addEventListener('touchstart', e => {
     startX  = e.touches[0].clientX;
     startY  = e.touches[0].clientY;
     dragging = false; curX = 0;
+    // Un dedo que arranca sobre una fila con su propio scroll horizontal
+    // (p.ej. los chips de vencimiento en Apartados) nunca debe competir con
+    // cerrar el panel — ambos escuchan el mismo touchmove porque burbujea.
+    ignored = !!(ignoreSelector && e.target.closest(ignoreSelector));
   }, { passive: true });
 
   panel.addEventListener('touchmove', e => {
+    if (ignored) return;
     const dx = e.touches[0].clientX - startX;
     const dy = Math.abs(e.touches[0].clientY - startY);
     if (!dragging) {

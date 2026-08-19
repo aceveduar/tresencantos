@@ -517,7 +517,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Swipe para cerrar offcanvas (derecha)
   initSwipeToClose('corte-offcanvas',   'corte-backdrop',   closeCorte,      0.35);
   initSwipeToClose('history-offcanvas', 'history-backdrop', closeHistory,    0.35);
-  initSwipeToClose('apt-offcanvas',     'apt-backdrop',     closeApartados,  0.35);
+  initSwipeToClose('apt-offcanvas',     'apt-backdrop',     closeApartados,  0.35, '.apt-due-filters');
 
   // Swipe down para cerrar modales / bottom sheets
   const saleDoneOv = document.getElementById('sale-done-overlay');
