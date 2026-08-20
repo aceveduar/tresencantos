@@ -474,12 +474,8 @@ function _renderQV(p) {
     : p.outOfStock
       ? `<span class="qv-chip qv-chip-warn">${QV_ICO_WARN(13)}Agotado</span>`
       : `<span class="qv-chip qv-chip-web" ${_pubClick}>${QV_ICO_GLOBE(13)}Web</span>`;
-  const oosChip  = oos
-    ? `<span class="qv-chip qv-chip-sold">⊘ Agotado</span>`
-    : `<span class="qv-chip qv-chip-ok">✓ Disponible</span>`;
   const stockCls = p.stock === 0 ? 'qv-chip-sold' : p.stock === 1 ? '' : 'qv-chip-ok';
   const featChip    = p.featured ? `<span class="qv-chip">${QV_ICO_STAR(13)}Destacado</span>` : '';
-  const barcodeChip = p.barcode  ? `<span class="qv-chip">${QV_ICO_BARCODE(13)}${_esc(p.barcode)}</span>` : '';
   let marginChip = '';
   if (p.cost && p.price > 0) {
     const m = Math.round((1 - p.cost / p.price) * 100);
@@ -511,7 +507,7 @@ function _renderQV(p) {
       : `<span class="qv-chip qv-chip-warn" title="Caduca el ${dateStr}">${QV_ICO_CLOCK(13)}Caduca en ${expSt.days}d</span>`;
   }
   document.getElementById('qv-chips').innerHTML =
-    oosChip + pubChip + stockChipQV + featChip + marginChip + expiryChipQV;
+    pubChip + stockChipQV + featChip + marginChip + expiryChipQV;
 
   // Descripción
   const descEl   = document.getElementById('qv-desc');
