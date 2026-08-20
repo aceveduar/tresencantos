@@ -366,11 +366,6 @@ function adminCard(p, editable = false) {
             title="${p.featured?'Quitar destacado':'Destacar'}">
       ${_arStar(p.featured, 15)}
     </button>
-    <div class="ac-actions">
-      <button class="action-btn" onclick="event.stopPropagation();openForm(${p.id})" ontouchstart="event.stopPropagation()" title="Editar">${ICON_EDIT}</button>
-      <button class="action-btn btn-duplicate" onclick="event.stopPropagation();duplicateProduct(${p.id})" ontouchstart="event.stopPropagation()" title="Duplicar">${ICON_COPY}</button>
-      ${can.deleteProduct ? `<button class="action-btn del" onclick="event.stopPropagation();askDelete(${p.id})" ontouchstart="event.stopPropagation()" title="Eliminar">✕</button>` : ''}
-    </div>
   </div>
   <div class="ac-body">
     <div class="ac-name" title="${_esc(p.name)}">${_esc(p.name)}</div>
@@ -695,13 +690,6 @@ function desktopRow(p) {
       ${expiryChip(p)}
     </div>
   </td>
-  <td class="col-actions">
-    <div class="actions">
-      <button class="action-btn" onclick="event.stopPropagation();openForm(${p.id})" ontouchstart="event.stopPropagation()" title="Editar">${ICON_EDIT}</button>
-      <button class="action-btn" onclick="event.stopPropagation();duplicateProduct(${p.id})" ontouchstart="event.stopPropagation()" title="Duplicar">${ICON_COPY}</button>
-      ${can.deleteProduct ? `<button class="action-btn del" onclick="event.stopPropagation();askDelete(${p.id})" ontouchstart="event.stopPropagation()" title="Eliminar">✕</button>` : ''}
-    </div>
-  </td>
 </tr>`;
 }
 
@@ -760,11 +748,6 @@ function mobileCard(p) {
             ${publishedToggle(p)}
           </div>
         </div>
-        <div class="mpc-top-actions">
-          <button class="mpc-icon-btn" onclick="openForm(${p.id})" title="Editar">${ICON_EDIT}</button>
-          <button class="mpc-icon-btn" onclick="duplicateProduct(${p.id})" title="Duplicar">${ICON_COPY}</button>
-          ${can.deleteProduct ? `<button class="mpc-icon-btn del-btn" onclick="askDelete(${p.id})" title="Eliminar">✕</button>` : ''}
-        </div>
       </div>
     </div>
   </td>
@@ -808,7 +791,7 @@ function renderTable() {
     if (useCards && cardGrid) { cardGrid.innerHTML = emptyHTML; }
     else {
       const tbody = document.getElementById('products-table');
-      if (tbody) tbody.innerHTML = `<tr><td colspan="5">${emptyHTML}</td></tr>`;
+      if (tbody) tbody.innerHTML = `<tr><td colspan="4">${emptyHTML}</td></tr>`;
     }
     updateBulkBar();
     if (!document.getElementById('qv-overlay')?.classList.contains('open')) _updateActiveFiltersBar();
@@ -834,7 +817,7 @@ function renderTable() {
   // Vista lista: mobile → mpc cards, desktop → tabla
   const tbody = document.getElementById('products-table');
   if (tbody) tbody.innerHTML = visible.map(p => mobile ? mobileCard(p) : desktopRow(p)).join('') +
-    (hasMore ? `<tr><td colspan="5">${sentinelHTML}</td></tr>` : '');
+    (hasMore ? `<tr><td colspan="4">${sentinelHTML}</td></tr>` : '');
 
   updateSelectAllCheckbox();
   if (!mobile) initDragDrop();
