@@ -470,16 +470,16 @@ function _renderQV(p) {
     ? `onclick="_qvTogglePublished(${p.id})" ontouchstart="event.stopPropagation()" style="cursor:pointer" title="Toca para cambiar visibilidad"`
     : '';
   const pubChip  = p.isPublished === false
-    ? `<span class="qv-chip qv-chip-hidden" ${_pubClick}>${QV_ICO_EYEOFF(11)}Oculto</span>`
+    ? `<span class="qv-chip qv-chip-hidden" ${_pubClick}>${QV_ICO_EYEOFF(13)}Oculto</span>`
     : p.outOfStock
-      ? `<span class="qv-chip qv-chip-warn">${QV_ICO_WARN(11)}Agotado</span>`
-      : `<span class="qv-chip qv-chip-web" ${_pubClick}>${QV_ICO_GLOBE(11)}Web</span>`;
+      ? `<span class="qv-chip qv-chip-warn">${QV_ICO_WARN(13)}Agotado</span>`
+      : `<span class="qv-chip qv-chip-web" ${_pubClick}>${QV_ICO_GLOBE(13)}Web</span>`;
   const oosChip  = oos
     ? `<span class="qv-chip qv-chip-sold">⊘ Agotado</span>`
     : `<span class="qv-chip qv-chip-ok">✓ Disponible</span>`;
   const stockCls = p.stock === 0 ? 'qv-chip-sold' : p.stock === 1 ? '' : 'qv-chip-ok';
-  const featChip    = p.featured ? `<span class="qv-chip">${QV_ICO_STAR(11)}Destacado</span>` : '';
-  const barcodeChip = p.barcode  ? `<span class="qv-chip">${QV_ICO_BARCODE(11)}${_esc(p.barcode)}</span>` : '';
+  const featChip    = p.featured ? `<span class="qv-chip">${QV_ICO_STAR(13)}Destacado</span>` : '';
+  const barcodeChip = p.barcode  ? `<span class="qv-chip">${QV_ICO_BARCODE(13)}${_esc(p.barcode)}</span>` : '';
   let marginChip = '';
   if (p.cost && p.price > 0) {
     const m = Math.round((1 - p.cost / p.price) * 100);
@@ -490,13 +490,13 @@ function _renderQV(p) {
   if (Array.isArray(p.kitItems)) {
     const ki = _kitInfo(p);
     if (ki?.empty) {
-      stockChipQV = `<span class="qv-chip qv-chip-sold">${QV_ICO_GIFT(11)}Sin componentes</span>`;
+      stockChipQV = `<span class="qv-chip qv-chip-sold">${QV_ICO_GIFT(13)}Sin componentes</span>`;
     } else if (ki?.stock === 0) {
       const lbl = ki.blocker ? (ki.blocker.length > 16 ? ki.blocker.slice(0, 15) + '…' : ki.blocker) : '?';
-      stockChipQV = `<span class="qv-chip qv-chip-sold" title="Falta: ${ki.blocker ?? 'componente agotado'}">${QV_ICO_GIFT(11)}Falta: ${lbl}</span>`;
+      stockChipQV = `<span class="qv-chip qv-chip-sold" title="Falta: ${ki.blocker ?? 'componente agotado'}">${QV_ICO_GIFT(13)}Falta: ${lbl}</span>`;
     } else {
       const n = ki?.stock ?? 0;
-      stockChipQV = `<span class="qv-chip qv-chip-ok">${QV_ICO_GIFT(11)}${n} kit${n !== 1 ? 's' : ''}</span>`;
+      stockChipQV = `<span class="qv-chip qv-chip-ok">${QV_ICO_GIFT(13)}${n} kit${n !== 1 ? 's' : ''}</span>`;
     }
   } else {
     const stockLbl = p.stock === 0 ? 'Sin stock' : p.stock === 1 ? '1 · Última' : `${p.stock} en stock`;
@@ -507,8 +507,8 @@ function _renderQV(p) {
   if (expSt && expSt.state !== 'ok') {
     const dateStr = new Date(p.expiryDate + 'T00:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' });
     expiryChipQV = expSt.state === 'expired'
-      ? `<span class="qv-chip qv-chip-sold" title="Caducó el ${dateStr}">${QV_ICO_CLOCK(11)}Caducado</span>`
-      : `<span class="qv-chip qv-chip-warn" title="Caduca el ${dateStr}">${QV_ICO_CLOCK(11)}Caduca en ${expSt.days}d</span>`;
+      ? `<span class="qv-chip qv-chip-sold" title="Caducó el ${dateStr}">${QV_ICO_CLOCK(13)}Caducado</span>`
+      : `<span class="qv-chip qv-chip-warn" title="Caduca el ${dateStr}">${QV_ICO_CLOCK(13)}Caduca en ${expSt.days}d</span>`;
   }
   document.getElementById('qv-chips').innerHTML =
     oosChip + pubChip + stockChipQV + featChip + marginChip + expiryChipQV;
@@ -540,7 +540,7 @@ function _renderQV(p) {
   if (kitZone) {
     if (Array.isArray(p.kitItems) && p.kitItems.length) {
       kitZone.style.display = '';
-      kitZone.innerHTML = `<div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${QV_ICO_GIFT(11)}Incluye</div>` +
+      kitZone.innerHTML = `<div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${QV_ICO_GIFT(13)}Incluye</div>` +
         p.kitItems.map(item => {
           const comp = products.find(x => x.id === item.id);
           const clickable = comp ? `onclick="_kitCompPopup(${comp.id},this)" style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-light);cursor:pointer;border-radius:6px;transition:background .15s" onmouseenter="this.style.background='var(--gold-light)'" onmouseleave="this.style.background=''"` : `style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-light)"`;
@@ -552,7 +552,7 @@ function _renderQV(p) {
         }).join('');
     } else if (Array.isArray(p.kitItems)) {
       kitZone.style.display = '';
-      kitZone.innerHTML = `<div style="text-align:center;padding:12px;color:var(--muted);font-size:.82rem;border:1.5px dashed var(--border);border-radius:10px">${QV_ICO_GIFT(12)}Kit sin componentes · edita para agregar productos</div>`;
+      kitZone.innerHTML = `<div style="text-align:center;padding:12px;color:var(--muted);font-size:.82rem;border:1.5px dashed var(--border);border-radius:10px">${QV_ICO_GIFT(13)}Kit sin componentes · edita para agregar productos</div>`;
     } else {
       kitZone.style.display = 'none';
       kitZone.innerHTML = '';
@@ -573,19 +573,19 @@ function _renderQV(p) {
             const pendiente = Math.max(0, a.total - a.paidAmount);
             const dueStr = a.dueDate ? new Date(a.dueDate + 'T00:00:00').toLocaleDateString('es-MX', { day:'numeric', month:'short' }) : '';
             return `<p class="qv-flag-note-text">
-              ${QV_ICO_USER(11)}${_esc(a.customer)} · ×${a.qty} · pendiente $${pendiente.toLocaleString('es-MX')}${dueStr ? ` · vence ${dueStr}` : ''}${dateStr ? ` · apartado el ${dateStr}` : ''}
+              ${QV_ICO_USER(13)}${_esc(a.customer)} · ×${a.qty} · pendiente $${pendiente.toLocaleString('es-MX')}${dueStr ? ` · vence ${dueStr}` : ''}${dateStr ? ` · apartado el ${dateStr}` : ''}
             </p>`;
           }).join('')}
         </div>`;
 
     if (aptList?.length) {
-      aptZone.innerHTML = renderList(aptList, `${QV_ICO_BOOKMARK(12)}Apartado — ${aptList.length > 1 ? `${aptList.length} clientes` : '1 cliente'}`);
+      aptZone.innerHTML = renderList(aptList, `${QV_ICO_BOOKMARK(13)}Apartado — ${aptList.length > 1 ? `${aptList.length} clientes` : '1 cliente'}`);
     } else if (kitParent) {
-      aptZone.innerHTML = renderList(_apartadosDetail[kitParent.id], `${QV_ICO_BOOKMARK(12)}Reservado como parte del kit "${_esc(kitParent.name)}"`);
+      aptZone.innerHTML = renderList(_apartadosDetail[kitParent.id], `${QV_ICO_BOOKMARK(13)}Reservado como parte del kit "${_esc(kitParent.name)}"`);
     } else if (p.isApartado) {
       aptZone.innerHTML = `
         <div class="qv-flag-active" style="border-color:#B91C1C;background:#FEF2F2">
-          <span class="qv-flag-title" style="color:#B91C1C">${QV_ICO_WARN(12)}Marcado como apartado, pero sin apartado activo</span>
+          <span class="qv-flag-title" style="color:#B91C1C">${QV_ICO_WARN(13)}Marcado como apartado, pero sin apartado activo</span>
           <p class="qv-flag-note-text">No encontramos ningún apartado pendiente en Caja que lo respalde — probablemente quedó la marca pegada de un apartado ya cancelado. Verifica en Caja → Apartados antes de quitarlo si tienes dudas.</p>
           ${can.editProduct ? `<button class="btn btn-sm" style="margin-top:8px;background:#B91C1C;color:#fff;border:none" onclick="_clearOrphanApartado(${p.id})">Quitar marca de apartado</button>` : ''}
         </div>`;
@@ -604,7 +604,7 @@ function _renderQV(p) {
                       ' ' + d.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
       flagZone.innerHTML = `
         <div class="qv-flag-active">
-          <span class="qv-flag-title">${QV_ICO_FLAG(12)}Pendiente de revisión</span>
+          <span class="qv-flag-title">${QV_ICO_FLAG(13)}Pendiente de revisión</span>
           ${flagData.note ? `<p class="qv-flag-note-text">"${_esc(flagData.note)}"</p>` : ''}
           <span class="qv-flag-ts">Marcado el ${dateStr}</span>
         </div>`;

@@ -16,7 +16,7 @@ const AR_ICO_WARN     = (px=13) => _arIco('<path d="M10.29 3.86 1.82 18a2 2 0 0 
 const AR_ICO_ARCHIVE  = (px=13) => _arIco('<rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8"/><line x1="10" y1="12" x2="14" y2="12"/>', px);
 const AR_ICO_DOLLAR   = (px=13) => _arIco('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', px);
 const AR_ICO_SEARCH   = (px=13) => _arIco('<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>', px);
-const AR_ICO_USER     = (px=11) => _arIco('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', px);
+const AR_ICO_USER     = (px=13) => _arIco('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', px);
 const _arStar = (filled, px=13) => filled
   ? `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
   : `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
@@ -339,7 +339,7 @@ function adminCard(p, editable = false) {
   const priceHTML = priceDisplay;
   const oosTitle  = oos ? 'Agotado — toca para marcar disponible' : 'Disponible — toca para agotar';
   const flagData  = _flagItem(p.id);
-  const flagDotAC = flagData ? `<span class="flag-dot" title="${_esc(flagData.note || 'Pendiente de revisión')}">${AR_ICO_FLAG(12)}</span>` : '';
+  const flagDotAC = flagData ? `<span class="flag-dot" title="${_esc(flagData.note || 'Pendiente de revisión')}">${AR_ICO_FLAG(13)}</span>` : '';
   const isSinCat  = p.category === 'por_revisar';
 
   return `
@@ -374,7 +374,7 @@ function adminCard(p, editable = false) {
   </div>
   <div class="ac-body">
     <div class="ac-name" title="${_esc(p.name)}">${_esc(p.name)}</div>
-    ${flagData?.note ? `<div class="flag-note-line">${AR_ICO_FLAG(11)}"${_esc(flagData.note)}"</div>` : ''}
+    ${flagData?.note ? `<div class="flag-note-line">${AR_ICO_FLAG(13)}"${_esc(flagData.note)}"</div>` : ''}
     <div class="ac-meta">
       <span class="cat-dot" style="background:${catColor}"></span>
       ${editable
@@ -387,7 +387,7 @@ function adminCard(p, editable = false) {
     <div class="ac-footer">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         ${stockChip(p, editable)}
-        ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip" title="${_aptTitle(p.id)}">${AR_ICO_BOOKMARK(11)}Apartado</span>` : ''}
+        ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip" title="${_aptTitle(p.id)}">${AR_ICO_BOOKMARK(13)}Apartado</span>` : ''}
         ${expiryChip(p)}
         ${publishedToggle(p)}
       </div>
@@ -415,20 +415,20 @@ function expiryChip(p) {
   if (!st || st.state === 'ok') return '';
   const dateStr = new Date(p.expiryDate + 'T00:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' });
   return st.state === 'expired'
-    ? `<span class="exp-chip exp-chip-expired" title="Caducó el ${dateStr}">${AR_ICO_CLOCK(11)}Caducado</span>`
-    : `<span class="exp-chip exp-chip-soon" title="Caduca el ${dateStr}">${AR_ICO_CLOCK(11)}${st.days}d</span>`;
+    ? `<span class="exp-chip exp-chip-expired" title="Caducó el ${dateStr}">${AR_ICO_CLOCK(13)}Caducado</span>`
+    : `<span class="exp-chip exp-chip-soon" title="Caduca el ${dateStr}">${AR_ICO_CLOCK(13)}${st.days}d</span>`;
 }
 
 function stockChip(p, editable = false) {
   if (Array.isArray(p.kitItems)) {
     const ki = _kitInfo(p);
-    if (ki?.empty) return `<span class="stock-chip stock-sold" style="cursor:default">${AR_ICO_GIFT(11)}Sin componentes</span>`;
+    if (ki?.empty) return `<span class="stock-chip stock-sold" style="cursor:default">${AR_ICO_GIFT(13)}Sin componentes</span>`;
     if (ki?.stock === 0) {
       const lbl = ki.blocker ? (ki.blocker.length > 14 ? ki.blocker.slice(0, 13) + '…' : ki.blocker) : '?';
-      return `<span class="stock-chip stock-sold" style="cursor:default" title="Falta: ${ki.blocker ?? 'componente agotado'}">${AR_ICO_GIFT(11)}Falta: ${lbl}</span>`;
+      return `<span class="stock-chip stock-sold" style="cursor:default" title="Falta: ${ki.blocker ?? 'componente agotado'}">${AR_ICO_GIFT(13)}Falta: ${lbl}</span>`;
     }
     const n = ki?.stock ?? 0;
-    return `<span class="stock-chip stock-ok" style="cursor:default">${AR_ICO_GIFT(11)}${n} kit${n !== 1 ? 's' : ''}</span>`;
+    return `<span class="stock-chip stock-ok" style="cursor:default">${AR_ICO_GIFT(13)}${n} kit${n !== 1 ? 's' : ''}</span>`;
   }
   const cls = p.stock === 0 ? 'sold' : p.stock === 1 ? 'one' : 'ok';
   if (editable) {
@@ -607,12 +607,12 @@ async function editPriceInlineAdmin(e, id) {
 
 function publishedToggle(p) {
   if (p.isPublished === false) {
-    return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-hidden" title="Tap para publicar en sitio web">${AR_ICO_EYEOFF(11)}Oculto</button>`;
+    return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-hidden" title="Tap para publicar en sitio web">${AR_ICO_EYEOFF(13)}Oculto</button>`;
   }
   if (p.outOfStock) {
-    return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-agotado" title="Publicado pero agotado — no aparece en el sitio web">${AR_ICO_WARN(11)}Agotado</button>`;
+    return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-agotado" title="Publicado pero agotado — no aparece en el sitio web">${AR_ICO_WARN(13)}Agotado</button>`;
   }
-  return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-visible" title="Tap para ocultar del sitio web">${AR_ICO_GLOBE(11)}Web</button>`;
+  return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-visible" title="Tap para ocultar del sitio web">${AR_ICO_GLOBE(13)}Web</button>`;
 }
 
 async function togglePublished(id) {
@@ -657,7 +657,7 @@ function desktopRow(p) {
   const catDot     = `<span class="cat-dot" style="background:${catColor}"></span>`;
   const flagDataDR = _flagItem(p.id);
   const isSinCatDR = p.category === 'por_revisar';
-  const flagDotRow = flagDataDR ? `<span class="flag-dot-row" title="${_esc(flagDataDR.note || 'Pendiente de revisión')}">${AR_ICO_FLAG(12)}</span>` : '';
+  const flagDotRow = flagDataDR ? `<span class="flag-dot-row" title="${_esc(flagDataDR.note || 'Pendiente de revisión')}">${AR_ICO_FLAG(13)}</span>` : '';
   return `
 <tr draggable="true" data-id="${p.id}" class="${selectedIds.has(p.id) ? 'row-selected' : ''}${isSinCatDR ? ' card-por-revisar' : ''}"
     ondblclick="if(!event.target.closest('button,input,select,a,.drag-handle,.cat-label-inline'))openForm(${p.id})"
@@ -671,7 +671,7 @@ function desktopRow(p) {
       <img class="prod-thumb" src="${_driveSz(p.image,80)}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${fallback}'" onclick="event.stopPropagation();openQV(${p.id})" style="cursor:pointer${oos ? ';opacity:.5;filter:grayscale(.5)' : ''}" title="Ver detalle rápido">
       <div style="min-width:0;flex:1">
         <div class="prod-name" title="${_esc(p.name)}">${_esc(p.name)}</div>
-        ${flagDataDR?.note ? `<div class="flag-note-line">${AR_ICO_FLAG(11)}"${_esc(flagDataDR.note)}"</div>` : ''}
+        ${flagDataDR?.note ? `<div class="flag-note-line">${AR_ICO_FLAG(13)}"${_esc(flagDataDR.note)}"</div>` : ''}
         <div class="prod-meta">
           ${catDot}
           <span class="prod-meta-text"><span class="cat-label-inline${isSinCatDR ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${isSinCatDR ? 'Sin categoría' : _esc(p.categoryLabel)}</span> · #${p.id}${_showCreator && ROLE === 'superadmin' && p.createdBy ? ` · <span class="creator-chip" title="${p.createdBy}">${AR_ICO_USER()}${_creatorName(p.createdBy)}</span>` : ''}</span>
@@ -746,8 +746,8 @@ function mobileCard(p) {
           </button>
         </div>
         <div class="mpc-info">
-          <div class="mpc-name">${_esc(p.name)}${flagDataMC ? ' <span class="flag-dot-row" title="'+_esc(flagDataMC.note||'Pendiente de revisión')+'">'+AR_ICO_FLAG(12)+'</span>' : ''}</div>
-          ${flagDataMC?.note ? `<div class="flag-note-line">${AR_ICO_FLAG(11)}"${_esc(flagDataMC.note)}"</div>` : ''}
+          <div class="mpc-name">${_esc(p.name)}${flagDataMC ? ' <span class="flag-dot-row" title="'+_esc(flagDataMC.note||'Pendiente de revisión')+'">'+AR_ICO_FLAG(13)+'</span>' : ''}</div>
+          ${flagDataMC?.note ? `<div class="flag-note-line">${AR_ICO_FLAG(13)}"${_esc(flagDataMC.note)}"</div>` : ''}
           <div class="mpc-cat-tag">
             <span class="cat-dot" style="background:${catColor}"></span>
             <span class="${isSinCatMC ? 'cat-label-sin-cat' : ''}" style="font-size:.72rem;color:${isSinCatMC ? '' : 'var(--muted)'};font-weight:400">${isSinCatMC ? 'Sin categoría' : _esc(p.categoryLabel)}</span>
@@ -755,7 +755,7 @@ function mobileCard(p) {
           </div>
           <div class="mpc-price-row">
             ${priceHTML}${stockInfo}
-            ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip" title="${_aptTitle(p.id)}">${AR_ICO_BOOKMARK(11)}Apartado</span>` : ''}
+            ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip" title="${_aptTitle(p.id)}">${AR_ICO_BOOKMARK(13)}Apartado</span>` : ''}
             ${expiryChip(p)}
             ${publishedToggle(p)}
           </div>
