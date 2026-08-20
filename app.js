@@ -1096,7 +1096,7 @@ function notifyRestock(id, btn) {
   const p = products.find(x => x.id === id) || activeProduct;
   const name = p ? p.name : 'este producto';
   const msg = `¡Hola! 😊 Me interesa *${name}* pero está agotado. ¿Podrías avisarme cuando vuelva a haber stock? ¡Gracias!`;
-  btn.textContent = '✓ Abriendo WhatsApp…';
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="20 6 9 17 4 12"/></svg>Abriendo WhatsApp…';
   btn.style.background = '#25D366';
   btn.style.color = '#fff';
   btn.style.cursor = 'default';

@@ -597,8 +597,9 @@ function renderTodaySales() {
     const itemsHtml = _dvItemsHtml(items);
     const collectorEmail = payment.collected_by_email || '';
     const collector = collectorEmail ? (nameMap[collectorEmail] || collectorEmail.split('@')[0]) : '';
+    const _rbIco = p => `<svg width="11" height="11" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:2px">${p}</svg>`;
     const refundBreakdown = payment.refund_breakdown?.length > 1
-      ? payment.refund_breakdown.map(line => `${line.method === 'transferencia' ? '📱' : line.method === 'efectivo' ? '💵' : '🧾'} ${line.method}: −$${Math.abs(line.amount).toLocaleString('es-MX')}`).join(' · ')
+      ? payment.refund_breakdown.map(line => `${line.method === 'transferencia' ? _rbIco('<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>') : line.method === 'efectivo' ? _rbIco('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>') : _rbIco('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>')} ${line.method}: −$${Math.abs(line.amount).toLocaleString('es-MX')}`).join(' · ')
       : '';
     const detail = [
       collector ? `Registró ${_esc(collector)}` : '',

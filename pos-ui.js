@@ -675,7 +675,7 @@ function openAptDetail(id) {
   // o dato aún no refrescado) que isLiquidado no detectaría por venir de status/type.
   if (isLiquidado || pendiente <= _APT_MONEY_EPSILON) {
     const reopenBtn = canEditApartado() && pagado > 0
-      ? `<button type="button" class="btn-abonar" id="adm-refund-btn" onclick="refundApartado(${id},'detail')" style="border-color:var(--red);color:var(--red)">↩ Reabrir y reembolsar</button>`
+      ? `<button type="button" class="btn-abonar" id="adm-refund-btn" onclick="refundApartado(${id},'detail')" style="border-color:var(--red);color:var(--red)">${_uiIco('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>')} Reabrir y reembolsar</button>`
       : '';
     document.getElementById('adm-footer').innerHTML =
       `<button type="button" class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" aria-label="Enviar por WhatsApp" title="Enviar por WhatsApp">${_uiIcoWA()}</button>

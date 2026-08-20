@@ -983,7 +983,7 @@ function _renderPermsBody(email) {
       <div class="up-perm-grid">${rows}</div>
     </div>`;
   }).join('');
-  return groupsHtml + `<button class="up-reset-btn" onclick="_upResetPerms('${escH(email).replace(/'/g,"\\'")}')" ${!hasOverride ? 'disabled' : ''}>↩ Restablecer al rol</button>`;
+  return groupsHtml + `<button class="up-reset-btn" onclick="_upResetPerms('${escH(email).replace(/'/g,"\\'")}')" ${!hasOverride ? 'disabled' : ''}><svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Restablecer al rol</button>`;
 }
 
 function _upToggleCard(el) {
