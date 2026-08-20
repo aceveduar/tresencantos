@@ -704,6 +704,12 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   touch-action:manipulation;font-family:inherit;line-height:1;transition:all .15s;
   min-height:28px;display:inline-flex;align-items:center;gap:4px;
 }
+/* Vista de tarjetas: columnas angostas — el chip de stock fusionado
+   ("0 · Agotado") ya casi llena el ancho, así que Web/Oculto se queda
+   solo con el ícono para no partirse a una segunda línea. */
+.admin-cards-grid .pub-toggle{padding:6px;border-radius:50%;gap:0;min-width:28px;justify-content:center}
+.admin-cards-grid .pub-toggle-lbl{display:none}
+.admin-cards-grid .pub-toggle svg{margin-right:0!important}
 .te-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
 .te-switch input{opacity:0;width:0;height:0}
 .te-switch-slider{position:absolute;inset:0;background:#D1C4B8;border-radius:50px;cursor:pointer;transition:.2s}

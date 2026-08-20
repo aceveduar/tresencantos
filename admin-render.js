@@ -617,9 +617,9 @@ function publishedToggle(p) {
   // El chip de stock ya explica "Agotado" cuando aplica — aquí solo se
   // refleja el campo real is_published (Web/Oculto), sin repetir el estado.
   if (p.isPublished === false) {
-    return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-hidden" title="Tap para publicar en sitio web">${AR_ICO_EYEOFF(13)}Oculto</button>`;
+    return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-hidden" title="Tap para publicar en sitio web">${AR_ICO_EYEOFF(13)}<span class="pub-toggle-lbl">Oculto</span></button>`;
   }
-  return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-visible" title="Tap para ocultar del sitio web">${AR_ICO_GLOBE(13)}Web</button>`;
+  return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-visible" title="Tap para ocultar del sitio web">${AR_ICO_GLOBE(13)}<span class="pub-toggle-lbl">Web</span></button>`;
 }
 
 async function togglePublished(id) {
