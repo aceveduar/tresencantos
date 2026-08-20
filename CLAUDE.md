@@ -286,9 +286,12 @@ El cambio aplica en el **próximo login** — la sesión activa usa el JWT viejo
 | Importar/Exportar JSON | ✓ | ✗ | ✗ | ✗ |
 | Ver Reportes | ✓ | ✗ | ✓ | ✗ |
 | Ver Actividad | ✓ | ✗ | ✓ | ✗ |
-| Configuración | ✓ | ✗ | ✗ | ✗ |
+| Configuración (completa) | ✓ | ✗ | ✗ | ✗ |
+| Configuración (solo Catálogo) | — | — | — | por override |
 
 `encargado` — rol para cajera/encargada de turno con más permisos que operador (puede eliminar, cancelar ventas, bulk delete) pero sin acceso a Reportes, Actividad ni Configuración. No asignado a ningún usuario actualmente — disponible para cuando se necesite.
+
+**Permiso `canManageCatalogSettings` (2026-08-20):** acceso parcial a Configuración — entra a la página pero solo ve la sección Catálogo (WhatsApp flotante, Captura rápida, Ver creador, Carga masiva IA, Reabastecimiento en Caja, Recibir mercancía, Categorías del catálogo, Revista Digital Natura); no ve Usuarios y Permisos, Notificaciones, Datos ni Integraciones. No es un rol nuevo — es un permiso individual vía override en `config.id='user_permissions'` (mismo mecanismo que el resto de `UP_PERMS` en `shared.js`), asignable desde Configuración → Usuarios y Permisos. `areli@tresencantos.com` (operador) lo tiene activo, con `canManageSettings`, `canViewReports` y `canViewActivity` explícitamente en `false` — ve Configuración (solo Catálogo) en su avatar, pero no Reportes ni Actividad. Migración: `supabase/migrations/20260820_01_catalog_only_settings_permission.sql`.
 
 **Comportamiento operador al crear productos:** `is_published` se fuerza a `false` — requiere que un superadmin revise y publique. El campo precio sí puede editarlo (transcribe de etiqueta física).
 

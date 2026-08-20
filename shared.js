@@ -39,7 +39,8 @@
           ? cached.permissions : {};
       } catch { return {}; }
     })();
-    const canConfig   = 'canManageSettings' in _up ? _up.canManageSettings : role === 'superadmin';
+    const canConfig   = ('canManageSettings' in _up ? _up.canManageSettings : role === 'superadmin')
+                         || _up.canManageCatalogSettings === true;
     const canActivity = 'canViewActivity'   in _up ? _up.canViewActivity   : (role === 'superadmin' || role === 'duena');
     const configLink = (canConfig
       ? `<a class="ud-link" href="settings.html">
@@ -376,12 +377,13 @@ const UP_PERMS = [
   {key:'canViewReports',    label:'Ver Reportes',        group:'Módulos'},
   {key:'canViewActivity',   label:'Ver Actividad',       group:'Módulos'},
   {key:'canManageSettings', label:'Configuración',       group:'Módulos'},
+  {key:'canManageCatalogSettings', label:'Configuración (solo Catálogo)', group:'Módulos'},
 ];
 const UP_ROLE_DEFAULTS = {
-  superadmin:{canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canImportJSON:true, canMasivo:true, canCancelSale:true, canEditApartado:true, canViewReports:true, canViewActivity:true, canManageSettings:true},
-  encargado: {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canImportJSON:false, canMasivo:false, canCancelSale:true, canEditApartado:false, canViewReports:false, canViewActivity:false, canManageSettings:false},
-  duena:     {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:true, canViewReports:true, canViewActivity:true, canManageSettings:false},
-  operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:false, canPublishProduct:false, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:false, canViewReports:false, canViewActivity:false, canManageSettings:false},
+  superadmin:{canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canImportJSON:true, canMasivo:true, canCancelSale:true, canEditApartado:true, canViewReports:true, canViewActivity:true, canManageSettings:true, canManageCatalogSettings:false},
+  encargado: {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canImportJSON:false, canMasivo:false, canCancelSale:true, canEditApartado:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false},
+  duena:     {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:true, canViewReports:true, canViewActivity:true, canManageSettings:false, canManageCatalogSettings:false},
+  operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:false, canPublishProduct:false, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false},
 };
 
 // Bucle de paginación por offset/limit compartido por _posFetchAll

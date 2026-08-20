@@ -1122,9 +1122,17 @@ document.addEventListener('keydown', e => {
 document.addEventListener('DOMContentLoaded', async () => {
   const permissionState = await _loadMyPerms({ requireFresh: true, withMeta: true });
   const permissions = permissionState?.permissions;
-  if (permissionState?.source !== 'server' || permissions?.canManageSettings !== true) {
+  const isFullSettings = permissions?.canManageSettings === true;
+  const isCatalogOnly  = !isFullSettings && permissions?.canManageCatalogSettings === true;
+  if (permissionState?.source !== 'server' || (!isFullSettings && !isCatalogOnly)) {
     window.location.replace('admin.html');
     return;
+  }
+  if (isCatalogOnly) {
+    ['section-users', 'section-notifications', 'section-data', 'section-integrations'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
   }
   if (permissions.role) ROLE = permissions.role;
   try {
