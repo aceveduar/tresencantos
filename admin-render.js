@@ -64,11 +64,12 @@ function renderStats() {
   }).length;
   const anyFilter   = _statFilter || _showOnlyFlagged;
 
-  const chip = (key, icon, count, label, activeColor, activeTextColor='#fff') => {
+  const chip = (key, icon, count, label, activeColor) => {
     const isActive = key === 'revisar' ? _showOnlyFlagged : _statFilter === key;
     const isTodos  = key === 'todos';
     const isFilter = key !== 'todos-info';
-    const activeStyle = isActive ? `background:${activeColor};border-color:${activeColor};color:${activeTextColor}` : '';
+    // Tono claro + borde/texto del color, no relleno solido — mismo tratamiento minimalista en los 4 estados.
+    const activeStyle = isActive ? `background:${activeColor}1a;border-color:${activeColor};color:${activeColor}` : '';
     return `<button class="stat-chip${isFilter ? ' stat-chip-filter' : ''}${isActive ? ' sc-active' : ''}"
       ${isFilter ? `onclick="toggleStatFilter('${key}')"` : ''}
       style="${activeStyle}" title="${label}">
@@ -79,7 +80,7 @@ function renderStats() {
   };
 
   const todosActive = !anyFilter;
-  const todosStyle  = todosActive ? 'background:var(--gold);border-color:var(--gold);color:#fff' : '';
+  const todosStyle  = todosActive ? 'background:var(--gold-light);border-color:var(--gold);color:var(--gold-dark)' : '';
 
   document.getElementById('stats').innerHTML =
     `<button class="stat-chip stat-chip-filter${todosActive ? ' sc-active' : ''}" onclick="toggleStatFilter('todos')" style="${todosStyle}">
@@ -87,14 +88,14 @@ function renderStats() {
        <span class="sc-num">${total}</span>
        <span class="sc-lbl">Todos</span>
      </button>` +
-    (nKits > 0 ? chip('kits', AR_ICO_GIFT(), nKits, 'Kits', AR_C_NEUTRAL, '#fff') : '') +
+    (nKits > 0 ? chip('kits', AR_ICO_GIFT(), nKits, 'Kits', AR_C_NEUTRAL) : '') +
     chip('con-stock',   AR_ICO_CHECK(), conStock,    'Con stock',    AR_C_GREEN) +
     (sinStock > 0 ? chip('sin-stock', AR_ICO_XCIRCLE(), sinStock, 'Sin stock', AR_C_RED) : '') +
     (ultimaPieza > 0 ? chip('ultima-pieza', AR_ICO_ZAP(), ultimaPieza, 'Última pieza', AR_C_AMBER) : '') +
     (nApartado > 0 ? chip('apartado', AR_ICO_BOOKMARK(), nApartado, 'Apartado', AR_C_AMBER) : '') +
     (sinPublicar  > 0 ? chip('sin-publicar', AR_ICO_EYEOFF(), sinPublicar, 'Sin publicar', AR_C_AMBER) : '') +
     (porCaducar   > 0 ? chip('por-caducar', AR_ICO_CLOCK(),  porCaducar,  'Por caducar', AR_C_RED) : '') +
-    (nBorradores > 0 ? chip('borradores', AR_ICO_FILE(), nBorradores, 'Borradores', AR_C_NEUTRAL, '#fff') : '') +
+    (nBorradores > 0 ? chip('borradores', AR_ICO_FILE(), nBorradores, 'Borradores', AR_C_NEUTRAL) : '') +
     (nFlag        > 0 ? chip('revisar',     AR_ICO_FLAG(),     nFlag,       'Por revisar',  AR_C_RED) : '') +
     (sinCodigo    > 0 ? chip('sin-codigo',  AR_ICO_BARCODE(),   sinCodigo,   'Sin código',   AR_C_NEUTRAL) : '') +
     (sinCateg     > 0 ? chip('sin-categ',   AR_ICO_WARN(), sinCateg,    'Sin categoría', AR_C_AMBER) : '') +
@@ -366,7 +367,6 @@ function adminCard(p, editable = false) {
     <input type="checkbox" class="ac-check row-check"
            ${sel?'checked':''} onchange="toggleRowSelect(${p.id},this.checked)">
     ${flagDotAC}
-    <div class="ac-oos-label"></div>
     <button class="ac-star toggle-featured" onclick="toggleFeatured(${p.id})"
             title="${p.featured?'Quitar destacado':'Destacar'}">
       ${_arStar(p.featured, 15)}
