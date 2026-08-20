@@ -3,7 +3,7 @@ let _kbComponents = [];
 let _kbImageDataUrl = null;
 let _kbSelectedCatCode = '';
 
-const KIT_DEFAULT_IMG = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23FFF8EE'/%3E%3Ctext x='50' y='62' font-size='52' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%8E%81%3C/text%3E%3C/svg%3E`;
+const KIT_DEFAULT_IMG = `data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20fill%3D%22%23F7F2EB%22%2F%3E%3Cg%20transform%3D%22translate(28%2C28)%20scale(1.85)%22%20stroke%3D%22%23D4BC94%22%20stroke-width%3D%222.2%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%228%22%20width%3D%2218%22%20height%3D%224%22%20rx%3D%221%22%2F%3E%3Cpath%20d%3D%22M12%208v13%22%2F%3E%3Cpath%20d%3D%22M19%2012v7a2%202%200%200%201-2%202H7a2%202%200%200%201-2-2v-7%22%2F%3E%3Cpath%20d%3D%22M7.5%208a2.5%202.5%200%200%201%200-5C11%203%2012%208%2012%208s1-5%204.5-5a2.5%202.5%200%200%201%200%205%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E`;
 
 function _kbAutoSuggestCat() {
   if (_kbSelectedCatCode) return;
@@ -122,7 +122,7 @@ function _kbSearch(q) {
   const termEncoded = encodeURIComponent(term);
   const createBtn = `
     <div class="kb-result-item" onclick="_kbCreateDraft(decodeURIComponent('${termEncoded}'))">
-      <div style="width:36px;height:36px;border-radius:7px;background:var(--gold-light);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">➕</div>
+      <div style="width:36px;height:36px;border-radius:7px;background:var(--gold-light);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="16" height="16" viewBox="0 0 24 24" stroke="var(--gold-dark)" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
       <div style="flex:1;min-width:0">
         <div style="font-size:.84rem;font-weight:600;color:var(--gold-dark)">Crear "${term}" como borrador</div>
         <div style="font-size:.72rem;color:var(--muted);margin-top:1px">Stock 0 · Sin publicar · editar después</div>
@@ -136,7 +136,7 @@ function _kbSearch(q) {
   res.innerHTML = matches.map(p => {
     const isOos = p.outOfStock || p.stock === 0;
     const stockTxt = isOos
-      ? `<span style="color:var(--red)">⚠️ Agotado — se puede agregar igual</span>`
+      ? `<span style="color:var(--red)"><svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:2px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Agotado — se puede agregar igual</span>`
       : `${p.stock} en stock`;
     return `
     <div class="kb-result-item" onclick="_kbAddComponent(${p.id})" style="${isOos ? 'opacity:.75' : ''}">
@@ -277,7 +277,7 @@ function _kbRenderComponents() {
       <img src="${c.image || DEFAULT_IMG}" style="width:44px;height:44px;object-fit:cover;border-radius:9px;flex-shrink:0;cursor:zoom-in" onerror="this.src='${DEFAULT_IMG}'" onclick="_kitCompPopover(${c.id},event)" title="Ver producto">
       <div style="flex:1;min-width:0;cursor:pointer" onclick="_kitCompPopover(${c.id},event)" title="Ver producto">
         <div style="font-size:.84rem;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${_esc(c.name)}</div>
-        ${c.oos ? `<div style="font-size:.7rem;color:var(--red);margin-top:2px">⚠️ Agotado — disponibilidad calculada cuando haya stock</div>` : ''}
+        ${c.oos ? `<div style="font-size:.7rem;color:var(--red);margin-top:2px"><svg width="11" height="11" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:2px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Agotado — disponibilidad calculada cuando haya stock</div>` : ''}
       </div>
       <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
         <button class="kb-qty-btn" onclick="_kbChangeQty(${c.id},-1)">−</button>
