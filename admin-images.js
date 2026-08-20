@@ -316,6 +316,9 @@ function initImageUpload() {
 }
 
 /* ── AI FORM ANALYSIS ── */
+const _AI_ICON_SPARKLE = '<svg width="15" height="15" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>';
+const _AI_ICON_CHECK   = '<svg width="15" height="15" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
 function showAiFormBtn() {
   const wrap = document.getElementById('ai-form-wrap');
   if (!wrap) return;
@@ -326,7 +329,7 @@ function showAiFormBtn() {
   if (btn) { btn.disabled = false; btn.style.borderColor = ''; btn.style.color = ''; }
   const icon = document.querySelector('#ai-form-btn .ai-form-icon');
   const label = document.querySelector('#ai-form-btn .ai-form-label');
-  if (icon) icon.textContent = '✨';
+  if (icon) icon.innerHTML = _AI_ICON_SPARKLE;
   if (label) label.textContent = 'Completar con IA';
 }
 
@@ -490,17 +493,17 @@ Formato: {"name":"...","description":"...","category":"","price":null}`;
                     parsed.category ? 'categoría' : null, (rawPrice && Number(rawPrice) > 0) ? 'precio' : null]
                    .filter(Boolean).join(', ');
     toast(`✨ Completado: ${filled}`, 'success');
-    icon.textContent = '✓';
+    icon.innerHTML = _AI_ICON_CHECK;
     lbl.textContent = 'Analizado — edita si es necesario';
     btn.style.borderColor = 'var(--green)'; btn.style.color = 'var(--green)';
     setTimeout(() => {
-      icon.textContent = '✨'; lbl.textContent = 'Volver a analizar';
+      icon.innerHTML = _AI_ICON_SPARKLE; lbl.textContent = 'Volver a analizar';
       btn.style.borderColor = ''; btn.style.color = '';
       btn.disabled = false;
     }, 3000);
   } catch(err) {
     toast('Error IA: ' + err.message, 'error');
-    icon.textContent = '✨'; lbl.textContent = 'Completar con IA';
+    icon.innerHTML = _AI_ICON_SPARKLE; lbl.textContent = 'Completar con IA';
     btn.disabled = false;
   }
 }
