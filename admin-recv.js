@@ -46,7 +46,7 @@ function recvSearch(q) {
   if (!matches.length) {
     const safeVal = _esc(val).replace(/'/g, "\\'");
     resultsEl.innerHTML = `<div class="recv-no-found" style="padding:18px 16px;text-align:center">
-      <div style="font-size:1.6rem;margin-bottom:6px">🔍</div>
+      <div style="margin-bottom:6px"><svg width="28" height="28" viewBox="0 0 24 24" stroke="var(--muted-light)" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
       <div style="font-weight:600;color:var(--charcoal);font-size:.88rem;margin-bottom:4px">Producto no encontrado</div>
       <div style="font-size:.76rem;color:var(--muted);margin-bottom:14px;word-break:break-all;max-width:260px;margin-left:auto;margin-right:auto">${_esc(val)}</div>
       <button onclick="recvCreateProduct('${safeVal}')" style="width:100%;padding:11px 16px;background:var(--charcoal);color:#fff;border:none;border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">+ Crear producto →</button>
@@ -147,7 +147,7 @@ function _showRecvFeedback(p, totalQty) {
       <button class="recv-fb-btn" onclick="recvFbAdjust(-1)">−</button>
       <span class="recv-fb-qty" id="recv-fb-qty">+${totalQty}</span>
       <button class="recv-fb-btn" onclick="recvFbAdjust(+1)">+</button>
-      <button class="recv-fb-ok" onclick="_recvFbClose()">✓ Ok</button>
+      <button class="recv-fb-ok" onclick="_recvFbClose()"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><polyline points="20 6 9 17 4 12"/></svg>Ok</button>
     </div>
   </div>
 </div>`;
@@ -188,7 +188,7 @@ async function recvUndo(id) {
 function _renderRecvList() {
   const el = document.getElementById('recv-list');
   if (!_recvSession.length) {
-    el.innerHTML = '<div class="recv-empty"><div class="recv-empty-icon">📦</div>Escanea o busca un producto para comenzar</div>';
+    el.innerHTML = '<div class="recv-empty"><div class="recv-empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>Escanea o busca un producto para comenzar</div>';
     return;
   }
   const PH = DEFAULT_IMG;
@@ -200,7 +200,7 @@ function _renderRecvList() {
     <div class="recv-item-arrow">${prevStock} → <strong>+${qtyAdded} = ${p.stock}</strong> uds.</div>
   </div>
   <span class="recv-badge">+${qtyAdded}</span>
-  <button class="recv-undo-btn" onclick="recvUndo(${p.id})" title="Deshacer">↩</button>
+  <button class="recv-undo-btn" onclick="recvUndo(${p.id})" title="Deshacer"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
 </div>`).join('');
 }
 
