@@ -297,7 +297,7 @@ async function bulkToggleOOS() {
     });
     if (!result.ok) { toast('Error al actualizar estado de stock', 'error'); return; }
 
-    // Al marcar disponible: los que tenían stock=0 reciben stock=1 (igual que toggleOutOfStock individual)
+    // Al marcar disponible: los que tenían stock=0 reciben stock=1 (mismo criterio que editStockInline)
     if (!newVal) {
       const needStock = selected.filter(p => p.stock === 0);
       for (const p of needStock) {

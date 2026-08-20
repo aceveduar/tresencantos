@@ -17,6 +17,12 @@ const AR_ICO_ARCHIVE  = (px=13) => _arIco('<rect x="2" y="3" width="20" height="
 const AR_ICO_DOLLAR   = (px=13) => _arIco('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', px);
 const AR_ICO_SEARCH   = (px=13) => _arIco('<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>', px);
 const AR_ICO_USER     = (px=13) => _arIco('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', px);
+// Paleta semántica de los chips de filtro — 4 colores fijos en vez de uno
+// distinto por chip: gris=neutro, verde=ok, ámbar=atención, rojo=crítico.
+const AR_C_NEUTRAL = '#6B7280';
+const AR_C_GREEN   = '#059669';
+const AR_C_AMBER   = '#92400E';
+const AR_C_RED     = '#dc2626';
 const _arStar = (filled, px=13) => filled
   ? `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
   : `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
@@ -81,21 +87,21 @@ function renderStats() {
        <span class="sc-num">${total}</span>
        <span class="sc-lbl">Todos</span>
      </button>` +
-    (nKits > 0 ? chip('kits', AR_ICO_GIFT(), nKits, 'Kits', '#C9A462', '#fff') : '') +
-    chip('con-stock',   AR_ICO_CHECK(), conStock,    'Con stock',    '#059669') +
-    (sinStock > 0 ? chip('sin-stock', AR_ICO_XCIRCLE(), sinStock, 'Sin stock', '#dc2626') : '') +
-    (ultimaPieza > 0 ? chip('ultima-pieza', AR_ICO_ZAP(), ultimaPieza, 'Última pieza', '#B45309') : '') +
-    (nApartado > 0 ? chip('apartado', AR_ICO_BOOKMARK(), nApartado, 'Apartado', '#92400E') : '') +
-    (sinPublicar  > 0 ? chip('sin-publicar', AR_ICO_EYEOFF(), sinPublicar, 'Sin publicar', '#C2410C') : '') +
-    (porCaducar   > 0 ? chip('por-caducar', AR_ICO_CLOCK(),  porCaducar,  'Por caducar', '#dc2626') : '') +
-    (nBorradores > 0 ? chip('borradores', AR_ICO_FILE(), nBorradores, 'Borradores', '#6B7280', '#fff') : '') +
-    (nFlag        > 0 ? chip('revisar',     AR_ICO_FLAG(),     nFlag,       'Por revisar',  '#dc2626') : '') +
-    (sinCodigo    > 0 ? chip('sin-codigo',  AR_ICO_BARCODE(),   sinCodigo,   'Sin código',   '#4B5563') : '') +
-    (sinCateg     > 0 ? chip('sin-categ',   AR_ICO_WARN(), sinCateg,    'Sin categoría','#B45309') : '') +
+    (nKits > 0 ? chip('kits', AR_ICO_GIFT(), nKits, 'Kits', AR_C_NEUTRAL, '#fff') : '') +
+    chip('con-stock',   AR_ICO_CHECK(), conStock,    'Con stock',    AR_C_GREEN) +
+    (sinStock > 0 ? chip('sin-stock', AR_ICO_XCIRCLE(), sinStock, 'Sin stock', AR_C_RED) : '') +
+    (ultimaPieza > 0 ? chip('ultima-pieza', AR_ICO_ZAP(), ultimaPieza, 'Última pieza', AR_C_AMBER) : '') +
+    (nApartado > 0 ? chip('apartado', AR_ICO_BOOKMARK(), nApartado, 'Apartado', AR_C_AMBER) : '') +
+    (sinPublicar  > 0 ? chip('sin-publicar', AR_ICO_EYEOFF(), sinPublicar, 'Sin publicar', AR_C_AMBER) : '') +
+    (porCaducar   > 0 ? chip('por-caducar', AR_ICO_CLOCK(),  porCaducar,  'Por caducar', AR_C_RED) : '') +
+    (nBorradores > 0 ? chip('borradores', AR_ICO_FILE(), nBorradores, 'Borradores', AR_C_NEUTRAL, '#fff') : '') +
+    (nFlag        > 0 ? chip('revisar',     AR_ICO_FLAG(),     nFlag,       'Por revisar',  AR_C_RED) : '') +
+    (sinCodigo    > 0 ? chip('sin-codigo',  AR_ICO_BARCODE(),   sinCodigo,   'Sin código',   AR_C_NEUTRAL) : '') +
+    (sinCateg     > 0 ? chip('sin-categ',   AR_ICO_WARN(), sinCateg,    'Sin categoría', AR_C_AMBER) : '') +
     (() => {
       if (ROLE !== 'superadmin') return '';
       const nBase64 = products.filter(p => !p.isArchived && !_ib(p) && p.image?.startsWith('data:')).length;
-      return nBase64 > 0 ? chip('imagen-base64', AR_ICO_ARCHIVE(), nBase64, 'Imagen base64', '#7C3AED') : '';
+      return nBase64 > 0 ? chip('imagen-base64', AR_ICO_ARCHIVE(), nBase64, 'Imagen base64', AR_C_NEUTRAL) : '';
     })() +
     (() => {
       if (!can.publishProduct) return '';
@@ -337,7 +343,6 @@ function adminCard(p, editable = false) {
       ? `<span class="ac-orig">$${p.originalPrice.toLocaleString('es-MX')}</span><span class="ac-price ac-price-tap" onclick="editPriceInlineAdmin(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar precio">$${p.price.toLocaleString('es-MX')}</span>`
       : `<span class="ac-price ac-price-tap" onclick="editPriceInlineAdmin(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para editar precio">$${p.price.toLocaleString('es-MX')}</span>`;
   const priceHTML = priceDisplay;
-  const oosTitle  = oos ? 'Agotado — toca para marcar disponible' : 'Disponible — toca para agotar';
   const flagData  = _flagItem(p.id);
   const flagDotAC = flagData ? `<span class="flag-dot" title="${_esc(flagData.note || 'Pendiente de revisión')}">${AR_ICO_FLAG(13)}</span>` : '';
   const isSinCat  = p.category === 'por_revisar';
@@ -382,7 +387,6 @@ function adminCard(p, editable = false) {
     <div class="ac-footer">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         ${stockChip(p, editable)}
-        ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip" title="${_aptTitle(p.id)}">${AR_ICO_BOOKMARK(13)}Apartado</span>` : ''}
         ${expiryChip(p)}
         ${publishedToggle(p)}
       </div>
@@ -425,11 +429,20 @@ function stockChip(p, editable = false) {
     const n = ki?.stock ?? 0;
     return `<span class="stock-chip stock-ok" style="cursor:default">${AR_ICO_GIFT(13)}${n} kit${n !== 1 ? 's' : ''}</span>`;
   }
-  const cls = p.stock === 0 ? 'sold' : p.stock === 1 ? 'one' : 'ok';
+  // Agotado/Apartado ya explican por qué el stock es bajo — se fusionan en
+  // un solo chip en vez de repetir el mismo estado en dos insignias.
+  const isApt = (p.isApartado || _apartadosMap[p.id]) && p.stock <= 1;
+  const label = p.outOfStock
+    ? `${AR_ICO_WARN(11)}${p.stock} · Agotado`
+    : isApt
+      ? `${AR_ICO_BOOKMARK(11)}${p.stock} · Apartado`
+      : p.stock;
+  const cls = p.outOfStock ? 'sold' : isApt ? 'apt' : p.stock === 1 ? 'one' : 'ok';
+  const title = isApt ? _aptTitle(p.id) : 'Clic para editar stock';
   if (editable) {
-    return `<span class="stock-chip stock-${cls}" onclick="editStockInline(event,${p.id},this)" ontouchstart="event.stopPropagation()" title="Clic para editar stock" style="cursor:pointer">${p.stock}</span>`;
+    return `<span class="stock-chip stock-${cls}" onclick="editStockInline(event,${p.id},this)" ontouchstart="event.stopPropagation()" title="${_esc(title)}" style="cursor:pointer">${label}</span>`;
   }
-  return `<span class="stock-chip stock-${cls}" style="cursor:default">${p.stock}</span>`;
+  return `<span class="stock-chip stock-${cls}" style="cursor:default" title="${_esc(title)}">${label}</span>`;
 }
 
 async function editStockInline(e, id, chipEl) {
@@ -601,11 +614,10 @@ async function editPriceInlineAdmin(e, id) {
 // getCatColor() reemplaza CAT_COLORS — usa el array dinámico de categorías
 
 function publishedToggle(p) {
+  // El chip de stock ya explica "Agotado" cuando aplica — aquí solo se
+  // refleja el campo real is_published (Web/Oculto), sin repetir el estado.
   if (p.isPublished === false) {
     return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-hidden" title="Tap para publicar en sitio web">${AR_ICO_EYEOFF(13)}Oculto</button>`;
-  }
-  if (p.outOfStock) {
-    return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-agotado" title="Publicado pero agotado — no aparece en el sitio web">${AR_ICO_WARN(13)}Agotado</button>`;
   }
   return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-visible" title="Tap para ocultar del sitio web">${AR_ICO_GLOBE(13)}Web</button>`;
 }
@@ -683,9 +695,6 @@ function desktopRow(p) {
   </td>
   <td class="col-state">
     <div class="state-cell">
-      <button onclick="toggleOutOfStock(${p.id})" class="oos-cell ${oos ? 'soldout' : 'available'}">
-        ${oos ? 'Agotado' : 'Disponible'}
-      </button>
       ${stockChip(p, true)}
       ${expiryChip(p)}
     </div>
@@ -743,7 +752,6 @@ function mobileCard(p) {
           </div>
           <div class="mpc-price-row">
             ${priceHTML}${stockInfo}
-            ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip" title="${_aptTitle(p.id)}">${AR_ICO_BOOKMARK(13)}Apartado</span>` : ''}
             ${expiryChip(p)}
             ${publishedToggle(p)}
           </div>
@@ -927,37 +935,6 @@ async function toggleFeatured(id) {
   renderTable();
   renderStats();
   toast(newVal ? 'Marcado como destacado ⭐' : 'Quitado de destacados');
-}
-
-/* ── TOGGLE OUT OF STOCK — targeted PATCH ── */
-async function toggleOutOfStock(id) {
-  const p = products.find(x => x.id === id);
-  if (!p) return;
-  const newVal = !p.outOfStock;
-  const btn = document.querySelector(`tr[data-id="${id}"] .oos-cell`);
-  if (btn) btn.style.opacity = '0.35';
-
-  // Al marcar disponible con stock=0 → asignar 1 unidad automáticamente
-  const patch = { out_of_stock: newVal };
-  if (!newVal && p.stock === 0) patch.stock = 1;
-
-  const result = await supabaseApi(`products?id=eq.${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(patch)
-  });
-  if (btn) btn.style.opacity = '';
-  if (!result.ok) {
-    toast('Error al actualizar estado de stock', 'error');
-    return;
-  }
-  p.outOfStock = newVal;
-  if (patch.stock !== undefined) p.stock = patch.stock;
-  renderTable();
-  renderStats();
-  const msg = newVal ? 'Marcado como agotado'
-    : patch.stock ? 'Disponible · stock ajustado a 1'
-    : 'Marcado como disponible';
-  toast(msg);
 }
 
 /* ── DUPLICATE — POST single product ── */
