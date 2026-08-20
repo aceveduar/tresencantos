@@ -501,9 +501,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const canStats    = up?.canViewReports    ?? (_posRole === 'superadmin' || _posRole === 'duena');
     const canActivity = up?.canViewActivity   ?? (_posRole === 'superadmin' || _posRole === 'duena');
     const canSettings = up?.canManageSettings ?? (_posRole === 'superadmin');
+    const canDiscount = up?.canApplyDiscount  ?? (_posRole === 'superadmin' || _posRole === 'encargado' || _posRole === 'duena');
     document.querySelectorAll('a.tbn-icon[href="stats.html"]').forEach(a => a.style.display = canStats ? '' : 'none');
     document.querySelectorAll('a.tbn-icon[href="activity.html"]').forEach(a => a.style.display = canActivity ? '' : 'none');
     document.querySelectorAll('a.tbn-icon[href="settings.html"]').forEach(a => a.style.display = canSettings ? '' : 'none');
+    const discBtn = document.getElementById('discount-toggle-btn');
+    if (discBtn) discBtn.style.display = canDiscount ? '' : 'none';
   };
   _applyPosNav(_getMyPermsCached());
   _loadMyPerms().then(up => {

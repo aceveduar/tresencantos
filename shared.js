@@ -374,16 +374,18 @@ const UP_PERMS = [
   {key:'canMasivo',         label:'Carga masiva IA',     group:'Inventario'},
   {key:'canCancelSale',     label:'Cancelar ventas',     group:'Caja'},
   {key:'canEditApartado',   label:'Editar apartados',    group:'Caja'},
+  {key:'canOverridePrice',  label:'Modificar precio al cobrar', group:'Caja'},
+  {key:'canApplyDiscount',  label:'Aplicar descuentos',  group:'Caja'},
   {key:'canViewReports',    label:'Ver Reportes',        group:'Módulos'},
   {key:'canViewActivity',   label:'Ver Actividad',       group:'Módulos'},
   {key:'canManageSettings', label:'Configuración',       group:'Módulos'},
   {key:'canManageCatalogSettings', label:'Configuración (solo Catálogo)', group:'Módulos'},
 ];
 const UP_ROLE_DEFAULTS = {
-  superadmin:{canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canImportJSON:true, canMasivo:true, canCancelSale:true, canEditApartado:true, canViewReports:true, canViewActivity:true, canManageSettings:true, canManageCatalogSettings:false},
-  encargado: {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canImportJSON:false, canMasivo:false, canCancelSale:true, canEditApartado:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false},
-  duena:     {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:true, canViewReports:true, canViewActivity:true, canManageSettings:false, canManageCatalogSettings:false},
-  operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:false, canPublishProduct:false, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false},
+  superadmin:{canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canImportJSON:true, canMasivo:true, canCancelSale:true, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canViewReports:true, canViewActivity:true, canManageSettings:true, canManageCatalogSettings:false},
+  encargado: {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canImportJSON:false, canMasivo:false, canCancelSale:true, canEditApartado:false, canOverridePrice:true, canApplyDiscount:true, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false},
+  duena:     {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canViewReports:true, canViewActivity:true, canManageSettings:false, canManageCatalogSettings:false},
+  operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:false, canPublishProduct:false, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:false, canOverridePrice:false, canApplyDiscount:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false},
 };
 
 // Bucle de paginación por offset/limit compartido por _posFetchAll

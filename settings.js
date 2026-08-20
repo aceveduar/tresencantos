@@ -71,6 +71,12 @@ let driveSecret= null;
 let nameMap    = {};
 let userPermsMap = {};  // { "email": { role, canXxx: bool, … } }
 const _myEmail = (() => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)||'{}')?.user?.email||''; } catch { return ''; } })();
+function logActivity(action, summary, meta = null) {
+  api('activity_log', {
+    method: 'POST',
+    body: JSON.stringify({ user_email: _myEmail, action, summary, meta })
+  }).catch(() => {});
+}
 
 /* ── INIT ── */
 async function init() {
@@ -163,6 +169,7 @@ async function saveGroqKey() {
     groqApiKey = val;
     document.getElementById('groq-key-input').value = '';
     loadGroqKeyStatus();
+    logActivity('configuracion_editada', 'Actualizó la Groq API key', { setting: 'groq_key' });
     toast('🤖 Groq key guardada — IA activa en todos los dispositivos ✓', 'ok');
   } else { toast('Error al guardar la key', 'err'); }
 }
@@ -193,6 +200,7 @@ async function saveDriveEndpoint() {
   st.textContent = '✓ Conectado'; st.classList.add('ok');
   document.getElementById('drive-test-btn').style.display = '';
   document.getElementById('drive-clear-btn').style.display = '';
+  logActivity('configuracion_editada', 'Configuró/actualizó Google Drive', { setting: 'drive_ep' });
   toast('Drive guardado — copia el secreto del campo gris y pégalo en tu Apps Script ✓', 'ok');
 }
 
@@ -217,6 +225,7 @@ async function clearDrive() {
   st.textContent = '(no configurado)'; st.classList.remove('ok');
   document.getElementById('drive-test-btn').style.display  = 'none';
   document.getElementById('drive-clear-btn').style.display = 'none';
+  logActivity('configuracion_editada', 'Desconectó Google Drive', { setting: 'drive_ep' });
   toast('Drive desconectado', '');
 }
 
@@ -240,6 +249,7 @@ async function toggleCapturaRapida(enabled) {
     body: JSON.stringify({ id: 'captura_rapida', value: String(enabled) })
   });
   if (r.ok) {
+    logActivity('configuracion_editada', `${enabled ? 'Activó' : 'Desactivó'} Captura rápida`, { setting: 'captura_rapida', value: enabled });
     toast(enabled ? '📸 Captura rápida activada' : '📸 Captura rápida desactivada', 'ok');
   } else {
     toast('Error al guardar', 'err');
@@ -254,6 +264,7 @@ async function toggleShowCreator(enabled) {
     body: JSON.stringify({ id: 'show_creator', value: String(enabled) })
   });
   if (r.ok) {
+    logActivity('configuracion_editada', `${enabled ? 'Activó' : 'Desactivó'} Ver creador`, { setting: 'show_creator', value: enabled });
     toast(enabled ? '👤 Ver creador activado' : '👤 Ver creador desactivado', 'ok');
   } else {
     toast('Error al guardar', 'err');
@@ -268,6 +279,7 @@ async function toggleShowRecv(enabled) {
     body: JSON.stringify({ id: 'show_recv', value: String(enabled) })
   });
   if (r.ok) {
+    logActivity('configuracion_editada', `${enabled ? 'Activó' : 'Desactivó'} Recibir mercancía`, { setting: 'show_recv', value: enabled });
     toast(enabled ? '🚚 Recibir mercancía activado en Inventario' : '🚚 Recibir mercancía desactivado', 'ok');
   } else {
     toast('Error al guardar', 'err');
@@ -282,6 +294,7 @@ async function toggleShowRestock(enabled) {
     body: JSON.stringify({ id: 'show_restock', value: String(enabled) })
   });
   if (r.ok) {
+    logActivity('configuracion_editada', `${enabled ? 'Activó' : 'Desactivó'} Reabastecimiento en Caja`, { setting: 'show_restock', value: enabled });
     toast(enabled ? '📦 Reabastecimiento activado en Caja' : '📦 Reabastecimiento desactivado en Caja', 'ok');
   } else {
     toast('Error al guardar', 'err');
@@ -296,6 +309,7 @@ async function toggleShowBatch(enabled) {
     body: JSON.stringify({ id: 'show_batch', value: String(enabled) })
   });
   if (r.ok) {
+    logActivity('configuracion_editada', `${enabled ? 'Activó' : 'Desactivó'} Carga masiva IA`, { setting: 'show_batch', value: enabled });
     toast(enabled ? '📸 Carga masiva activada' : '📸 Carga masiva desactivada', 'ok');
   } else {
     toast('Error al guardar', 'err');
@@ -310,6 +324,7 @@ async function toggleWaFloat(enabled) {
     body: JSON.stringify({ id: 'wa_float', value: String(enabled) })
   });
   if (r.ok) {
+    logActivity('configuracion_editada', `${enabled ? 'Activó' : 'Desactivó'} el botón WhatsApp flotante en Tienda`, { setting: 'wa_float', value: enabled });
     toast(enabled ? '💬 Botón WhatsApp activado en Tienda' : '💬 Botón WhatsApp desactivado', 'ok');
   } else {
     toast('Error al guardar', 'err');
@@ -702,6 +717,7 @@ async function deleteCategoryAt(idx) {
   await _saveCats();
   renderCatList();
   populateCatParent();
+  logActivity('configuracion_editada', `Eliminó la categoría "${c.label}"`, { code: c.code, label: c.label });
   toast('Categoría eliminada', '');
 }
 
@@ -726,6 +742,7 @@ async function addCategory() {
   labelInput.value = '';
   parentSel.value = '';
   if (parent) _catOpenSection(parent);
+  logActivity('configuracion_editada', `Creó ${parent ? 'la subcategoría' : 'la categoría'} "${label}"`, { code, label, parent: parent || null });
   toast(`${parent ? 'Subcategoría' : 'Categoría'} "${label}" creada ✓`, 'ok');
 }
 
@@ -842,6 +859,7 @@ async function saveRevista() {
   });
 
   closeRevista();
+  logActivity('configuracion_editada', 'Actualizó la Revista Digital Natura', { setting: 'revista_url' });
   toast('Revista guardada ✓', 'ok');
 }
 
@@ -896,7 +914,12 @@ async function clearActivityLog() {
   }
 
   const r = await api(filter, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
-  if (r.ok) toast(`Registros de ${labels[range]} eliminados ✓`, 'ok');
+  if (r.ok) {
+    // Se registra despues de borrar -- si se registrara antes, el propio
+    // borrado (rango "todo") eliminaria esta marca junto con el resto.
+    logActivity('configuracion_editada', `Limpió el historial de Actividad (${labels[range]})`, { range });
+    toast(`Registros de ${labels[range]} eliminados ✓`, 'ok');
+  }
   else toast('Error al borrar el historial', 'err');
 }
 
@@ -1088,15 +1111,17 @@ let _upSaveTimer = null;
 function _upSavePerms() {
   clearTimeout(_upSaveTimer);
   _upSaveTimer = setTimeout(async () => {
-    const r = await api('config', {
+    // Via RPC (no POST directo a la tabla config): valida canManageSettings
+    // en el servidor y registra en Actividad quien cambio que, antes de
+    // escribir. Unico camino permitido para tocar user_permissions.
+    const r = await api('rpc/te_save_user_permissions', {
       method: 'POST',
-      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({ id: 'user_permissions', value: JSON.stringify(userPermsMap) })
+      body: JSON.stringify({ p_permissions: userPermsMap })
     });
     if (r.ok) {
       sessionStorage.removeItem('te_user_can');
       toast('Permisos guardados ✓', 'ok');
-    } else { toast('Error al guardar permisos', 'err'); }
+    } else { toast(r.data?.message || 'Error al guardar permisos', 'err'); }
   }, 600);
 }
 

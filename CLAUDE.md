@@ -112,7 +112,8 @@ tresencantos/
 ├── sw.js                # Service Worker (PWA offline)
 ├── supabase/migrations/ # Migraciones SQL versionadas (Caja/Apartados v2)
 │   ├── 20260818_01_apartados_atomic_additive.sql
-│   └── 20260818_02_sales_rpc_lockdown.sql
+│   ├── 20260818_02_sales_rpc_lockdown.sql
+│   └── 20260820_01_permisos_caja_y_auditoria.sql
 ├── img/                  # Imágenes locales y recursos PWA
 │   ├── icono-192.png
 │   ├── icono-512.png
@@ -282,6 +283,8 @@ El cambio aplica en el **próximo login** — la sesión activa usa el JWT viejo
 | Eliminar producto | ✓ | ✓ | ✓ | ✗ |
 | Cancelar venta (Caja) | ✓ | ✓ | ✗ | ✗ |
 | Editar apartado | ✓ | ✗ | ✓ | ✗ |
+| Modificar precio al cobrar (Caja) | ✓ | ✓ | ✓ | ✗ |
+| Aplicar descuento (Caja) | ✓ | ✓ | ✓ | ✗ |
 | Bulk delete | ✓ | ✓ | ✗ | ✗ |
 | Importar/Exportar JSON | ✓ | ✗ | ✗ | ✗ |
 | Ver Reportes | ✓ | ✗ | ✓ | ✗ |
@@ -291,7 +294,13 @@ El cambio aplica en el **próximo login** — la sesión activa usa el JWT viejo
 
 `encargado` — rol para cajera/encargada de turno con más permisos que operador (puede eliminar, cancelar ventas, bulk delete) pero sin acceso a Reportes, Actividad ni Configuración. No asignado a ningún usuario actualmente — disponible para cuando se necesite.
 
-**Permiso `canManageCatalogSettings` (2026-08-20):** acceso parcial a Configuración — entra a la página pero solo ve la sección Catálogo (WhatsApp flotante, Captura rápida, Ver creador, Carga masiva IA, Reabastecimiento en Caja, Recibir mercancía, Categorías del catálogo, Revista Digital Natura); no ve Usuarios y Permisos, Notificaciones, Datos ni Integraciones. No es un rol nuevo — es un permiso individual vía override en `config.id='user_permissions'` (mismo mecanismo que el resto de `UP_PERMS` en `shared.js`), asignable desde Configuración → Usuarios y Permisos. `areli@tresencantos.com` (operador) lo tiene activo, con `canManageSettings`, `canViewReports` y `canViewActivity` explícitamente en `false` — ve Configuración (solo Catálogo) en su avatar, pero no Reportes ni Actividad. Migración: `supabase/migrations/20260820_01_catalog_only_settings_permission.sql`.
+**Permiso `canManageCatalogSettings` (2026-08-20):** acceso parcial a Configuración — entra a la página pero solo ve la sección Catálogo (WhatsApp flotante, Captura rápida, Ver creador, Carga masiva IA, Reabastecimiento en Caja, Recibir mercancía, Categorías del catálogo, Revista Digital Natura); no ve Usuarios y Permisos, Notificaciones, Datos ni Integraciones. No es un rol nuevo — es un permiso individual vía override en `config.id='user_permissions'` (mismo mecanismo que el resto de `UP_PERMS` en `shared.js`), asignable desde Configuración → Usuarios y Permisos. `areli@tresencantos.com` (operador) lo tiene activo, con `canManageSettings`, `canViewReports` y `canViewActivity` explícitamente en `false` — ve Configuración (solo Catálogo) en su avatar, pero no Reportes ni Actividad.
+
+**Permisos `canOverridePrice` / `canApplyDiscount` (2026-08-20):** controlan, por separado, si un usuario puede cambiar el precio de un producto al cobrar (tap sobre el precio en el carrito de Caja) y si puede aplicar un descuento (botón "Agregar descuento"). Enforcement real en servidor, no solo en la UI: `te_snapshot_sale_items` compara el precio recibido contra `products.price` y exige `canOverridePrice` cuando difieren (y congela el precio de catálogo como `original_price` en el item — visible en Actividad, Historial y ticket WA); `record_sale_atomic_v2`/`edit_apartado_atomic` exigen `canApplyDiscount` cuando el descuento es mayor a cero o cambia respecto al que ya tenía un apartado. Defaults: `superadmin`/`encargado`/`duena` en `true`, `operador` en `false` — ajustable por override individual igual que el resto.
+
+**`te_save_user_permissions` (2026-08-20) — único camino para escribir `config.id='user_permissions'`:** antes `settings.js` escribía esa fila con un `POST` directo a la tabla `config`, sin ninguna verificación de permiso en el servidor. Ahora `_upSavePerms()` llama la RPC `te_save_user_permissions(p_permissions)`, que exige `canManageSettings` (nunca `canManageCatalogSettings`) dentro de la función antes de escribir, compara el mapa anterior contra el nuevo y registra en Actividad (`permisos_editados`) exactamente qué cambió y para quién.
+
+Migración de estos tres puntos: `supabase/migrations/20260820_01_permisos_caja_y_auditoria.sql` (reemplaza y consolida dos migraciones previas que quedaron sin ejecutar: `20260820_01_catalog_only_settings_permission.sql` y `20260819_01_item_original_price.sql` — ambas ya no existen como archivos separados, su contenido está incluido aquí).
 
 **Comportamiento operador al crear productos:** `is_published` se fuerza a `false` — requiere que un superadmin revise y publique. El campo precio sí puede editarlo (transcribe de etiqueta física).
 
@@ -879,11 +888,12 @@ Regla: descuento % y badge "OFERTA/promo" son redundantes — el % gana siempre.
 Feed de auditoría de todo lo que pasa en el sistema. Accesible para todos los roles autenticados.
 
 - Lee de la tabla `activity_log` — ordenada por `created_at desc`, límite 300 registros
-- **Filtros:** período (Hoy / 7 días / 30 días / Todo) + usuario + tipo (Ventas / Inventario / Apartados)
+- **Filtros:** período (Hoy / 7 días / 30 días / Todo) + usuario + tipo (Ventas / Inventario / Apartados / Sistema)
 - **Resumen KPIs** en la parte superior: ventas, apartados, cambios de inventario en el período
 - Avatares con color fijo por usuario conocido; colores dinámicos para usuarios nuevos
 - Los nombres visibles se cargan desde `config.id='user_names'` — editable en Configuración
-- **Limpiar historial:** disponible en Configuración (solo superadmin)
+- **Limpiar historial:** disponible en Configuración (solo superadmin) — el propio borrado queda registrado (`configuracion_editada`) después de ejecutarse
+- **Tipo "Sistema" (2026-08-20):** `permisos_editados` (cualquier cambio en Usuarios y Permisos, vía `te_save_user_permissions`) y `configuracion_editada` (toggles de Configuración, Groq key, Drive, Revista, categorías del catálogo). Cubre auditoría que antes no dejaba rastro — junto con acciones masivas de Inventario (`bulkDelete`, `bulkTogglePublish`, etc., una entrada por operación bajo `producto_eliminado`/`producto_editado`) y stock modificado inline (Inventario) o por reabastecimiento rápido (Caja)
 
 ---
 

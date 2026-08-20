@@ -39,6 +39,16 @@ function canEditApartado() {
 function canCancelApartado() {
   return canEditApartado() || canCancelSale();
 }
+function canOverridePrice() {
+  const up = _getMyPermsCached();
+  if (up && 'canOverridePrice' in up) return up.canOverridePrice;
+  const r = getPosRole(); return r === 'superadmin' || r === 'encargado' || r === 'duena';
+}
+function canApplyDiscount() {
+  const up = _getMyPermsCached();
+  if (up && 'canApplyDiscount' in up) return up.canApplyDiscount;
+  const r = getPosRole(); return r === 'superadmin' || r === 'encargado' || r === 'duena';
+}
 
 let _cancelAptCtx = null;
 

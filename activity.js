@@ -227,6 +227,8 @@ const ACTION_CFG = {
   producto_editado:      { type:'inventario', badge:'editado',   icon:_actIcoEdit(),  label:'Editado'   },
   producto_eliminado:    { type:'inventario', badge:'eliminado', icon:_actIcoTrash(), label:'Eliminado' },
   duplicado_descartado:  { type:'inventario', badge:'revisado',  icon:_actIcoEye(),   label:'Revisado'  },
+  permisos_editados:     { type:'sistema', badge:'editado',   icon:_actIcoEdit(),  label:'Permisos'  },
+  configuracion_editada: { type:'sistema', badge:'editado',   icon:_actIcoEdit(),  label:'Configuración' },
 };
 
 /* ── LOAD ── */
@@ -431,9 +433,16 @@ function _renderItemsDetail(meta) {
   const rows = meta.itemsDetail.map(i => {
     const qty = i.qty || 1;
     const sub = parseFloat(i.subtotal ?? (i.price * qty) ?? 0);
-    return `<div style="display:flex;justify-content:space-between;gap:8px;font-size:.78rem;padding:3px 0;border-bottom:1px solid #F0EBE3">
-      <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(i.name || 'Producto')}${qty>1?` ×${qty}`:''}</span>
-      <span style="font-weight:600;flex-shrink:0">$${sub.toLocaleString('es-MX')}</span>
+    const overridden = i.original_price != null && parseFloat(i.original_price) !== parseFloat(i.price);
+    const priceNote = overridden
+      ? `<div style="font-size:.7rem;color:#B45309;margin-top:1px">Precio modificado: $${parseFloat(i.original_price).toLocaleString('es-MX')} → $${parseFloat(i.price).toLocaleString('es-MX')}</div>`
+      : '';
+    return `<div style="display:flex;flex-direction:column;gap:0;font-size:.78rem;padding:3px 0;border-bottom:1px solid #F0EBE3">
+      <div style="display:flex;justify-content:space-between;gap:8px">
+        <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(i.name || 'Producto')}${qty>1?` ×${qty}`:''}</span>
+        <span style="font-weight:600;flex-shrink:0">$${sub.toLocaleString('es-MX')}</span>
+      </div>
+      ${priceNote}
     </div>`;
   }).join('');
   return `<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #EDE5DC">${rows}</div>`;

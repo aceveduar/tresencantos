@@ -28,6 +28,7 @@ function setDiscountType(type) {
 }
 
 function toggleDiscountField() {
+  if (!canApplyDiscount()) return;
   document.getElementById('discount-toggle-btn').style.display = 'none';
   document.getElementById('discount-row-wrap').style.display = '';
   setTimeout(() => document.getElementById('pos-discount')?.focus(), 50);

@@ -505,10 +505,12 @@ async function editStockInline(e, id, chipEl) {
       body: JSON.stringify(patch)
     });
     if (result.ok) {
+      const prevStock = p.stock;
       p.stock = newStock;
       if (patch.out_of_stock !== undefined) p.outOfStock = patch.out_of_stock;
       if (newStock === 0) p.isPublished = false;
       renderStats();
+      logActivity('producto_editado', `Cambió stock de "${p.name}": ${prevStock} → ${newStock}`, { id, name: p.name, prevStock, newStock });
       toast(`Stock → ${newStock}${patch.out_of_stock !== undefined ? (patch.out_of_stock ? ' · Marcado agotado · Oculto del sitio' : ' · Marcado disponible') : ''}`);
     } else {
       toast('Error al actualizar stock', 'error');

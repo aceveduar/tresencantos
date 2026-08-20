@@ -166,11 +166,13 @@ async function _confirmRestock() {
     body: JSON.stringify({ stock: newStock, out_of_stock: false })
   });
   if (res.ok) {
+    const prevStock = p.stock;
     p.stock = newStock;
     p.outOfStock = false;
     _closeRestockPrompt();
     searchProducts(document.getElementById('pos-search')?.value || '');
     addToCart(id);
+    logActivity('producto_editado', `Reabasteció "${p.name}" desde Caja: ${prevStock} → ${newStock}`, { id, name: p.name, prevStock, newStock, source: 'caja_restock' });
     toast(`📦 +${_restockQty} en stock — agregado al carrito`, '');
   } else {
     toast('Error al reabastecer', 'error');
@@ -185,6 +187,7 @@ function removeFromCart(id) {
 }
 
 function editPriceInline(pid) {
+  if (!canOverridePrice()) return;
   const item = cart.find(x => x.product.id === pid);
   if (!item) return;
   const priceEl = document.querySelector(`.cart-item[data-pid="${pid}"] .ci-price`);
@@ -368,7 +371,7 @@ function renderCart() {
   <div class="ci-info">
     <div class="ci-name">${_esc(p.name)}</div>
     ${kitSub}
-    <span class="ci-price${isCustom?' ci-price-custom':''}" onclick="editPriceInline(${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar precio">${priceLabel} c/u</span>
+    <span class="ci-price${isCustom?' ci-price-custom':''}"${canOverridePrice()?` onclick="editPriceInline(${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar precio" style="cursor:pointer"`:''}>${priceLabel} c/u</span>
     <div class="ci-row2">
       <div class="ci-qty">
         <button class="${qty === 1 ? 'ci-qty-del' : ''}" onclick="${qty === 1 ? `removeFromCart(${p.id})` : `changeQty(${p.id}, -1)`}" title="${qty === 1 ? 'Quitar' : 'Reducir'}">
