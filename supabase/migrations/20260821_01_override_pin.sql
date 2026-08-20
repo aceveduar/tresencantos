@@ -20,6 +20,13 @@
 --
 -- Ejecutar una sola vez en Supabase SQL Editor, despues de
 -- 20260820_01_permisos_caja_y_auditoria.sql.
+--
+-- Nota (2026-08-21, post-ejecucion): Supabase instala pgcrypto en el
+-- esquema "extensions", no en "public" -- te_set_my_pin/te_request_override
+-- necesitan "extensions" en su search_path para encontrar crypt()/gen_salt().
+-- Ya corregido abajo; si esto se corrio antes del fix, basta con:
+--   ALTER FUNCTION public.te_set_my_pin(text) SET search_path = pg_catalog, public, extensions;
+--   ALTER FUNCTION public.te_request_override(text, text, text) SET search_path = pg_catalog, public, extensions;
 
 -- -----------------------------------------------------------------------------
 -- 1. user_pins -- autoservicio, sin acceso directo de PostgREST
@@ -37,7 +44,7 @@ CREATE OR REPLACE FUNCTION public.te_set_my_pin(p_pin text)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public
+SET search_path = pg_catalog, public, extensions
 AS $$
 DECLARE
   v_email text;
@@ -181,7 +188,7 @@ CREATE OR REPLACE FUNCTION public.te_request_override(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public
+SET search_path = pg_catalog, public, extensions
 AS $$
 DECLARE
   v_actor_uid     uuid := auth.uid();
