@@ -135,7 +135,7 @@ tresencantos/
 El gestor de categorías no vive en un `admin-categories.js` separado: su interfaz y lógica vigentes están integradas en Configuración (`settings.html` / `settings.js`). Las carpetas `.git/`, `.vscode/` y `.claude/` son metadatos de herramientas y no forman parte de la aplicación desplegable. La carpeta local `Microsoft/` contiene caché de PowerShell y tampoco es parte de la aplicación.
 
 ### Navegación entre módulos
-Todos los módulos admin comparten una **topbar unificada** con íconos para: Caja, Inventario, Reportes, Actividad, Configuración, Tienda y Cerrar sesión. No hay botón "atrás" — la navegación es siempre desde la topbar.
+Todos los módulos admin comparten una **topbar unificada** con íconos para los módulos de uso diario: Caja, Inventario, Reportes, Tienda. Actividad, Configuración y Cerrar sesión son herramientas de cuenta/administración (acceso restringido por rol) y viven en el menú del avatar de usuario, no en la fila de íconos — decisión deliberada para no competir por espacio con los módulos de trabajo en mobile (commits `bf1357f`, `d0022f6`). No hay botón "atrás" — la navegación es siempre desde la topbar o el menú de usuario.
 
 Los módulos ocultan ítems según los permisos efectivos del usuario. Reportes, Actividad y Configuración consultan `get_my_permissions()` antes de mostrar información; no autorizan únicamente por el rol o por un caché de otra sesión.
 
