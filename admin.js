@@ -276,7 +276,7 @@ function _renderCatSheetChips(query) {
   if (todasMatch || revisar) {
     const todasChip   = todasMatch ? chip('all', 'Todas las categorías', '#8A7564', cur === 'all') : '';
     const revisarChip = revisar
-      ? chip('por_revisar', `⚠️ Sin categoría — ${sinCategCount}`, '#D97706', cur === 'por_revisar')
+      ? `<button class="bcp-chip${cur === 'por_revisar' ? ' selected' : ''}" onclick="selectCatSheet('por_revisar')">${dot('#D97706')}<svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Sin categoría — ${sinCategCount}</button>`
       : '';
     html += `<div style="padding:10px 16px 10px"><div class="bcp-chips">${todasChip}${revisarChip}</div></div>`;
   }
@@ -485,7 +485,7 @@ function _openKitLightbox(p, editFn) {
       <div style="font-size:.92rem;font-weight:700;color:#fff;margin-bottom:8px;line-height:1.3">${_esc(p.name)}</div>
       <div style="display:flex;justify-content:space-between;align-items:center;font-size:.78rem;margin-bottom:4px"><span style="color:rgba(255,255,255,.5)">Stock</span>${stockTxt}</div>
       <div style="display:flex;justify-content:space-between;align-items:center;font-size:.78rem"><span style="color:rgba(255,255,255,.5)">Precio</span><span style="color:rgba(255,255,255,.9);font-weight:600">$${(p.price||0).toLocaleString('es-MX')}</span></div>
-      ${editFn ? `<button id="${editBtnId}" style="display:block;width:100%;margin-top:10px;background:rgba(201,164,98,.2);border:1px solid rgba(201,164,98,.4);border-radius:8px;padding:9px;color:var(--gold);font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;text-align:center">✏️ Editar producto →</button>` : ''}
+      ${editFn ? `<button id="${editBtnId}" style="display:block;width:100%;margin-top:10px;background:rgba(201,164,98,.2);border:1px solid rgba(201,164,98,.4);border-radius:8px;padding:9px;color:var(--gold);font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;text-align:center">${ICON_EDIT} Editar producto →</button>` : ''}
     </div>`;
   lb.onclick = e => { if (e.target === lb) lb.remove(); };
   document.body.appendChild(lb);
