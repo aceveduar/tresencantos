@@ -168,7 +168,7 @@ function checkBarcodeConflict() {
   const conflict = products.find(p => p.barcode === code && p.id !== editingId);
   if (!conflict) return;
   warn.className = 'dup-warn error';
-  warn.innerHTML = `⛔ Este código ya está en <strong>${_esc(conflict.name)}</strong> — <button type="button" class="dup-link" onclick="closeForm();openForm(${conflict.id})">Ver producto →</button>`;
+  warn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>Este código ya está en <strong>${_esc(conflict.name)}</strong> — <button type="button" class="dup-link" onclick="closeForm();openForm(${conflict.id})">Ver producto →</button>`;
   warn.style.display = 'block';
 }
 
@@ -210,9 +210,11 @@ function checkNameSimilarity() {
   const signalText = signals.length
     ? ` <span style="opacity:.75;font-size:.85em">(${signals.join(', ')})</span>` : '';
   warn.className = 'dup-warn' + (isExact ? ' error' : '');
+  const icoBan  = '<svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>';
+  const icoWarn = '<svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
   warn.innerHTML = isExact
-    ? `⛔ Ya existe un producto con ese nombre: ${links}`
-    : `⚠️ Nombre similar${signalText}: ${links}`;
+    ? `${icoBan}Ya existe un producto con ese nombre: ${links}`
+    : `${icoWarn}Nombre similar${signalText}: ${links}`;
   warn.style.display = 'block';
 }
 
@@ -460,7 +462,7 @@ function _openFormFromKit(compId) {
 }
 
 function _dupThumb(img, name, otherImg) {
-  if (!img) return `<div class="dup-prod-ph">📦</div>`;
+  if (!img) return `<div class="dup-prod-ph"><svg width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>`;
   const otherEsc = (otherImg || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   return `<img src="${img}" alt="${_esc(name)}" loading="lazy" style="cursor:zoom-in" data-other="${otherEsc}" data-name="${_esc(name)}" onclick="_dupOpenZoom(this)">`;
 }
@@ -497,8 +499,8 @@ function _dupCard(p, pairKey, isMed, otherImg) {
     <div class="dup-prod">
       ${_dupThumb(p.image, p.name, otherImg)}
       <div class="dup-prod-name">${_esc(p.name)}</div>
-      <div class="dup-prod-meta">${_esc(p.categoryLabel || '—')} · $${(p.price||0).toLocaleString('es-MX')} · Stock ${p.stock}${p.createdBy ? `<span style="margin-left:6px;color:var(--muted);font-size:.78em">· 👤 ${_esc(_userNames[p.createdBy] || p.createdBy.split('@')[0])}</span>` : ''}</div>
-      ${(p.barcode || createdStr) ? `<div class="dup-prod-meta" style="margin-top:2px">${p.barcode ? `<span>🔲 ${_esc(p.barcode)}</span>` : ''}${p.barcode && createdStr ? ' · ' : ''}${createdStr ? `<span>📅 ${createdStr}</span>` : ''}</div>` : ''}
+      <div class="dup-prod-meta">${_esc(p.categoryLabel || '—')} · $${(p.price||0).toLocaleString('es-MX')} · Stock ${p.stock}${p.createdBy ? `<span style="margin-left:6px;color:var(--muted);font-size:.78em">· <svg width="11" height="11" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> ${_esc(_userNames[p.createdBy] || p.createdBy.split('@')[0])}</span>` : ''}</div>
+      ${(p.barcode || createdStr) ? `<div class="dup-prod-meta" style="margin-top:2px">${p.barcode ? `<span><svg width="11" height="11" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><line x1="4" y1="6" x2="4" y2="18"/><line x1="8" y1="6" x2="8" y2="18"/><line x1="11" y1="6" x2="11" y2="18"/><line x1="14" y1="6" x2="14" y2="18"/><line x1="18" y1="6" x2="18" y2="18"/><line x1="20" y1="6" x2="20" y2="18"/></svg> ${_esc(p.barcode)}</span>` : ''}${p.barcode && createdStr ? ' · ' : ''}${createdStr ? `<span><svg width="11" height="11" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ${createdStr}</span>` : ''}</div>` : ''}
       <div class="dup-prod-actions">
         <button class="btn btn-outline btn-sm" onclick="_openFormFromDup(${p.id})">${isMed ? 'Renombrar →' : 'Editar →'}</button>
         ${(!isMed && can.deleteProduct) ? `<button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="_deleteDupProduct(${p.id},'${pairKey}')">Eliminar</button>` : ''}
