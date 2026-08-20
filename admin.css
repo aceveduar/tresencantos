@@ -49,8 +49,6 @@ button,a,[onclick]{touch-action:manipulation}
 .btn-sm{padding:7px 16px;font-size:.78rem}
 .btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--charcoal)}
 .btn-outline:hover{border-color:var(--gold);color:var(--gold-dark);background:var(--gold-light)}
-.btn-stats-admin,.btn-versite{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.8)}
-.btn-stats-admin:hover,.btn-versite:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,164,98,.12)}
 .btn-red{background:var(--red);color:#fff;box-shadow:0 2px 8px rgba(232,93,93,.3)}
 .btn-red:hover{background:#c84444;transform:translateY(-1px)}
 .btn-green{background:var(--green);color:#fff}
@@ -1022,8 +1020,6 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .topbar-left{display:contents}
   .user-name{display:none}
   .user-avatar{width:26px;height:26px;font-size:.7rem}
-  .btn-versite{display:none}
-  .btn-stats-admin{display:none}
   .btn-logout{display:none}
   /* Caja en topbar redundante con bottom nav — ocultar en mobile */
   .topbar-right .btn-gold{display:none}
@@ -1317,9 +1313,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   /* ── Topbar: solo nav de íconos ── */
   .topbar{padding:0 16px;background:var(--charcoal)}
   .session-user{display:none}
-  .btn-stats-admin{display:none}
   .topbar-right .btn-gold{display:none}
-  .btn-versite{display:none}
   .btn-logout{display:none}
   .topbar-nav-mobile{gap:1px}
 }
@@ -1327,9 +1321,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 /* Desktop (>1024px) — nav unificada de íconos, igual que mobile */
 @media(min-width:1025px){
   .topbar{background:var(--charcoal)}
-  .btn-stats-admin{display:none}
   .topbar-right .btn-gold{display:none}
-  .btn-versite{display:none}
   .session-user{display:none}
   .btn-logout{display:none}
   /* Toolbar en desktop: búsqueda arriba, filtros abajo */
