@@ -933,6 +933,19 @@ function _upAvatarColor(email) {
   return _UP_AVATAR_COLORS[h % _UP_AVATAR_COLORS.length];
 }
 
+// Cuenta cuántos permisos de `email` difieren del default de su rol —
+// usado tanto para el badge "Personalizado" en la fila colapsada como
+// para habilitar "Restablecer al rol" en el detalle.
+function _upOverrideCount(email) {
+  const perms = userPermsMap[email] || {};
+  const role  = perms.role || 'operador';
+  const defs  = UP_ROLE_DEFAULTS[role] || UP_ROLE_DEFAULTS.operador;
+  return UP_PERMS.reduce((n, p) => {
+    const val = p.key in perms ? perms[p.key] : defs[p.key];
+    return n + (val !== defs[p.key] ? 1 : 0);
+  }, 0);
+}
+
 function renderUsersPerms() {
   const list = document.getElementById('up-list');
   if (!list) return;
@@ -956,6 +969,10 @@ function _renderUserCard(email) {
   const roleOpts = ['superadmin','encargado','duena','operador'].map(v =>
     `<option value="${v}"${v===role?' selected':''}>${escH(_UP_ROLE_LABELS[v]||v)}</option>`
   ).join('');
+  const overrideCount = _upOverrideCount(email);
+  const overrideBadge = overrideCount
+    ? `<span class="up-override-badge" title="${overrideCount} permiso${overrideCount>1?'s':''} distinto${overrideCount>1?'s':''} al default de ${escH(_UP_ROLE_LABELS[role]||role)}">${overrideCount} personalizado${overrideCount>1?'s':''}</span>`
+    : '';
 
   return `<div class="up-card" data-email="${escH(email)}">
     <div class="up-head">
@@ -968,6 +985,7 @@ function _renderUserCard(email) {
               onblur="_upSaveName(this,'${escH(email).replace(/'/g,"\\'")}')"
               onkeydown="if(event.key==='Enter')this.blur();else if(event.key==='Escape'){this.value=this.dataset.orig;this.blur()}">
             ${isMe?` <span class="up-me">tú</span>`:''}
+            ${overrideBadge}
           </div>
           <div class="up-email">${escH(email)}</div>
         </div>
@@ -987,18 +1005,17 @@ function _renderPermsBody(email) {
   const role   = perms.role || 'operador';
   const defs   = UP_ROLE_DEFAULTS[role] || UP_ROLE_DEFAULTS.operador;
   const groups = [...new Set(UP_PERMS.map(p => p.group))];
-  const hasOverride = UP_PERMS.some(p => {
-    const val = p.key in perms ? perms[p.key] : defs[p.key];
-    return val !== defs[p.key];
-  });
+  const overrideCount = _upOverrideCount(email);
+  const intro = `<div class="up-perm-intro">Estos son los permisos de <strong>${escH(_UP_ROLE_LABELS[role]||role)}</strong>. Lo marcado en dorado ya no coincide con el rol.</div>`;
   const groupsHtml = groups.map(group => {
     const items = UP_PERMS.filter(p => p.group === group);
     const rows  = items.map(p => {
       const val = p.key in perms ? perms[p.key] : defs[p.key];
       const isOverride = val !== defs[p.key];
-      return `<label class="up-perm-row${isOverride ? ' up-perm-overridden' : ''}">
+      return `<label class="up-perm-row${isOverride ? ' up-perm-overridden' : ''}" title="${escH(p.desc||'')}">
         <input type="checkbox" class="up-perm-cb"${val?' checked':''} onchange="_upPermChange(this,'${p.key}')">
         <span class="up-perm-label">${escH(p.label)}</span>
+        ${isOverride ? '<span class="up-perm-diff-tag">≠ rol</span>' : ''}
       </label>`;
     }).join('');
     return `<div class="up-perm-group">
@@ -1006,7 +1023,7 @@ function _renderPermsBody(email) {
       <div class="up-perm-grid">${rows}</div>
     </div>`;
   }).join('');
-  return groupsHtml + `<button class="up-reset-btn" onclick="_upResetPerms('${escH(email).replace(/'/g,"\\'")}')" ${!hasOverride ? 'disabled' : ''}><svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Restablecer al rol</button>`;
+  return intro + groupsHtml + `<button class="up-reset-btn" onclick="_upResetPerms('${escH(email).replace(/'/g,"\\'")}')" ${!overrideCount ? 'disabled' : ''}><svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Restablecer al rol</button>`;
 }
 
 function _upToggleCard(el) {
@@ -1024,18 +1041,47 @@ function _upRoleChange(sel) {
   const email   = card.dataset.email;
   const prevRole= (userPermsMap[email]?.role) || 'operador';
   const newRole = sel.value;
+  const name    = nameMap[email] || email.split('@')[0];
   if (prevRole === 'superadmin' && newRole !== 'superadmin') {
-    const name = nameMap[email] || email.split('@')[0];
     if (!confirm(`¿Cambiar a ${name} de Superadmin a ${_UP_ROLE_LABELS[newRole]||newRole}?\nPerderá acceso a Configuración.`)) {
       sel.value = prevRole;
       return;
     }
   }
+  // Cambiar de rol reemplaza todo el mapa de permisos por los defaults del
+  // rol nuevo -- si ya tenia permisos personalizados, se pierden. Avisar
+  // solo cuando de verdad hay algo que perder, para no interrumpir el caso
+  // comun (cambiar el rol de alguien sin overrides).
+  const overrideCount = _upOverrideCount(email);
+  if (overrideCount > 0 && !confirm(`${name} tiene ${overrideCount} permiso${overrideCount>1?'s':''} personalizado${overrideCount>1?'s':''} distinto${overrideCount>1?'s':''} de su rol actual.\n\nCambiar de rol los reemplaza por los defaults de ${_UP_ROLE_LABELS[newRole]||newRole}. ¿Continuar?`)) {
+    sel.value = prevRole;
+    return;
+  }
   const defs    = UP_ROLE_DEFAULTS[newRole] || UP_ROLE_DEFAULTS.operador;
   userPermsMap[email] = { ...defs, role: newRole };
   const permsDiv = card.querySelector('.up-perms');
   if (permsDiv) permsDiv.innerHTML = _renderPermsBody(email);
+  _upRefreshBadge(email);
   _upSavePerms();
+}
+
+// Refresca solo el badge "N personalizados" de una tarjeta sin
+// re-renderizar toda la lista (evita perder el scroll/estado abierto).
+function _upRefreshBadge(email) {
+  const card = document.querySelector(`.up-card[data-email="${CSS.escape(email)}"]`);
+  if (!card) return;
+  const nameDiv = card.querySelector('.up-name');
+  if (!nameDiv) return;
+  nameDiv.querySelector('.up-override-badge')?.remove();
+  const n = _upOverrideCount(email);
+  if (n > 0) {
+    const role = userPermsMap[email]?.role || 'operador';
+    const badge = document.createElement('span');
+    badge.className = 'up-override-badge';
+    badge.title = `${n} permiso${n>1?'s':''} distinto${n>1?'s':''} al default de ${_UP_ROLE_LABELS[role]||role}`;
+    badge.textContent = `${n} personalizado${n>1?'s':''}`;
+    nameDiv.appendChild(badge);
+  }
 }
 
 function _upPermChange(cb, key) {
@@ -1047,6 +1093,20 @@ function _upPermChange(cb, key) {
     userPermsMap[email] = { ...UP_ROLE_DEFAULTS[role]||UP_ROLE_DEFAULTS.operador, role };
   }
   userPermsMap[email][key] = cb.checked;
+
+  // Feedback visual inmediato del cambio -- sin esto, el "≠ rol" y el badge
+  // solo se veian correctos al cerrar y volver a abrir la tarjeta.
+  const role = userPermsMap[email].role || 'operador';
+  const defs = UP_ROLE_DEFAULTS[role] || UP_ROLE_DEFAULTS.operador;
+  const row  = cb.closest('.up-perm-row');
+  const isOverride = cb.checked !== defs[key];
+  row?.classList.toggle('up-perm-overridden', isOverride);
+  row?.querySelector('.up-perm-diff-tag')?.remove();
+  if (isOverride && row) row.insertAdjacentHTML('beforeend', '<span class="up-perm-diff-tag">≠ rol</span>');
+  const resetBtn = card.querySelector('.up-reset-btn');
+  if (resetBtn) resetBtn.disabled = _upOverrideCount(email) === 0;
+  _upRefreshBadge(email);
+
   _upSavePerms();
 }
 
@@ -1103,6 +1163,7 @@ function _upResetPerms(email) {
     const permsDiv = card.querySelector('.up-perms');
     if (permsDiv) permsDiv.innerHTML = _renderPermsBody(email);
   }
+  _upRefreshBadge(email);
   _upSavePerms();
   toast('Permisos restablecidos al rol ✓', 'ok');
 }
