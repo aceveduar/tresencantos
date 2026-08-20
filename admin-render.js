@@ -1,3 +1,26 @@
+/* ── ICONS ── */
+const _arIco = (p, px = 13, sw = 1.75) => `<svg width="${px}" height="${px}" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px">${p}</svg>`;
+const AR_ICO_PACKAGE  = (px=13) => _arIco('<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>', px);
+const AR_ICO_GIFT     = (px=13) => _arIco('<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/>', px, 1.5);
+const AR_ICO_CHECK    = (px=13) => _arIco('<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>', px);
+const AR_ICO_XCIRCLE  = (px=13) => _arIco('<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>', px);
+const AR_ICO_ZAP      = (px=13) => `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="vertical-align:-2px;margin-right:3px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`;
+const AR_ICO_BOOKMARK = (px=13) => _arIco('<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>', px);
+const AR_ICO_EYEOFF   = (px=13) => _arIco('<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/>', px);
+const AR_ICO_GLOBE    = (px=13) => _arIco('<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>', px);
+const AR_ICO_CLOCK    = (px=13) => _arIco('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', px);
+const AR_ICO_FILE     = (px=13) => _arIco('<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>', px);
+const AR_ICO_FLAG     = (px=13) => _arIco('<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>', px);
+const AR_ICO_BARCODE  = (px=13) => _arIco('<line x1="4" y1="6" x2="4" y2="18"/><line x1="8" y1="6" x2="8" y2="18"/><line x1="11" y1="6" x2="11" y2="18"/><line x1="14" y1="6" x2="14" y2="18"/><line x1="18" y1="6" x2="18" y2="18"/><line x1="20" y1="6" x2="20" y2="18"/>', px);
+const AR_ICO_WARN     = (px=13) => _arIco('<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>', px);
+const AR_ICO_ARCHIVE  = (px=13) => _arIco('<rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8"/><line x1="10" y1="12" x2="14" y2="12"/>', px);
+const AR_ICO_DOLLAR   = (px=13) => _arIco('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', px);
+const AR_ICO_SEARCH   = (px=13) => _arIco('<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>', px);
+const AR_ICO_USER     = (px=11) => _arIco('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', px);
+const _arStar = (filled, px=13) => filled
+  ? `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+  : `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+
 /* ── STATS ── */
 function renderStats() {
   const nArchivados = products.filter(p => p.isArchived).length;
@@ -6,7 +29,7 @@ function renderStats() {
     document.getElementById('stats').innerHTML =
       `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <button class="stat-chip stat-chip-filter sc-active" onclick="toggleArchivedView()" style="background:var(--charcoal);border-color:var(--charcoal);color:#fff;gap:6px">
-          <span class="sc-icon">←</span><span class="sc-lbl">Volver al inventario</span>
+          <span class="sc-icon">${_arIco('<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>')}</span><span class="sc-lbl">Volver al inventario</span>
         </button>
         <span style="font-size:.82rem;color:var(--muted)">${nArchivados} producto${nArchivados !== 1 ? 's' : ''} archivado${nArchivados !== 1 ? 's' : ''}</span>
       </div>`;
@@ -54,25 +77,25 @@ function renderStats() {
 
   document.getElementById('stats').innerHTML =
     `<button class="stat-chip stat-chip-filter${todosActive ? ' sc-active' : ''}" onclick="toggleStatFilter('todos')" style="${todosStyle}">
-       <span class="sc-icon">📦</span>
+       <span class="sc-icon">${AR_ICO_PACKAGE()}</span>
        <span class="sc-num">${total}</span>
        <span class="sc-lbl">Todos</span>
      </button>` +
-    (nKits > 0 ? chip('kits', '🎁', nKits, 'Kits', '#C9A462', '#fff') : '') +
-    chip('con-stock',   '✅', conStock,    'Con stock',    '#059669') +
-    (sinStock > 0 ? chip('sin-stock', '🚫', sinStock, 'Sin stock', '#dc2626') : '') +
-    (ultimaPieza > 0 ? chip('ultima-pieza','⚡', ultimaPieza, 'Última pieza', '#B45309') : '') +
-    (nApartado > 0 ? chip('apartado', '📌', nApartado, 'Apartado', '#92400E') : '') +
-    (sinPublicar  > 0 ? chip('sin-publicar','🙈', sinPublicar, 'Sin publicar', '#C2410C') : '') +
-    (porCaducar   > 0 ? chip('por-caducar', '⏰', porCaducar,  'Por caducar', '#dc2626') : '') +
-    (nBorradores > 0 ? chip('borradores', '📝', nBorradores, 'Borradores', '#6B7280', '#fff') : '') +
-    (nFlag        > 0 ? chip('revisar',     '🚩', nFlag,       'Por revisar',  '#dc2626') : '') +
-    (sinCodigo    > 0 ? chip('sin-codigo',  '🔲', sinCodigo,   'Sin código',   '#4B5563') : '') +
-    (sinCateg     > 0 ? chip('sin-categ',   '⚠️', sinCateg,    'Sin categoría','#B45309') : '') +
+    (nKits > 0 ? chip('kits', AR_ICO_GIFT(), nKits, 'Kits', '#C9A462', '#fff') : '') +
+    chip('con-stock',   AR_ICO_CHECK(), conStock,    'Con stock',    '#059669') +
+    (sinStock > 0 ? chip('sin-stock', AR_ICO_XCIRCLE(), sinStock, 'Sin stock', '#dc2626') : '') +
+    (ultimaPieza > 0 ? chip('ultima-pieza', AR_ICO_ZAP(), ultimaPieza, 'Última pieza', '#B45309') : '') +
+    (nApartado > 0 ? chip('apartado', AR_ICO_BOOKMARK(), nApartado, 'Apartado', '#92400E') : '') +
+    (sinPublicar  > 0 ? chip('sin-publicar', AR_ICO_EYEOFF(), sinPublicar, 'Sin publicar', '#C2410C') : '') +
+    (porCaducar   > 0 ? chip('por-caducar', AR_ICO_CLOCK(),  porCaducar,  'Por caducar', '#dc2626') : '') +
+    (nBorradores > 0 ? chip('borradores', AR_ICO_FILE(), nBorradores, 'Borradores', '#6B7280', '#fff') : '') +
+    (nFlag        > 0 ? chip('revisar',     AR_ICO_FLAG(),     nFlag,       'Por revisar',  '#dc2626') : '') +
+    (sinCodigo    > 0 ? chip('sin-codigo',  AR_ICO_BARCODE(),   sinCodigo,   'Sin código',   '#4B5563') : '') +
+    (sinCateg     > 0 ? chip('sin-categ',   AR_ICO_WARN(), sinCateg,    'Sin categoría','#B45309') : '') +
     (() => {
       if (ROLE !== 'superadmin') return '';
       const nBase64 = products.filter(p => !p.isArchived && !_ib(p) && p.image?.startsWith('data:')).length;
-      return nBase64 > 0 ? chip('imagen-base64', '🗄', nBase64, 'Imagen base64', '#7C3AED') : '';
+      return nBase64 > 0 ? chip('imagen-base64', AR_ICO_ARCHIVE(), nBase64, 'Imagen base64', '#7C3AED') : '';
     })() +
     (() => {
       if (!can.publishProduct) return '';
@@ -81,13 +104,13 @@ function renderStats() {
       const dismissed = sessionStorage.getItem('te_no_price_dismissed') === 'true';
       if (!dismissed) return '';
       return `<button class="stat-chip stat-chip-filter" onclick="showNoPriceAlert()" style="" title="Ver productos sin precio">
-        <span class="sc-icon">💲</span>
+        <span class="sc-icon">${AR_ICO_DOLLAR()}</span>
         <span class="sc-num">${sinPrecio.length}</span>
         <span class="sc-lbl">Sin precio</span>
       </button>`;
     })() +
     (nArchivados > 0 && can.deleteProduct ? `<button class="stat-chip" onclick="toggleArchivedView()" title="Ver productos archivados" style="border-color:var(--muted-light);color:var(--muted)">
-      <span class="sc-icon">🗄</span>
+      <span class="sc-icon">${AR_ICO_ARCHIVE()}</span>
       <span class="sc-num">${nArchivados}</span>
       <span class="sc-lbl">Archivados</span>
     </button>` : '');
@@ -316,7 +339,7 @@ function adminCard(p, editable = false) {
   const priceHTML = priceDisplay;
   const oosTitle  = oos ? 'Agotado — toca para marcar disponible' : 'Disponible — toca para agotar';
   const flagData  = _flagItem(p.id);
-  const flagDotAC = flagData ? `<span class="flag-dot" title="${_esc(flagData.note || 'Pendiente de revisión')}">🚩</span>` : '';
+  const flagDotAC = flagData ? `<span class="flag-dot" title="${_esc(flagData.note || 'Pendiente de revisión')}">${AR_ICO_FLAG(12)}</span>` : '';
   const isSinCat  = p.category === 'por_revisar';
 
   return `
@@ -341,7 +364,7 @@ function adminCard(p, editable = false) {
     <div class="ac-oos-label"></div>
     <button class="ac-star toggle-featured" onclick="toggleFeatured(${p.id})"
             title="${p.featured?'Quitar destacado':'Destacar'}">
-      ${p.featured?'⭐':'☆'}
+      ${_arStar(p.featured, 15)}
     </button>
     <div class="ac-actions">
       <button class="action-btn" onclick="event.stopPropagation();openForm(${p.id})" ontouchstart="event.stopPropagation()" title="Editar">${ICON_EDIT}</button>
@@ -351,20 +374,20 @@ function adminCard(p, editable = false) {
   </div>
   <div class="ac-body">
     <div class="ac-name" title="${_esc(p.name)}">${_esc(p.name)}</div>
-    ${flagData?.note ? `<div class="flag-note-line">🚩 "${_esc(flagData.note)}"</div>` : ''}
+    ${flagData?.note ? `<div class="flag-note-line">${AR_ICO_FLAG(11)}"${_esc(flagData.note)}"</div>` : ''}
     <div class="ac-meta">
       <span class="cat-dot" style="background:${catColor}"></span>
       ${editable
         ? `<span class="cat-label-inline${isSinCat?' cat-label-sin-cat':''}" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Clic para cambiar categoría" style="${isSinCat?'':'overflow:hidden;text-overflow:ellipsis;white-space:nowrap'}">${isSinCat ? 'Sin categoría' : _esc(p.categoryLabel)}</span>`
         : `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.72rem;color:var(--muted)">${_esc(p.categoryLabel)}</span>`
       }
-      ${_showCreator && ROLE === 'superadmin' && p.createdBy ? `<span class="creator-chip" title="${p.createdBy}">👤 ${_creatorName(p.createdBy)}</span>` : ''}
+      ${_showCreator && ROLE === 'superadmin' && p.createdBy ? `<span class="creator-chip" title="${p.createdBy}">${AR_ICO_USER()}${_creatorName(p.createdBy)}</span>` : ''}
     </div>
     <div class="ac-price-row">${priceHTML}</div>
     <div class="ac-footer">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         ${stockChip(p, editable)}
-        ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip" title="${_aptTitle(p.id)}">📌 Apartado</span>` : ''}
+        ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip" title="${_aptTitle(p.id)}">${AR_ICO_BOOKMARK(11)}Apartado</span>` : ''}
         ${expiryChip(p)}
         ${publishedToggle(p)}
       </div>
@@ -392,20 +415,20 @@ function expiryChip(p) {
   if (!st || st.state === 'ok') return '';
   const dateStr = new Date(p.expiryDate + 'T00:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' });
   return st.state === 'expired'
-    ? `<span class="exp-chip exp-chip-expired" title="Caducó el ${dateStr}">⏰ Caducado</span>`
-    : `<span class="exp-chip exp-chip-soon" title="Caduca el ${dateStr}">⏰ ${st.days}d</span>`;
+    ? `<span class="exp-chip exp-chip-expired" title="Caducó el ${dateStr}">${AR_ICO_CLOCK(11)}Caducado</span>`
+    : `<span class="exp-chip exp-chip-soon" title="Caduca el ${dateStr}">${AR_ICO_CLOCK(11)}${st.days}d</span>`;
 }
 
 function stockChip(p, editable = false) {
   if (Array.isArray(p.kitItems)) {
     const ki = _kitInfo(p);
-    if (ki?.empty) return `<span class="stock-chip stock-sold" style="cursor:default">🎁 Sin componentes</span>`;
+    if (ki?.empty) return `<span class="stock-chip stock-sold" style="cursor:default">${AR_ICO_GIFT(11)}Sin componentes</span>`;
     if (ki?.stock === 0) {
       const lbl = ki.blocker ? (ki.blocker.length > 14 ? ki.blocker.slice(0, 13) + '…' : ki.blocker) : '?';
-      return `<span class="stock-chip stock-sold" style="cursor:default" title="Falta: ${ki.blocker ?? 'componente agotado'}">🎁 Falta: ${lbl}</span>`;
+      return `<span class="stock-chip stock-sold" style="cursor:default" title="Falta: ${ki.blocker ?? 'componente agotado'}">${AR_ICO_GIFT(11)}Falta: ${lbl}</span>`;
     }
     const n = ki?.stock ?? 0;
-    return `<span class="stock-chip stock-ok" style="cursor:default">🎁 ${n} kit${n !== 1 ? 's' : ''}</span>`;
+    return `<span class="stock-chip stock-ok" style="cursor:default">${AR_ICO_GIFT(11)}${n} kit${n !== 1 ? 's' : ''}</span>`;
   }
   const cls = p.stock === 0 ? 'sold' : p.stock === 1 ? 'one' : 'ok';
   if (editable) {
@@ -584,12 +607,12 @@ async function editPriceInlineAdmin(e, id) {
 
 function publishedToggle(p) {
   if (p.isPublished === false) {
-    return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-hidden" title="Tap para publicar en sitio web">🙈 Oculto</button>`;
+    return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-hidden" title="Tap para publicar en sitio web">${AR_ICO_EYEOFF(11)}Oculto</button>`;
   }
   if (p.outOfStock) {
-    return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-agotado" title="Publicado pero agotado — no aparece en el sitio web">⚠️ Agotado</button>`;
+    return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-agotado" title="Publicado pero agotado — no aparece en el sitio web">${AR_ICO_WARN(11)}Agotado</button>`;
   }
-  return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-visible" title="Tap para ocultar del sitio web">🌐 Web</button>`;
+  return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-visible" title="Tap para ocultar del sitio web">${AR_ICO_GLOBE(11)}Web</button>`;
 }
 
 async function togglePublished(id) {
@@ -629,12 +652,12 @@ function editCategoryInline(e, id) {
 function desktopRow(p) {
   const fallback = DEFAULT_IMG;
   const oos = Array.isArray(p.kitItems) ? false : (p.outOfStock || p.stock === 0);
-  const featStar   = `<span onclick="toggleFeatured(${p.id})" class="toggle-featured" title="${p.featured ? 'Quitar destacado' : 'Destacar'}">${p.featured ? '⭐' : '☆'}</span>`;
+  const featStar   = `<span onclick="toggleFeatured(${p.id})" class="toggle-featured" title="${p.featured ? 'Quitar destacado' : 'Destacar'}">${_arStar(p.featured, 14)}</span>`;
   const catColor   = getCatColor(p.category);
   const catDot     = `<span class="cat-dot" style="background:${catColor}"></span>`;
   const flagDataDR = _flagItem(p.id);
   const isSinCatDR = p.category === 'por_revisar';
-  const flagDotRow = flagDataDR ? `<span class="flag-dot-row" title="${_esc(flagDataDR.note || 'Pendiente de revisión')}">🚩</span>` : '';
+  const flagDotRow = flagDataDR ? `<span class="flag-dot-row" title="${_esc(flagDataDR.note || 'Pendiente de revisión')}">${AR_ICO_FLAG(12)}</span>` : '';
   return `
 <tr draggable="true" data-id="${p.id}" class="${selectedIds.has(p.id) ? 'row-selected' : ''}${isSinCatDR ? ' card-por-revisar' : ''}"
     ondblclick="if(!event.target.closest('button,input,select,a,.drag-handle,.cat-label-inline'))openForm(${p.id})"
@@ -648,10 +671,10 @@ function desktopRow(p) {
       <img class="prod-thumb" src="${_driveSz(p.image,80)}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${fallback}'" onclick="event.stopPropagation();openQV(${p.id})" style="cursor:pointer${oos ? ';opacity:.5;filter:grayscale(.5)' : ''}" title="Ver detalle rápido">
       <div style="min-width:0;flex:1">
         <div class="prod-name" title="${_esc(p.name)}">${_esc(p.name)}</div>
-        ${flagDataDR?.note ? `<div class="flag-note-line">🚩 "${_esc(flagDataDR.note)}"</div>` : ''}
+        ${flagDataDR?.note ? `<div class="flag-note-line">${AR_ICO_FLAG(11)}"${_esc(flagDataDR.note)}"</div>` : ''}
         <div class="prod-meta">
           ${catDot}
-          <span class="prod-meta-text"><span class="cat-label-inline${isSinCatDR ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${isSinCatDR ? 'Sin categoría' : _esc(p.categoryLabel)}</span> · #${p.id}${_showCreator && ROLE === 'superadmin' && p.createdBy ? ` · <span class="creator-chip" title="${p.createdBy}">👤 ${_creatorName(p.createdBy)}</span>` : ''}</span>
+          <span class="prod-meta-text"><span class="cat-label-inline${isSinCatDR ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${isSinCatDR ? 'Sin categoría' : _esc(p.categoryLabel)}</span> · #${p.id}${_showCreator && ROLE === 'superadmin' && p.createdBy ? ` · <span class="creator-chip" title="${p.createdBy}">${AR_ICO_USER()}${_creatorName(p.createdBy)}</span>` : ''}</span>
           ${featStar}${publishedToggle(p)}${flagDotRow}
         </div>
       </div>
@@ -719,20 +742,20 @@ function mobileCard(p) {
                   onclick="event.stopPropagation();toggleFeatured(${p.id})"
                   ontouchstart="event.stopPropagation()"
                   title="${p.featured ? 'Quitar destacado' : 'Destacar'}">
-            ${p.featured ? '⭐' : '☆'}
+            ${_arStar(p.featured, 14)}
           </button>
         </div>
         <div class="mpc-info">
-          <div class="mpc-name">${_esc(p.name)}${flagDataMC ? ' <span class="flag-dot-row" title="'+_esc(flagDataMC.note||'Pendiente de revisión')+'">🚩</span>' : ''}</div>
-          ${flagDataMC?.note ? `<div class="flag-note-line">🚩 "${_esc(flagDataMC.note)}"</div>` : ''}
+          <div class="mpc-name">${_esc(p.name)}${flagDataMC ? ' <span class="flag-dot-row" title="'+_esc(flagDataMC.note||'Pendiente de revisión')+'">'+AR_ICO_FLAG(12)+'</span>' : ''}</div>
+          ${flagDataMC?.note ? `<div class="flag-note-line">${AR_ICO_FLAG(11)}"${_esc(flagDataMC.note)}"</div>` : ''}
           <div class="mpc-cat-tag">
             <span class="cat-dot" style="background:${catColor}"></span>
             <span class="${isSinCatMC ? 'cat-label-sin-cat' : ''}" style="font-size:.72rem;color:${isSinCatMC ? '' : 'var(--muted)'};font-weight:400">${isSinCatMC ? 'Sin categoría' : _esc(p.categoryLabel)}</span>
-            ${_showCreator && ROLE === 'superadmin' && p.createdBy ? `<span class="creator-chip" title="${p.createdBy}">👤 ${_creatorName(p.createdBy)}</span>` : ''}
+            ${_showCreator && ROLE === 'superadmin' && p.createdBy ? `<span class="creator-chip" title="${p.createdBy}">${AR_ICO_USER()}${_creatorName(p.createdBy)}</span>` : ''}
           </div>
           <div class="mpc-price-row">
             ${priceHTML}${stockInfo}
-            ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip" title="${_aptTitle(p.id)}">📌 Apartado</span>` : ''}
+            ${(p.isApartado || _apartadosMap[p.id]) && p.stock <= 1 ? `<span class="apt-chip" title="${_aptTitle(p.id)}">${AR_ICO_BOOKMARK(11)}Apartado</span>` : ''}
             ${expiryChip(p)}
             ${publishedToggle(p)}
           </div>
@@ -774,7 +797,7 @@ function renderTable() {
                        (document.getElementById('cat-filter')?.value !== 'all');
     const isFlagOnly = _showOnlyFlagged;
     const emptyHTML = `<div class="empty-state">
-      <div class="es-icon">${isFlagOnly ? '🚩' : isFiltered ? '🔍' : '📦'}</div>
+      <div class="es-icon" style="color:var(--muted-light)">${isFlagOnly ? AR_ICO_FLAG(40) : isFiltered ? AR_ICO_SEARCH(40) : AR_ICO_PACKAGE(40)}</div>
       <p>${isFlagOnly ? '¡Todo revisado! No hay productos pendientes.' : isFiltered ? 'Ningún producto coincide con el filtro.' : 'El catálogo está vacío.'}</p>
       <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
         ${isFlagOnly ? `<button class="btn btn-gold btn-sm" onclick="toggleFlagFilter()">Ver todos los productos</button>` : ''}
