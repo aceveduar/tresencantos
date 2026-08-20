@@ -4,6 +4,9 @@
 
 let _batchItems = []; // [{dataUrl, name, description, category, status}]
 
+const _BATCH_ICON_SPARKLE = '<svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>';
+const _BATCH_ICON_SPIN    = '<span style="display:inline-block;width:10px;height:10px;border:2px solid rgba(201,164,98,.3);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-1px;margin-right:4px"></span>';
+
 function openBatchUpload() {
   _batchItems = [];
   _batchRenderCards();
@@ -64,7 +67,7 @@ function _batchRenderCards() {
 
   grid.innerHTML = _batchItems.map((item, i) => {
     const statusHtml = item.status === 'analyzing'
-      ? '<div class="batch-status analyzing">🔄 Analizando…</div>'
+      ? `<div class="batch-status analyzing">${_BATCH_ICON_SPIN}Analizando…</div>`
       : item.status === 'done'
       ? '<div class="batch-status done">✓ Listo</div>'
       : item.status === 'error'
@@ -76,7 +79,7 @@ function _batchRenderCards() {
   <div class="batch-card-body">
     ${statusHtml}
     <div class="batch-card-actions">
-      <button class="btn-ai" onclick="_batchAnalyzeOne(${i})" ${item.status === 'analyzing' ? 'disabled' : ''}>✨ Analizar</button>
+      <button class="btn-ai" onclick="_batchAnalyzeOne(${i})" ${item.status === 'analyzing' ? 'disabled' : ''}>${_BATCH_ICON_SPARKLE}Analizar</button>
       <button class="btn-remove" onclick="_batchRemove(${i})" title="Eliminar">✕</button>
     </div>
     <input type="text" placeholder="Nombre del producto" value="${_esc(item.name)}"
@@ -149,7 +152,8 @@ async function _batchAnalyzeOne(idx) {
 async function _batchAnalyzeAll() {
   if (!groqApiKey) { toast('Configura la Groq API key en Configuración primero', 'error'); return; }
   const btn = document.getElementById('batch-analyze-all-btn');
-  btn.disabled = true; btn.textContent = '⏳ Analizando…';
+  const origBtnLabel = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = `${_BATCH_ICON_SPIN}Analizando…`;
   for (let i = 0; i < _batchItems.length; i++) {
     if (_batchItems[i].status === 'analyzing') continue;
     _batchItems[i].status = 'analyzing';
@@ -170,7 +174,7 @@ async function _batchAnalyzeAll() {
     _batchRenderCards();
     if (i < _batchItems.length - 1) await new Promise(r => setTimeout(r, 1500));
   }
-  btn.disabled = false; btn.textContent = '✨ Analizar todo';
+  btn.disabled = false; btn.innerHTML = origBtnLabel;
   const failed = _batchItems.filter(item => item.status === 'error');
   if (failed.length) {
     const firstError = failed[0].error || 'No disponible';
@@ -291,17 +295,17 @@ function _renderCmpCol(p, otherId) {
   const marginClass = margin === null ? '' : margin >= 30 ? 'green' : margin >= 10 ? 'amber' : 'red';
 
   const chips = [];
-  if (p.isPublished) chips.push('<span class="cmp-chip green">🌐 Publicado</span>');
-  else chips.push('<span class="cmp-chip">🙈 Oculto</span>');
-  if (p.featured) chips.push('<span class="cmp-chip amber">⭐ Destacado</span>');
+  if (p.isPublished) chips.push('<span class="cmp-chip green"><svg width="11" height="11" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:2px"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Publicado</span>');
+  else chips.push('<span class="cmp-chip"><svg width="11" height="11" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:2px"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>Oculto</span>');
+  if (p.featured) chips.push('<span class="cmp-chip amber"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="vertical-align:-1px;margin-right:2px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Destacado</span>');
   if (p.outOfStock || p.stock === 0) chips.push('<span class="cmp-chip red">Agotado</span>');
   else chips.push(`<span class="cmp-chip green">Stock: ${p.stock}</span>`);
-  if (p.barcode) chips.push(`<span class="cmp-chip">🔲 ${_esc(p.barcode)}</span>`);
+  if (p.barcode) chips.push(`<span class="cmp-chip"><svg width="11" height="11" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><line x1="4" y1="6" x2="4" y2="18"/><line x1="8" y1="6" x2="8" y2="18"/><line x1="11" y1="6" x2="11" y2="18"/><line x1="14" y1="6" x2="14" y2="18"/><line x1="18" y1="6" x2="18" y2="18"/><line x1="20" y1="6" x2="20" y2="18"/></svg> ${_esc(p.barcode)}</span>`);
 
   return `
     <img class="cmp-img" src="${p.image || DEFAULT_IMG}" onerror="this.src='${DEFAULT_IMG}'" loading="lazy" onclick="openCmpZoom()" style="cursor:zoom-in" title="Ver ambas imágenes en grande">
     <div class="cmp-name">${_esc(p.name)}</div>
-    <div class="cmp-meta">${_esc(p.categoryLabel || '—')}${p.createdBy ? ` · 👤 ${_esc(_creatorName(p.createdBy))}` : ''} · #${p.id}</div>
+    <div class="cmp-meta">${_esc(p.categoryLabel || '—')}${p.createdBy ? ` · <svg width="11" height="11" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> ${_esc(_creatorName(p.createdBy))}` : ''} · #${p.id}</div>
     <div class="cmp-price">$${(p.price || 0).toLocaleString('es-MX')} <span style="font-size:.75rem;font-weight:400;color:var(--muted)">MXN</span>${p.originalPrice ? `<s>$${p.originalPrice.toLocaleString('es-MX')}</s>` : ''}</div>
     ${margin !== null ? `<div class="cmp-meta"><span class="cmp-chip ${marginClass}">Costo $${p.cost.toLocaleString('es-MX')} · Margen ${margin}%</span></div>` : ''}
     <div>${chips.join('')}</div>
