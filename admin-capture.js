@@ -3,6 +3,9 @@ let captureCount = 0;
 let captureImageDataUrl = null;
 let captureDescription = '';
 
+const _CAP_ICON_CHECK = '<svg width="15" height="15" viewBox="0 0 24 24" stroke="#2D6A4F" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+const _CAP_ICON_WARN  = '<svg width="15" height="15" viewBox="0 0 24 24" stroke="#D97706" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+
 function openCaptureMode() {
   resetCaptureForm(true);
   document.getElementById('cap-overlay').style.display = 'flex';
@@ -98,7 +101,7 @@ function _capSetAIStatus(done, icon, text) {
   if (done) {
     spin.style.display = 'none';
     ico.style.display  = 'inline';
-    ico.textContent    = icon;
+    ico.innerHTML      = icon;
   } else {
     spin.style.display = 'block';
     ico.style.display  = 'none';
@@ -159,11 +162,11 @@ async function runCaptureAI() {
     const filled = [p.name ? 'nombre' : null, captureDescription ? 'descripción' : null,
                     (p.price && Number(p.price) > 0) ? 'precio' : null,
                     catSet ? 'categoría' : '⚠️ sin categoría — quedó en "Por revisar"'].filter(Boolean);
-    _capSetAIStatus(true, catSet ? '✓' : '⚠️', filled.join(', '));
+    _capSetAIStatus(true, catSet ? _CAP_ICON_CHECK : _CAP_ICON_WARN, filled.join(', '));
     updateCapSaveBtn();
   } catch (err) {
     console.error('Captura rápida IA:', err);
-    _capSetAIStatus(true, '⚠️', err?.message || 'IA no disponible — completa manualmente');
+    _capSetAIStatus(true, _CAP_ICON_WARN, err?.message || 'IA no disponible — completa manualmente');
     toast('Error IA: ' + (err?.message || 'No disponible'), 'error');
   }
 }
