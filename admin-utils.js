@@ -11,7 +11,8 @@ function dictate(fieldId) {
 
   const btn   = document.getElementById(`dictate-${fieldId}`);
   const field = document.getElementById(fieldId);
-  const origLabel = btn.textContent;
+  const origLabel = btn.innerHTML;
+  const stopLabel = '<svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><circle cx="12" cy="12" r="10"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>Detener';
 
   // Detener grabación activa: nullear ANTES de stop() para que onend sepa que fue el usuario
   if (_activeRec) {
@@ -49,7 +50,7 @@ function dictate(fieldId) {
     if (_activeRec === sr) { _activeRec = null; sr.stop(); }
   };
 
-  if (!btn.dataset.iconOnly) btn.textContent = '⏹ Detener';
+  if (!btn.dataset.iconOnly) btn.innerHTML = stopLabel;
   btn.classList.add('recording');
   field.classList.add('field-recording');
   toast('🎤 Grabando… toca el botón para detener', '');
@@ -94,7 +95,7 @@ function dictate(fieldId) {
       if (field.id === 'f-description') finalVal = formatDescription(finalVal);
       field.value = finalVal;
       field.dispatchEvent(new Event('input'));
-      if (!btn.dataset.iconOnly) btn.textContent = origLabel;
+      if (!btn.dataset.iconOnly) btn.innerHTML = origLabel;
       btn.classList.remove('recording');
       field.classList.remove('field-recording');
       toast('✓ Dictado finalizado', 'success');
@@ -104,7 +105,7 @@ function dictate(fieldId) {
   sr.onerror = e => {
     if (_silenceTimer) { clearTimeout(_silenceTimer); _silenceTimer = null; }
     _activeRec = null;
-    if (!btn.dataset.iconOnly) btn.textContent = origLabel;
+    if (!btn.dataset.iconOnly) btn.innerHTML = origLabel;
     btn.classList.remove('recording');
     field.classList.remove('field-recording');
     const sep   = startValue && committedText ? ' ' : '';
@@ -271,7 +272,7 @@ function _qvShowFlagForm(id) {
     <textarea class="qv-flag-textarea" id="qv-flag-ta" rows="2"
       placeholder="Ej: imagen dice 6 piezas, descripción dice 4…" style="margin-bottom:7px"></textarea>
     <div style="display:flex;gap:7px">
-      <button class="qv-btn qv-btn-flag" style="flex:1" onclick="flagProduct(${id},document.getElementById('qv-flag-ta').value)">🚩 Marcar para revisión</button>
+      <button class="qv-btn qv-btn-flag" style="flex:1" onclick="flagProduct(${id},document.getElementById('qv-flag-ta').value)"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>Marcar para revisión</button>
       <button class="qv-btn qv-btn-dup" onclick="(p=>p?_renderQV(p):closeQV())(products.find(x=>x.id===${id}))">Cancelar</button>
     </div>`;
   const zone = document.getElementById('qv-flag-zone');
