@@ -27,8 +27,11 @@ function setDiscountType(type) {
   updateChange();
 }
 
-function toggleDiscountField() {
-  if (!canApplyDiscount()) return;
+async function toggleDiscountField() {
+  if (!canApplyDiscount()) {
+    const granted = await requestOverride('canApplyDiscount', 'Aplicar descuento');
+    if (!granted) return;
+  }
   document.getElementById('discount-toggle-btn').style.display = 'none';
   document.getElementById('discount-row-wrap').style.display = '';
   setTimeout(() => document.getElementById('pos-discount')?.focus(), 50);
@@ -707,10 +710,10 @@ function _renderApartadoCards(data, isLiquidado) {
     <div class="apt-btns">
       <button class="btn-wa-reminder" onclick="event.stopPropagation();sendApartadoReminder(${s.id})" title="${isLiquidado ? 'Enviar confirmación por WhatsApp' : 'Enviar recordatorio por WhatsApp'}" aria-label="${isLiquidado ? 'Enviar confirmación por WhatsApp' : 'Enviar recordatorio por WhatsApp'}">${_uiIcoWA()}</button>
       ${(isLiquidado || pendiente <= _APT_MONEY_EPSILON) ? `<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--green)">✓ Liquidado</span>` : `
-      ${canEditApartado() ? `<button class="btn-wa-reminder" onclick="event.stopPropagation();openEditApartado(${s.id})" title="Editar" style="background:#F7F2EB;color:var(--charcoal);border:1.5px solid var(--border)">${_uiIcoEdit()}</button>` : ''}
+      <button class="btn-wa-reminder" onclick="event.stopPropagation();openEditApartado(${s.id})" title="Editar" style="background:#F7F2EB;color:var(--charcoal);border:1.5px solid var(--border)">${_uiIcoEdit()}</button>
       <button class="btn-abonar" onclick="event.stopPropagation();abonarApartado('${s.id}','${total}','${pagado}','${_esc(nombre).replace(/'/g,"\\'")}')">Registrar abono</button>
       <button class="btn-liquidar" onclick="event.stopPropagation();openLiqModal(${s.id})">Cobrar saldo $${pendiente.toLocaleString('es-MX')}</button>
-      ${canCancelApartado() ? `<button class="btn-cancelar-apt" onclick="event.stopPropagation();cancelApartado(${s.id})" title="Cancelar apartado">✕</button>` : ''}`}
+      <button class="btn-cancelar-apt" onclick="event.stopPropagation();cancelApartado(${s.id})" title="Cancelar apartado">✕</button>`}
     </div>
   </div>
 </div>`;
@@ -942,7 +945,11 @@ async function confirmAbonar() {
 /* ── EDITAR APARTADO ────────────────────────────────────────────────── */
 let _editAptCtx = null;
 
-function openEditApartado(id) {
+async function openEditApartado(id) {
+  if (!canEditApartado()) {
+    const granted = await requestOverride('canEditApartado', 'Editar apartado');
+    if (!granted) return;
+  }
   const sale = _apartadosData[id];
   if (!sale) return;
   if (sale.status && sale.status !== 'activo') {
@@ -986,6 +993,10 @@ async function refundApartado(id, source = 'detail') {
     ? 'El apartado volverá a Activos y el inventario seguirá reservado.'
     : 'El apartado seguirá activo y el inventario continuará reservado.';
   if (!confirm(`¿Registrar la devolución de $${pagado.toLocaleString('es-MX')} MXN?\n\n${consequence}\nSe conservará el historial y la devolución se descontará de la caja de hoy por los mismos métodos usados al cobrar. Esta acción no se puede deshacer.`)) return;
+  if (!canEditApartado()) {
+    const granted = await requestOverride('canEditApartado', 'Reembolsar apartado');
+    if (!granted) return;
+  }
   const btn = document.getElementById(source === 'edit' ? 'edit-apt-refund-btn' : 'adm-refund-btn');
   const originalText = btn?.textContent || 'Reembolsar';
   if (btn) { btn.disabled = true; btn.textContent = 'Registrando…'; }
@@ -996,7 +1007,8 @@ async function refundApartado(id, source = 'detail') {
     body: {
       p_sale_id: id,
       p_expected_version: sale.version ?? 0,
-      p_reason: wasLiquidated ? 'Pago revertido; apartado reabierto desde Caja' : 'Devolución total registrada desde edición de apartado'
+      p_reason: wasLiquidated ? 'Pago revertido; apartado reabierto desde Caja' : 'Devolución total registrada desde edición de apartado',
+      p_override_tickets: _collectOverrideTickets(['canEditApartado'])
     }
   });
   if (!r.ok) {
@@ -1184,7 +1196,8 @@ async function saveEditApt() {
       p_sale_id: id,
       p_expected_version: sale.version ?? 0,
       p_items: items,
-      p_discount: null
+      p_discount: null,
+      p_override_tickets: _collectOverrideTickets(['canEditApartado', 'canOverridePrice'])
     }
   });
   btn.disabled = false; btn.textContent = 'Guardar cambios';

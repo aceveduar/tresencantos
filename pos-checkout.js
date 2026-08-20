@@ -127,7 +127,8 @@ async function cobrar() {
       p_is_apartado:     !!isApartado,
       p_paid_amount:     saleData.paid_amount ?? null,
       p_customer:        saleData.customer || null,
-      p_due_date:        saleData.due_date || null
+      p_due_date:        saleData.due_date || null,
+      p_override_tickets: _collectOverrideTickets(['canOverridePrice', 'canApplyDiscount'])
     }
   });
   if (!rpcResult.ok) {
@@ -158,6 +159,8 @@ async function cobrar() {
     customer, dueDate: dueDateVal };
 
   // Reset UI
+  _clearOverrideTicket('canOverridePrice');
+  _clearOverrideTicket('canApplyDiscount');
   cart = [];
   ['pos-cash','pos-discount','pos-note'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   document.getElementById('pos-is-apartado').checked = false;
@@ -501,12 +504,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const canStats    = up?.canViewReports    ?? (_posRole === 'superadmin' || _posRole === 'duena');
     const canActivity = up?.canViewActivity   ?? (_posRole === 'superadmin' || _posRole === 'duena');
     const canSettings = up?.canManageSettings ?? (_posRole === 'superadmin');
-    const canDiscount = up?.canApplyDiscount  ?? (_posRole === 'superadmin' || _posRole === 'encargado' || _posRole === 'duena');
     document.querySelectorAll('a.tbn-icon[href="stats.html"]').forEach(a => a.style.display = canStats ? '' : 'none');
     document.querySelectorAll('a.tbn-icon[href="activity.html"]').forEach(a => a.style.display = canActivity ? '' : 'none');
     document.querySelectorAll('a.tbn-icon[href="settings.html"]').forEach(a => a.style.display = canSettings ? '' : 'none');
-    const discBtn = document.getElementById('discount-toggle-btn');
-    if (discBtn) discBtn.style.display = canDiscount ? '' : 'none';
+    // "Agregar descuento" se queda siempre visible — toggleDiscountField()
+    // pide autorizacion con PIN en el momento si no se tiene canApplyDiscount,
+    // en vez de esconder el boton del todo.
   };
   _applyPosNav(_getMyPermsCached());
   _loadMyPerms().then(up => {

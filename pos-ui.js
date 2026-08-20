@@ -674,17 +674,15 @@ function openAptDetail(id) {
   // pendiente<=0 cubre el caso de un registro local desfasado (otra caja ya liquidó
   // o dato aún no refrescado) que isLiquidado no detectaría por venir de status/type.
   if (isLiquidado || pendiente <= _APT_MONEY_EPSILON) {
-    const reopenBtn = canEditApartado() && pagado > 0
+    const reopenBtn = pagado > 0
       ? `<button type="button" class="btn-abonar" id="adm-refund-btn" onclick="refundApartado(${id},'detail')" style="border-color:var(--red);color:var(--red)">${_uiIco('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>')} Reabrir y reembolsar</button>`
       : '';
     document.getElementById('adm-footer').innerHTML =
       `<button type="button" class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" aria-label="Enviar por WhatsApp" title="Enviar por WhatsApp">${_uiIcoWA()}</button>
        ${reopenBtn || '<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--green)">✓ Liquidado</span>'}`;
   } else {
-    const editBtn = canEditApartado()
-      ? `<button type="button" class="btn-edit-apt" onclick="closeAptDetail();openEditApartado(${id})" aria-label="Editar apartado" title="Editar apartado">${_uiIcoEdit()}</button>` : '';
-    const cancelBtn = canCancelApartado()
-      ? `<button type="button" class="btn-cancelar-apt" onclick="cancelApartado(${id})" aria-label="Cancelar apartado" title="Cancelar apartado">✕</button>` : '';
+    const editBtn = `<button type="button" class="btn-edit-apt" onclick="closeAptDetail();openEditApartado(${id})" aria-label="Editar apartado" title="Editar apartado">${_uiIcoEdit()}</button>`;
+    const cancelBtn = `<button type="button" class="btn-cancelar-apt" onclick="cancelApartado(${id})" aria-label="Cancelar apartado" title="Cancelar apartado">✕</button>`;
     document.getElementById('adm-footer').innerHTML = `
       <button type="button" class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" aria-label="Enviar recordatorio por WhatsApp" title="Recordatorio WhatsApp">${_uiIcoWA()}</button>
       ${editBtn}
@@ -937,7 +935,7 @@ async function loadHistory() {
       // cada fila cuando hay varios pagos/reembolsos) sin exigir que ese
       // movimiento más reciente sea justo un 'payment' — una venta con algún
       // reembolso parcial también debe poder cancelarse.
-      const canCancelThis = canCancelSale() && !s.cancelled_at && newestMovementBySale.get(s.id) === payment.id;
+      const canCancelThis = !s.cancelled_at && newestMovementBySale.get(s.id) === payment.id;
 
       return `
 <div class="hi-card">
@@ -960,12 +958,20 @@ async function loadHistory() {
 }
 
 async function deleteSale(id) {
-  if (!canCancelSale()) { toast('Solo el administrador puede cancelar ventas', 'error'); return; }
   const sale = salesCache[id];
   if (!sale) { toast('Registro no encontrado', 'error'); return; }
 
   const abonos     = Array.isArray(sale.abonos) ? sale.abonos : [];
   const isApartadoOrigin = sale.origin_type === 'apartado' || sale.type === 'apartado' || abonos.length > 0;
+  const isActiveApartado = isApartadoOrigin && sale.status === 'activo' && !sale.cancelled_at;
+  const hasPerm = isActiveApartado ? canCancelApartado() : canCancelSale();
+  if (!hasPerm) {
+    const granted = await requestOverride(
+      isActiveApartado ? 'canEditApartado' : 'canCancelSale',
+      isActiveApartado ? 'Cancelar apartado' : 'Cancelar venta'
+    );
+    if (!granted) return;
+  }
   const totalNum   = parseFloat(sale.total) || 0;
   const total      = totalNum.toLocaleString('es-MX');
   const itemCount  = Array.isArray(sale.items) ? sale.items.length : 0;

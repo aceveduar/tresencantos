@@ -113,7 +113,8 @@ tresencantos/
 ├── supabase/migrations/ # Migraciones SQL versionadas (Caja/Apartados v2)
 │   ├── 20260818_01_apartados_atomic_additive.sql
 │   ├── 20260818_02_sales_rpc_lockdown.sql
-│   └── 20260820_01_permisos_caja_y_auditoria.sql
+│   ├── 20260820_01_permisos_caja_y_auditoria.sql
+│   └── 20260821_01_override_pin.sql
 ├── img/                  # Imágenes locales y recursos PWA
 │   ├── icono-192.png
 │   ├── icono-512.png
@@ -301,6 +302,15 @@ El cambio aplica en el **próximo login** — la sesión activa usa el JWT viejo
 **`te_save_user_permissions` (2026-08-20) — único camino para escribir `config.id='user_permissions'`:** antes `settings.js` escribía esa fila con un `POST` directo a la tabla `config`, sin ninguna verificación de permiso en el servidor. Ahora `_upSavePerms()` llama la RPC `te_save_user_permissions(p_permissions)`, que exige `canManageSettings` (nunca `canManageCatalogSettings`) dentro de la función antes de escribir, compara el mapa anterior contra el nuevo y registra en Actividad (`permisos_editados`) exactamente qué cambió y para quién.
 
 Migración de estos tres puntos: `supabase/migrations/20260820_01_permisos_caja_y_auditoria.sql` (reemplaza y consolida dos migraciones previas que quedaron sin ejecutar: `20260820_01_catalog_only_settings_permission.sql` y `20260819_01_item_original_price.sql` — ambas ya no existen como archivos separados, su contenido está incluido aquí).
+
+**PIN de autorización de gerente (2026-08-21):** cuando alguien sin un permiso necesita hacer esa acción de todos modos porque quien sí lo tiene se lo autoriza (ej. Ofelia le autoriza a Areli por teléfono modificar un precio estando ella fuera), esa persona teclea su **propio PIN** (4-6 dígitos, separado de su contraseña — mismo patrón que Square/Shopify POS) en el dispositivo de quien va a hacer la acción, sin cerrar la sesión activa.
+- **`user_pins`** — cada usuario fija/cambia solo su propio PIN vía `te_set_my_pin(p_pin)` (hash con `pgcrypto`/`crypt()`). Nadie, ni superadmin, puede ver o resetear el PIN de otra persona — si se olvida, cada quien lo vuelve a fijar. Autoservicio desde el menú del avatar ("🔑 Mi PIN de autorización", `openMyPinModal()` en `shared.js`).
+- **`permission_overrides`** — tickets de un solo uso, válidos 5 minutos. `te_request_override(p_permission, p_authorizer_email, p_pin)` verifica el PIN y que esa persona sí tenga el permiso (`_te_permission_for_email`, variante de `te_has_permission` parametrizada por email en vez de `auth.uid()`), y si todo cuadra emite el ticket. `te_override_valid`/`te_consume_override`/`te_permission_or_override`/`te_consume_matching_override` son los helpers que usan las RPC de negocio para aceptar un ticket como equivalente al permiso directo, marcándolo usado exactamente una vez.
+- **Freno anti-fuerza-bruta:** 5 intentos fallidos en 10 minutos por quien pide la autorización bloquean nuevos intentos, contando sobre `activity_log` (acción `override_fallido`) — sin infraestructura nueva.
+- **Wiring:** `record_sale_atomic_v2`/`edit_apartado_atomic` (precio y descuento), `cancel_sale_atomic` (`canCancelSale`/`canEditApartado`), `refund_apartado_atomic` (`canEditApartado`) — todas reciben `p_override_tickets uuid[]`. Cliente: `requestOverride(permission, label)` en `shared.js` muestra el sheet de autorización y guarda el ticket 5 min en `_overrideTickets`; `_collectOverrideTickets([...])` arma el array a mandar en cada RPC. Los botones que antes se ocultaban por permiso (precio en carrito, "Agregar descuento", cancelar venta/apartado, editar/reembolsar apartado) ahora **siempre se muestran** — es la acción, no el botón, la que pide autorización si hace falta.
+- Dos acciones nuevas en Actividad (tipo `sistema`): `permiso_autorizado` (quién autorizó a quién, para qué) y `override_fallido` (PIN incorrecto o autorizador sin el permiso).
+- **Fuera de alcance:** Inventario (`canDeleteProduct`/`canPublishProduct`/`canBulkDelete`) usa políticas RLS sobre `products`, no RPCs — el mismo mecanismo de tickets aplicaría vía `te_override_valid` dentro de la policy, pero requiere ver el texto vigente de esas políticas primero (`SELECT policyname, cmd, qual, with_check FROM pg_policies WHERE tablename='products'`) para no editarlas a ciegas.
+- Migración: `supabase/migrations/20260821_01_override_pin.sql`.
 
 **Comportamiento operador al crear productos:** `is_published` se fuerza a `false` — requiere que un superadmin revise y publique. El campo precio sí puede editarlo (transcribe de etiqueta física).
 

@@ -51,7 +51,11 @@
       ? `<a class="ud-link" href="activity.html">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           Actividad
-        </a>` : '');
+        </a>` : '') +
+      `<button class="ud-link" style="width:100%;text-align:left;background:none;border:none;font:inherit;cursor:pointer" onclick="document.getElementById('ud-pop')?.remove();openMyPinModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+        Mi PIN de autorización
+      </button>`;
 
     const pop = document.createElement('div');
     pop.id = 'ud-pop';
@@ -387,6 +391,151 @@ const UP_ROLE_DEFAULTS = {
   duena:     {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canViewReports:true, canViewActivity:true, canManageSettings:false, canManageCatalogSettings:false},
   operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:false, canPublishProduct:false, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:false, canOverridePrice:false, canApplyDiscount:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false},
 };
+
+/* ── PIN DE AUTORIZACIÓN (override puntual de un permiso bloqueado) ──
+   Reutilizable desde cualquier módulo admin: si el usuario activo no tiene
+   el permiso, requestOverride(permiso, etiqueta) muestra un sheet donde
+   alguien con ese permiso teclea su propio PIN; al autorizar, el ticket
+   (uuid) queda guardado 5 min en _overrideTickets y debe mandarse como
+   p_override_tickets en la llamada RPC real (record_sale_atomic_v2,
+   cancel_sale_atomic, etc. — ver supabase/migrations/20260821_01_override_pin.sql). */
+let _overrideTickets = {}; // permission -> {ticket, expiresAt}
+
+function _hasValidOverrideTicket(permission) {
+  const t = _overrideTickets[permission];
+  return !!(t && new Date(t.expiresAt).getTime() > Date.now());
+}
+function _clearOverrideTicket(permission) { delete _overrideTickets[permission]; }
+// Junta los tickets vigentes de los permisos pedidos — para pasarlos tal cual
+// como p_override_tickets a la RPC de negocio.
+function _collectOverrideTickets(permissions) {
+  return permissions
+    .map(p => _hasValidOverrideTicket(p) ? _overrideTickets[p].ticket : null)
+    .filter(Boolean);
+}
+
+async function _sharedRpc(name, body) {
+  const url = typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : '';
+  const key = typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : '';
+  const session = JSON.parse(localStorage.getItem('te_admin_session') || '{}');
+  const token = session?.access_token || '';
+  if (!url || !key || !token) return { ok: false, data: { message: 'Sesión no disponible' } };
+  const request = async currentToken => fetch(`${url}/rest/v1/rpc/${name}`, {
+    method: 'POST',
+    headers: { apikey: key, Authorization: `Bearer ${currentToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  let r = await request(token);
+  const refreshToken =
+    (typeof _refreshPosToken === 'function' && _refreshPosToken) ||
+    (typeof _refreshStatsToken === 'function' && _refreshStatsToken) ||
+    (typeof _refreshActivityToken === 'function' && _refreshActivityToken) ||
+    (typeof _refreshSettingsToken === 'function' && _refreshSettingsToken) ||
+    (typeof refreshSessionIfNeeded === 'function' && refreshSessionIfNeeded) ||
+    null;
+  if (r.status === 401 && refreshToken && await refreshToken()) {
+    const refreshed = JSON.parse(localStorage.getItem('te_admin_session') || '{}');
+    r = await request(refreshed?.access_token || '');
+  }
+  const text = await r.text();
+  let data; try { data = JSON.parse(text); } catch { data = text || null; }
+  return { ok: r.ok, status: r.status, data };
+}
+
+// Punto de entrada: si ya hay un ticket vigente para `permission`, resuelve
+// de inmediato (true). Si no, abre el sheet de autorización y resuelve
+// según lo que pase ahí (true = autorizado, false = cancelado/fallido).
+function requestOverride(permission, label) {
+  if (_hasValidOverrideTicket(permission)) return Promise.resolve(true);
+  return new Promise(resolve => _openOverrideSheet(permission, label, resolve));
+}
+
+function _openOverrideSheet(permission, label, onDone) {
+  document.getElementById('override-sheet')?.remove();
+  const wrap = document.createElement('div');
+  wrap.id = 'override-sheet';
+  wrap.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5)';
+  wrap.innerHTML = `
+    <div onclick="event.stopPropagation()" style="background:#fff;border-radius:18px;padding:22px;max-width:320px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,.3)">
+      <div style="font-size:1rem;font-weight:700;color:#1C1817;margin-bottom:4px">🔒 Se requiere autorización</div>
+      <div style="font-size:.82rem;color:#8A7564;margin-bottom:16px">${(label||'').replace(/[<>&]/g,'')} — pide que alguien con permiso teclee aquí su email y su PIN.</div>
+      <input id="ov-email" type="email" placeholder="Email de quien autoriza" autocomplete="off"
+        style="width:100%;padding:11px 12px;border:1.5px solid #EAE0D4;border-radius:10px;font-size:.95rem;margin-bottom:10px;font-family:inherit;box-sizing:border-box">
+      <input id="ov-pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="PIN (4-6 dígitos)" autocomplete="off"
+        style="width:100%;padding:11px 12px;border:1.5px solid #EAE0D4;border-radius:10px;font-size:.95rem;margin-bottom:6px;font-family:inherit;box-sizing:border-box;letter-spacing:.3em">
+      <div id="ov-error" style="color:#E85D5D;font-size:.78rem;min-height:16px;margin-bottom:8px"></div>
+      <div style="display:flex;gap:8px">
+        <button id="ov-cancel" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #EAE0D4;background:#fff;font-weight:600;font-family:inherit;cursor:pointer">Cancelar</button>
+        <button id="ov-submit" style="flex:1;padding:11px;border-radius:10px;border:none;background:#C9A462;color:#fff;font-weight:700;font-family:inherit;cursor:pointer">Autorizar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(wrap);
+  const close = (result) => { wrap.remove(); onDone(result); };
+  wrap.addEventListener('click', () => close(false));
+  document.getElementById('ov-cancel').onclick = () => close(false);
+  document.getElementById('ov-email').focus();
+  const submit = async () => {
+    const email = document.getElementById('ov-email').value.trim();
+    const pin = document.getElementById('ov-pin').value.trim();
+    const errEl = document.getElementById('ov-error');
+    if (!email || !pin) { errEl.textContent = 'Completa ambos campos'; return; }
+    const btn = document.getElementById('ov-submit');
+    btn.disabled = true; btn.textContent = 'Verificando…';
+    const r = await _sharedRpc('te_request_override', { p_permission: permission, p_authorizer_email: email, p_pin: pin });
+    if (r.ok && r.data?.ok) {
+      _overrideTickets[permission] = { ticket: r.data.ticket, expiresAt: r.data.expires_at };
+      close(true);
+    } else {
+      errEl.textContent = r.data?.message || 'PIN o autorización inválida';
+      btn.disabled = false; btn.textContent = 'Autorizar';
+      document.getElementById('ov-pin').value = '';
+      document.getElementById('ov-pin').focus();
+    }
+  };
+  document.getElementById('ov-submit').onclick = submit;
+  document.getElementById('ov-pin').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+}
+
+function openMyPinModal() {
+  document.getElementById('mypin-sheet')?.remove();
+  const wrap = document.createElement('div');
+  wrap.id = 'mypin-sheet';
+  wrap.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5)';
+  wrap.innerHTML = `
+    <div onclick="event.stopPropagation()" style="background:#fff;border-radius:18px;padding:22px;max-width:320px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,.3)">
+      <div style="font-size:1rem;font-weight:700;color:#1C1817;margin-bottom:4px">🔑 Mi PIN de autorización</div>
+      <div style="font-size:.82rem;color:#8A7564;margin-bottom:16px">Úsalo cuando alguien sin permiso necesite tu autorización para una acción puntual (precio, descuento, cancelar, etc). Solo tú puedes verlo o cambiarlo.</div>
+      <input id="mypin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Nuevo PIN (4-6 dígitos)" autocomplete="off"
+        style="width:100%;padding:11px 12px;border:1.5px solid #EAE0D4;border-radius:10px;font-size:.95rem;margin-bottom:6px;font-family:inherit;box-sizing:border-box;letter-spacing:.3em">
+      <div id="mypin-error" style="color:#E85D5D;font-size:.78rem;min-height:16px;margin-bottom:8px"></div>
+      <div style="display:flex;gap:8px">
+        <button id="mypin-cancel" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #EAE0D4;background:#fff;font-weight:600;font-family:inherit;cursor:pointer">Cancelar</button>
+        <button id="mypin-submit" style="flex:1;padding:11px;border-radius:10px;border:none;background:#C9A462;color:#fff;font-weight:700;font-family:inherit;cursor:pointer">Guardar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(wrap);
+  const close = () => wrap.remove();
+  wrap.addEventListener('click', close);
+  document.getElementById('mypin-cancel').onclick = close;
+  document.getElementById('mypin-input').focus();
+  const submit = async () => {
+    const pin = document.getElementById('mypin-input').value.trim();
+    const errEl = document.getElementById('mypin-error');
+    if (!/^[0-9]{4,6}$/.test(pin)) { errEl.textContent = 'El PIN debe ser de 4 a 6 dígitos'; return; }
+    const btn = document.getElementById('mypin-submit');
+    btn.disabled = true; btn.textContent = 'Guardando…';
+    const r = await _sharedRpc('te_set_my_pin', { p_pin: pin });
+    if (r.ok && r.data?.ok) {
+      close();
+      if (typeof toast === 'function') toast('PIN guardado ✓', 'ok');
+    } else {
+      errEl.textContent = r.data?.message || 'Error al guardar';
+      btn.disabled = false; btn.textContent = 'Guardar';
+    }
+  };
+  document.getElementById('mypin-submit').onclick = submit;
+  document.getElementById('mypin-input').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+}
 
 // Bucle de paginación por offset/limit compartido por _posFetchAll
 // (pos-core.js) y _fetchAll (stats.js) — cada uno llama a través de su

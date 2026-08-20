@@ -52,8 +52,11 @@ function canApplyDiscount() {
 
 let _cancelAptCtx = null;
 
-function cancelApartado(id) {
-  if (!canCancelApartado()) { toast('Sin permiso para cancelar apartados', 'error'); return; }
+async function cancelApartado(id) {
+  if (!canCancelApartado()) {
+    const granted = await requestOverride('canEditApartado', 'Cancelar apartado');
+    if (!granted) return;
+  }
   const sale = (_apartadosData || {})[id];
   if (!sale) { toast('Apartado no encontrado', 'error'); return; }
 
@@ -502,7 +505,8 @@ async function _posCancelSaleAtomic(id, sale, reason) {
     body: {
       p_sale_id: id,
       p_expected_version: sale?.version ?? 0,
-      p_reason: reason
+      p_reason: reason,
+      p_override_tickets: _collectOverrideTickets(['canCancelSale', 'canEditApartado'])
     }
   });
   if (!result.ok && !result.ambiguous && !result.pendingConflict) {
