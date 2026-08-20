@@ -152,7 +152,9 @@ button,a,[onclick]{touch-action:manipulation}
 .up-role-sel:disabled{opacity:.45;cursor:not-allowed}
 .up-remove-btn{background:none;border:none;color:var(--muted-light);cursor:pointer;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;transition:.15s;padding:0}
 .up-remove-btn:hover{color:var(--red);background:#FEF2F2}
-.up-chevron{font-size:.8rem;color:var(--muted-light);transition:transform .2s;flex-shrink:0;line-height:1}
+.up-chevron{width:24px;height:24px;border-radius:50%;background:var(--gold-light);color:var(--gold-dark);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .2s,background .15s;margin-left:2px}
+.up-toggle-area:hover .up-chevron{background:var(--gold);color:#fff}
+.up-toggle-area:active .up-chevron{background:var(--gold)}
 .up-perms{padding:14px 16px 20px;background:#FDFAF6;border-top:1px solid var(--border)}
 .up-perm-intro{font-size:.74rem;color:var(--muted);line-height:1.4;margin-bottom:14px;padding-bottom:12px;border-bottom:1px dashed var(--border)}
 .up-perm-intro strong{color:var(--charcoal)}
