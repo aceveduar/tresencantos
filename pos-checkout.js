@@ -439,7 +439,7 @@ async function loadTodayStats() {
   // movimiento incluye abonos de apartados antiguos y devoluciones de hoy.
   const start = new Date(`${hoyMX}T00:00:00-06:00`);
   const end   = new Date(start.getTime() + 86400000);
-  const result = await _posFetchAll(`sale_payments?paid_at=gte.${encodeURIComponent(start.toISOString())}&paid_at=lt.${encodeURIComponent(end.toISOString())}&select=amount,method&order=paid_at.asc,id.asc`);
+  const result = await _posFetchAll(`sale_payments?paid_at=gte.${encodeURIComponent(start.toISOString())}&paid_at=lt.${encodeURIComponent(end.toISOString())}&select=amount,method,sale:sales(is_test)&order=paid_at.asc,id.asc`);
   if (loadGeneration !== _todayStatsLoadGeneration) return false;
   const mob    = document.getElementById('daily-summary-mobile');
   if (!result.ok) {
@@ -456,6 +456,8 @@ async function loadTodayStats() {
 
   let efectivo = 0, transferencia = 0, otros = 0;
   result.data.forEach(payment => {
+    const sale = Array.isArray(payment.sale) ? payment.sale[0] : payment.sale;
+    if (sale?.is_test) return;
     const amount = parseFloat(payment.amount) || 0;
     if (payment.method === 'transferencia') transferencia += amount;
     else if (payment.method === 'efectivo') efectivo += amount;

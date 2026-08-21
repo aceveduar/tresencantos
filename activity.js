@@ -269,12 +269,13 @@ async function load() {
 
   // El dinero se consulta por la fecha real del movimiento. No se filtra por el
   // estado actual de la venta: una cancelación posterior no debe borrar un cobro histórico.
-  let paymentsQ = `sale_payments?select=id,sale_id,request_id,request_line,amount,kind,method,paid_at,collected_by,collected_by_email,is_estimated,source&order=paid_at.desc,id.desc`;
+  // sale:sales(is_test) sí se pide para poder excluir pruebas (filtrado abajo).
+  let paymentsQ = `sale_payments?select=id,sale_id,request_id,request_line,amount,kind,method,paid_at,collected_by,collected_by_email,is_estimated,source,sale:sales(is_test)&order=paid_at.desc,id.desc`;
   if (from) paymentsQ += `&paid_at=gte.${encodeURIComponent(from)}`;
   if (user) paymentsQ += `&collected_by_email=eq.${encodeURIComponent(user)}`;
 
   // Apartados con pendiente (todos, sin filtro de período)
-  let aptQ = `sales?select=id,total,paid_amount&origin_type=eq.apartado&status=eq.activo&order=id.asc`;
+  let aptQ = `sales?select=id,total,paid_amount&origin_type=eq.apartado&status=eq.activo&is_test=eq.false&order=id.asc`;
   if (user) aptQ += `&seller_email=eq.${encodeURIComponent(user)}`;
 
   // logQ ya trae su propio limit= — usar _fetchAllActivity aquí anexaría un
@@ -289,14 +290,41 @@ async function load() {
     return;
   }
 
-  allData = logRes.data || [];
+  allData = await _filterOutTestSales(logRes.data || []);
+  if (loadGeneration !== _activityLoadGeneration) return;
+  const paymentsClean = paymentsRes.ok && Array.isArray(paymentsRes.data)
+    ? paymentsRes.data.filter(p => !(Array.isArray(p.sale) ? p.sale[0] : p.sale)?.is_test)
+    : null;
   populateUsers(allData);
   updateSummary(
     allData,
-    paymentsRes.ok && Array.isArray(paymentsRes.data) ? paymentsRes.data : null,
+    paymentsClean,
     aptRes.ok && Array.isArray(aptRes.data) ? aptRes.data : null
   );
   render(allData);
+}
+
+// Las acciones ligadas a una venta/apartado guardan el sale_id en meta.id --
+// para las demás (producto_*, permisos_*, configuracion_editada, etc.) ese
+// mismo campo significa otra cosa (id de producto, por ejemplo), así que
+// nunca se cruzan contra sales.is_test.
+const _SALE_LINKED_ACTIONS = new Set([
+  'venta', 'venta_cancelada', 'apartado_nuevo', 'apartado_abono', 'apartado_editado',
+  'apartado_liquidado', 'apartado_reembolso', 'apartado_cancelado',
+  'comprobante_enviado', 'comprobante_omitido'
+]);
+async function _filterOutTestSales(logData) {
+  const ids = [...new Set(
+    logData
+      .filter(item => _SALE_LINKED_ACTIONS.has(item.action) && Number.isFinite(item.meta?.id))
+      .map(item => item.meta.id)
+  )];
+  if (!ids.length) return logData;
+  const r = await _fetchAllActivity(`sales?id=in.(${ids.join(',')})&select=id,is_test`);
+  if (!r.ok || !Array.isArray(r.data)) return logData; // si falla la consulta, no ocultar de más
+  const testIds = new Set(r.data.filter(s => s.is_test).map(s => s.id));
+  if (!testIds.size) return logData;
+  return logData.filter(item => !(_SALE_LINKED_ACTIONS.has(item.action) && testIds.has(item.meta?.id)));
 }
 
 function populateUsers(data) {

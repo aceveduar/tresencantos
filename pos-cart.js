@@ -18,8 +18,8 @@ let _topFromSales = [];
 async function loadTopProductsFromSales() {
   const desde = new Date(Date.now() - 30 * 86400000).toISOString();
   const [directResult, apartadoResult] = await Promise.all([
-    _posFetchAll(`sales?origin_type=eq.venta&status=eq.liquidado&created_at=gte.${encodeURIComponent(desde)}&select=id,items&order=created_at.asc,id.asc`),
-    _posFetchAll(`sales?origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(desde)}&select=id,items&order=liquidated_at.asc,id.asc`)
+    _posFetchAll(`sales?origin_type=eq.venta&status=eq.liquidado&created_at=gte.${encodeURIComponent(desde)}&select=id,items&is_test=eq.false&order=created_at.asc,id.asc`),
+    _posFetchAll(`sales?origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(desde)}&select=id,items&is_test=eq.false&order=liquidated_at.asc,id.asc`)
   ]);
   if (!directResult.ok || !apartadoResult.ok) return;
   const rows = [...(directResult.data || []), ...(apartadoResult.data || [])];

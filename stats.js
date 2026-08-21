@@ -1484,7 +1484,7 @@ function renderBestSeller() {
 async function loadApartadosPendientes() {
   const body = document.getElementById('apt-pending-body');
   const label = document.getElementById('apt-summary-label');
-  const result = await _fetchAll(`sales?origin_type=eq.apartado&status=eq.activo&select=id,total,paid_amount,customer,created_at,due_date,items&order=due_date.asc.nullslast,created_at.asc,id.asc`);
+  const result = await _fetchAll(`sales?origin_type=eq.apartado&status=eq.activo&select=id,total,paid_amount,customer,created_at,due_date,items&is_test=eq.false&order=due_date.asc.nullslast,created_at.asc,id.asc`);
   apartadosPendientesLoaded = result.ok;
   if (!result.ok) {
     _aptResumen = { count: 0, pendiente: 0, vencidos: 0 };
