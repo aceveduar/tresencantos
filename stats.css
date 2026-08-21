@@ -2,7 +2,7 @@
 :root{
   --cream:#F7F2EB;--gold:#C9A462;--gold-dark:#A67C3A;--gold-light:#FFF8EE;
   --charcoal:#1C1817;--muted:#8A7564;--muted-light:#B5A696;
-  --red:#E85D5D;--green:#2D6A4F;--amber:#F59E0B;
+  --red:#E85D5D;--green:#2D6A4F;--amber:#F59E0B;--violet:#7C5CBF;--teal:#1F8A82;
   --border:#EAE0D4;--shadow:0 4px 20px rgba(28,24,23,.1);--r:14px;
 }
 html{-webkit-text-size-adjust:100%}
@@ -55,6 +55,39 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .kpi-value-money{font-family:'Inter',sans-serif;font-size:.7rem;font-weight:600;color:var(--muted);vertical-align:middle}
 .kpi-label{font-size:.68rem;color:var(--muted);margin-top:7px;letter-spacing:.07em;text-transform:uppercase;font-weight:500}
 .kpi-sub{font-size:.72rem;color:var(--muted-light);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── KPI GRID — agrupación por sección + tarjeta hero de Ingresos ── */
+.kpi-section-label{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:22px 0 10px}
+.kpi-section-label:first-child{margin-top:0}
+
+.kpi-hero-card{
+  background:#fff;border-radius:var(--r);padding:22px 24px 20px;
+  border:1px solid var(--border);box-shadow:0 2px 8px rgba(28,24,23,.06);
+  margin-bottom:14px;
+}
+.kpi-hero-top{display:flex;align-items:flex-start;gap:14px;margin-bottom:16px}
+.kpi-hero-top .kpi-icon{margin-bottom:0;margin-top:6px;width:26px;height:26px;flex-shrink:0}
+.kpi-hero-value{font-family:'Playfair Display',serif;font-size:2.4rem;font-weight:600;line-height:1;color:var(--charcoal)}
+.kpi-hero-bar{display:flex;height:9px;border-radius:50px;overflow:hidden;background:var(--cream);gap:2px;margin-bottom:10px}
+.kpi-hero-bar-seg{height:100%;min-width:3px;transition:width .3s}
+.kpi-hero-legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:8px;font-size:.76rem;color:var(--muted)}
+.kpi-hero-legend-item{display:flex;align-items:center;gap:5px}
+.kpi-hero-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* Ventas/Abonos/Apartados nuevos = piezas de Ingresos, agrupadas juntas y
+   con el mismo color que su segmento en la barra de arriba. Artículos
+   vendidos/Por cobrar son otra clase de dato (cantidad / saldo histórico
+   total, no dinero de hoy) -- separadas en su propia fila con su propio
+   rótulo para no invitar a sumarlas con las de arriba. */
+.kpi-grid.kpi-grid-money{grid-template-columns:repeat(3,1fr)}
+.kpi-grid.kpi-grid-other{grid-template-columns:repeat(2,1fr)}
+.kpi-card[data-accent]{border-top:3px solid transparent}
+.kpi-card[data-accent="green"]{border-top-color:var(--green)}
+.kpi-card[data-accent="green"] .kpi-icon{color:var(--green)}
+.kpi-card[data-accent="violet"]{border-top-color:var(--violet)}
+.kpi-card[data-accent="violet"] .kpi-icon{color:var(--violet)}
+.kpi-card[data-accent="teal"]{border-top-color:var(--teal)}
+.kpi-card[data-accent="teal"] .kpi-icon{color:var(--teal)}
 
 /* ── CARDS ── */
 .card{background:#fff;border-radius:var(--r);border:1px solid var(--border);box-shadow:0 2px 8px rgba(28,24,23,.06);overflow:hidden}
@@ -203,6 +236,13 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   .kpi-card{padding:14px 14px 12px}
   .kpi-value{font-size:1.35rem}
   .kpi-label{font-size:.63rem}
+  .kpi-grid.kpi-grid-money{gap:8px}
+
+  .kpi-section-label{margin:16px 0 8px;font-size:.66rem}
+  .kpi-hero-card{padding:16px 16px 14px;margin-bottom:10px}
+  .kpi-hero-value{font-size:1.85rem}
+  .kpi-hero-top .kpi-icon{width:22px;height:22px}
+  .kpi-hero-legend{font-size:.68rem;gap:8px 12px}
 
   .charts-row{grid-template-columns:1fr;gap:12px}
   .chart-canvas-wrap{height:190px}

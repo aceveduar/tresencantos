@@ -843,12 +843,22 @@ function renderKPIs() {
   const count     = sales.length;
   const units     = sales.reduce((s,v) => s + (v.items||[]).reduce((a,i) => a + (i.qty||1), 0), 0);
 
-  const salesTotal     = _paymentTotal(_salesCashPayments(payments));
+  const salesTotal = _paymentTotal(_salesCashPayments(payments));
+  const abonoPaymentsArr = _abonoPayments(payments);
+  const abonoCount = abonoPaymentsArr.length;
+  const abonoTotal = _paymentTotal(abonoPaymentsArr);
+  // Cuánto de ese dinero llegó como anticipo el mismo día que se abrió el
+  // apartado -- es el dinero que "Movimientos de hoy" etiqueta APARTADO NUEVO
+  // (no $0) y que por eso NO se cuenta también en Abonos (ver _abonoPayments).
+  const aperturaTotal = paymentsLoaded ? _paymentTotal(_aperturaPayments(payments)) : 0;
 
   const prevRev   = _paymentTotal(prevPayments);
   const prevCount = prevSales.length;
   const prevUnits = prevSales.reduce((s,v) => s + (v.items||[]).reduce((a,i) => a + (i.qty||1), 0), 0);
   const prevSalesTotal = _paymentTotal(_salesCashPayments(prevPayments));
+  const prevAbonoPaymentsArr = _abonoPayments(prevPayments);
+  const prevAbonoCount = prevAbonoPaymentsArr.length;
+  const prevAbonoTotal = _paymentTotal(prevAbonoPaymentsArr);
 
   const fmt = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX', {maximumFractionDigits:0})}`;
 
@@ -856,6 +866,33 @@ function renderKPIs() {
   document.getElementById('kpi-revenue-sub').textContent = !paymentsLoaded
     ? 'No se pudieron cargar movimientos'
     : prevPaymentsLoaded && prevRev !== 0 ? `Período ant.: ${fmt(prevRev)}` : '';
+
+  // Barra de composición: Ingresos = Ventas + Abonos + Apertura -- las
+  // mismas tres tarjetas de abajo, para que "de dónde sale este número" se
+  // vea de un vistazo en vez de tener que sumarlo a mano. Si hubo una
+  // devolución/ajuste de otro movimiento en el período la suma exacta no
+  // cuadra -- ahí se oculta la barra en vez de mostrar un desglose
+  // engañoso (el detalle sigue completo, renglón por renglón, en
+  // Movimientos de hoy).
+  const heroBarEl = document.getElementById('kpi-hero-bar');
+  const heroLegendEl = document.getElementById('kpi-hero-legend');
+  const compTotal = salesTotal + abonoTotal + aperturaTotal;
+  const compDiff = totalRev - compTotal;
+  if (paymentsLoaded && compTotal > 0 && Math.abs(compDiff) < 1) {
+    const segs = [
+      { label: 'Ventas',   amount: salesTotal,   color: 'var(--green)'  },
+      { label: 'Abonos',   amount: abonoTotal,   color: 'var(--violet)' },
+      { label: 'Apertura', amount: aperturaTotal, color: 'var(--teal)'   }
+    ].filter(s => s.amount > 0);
+    heroBarEl.innerHTML = segs.map(s => `<div class="kpi-hero-bar-seg" style="width:${(s.amount / compTotal * 100).toFixed(2)}%;background:${s.color}"></div>`).join('');
+    heroLegendEl.innerHTML = segs.map(s => `<span class="kpi-hero-legend-item"><span class="kpi-hero-dot" style="background:${s.color}"></span>${s.label} ${fmt(s.amount)}</span>`).join('');
+    heroBarEl.style.display = 'flex';
+    heroLegendEl.style.display = 'flex';
+  } else {
+    heroBarEl.style.display = 'none';
+    heroLegendEl.style.display = 'none';
+  }
+
   document.getElementById('kpi-sales').innerHTML = salesLoaded
     ? count + (prevSalesLoaded ? kpiDelta(count, prevCount) : '')
     : '—';
@@ -872,6 +909,26 @@ function renderKPIs() {
   document.getElementById('kpi-sales-sub').textContent = !salesLoaded
     ? 'No disponible'
     : composicion || (prevSalesLoaded && prevCount > 0 ? `Período ant.: ${prevCount} · ${fmt(prevSalesTotal)}` : '');
+
+  document.getElementById('kpi-abonos').innerHTML = paymentsLoaded
+    ? abonoCount + (prevPaymentsLoaded ? kpiDelta(abonoCount, prevAbonoCount) : '')
+    : '—';
+  document.getElementById('kpi-abonos-money').textContent = paymentsLoaded && abonoCount > 0 ? fmt(abonoTotal) : '';
+  document.getElementById('kpi-abonos-sub').textContent = !paymentsLoaded
+    ? 'No disponible'
+    : prevPaymentsLoaded && prevAbonoCount > 0 ? `Período ant.: ${prevAbonoCount} · ${fmt(prevAbonoTotal)}` : '';
+
+  document.getElementById('kpi-aptnew').innerHTML = aptNewLoaded
+    ? aptNewCount + (prevAptNewLoaded ? kpiDelta(aptNewCount, prevAptNewCount) : '')
+    : '—';
+  // El $ de apertura ahora vive junto al número, igual que Ventas/Abonos --
+  // antes solo aparecía en el subtítulo chico y parecía que este KPI no
+  // tenía dinero asociado, cuando sí lo tiene y es parte de Ingresos.
+  document.getElementById('kpi-aptnew-money').textContent = aptNewLoaded && aperturaTotal > 0 ? fmt(aperturaTotal) : '';
+  document.getElementById('kpi-aptnew-sub').textContent = !aptNewLoaded
+    ? 'No disponible'
+    : prevAptNewLoaded && prevAptNewCount > 0 ? `Período ant.: ${prevAptNewCount}` : '';
+
   document.getElementById('kpi-avg').innerHTML = salesLoaded
     ? units + (prevSalesLoaded ? kpiDelta(units, prevUnits) : '')
     : '—';
@@ -886,34 +943,6 @@ function renderKPIs() {
     : _aptResumen.count > 0
     ? `${_aptResumen.count} apartado${_aptResumen.count!==1?'s':''}${_aptResumen.vencidos ? ` · ⚠️ ${_aptResumen.vencidos} venc.` : ''}`
     : 'Sin apartados activos';
-
-  document.getElementById('kpi-aptnew').innerHTML = aptNewLoaded
-    ? aptNewCount + (prevAptNewLoaded ? kpiDelta(aptNewCount, prevAptNewCount) : '')
-    : '—';
-  // Cuánto de ese dinero llegó como anticipo el mismo día que se abrió el
-  // apartado -- es el dinero que "Movimientos de hoy" etiqueta APARTADO NUEVO
-  // (no $0) y que por eso NO se cuenta también en Abonos (ver _abonoPayments).
-  const aperturaTotal = paymentsLoaded ? _paymentTotal(_aperturaPayments(payments)) : 0;
-  document.getElementById('kpi-aptnew-sub').textContent = !aptNewLoaded
-    ? 'No disponible'
-    : [
-        aperturaTotal > 0 ? `${fmt(aperturaTotal)} recibidos al abrir` : '',
-        prevAptNewLoaded && prevAptNewCount > 0 ? `Período ant.: ${prevAptNewCount}` : ''
-      ].filter(Boolean).join(' · ');
-
-  const abonoPaymentsArr     = _abonoPayments(payments);
-  const prevAbonoPaymentsArr = _abonoPayments(prevPayments);
-  const abonoCount     = abonoPaymentsArr.length;
-  const prevAbonoCount = prevAbonoPaymentsArr.length;
-  const abonoTotal     = _paymentTotal(abonoPaymentsArr);
-  const prevAbonoTotal = _paymentTotal(prevAbonoPaymentsArr);
-  document.getElementById('kpi-abonos').innerHTML = paymentsLoaded
-    ? abonoCount + (prevPaymentsLoaded ? kpiDelta(abonoCount, prevAbonoCount) : '')
-    : '—';
-  document.getElementById('kpi-abonos-money').textContent = paymentsLoaded && abonoCount > 0 ? fmt(abonoTotal) : '';
-  document.getElementById('kpi-abonos-sub').textContent = !paymentsLoaded
-    ? 'No disponible'
-    : prevPaymentsLoaded && prevAbonoCount > 0 ? `Período ant.: ${prevAbonoCount} · ${fmt(prevAbonoTotal)}` : '';
 }
 
 /* Hora pico */
