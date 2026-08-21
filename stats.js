@@ -586,16 +586,25 @@ function renderTodaySales() {
     const isAdjustment = payment.kind === 'adjustment';
     const isCreated = payment.kind === 'apartado_created';
     const isLiquidation = _isApartadoLiquidationPayment(payment, s);
+    // Un apartado creado CON anticipo no genera la fila "APARTADO NUEVO $0"
+    // (esa solo existe para apartados sin anticipo) -- su primer abono se
+    // veía como un "ABONO" cualquiera, indistinguible de un abono a un
+    // apartado viejo. Sin esto, "Apartados nuevos: 3" en el KPI no cuadraba
+    // con lo que se podía contar a simple vista en la lista.
+    const isSameDayOpening = origin === 'apartado' && !isLiquidation
+      && s?.created_at && _localDay(s.created_at) === _localDay(payment.paid_at);
     // El tag siempre dice qué fue realmente (venta/abono/liquidado) — que un
     // pago venga del backfill de datos viejos (source legacy_*) no cambia esa
     // respuesta, solo si el dato es confiable (eso ya lo indica por separado
     // "Dato histórico estimado" en el detalle, cuando is_estimated es true).
-    const tagText = isRefund ? 'DEVOLUCIÓN' : isAdjustment ? 'AJUSTE' : isCreated ? 'APARTADO NUEVO' : isLiquidation ? 'LIQUIDADO' : origin === 'apartado' ? 'ABONO' : 'VENTA';
+    const tagText = isRefund ? 'DEVOLUCIÓN' : isAdjustment ? 'AJUSTE'
+      : (isCreated || isSameDayOpening) ? 'APARTADO NUEVO'
+      : isLiquidation ? 'LIQUIDADO' : origin === 'apartado' ? 'ABONO' : 'VENTA';
     const tagStyle = isRefund
       ? 'background:#FEE2E2;color:#991B1B'
       : isAdjustment
         ? 'background:#FEF3C7;color:#92400E'
-        : isCreated
+        : (isCreated || isSameDayOpening)
           ? 'background:#FFF8EE;color:#9A742D'
           : 'background:#DCFCE7;color:#166534';
     const tag = `<span style="font-size:.62rem;${tagStyle};padding:1px 6px;border-radius:50px;font-weight:700;flex-shrink:0">${tagText}</span>`;
@@ -824,9 +833,18 @@ function renderKPIs() {
     ? count + (prevSalesLoaded ? kpiDelta(count, prevCount) : '')
     : '—';
   document.getElementById('kpi-sales-money').textContent = salesLoaded && count > 0 ? fmt(salesTotal) : '';
+  // "Ventas" cuenta ventas directas + apartados liquidados hoy como una sola
+  // cifra (mismo dinero, "Ventas$ + Abonos$ = Ingresos" sin duplicar) -- sin
+  // este desglose, un apartado liquidado hoy inflaba el número sin ninguna
+  // pista de por qué no coincidía con lo que se ve en Movimientos de hoy.
+  const ventasDirectas = sales.filter(s => s.origin_type === 'venta').length;
+  const aptLiquidadosHoy = count - ventasDirectas;
+  const composicion = aptLiquidadosHoy > 0
+    ? `${ventasDirectas} directa${ventasDirectas !== 1 ? 's' : ''} + ${aptLiquidadosHoy} apartado${aptLiquidadosHoy !== 1 ? 's' : ''} liquidado${aptLiquidadosHoy !== 1 ? 's' : ''}`
+    : '';
   document.getElementById('kpi-sales-sub').textContent = !salesLoaded
     ? 'No disponible'
-    : prevSalesLoaded && prevCount > 0 ? `Período ant.: ${prevCount} · ${fmt(prevSalesTotal)}` : '';
+    : composicion || (prevSalesLoaded && prevCount > 0 ? `Período ant.: ${prevCount} · ${fmt(prevSalesTotal)}` : '');
   document.getElementById('kpi-avg').innerHTML = salesLoaded
     ? units + (prevSalesLoaded ? kpiDelta(units, prevUnits) : '')
     : '—';

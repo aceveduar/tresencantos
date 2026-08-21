@@ -84,7 +84,6 @@ tresencantos/
 ├── admin-capture.js     # Captura rápida + swipe + modal similar
 ├── admin-qv.js          # Quick View con galería, gestos, inline edits
 ├── admin-kit-builder.js # Kit Builder overlay
-├── admin-batch.js       # Carga masiva con IA + Compare modal
 │
 ├── pos.html             # Caja (HTML puro, ~555 líneas)
 ├── pos.css              # Estilos de la Caja
@@ -301,7 +300,7 @@ El cambio aplica en el **próximo login** — la sesión activa usa el JWT viejo
 
 `encargado` — rol para cajera/encargada de turno con más permisos que operador (puede eliminar, cancelar ventas, bulk delete) pero sin acceso a Reportes, Actividad ni Configuración. No asignado a ningún usuario actualmente — disponible para cuando se necesite.
 
-**Permiso `canManageCatalogSettings` (2026-08-20):** acceso parcial a Configuración — entra a la página pero solo ve la sección Catálogo (WhatsApp flotante, Captura rápida, Ver creador, Carga masiva IA, Reabastecimiento en Caja, Recibir mercancía, Categorías del catálogo, Revista Digital Natura); no ve Usuarios y Permisos, Notificaciones, Datos ni Integraciones. No es un rol nuevo — es un permiso individual vía override en `config.id='user_permissions'` (mismo mecanismo que el resto de `UP_PERMS` en `shared.js`), asignable desde Configuración → Usuarios y Permisos. `areli@tresencantos.com` (operador) lo tiene activo, con `canManageSettings`, `canViewReports` y `canViewActivity` explícitamente en `false` — ve Configuración (solo Catálogo) en su avatar, pero no Reportes ni Actividad.
+**Permiso `canManageCatalogSettings` (2026-08-20):** acceso parcial a Configuración — entra a la página pero solo ve la sección Catálogo (WhatsApp flotante, Captura rápida, Ver creador, Reabastecimiento en Caja, Recibir mercancía, Categorías del catálogo, Revista Digital Natura); no ve Usuarios y Permisos, Notificaciones, Datos ni Integraciones. No es un rol nuevo — es un permiso individual vía override en `config.id='user_permissions'` (mismo mecanismo que el resto de `UP_PERMS` en `shared.js`), asignable desde Configuración → Usuarios y Permisos. `areli@tresencantos.com` (operador) lo tiene activo, con `canManageSettings`, `canViewReports` y `canViewActivity` explícitamente en `false` — ve Configuración (solo Catálogo) en su avatar, pero no Reportes ni Actividad.
 
 **Permisos `canOverridePrice` / `canApplyDiscount` (2026-08-20):** controlan, por separado, si un usuario puede cambiar el precio de un producto al cobrar (tap sobre el precio en el carrito de Caja) y si puede aplicar un descuento (botón "Agregar descuento"). Enforcement real en servidor, no solo en la UI: `te_snapshot_sale_items` compara el precio recibido contra `products.price` y exige `canOverridePrice` cuando difieren (y congela el precio de catálogo como `original_price` en el item — visible en Actividad, Historial y ticket WA); `record_sale_atomic_v2`/`edit_apartado_atomic` exigen `canApplyDiscount` cuando el descuento es mayor a cero o cambia respecto al que ya tenía un apartado. Defaults: `superadmin`/`encargado`/`duena` en `true`, `operador` en `false` — ajustable por override individual igual que el resto.
 
@@ -395,17 +394,17 @@ Incluye **migración automática**: si los valores no están en Supabase pero s�
 - **Acciones bulk:** categoría, featured, oos, badge, exportar JSON, eliminar, reabastecer, 📌 al inicio
 - **Import/Export JSON** — importar reemplaza catálogo con rollback local
 - **Subcategorías** — modal "Gestionar categorías" en Configuración con soporte jerárquico
-- **Carga masiva con IA** → overlay `admin-batch.js` (botón 📸 Masivo en topbar, solo superadmin)
 - **Revista Natura** — URL o PDF base64 en `config`
 
 ### IA en formulario de producto
 Aparece el botón **"✨ Completar con IA"** al subir una imagen (galería, cámara o drag & drop):
 - Usa `groqApiKey` global (cargado de Supabase)
 - Modelo de visión vigente: `qwen/qwen3.6-27b` vía `https://api.groq.com/openai/v1/chat/completions`
-- Las tres entradas usan `_groqVisionJson()` (`admin-images.js`) con JSON mode, `reasoning_effort:'none'`, timeout y mensajes de error legibles
+- El formulario y Captura rápida comparten `_groqVisionJson()` (`admin-images.js`) con JSON mode, `reasoning_effort:'none'`, timeout y mensajes de error legibles
 - Rellena: nombre, descripción, categoría con animación de destello dorado
 - Si no hay key configurada: muestra mini input inline para pegarla (se guarda en Supabase al confirmar)
 - `currentFormImageDataUrl` guarda el base64 de la imagen actual para el análisis
+- **Por qué Groq y no Gemini:** Gemini free tier tiene `limit: 0` en México (restricción regional). Groq no tiene esta restricción.
 
 ### Google Drive para imágenes
 **Arquitectura:** `Admin → POST base64 → Google Apps Script → Drive → URL thumbnail`
@@ -765,29 +764,11 @@ Bottom sheet `#restock-prompt` que aparece en dos situaciones:
 - **"Ventas de hoy" reposicionado (2026-06-12)** — la card de ventas del período activo (título dinámico: "Ventas de hoy" en modo Día, "Ventas — {período}" en Semana/Mes) se movió de cerca del final de la página a justo después del grid de KPIs, por ser una métrica de consulta frecuente. Verificado mobile/tablet/desktop, cero errores de consola. CACHE_VERSION v39→v40.
 - **Fix: "Capital invertido por categoría" → "Valor en venta por categoría" (2026-06-12)** — la card original calculaba `cost × stock`, pero `cost` solo estaba lleno en 30/698 productos (de un catálogo donde casi todo el precio de costo está vacío), dando un total de apenas $2,533 — no representativo. La usuaria aclaró que lo que necesita es "cuánto hay en productos... sácalo del precio del producto al consumidor", es decir el valor de la mercancía a precio de venta, no la inversión en costo. Cambiado `renderCapitalCategoria()` a `price × stock` (productos con `price>0 && stock>0` → 630/698), mismo `_CAT_ROOT_MERGE`. Renombrado el título (`stats.html`) y el texto "% del capital invertido" → "% del valor en venta" (`stats.js`), siguiendo la terminología ya existente "Valor en venta" de la card "Estado del inventario" (`price×stock`, distinta de "Capital invertido" = `cost×stock`, que sigue existiendo ahí sin cambios). Nuevo total: $205,114 — Natura y Avon $131,213 (64%), Joyería $22,310 (11%), Bolsos & Mochilas $10,714 (5%), Accesorios $10,398 (5%), Maquillaje $9,906 (5%), Cabello $8,494 (4%), Uñas $7,100 (3%), Regalos $4,979 (2%). Verificado mobile/desktop, cero errores de consola. CACHE_VERSION v42→v43.
 - **Fix: Ventas/Abonos no restaban devoluciones del mismo período (2026-08-20)** — encontrado al validar que un lote de apartados de prueba (creados y cancelados el mismo día) hubiera quedado limpio: "Ingresos" sí resta cada devolución (`_paymentTotal` trata `kind==='refund'` como negativo) y quedó correcto, pero "Ventas $" y "Abonos $/conteo" (`_salesCashPayments`/`_abonoPayments`) excluían las filas de devolución por completo en vez de restarlas, y nunca revisaban si la venta ya estaba cancelada — el cobro original se quedaba sumado para siempre aunque su devolución ya existiera en el mismo período. Verificado con datos reales: Ventas mostraba $727 en vez de $617 (una liquidación de $110 ya cancelada seguía sumada) y Abonos mostraba 11/$890 en vez de 4/$500 (7 abonos de prueba cancelados nunca se restaron). No es exclusivo de datos de prueba — cualquier venta/apartado real cancelado el mismo día que se cobró tenía el mismo problema. Nuevo helper `_refundedSaleIdsInPeriod(paymentsArr)`: si el cobro y su devolución caen en el mismo período consultado, se excluye el cobro original de Ventas/Abonos (efecto neto $0, igual que ya hacía Ingresos). Un cobro de un período anterior cuya devolución cae en un período distinto **no** se toca — cada período conserva la cifra que tuvo en su momento, mismo principio que ya usa "Ingresos". Aplicado también al generador del resumen de WhatsApp (`sendDailySummaryWA()`, mismo patrón repetido ahí). CACHE_VERSION v260→v261.
-
----
-
-## Carga Masiva con IA (`admin-batch.js`)
-
-Overlay dentro del Inventario — botón 📸 Masivo en topbar (solo superadmin). Antes era un módulo separado `staging.html`; fue absorbido en el Inventario.
-
-**Flujo:**
-1. Subir imágenes (múltiples a la vez, drag & drop o selector de galería/cámara)
-2. Opcional: botón 🤖 IA por imagen o "Analizar todas" en masa
-3. Revisar/editar nombre, descripción y categoría en cada card
-4. "Publicar listas" → crea productos en Supabase con `is_published=false` y `price=0`
-5. En el Inventario: ajustar precio y activar "Publicar en sitio web" cuando estén listos
-
-**IA con Groq (Qwen 3.6 Vision):**
-- API Key leída de `config.id='groq_key'` en Supabase — compartida con admin
-- Modelo: `qwen/qwen3.6-27b` vía `https://api.groq.com/openai/v1/chat/completions`
-- Helper compartido: `_groqVisionJson()` en `admin-images.js`; también lo usan el formulario y Captura rápida
-- Extrae nombre (<60 chars), descripción (<200 chars) y categoría
-- 1.5s de pausa entre llamadas en análisis masivo (free tier: ~30 req/min)
-- Free tier de Groq: sin restricción regional, sin tarjeta de crédito, ~1000 req/día
-
-**Por qué Groq y no Gemini:** Gemini free tier tiene `limit: 0` en México (restricción regional). Groq no tiene esta restricción.
+- **Fix: KPIs de "Movimientos de hoy" no se podían contar a simple vista (2026-08-20)** — tras la auditoría de `is_test`, Eduardo verificó los números uno por uno contra la lista de abajo y encontró dos casos donde la cifra era matemáticamente correcta pero no se podía verificar contando renglones: "Ventas: 5" cuando solo 4 filas decían VENTA (la 5ª era un apartado liquidado el mismo día — por diseño, "Ventas" suma ventas directas + apartados liquidados hoy, para no contar el mismo dinero dos veces junto con "Abonos"), y "Apartados nuevos: 3" cuando solo 2 filas decían "APARTADO NUEVO $0" (un apartado abierto el mismo día **con** anticipo se veía como un ABONO genérico, indistinguible de un abono a un apartado viejo). Eduardo: *"puedes hacer todo mas entendible en reportes, al final es lo que ve la dueña y puede confundirse, queremos simplicidad entendimiento facilidad."* Corregido sin tocar ninguna cifra (los totales ya eran correctos, era un problema de legibilidad):
+  - **Etiqueta "APARTADO NUEVO" también con anticipo:** en el renderer de "Movimientos de hoy" (`stats.js`), nuevo chequeo `isSameDayOpening` — usa `_localDay()` para comparar la fecha de creación del apartado (`sale.created_at`) contra la fecha del pago (`payment.paid_at`); si coinciden y el pago no es la liquidación, la fila se etiqueta "APARTADO NUEVO" (mismo estilo dorado que la variante de $0) en vez de "ABONO" genérico — ahora el conteo de la tarjeta es literalmente contable en la lista.
+  - **Subtítulo de composición en la tarjeta "Ventas":** `renderKPIs()` calcula `ventasDirectas` (conteo con `origin_type='venta'`) y `aptLiquidadosHoy` (el resto) y muestra "4 directas + 1 apartado liquidado" debajo del número cuando hay mezcla, en vez de dejar la cifra combinada sin explicación.
+  - CACHE_VERSION v267→v268.
+- **Eliminada — Carga masiva con IA (2026-08-20)** — a petición de la usuaria, para simplificar el Inventario. Se quitó por completo, no solo se ocultó: archivo `admin-batch.js`, botón "📸 Masivo" del toolbar y overlay `#batch-overlay` (`admin.html`), CSS `.batch-*` (`admin.css`), el toggle "Carga masiva con IA" y `toggleShowBatch()` de Configuración → Catálogo (`settings.html`/`settings.js`), la config `show_batch`, y el permiso `canMasivo` (`UP_PERMS`/`UP_ROLE_DEFAULTS` en `shared.js`, más su lectura en `admin.js`). El formulario de producto y Captura rápida conservan su IA sin cambios — ambos comparten `_groqVisionJson()` (`admin-images.js`), que no se tocó. Alta de productos por fotos ahora solo vía Captura rápida (una foto a la vez, con IA) o el formulario normal.
 
 ---
 
