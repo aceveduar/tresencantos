@@ -344,7 +344,7 @@ async function loadApartadosLiquidados() {
   const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,cancelled_at,updated_at,version,items,abonos,discount';
   // Vista acotada a los más recientes, igual que antes de la reescritura —
   // no una consulta paginada sin tope de todo el histórico de la tienda.
-  const result = await api(`sales?origin_type=eq.apartado&status=eq.liquidado&select=${fields}&order=liquidated_at.desc.nullslast,created_at.desc,id.desc&limit=200`);
+  const result = await api(`sales?origin_type=eq.apartado&status=eq.liquidado&select=${fields}&is_test=eq.false&order=liquidated_at.desc.nullslast,created_at.desc,id.desc&limit=200`);
   if (loadGeneration !== _apartadosLiquidatedLoadGeneration) return false;
   if (!result.ok) return null;
   const rows = Array.isArray(result.data) ? result.data : [];
@@ -361,7 +361,7 @@ async function loadApartadosLiquidados() {
 async function loadApartadosCancelados() {
   const loadGeneration = ++_apartadosCanceladosLoadGeneration;
   const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,cancelled_at,updated_at,version,items,abonos,discount';
-  const result = await api(`sales?origin_type=eq.apartado&status=eq.cancelado&select=${fields}&order=cancelled_at.desc.nullslast,created_at.desc,id.desc&limit=200`);
+  const result = await api(`sales?origin_type=eq.apartado&status=eq.cancelado&select=${fields}&is_test=eq.false&order=cancelled_at.desc.nullslast,created_at.desc,id.desc&limit=200`);
   if (loadGeneration !== _apartadosCanceladosLoadGeneration) return false;
   if (!result.ok) return null;
   const rows = Array.isArray(result.data) ? result.data : [];
@@ -425,7 +425,7 @@ function _updateAptOcActivosCount() {
 async function loadApartados() {
   const loadGeneration = ++_apartadosLoadGeneration;
   const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,updated_at,version,items,abonos,discount';
-  const result = await api(`sales?origin_type=eq.apartado&status=eq.activo&select=${fields}&order=created_at.desc,id.desc&limit=100`);
+  const result = await api(`sales?origin_type=eq.apartado&status=eq.activo&select=${fields}&is_test=eq.false&order=created_at.desc,id.desc&limit=100`);
   if (loadGeneration !== _apartadosLoadGeneration) return false;
   const ocList    = document.getElementById('apt-offcanvas-list');
   const ocCount   = document.getElementById('apt-oc-count');

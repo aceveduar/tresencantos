@@ -773,7 +773,7 @@ let _historyLoadGeneration = 0;
 
 async function loadHistory() {
   const loadGeneration = ++_historyLoadGeneration;
-  const saleFields = 'id,total,created_at,items,payment_method,type,origin_type,status,customer,discount,note,paid_amount,abonos,seller_email,cancelled_at,version';
+  const saleFields = 'id,total,created_at,items,payment_method,type,origin_type,status,customer,discount,note,paid_amount,abonos,seller_email,cancelled_at,version,is_test';
   // "Movimientos recientes" es una vista acotada, no el ledger completo —
   // limit=50 evita traer toda la vida de la tienda en cada apertura.
   // Un apartado creado con $0 de anticipo no genera fila en sale_payments
@@ -781,7 +781,7 @@ async function loadHistory() {
   // aparte para no desaparecer de Historial hasta el primer abono.
   const [result, createdResult] = await Promise.all([
     api(`sale_payments?select=id,request_id,request_line,amount,kind,method,paid_at,recorded_at,is_estimated,source,collected_by_email,sale:sales(${saleFields})&order=paid_at.desc.nullslast,recorded_at.desc,id.desc&limit=50`),
-    api(`sales?select=${saleFields}&origin_type=eq.apartado&paid_amount=eq.0&cancelled_at=is.null&order=created_at.desc&limit=20`)
+    api(`sales?select=${saleFields}&origin_type=eq.apartado&paid_amount=eq.0&cancelled_at=is.null&is_test=eq.false&order=created_at.desc&limit=20`)
   ]);
   if (loadGeneration !== _historyLoadGeneration) return false;
   const el = document.getElementById('history-list');
@@ -794,7 +794,7 @@ async function loadHistory() {
   const rawMovements = (result.data || []).map(p => ({
     ...p,
     sale: Array.isArray(p.sale) ? p.sale[0] : p.sale
-  })).filter(p => p.sale);
+  })).filter(p => p.sale && !p.sale.is_test);
   const movements = [];
   const refundGroups = new Map();
   rawMovements.forEach(payment => {
