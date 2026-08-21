@@ -99,6 +99,12 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 
 /* ── CHARTS ROW ── */
 .charts-row{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:16px;align-items:start}
+/* Refuerzo directo sobre el item, no solo el contenedor -- en Día, la
+   gráfica "Ingresos por hora" (barra fija de 240px) es mucho más corta que
+   "Por categoría" (dona + hasta 8 renglones de leyenda); sin esto la
+   tarjeta corta se estira a la altura de su vecina en vez de quedarse con
+   su propio alto. */
+.charts-row>.card{align-self:start;height:fit-content}
 .chart-canvas-wrap{position:relative;height:240px}
 
 /* ── CALENDAR HEATMAP ── */
