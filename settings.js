@@ -81,7 +81,7 @@ function logActivity(action, summary, meta = null) {
 /* ── INIT ── */
 async function init() {
   const [cfgR, catR, namesR] = await Promise.all([
-    api('config?id=in.(groq_key,drive_ep,drive_secret,wa_float,captura_rapida,show_creator,show_batch,show_restock,show_recv,user_permissions)&select=id,value'),
+    api('config?id=in.(groq_key,drive_ep,drive_secret,wa_float,captura_rapida,show_creator,show_restock,show_recv,user_permissions)&select=id,value'),
     api('config?id=eq.categories&select=value'),
     api('config?id=eq.user_names&select=value')
   ]);
@@ -102,10 +102,6 @@ async function init() {
       }
       if (row.id === 'show_creator') {
         const toggle = document.getElementById('show-creator-toggle');
-        if (toggle) toggle.checked = row.value === 'true';
-      }
-      if (row.id === 'show_batch') {
-        const toggle = document.getElementById('show-batch-toggle');
         if (toggle) toggle.checked = row.value === 'true';
       }
       if (row.id === 'show_restock') {
@@ -299,21 +295,6 @@ async function toggleShowRestock(enabled) {
   } else {
     toast('Error al guardar', 'err');
     document.getElementById('show-restock-toggle').checked = !enabled;
-  }
-}
-
-async function toggleShowBatch(enabled) {
-  const r = await api('config', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: 'show_batch', value: String(enabled) })
-  });
-  if (r.ok) {
-    logActivity('configuracion_editada', `${enabled ? 'Activó' : 'Desactivó'} Carga masiva IA`, { setting: 'show_batch', value: enabled });
-    toast(enabled ? '📸 Carga masiva activada' : '📸 Carga masiva desactivada', 'ok');
-  } else {
-    toast('Error al guardar', 'err');
-    document.getElementById('show-batch-toggle').checked = !enabled;
   }
 }
 

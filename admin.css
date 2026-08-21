@@ -1370,36 +1370,6 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .cap-modal{border-radius:20px 20px 0 0;max-width:100%;max-height:95dvh}
 }
 
-/* ── CARGA MASIVA ─────────────────────────────────────────────────── */
-#batch-overlay{position:fixed;inset:0;z-index:1100;background:#F7F2EB;display:flex;flex-direction:column;overflow:hidden}
-.batch-header{display:flex;align-items:center;gap:10px;padding:14px 16px;background:#fff;border-bottom:1px solid var(--border);flex-shrink:0}
-.batch-header h2{font-family:'Playfair Display',serif;font-size:1.05rem;margin:0;flex:1}
-.batch-dropzone{margin:14px 14px 0;border:2px dashed var(--gold);border-radius:14px;background:#fff;padding:24px 16px;text-align:center;cursor:pointer;transition:.2s;flex-shrink:0}
-.batch-dropzone.drag-over{background:var(--gold-light);border-color:var(--gold-dark)}
-.batch-dropzone p{margin:6px 0 12px;color:var(--muted);font-size:.82rem}
-.batch-dz-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.batch-grid{flex:1;overflow-y:auto;padding:12px 14px;display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-content:start}
-@media(min-width:600px){.batch-grid{grid-template-columns:repeat(3,1fr)}}
-@media(min-width:900px){.batch-grid{grid-template-columns:repeat(4,1fr)}}
-.batch-card{background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column;position:relative}
-.batch-card-img{width:100%;height:140px;object-fit:cover;display:block;background:#f0ebe4;flex-shrink:0}
-.batch-card-body{padding:9px 10px;display:flex;flex-direction:column;gap:7px;flex:1}
-.batch-card input,.batch-card textarea,.batch-card select{width:100%;font-family:inherit;font-size:.76rem;border:1.5px solid var(--border);border-radius:8px;padding:6px 8px;outline:none;color:var(--charcoal);background:#fff;box-sizing:border-box;resize:none}
-.batch-card input:focus,.batch-card textarea:focus,.batch-card select:focus{border-color:var(--gold)}
-.batch-card-actions{display:flex;gap:6px;align-items:center}
-.batch-card .btn-ai{flex:1;padding:6px;border:none;border-radius:8px;background:var(--gold-light);color:var(--gold-dark);font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit}
-.batch-card .btn-ai:disabled{opacity:.5;cursor:default}
-.batch-card .btn-remove{width:28px;height:28px;border:none;border-radius:50%;background:#FEE2E2;color:#E85D5D;font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.batch-status{font-size:.67rem;font-weight:700;padding:2px 7px;border-radius:20px;text-align:center;margin-top:-3px}
-.batch-status.analyzing{background:#FFF8EE;color:var(--gold-dark)}
-.batch-status.done{background:#D1FAE5;color:#065F46}
-.batch-status.error{background:#FEE2E2;color:#991B1B}
-.batch-footer{padding:12px 14px;background:#fff;border-top:1px solid var(--border);flex-shrink:0}
-.batch-footer button{width:100%;padding:14px;border:none;border-radius:12px;background:var(--gold);color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
-.batch-footer button:hover{background:var(--gold-dark)}
-.batch-footer button:disabled{opacity:.5;cursor:default}
-.batch-empty{grid-column:1/-1;text-align:center;color:var(--muted);font-size:.85rem;padding:40px 20px}
-
 .dup-signals-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
 .dup-signals-row .dup-signals{flex:1;margin-bottom:0}
 

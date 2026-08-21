@@ -38,7 +38,6 @@ let can = {
   publishProduct:  true,
   editProduct:     true,
   addProduct:      true,
-  masivo:          ROLE === 'superadmin',
   viewReports:     ROLE === 'superadmin' || ROLE === 'duena',
   viewActivity:    ROLE === 'superadmin' || ROLE === 'duena',
 };
@@ -52,7 +51,6 @@ function _applyUserPermsToAdmin(up) {
   if ('canPublishProduct' in up) can.publishProduct  = up.canPublishProduct;
   if ('canEditProduct'    in up) can.editProduct     = up.canEditProduct;
   if ('canAddProduct'     in up) can.addProduct      = up.canAddProduct;
-  if ('canMasivo'         in up) can.masivo          = up.canMasivo;
   if ('canViewReports'    in up) can.viewReports     = up.canViewReports;
   if ('canViewActivity'   in up) can.viewActivity    = up.canViewActivity;
 }
@@ -829,10 +827,6 @@ function _applyRoleUI() {
   // Botón Captura rápida — visible si puede agregar
   if (can.addProduct) {
     document.getElementById('btn-capture-mode')?.style.removeProperty('display');
-  }
-  // Botón Carga masiva — permiso canMasivo + config activado
-  if (can.masivo && _showBatch) {
-    document.getElementById('btn-batch-upload')?.style.removeProperty('display');
   }
 }
 

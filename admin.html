@@ -282,7 +282,6 @@
           <button class="btn btn-outline btn-sm btn-ia-accent" id="btn-capture-mode" onclick="openCaptureMode()" title="Captura rápida con IA" style="display:none"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg> <span class="tb-btn-label">IA</span></button>
           <button class="btn btn-outline btn-sm" onclick="openSearchScanner()" title="Buscar por código de barras"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> <span class="tb-btn-label">Escanear</span></button>
           <button class="btn btn-outline btn-sm" id="btn-recv-mode" onclick="openRecvMode()" title="Recibir mercancía" style="display:none"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> <span class="tb-btn-label">Recibir</span></button>
-          <button class="btn btn-outline btn-sm" id="btn-batch-upload" onclick="openBatchUpload()" title="Carga masiva con IA" style="display:none"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> <span class="tb-btn-label">Masivo</span></button>
         </div>
       </div>
       <!-- Fila 2: filtros + vista -->
@@ -678,7 +677,6 @@
 <script src="admin-capture.js"></script>
 <script src="admin-qv.js"></script>
 <script src="admin-kit-builder.js"></script>
-<script src="admin-batch.js"></script>
 <!-- COMPARE ZOOM: split fullscreen -->
 <div id="cmp-zoom" onclick="closeCmpZoom()">
   <button id="cmp-zoom-close" onclick="event.stopPropagation();closeCmpZoom()">✕</button>
@@ -741,35 +739,6 @@
 </div>
 
 <!-- CARGA MASIVA OVERLAY -->
-<div id="batch-overlay" style="display:none">
-  <div class="batch-header">
-    <h2><svg width="17" height="17" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:5px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Carga masiva</h2>
-    <button class="btn btn-outline btn-sm" id="batch-analyze-all-btn" onclick="_batchAnalyzeAll()" style="display:none"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>Analizar todo</button>
-    <button class="btn btn-outline btn-sm" onclick="closeBatchUpload()" style="color:var(--muted)">✕</button>
-  </div>
-  <div class="batch-dropzone" id="batch-dropzone"
-       ondragover="_batchDragOver(event)" ondragleave="_batchDragLeave(event)" ondrop="_batchDrop(event)"
-       onclick="document.getElementById('batch-file-input').click()">
-    <div><svg width="32" height="32" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
-    <p>Arrastra fotos aquí o toca para elegir</p>
-    <div class="batch-dz-btns" onclick="event.stopPropagation()">
-      <label class="btn btn-gold btn-sm" style="cursor:pointer">
-        <svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M4 4h6l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg>Galería
-        <input type="file" id="batch-file-input" accept="image/*" multiple style="display:none" onchange="_batchHandleInput(this)">
-      </label>
-      <label class="btn btn-outline btn-sm" style="cursor:pointer">
-        <svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Cámara
-        <input type="file" id="batch-camera-input" accept="image/*" capture="environment" style="display:none" onchange="_batchHandleInput(this)">
-      </label>
-    </div>
-  </div>
-  <div class="batch-grid" id="batch-grid">
-    <div class="batch-empty" id="batch-empty">Agrega fotos para comenzar</div>
-  </div>
-  <div class="batch-footer">
-    <button id="batch-publish-btn" onclick="_batchPublish()" disabled>Publicar 0 productos</button>
-  </div>
-</div>
 
 <!-- CATEGORY BOTTOM SHEET -->
 <div id="cat-sheet-overlay" onclick="closeCatSheet()"></div>

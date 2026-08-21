@@ -3,7 +3,6 @@ let groqApiKey   = null;
 let driveEp      = null;
 let driveSecret  = null;
 let _showCreator = false;
-let _showBatch   = false;
 let _showRecv    = false;
 let _userNames   = {};  // { "email@x.com": "Nombre visible" }
 
@@ -82,7 +81,7 @@ function _creatorName(email) {
 }
 
 async function loadAppConfig() {
-  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret,captura_rapida,dismissed_dups,show_creator,show_batch,show_recv,user_names,user_permissions)&select=id,value');
+  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret,captura_rapida,dismissed_dups,show_creator,show_recv,user_names,user_permissions)&select=id,value');
   if (r.ok && r.data) {
     r.data.forEach(row => {
       if (row.id === 'groq_key')     groqApiKey  = row.value || null;
@@ -101,13 +100,6 @@ async function loadAppConfig() {
       if (row.id === 'show_creator') {
         _showCreator = row.value === 'true';
         _refreshCreatorFilter();
-      }
-      if (row.id === 'show_batch') {
-        _showBatch = row.value === 'true';
-        const btn = document.getElementById('btn-batch-upload');
-        if (btn && can.masivo) {
-          _showBatch ? btn.style.removeProperty('display') : btn.style.setProperty('display', 'none');
-        }
       }
       if (row.id === 'show_recv') {
         _showRecv = row.value === 'true';
