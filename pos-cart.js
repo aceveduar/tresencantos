@@ -399,6 +399,35 @@ function renderCart() {
   _saveCart();
 }
 
+// Montos "rápidos" de efectivo -- antes fijos en $100/$200/$500 sin importar
+// el total, así que en una venta de $3,304 ninguno servía (todos por debajo
+// de lo que hay que cobrar). Ahora se calculan como el siguiente billete
+// "redondo" real (denominaciones MXN) igual o mayor al total, para que
+// representen lo que un cliente de verdad entregaría.
+function _posQuickCashAmounts(total) {
+  const t = Math.max(total, 0);
+  const steps = [100, 500, 1000, 2000, 5000];
+  const candidates = steps
+    .map(step => Math.ceil(Math.max(t, 1) / step) * step)
+    .filter((v, i, arr) => v >= t && arr.indexOf(v) === i)
+    .sort((a, b) => a - b);
+  return candidates.slice(0, 3);
+}
+
+function _updateQuickCashButtons() {
+  const total = typeof getDiscountedTotal === 'function' ? getDiscountedTotal() : getTotal();
+  const amounts = _posQuickCashAmounts(total);
+  ['quick-cash-1', 'quick-cash-2', 'quick-cash-3'].forEach((id, i) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const amount = amounts[i];
+    if (amount == null) { btn.style.display = 'none'; return; }
+    btn.style.display = '';
+    btn.textContent = `$${amount.toLocaleString('es-MX')}`;
+    btn.onclick = () => setCash(amount);
+  });
+}
+
 function setCash(amount) {
   const total = getTotal();
   const val = amount === total ? total : amount;

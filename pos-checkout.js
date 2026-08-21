@@ -32,6 +32,7 @@ function updateChange() {
     }
   }
 
+  if (typeof _updateQuickCashButtons === 'function') _updateQuickCashButtons();
   updateAnticipoInfo();
 }
 
