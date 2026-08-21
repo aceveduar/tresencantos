@@ -315,18 +315,21 @@ td,th{overflow:hidden}
 .filter-btn-flag.active{background:#E85D5D;color:#fff;border-color:#E85D5D}
 .ac-star{
   position:absolute;bottom:8px;right:10px;
-  background:rgba(255,255,255,.55);color:#B5A696;
+  background:transparent;color:#fff;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.45));
   border:none;border-radius:50%;width:28px;height:28px;
   font-size:.82rem;cursor:pointer;line-height:1;
   display:flex;align-items:center;justify-content:center;
   transition:.15s;
 }
-.ac-star:hover{background:rgba(201,164,98,.85);color:#fff}
-/* Solo el toggle activo lleva chrome fuerte (dorado, más opaco) -- inactivo
-   se queda casi invisible para no competir con foto/precio/badges en cada
-   una de las 771 filas. Mismo criterio en .mpc-star (grid) y .toggle-featured
-   (tabla desktop). */
-.ac-star.feat-active{background:rgba(255,248,231,.95);color:var(--gold-dark)}
+.ac-star:hover{background:rgba(201,164,98,.85);color:#fff;filter:none}
+/* Inactivo: sin chip, sin fondo -- solo el ícono con una sombra suave para
+   que se lea sobre cualquier foto (clara u oscura), igual que un badge de
+   iOS sobre una imagen. Solo el toggle activo (destacado) se convierte en
+   una insignia dorada real, para que sea lo único que de verdad "compite"
+   por atención en las 771 filas. Mismo criterio en .mpc-star (grid) y
+   .toggle-featured (tabla desktop, ese ya no tenía fondo). */
+.ac-star.feat-active{background:rgba(255,248,231,.95);color:var(--gold-dark);filter:none}
 /* Cuerpo */
 .ac-body{padding:11px 13px 13px;flex:1;display:flex;flex-direction:column}
 .ac-name{
@@ -959,8 +962,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .mpc-price-orig{font-size:.74rem;color:var(--muted-light);text-decoration:line-through;font-family:'Inter',sans-serif}
   .mpc-stock-inline{margin-left:0}
   .mpc-bar{display:flex;align-items:center;gap:8px;padding:10px 14px 12px;border-top:1px solid var(--border-light);background:linear-gradient(180deg,#FAFAF7 0%,#F5EFE8 100%)}
-  .mpc-star{position:absolute;bottom:5px;right:5px;background:rgba(255,255,255,.55);color:#B5A696;border:none;border-radius:8px;padding:3px 5px;font-size:.8rem;cursor:pointer;line-height:1;transition:.15s;touch-action:manipulation}
-  .mpc-star.feat-active{background:#FFF8E7;color:#C9A462;box-shadow:0 1px 5px rgba(0,0,0,.14)}
+  .mpc-star{position:absolute;bottom:5px;right:5px;background:transparent;color:#fff;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45));border:none;border-radius:8px;padding:3px 5px;font-size:.8rem;cursor:pointer;line-height:1;transition:.15s;touch-action:manipulation}
+  .mpc-star.feat-active{background:#FFF8E7;color:#C9A462;box-shadow:0 1px 5px rgba(0,0,0,.14);filter:none}
   .mpc-badge-inline{vertical-align:middle;margin-left:2px}
   .mpc-icon-group{display:flex;gap:6px;margin-left:auto;flex-shrink:0}
   .mpc-oos-btn{font-size:.72rem!important;flex-shrink:0;min-height:40px;padding:0 12px!important}
@@ -1126,12 +1129,12 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   /* ⭐ Estrella — top-right, cancela bottom del breakpoint 1024px */
   .mpc-star{
     position:absolute;top:5px;right:5px;bottom:auto;
-    background:rgba(255,255,255,.55);color:#B5A696;border:none;border-radius:8px;
+    background:transparent;color:#fff;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45));border:none;border-radius:8px;
     padding:3px 5px;font-size:.8rem;cursor:pointer;line-height:1;
     transition:.15s;
     touch-action:manipulation;
   }
-  .mpc-star.feat-active{background:#FFF8E7;color:#C9A462;box-shadow:0 1px 5px rgba(0,0,0,.14)}
+  .mpc-star.feat-active{background:#FFF8E7;color:#C9A462;box-shadow:0 1px 5px rgba(0,0,0,.14);filter:none}
   /* Badge del producto junto a la categoría */
   .mpc-badge-inline{vertical-align:middle;margin-left:2px}
   /* Grupo de iconos de acción */
