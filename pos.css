@@ -853,10 +853,16 @@ button,a{touch-action:manipulation}
 @media(max-width:640px){
   .pos-view-toggle{display:none}
   .pos-view-toggle + .pos-sort-sep{display:none}
-  .apt-btns{gap:5px}
-  .apt-btns>.btn-wa-reminder:first-child{display:none}
+  /* Fila de íconos (WhatsApp/editar/cancelar) arriba, acciones de dinero
+     abajo a ancho completo -- antes el botón de WhatsApp se ocultaba aquí
+     por verse apretado junto a 4 botones más; en vez de perderlo, se separa
+     en dos filas con un salto de línea forzado (::after 100%) */
+  .apt-btns{gap:5px;flex-wrap:wrap}
+  .apt-btns>.btn-wa-reminder,.apt-btns>.btn-cancelar-apt{order:1}
+  .apt-btns::after{content:'';flex-basis:100%;order:2}
+  .apt-btns>.btn-abonar,.apt-btns>.btn-liquidar{order:3;flex-basis:calc(50% - 3px);flex-grow:0}
   .btn-abonar,.btn-liquidar{font-size:.74rem;padding:0 7px;height:44px}
-  .btn-cancelar-apt{width:44px;height:44px;font-size:.9rem}
+  .btn-cancelar-apt{width:44px;height:44px;font-size:.9rem;margin-left:auto}
   /* Frecuentes — versión compacta (solo imagen + precio) */
   .pos-freq-bar.visible{padding:6px 10px 8px;gap:6px}
   .pos-freq-card{width:58px;padding:3px 2px;gap:2px}

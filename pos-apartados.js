@@ -787,6 +787,53 @@ function sendApartadoReminder(id) {
   window.open(url, '_blank');
 }
 
+/* ── COMPROBANTE DE PAGO (abono / liquidacion de saldo) ──────────────────
+   Modal de confirmacion tras registrar un pago sobre un apartado -- mismo
+   patron visual que sale-done-overlay (venta/apartado nuevo), reutilizando
+   sus clases CSS. Antes un abono solo mostraba un toast con un boton
+   opcional "Avisar" (facil de perder) y liquidar el saldo final no ofrecia
+   ninguna forma de avisar a la clienta -- ninguno de los dos dejaba rastro
+   del lado de la clienta si la cajera no mandaba el mensaje por separado. */
+let _paymentDoneCtx = null;
+
+function showPaymentDone({ id, nombre, monto, metodo, pendiente, esLiquidacion }) {
+  _paymentDoneCtx = { id, nombre, monto, metodo, pendiente, esLiquidacion, fecha: new Date() };
+  document.getElementById('ad-title').textContent = esLiquidacion ? 'Apartado liquidado' : 'Abono registrado';
+  document.getElementById('ad-customer').textContent = nombre || 'Cliente';
+  document.getElementById('ad-amount-label').textContent = esLiquidacion ? 'Pago recibido' : 'Abono recibido';
+  document.getElementById('ad-amount').textContent = `$${monto.toLocaleString('es-MX')}`;
+  document.getElementById('ad-method').textContent = metodo === 'transferencia' ? 'Transferencia' : 'Efectivo';
+  document.getElementById('ad-pending-row').style.display = esLiquidacion ? 'none' : '';
+  document.getElementById('ad-pending').textContent = `$${pendiente.toLocaleString('es-MX')}`;
+  document.getElementById('abono-done-overlay').classList.add('open');
+}
+
+function closeAbonoDone() {
+  document.getElementById('abono-done-overlay')?.classList.remove('open');
+  _paymentDoneCtx = null;
+}
+
+function sendPaymentReceipt() {
+  const c = _paymentDoneCtx;
+  if (!c) return;
+  const sale      = _apartadosData[c.id];
+  const custParts = (sale?.customer || '').split(' · 📱 ');
+  const nombre    = c.nombre || custParts[0] || 'Cliente';
+  const telNum    = custParts[1] || '';
+  const metodoTxt = c.metodo === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo';
+  const fechaTxt  = `${c.fecha.toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})} a las ${c.fecha.toLocaleTimeString('es-MX',{hour:'numeric',minute:'2-digit'})}`;
+  const saldoLine = c.esLiquidacion
+    ? '✅ *Tu apartado quedó pagado por completo.*'
+    : `⏳ Saldo pendiente: *$${c.pendiente.toLocaleString('es-MX')} MXN*`;
+  const msg = `✅ *Recibo de pago — Tres Encantos*\n━━━━━━━━━━━━━━\n👤 ${nombre}\n💰 ${c.esLiquidacion ? 'Pago recibido' : 'Abono recibido'}: *$${c.monto.toLocaleString('es-MX')} MXN* (${metodoTxt})\n📅 ${fechaTxt}\n${saldoLine}\nFolio #${c.id}\n\n¡Gracias por tu confianza! 💛`;
+  const telLimpio = telNum.replace(/\D/g, '');
+  const url = telLimpio
+    ? `https://wa.me/52${telLimpio}?text=${encodeURIComponent(msg)}`
+    : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+  setTimeout(() => closeAbonoDone(), 400);
+}
+
 /* ── ABONAR ─────────────────────────────────────────────────────────── */
 let _abonarCtx    = null;
 let _abonarMethod = 'efectivo';
@@ -929,16 +976,15 @@ async function confirmAbonar() {
   }
   const amountReceived = _aptMoney(r.data?.payment?.amount ?? monto);
   const isFinal = _isApartadoLiquidado(r.data?.sale) || expectedFinal;
+  const pendienteFinal = _aptMoney(r.data?.sale?.remaining ?? Math.max(0, _abonarCtx.pendiente - amountReceived));
   const aptId = _abonarCtx.id;
+  const nombre = _abonarCtx.nombre;
   closeAbonarModal();
-  // A diferencia de una venta/apartado nuevo (que sí abre el modal de "enviar
-  // por WhatsApp"), un abono solo mostraba un toast interno — avisarle a la
-  // clienta quedaba en que la cajera se acordara de tocar 💬 después. El botón
-  // "Avisar" deja la misma acción a un toque, sin forzar el envío.
-  toast(isFinal
-    ? `Apartado liquidado ✓ — $${amountReceived.toLocaleString('es-MX')} recibido`
-    : `Abono de $${amountReceived.toLocaleString('es-MX')} registrado ✓`, 'success',
-    { label: '📲 Avisar', onClick: () => sendApartadoReminder(aptId) });
+  // Antes esto solo mostraba un toast (facil de perder) con un boton opcional
+  // "Avisar" -- si la cajera no lo tocaba, el pago no dejaba ningun rastro del
+  // lado de la clienta. Ahora abre el mismo tipo de modal que ya usan
+  // venta/apartado nuevo, con el envio de comprobante como accion principal.
+  showPaymentDone({ id: aptId, nombre, monto: amountReceived, metodo: _abonarMethod, pendiente: pendienteFinal, esLiquidacion: isFinal });
   await _refreshPosFinancialState();
 }
 
@@ -1284,7 +1330,11 @@ async function confirmLiquidar() {
     return;
   }
   const amountReceived = _aptMoney(r.data?.payment?.amount ?? restante);
+  const nombre = (sale?.customer || '').split(' · 📱 ')[0] || '';
   closeLiqModal();
-  toast(`Apartado liquidado ✓ — $${amountReceived.toLocaleString('es-MX')} recibido`, 'success');
+  // Cobrar el saldo final es el pago mas propenso a un reclamo despues ("ya
+  // pague todo") -- antes ni siquiera tenia el boton "Avisar" que si tenia
+  // un abono parcial. Mismo modal de comprobante que abonos/ventas.
+  showPaymentDone({ id, nombre, monto: amountReceived, metodo: method, pendiente: 0, esLiquidacion: true });
   await _refreshPosFinancialState();
 }
