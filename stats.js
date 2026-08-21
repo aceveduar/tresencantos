@@ -600,13 +600,18 @@ function renderTodaySales() {
     const tagText = isRefund ? 'DEVOLUCIÓN' : isAdjustment ? 'AJUSTE'
       : (isCreated || isSameDayOpening) ? 'APARTADO NUEVO'
       : isLiquidation ? 'LIQUIDADO' : origin === 'apartado' ? 'ABONO' : 'VENTA';
+    // Mismo color por categoría que las tarjetas KPI de arriba (Ventas verde,
+    // Abonos morado, Apertura dorado) -- antes ABONO y VENTA compartían el
+    // mismo verde aquí, mientras arriba Abonos ya se veía morado.
     const tagStyle = isRefund
       ? 'background:#FEE2E2;color:#991B1B'
       : isAdjustment
         ? 'background:#FEF3C7;color:#92400E'
         : (isCreated || isSameDayOpening)
           ? 'background:#FFF8EE;color:#9A742D'
-          : 'background:#DCFCE7;color:#166534';
+          : (!isLiquidation && origin === 'apartado')
+            ? 'background:#F1EAFB;color:#5B3FA0'
+            : 'background:#DCFCE7;color:#166534';
     const tag = `<span style="font-size:.62rem;${tagStyle};padding:1px 6px;border-radius:50px;font-weight:700;flex-shrink:0">${tagText}</span>`;
     const nombre = origin === 'apartado'
       ? ((s?.customer || '').split(' · 📱 ')[0] || `Apartado #${payment.sale_id}`)
