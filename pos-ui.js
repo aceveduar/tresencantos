@@ -13,6 +13,7 @@ const _uiIcoPhone    = () => _uiIco('<rect x="5" y="2" width="14" height="20" rx
 const _uiIcoReceipt  = () => _uiIco('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>');
 const _uiIcoWarn     = (px = 13) => _uiIco('<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>', px);
 const _uiIcoZap      = () => `<svg style="width:13px;height:13px;vertical-align:-2px;fill:currentColor;stroke:none" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`;
+const _uiIcoFlask    = (px = 13) => _uiIco('<path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/>', px);
 const _uiIcoWA       = () => `<svg width="18" height="18" fill="#fff" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.374 0 0 5.373 0 12c0 2.124.553 4.118 1.522 5.85L.057 23.499l5.772-1.513A11.94 11.94 0 0012 24c6.626 0 12-5.373 12-12S18.626 0 12 0z"/></svg>`;
 
 /* ── SWIPE TO CLOSE (offcanvas desde la derecha) ── */
@@ -664,7 +665,7 @@ function openAptDetail(id) {
     // canMarkTestData es su propio permiso (no depende de canManageSettings)
     // -- ver markSaleAsTest (pos-apartados.js).
     const testBtn = canMarkTestData()
-      ? `<button type="button" class="btn-edit-apt" onclick="markSaleAsTest(${id},'${_esc(nombre).replace(/'/g,"\\'")}')" aria-label="Marcar como prueba" title="Marcar como prueba — se oculta de Historial/Reportes/Corte">🧪</button>`
+      ? `<button type="button" class="btn-edit-apt" onclick="markSaleAsTest(${id},'${_esc(nombre).replace(/'/g,"\\'")}')" aria-label="Marcar como prueba" title="Marcar como prueba — se oculta de Historial/Reportes/Corte">${_uiIcoFlask(14)}</button>`
       : '';
     document.getElementById('adm-footer').innerHTML =
       `<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--muted)">✕ Cancelado${canceladoFecha}</span>${testBtn}`;
@@ -946,7 +947,7 @@ async function loadHistory() {
       // Cancelados, Historial es el único lugar que cubre ventas directas y
       // apartados sin importar su estado actual. Ver markSaleAsTest (pos-apartados.js).
       const testBtn = canMarkTestData()
-        ? `<button class="hi-del" style="color:var(--muted)" onclick="markSaleAsTest(${s.id},'${_esc((s.customer||'').split(' · 📱 ')[0] || `Venta #${s.id}`).replace(/'/g,"\\'")}')" title="Marcar como prueba" aria-label="Marcar como prueba">🧪</button>`
+        ? `<button class="hi-del" style="color:var(--muted)" onclick="markSaleAsTest(${s.id},'${_esc((s.customer||'').split(' · 📱 ')[0] || `Venta #${s.id}`).replace(/'/g,"\\'")}')" title="Marcar como prueba" aria-label="Marcar como prueba">${_uiIcoFlask(13)}</button>`
         : '';
 
       return `
