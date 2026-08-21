@@ -990,6 +990,10 @@ function renderRevenueChart() {
   const byDay = {};
   const range = getRange(_statsMode, _statsOffset);
   if (revenueChart) { revenueChart.destroy(); revenueChart = null; }
+  // Solo modo Día lo puebla (_renderDayHourly) -- se resetea aquí para no
+  // dejar datos de un período anterior visibles al cambiar de modo/período.
+  const daySumEl = document.getElementById('day-hour-summary');
+  if (daySumEl) daySumEl.style.display = 'none';
   if (!paymentsLoaded) {
     const summary = document.getElementById('week-summary');
     if (summary) summary.style.display = 'none';
@@ -1220,6 +1224,27 @@ function _renderDayHourly(ctx) {
       }
     }
   });
+
+  // La barra de horas (240px fijos) suele quedar mucho más corta que "Por
+  // categoría" al lado -- en vez de dejar ese espacio en blanco, se llena
+  // con lo que ya se calculó arriba: hora pico, cuántas horas tuvieron
+  // movimiento y el promedio por hora activa.
+  const daySumEl = document.getElementById('day-hour-summary');
+  if (daySumEl) {
+    const dayTotal = active.reduce((s,h) => s + byHour[h], 0);
+    if (active.length && dayTotal !== 0) {
+      const peakHour = active.reduce((best,h) => Math.abs(byHour[h]) > Math.abs(byHour[best]) ? h : best, active[0]);
+      const pct = Math.round(Math.abs(byHour[peakHour]) / Math.abs(dayTotal) * 100);
+      const avgActive = dayTotal / active.length;
+      const fmtMoney = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX', {maximumFractionDigits:0})}`;
+      daySumEl.innerHTML = `
+        <div class="dhs-row"><span class="dhs-label">⚡ Hora pico</span><span class="dhs-value">${peakHour}h · ${fmtMoney(byHour[peakHour])}${pct ? ` (${pct}%)` : ''}</span></div>
+        <div class="dhs-row"><span class="dhs-label">🕐 Horas con actividad</span><span class="dhs-value">${active.length}</span></div>
+        <div class="dhs-row"><span class="dhs-label">📊 Promedio por hora activa</span><span class="dhs-value">${fmtMoney(avgActive)}</span></div>
+      `;
+      daySumEl.style.display = '';
+    }
+  }
 }
 
 

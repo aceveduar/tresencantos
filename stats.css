@@ -105,6 +105,11 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
    tarjeta corta se estira a la altura de su vecina en vez de quedarse con
    su propio alto. */
 .charts-row>.card{align-self:start;height:fit-content}
+.day-hour-summary{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.dhs-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;font-size:.82rem}
+.dhs-row+.dhs-row{border-top:1px solid #F5EDE4}
+.dhs-label{color:var(--muted);display:flex;align-items:center;gap:6px}
+.dhs-value{font-weight:700;color:var(--charcoal);white-space:nowrap}
 .chart-canvas-wrap{position:relative;height:240px}
 
 /* ── CALENDAR HEATMAP ── */
