@@ -733,13 +733,31 @@ function renderVendedores() {
   }).join('');
 }
 
+// Si un cobro y su devolución caen dentro del MISMO período consultado (ej.
+// una prueba que se cobra y se cancela el mismo día), el efecto neto de ese
+// período es $0 y no debe contar ni en Ventas ni en Abonos -- "Ingresos" ya
+// lo resuelve solo (suma la devolución en negativo), pero estos dos
+// desgloses excluían la devolución por completo en vez de restarla, dejando
+// el cobro original sumado para siempre aunque ya se hubiera revertido.
+// No toca periodos distintos: si el cobro fue la semana pasada y se cancela
+// hoy, la semana pasada conserva su cifra tal cual se vio en su momento.
+function _refundedSaleIdsInPeriod(paymentsArr) {
+  return new Set(
+    (paymentsArr || [])
+      .filter(p => p.kind === 'refund')
+      .map(p => String(p.sale_id))
+  );
+}
+
 // Abonos = dinero que se queda "en curso" (anticipos y abonos parciales sobre
 // apartados aún no liquidados). La liquidación se cuenta en Ventas, no aquí,
 // para que Ventas$ + Abonos$ = Ingresos, sin contar el mismo pago dos veces.
 function _abonoPayments(paymentsArr) {
+  const refundedInPeriod = _refundedSaleIdsInPeriod(paymentsArr);
   return (paymentsArr || []).filter(payment => {
     const sale = paymentSalesById.get(String(payment.sale_id));
     if (payment.kind === 'refund' || payment.kind === 'adjustment') return false;
+    if (refundedInPeriod.has(String(payment.sale_id))) return false;
     if (_saleOrigin(sale) !== 'apartado') return false;
     if (_paymentAmount(payment) <= 0) return false;
     return !_isApartadoLiquidationPayment(payment, sale);
@@ -752,8 +770,10 @@ function _abonoPayments(paymentsArr) {
 // total histórico de la venta (que puede incluir abonos de días anteriores,
 // ya contados como Ingresos ese día).
 function _salesCashPayments(paymentsArr) {
+  const refundedInPeriod = _refundedSaleIdsInPeriod(paymentsArr);
   return (paymentsArr || []).filter(payment => {
     if (payment.kind === 'refund' || payment.kind === 'adjustment' || payment.kind === 'apartado_created') return false;
+    if (refundedInPeriod.has(String(payment.sale_id))) return false;
     if (_paymentAmount(payment) <= 0) return false;
     const sale = paymentSalesById.get(String(payment.sale_id));
     const origin = _saleOrigin(sale);
@@ -1546,8 +1566,12 @@ function sendDailySummaryWA() {
   const refundLines = todayPayments.filter(payment => payment.kind === 'refund');
   const refundCount = _refundOperationCount(todayPayments);
   const adjustmentLines = todayPayments.filter(payment => payment.kind === 'adjustment');
+  // Mismo fix que _abonoPayments/_salesCashPayments -- un anticipo/abono
+  // cobrado y devuelto el mismo día no debe seguir contando aquí.
+  const refundedTodayIds = _refundedSaleIdsInPeriod(todayPayments);
   const apartadoPayments = todayPayments.filter(payment => {
     const sale = paymentSalesById.get(String(payment.sale_id));
+    if (refundedTodayIds.has(String(payment.sale_id))) return false;
     return payment.kind !== 'refund' && payment.kind !== 'adjustment'
       && _saleOrigin(sale) === 'apartado' && _paymentAmount(payment) > 0;
   });
