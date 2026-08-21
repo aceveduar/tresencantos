@@ -54,6 +54,11 @@ function canManageSettings() {
   if (up && 'canManageSettings' in up) return up.canManageSettings;
   return getPosRole() === 'superadmin';
 }
+function canMarkTestData() {
+  const up = _getMyPermsCached();
+  if (up && 'canMarkTestData' in up) return up.canMarkTestData;
+  return getPosRole() === 'superadmin';
+}
 
 let _cancelAptCtx = null;
 

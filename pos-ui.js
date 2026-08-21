@@ -661,9 +661,9 @@ function openAptDetail(id) {
     const canceladoFecha = s.cancelled_at
       ? ` · ${_posFormatTimestamp(s.cancelled_at, {day:'numeric',month:'short'})}`
       : '';
-    // Solo quien administra Configuración puede ocultar una prueba de
-    // Historial/Reportes/Corte -- ver markSaleAsTest (pos-apartados.js).
-    const testBtn = canManageSettings()
+    // canMarkTestData es su propio permiso (no depende de canManageSettings)
+    // -- ver markSaleAsTest (pos-apartados.js).
+    const testBtn = canMarkTestData()
       ? `<button type="button" class="btn-edit-apt" onclick="markSaleAsTest(${id},'${_esc(nombre).replace(/'/g,"\\'")}')" aria-label="Marcar como prueba" title="Marcar como prueba — se oculta de Historial/Reportes/Corte">🧪</button>`
       : '';
     document.getElementById('adm-footer').innerHTML =
@@ -941,6 +941,13 @@ async function loadHistory() {
       // movimiento más reciente sea justo un 'payment' — una venta con algún
       // reembolso parcial también debe poder cancelarse.
       const canCancelThis = !s.cancelled_at && newestMovementBySale.get(s.id) === payment.id;
+      // Cualquier movimiento (venta directa o apartado, en cualquier estado)
+      // puede marcarse como prueba desde aquí -- a diferencia de Apartados
+      // Cancelados, Historial es el único lugar que cubre ventas directas y
+      // apartados sin importar su estado actual. Ver markSaleAsTest (pos-apartados.js).
+      const testBtn = canMarkTestData()
+        ? `<button class="hi-del" style="color:var(--muted)" onclick="markSaleAsTest(${s.id},'${_esc((s.customer||'').split(' · 📱 ')[0] || `Venta #${s.id}`).replace(/'/g,"\\'")}')" title="Marcar como prueba" aria-label="Marcar como prueba">🧪</button>`
+        : '';
 
       return `
 <div class="hi-card">
@@ -949,6 +956,7 @@ async function loadHistory() {
     ${payBadge}
     <span class="hi-spacer"></span>
     <span class="hi-total"${amount < 0 ? ' style="color:var(--red)"' : ''}>${displayTotal}</span>
+    ${testBtn}
     ${canCancelThis ? `<button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar registro completo" aria-label="Cancelar registro completo">✕</button>` : ''}
   </div>
   <div class="hi-items">${itemsHTML || '<div style="color:#9B8B78;font-size:.78rem;padding:4px 0">Sin detalle</div>'}</div>

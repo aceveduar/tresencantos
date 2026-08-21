@@ -380,16 +380,17 @@ const UP_PERMS = [
   {key:'canEditApartado',   label:'Editar apartados',    group:'Caja', desc:'Modificar, cancelar o reembolsar un apartado existente'},
   {key:'canOverridePrice',  label:'Modificar precio al cobrar', group:'Caja', desc:'Cambiar el precio de un producto en el carrito antes de cobrar'},
   {key:'canApplyDiscount',  label:'Aplicar descuentos',  group:'Caja', desc:'Usar el campo "Agregar descuento" al cobrar'},
+  {key:'canMarkTestData',   label:'Marcar pruebas',      group:'Caja', desc:'Ocultar una venta/apartado de prueba de Historial, Reportes y Corte de caja sin borrarlo'},
   {key:'canViewReports',    label:'Ver Reportes',        group:'Módulos', desc:'Entrar al módulo de Reportes'},
   {key:'canViewActivity',   label:'Ver Actividad',       group:'Módulos', desc:'Entrar al módulo de Actividad (auditoría)'},
   {key:'canManageSettings', label:'Configuración',       group:'Módulos', desc:'Acceso completo a Configuración, incluyendo Usuarios y Permisos'},
   {key:'canManageCatalogSettings', label:'Configuración (solo Catálogo)', group:'Módulos', desc:'Entra a Configuración pero solo ve la sección Catálogo'},
 ];
 const UP_ROLE_DEFAULTS = {
-  superadmin:{canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canImportJSON:true, canMasivo:true, canCancelSale:true, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canViewReports:true, canViewActivity:true, canManageSettings:true, canManageCatalogSettings:false},
-  encargado: {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canImportJSON:false, canMasivo:false, canCancelSale:true, canEditApartado:false, canOverridePrice:true, canApplyDiscount:true, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false},
-  duena:     {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canViewReports:true, canViewActivity:true, canManageSettings:false, canManageCatalogSettings:false},
-  operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:false, canPublishProduct:false, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:false, canOverridePrice:false, canApplyDiscount:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false},
+  superadmin:{canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canImportJSON:true, canMasivo:true, canCancelSale:true, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canMarkTestData:true, canViewReports:true, canViewActivity:true, canManageSettings:true, canManageCatalogSettings:false},
+  encargado: {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canImportJSON:false, canMasivo:false, canCancelSale:true, canEditApartado:false, canOverridePrice:true, canApplyDiscount:true, canMarkTestData:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false},
+  duena:     {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canMarkTestData:false, canViewReports:true, canViewActivity:true, canManageSettings:false, canManageCatalogSettings:false},
+  operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:false, canPublishProduct:false, canBulkDelete:false, canImportJSON:false, canMasivo:false, canCancelSale:false, canEditApartado:false, canOverridePrice:false, canApplyDiscount:false, canMarkTestData:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false},
 };
 
 /* ── PIN DE AUTORIZACIÓN (override puntual de un permiso bloqueado) ──
