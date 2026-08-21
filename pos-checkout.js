@@ -177,7 +177,10 @@ async function cobrar() {
   showSaleDone();
 }
 
+let _saleTicketSent = false;
+
 function showSaleDone() {
+  _saleTicketSent = false;
   // Bloquear Escape mientras el modal esté abierto
   const _escGuard = e => { if (e.key === 'Escape') e.stopImmediatePropagation(); };
   document.addEventListener('keydown', _escGuard, true);
@@ -237,6 +240,7 @@ function showSaleDone() {
 function sendWhatsAppTicket() {
   const s = _lastSale;
   if (!s?.items?.length) return;
+  _saleTicketSent = true;
   const lines    = s.items.map(i => {
     const prod = products.find(p => p.id === i.id);
     const imgUrl = prod?.image && !prod.image.startsWith('data:') ? `\n  🖼 ${prod.image}` : '';
@@ -272,6 +276,9 @@ function sendWhatsAppTicket() {
     msg = `📌 *${title} — Tres Encantos*\n━━━━━━━━━━━━━━\n👤 ${nombre}\n${lines}${disc}\n━━━━━━━━━━━━━━\n*Total pedido: $${(s.total||0).toLocaleString('es-MX')} MXN*\n${anticipoLine}${dueLine}${note}\n\n${closing}`;
     const telLimpio = telNum.replace(/\D/g,'');
     window.open(telLimpio ? `https://wa.me/52${telLimpio}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    logActivity('comprobante_enviado',
+      `Envió confirmación de apartado a ${nombre} — $${(s.total||0).toLocaleString('es-MX')}`,
+      { total: s.total, isApartado: s.isApartado, apartadoLiquidado: s.apartadoLiquidado });
     setTimeout(() => closeSaleDone(), 400);
     return;
   } else {
@@ -286,6 +293,17 @@ function sendWhatsAppTicket() {
 }
 
 function closeSaleDone() {
+  const s = _lastSale;
+  // Mismo riesgo que abonar/liquidar (74b6394): un apartado nuevo deja saldo
+  // pendiente -- si nadie le manda confirmación a la clienta, no hay rastro
+  // de qué se acordó. Una venta completa no aplica: ya se cobró todo en
+  // persona, no hay saldo que alguien pueda disputar después.
+  if (s && (s.isApartado || s.apartadoLiquidado) && !_saleTicketSent) {
+    if (!confirm('¿Cerrar sin enviarle la confirmación por WhatsApp al cliente?')) return;
+    logActivity('comprobante_omitido',
+      `Cerró sin enviar confirmación de apartado a ${(s.customer||'').split(' · 📱 ')[0] || 'cliente'} — $${(s.total||0).toLocaleString('es-MX')}`,
+      { total: s.total, isApartado: s.isApartado, apartadoLiquidado: s.apartadoLiquidado });
+  }
   const overlay = document.getElementById('sale-done-overlay');
   if (overlay._escGuard) {
     document.removeEventListener('keydown', overlay._escGuard, true);
