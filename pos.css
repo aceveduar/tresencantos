@@ -159,6 +159,10 @@ button,a{touch-action:manipulation}
 /* SCANNER MODAL */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
 .overlay.open{opacity:1;pointer-events:all}
+/* Se abre desde dentro del panel de Apartados (#apt-page z-index:1100,
+   .abonar-overlay z-index:1300) -- con el z-index:200 genérico de .overlay
+   quedaba oculto detrás de ambos en vez de encima. */
+#abono-done-overlay{z-index:1500}
 .scan-modal{background:#111;border-radius:16px;max-width:380px;width:100%;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.4)}
 .scan-head{padding:16px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.1)}
 .scan-head h3{color:#fff;font-size:1rem;font-family:'Playfair Display',serif}
