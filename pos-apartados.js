@@ -797,7 +797,10 @@ function sendApartadoReminder(id) {
 let _paymentDoneCtx = null;
 
 function showPaymentDone({ id, nombre, monto, metodo, pendiente, esLiquidacion }) {
-  _paymentDoneCtx = { id, nombre, monto, metodo, pendiente, esLiquidacion, fecha: new Date() };
+  const sale      = _apartadosData[id];
+  const custParts = (sale?.customer || '').split(' · 📱 ');
+  const telNum    = (custParts[1] || '').trim();
+  _paymentDoneCtx = { id, nombre, monto, metodo, pendiente, esLiquidacion, telNum, fecha: new Date(), sent: false };
   document.getElementById('ad-title').textContent = esLiquidacion ? 'Apartado liquidado' : 'Abono registrado';
   document.getElementById('ad-customer').textContent = nombre || 'Cliente';
   document.getElementById('ad-amount-label').textContent = esLiquidacion ? 'Pago recibido' : 'Abono recibido';
@@ -805,10 +808,25 @@ function showPaymentDone({ id, nombre, monto, metodo, pendiente, esLiquidacion }
   document.getElementById('ad-method').textContent = metodo === 'transferencia' ? 'Transferencia' : 'Efectivo';
   document.getElementById('ad-pending-row').style.display = esLiquidacion ? 'none' : '';
   document.getElementById('ad-pending').textContent = `$${pendiente.toLocaleString('es-MX')}`;
+  // Sin telefono registrado, wa.me abre el picker de contactos de WhatsApp
+  // en vez de mandarlo directo -- se ofrece capturarlo aqui mismo para esta
+  // venta puntual (no se guarda en el apartado, solo se usa para este envío).
+  const phoneRow = document.getElementById('ad-phone-row');
+  const phoneInput = document.getElementById('ad-phone-input');
+  if (phoneRow) phoneRow.style.display = telNum ? 'none' : '';
+  if (phoneInput) phoneInput.value = '';
   document.getElementById('abono-done-overlay').classList.add('open');
 }
 
-function closeAbonoDone() {
+function closeAbonoDone(fromExplicitClose) {
+  const c = _paymentDoneCtx;
+  // Solo se pregunta si de verdad se va a cerrar sin haber enviado nada --
+  // recordatorio suave, no un bloqueo. sendPaymentReceipt() ya cierra el
+  // modal por su cuenta tras enviar, así que llegar aquí con sent:false
+  // significa que se está saliendo sin avisar a la clienta.
+  if (fromExplicitClose && c && !c.sent) {
+    if (!confirm(`¿Cerrar sin enviarle el comprobante a ${c.nombre || 'la clienta'}?`)) return;
+  }
   document.getElementById('abono-done-overlay')?.classList.remove('open');
   _paymentDoneCtx = null;
 }
@@ -819,13 +837,15 @@ function sendPaymentReceipt() {
   const sale      = _apartadosData[c.id];
   const custParts = (sale?.customer || '').split(' · 📱 ');
   const nombre    = c.nombre || custParts[0] || 'Cliente';
-  const telNum    = custParts[1] || '';
+  const phoneInput = document.getElementById('ad-phone-input');
+  const telNum    = c.telNum || (phoneInput?.value || '').trim();
   const metodoTxt = c.metodo === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo';
   const fechaTxt  = `${c.fecha.toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})} a las ${c.fecha.toLocaleTimeString('es-MX',{hour:'numeric',minute:'2-digit'})}`;
   const saldoLine = c.esLiquidacion
     ? '✅ *Tu apartado quedó pagado por completo.*'
     : `⏳ Saldo pendiente: *$${c.pendiente.toLocaleString('es-MX')} MXN*`;
   const msg = `✅ *Recibo de pago — Tres Encantos*\n━━━━━━━━━━━━━━\n👤 ${nombre}\n💰 ${c.esLiquidacion ? 'Pago recibido' : 'Abono recibido'}: *$${c.monto.toLocaleString('es-MX')} MXN* (${metodoTxt})\n📅 ${fechaTxt}\n${saldoLine}\nFolio #${c.id}\n\n¡Gracias por tu confianza! 💛`;
+  c.sent = true;
   const telLimpio = telNum.replace(/\D/g, '');
   const url = telLimpio
     ? `https://wa.me/52${telLimpio}?text=${encodeURIComponent(msg)}`
