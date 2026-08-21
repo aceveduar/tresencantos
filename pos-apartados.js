@@ -826,6 +826,12 @@ function closeAbonoDone(fromExplicitClose) {
   // significa que se está saliendo sin avisar a la clienta.
   if (fromExplicitClose && c && !c.sent) {
     if (!confirm(`¿Cerrar sin enviarle el comprobante a ${c.nombre || 'la clienta'}?`)) return;
+    // Rastro auditable de que este pago se cerro sin comprobante -- para que
+    // Ofelia/Eduardo puedan ver el patron si pasa seguido, sin bloquear a la
+    // cajera en el momento.
+    logActivity('comprobante_omitido',
+      `Cerró sin enviar comprobante a ${c.nombre || 'cliente'} — $${c.monto.toLocaleString('es-MX')}`,
+      { id: c.id, nombre: c.nombre, monto: c.monto, metodo: c.metodo, esLiquidacion: c.esLiquidacion });
   }
   document.getElementById('abono-done-overlay')?.classList.remove('open');
   _paymentDoneCtx = null;
@@ -851,6 +857,12 @@ function sendPaymentReceipt() {
     ? `https://wa.me/52${telLimpio}?text=${encodeURIComponent(msg)}`
     : `https://wa.me/?text=${encodeURIComponent(msg)}`;
   window.open(url, '_blank');
+  // Auditable: la venta/pago ya quedaba registrada en el servidor
+  // (apartado_abono/apartado_liquidado), pero no si el comprobante
+  // realmente se mando -- justo el dato que faltaba en el reclamo real.
+  logActivity('comprobante_enviado',
+    `Envió comprobante de pago a ${nombre} — $${c.monto.toLocaleString('es-MX')}`,
+    { id: c.id, nombre, monto: c.monto, metodo: c.metodo, esLiquidacion: c.esLiquidacion });
   setTimeout(() => closeAbonoDone(), 400);
 }
 

@@ -223,6 +223,8 @@ const ACTION_CFG = {
   apartado_liquidado: { type:'apartado',   badge:'apartado',  icon:_actIcoCheck(),    label:'Liquidado' },
   apartado_reembolso: { type:'apartado',   badge:'eliminado', icon:_actIcoUndo(),     label:'Reembolso' },
   apartado_cancelado: { type:'apartado',   badge:'eliminado', icon:_actIcoX(),        label:'Apartado cancelado' },
+  comprobante_enviado: { type:'apartado',  badge:'apartado',  icon:_actIco('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'), label:'Comprobante enviado' },
+  comprobante_omitido: { type:'apartado',  badge:'eliminado', icon:_actIcoWarn(),     label:'Sin comprobante' },
   producto_creado:       { type:'inventario', badge:'creado',    icon:_actIcoPlus(),  label:'Creado'    },
   producto_editado:      { type:'inventario', badge:'editado',   icon:_actIcoEdit(),  label:'Editado'   },
   producto_eliminado:    { type:'inventario', badge:'eliminado', icon:_actIcoTrash(), label:'Eliminado' },
