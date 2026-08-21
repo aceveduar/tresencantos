@@ -244,6 +244,11 @@ function updateAnticipoInfo() {
     }
     _pulsePendiente(el);
   }
+  // Elegir método de pago no tiene sentido para un anticipo de $0 -- ya lo
+  // dice el hint de abajo ("Sin anticipo — se cobrará al entregar").
+  const methodWrap = document.getElementById('apt-anticipo-method-wrap');
+  if (methodWrap) methodWrap.style.display = anticipo > 0 ? '' : 'none';
+
   const hint = document.getElementById('cobrar-hint');
   if (btn && document.getElementById('pos-is-apartado')?.checked) {
     const customer  = document.getElementById('pos-apt-customer')?.value.trim() || '';

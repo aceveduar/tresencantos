@@ -305,24 +305,25 @@
     <label>Nombre del cliente <span style="color:var(--red)">*</span></label>
     <input type="text" id="pos-apt-customer" placeholder="Nombre del cliente" oninput="updateAnticipoInfo()" style="padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;outline:none;font-family:inherit;width:100%;margin-bottom:14px">
     <input type="tel" id="pos-phone" placeholder="📱 Teléfono (opcional)" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%;margin-bottom:14px">
-    <div class="apartado-field-row">
-      <div class="cash-field">
-        <label>Anticipo <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
-        <input type="number" id="pos-anticipo" min="0" step="1" placeholder="0 = cobrar al entregar" oninput="updateAnticipoInfo()">
-      </div>
-      <div class="cash-field">
-        <label>Pendiente</label>
-        <input type="number" id="pos-pendiente" readonly style="background:#F9F4EE;color:var(--red);font-weight:700">
-      </div>
+    <div class="cash-field">
+      <label>Anticipo <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
+      <input type="number" id="pos-anticipo" min="0" step="1" placeholder="0 = cobrar al entregar" oninput="updateAnticipoInfo()">
     </div>
-    <!-- Botones rápidos de anticipo -->
-    <div class="cash-quick anticipo-quick" style="margin:10px 0">
+    <!-- Botones rápidos de anticipo -- justo debajo del campo que llenan,
+         no después del resultado calculado (Pendiente) -->
+    <div class="cash-quick anticipo-quick" style="margin:6px 0 12px">
       <button onclick="setAnticipo(.25)">25%</button>
       <button onclick="setAnticipo(.50)">50%</button>
       <button onclick="setAnticipo(.75)">75%</button>
       <button onclick="setAnticipo(1)" class="exact-btn">Exacto</button>
     </div>
     <div class="cash-field" style="margin-bottom:14px">
+      <label>Pendiente</label>
+      <input type="number" id="pos-pendiente" readonly style="background:#F9F4EE;color:var(--red);font-weight:700">
+    </div>
+    <!-- El método de pago del anticipo no aplica si el anticipo es $0 --
+         updateAnticipoInfo() lo oculta en ese caso -->
+    <div class="cash-field" style="margin-bottom:14px" id="apt-anticipo-method-wrap">
       <label>Método del anticipo</label>
       <div class="pay-method-row" style="margin:0">
         <button class="pay-btn active" id="apt-pay-efectivo" onclick="setPayMethod('efectivo')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>Efectivo</button>
