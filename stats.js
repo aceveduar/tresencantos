@@ -590,9 +590,9 @@ function renderTodaySales() {
     // (esa solo existe para apartados sin anticipo) -- su primer abono se
     // veía como un "ABONO" cualquiera, indistinguible de un abono a un
     // apartado viejo. Sin esto, "Apartados nuevos: 3" en el KPI no cuadraba
-    // con lo que se podía contar a simple vista en la lista.
-    const isSameDayOpening = origin === 'apartado' && !isLiquidation
-      && s?.created_at && _localDay(s.created_at) === _localDay(payment.paid_at);
+    // con lo que se podía contar a simple vista en la lista. Mismo criterio
+    // que separa Abonos de Apertura en los KPIs (_isSameDayOpeningPayment).
+    const isSameDayOpening = _isSameDayOpeningPayment(payment, s);
     // El tag siempre dice qué fue realmente (venta/abono/liquidado) — que un
     // pago venga del backfill de datos viejos (source legacy_*) no cambia esa
     // respuesta, solo si el dato es confiable (eso ya lo indica por separado
@@ -766,9 +766,22 @@ function _refundedSaleIdsInPeriod(paymentsArr) {
   );
 }
 
-// Abonos = dinero que se queda "en curso" (anticipos y abonos parciales sobre
-// apartados aún no liquidados). La liquidación se cuenta en Ventas, no aquí,
-// para que Ventas$ + Abonos$ = Ingresos, sin contar el mismo pago dos veces.
+// Un apartado que se abre HOY con anticipo se etiqueta "APARTADO NUEVO" en
+// Movimientos de hoy (ver isSameDayOpening en el renderer de la lista), no
+// "ABONO" -- su dinero tampoco debe sumar al KPI de Abonos, o "Abonos: N" no
+// cuadraría con las filas etiquetadas ABONO que se pueden contar a simple
+// vista (mismo problema que ya se corrigió para "Apartados nuevos").
+function _isSameDayOpeningPayment(payment, sale) {
+  if (_saleOrigin(sale) !== 'apartado') return false;
+  if (_isApartadoLiquidationPayment(payment, sale)) return false;
+  if (!sale?.created_at || !payment?.paid_at) return false;
+  return _localDay(sale.created_at) === _localDay(payment.paid_at);
+}
+
+// Abonos = dinero que se queda "en curso" sobre un apartado que YA existía
+// antes de hoy (parciales, no la apertura ni la liquidación). Ventas cuenta
+// la liquidación y Apertura cuenta el anticipo del día 1 -- entre los tres
+// suman exactamente Ingresos, sin contar el mismo pago dos veces.
 function _abonoPayments(paymentsArr) {
   const refundedInPeriod = _refundedSaleIdsInPeriod(paymentsArr);
   return (paymentsArr || []).filter(payment => {
@@ -777,7 +790,21 @@ function _abonoPayments(paymentsArr) {
     if (refundedInPeriod.has(String(payment.sale_id))) return false;
     if (_saleOrigin(sale) !== 'apartado') return false;
     if (_paymentAmount(payment) <= 0) return false;
-    return !_isApartadoLiquidationPayment(payment, sale);
+    if (_isApartadoLiquidationPayment(payment, sale)) return false;
+    return !_isSameDayOpeningPayment(payment, sale);
+  });
+}
+
+// Apertura = dinero recibido al abrir un apartado nuevo (anticipo del día 1).
+// Se muestra como parte del KPI "Apartados nuevos", no de "Abonos".
+function _aperturaPayments(paymentsArr) {
+  const refundedInPeriod = _refundedSaleIdsInPeriod(paymentsArr);
+  return (paymentsArr || []).filter(payment => {
+    const sale = paymentSalesById.get(String(payment.sale_id));
+    if (payment.kind === 'refund' || payment.kind === 'adjustment') return false;
+    if (refundedInPeriod.has(String(payment.sale_id))) return false;
+    if (_paymentAmount(payment) <= 0) return false;
+    return _isSameDayOpeningPayment(payment, sale);
   });
 }
 
@@ -863,9 +890,16 @@ function renderKPIs() {
   document.getElementById('kpi-aptnew').innerHTML = aptNewLoaded
     ? aptNewCount + (prevAptNewLoaded ? kpiDelta(aptNewCount, prevAptNewCount) : '')
     : '—';
+  // Cuánto de ese dinero llegó como anticipo el mismo día que se abrió el
+  // apartado -- es el dinero que "Movimientos de hoy" etiqueta APARTADO NUEVO
+  // (no $0) y que por eso NO se cuenta también en Abonos (ver _abonoPayments).
+  const aperturaTotal = paymentsLoaded ? _paymentTotal(_aperturaPayments(payments)) : 0;
   document.getElementById('kpi-aptnew-sub').textContent = !aptNewLoaded
     ? 'No disponible'
-    : prevAptNewLoaded && prevAptNewCount > 0 ? `Período ant.: ${prevAptNewCount}` : '';
+    : [
+        aperturaTotal > 0 ? `${fmt(aperturaTotal)} recibidos al abrir` : '',
+        prevAptNewLoaded && prevAptNewCount > 0 ? `Período ant.: ${prevAptNewCount}` : ''
+      ].filter(Boolean).join(' · ');
 
   const abonoPaymentsArr     = _abonoPayments(payments);
   const prevAbonoPaymentsArr = _abonoPayments(prevPayments);
@@ -1593,15 +1627,27 @@ function sendDailySummaryWA() {
   const refundCount = _refundOperationCount(todayPayments);
   const adjustmentLines = todayPayments.filter(payment => payment.kind === 'adjustment');
   // Mismo fix que _abonoPayments/_salesCashPayments -- un anticipo/abono
-  // cobrado y devuelto el mismo día no debe seguir contando aquí.
+  // cobrado y devuelto el mismo día no debe seguir contando aquí. Tampoco
+  // cuenta el anticipo del día en que se abrió el apartado (_isSameDayOpeningPayment)
+  // -- ese dinero se reporta junto con "Apartados nuevos", no aquí, para que
+  // coincida con lo que Reportes muestra como Abonos.
   const refundedTodayIds = _refundedSaleIdsInPeriod(todayPayments);
   const apartadoPayments = todayPayments.filter(payment => {
     const sale = paymentSalesById.get(String(payment.sale_id));
     if (refundedTodayIds.has(String(payment.sale_id))) return false;
-    return payment.kind !== 'refund' && payment.kind !== 'adjustment'
-      && _saleOrigin(sale) === 'apartado' && _paymentAmount(payment) > 0;
+    if (payment.kind === 'refund' || payment.kind === 'adjustment') return false;
+    if (_saleOrigin(sale) !== 'apartado' || _paymentAmount(payment) <= 0) return false;
+    return !_isSameDayOpeningPayment(payment, sale);
   });
   const apartadoAmount = _paymentTotal(apartadoPayments);
+  const aperturaPayments = todayPayments.filter(payment => {
+    const sale = paymentSalesById.get(String(payment.sale_id));
+    if (refundedTodayIds.has(String(payment.sale_id))) return false;
+    if (payment.kind === 'refund' || payment.kind === 'adjustment') return false;
+    if (_paymentAmount(payment) <= 0) return false;
+    return _isSameDayOpeningPayment(payment, sale);
+  });
+  const aperturaAmount = _paymentTotal(aperturaPayments);
   const fecha = _mxDateLabel(new Date(), {weekday:'long',year:'numeric',month:'long',day:'numeric'});
   let msg = `📊 *Resumen del día — Tres Encantos*\n${fecha}\n\n`;
   msg += `💰 *Ingreso neto del día:* ${fmt(ingresos)}\n`;
@@ -1610,7 +1656,7 @@ function sendDailySummaryWA() {
   if (transf !== 0)   msg += `📱 Transferencia: ${fmt(transf)}\n`;
   if (refundCount) msg += `↩️ Devoluciones: ${refundCount} (${fmt(_paymentTotal(refundLines))})\n`;
   if (adjustmentLines.length) msg += `🧾 Ajustes: ${adjustmentLines.length} (${fmt(_paymentTotal(adjustmentLines))})\n`;
-  if (aptos.length) msg += `\n📌 *Apartados nuevos:* ${aptos.length}\n`;
+  if (aptos.length) msg += `\n📌 *Apartados nuevos:* ${aptos.length}${aperturaAmount > 0 ? ` (${fmt(aperturaAmount)} al abrir)` : ''}\n`;
   if (apartadoPayments.length) msg += `💳 *Anticipos y abonos:* ${apartadoPayments.length} (${fmt(apartadoAmount)})\n`;
   if (todayLiquidatedSales.length) msg += `✅ *Apartados liquidados:* ${todayLiquidatedSales.length}\n`;
   if (!todayPayments.length && !ventas.length && !aptos.length && !todayLiquidatedSales.length) msg += `_Sin movimientos registrados hoy._\n`;
