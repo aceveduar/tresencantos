@@ -399,19 +399,29 @@ function renderCart() {
   _saveCart();
 }
 
+// Escalera de montos "redondos": denominaciones reales de billete en México
+// (20/50/100/200/500/1000) y, arriba de $1,000, múltiplos de $500 -- no
+// existe un billete único más grande, pero un cliente sí paga con varios
+// de $500/$1,000. Sin esto, redondear con un solo paso fijo (ej. $100) da
+// saltos absurdos para un total chico ($40/$60 en vez de $20/$50) o para
+// uno grande (saltar de $3,304 directo a $5,000 sin pasar por $3,500/$4,000).
+const _CASH_LADDER = (() => {
+  const arr = [20, 50, 100, 200, 500, 1000];
+  for (let n = 1500; n <= 100000; n += 500) arr.push(n);
+  return arr;
+})();
+
 // Montos "rápidos" de efectivo -- antes fijos en $100/$200/$500 sin importar
 // el total, así que en una venta de $3,304 ninguno servía (todos por debajo
-// de lo que hay que cobrar). Ahora se calculan como el siguiente billete
-// "redondo" real (denominaciones MXN) igual o mayor al total, para que
-// representen lo que un cliente de verdad entregaría.
+// de lo que hay que cobrar) y en una de $10 sobraban ($500/$1000 no tienen
+// nada que ver con un producto de diez pesos). Ahora se toman los siguientes
+// 3 peldaños de la escalera que sean ≥ el total, para que representen lo que
+// un cliente de verdad entregaría sea cual sea el tamaño de la venta.
 function _posQuickCashAmounts(total) {
   const t = Math.max(total, 0);
-  const steps = [100, 500, 1000, 2000, 5000];
-  const candidates = steps
-    .map(step => Math.ceil(Math.max(t, 1) / step) * step)
-    .filter((v, i, arr) => v >= t && arr.indexOf(v) === i)
-    .sort((a, b) => a - b);
-  return candidates.slice(0, 3);
+  let idx = _CASH_LADDER.findIndex(v => v >= t);
+  if (idx === -1) idx = Math.max(0, _CASH_LADDER.length - 3);
+  return _CASH_LADDER.slice(idx, idx + 3);
 }
 
 function _updateQuickCashButtons() {
