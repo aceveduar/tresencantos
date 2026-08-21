@@ -694,6 +694,7 @@ No ejecutar ambas fases juntas. Un cliente PWA antiguo todavía puede intentar m
 - **Vista lista / tarjetas** — toggle ☰/⊞ en barra de búsqueda
 - **Filtro por categoría** — chips horizontales sobre la lista
 - **Divisor arrastrable** — barra de 5px entre paneles, ajusta proporción, guardada en `localStorage` key `te_pos_split` (oculto en mobile)
+- **Formulario de cobro oculto con el carrito vacío (2026-08-21)** — Eduardo, viendo la pestaña Cobrar sin nada agregado, preguntó si se veía "apretada" o con algo innecesario: descuento, método de pago, botones de efectivo rápido ($100/$200/$500/Exacto), campo de efectivo recibido/cambio, nota, apartado y cliente se mostraban siempre, aunque ninguno tiene sentido sin productos en el carrito (mismo patrón que Shopify POS/Square POS, que no muestran el formulario de cobro hasta que hay algo que cobrar). Todo ese bloque (`#checkout-fields-wrap` en `pos.html`, entre "Total" y el botón "Cobrar") ahora se oculta por completo cuando `cart.length === 0` y reaparece al agregar el primer producto — un solo toggle en `renderCart()` (`pos-cart.js`), sin tocar la lógica de cada campo individual. "Total $0" y el botón "Cobrar" (ya deshabilitado en ese estado) se quedan visibles, junto con el mensaje "El carrito está vacío" que ya existía.
 - **Descuento** — campo % o $ antes del cobro, clampado 0-100% en modo %
 - **Método de pago** — 💵 Efectivo / 📱 Transferencia. Transferencia oculta campos de cambio
 - **Nota de venta** — texto libre que aparece en ticket WA

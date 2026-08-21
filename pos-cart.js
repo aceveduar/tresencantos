@@ -348,6 +348,11 @@ function renderCart() {
   countEl.textContent = totalItems > 0 ? `(${totalItems})` : '';
   totalEl.textContent = `$${total.toLocaleString('es-MX')}`;
   cobrarBtn.disabled = cart.length === 0;
+  // Descuento/pago/efectivo/nota/apartado/cliente no sirven de nada sin
+  // productos en el carrito -- se ocultan en vez de mostrar un formulario
+  // de cobro que no se puede usar todavía.
+  const fieldsWrap = document.getElementById('checkout-fields-wrap');
+  if (fieldsWrap) fieldsWrap.style.display = cart.length ? '' : 'none';
   syncCartTopbar();
   _updateMiniCartBar();
   updateChange();

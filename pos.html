@@ -137,6 +137,12 @@
         <span class="total-amount" id="pos-total">$0</span>
       </div>
 
+      <!-- Todo lo de abajo (descuento, método de pago, efectivo, nota,
+           apartado, cliente) no tiene sentido sin nada en el carrito --
+           renderCart() lo oculta por completo mientras el carrito esté
+           vacío, en vez de mostrar un formulario de cobro inutilizable. -->
+      <div id="checkout-fields-wrap" style="display:none">
+
       <!-- Descuento -->
       <button type="button" class="note-toggle-btn" id="discount-toggle-btn" onclick="toggleDiscountField()"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42Z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>Agregar descuento</button>
       <div id="discount-row-wrap" style="display:none">
@@ -208,6 +214,8 @@
           <input type="text" id="pos-customer" placeholder="Nombre del cliente" oninput="updateAnticipoInfo()" onblur="autoCollapseCustomer()">
           <button type="button" class="note-clear-btn" onclick="clearCustomerField()" title="Quitar cliente">✕</button>
         </div>
+      </div>
+
       </div>
 
       <button id="cobrar-btn" class="btn btn-green" onclick="cobrar()" disabled>✓ Cobrar</button>
