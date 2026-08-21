@@ -488,8 +488,10 @@ function _renderQV(p) {
     if (ki?.empty) {
       stockChipQV = `<span class="qv-chip qv-chip-sold">${QV_ICO_GIFT(13)}Sin componentes</span>`;
     } else if (ki?.stock === 0) {
-      const lbl = ki.blocker ? (ki.blocker.length > 16 ? ki.blocker.slice(0, 15) + '…' : ki.blocker) : '?';
-      stockChipQV = `<span class="qv-chip qv-chip-sold" title="Falta: ${ki.blocker ?? 'componente agotado'}">${QV_ICO_GIFT(13)}Falta: ${lbl}</span>`;
+      // El nombre completo del bloqueo ya no vive aquí truncado -- se ve
+      // sin cortes en la lista "Incluye" de abajo, con el componente
+      // agotado resaltado en rojo.
+      stockChipQV = `<span class="qv-chip qv-chip-sold" title="${_esc(ki.blocker ?? 'Componente agotado')}">${QV_ICO_GIFT(13)}Reabastecer</span>`;
     } else {
       const n = ki?.stock ?? 0;
       stockChipQV = `<span class="qv-chip qv-chip-ok">${QV_ICO_GIFT(13)}${n} kit${n !== 1 ? 's' : ''}</span>`;
@@ -539,10 +541,18 @@ function _renderQV(p) {
       kitZone.innerHTML = `<div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${QV_ICO_GIFT(13)}Incluye</div>` +
         p.kitItems.map(item => {
           const comp = products.find(x => x.id === item.id);
-          const clickable = comp ? `onclick="_kitCompPopup(${comp.id},this)" style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-light);cursor:pointer;border-radius:6px;transition:background .15s" onmouseenter="this.style.background='var(--gold-light)'" onmouseleave="this.style.background=''"` : `style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-light)"`;
+          // El componente que bloquea el kit se resalta aquí, sin cortes de
+          // nombre -- reemplaza el "Falta: nombre truncado" que antes vivía
+          // en el chip resumen (inútil en mobile, sin hover para el title).
+          const compOos = !comp || comp.outOfStock || comp.stock === 0;
+          const baseBg = compOos ? '#FEF2F2' : '';
+          const rowStyle = `display:flex;align-items:center;gap:8px;padding:5px 6px;margin:0 -6px;border-radius:6px;background:${baseBg};${compOos ? '' : 'border-bottom:1px solid var(--border-light);'}`;
+          const clickable = comp ? `onclick="_kitCompPopup(${comp.id},this)" style="${rowStyle}cursor:pointer;transition:background .15s" onmouseenter="this.style.background='var(--gold-light)'" onmouseleave="this.style.background='${baseBg}'"` : `style="${rowStyle}"`;
+          const oosTag = compOos ? `<span style="font-size:.66rem;font-weight:700;color:#991B1B;background:#FEE2E2;padding:1px 7px;border-radius:50px;flex-shrink:0">Sin stock</span>` : '';
           return `<div ${clickable}>
             <img src="${_driveSz(comp?.image || DEFAULT_IMG, 80)}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0;background:#F0EBE3" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
-            <span style="flex:1;font-size:.82rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${comp?.name || item.name}</span>
+            <span style="flex:1;font-size:.82rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${_esc(comp?.name || item.name)}</span>
+            ${oosTag}
             <span style="font-size:.75rem;color:var(--muted);font-weight:600;flex-shrink:0">×${item.qty}</span>
           </div>`;
         }).join('');

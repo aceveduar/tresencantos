@@ -1041,7 +1041,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .view-btn{width:34px;height:34px;border-radius:7px}
 
   /* Bulk bar — 2 filas: ✕/contador arriba, acciones abajo en todo el ancho */
-  .bulk-bar{top:64px;padding:8px 12px;border-radius:0;flex-wrap:wrap;row-gap:8px}
+  .bulk-bar{top:64px;padding:8px 12px;border-radius:var(--r);flex-wrap:wrap;row-gap:8px}
   .bulk-bar-scroll-wrap{flex-basis:100%}
   .bulk-bar-scroll{flex-wrap:nowrap;overflow-x:auto;gap:6px;scrollbar-width:none}
   .bulk-bar-scroll::-webkit-scrollbar{display:none}

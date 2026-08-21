@@ -423,8 +423,12 @@ function stockChip(p, editable = false) {
     const ki = _kitInfo(p);
     if (ki?.empty) return `<span class="stock-chip stock-sold" style="cursor:default">${AR_ICO_GIFT(13)}Sin componentes</span>`;
     if (ki?.stock === 0) {
-      const lbl = ki.blocker ? (ki.blocker.length > 14 ? ki.blocker.slice(0, 13) + '…' : ki.blocker) : '?';
-      return `<span class="stock-chip stock-sold" style="cursor:default" title="Falta: ${ki.blocker ?? 'componente agotado'}">${AR_ICO_GIFT(13)}Falta: ${lbl}</span>`;
+      // El nombre del componente faltante no cabe sin truncarlo a media
+      // palabra -- y en mobile el atributo title (única forma de leerlo
+      // completo) no se dispara con el dedo. En vez de eso: etiqueta corta
+      // y completa siempre, toca para ver exactamente cuál falta en el QV
+      // (que ya resalta el componente agotado en la lista "Incluye").
+      return `<span class="stock-chip stock-sold" onclick="event.stopPropagation();openQV(${p.id})" ontouchstart="event.stopPropagation()" title="Falta: ${_esc(ki.blocker ?? 'componente agotado')} — toca para ver detalle" style="cursor:pointer">${AR_ICO_GIFT(13)}Reabastecer</span>`;
     }
     const n = ki?.stock ?? 0;
     return `<span class="stock-chip stock-ok" style="cursor:default">${AR_ICO_GIFT(13)}${n} kit${n !== 1 ? 's' : ''}</span>`;
