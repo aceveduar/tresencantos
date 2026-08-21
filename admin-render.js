@@ -367,7 +367,7 @@ function adminCard(p, editable = false) {
     <input type="checkbox" class="ac-check row-check"
            ${sel?'checked':''} onchange="toggleRowSelect(${p.id},this.checked)">
     ${flagDotAC}
-    <button class="ac-star toggle-featured" onclick="toggleFeatured(${p.id})"
+    <button class="ac-star toggle-featured${p.featured ? ' feat-active' : ''}" onclick="toggleFeatured(${p.id})"
             title="${p.featured?'Quitar destacado':'Destacar'}">
       ${_arStar(p.featured, 15)}
     </button>
@@ -661,7 +661,7 @@ function editCategoryInline(e, id) {
 function desktopRow(p) {
   const fallback = DEFAULT_IMG;
   const oos = Array.isArray(p.kitItems) ? false : (p.outOfStock || p.stock === 0);
-  const featStar   = `<span onclick="toggleFeatured(${p.id})" class="toggle-featured" title="${p.featured ? 'Quitar destacado' : 'Destacar'}">${_arStar(p.featured, 14)}</span>`;
+  const featStar   = `<span onclick="toggleFeatured(${p.id})" class="toggle-featured${p.featured ? ' feat-active' : ''}" title="${p.featured ? 'Quitar destacado' : 'Destacar'}">${_arStar(p.featured, 14)}</span>`;
   const catColor   = getCatColor(p.category);
   const catDot     = `<span class="cat-dot" style="background:${catColor}"></span>`;
   const flagDataDR = _flagItem(p.id);
