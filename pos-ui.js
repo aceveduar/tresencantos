@@ -661,8 +661,13 @@ function openAptDetail(id) {
     const canceladoFecha = s.cancelled_at
       ? ` · ${_posFormatTimestamp(s.cancelled_at, {day:'numeric',month:'short'})}`
       : '';
+    // Solo quien administra Configuración puede ocultar una prueba de
+    // Historial/Reportes/Corte -- ver markSaleAsTest (pos-apartados.js).
+    const testBtn = canManageSettings()
+      ? `<button type="button" class="btn-edit-apt" onclick="markSaleAsTest(${id},'${_esc(nombre).replace(/'/g,"\\'")}')" aria-label="Marcar como prueba" title="Marcar como prueba — se oculta de Historial/Reportes/Corte">🧪</button>`
+      : '';
     document.getElementById('adm-footer').innerHTML =
-      `<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--muted)">✕ Cancelado${canceladoFecha}</span>`;
+      `<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--muted)">✕ Cancelado${canceladoFecha}</span>${testBtn}`;
     const modal = document.getElementById('apt-detail-modal');
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');

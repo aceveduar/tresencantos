@@ -49,6 +49,11 @@ function canApplyDiscount() {
   if (up && 'canApplyDiscount' in up) return up.canApplyDiscount;
   const r = getPosRole(); return r === 'superadmin' || r === 'encargado' || r === 'duena';
 }
+function canManageSettings() {
+  const up = _getMyPermsCached();
+  if (up && 'canManageSettings' in up) return up.canManageSettings;
+  return getPosRole() === 'superadmin';
+}
 
 let _cancelAptCtx = null;
 

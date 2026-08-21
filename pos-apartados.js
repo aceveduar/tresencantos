@@ -523,6 +523,23 @@ async function loadApartados() {
 // botones. Sí reutiliza el mismo acordeón .apartado-item de Activos/Liquidados
 // (en vez de un modal aparte) para que tocar una tarjeta se comporte igual en
 // las 3 pestañas del panel mobile.
+// Único camino para tocar sales.is_test -- solo se ofrece desde la ficha de
+// un apartado ya cancelado (openAptDetail, pos-ui.js), y solo a quien puede
+// administrar Configuración. Pide confirmación porque oculta una venta/
+// apartado real de Historial/Reportes/Corte -- sin borrarlo, pero no es un
+// toggle trivial.
+async function markSaleAsTest(id, nombre) {
+  if (!confirm(`¿Marcar "${nombre || 'este apartado'}" como prueba?\n\nDejará de aparecer en Historial, Reportes y Corte de caja (el registro no se borra).`)) return;
+  const r = await _sharedRpc('te_set_sale_test_flag', { p_sale_id: id, p_is_test: true });
+  if (!r.ok || !r.data?.ok) {
+    toast(r.data?.message || 'No se pudo marcar como prueba', 'error');
+    return;
+  }
+  toast('Marcado como prueba ✓', 'success');
+  closeAptDetail();
+  await _refreshPosFinancialState();
+}
+
 function _renderApartadoCanceladosCards(data) {
   const ocList  = document.getElementById('apt-offcanvas-list');
   const ocTitle = document.getElementById('apt-oc-title');
