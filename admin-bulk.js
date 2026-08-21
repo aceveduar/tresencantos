@@ -109,6 +109,26 @@ function closeBulkCatPicker() {
   document.body.style.overflow = '';
 }
 
+function openBulkMoreActions() {
+  if (!selectedIds.size) return;
+  document.getElementById('bulk-more-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeBulkMoreActions() {
+  document.getElementById('bulk-more-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* Oculta el indicador "›" de .bulk-bar-scroll-wrap cuando ya no hay más botones a la derecha */
+function _bulkBarScroll() {
+  const el = document.getElementById('bulk-bar-scroll');
+  const wrap = document.getElementById('bulk-bar-scroll-wrap');
+  if (!el || !wrap) return;
+  const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
+  wrap.classList.toggle('at-end', atEnd);
+}
+
 function _bcpFilter(q) {
   const term = (q || '').toLowerCase();
   const roots = categories.filter(c => !c.parent);

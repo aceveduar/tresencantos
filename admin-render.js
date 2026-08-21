@@ -901,6 +901,7 @@ function updateBulkBar() {
     bar.style.display = 'flex';
     countEl.textContent = `${selectedIds.size} seleccionado${selectedIds.size !== 1 ? 's' : ''}`;
     if (compareBtn) compareBtn.style.display = selectedIds.size === 2 ? '' : 'none';
+    _bulkBarScroll();
   } else {
     bar.style.display = 'none';
   }
