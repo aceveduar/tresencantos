@@ -143,7 +143,7 @@
     { id: 'staff-access-2026-08', text: '🔒 El acceso a Caja e Inventario cambió de lugar — ahora está arriba, junto al carrito, en la Tienda.', until: '2026-08-31' },
     { id: 'por-revisar-2026-08',  text: '🚩 Revisen los productos marcados "Por revisar" en Inventario — usen el chip de filtro para verlos.', until: '2026-08-31' },
     { id: 'edit-apt-due-date-2026-09', text: '📅 Al editar un apartado ahora puedes ver y ajustar la fecha límite de pago — antes no aparecía ahí.', until: '2026-09-22' },
-    { id: 'resend-receipt-2026-09', text: '✉️ En Apartados, junto a cada pago hay un sobre para reenviar ese comprobante por WhatsApp — úsalo si la clienta dice que no le llegó.', until: '2026-09-22' },
+    { id: 'resend-receipt-2026-09b', text: '➤ En Apartados, junto a cada pago hay un ícono de enviar (flecha) para reenviar ese comprobante por WhatsApp — úsalo si la clienta dice que no le llegó.', until: '2026-09-22' },
     { id: 'edit-apt-phone-2026-09', text: '📱 Al editar un apartado ahora puedes agregar o corregir el teléfono del cliente — así se puede enviar el comprobante aunque no se haya capturado al crearlo.', until: '2026-09-22' },
   ];
 
