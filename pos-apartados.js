@@ -631,12 +631,23 @@ function _renderApartadoCanceladosCards(data) {
     const historyWarning = s.payment_history_error
       ? `<div style="font-size:.72rem;color:var(--red);padding:6px 0">${_uiIcoWarn()} Historial incompleto; recarga para consultar el libro de pagos.</div>`
       : '';
+    // El botón ✉️ "Reenviar comprobante" solo existía en openAptDetail() (el
+    // panel de detalle que abre la vista de escritorio, apt-page-list →
+    // _renderAptPageCards/_renderAptPageCanceladosCards). El offcanvas de
+    // mobile (este render) nunca lo tuvo -- por eso "en desktop siempre
+    // aparece y en mobile no aparece". Mismo patrón que openAptDetail:
+    // resendReceipt() para pagos del ledger (id real), resendLegacyAbono()
+    // para abonos legado sin id.
     const abonosHTML = historyWarning + (abonos.length ? `
 <div class="apt-abonos-section-inline">
   <div class="adm-section-title" style="font-size:.65rem;margin-bottom:4px">Pagos realizados</div>
-  ${abonos.map(a => {
+  ${abonos.map((a, idx) => {
     const meta = _apartadoPaymentMeta(a);
-    return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${meta.amount < 0 ? '−' : ''}$${Math.abs(meta.amount).toLocaleString('es-MX')}</span></div>`;
+    const amountLabel = `${meta.amount < 0 ? '−' : ''}$${Math.abs(meta.amount).toLocaleString('es-MX')}`;
+    const resendBtn = a.id != null
+      ? `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendReceipt('${a.id}')" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`
+      : `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendLegacyAbono(${s.id},${idx})" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`;
+    return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span style="display:flex;align-items:center;gap:2px"><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${amountLabel}</span>${resendBtn}</span></div>`;
   }).join('')}
 </div>` : '');
 
@@ -728,12 +739,23 @@ function _renderApartadoCards(data, isLiquidado) {
     const historyWarning = s.payment_history_error
       ? `<div style="font-size:.72rem;color:var(--red);padding:6px 0">${_uiIcoWarn()} Historial incompleto; recarga para consultar el libro de pagos.</div>`
       : '';
+    // El botón ✉️ "Reenviar comprobante" solo existía en openAptDetail() (el
+    // panel de detalle que abre la vista de escritorio, apt-page-list →
+    // _renderAptPageCards/_renderAptPageCanceladosCards). El offcanvas de
+    // mobile (este render) nunca lo tuvo -- por eso "en desktop siempre
+    // aparece y en mobile no aparece". Mismo patrón que openAptDetail:
+    // resendReceipt() para pagos del ledger (id real), resendLegacyAbono()
+    // para abonos legado sin id.
     const abonosHTML = historyWarning + (abonos.length ? `
 <div class="apt-abonos-section-inline">
   <div class="adm-section-title" style="font-size:.65rem;margin-bottom:4px">Pagos realizados</div>
-  ${abonos.map(a => {
+  ${abonos.map((a, idx) => {
     const meta = _apartadoPaymentMeta(a);
-    return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${meta.amount < 0 ? '−' : ''}$${Math.abs(meta.amount).toLocaleString('es-MX')}</span></div>`;
+    const amountLabel = `${meta.amount < 0 ? '−' : ''}$${Math.abs(meta.amount).toLocaleString('es-MX')}`;
+    const resendBtn = a.id != null
+      ? `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendReceipt('${a.id}')" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`
+      : `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendLegacyAbono(${s.id},${idx})" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`;
+    return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span style="display:flex;align-items:center;gap:2px"><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${amountLabel}</span>${resendBtn}</span></div>`;
   }).join('')}
 </div>` : '');
 
