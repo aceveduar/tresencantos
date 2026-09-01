@@ -43,7 +43,7 @@ async function cobrar() {
   _cobrandoAhora = true;
   const isApartado = document.getElementById('pos-is-apartado')?.checked;
   const customerName = document.getElementById(isApartado ? 'pos-apt-customer' : 'pos-customer')?.value.trim() || '';
-  const phone        = document.getElementById('pos-phone')?.value.trim() || '';
+  const phone        = document.getElementById(isApartado ? 'pos-phone' : 'pos-customer-phone')?.value.trim() || '';
   const customer     = customerName + (phone ? ` · 📱 ${phone}` : '');
   const note       = document.getElementById('pos-note')?.value.trim() || '';
   const disc       = getDiscount();
@@ -112,6 +112,10 @@ async function cobrar() {
                        : null
   };
 
+  // Vincular/crear el cliente por teléfono antes de cobrar — nunca bloquea:
+  // si falla, la venta sigue igual que hoy, solo sin customer_id.
+  const customerId = customerName ? await _getOrCreateCustomerId(customerName, phone) : null;
+
   // Una sola llamada idempotente y atómica: valida demanda agregada, guarda
   // snapshot de kits, registra el pago y descuenta stock en una transacción.
   const saleFingerprint = JSON.stringify({ items, total, disc, payMethod, note, isApartado, paidAmount, customer, dueDate: saleData.due_date });
@@ -129,7 +133,8 @@ async function cobrar() {
       p_paid_amount:     saleData.paid_amount ?? null,
       p_customer:        saleData.customer || null,
       p_due_date:        saleData.due_date || null,
-      p_override_tickets: _collectOverrideTickets(['canOverridePrice', 'canApplyDiscount'])
+      p_override_tickets: _collectOverrideTickets(['canOverridePrice', 'canApplyDiscount']),
+      p_customer_id:     customerId
     }
   });
   if (!rpcResult.ok) {

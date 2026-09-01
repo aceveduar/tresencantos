@@ -76,6 +76,14 @@ async function _fetchAll(path, pageSize = 1000) {
 const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const _driveSz = (url, w) => (url && url.includes('drive.google.com')) ? url.replace(/sz=w\d+/, `sz=w${w}`) : (url || '');
 
+const _myEmail = (() => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)||'{}')?.user?.email||''; } catch { return ''; } })();
+function logActivity(action, summary, meta = null) {
+  api('activity_log', {
+    method: 'POST',
+    body: JSON.stringify({ user_email: _myEmail, action, summary, meta })
+  }).catch(() => {});
+}
+
 // Los reportes pertenecen al calendario operativo de la tienda, no a la zona
 // configurada en el dispositivo desde el que se consultan.
 const _REPORT_TIME_ZONE = 'America/Mexico_City';
@@ -220,6 +228,9 @@ let prevSalesLoaded = false;
 let productsLoaded = false;
 let todaySummaryLoaded = false;
 let apartadosPendientesLoaded = false;
+let _customers = [];
+let _customerSales = [];
+let clientesLoaded = false;
 let aptNewCount = 0;
 let aptNewLoaded = false;
 let prevAptNewCount = 0;
@@ -698,6 +709,7 @@ function renderAll() {
   renderExpiringProducts();
   renderRentabilidad();
   renderVendedores();
+  renderTopClientes();
   renderCalendar();
   renderWeekdayChart();
 }
@@ -1666,6 +1678,158 @@ async function loadApartadosPendientes() {
   }).join('');
 }
 
+/* ── CLIENTES FRECUENTES — ranking histórico (no por período), mismo patrón
+   de fetch propio que Apartados pendientes. Solo cuenta ventas/apartados ya
+   vinculados a un customer_id (customers es aditivo: ventas viejas sin
+   teléfono capturado se quedan fuera hasta que esa clienta vuelva a comprar). ── */
+async function loadClientesReport() {
+  const [custR, salesR] = await Promise.all([
+    _fetchAll(`customers?select=id,name,phone,notes,created_at&order=created_at.desc`),
+    _fetchAll(`sales?customer_id=not.is.null&status=neq.cancelado&is_test=eq.false&select=id,customer_id,total,paid_amount,created_at,origin_type,status&order=created_at.desc`)
+  ]);
+  clientesLoaded = custR.ok && salesR.ok;
+  _customers = custR.ok ? (custR.data || []) : [];
+  _customerSales = salesR.ok ? (salesR.data || []) : [];
+}
+
+function _clienteStats(customerId) {
+  let total = 0, count = 0, last = null;
+  _customerSales.forEach(s => {
+    if (s.customer_id !== customerId) return;
+    // Un apartado aún activo solo ha "gastado" lo que lleva pagado, no el
+    // total del pedido — solo liquidado/venta cuentan el total completo.
+    total += s.status === 'activo' ? (parseFloat(s.paid_amount) || 0) : (parseFloat(s.total) || 0);
+    count++;
+    if (!last || new Date(s.created_at) > new Date(last)) last = s.created_at;
+  });
+  return { total, count, last };
+}
+
+function renderTopClientes() {
+  const card  = document.getElementById('clientes-card');
+  const body  = document.getElementById('clientes-body');
+  const label = document.getElementById('clientes-label');
+  if (!card || !body) return;
+  if (!clientesLoaded) {
+    label.textContent = 'No disponible';
+    body.innerHTML = '<p class="no-data">No disponible</p>';
+    return;
+  }
+
+  const withStats = _customers
+    .map(c => ({ ...c, ..._clienteStats(c.id) }))
+    .filter(c => c.count > 0);
+
+  const q = (document.getElementById('clientes-search')?.value || '').trim().toLowerCase();
+  const qDigits = q.replace(/\D/g, '');
+  let list = withStats;
+  if (q) {
+    list = list.filter(c =>
+      (c.name || '').toLowerCase().includes(q) ||
+      (qDigits && (c.phone || '').includes(qDigits))
+    );
+  }
+  list.sort((a, b) => b.total - a.total);
+
+  label.textContent = `${withStats.length} con compras`;
+
+  if (!list.length) {
+    body.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted);font-size:.84rem">${q ? 'Sin resultados' : 'Aún no hay clientas vinculadas — se llena con las próximas ventas'}</div>`;
+    return;
+  }
+
+  const top = list.slice(0, 10);
+  const maxTotal = Math.max(1, ...top.map(c => c.total));
+  body.innerHTML = top.map(c => {
+    const pct = Math.round(c.total / maxTotal * 100);
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openClienteProfile(${c.id})">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:.84rem;font-weight:600">${_esc(c.name)}</span>
+        <span style="font-weight:700;font-size:.88rem">$${c.total.toLocaleString('es-MX')}</span>
+      </div>
+      <div style="background:var(--border);border-radius:50px;height:5px;overflow:hidden;margin-bottom:4px">
+        <div style="width:${pct}%;height:100%;background:var(--gold);border-radius:50px"></div>
+      </div>
+      <div style="font-size:.7rem;color:var(--muted)">${c.count} compra${c.count!==1?'s':''}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── PERFIL DE CLIENTE — popup solo texto (sin imágenes, regla del proyecto
+   para Reportes), mismo patrón que _actPopup() en activity.js. ── */
+function openClienteProfile(id) {
+  const c = _customers.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('cliente-pop')?.remove();
+
+  const stats = _clienteStats(id);
+  const historial = _customerSales
+    .filter(s => s.customer_id === id)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const clienteDesde = _mxDateLabel(c.created_at, { day:'numeric', month:'short', year:'numeric' });
+  const digits = (c.phone || '').replace(/\D/g, '');
+  const waLink = digits ? `https://wa.me/52${digits}` : '';
+
+  const rowsHtml = historial.map(s => {
+    const fecha = _mxDateLabel(s.created_at, { day:'numeric', month:'short', year:'numeric' });
+    const tipo  = s.origin_type === 'apartado' ? '📌 Apartado' : '🛍️ Venta';
+    const estadoTxt = s.status === 'activo' ? ' · activo' : '';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:.8rem">
+      <span style="color:var(--muted)">${_esc(fecha)} · ${tipo}${estadoTxt}</span>
+      <span style="font-weight:700">$${(parseFloat(s.total)||0).toLocaleString('es-MX')}</span>
+    </div>`;
+  }).join('') || '<p class="no-data" style="padding:8px 0">Sin compras registradas</p>';
+
+  const pop = document.createElement('div');
+  pop.id = 'cliente-pop';
+  pop.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);animation:ap-in .15s ease';
+  pop.innerHTML = `
+    <style>@keyframes ap-in{from{opacity:0}to{opacity:1}}</style>
+    <div onclick="event.stopPropagation()" style="background:#fff;border-radius:18px;padding:18px;max-width:340px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 12px 48px rgba(0,0,0,.28);position:relative">
+      <button onclick="document.getElementById('cliente-pop').remove()" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:1.1rem;cursor:pointer;color:#8A7564;line-height:1">✕</button>
+      <div style="font-size:1.05rem;font-weight:700;margin-bottom:2px;padding-right:24px">${_esc(c.name)}</div>
+      ${digits ? `<a href="${waLink}" target="_blank" rel="noopener" style="font-size:.8rem;color:var(--gold-dark);text-decoration:none">📱 ${_esc(c.phone)}</a>` : '<div style="font-size:.8rem;color:var(--muted)">Sin teléfono</div>'}
+      <div style="display:flex;gap:8px;margin:14px 0">
+        <div style="flex:1;padding:10px;background:#FFF8EE;border:1px solid #EAE0D4;border-radius:10px;text-align:center">
+          <div style="font-size:1.1rem;font-weight:700;font-family:'Playfair Display',serif">$${stats.total.toLocaleString('es-MX')}</div>
+          <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Total gastado</div>
+        </div>
+        <div style="flex:1;padding:10px;background:#FFF8EE;border:1px solid #EAE0D4;border-radius:10px;text-align:center">
+          <div style="font-size:1.1rem;font-weight:700;font-family:'Playfair Display',serif">${stats.count}</div>
+          <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Compras</div>
+        </div>
+      </div>
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:12px">Cliente desde ${clienteDesde}</div>
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:4px">Historial</div>
+      <div style="max-height:180px;overflow-y:auto;margin-bottom:14px">${rowsHtml}</div>
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:4px">Notas</div>
+      <textarea id="cliente-notes-input" rows="2" placeholder="Preferencias, tallas, alergias…" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;outline:none;font-family:inherit;resize:vertical;box-sizing:border-box">${_esc(c.notes || '')}</textarea>
+      <button onclick="_saveClienteNotes(${id})" style="width:100%;margin-top:8px;background:var(--charcoal);color:#fff;padding:9px;border-radius:8px;border:none;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">Guardar nota</button>
+    </div>`;
+  pop.addEventListener('click', () => pop.remove());
+  document.body.appendChild(pop);
+}
+
+async function _saveClienteNotes(id) {
+  const btn = document.querySelector(`#cliente-pop button[onclick="_saveClienteNotes(${id})"]`);
+  const val = document.getElementById('cliente-notes-input')?.value.trim() || '';
+  const c = _customers.find(x => x.id === id);
+  if (!c) return;
+  const r = await api(`customers?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ notes: val || null, updated_at: new Date().toISOString() })
+  });
+  if (r.ok) {
+    c.notes = val;
+    logActivity('cliente_editado', `Notas actualizadas para ${c.name}`, { id, notes: val });
+    document.getElementById('cliente-pop')?.remove();
+  } else if (btn) {
+    btn.textContent = 'No se pudo guardar — intenta de nuevo';
+    btn.style.background = 'var(--red)';
+  }
+}
+
 /* ── INIT ── */
 function sendDailySummaryWA() {
   if (!todaySummaryLoaded) {
@@ -1893,6 +2057,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadSales(initialMode, initialOffset, initialGeneration),
         loadPreviousSales(initialMode, initialOffset, initialGeneration),
         loadApartadosPendientes(),
+        loadClientesReport(),
         loadNameMap(),
         loadTodaySales(initialGeneration),
         loadCategories()
@@ -1912,6 +2077,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     todayPaymentsLoaded = false;
     todaySummaryLoaded = false;
     apartadosPendientesLoaded = false;
+    clientesLoaded = false;
     renderAll();
     const aptLabel = document.getElementById('apt-summary-label');
     const aptBody = document.getElementById('apt-pending-body');

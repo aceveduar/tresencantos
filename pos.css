@@ -532,7 +532,11 @@ button,a{touch-action:manipulation}
 .note-input-wrap{position:relative;margin-bottom:5px}
 #pos-note,#pos-customer{width:100%;padding:6px 32px 6px 10px;border:1.5px solid var(--gold);border-radius:7px;font-size:.82rem;outline:none;font-family:inherit;color:var(--charcoal)}
 #pos-note:focus,#pos-customer:focus{border-color:var(--gold-dark)}
+#pos-customer-phone{width:100%;padding:6px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:.82rem;outline:none;font-family:inherit;color:var(--charcoal)}
+#pos-customer-phone:focus{border-color:var(--gold)}
 .note-clear-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#B5A696;font-size:.9rem;padding:2px 4px;line-height:1;touch-action:manipulation}
+.cust-hint{width:100%;font-size:.74rem;color:var(--gold-dark);margin:0 0 6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cust-hint button{font-size:.72rem;font-weight:600;color:var(--gold-dark);background:none;border:none;text-decoration:underline;text-underline-offset:2px;cursor:pointer;font-family:inherit;padding:2px}
 .apartado-group{transition:background .15s,border-color .15s;border:1px solid transparent;border-radius:10px;padding:2px 0;margin-bottom:2px}
 .apartado-group.active{background:#FFFBEB;border-color:#FDE68A;padding:8px 10px;margin-bottom:8px}
 .apartado-toggle-label{display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer;padding:9px 12px;color:var(--charcoal);font-weight:600;background:#FBF6EC;border:1.5px solid var(--border);border-radius:8px;margin-bottom:5px;transition:.15s}

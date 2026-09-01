@@ -233,6 +233,8 @@ const ACTION_CFG = {
   configuracion_editada: { type:'sistema', badge:'editado',   icon:_actIcoEdit(),  label:'Configuración' },
   permiso_autorizado:    { type:'sistema', badge:'editado',   icon:_actIcoCheck(), label:'PIN autorizado' },
   override_fallido:      { type:'sistema', badge:'eliminado', icon:_actIcoWarn(),  label:'PIN fallido' },
+  cliente_creado:        { type:'sistema', badge:'creado',    icon:_actIcoPlus(),  label:'Cliente nuevo' },
+  cliente_editado:       { type:'sistema', badge:'editado',   icon:_actIcoEdit(),  label:'Cliente editado' },
 };
 
 /* ── LOAD ── */

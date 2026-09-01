@@ -89,17 +89,59 @@ function autoCollapseNote() {
 function toggleCustomerField() {
   document.getElementById('customer-toggle-btn').style.display = 'none';
   document.getElementById('customer-input-wrap').style.display = '';
+  document.getElementById('customer-phone-wrap').style.display = '';
   setTimeout(() => document.getElementById('pos-customer').focus(), 50);
 }
 function clearCustomerField() {
   document.getElementById('pos-customer').value = '';
+  const phoneEl = document.getElementById('pos-customer-phone');
+  if (phoneEl) phoneEl.value = '';
+  const hintEl = document.getElementById('pos-customer-hint');
+  if (hintEl) hintEl.style.display = 'none';
   document.getElementById('customer-input-wrap').style.display = 'none';
+  document.getElementById('customer-phone-wrap').style.display = 'none';
   document.getElementById('customer-toggle-btn').style.display = '';
   updateAnticipoInfo();
 }
 function autoCollapseCustomer() {
   const val = document.getElementById('pos-customer')?.value.trim();
   if (!val) clearCustomerField();
+}
+
+/* ── CLIENTE — vínculo con la tabla customers (por teléfono) ──
+   No bloquea nunca el cobro: si la búsqueda/alta falla, la venta sigue sin
+   customer_id, igual que hoy. */
+async function _lookupCustomerByPhone(phoneId, nameId, hintId) {
+  const phoneEl = document.getElementById(phoneId);
+  const hintEl  = document.getElementById(hintId);
+  if (!phoneEl || !hintEl) return;
+  const digits = (phoneEl.value || '').replace(/\D/g, '');
+  if (digits.length !== 10) { hintEl.style.display = 'none'; return; }
+  try {
+    const r = await api(`customers?phone=eq.${digits}&select=id,name`);
+    if (!r.ok || !Array.isArray(r.data) || !r.data.length) { hintEl.style.display = 'none'; return; }
+    _showCustomerHint(hintEl, nameId, r.data[0]);
+  } catch { hintEl.style.display = 'none'; }
+}
+
+function _showCustomerHint(hintEl, nameId, customer) {
+  const nameEl = document.getElementById(nameId);
+  const showUseBtn = nameEl && !nameEl.value.trim();
+  const safeName = _esc(customer.name).replace(/'/g, "\\'");
+  hintEl.innerHTML = `👤 Cliente conocida: ${_esc(customer.name)}` +
+    (showUseBtn ? ` <button type="button" onclick="document.getElementById('${nameId}').value='${safeName}';document.getElementById('${hintEl.id}').style.display='none'">Usar nombre</button>` : '');
+  hintEl.style.display = '';
+}
+
+async function _getOrCreateCustomerId(name, phone) {
+  if (!name) return null;
+  try {
+    const r = await api('rpc/te_find_or_create_customer', {
+      method: 'POST',
+      body: JSON.stringify({ p_name: name, p_phone: phone || null })
+    });
+    return r.ok && r.data?.id ? r.data.id : null;
+  } catch { return null; }
 }
 
 /* ── APARTADO ── */
@@ -136,6 +178,8 @@ function toggleApartadoMode() {
     ['pos-apt-customer','pos-phone','pos-anticipo','pos-pendiente','pos-due-date'].forEach(id => {
       const el = document.getElementById(id); if (el) el.value = '';
     });
+    const aptHint = document.getElementById('pos-apt-customer-hint');
+    if (aptHint) aptHint.style.display = 'none';
     document.getElementById('cliente-normal-row').style.display = '';
     document.querySelectorAll('.anticipo-quick button').forEach(b => b.classList.remove('active-cash'));
     const hint = document.getElementById('cobrar-hint');

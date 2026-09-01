@@ -860,6 +860,12 @@ function _getUserDisplay() {
 
 async function showApp() {
   if (!await requireAuth()) return;
+  // Cambiar de pantalla de inmediato -- requireAuth() ya resolvió sin red
+  // (sesión válida en localStorage). Antes esto esperaba _loadMyPerms()
+  // (llamada de red) para hacer el swap, dejando el login visible 1-2s de
+  // más en cada carga aunque la sesión ya fuera válida.
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
   const userPerms = await _loadMyPerms();
   try {
     const { name, initial } = _getUserDisplay();
@@ -868,8 +874,6 @@ async function showApp() {
     if (avatarEl) avatarEl.textContent = initial;
     if (nameEl)   nameEl.textContent   = name;
   } catch {}
-  document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('app-screen').style.display = 'block';
   // Aplicar la respuesta autoritativa antes de mostrar acciones restringidas.
   _applyUserPermsToAdmin(userPerms || _getMyPermsCached());
   _applyRoleUI();

@@ -217,6 +217,10 @@
           <input type="text" id="pos-customer" placeholder="Nombre del cliente" oninput="updateAnticipoInfo()" onblur="autoCollapseCustomer()">
           <button type="button" class="note-clear-btn" onclick="clearCustomerField()" title="Quitar cliente">✕</button>
         </div>
+        <div class="note-input-wrap" id="customer-phone-wrap" style="display:none">
+          <input type="tel" id="pos-customer-phone" placeholder="Teléfono (opcional)" maxlength="10" inputmode="numeric" onblur="_lookupCustomerByPhone('pos-customer-phone','pos-customer','pos-customer-hint')">
+        </div>
+        <p class="cust-hint" id="pos-customer-hint" style="display:none"></p>
       </div>
 
       </div>
@@ -308,7 +312,8 @@
     <label>Nombre del cliente <span style="color:var(--red)">*</span></label>
     <input type="text" id="pos-apt-customer" placeholder="Nombre del cliente" oninput="updateAnticipoInfo()" style="padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;outline:none;font-family:inherit;width:100%;margin-bottom:14px">
     <label><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Teléfono <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
-    <input type="tel" id="pos-phone" placeholder="Para enviar el comprobante por WhatsApp" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%;margin-bottom:14px">
+    <input type="tel" id="pos-phone" placeholder="Para enviar el comprobante por WhatsApp" onblur="_lookupCustomerByPhone('pos-phone','pos-apt-customer','pos-apt-customer-hint')" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%;margin-bottom:8px">
+    <p class="cust-hint" id="pos-apt-customer-hint" style="display:none;margin:-2px 0 14px"></p>
     <div class="cash-field">
       <label>Anticipo <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
       <input type="number" id="pos-anticipo" min="0" step="1" placeholder="0 = cobrar al entregar" oninput="updateAnticipoInfo()">
