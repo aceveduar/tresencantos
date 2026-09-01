@@ -340,6 +340,10 @@ async function _hydrateApartadoPayments(rows) {
       sale.payment_history = hydrated || [];
     }
     sale.payment_history_error = false;
+    // Mismo cache que usa Historial (pos-core.js) para "Reenviar comprobante"
+    // -- se llena aquí también para que el botón funcione desde el detalle
+    // de un apartado, no solo desde Historial.
+    (sale.payment_history || []).forEach(payment => { paymentsCache[payment.id] = { ...payment, sale }; });
   });
   return true;
 }

@@ -638,7 +638,12 @@ function openAptDetail(id) {
       ? _apartadoPaymentMeta(a)
       : { amount: parseFloat(a.amount) || 0, dateLabel: 'Histórico', method: a.method || 'sin registrar', icon: _uiIcoReceipt() };
     const amountLabel = `${meta.amount < 0 ? '−' : ''}$${Math.abs(meta.amount).toLocaleString('es-MX')}`;
-    return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${amountLabel}</span></div>`;
+    // Solo si viene del libro de pagos real (sale_payments.id) -- el formato
+    // legado sale.abonos no trae id y no está en paymentsCache.
+    const resendBtn = a.id != null
+      ? `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendReceipt('${a.id}')" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`
+      : '';
+    return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span style="display:flex;align-items:center;gap:2px"><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${amountLabel}</span>${resendBtn}</span></div>`;
   }).join('') : '';
 
   document.getElementById('adm-body').innerHTML = `
