@@ -97,8 +97,8 @@
   function _initOfflineBanner() {
     const banner = document.createElement('div');
     banner.id = 'offline-banner';
-    // Posicionar sobre la tab bar en Caja, al fondo en el resto
-    const hasPosTabBar = !!document.getElementById('pos-tab-bar');
+    // Posicionar sobre la tab bar en Caja mobile (≤640px, único breakpoint donde es visible), al fondo en el resto
+    const hasPosTabBar = !!document.getElementById('pos-tab-bar') && window.matchMedia('(max-width:640px)').matches;
     banner.style.bottom = hasPosTabBar ? '56px' : '0';
     document.body.appendChild(banner);
 
@@ -155,7 +155,7 @@
     const banner = document.createElement('div');
     banner.id = 'sys-notice';
     banner.dataset.id = notice.id;
-    const hasPosTabBar = !!document.getElementById('pos-tab-bar');
+    const hasPosTabBar = !!document.getElementById('pos-tab-bar') && window.matchMedia('(max-width:640px)').matches;
     banner.style.bottom = hasPosTabBar ? '56px' : '0';
     banner.innerHTML =
       `<span class="sn-text">${notice.text}</span>` +
