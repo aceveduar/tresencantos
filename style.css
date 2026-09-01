@@ -332,6 +332,13 @@ body.admin-bar-shown{scroll-padding-top:calc(134px + env(safe-area-inset-top))}
 }
 #wa-float.visible{opacity:1;transform:scale(1);pointer-events:auto}
 #wa-float:hover{box-shadow:0 6px 28px rgba(37,211,102,.6);transform:scale(1.08)}
+/* Solo mobile/tablet chico (≤768px, donde el nav colapsa a hamburguesa y el
+   botón "WhatsApp" del menú queda escondido) -- en desktop ese botón ya está
+   siempre visible en el header, así que el flotante sería un segundo acceso
+   redundante a lo mismo. */
+@media(min-width:769px){
+  #wa-float{display:none!important}
+}
 
 /* ── SOCIAL ── */
 .social-section{background:#fff;padding:60px 20px}
@@ -360,7 +367,7 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .footer-col ul a:hover{color:var(--gold)}
 .footer-bottom{max-width:1200px;margin:0 auto;padding-top:26px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:.78rem}
 .footer-bottom a{color:var(--gold);text-decoration:none}
-.admin-link{opacity:.18;font-size:1rem;color:inherit!important;transition:opacity .25s;margin-left:auto}
+.admin-link{opacity:.18;font-size:1rem;color:inherit!important;transition:opacity .25s;display:flex;align-items:center}
 .admin-link:hover{opacity:.55}
 
 /* Botón compartir en modal */
