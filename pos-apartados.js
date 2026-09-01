@@ -1118,12 +1118,15 @@ async function openEditApartado(id) {
     return;
   }
   _editAptCtx = { id, sale, items: (sale.items || []).map(i => ({ ...i })) };
-  const nombre = (sale.customer || '').split(' · 📱 ')[0] || 'Cliente';
+  const custParts = (sale.customer || '').split(' · 📱 ');
+  const nombre = custParts[0] || 'Cliente';
   document.getElementById('edit-apt-info').textContent = `${nombre} · Total $${parseFloat(sale.total||0).toLocaleString('es-MX')} MXN`;
   document.getElementById('edit-apt-search').value = '';
   document.getElementById('edit-apt-search-results').style.display = 'none';
   const dueEl = document.getElementById('edit-apt-due-date');
   if (dueEl) dueEl.value = sale.due_date || '';
+  const phoneEl = document.getElementById('edit-apt-phone');
+  if (phoneEl) phoneEl.value = custParts[1] || '';
   // Mostrar fila de anticipo si hay algo pagado
   const pagado = parseFloat(sale.paid_amount || 0);
   const pagadoRow = document.getElementById('edit-apt-pagado-row');
@@ -1351,18 +1354,29 @@ async function saveEditApt() {
   // Se conserva tal cual si no se toca -- nunca se recalcula sola solo
   // porque cambiaron los productos.
   const dueDate = document.getElementById('edit-apt-due-date')?.value || null;
+  // Teléfono: NULL = no tocar, '' = quitarlo, 10 dígitos = fijarlo/reemplazarlo.
+  // Solo se manda si de verdad cambió respecto al que ya tenía el apartado.
+  const phoneInput = (document.getElementById('edit-apt-phone')?.value || '').replace(/\D/g, '');
+  const originalPhone = (sale.customer || '').split(' · 📱 ')[1] || '';
+  let phoneParam = null;
+  if (phoneInput !== originalPhone) {
+    if (phoneInput === '') phoneParam = '';
+    else if (phoneInput.length === 10) phoneParam = phoneInput;
+    else { toast('El teléfono debe tener 10 dígitos, o déjalo vacío', 'error'); return; }
+  }
   const btn = document.getElementById('edit-apt-save-btn');
   btn.disabled = true; btn.textContent = 'Guardando…';
   const r = await posRpc('edit_apartado_atomic', {
     operation: 'apartado_edit',
     context: id,
-    fingerprint: `${id}:${sale.version ?? 0}:${JSON.stringify(items)}:${discount}:${dueDate}`,
+    fingerprint: `${id}:${sale.version ?? 0}:${JSON.stringify(items)}:${discount}:${dueDate}:${phoneParam}`,
     body: {
       p_sale_id: id,
       p_expected_version: sale.version ?? 0,
       p_items: items,
       p_discount: null,
       p_due_date: dueDate,
+      p_phone: phoneParam,
       p_override_tickets: _collectOverrideTickets(['canEditApartado', 'canOverridePrice'])
     }
   });

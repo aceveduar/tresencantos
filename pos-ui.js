@@ -633,16 +633,18 @@ function openAptDetail(id) {
   }
   summaryRows.push(`<div class="apt-sum-row apt-sum-total"><span>Total</span><span>$${total.toLocaleString('es-MX')}</span></div>`);
 
-  const abonosVisible = abonos.length ? abonos.map(a => {
+  const abonosVisible = abonos.length ? abonos.map((a, idx) => {
     const meta = typeof _apartadoPaymentMeta === 'function'
       ? _apartadoPaymentMeta(a)
       : { amount: parseFloat(a.amount) || 0, dateLabel: 'Histórico', method: a.method || 'sin registrar', icon: _uiIcoReceipt() };
     const amountLabel = `${meta.amount < 0 ? '−' : ''}$${Math.abs(meta.amount).toLocaleString('es-MX')}`;
-    // Solo si viene del libro de pagos real (sale_payments.id) -- el formato
-    // legado sale.abonos no trae id y no está en paymentsCache.
+    // Si viene del libro de pagos real (sale_payments.id) usa resendReceipt
+    // (paymentsCache); si es formato legado (sale.abonos, sin id) usa
+    // resendLegacyAbono, que arma el comprobante directo desde este renglón
+    // en vez de depender de un id que nunca existió.
     const resendBtn = a.id != null
       ? `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendReceipt('${a.id}')" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`
-      : '';
+      : `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendLegacyAbono(${id},${idx})" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`;
     return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span style="display:flex;align-items:center;gap:2px"><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${amountLabel}</span>${resendBtn}</span></div>`;
   }).join('') : '';
 
@@ -994,9 +996,38 @@ async function resendReceipt(paymentId) {
   const payment = paymentsCache[paymentId];
   const s = payment?.sale;
   if (!payment || !s) { toast('No se encontró ese movimiento', 'error'); return; }
+  await _sendApartadoOrSaleReceipt(payment, s, paymentId);
+}
 
+// Igual que resendReceipt pero para abonos del formato legado (sale.abonos,
+// de antes de la migración de Caja v2 del 2026-08-18) que nunca se
+// backfillearon a sale_payments -- sin fila en sale_payments no hay id, y sin
+// id el botón de reenviar ni siquiera aparecía (paymentsCache se indexa por
+// ese id). Se arma un "payment" sintético desde lo ya cargado en memoria en
+// vez de depender de paymentsCache.
+async function resendLegacyAbono(saleId, idx) {
+  const s = _apartadosData?.[saleId];
+  const abono = s?.abonos?.[idx];
+  if (!s || !abono) { toast('No se encontró ese movimiento', 'error'); return; }
+  const payment = {
+    id: null,
+    sale_id: saleId,
+    amount: abono.amount,
+    method: abono.method,
+    paid_at: abono.date || null,
+    kind: 'apartado_payment',
+    source: null,
+    // Lo legado no distingue anticipo/abono/liquidación por sí solo -- si el
+    // apartado ya quedó liquidado y este es el último abono registrado, es
+    // razonable asumir que fue el pago que lo liquidó.
+    __legacyLast: idx === (s.abonos.length - 1)
+  };
+  await _sendApartadoOrSaleReceipt(payment, s, null);
+}
+
+async function _sendApartadoOrSaleReceipt(payment, s, paymentId) {
   const isApt = s.origin_type === 'apartado' || (!s.origin_type && (s.type === 'apartado' || (s.abonos || []).length));
-  const isLiquidation = isApt && _isApartadoLiquidationPayment(payment, s);
+  const isLiquidation = isApt && (_isApartadoLiquidationPayment(payment, s) || (payment.__legacyLast && _isApartadoLiquidado(s)));
   const isCreated = payment.kind === 'apartado_created';
   const amount = Math.abs(parseFloat(payment.amount) || 0);
   const items = Array.isArray(s.items) ? s.items : [];
