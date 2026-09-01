@@ -1055,11 +1055,42 @@ async function resendReceipt(paymentId) {
     msg = `🛍 *Comprobante — Tres Encantos*\n━━━━━━━━━━━━━━\n${lines}\n━━━━━━━━━━━━━━\n*Total: $${total.toLocaleString('es-MX')} MXN* (${metodoTxt})\n📅 ${fechaTxt}\nFolio #${s.id}\n\n¡Gracias por tu compra! 💛`;
   }
 
-  window.open(telLimpio ? `https://wa.me/52${telLimpio}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  // Sin teléfono guardado, un wa.me sin número no sirve de mucho (no hay a
+  // quién mandárselo) -- mismo patrón interactivo que #ad-phone-row en el
+  // flujo en vivo: se captura aquí mismo, solo para este envío puntual.
+  if (!telLimpio) {
+    _resendPendingCtx = { msg, nombre, amount, saleId: s.id, paymentId, metodo: payment.method };
+    const input = document.getElementById('resend-phone-input');
+    if (input) input.value = '';
+    document.getElementById('resend-phone-overlay').style.display = 'flex';
+    return;
+  }
+
+  window.open(`https://wa.me/52${telLimpio}?text=${encodeURIComponent(msg)}`, '_blank');
   logActivity('comprobante_enviado',
     `Reenvió comprobante a ${nombre} — $${amount.toLocaleString('es-MX')}`,
     { id: s.id, payment_id: paymentId, nombre, monto: amount, metodo: payment.method, resend: true });
   toast('Comprobante reenviado ✓', 'success');
+}
+
+let _resendPendingCtx = null;
+
+function _closeResendPhonePrompt() {
+  document.getElementById('resend-phone-overlay').style.display = 'none';
+  _resendPendingCtx = null;
+}
+
+function _confirmResendPhone() {
+  const c = _resendPendingCtx;
+  if (!c) return;
+  const telLimpio = (document.getElementById('resend-phone-input')?.value || '').replace(/\D/g, '');
+  if (telLimpio.length !== 10) { toast('Ingresa un teléfono a 10 dígitos', 'error'); return; }
+  window.open(`https://wa.me/52${telLimpio}?text=${encodeURIComponent(c.msg)}`, '_blank');
+  logActivity('comprobante_enviado',
+    `Reenvió comprobante a ${c.nombre} — $${c.amount.toLocaleString('es-MX')}`,
+    { id: c.saleId, payment_id: c.paymentId, nombre: c.nombre, monto: c.amount, metodo: c.metodo, resend: true });
+  toast('Comprobante reenviado ✓', 'success');
+  _closeResendPhonePrompt();
 }
 
 async function deleteSale(id) {

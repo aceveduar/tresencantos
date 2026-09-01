@@ -482,6 +482,21 @@
   </div>
 </div>
 
+<!-- REENVIAR COMPROBANTE — captura de teléfono cuando el cliente no tiene uno guardado,
+     mismo patrón interactivo que #ad-phone-row en el flujo en vivo -->
+<div class="abonar-overlay" id="resend-phone-overlay" style="display:none" onclick="if(event.target===this)_closeResendPhonePrompt()">
+  <div class="abonar-modal" style="max-width:340px">
+    <h3>Falta el teléfono</h3>
+    <p class="apt-info-lbl">Este cliente no tiene teléfono guardado — captúralo para enviarle el comprobante directo</p>
+    <input type="tel" id="resend-phone-input" placeholder="10 dígitos" inputmode="numeric" maxlength="10"
+      style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:.9rem;outline:none;font-family:inherit;box-sizing:border-box;margin-top:10px">
+    <div class="abonar-footer" style="margin-top:16px">
+      <button class="btn-cancel" onclick="_closeResendPhonePrompt()">Cancelar</button>
+      <button class="btn-confirm" onclick="_confirmResendPhone()">Enviar</button>
+    </div>
+  </div>
+</div>
+
 <!-- CORTE DE CAJA MODAL -->
 <div class="history-backdrop" id="corte-backdrop" onclick="closeCorte()" style="display:none"></div>
 <div class="history-offcanvas" id="corte-offcanvas" style="max-width:420px">
