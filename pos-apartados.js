@@ -1074,6 +1074,8 @@ async function openEditApartado(id) {
   document.getElementById('edit-apt-info').textContent = `${nombre} · Total $${parseFloat(sale.total||0).toLocaleString('es-MX')} MXN`;
   document.getElementById('edit-apt-search').value = '';
   document.getElementById('edit-apt-search-results').style.display = 'none';
+  const dueEl = document.getElementById('edit-apt-due-date');
+  if (dueEl) dueEl.value = sale.due_date || '';
   // Mostrar fila de anticipo si hay algo pagado
   const pagado = parseFloat(sale.paid_amount || 0);
   const pagadoRow = document.getElementById('edit-apt-pagado-row');
@@ -1298,17 +1300,21 @@ async function saveEditApt() {
     toast(`El total no puede quedar debajo de los $${paid.toLocaleString('es-MX')} ya pagados. Registra primero un reembolso.`, 'error');
     return;
   }
+  // Se conserva tal cual si no se toca -- nunca se recalcula sola solo
+  // porque cambiaron los productos.
+  const dueDate = document.getElementById('edit-apt-due-date')?.value || null;
   const btn = document.getElementById('edit-apt-save-btn');
   btn.disabled = true; btn.textContent = 'Guardando…';
   const r = await posRpc('edit_apartado_atomic', {
     operation: 'apartado_edit',
     context: id,
-    fingerprint: `${id}:${sale.version ?? 0}:${JSON.stringify(items)}:${discount}`,
+    fingerprint: `${id}:${sale.version ?? 0}:${JSON.stringify(items)}:${discount}:${dueDate}`,
     body: {
       p_sale_id: id,
       p_expected_version: sale.version ?? 0,
       p_items: items,
       p_discount: null,
+      p_due_date: dueDate,
       p_override_tickets: _collectOverrideTickets(['canEditApartado', 'canOverridePrice'])
     }
   });
