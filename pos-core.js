@@ -140,6 +140,7 @@ let posCategories = [];
 let cart          = [];
 let salesStats    = {};
 let salesCache  = {};
+let paymentsCache = {}; // sale_payments.id → payment row (para reenviar comprobante desde Historial)
 let currentCat  = 'all';
 let payMethod   = 'efectivo';
 let discType    = 'fixed';

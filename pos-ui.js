@@ -14,6 +14,7 @@ const _uiIcoReceipt  = () => _uiIco('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0
 const _uiIcoWarn     = (px = 13) => _uiIco('<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>', px);
 const _uiIcoZap      = () => `<svg style="width:13px;height:13px;vertical-align:-2px;fill:currentColor;stroke:none" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`;
 const _uiIcoFlask    = (px = 13) => _uiIco('<path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/>', px);
+const _uiIcoSend     = (px = 13) => _uiIco('<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>', px);
 const _uiIcoWA       = () => `<svg width="18" height="18" fill="#fff" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.374 0 0 5.373 0 12c0 2.124.553 4.118 1.522 5.85L.057 23.499l5.772-1.513A11.94 11.94 0 0012 24c6.626 0 12-5.373 12-12S18.626 0 12 0z"/></svg>`;
 
 /* ── SWIPE TO CLOSE (offcanvas desde la derecha) ── */
@@ -779,7 +780,7 @@ let _historyLoadGeneration = 0;
 
 async function loadHistory() {
   const loadGeneration = ++_historyLoadGeneration;
-  const saleFields = 'id,total,created_at,items,payment_method,type,origin_type,status,customer,discount,note,paid_amount,abonos,seller_email,cancelled_at,version,is_test';
+  const saleFields = 'id,total,created_at,items,payment_method,type,origin_type,status,customer,discount,note,paid_amount,abonos,seller_email,cancelled_at,version,is_test,due_date';
   // "Movimientos recientes" es una vista acotada, no el ledger completo —
   // limit=50 evita traer toda la vida de la tienda en cada apertura.
   // Un apartado creado con $0 de anticipo no genera fila en sale_payments
@@ -793,10 +794,12 @@ async function loadHistory() {
   const el = document.getElementById('history-list');
   if (!result.ok) {
     salesCache = {};
+    paymentsCache = {};
     el.innerHTML = '<div class="history-empty">No se pudo cargar el historial.<br><button class="btn-outline" onclick="loadHistory()" style="margin-top:10px">Reintentar</button></div>';
     return;
   }
   salesCache = {};
+  paymentsCache = {};
   const rawMovements = (result.data || []).map(p => ({
     ...p,
     sale: Array.isArray(p.sale) ? p.sale[0] : p.sale
@@ -840,7 +843,7 @@ async function loadHistory() {
     return;
   }
   movements.sort((a, b) => new Date(b.paid_at || 0) - new Date(a.paid_at || 0));
-  movements.forEach(p => { salesCache[p.sale.id] = p.sale; });
+  movements.forEach(p => { salesCache[p.sale.id] = p.sale; paymentsCache[p.id] = p; });
 
   // Convertir fecha UTC → clave YYYY-MM-DD en horario de México
   const TZ = 'America/Mexico_City';
@@ -949,6 +952,11 @@ async function loadHistory() {
       const testBtn = canMarkTestData()
         ? `<button class="hi-del" style="color:var(--muted)" onclick="markSaleAsTest(${s.id},'${_esc((s.customer||'').split(' · 📱 ')[0] || `Venta #${s.id}`).replace(/'/g,"\\'")}')" title="Marcar como prueba" aria-label="Marcar como prueba">${_uiIcoFlask(13)}</button>`
         : '';
+      // Reenviar comprobante de este movimiento puntual -- antes solo se
+      // podía enviar en el momento justo después de cobrar (datos en
+      // memoria); ahora se reconstruye desde lo ya guardado en la BD, así
+      // que sirve sin importar cuánto tiempo haya pasado.
+      const resendBtn = `<button class="hi-del hi-send" onclick="event.stopPropagation();resendReceipt('${payment.id}')" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(13)}</button>`;
 
       return `
 <div class="hi-card">
@@ -956,6 +964,7 @@ async function loadHistory() {
     <span class="hi-time">${hora} · ${totalQty} art.</span>
     ${payBadge}
     <span class="hi-spacer"></span>
+    ${resendBtn}
     <span class="hi-total"${amount < 0 ? ' style="color:var(--red)"' : ''}>${displayTotal}</span>
     ${testBtn}
     ${canCancelThis ? `<button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar registro completo" aria-label="Cancelar registro completo">✕</button>` : ''}
@@ -969,6 +978,55 @@ async function loadHistory() {
   }).join('');
 
   el.innerHTML = html || '<div class="history-empty">Sin ventas completadas</div>';
+}
+
+// Reenvía el comprobante de un movimiento ya registrado, reconstruido desde
+// lo guardado en la BD (sale_payments + sales.items) en vez de depender del
+// contexto en memoria del momento del cobro (sendWhatsAppTicket/
+// sendPaymentReceipt) -- por eso sirve sin importar cuánto tiempo haya
+// pasado. Mismo estilo visual, formato más simple (sin fotos de producto).
+function resendReceipt(paymentId) {
+  const payment = paymentsCache[paymentId];
+  const s = payment?.sale;
+  if (!payment || !s) { toast('No se encontró ese movimiento', 'error'); return; }
+
+  const isApt = s.origin_type === 'apartado' || (!s.origin_type && (s.type === 'apartado' || (s.abonos || []).length));
+  const isLiquidation = isApt && _isApartadoLiquidationPayment(payment, s);
+  const isCreated = payment.kind === 'apartado_created';
+  const amount = Math.abs(parseFloat(payment.amount) || 0);
+  const items = Array.isArray(s.items) ? s.items : [];
+  const custParts = (s.customer || '').split(' · 📱 ');
+  const nombre = custParts[0] || 'Cliente';
+  const telLimpio = (custParts[1] || '').replace(/\D/g, '');
+  const fecha = payment.paid_at ? new Date(payment.paid_at) : new Date();
+  const fechaTxt = `${fecha.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })} a las ${fecha.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' })}`;
+  const metodoTxt = payment.method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo';
+  const total = parseFloat(s.total) || 0;
+  const pendiente = Math.max(0, total - (parseFloat(s.paid_amount) || 0));
+
+  let msg;
+  if (payment.kind === 'refund') {
+    msg = `↩️ *Comprobante de devolución — Tres Encantos*\n━━━━━━━━━━━━━━\n👤 ${nombre}\n💰 Devuelto: *$${amount.toLocaleString('es-MX')} MXN*\n📅 ${fechaTxt}\nFolio #${s.id}\n\nCualquier duda, con gusto te apoyamos. 💛`;
+  } else if (isApt && isLiquidation) {
+    msg = `✅ *Comprobante de pago — Tres Encantos*\n━━━━━━━━━━━━━━\n👤 ${nombre}\n💰 Pago recibido: *$${amount.toLocaleString('es-MX')} MXN* (${metodoTxt})\n📅 ${fechaTxt}\n✅ *Tu apartado quedó pagado por completo.*\nFolio #${s.id}\n\n¡Gracias por tu confianza! 💛`;
+  } else if (isApt) {
+    let dueLine = '';
+    if (s.due_date) {
+      const due = new Date(s.due_date + 'T00:00:00');
+      dueLine = `\n📅 Fecha límite: *${due.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}*`;
+    }
+    const label = isCreated ? 'Apartado nuevo' : 'Abono recibido';
+    msg = `📌 *Comprobante — Tres Encantos*\n━━━━━━━━━━━━━━\n👤 ${nombre}\n💰 ${label}: *$${amount.toLocaleString('es-MX')} MXN* (${metodoTxt})\n📅 ${fechaTxt}\n⏳ Pendiente: *$${pendiente.toLocaleString('es-MX')} MXN*${dueLine}\nFolio #${s.id}\n\n¡Gracias por tu confianza! 💛`;
+  } else {
+    const lines = items.map(i => `• ${i.name} x${i.qty || 1} — $${(i.subtotal ?? i.price * (i.qty || 1)).toLocaleString('es-MX')}`).join('\n');
+    msg = `🛍 *Comprobante — Tres Encantos*\n━━━━━━━━━━━━━━\n${lines}\n━━━━━━━━━━━━━━\n*Total: $${total.toLocaleString('es-MX')} MXN* (${metodoTxt})\n📅 ${fechaTxt}\nFolio #${s.id}\n\n¡Gracias por tu compra! 💛`;
+  }
+
+  window.open(telLimpio ? `https://wa.me/52${telLimpio}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  logActivity('comprobante_enviado',
+    `Reenvió comprobante a ${nombre} — $${amount.toLocaleString('es-MX')}`,
+    { id: s.id, payment_id: paymentId, nombre, monto: amount, metodo: payment.method, resend: true });
+  toast('Comprobante reenviado ✓', 'success');
 }
 
 async function deleteSale(id) {

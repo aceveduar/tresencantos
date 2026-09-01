@@ -288,6 +288,10 @@ button,a{touch-action:manipulation}
   font-size:.85rem;padding:4px 6px;border-radius:6px;transition:.15s;line-height:1;
 }
 .hi-del:hover{color:var(--red);background:#FEE2E2}
+/* Reenviar comprobante no es una acción destructiva -- no debe ponerse rojo
+   al hover como el resto de .hi-del (✕ cancelar, 🧪 marcar prueba). */
+.hi-del.hi-send{color:var(--muted)}
+.hi-del.hi-send:hover{color:var(--gold-dark);background:var(--gold-light)}
 
 /* Lista de artículos */
 .hi-items{padding:8px 12px}
