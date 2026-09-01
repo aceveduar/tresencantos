@@ -844,6 +844,48 @@ async function saveRevista() {
   toast('Revista guardada ✓', 'ok');
 }
 
+/* ── RESPALDO COMPLETO ──
+   Solo lectura — descarga una copia de las tablas críticas en un JSON. No es
+   un mecanismo de restauración: sales/sale_payments están bloqueadas contra
+   escritura directa a propósito (fase 2 del lockdown de Caja v2, ver
+   CLAUDE.md), así que "restaurar" esas tablas desde un archivo no es un
+   camino que este botón ofrezca ni deba ofrecer. Para recuperación real ante
+   un incidente, el mecanismo es el respaldo/point-in-time-recovery de
+   Supabase (Dashboard → Database → Backups), fuera del alcance del código. */
+async function exportFullBackup() {
+  const btn = document.getElementById('backup-full-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Exportando…'; }
+  const tables = [
+    ['products',      'products?select=*&order=id.asc'],
+    ['sales',         'sales?select=*&order=id.asc'],
+    ['sale_payments', 'sale_payments?select=*&order=id.asc'],
+    ['customers',     'customers?select=*&order=id.asc'],
+    ['activity_log',  'activity_log?select=*&order=id.asc'],
+    ['config',        'config?select=*']
+  ];
+  const result = {};
+  for (const [name, query] of tables) {
+    const r = await _posPaginatedFetch(query);
+    if (!r.ok) {
+      toast(`No se pudo exportar "${name}" — respaldo cancelado, ningún archivo se descargó`, 'err');
+      if (btn) { btn.disabled = false; btn.textContent = 'Exportar todo'; }
+      return;
+    }
+    result[name] = r.data || [];
+  }
+  const payload = { exported_at: new Date().toISOString(), ...result };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `tres-encantos-respaldo-completo-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  const counts = Object.fromEntries(Object.entries(result).map(([k, v]) => [k, v.length]));
+  const totalRows = Object.values(counts).reduce((s, n) => s + n, 0);
+  toast(`Respaldo completo generado — ${totalRows.toLocaleString('es-MX')} registros ✓`, 'ok');
+  logActivity('respaldo_generado', `Respaldo completo generado (${totalRows.toLocaleString('es-MX')} registros)`, counts);
+  if (btn) { btn.disabled = false; btn.textContent = 'Exportar todo'; }
+}
+
 /* ── EXPORT / IMPORT ── */
 async function exportProducts() {
   const r = await api('products?select=*&order=position.asc');

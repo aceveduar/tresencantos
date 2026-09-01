@@ -235,6 +235,7 @@ const ACTION_CFG = {
   override_fallido:      { type:'sistema', badge:'eliminado', icon:_actIcoWarn(),  label:'PIN fallido' },
   cliente_creado:        { type:'sistema', badge:'creado',    icon:_actIcoPlus(),  label:'Cliente nuevo' },
   cliente_editado:       { type:'sistema', badge:'editado',   icon:_actIcoEdit(),  label:'Cliente editado' },
+  respaldo_generado:     { type:'sistema', badge:'editado',   icon:_actIcoCheck(), label:'Respaldo generado' },
 };
 
 /* ── LOAD ── */
