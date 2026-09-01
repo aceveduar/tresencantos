@@ -990,7 +990,7 @@ async function loadHistory() {
 // contexto en memoria del momento del cobro (sendWhatsAppTicket/
 // sendPaymentReceipt) -- por eso sirve sin importar cuánto tiempo haya
 // pasado. Mismo estilo visual, formato más simple (sin fotos de producto).
-function resendReceipt(paymentId) {
+async function resendReceipt(paymentId) {
   const payment = paymentsCache[paymentId];
   const s = payment?.sale;
   if (!payment || !s) { toast('No se encontró ese movimiento', 'error'); return; }
@@ -1007,7 +1007,35 @@ function resendReceipt(paymentId) {
   const fechaTxt = `${fecha.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })} a las ${fecha.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' })}`;
   const metodoTxt = payment.method === 'transferencia' ? '📱 Transferencia' : '💵 Efectivo';
   const total = parseFloat(s.total) || 0;
-  const pendiente = Math.max(0, total - (parseFloat(s.paid_amount) || 0));
+
+  // El pendiente debe reflejar el saldo TAL COMO ERA el día de este pago, no
+  // el de hoy -- si ya hubo abonos después, mostrar el saldo actual haría
+  // ver que ese día se debía menos de lo real. Se recalcula sumando solo los
+  // pagos hasta esa fecha (inclusive), usando el historial ya cargado si
+  // viene del detalle del apartado, o consultándolo si viene de Historial.
+  let pendiente = Math.max(0, total - (parseFloat(s.paid_amount) || 0));
+  let isLatestPayment = true;
+  if (isApt && !isLiquidation && payment.kind !== 'refund') {
+    let history = Array.isArray(s.payment_history) ? s.payment_history : null;
+    if (!history) {
+      const r = await _posFetchAll(`sale_payments?sale_id=eq.${s.id}&select=amount,kind,paid_at&order=paid_at.asc`);
+      history = r.ok ? r.data : null;
+    }
+    if (Array.isArray(history) && history.length) {
+      const thisTime = fecha.getTime();
+      let cumPaid = 0;
+      history.forEach(p => {
+        const t = p.paid_at ? new Date(p.paid_at).getTime() : 0;
+        if (t > thisTime) { isLatestPayment = false; return; }
+        const amt = parseFloat(p.amount) || 0;
+        cumPaid += p.kind === 'refund' ? -Math.abs(amt) : amt;
+      });
+      pendiente = Math.max(0, total - cumPaid);
+    }
+  }
+  const historicoLine = !isLatestPayment
+    ? '\n_(Comprobante de un abono anterior — puede haber pagos más recientes)_'
+    : '';
 
   let msg;
   if (payment.kind === 'refund') {
@@ -1021,7 +1049,7 @@ function resendReceipt(paymentId) {
       dueLine = `\n📅 Fecha límite: *${due.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}*`;
     }
     const label = isCreated ? 'Apartado nuevo' : 'Abono recibido';
-    msg = `📌 *Comprobante — Tres Encantos*\n━━━━━━━━━━━━━━\n👤 ${nombre}\n💰 ${label}: *$${amount.toLocaleString('es-MX')} MXN* (${metodoTxt})\n📅 ${fechaTxt}\n⏳ Pendiente: *$${pendiente.toLocaleString('es-MX')} MXN*${dueLine}\nFolio #${s.id}\n\n¡Gracias por tu confianza! 💛`;
+    msg = `📌 *Comprobante — Tres Encantos*\n━━━━━━━━━━━━━━\n👤 ${nombre}\n💰 ${label}: *$${amount.toLocaleString('es-MX')} MXN* (${metodoTxt})\n📅 ${fechaTxt}\n⏳ Pendiente en esa fecha: *$${pendiente.toLocaleString('es-MX')} MXN*${dueLine}${historicoLine}\nFolio #${s.id}\n\n¡Gracias por tu confianza! 💛`;
   } else {
     const lines = items.map(i => `• ${i.name} x${i.qty || 1} — $${(i.subtotal ?? i.price * (i.qty || 1)).toLocaleString('es-MX')}`).join('\n');
     msg = `🛍 *Comprobante — Tres Encantos*\n━━━━━━━━━━━━━━\n${lines}\n━━━━━━━━━━━━━━\n*Total: $${total.toLocaleString('es-MX')} MXN* (${metodoTxt})\n📅 ${fechaTxt}\nFolio #${s.id}\n\n¡Gracias por tu compra! 💛`;
