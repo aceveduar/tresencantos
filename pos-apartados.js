@@ -480,11 +480,14 @@ async function loadApartados() {
     alertBtn.style.display = vencidos > 0 ? '' : 'none';
     alertCount.textContent = vencidos === 1 ? '1 vencido' : `${vencidos} vencidos`;
   }
-  // Banner prominente debajo del topbar
+  // Banner prominente debajo del topbar -- descartable por hoy (no para
+  // siempre: el número de vencidos cambia día a día y no debe dejar de
+  // avisar solo porque alguien lo cerró una vez).
   const banner = document.getElementById('apt-venc-banner');
   const bannerTxt = document.getElementById('apt-venc-banner-txt');
   if (banner && bannerTxt) {
-    if (vencidos > 0) {
+    const dismissedToday = localStorage.getItem(_posDailyStorageKey('apt_venc_dismissed'));
+    if (vencidos > 0 && !dismissedToday) {
       bannerTxt.textContent = `${vencidos} apartado${vencidos>1?'s':''} vencido${vencidos>1?'s':''} — requieren atención`;
       banner.style.display = 'flex';
     } else {
@@ -521,6 +524,15 @@ async function loadApartados() {
       _renderAptPageCards(rows, false);
     }
   }
+}
+
+// Cierra el banner de vencidos solo por hoy -- vuelve mañana (o antes, si el
+// conteo cambia y se vuelve a renderizar) para no dejar de avisar de dinero
+// realmente pendiente solo porque alguien lo cerró una vez.
+function dismissAptVencBannerToday() {
+  localStorage.setItem(_posDailyStorageKey('apt_venc_dismissed'), '1');
+  const banner = document.getElementById('apt-venc-banner');
+  if (banner) banner.style.display = 'none';
 }
 
 // Vista de solo lectura — un apartado cancelado no admite abonar, liquidar,

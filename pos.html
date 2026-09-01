@@ -70,11 +70,14 @@
 </div>
 
 <!-- BANNER APARTADOS VENCIDOS -->
-<button type="button" id="apt-venc-banner" onclick="openApartados('vencidos')" aria-label="Ver apartados vencidos">
-  <svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-  <span id="apt-venc-banner-txt"></span>
-  <span style="margin-left:auto;font-size:.75rem;font-weight:600;opacity:.7">Ver →</span>
-</button>
+<div id="apt-venc-banner">
+  <button type="button" class="apt-venc-banner-main" onclick="openApartados('vencidos')" aria-label="Ver apartados vencidos">
+    <svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span id="apt-venc-banner-txt"></span>
+    <span style="margin-left:auto;font-size:.75rem;font-weight:600;opacity:.7">Ver →</span>
+  </button>
+  <button type="button" class="apt-venc-banner-close" onclick="event.stopPropagation();dismissAptVencBannerToday()" aria-label="Cerrar por hoy" title="Cerrar por hoy">✕</button>
+</div>
 
 <!-- MAIN -->
 <div class="pos-body">
