@@ -375,9 +375,40 @@ function initAdminBar() {
   } catch {}
 }
 
+/* ── AVISOS DE SISTEMA (solo staff con sesión activa) ──
+   Lista de anuncios breves y descartables sobre cambios del sistema.
+   Se muestra el primero que no se haya descartado; cada uno se marca
+   por separado en localStorage, así que un aviso nuevo siempre aparece
+   aunque uno viejo ya se haya cerrado. */
+const SYS_NOTICES = [
+  { id: 'staff-access-2026-08', text: '🔒 El acceso a Caja e Inventario cambió de lugar — ahora está arriba, junto al carrito.' },
+];
+
+function initSysNotice() {
+  if (!document.body.classList.contains('admin-bar-shown')) return;
+  const notice = SYS_NOTICES.find(n => !localStorage.getItem(`te_notice_${n.id}`));
+  if (!notice) return;
+  const el = document.getElementById('sys-notice');
+  if (!el) return;
+  el.dataset.id = notice.id;
+  const textEl = el.querySelector('.sys-notice-text');
+  if (textEl) textEl.textContent = notice.text;
+  el.style.display = 'flex';
+  document.body.classList.add('sys-notice-shown');
+}
+
+function dismissSysNotice() {
+  const el = document.getElementById('sys-notice');
+  if (!el) return;
+  if (el.dataset.id) localStorage.setItem(`te_notice_${el.dataset.id}`, '1');
+  el.style.display = 'none';
+  document.body.classList.remove('sys-notice-shown');
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   _initOfflineBanner();
   initAdminBar();
+  initSysNotice();
   await Promise.all([loadProducts(), loadRevista(), loadCategories()]);
   render();
   renderNatura();

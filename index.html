@@ -98,6 +98,13 @@
   </nav>
 </header>
 
+<!-- AVISO DE SISTEMA — solo con sesión activa (staff), informativo y descartable -->
+<div id="sys-notice" class="sys-notice" style="display:none">
+  <span class="sys-notice-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
+  <span class="sys-notice-text"></span>
+  <button type="button" class="sys-notice-close" onclick="dismissSysNotice()" aria-label="Cerrar aviso">✕</button>
+</div>
+
 <!-- CARRITO -->
 <div id="cart-overlay" onclick="if(event.target===this)closeCart()">
   <div class="cart-sheet">
