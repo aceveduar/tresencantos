@@ -317,20 +317,6 @@ body.admin-bar-shown .products-filters-row{top:124px}
 }
 body.admin-bar-shown #admin-bar{display:flex}
 body.admin-bar-shown .header{top:54px}
-
-/* ── AVISO DE SISTEMA (solo staff con sesión activa, descartable) ── */
-.sys-notice{
-  position:fixed;top:54px;left:0;right:0;z-index:150;
-  display:flex;align-items:flex-start;gap:8px;
-  min-height:40px;padding:9px 16px;
-  background:var(--gold-light);border-bottom:1px solid var(--gold);
-  color:var(--charcoal);font-size:.8rem;line-height:1.35;
-}
-.sys-notice-icon{flex-shrink:0;display:flex;color:var(--gold-dark);margin-top:1px}
-.sys-notice-text{flex:1}
-.sys-notice-close{flex-shrink:0;background:none;border:none;color:var(--muted);font-size:.95rem;cursor:pointer;padding:2px 4px;line-height:1}
-.sys-notice-close:hover{color:var(--charcoal)}
-body.admin-bar-shown.sys-notice-shown .header{top:96px}
 body.admin-bar-shown{scroll-padding-top:calc(134px + env(safe-area-inset-top))}
 
 /* ── BOTÓN FLOTANTE WHATSAPP ── */

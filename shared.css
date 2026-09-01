@@ -159,3 +159,17 @@ a{text-decoration:none}
   background: #2D6A4F;
   color: #fff;
 }
+
+/* ── Aviso de sistema — descartable, fijo abajo (mismo patrón que
+   #offline-banner: no afecta el layout de cada módulo, y se desplaza sobre
+   la tab bar de Caja igual que ese banner) ── */
+#sys-notice{
+  position:fixed;left:0;right:0;z-index:9998;
+  display:flex;align-items:center;gap:10px;
+  padding:10px 16px;
+  background:var(--gold-light);border-top:1px solid var(--gold);
+  color:var(--charcoal);font-size:.82rem;line-height:1.35;
+}
+#sys-notice .sn-text{flex:1}
+#sys-notice .sn-close{flex-shrink:0;background:none;border:none;color:var(--muted);font-size:1rem;cursor:pointer;padding:4px 6px;line-height:1;transition:.15s}
+#sys-notice .sn-close:hover{color:var(--charcoal)}

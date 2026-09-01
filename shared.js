@@ -125,6 +125,50 @@
   document.addEventListener('DOMContentLoaded', _initOfflineBanner);
 })();
 
+/* ── AVISOS DE SISTEMA — descartables, para cualquier usuario con sesión
+   activa (Ofelia, Areli, Eduardo, sin distinción de rol). Lista de anuncios
+   breves sobre cambios del sistema; se muestra uno a la vez (nunca varios
+   encimados) y cada uno se descarta por separado en localStorage, así que
+   un aviso nuevo agregado a SYS_NOTICES siempre aparece -- incluso si uno
+   viejo ya se cerró -- y el que se está viendo no desaparece solo, solo con
+   la ✕. Para agregar un aviso futuro: nuevo objeto {id, text} al arreglo. ── */
+(function () {
+  const SYS_NOTICES = [
+    { id: 'staff-access-2026-08', text: '🔒 El acceso a Caja e Inventario cambió de lugar — ahora está arriba, junto al carrito, en la Tienda.' },
+    { id: 'por-revisar-2026-08',  text: '🚩 Revisen los productos marcados "Por revisar" en Inventario — usen el chip de filtro para verlos.' },
+  ];
+
+  function _hasValidSession() {
+    try {
+      const s = JSON.parse(localStorage.getItem('te_admin_session') || '{}');
+      if (!s.access_token || !s.expires_at) return false;
+      return s.expires_at > Math.floor(Date.now() / 1000) + 60;
+    } catch { return false; }
+  }
+
+  function _initSysNotice() {
+    if (!_hasValidSession()) return;
+    const notice = SYS_NOTICES.find(n => !localStorage.getItem(`te_notice_${n.id}`));
+    if (!notice) return;
+
+    const banner = document.createElement('div');
+    banner.id = 'sys-notice';
+    banner.dataset.id = notice.id;
+    const hasPosTabBar = !!document.getElementById('pos-tab-bar');
+    banner.style.bottom = hasPosTabBar ? '56px' : '0';
+    banner.innerHTML =
+      `<span class="sn-text">${notice.text}</span>` +
+      `<button type="button" class="sn-close" aria-label="Cerrar aviso">✕</button>`;
+    banner.querySelector('.sn-close').onclick = () => {
+      localStorage.setItem(`te_notice_${notice.id}`, '1');
+      banner.remove();
+    };
+    document.body.appendChild(banner);
+  }
+
+  document.addEventListener('DOMContentLoaded', _initSysNotice);
+})();
+
 /* ── NOTIFICACIONES DE VENTA — polling por dispositivo, sin cargar Realtime en los 5 módulos ── */
 (function () {
   let _salesNotifTimer = null;
