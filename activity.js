@@ -395,7 +395,12 @@ function render(data) {
 
   const feed = document.getElementById('feed');
   if (!filtered.length) {
-    feed.innerHTML = `<div class="empty-state"><div class="em">${_actIcoClipboard(32)}</div>Sin actividad en este período</div>`;
+    // Antes mostraba el mismo mensaje sin importar la causa -- un día
+    // ocupado con el chip "Sistema" activo (y nada de ese tipo en el
+    // período) se veía idéntico a un día genuinamente sin actividad, sin
+    // forma de distinguir "no pasó nada" de "tu filtro no encontró nada".
+    const isFiltered = !!currentType || !!currentSearch;
+    feed.innerHTML = `<div class="empty-state"><div class="em">${_actIcoClipboard(32)}</div>${isFiltered ? 'Ningún resultado con este filtro' : 'Sin actividad en este período'}</div>`;
     return;
   }
 
