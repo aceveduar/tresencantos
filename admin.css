@@ -748,7 +748,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .ai-filled{animation:ai-field-flash 1.5s ease forwards;border-radius:var(--r-sm)}
 
 /* ══ INLINE EDIT — categoría y visibilidad ═══════════════════════════════ */
-.cat-label-inline{cursor:pointer;border-bottom:1px dashed transparent;transition:border-color .15s,color .15s;touch-action:manipulation}
+.cat-label-inline{cursor:pointer;border-bottom:1px dashed transparent;transition:border-color .15s,color .15s;touch-action:manipulation;display:inline-block;padding:8px 4px}
 .cat-label-inline:hover{border-bottom-color:var(--gold);color:var(--gold-dark)}
 .pub-toggle{
   font-size:.67rem;font-weight:700;padding:4px 10px;border-radius:50px;
@@ -978,7 +978,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .mpc-info{flex:1;min-width:0;padding-top:0;display:flex;flex-direction:column;gap:3px}
   .mpc-name{font-weight:700;font-size:.92rem;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;color:var(--charcoal);letter-spacing:-.01em}
   .mpc-cat-tag{display:flex;align-items:center;gap:5px;font-size:.69rem;color:var(--muted);margin:0;flex-wrap:wrap}
-  .mpc-cat-tag .cat-label-inline{background:var(--cream);border:1px solid var(--border-light)!important;border-bottom:1px solid var(--border-light)!important;padding:2px 9px;border-radius:50px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+  .mpc-cat-tag .cat-label-inline{background:var(--cream);border:1px solid var(--border-light)!important;border-bottom:1px solid var(--border-light)!important;padding:5px 9px;border-radius:50px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
   .mpc-cat-tag .cat-label-inline:hover{background:#EDE6DC;border-color:var(--gold)!important;color:var(--gold-dark)}
   .mpc-price-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:6px;border-top:1px solid var(--border-light)}
   .mpc-price{font-size:1.2rem;font-weight:700;font-family:'Playfair Display',serif;line-height:1;color:var(--charcoal)}
@@ -1132,7 +1132,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     background:var(--cream);
     border:1px solid var(--border-light)!important;
     border-bottom:1px solid var(--border-light)!important;
-    padding:2px 9px;border-radius:50px;
+    padding:5px 9px;border-radius:50px;
     color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;
   }
   .mpc-cat-tag .cat-label-inline:hover{
