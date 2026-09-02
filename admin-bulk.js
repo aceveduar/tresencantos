@@ -263,9 +263,6 @@ async function _bcpSelect(code) {
     }).then(r => {
       if (r.ok) {
         p.category = cat.code; p.categoryLabel = cat.label;
-        // Si el filtro activo era "Sin categoría" y el producto ya tiene categoría, limpiarlo
-        // para que el producto quede visible en lugar de desaparecer de la vista
-        if (_statFilter === 'sin-categ' && cat.code !== 'por_revisar') _statFilter = null;
         toast(`Categoría → ${cat.label}`);
       } else toast('Error al actualizar categoría', 'error');
       renderTable(); renderStats(); _qvRefresh(inlineId);
