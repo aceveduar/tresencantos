@@ -190,6 +190,82 @@
     </div>
   </div>
 
+  <!-- RECEPCIÓN CON IA -->
+  <div id="recv-ia-overlay" class="recv-overlay" style="display:none">
+    <div class="recv-header">
+      <div class="recv-title"><svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:5px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Recepción con IA</div>
+      <button class="recv-close" onclick="closeRecvIaMode()">✕ Salir</button>
+    </div>
+    <div class="recv-body">
+      <!-- Paso 1: elegir origen -->
+      <div id="ria-upload-step" class="ria-upload-step">
+        <div class="ria-source-row">
+          <button class="ria-source-btn" onclick="document.getElementById('ria-pdf-input').click()">
+            <svg width="26" height="26" viewBox="0 0 24 24" stroke="var(--gold-dark)" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span class="ria-source-title">Subir PDF</span>
+            <span class="ria-source-sub">Más nítido — texto real</span>
+          </button>
+          <button class="ria-source-btn" onclick="document.getElementById('ria-photo-input').click()">
+            <svg width="26" height="26" viewBox="0 0 24 24" stroke="var(--gold-dark)" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+            <span class="ria-source-title">Fotografiar</span>
+            <span class="ria-source-sub">Cuando solo tengas el papel</span>
+          </button>
+        </div>
+        <input type="file" id="ria-pdf-input" accept="application/pdf" style="display:none" onchange="handleRecvIaPdf(this)">
+        <input type="file" id="ria-photo-input" accept="image/*" capture="environment" style="display:none" onchange="handleRecvIaPhoto(this)">
+        <p class="ria-upload-hint">¿Prefieres sumar stock a mano? Usa <a href="#" onclick="event.preventDefault();closeRecvIaMode();openRecvMode()">Recibir mercancía</a>.</p>
+      </div>
+      <!-- Fotos en cola antes de extraer -->
+      <div id="ria-photo-stage" class="ria-photo-stage" style="display:none">
+        <div class="ria-photo-stage-head">📷 Fotos del pedido</div>
+        <div id="ria-photo-thumbs" class="ria-photo-thumbs"></div>
+        <button class="ria-photo-add-btn" onclick="document.getElementById('ria-photo-input').click()">+ Agregar otra foto</button>
+        <button class="ria-photo-extract-btn" onclick="recvIaExtractPhotos()">Extraer con IA →</button>
+      </div>
+      <!-- Estado de extracción -->
+      <div id="ria-status" class="ria-status" style="display:none">
+        <span class="ria-status-spin"></span>
+        <span id="ria-status-msg">Leyendo el PDF…</span>
+      </div>
+      <!-- Paso 2: lista editable de renglones extraídos -->
+      <div id="ria-review-step" class="ria-review-step" style="display:none">
+        <div class="ria-review-head">
+          <span id="ria-review-count"></span>
+          <button class="ria-review-restart" onclick="resetRecvIa()">↺ Empezar de nuevo</button>
+        </div>
+        <div id="ria-review-summary" class="ria-review-summary" style="display:none"></div>
+        <div id="ria-items-list" class="ria-items-list"></div>
+        <div id="ria-kits-section" class="ria-kits-section" style="display:none">
+          <div class="ria-kits-head">⚠️ Kits de promoción — revisar a mano</div>
+          <div id="ria-kits-list"></div>
+        </div>
+      </div>
+      <!-- Paso 3: resultado de aplicar (o simular) -->
+      <div id="ria-result-step" class="ria-result-step" style="display:none">
+        <div id="ria-result-content"></div>
+        <button class="ria-result-close-btn" onclick="resetRecvIa()">↺ Empezar de nuevo</button>
+      </div>
+    </div>
+    <div id="ria-review-footer" class="ria-review-footer" style="display:none">
+      <div id="ria-dry-badge" class="ria-dry-badge">🧪 Modo de prueba — no se guarda nada todavía</div>
+      <button id="ria-apply-btn" class="ria-apply-btn" onclick="riaApplyChanges()">Simular aplicar (0)</button>
+    </div>
+  </div>
+
+  <!-- RECEPCIÓN CON IA — vincular producto -->
+  <div id="ria-match-overlay" style="display:none" onclick="if(event.target===this)closeRiaMatchPicker()">
+    <div id="ria-match-sheet">
+      <div class="bcp-head">
+        <div class="bcp-title">Vincular producto</div>
+        <button class="bcp-close" onclick="closeRiaMatchPicker()">✕</button>
+      </div>
+      <div class="bcp-search"><input id="ria-match-search-input" placeholder="Buscar en tu catálogo…" oninput="riaSearchMatchPicker(this.value)" autocomplete="off"></div>
+      <button class="ria-match-scan-btn" onclick="openRiaMatchScanner()"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Tengo el producto — escanear código de barras</button>
+      <div id="ria-match-picker-results" class="bcp-list"></div>
+      <button id="ria-match-set-new-btn" class="ria-match-new-btn" onclick="riaConfirmSetNew()">+ Es un producto nuevo (no existe en el catálogo)</button>
+    </div>
+  </div>
+
   <!-- MODO CAPTURA RÁPIDA -->
   <div id="cap-overlay" class="cap-overlay" style="display:none" onclick="if(event.target===this)closeCaptureMode()">
     <div class="cap-modal">
@@ -273,15 +349,19 @@
       <div class="tb-search-row">
         <button class="btn btn-gold" onclick="openForm()" style="flex-shrink:0">+ Agregar</button>
         <button class="btn btn-outline" id="btn-add-kit" onclick="openKitBuilder()" style="flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>Kit</button>
+        <button class="btn btn-outline btn-sm btn-ia-accent capture-mode-btn" id="btn-capture-mode-desktop" onclick="openCaptureMode()" title="Captura rápida con IA" style="display:none;flex-shrink:0"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg> <span class="tb-btn-label">Captura</span></button>
         <div class="search-wrap">
           <span class="s-icon"><svg width="15" height="15" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
           <input type="text" id="search-input" placeholder="Buscar productos…" autocorrect="off" autocomplete="off" spellcheck="false" onfocus="if(!this.value)this.placeholder='Nombre, categoría, código… (separa con coma)'" onblur="this.placeholder='Buscar productos…'" oninput="_searchDebounce()">
           <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearchInput()" title="Borrar" style="display:none">✕</button>
         </div>
-        <div class="tb-actions">
-          <button class="btn btn-outline btn-sm btn-ia-accent" id="btn-capture-mode" onclick="openCaptureMode()" title="Captura rápida con IA" style="display:none"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg> <span class="tb-btn-label">IA</span></button>
+        <div class="tb-actions-wrap" id="tb-actions-wrap">
+        <div class="tb-actions" id="tb-actions" onscroll="_tbActionsScroll()">
+          <button class="btn btn-outline btn-sm btn-ia-accent capture-mode-btn" id="btn-capture-mode-mobile" onclick="openCaptureMode()" title="Captura rápida con IA" style="display:none"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg> <span class="tb-btn-label">Captura</span></button>
           <button class="btn btn-outline btn-sm" onclick="openSearchScanner()" title="Buscar por código de barras"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> <span class="tb-btn-label">Escanear</span></button>
           <button class="btn btn-outline btn-sm" id="btn-recv-mode" onclick="openRecvMode()" title="Recibir mercancía" style="display:none"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> <span class="tb-btn-label">Recibir</span></button>
+          <button class="btn btn-outline btn-sm" id="btn-recv-ia-mode" onclick="openRecvIaMode()" title="Recepción con IA — importar pedido de proveedor" style="display:none"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> <span class="tb-btn-label">Importar</span></button>
+        </div>
         </div>
       </div>
       <!-- Fila 2: filtros + vista -->
@@ -293,7 +373,7 @@
           <span id="cat-filter-btn-label">Categoría</span>
           <span id="cat-filter-btn-arrow">▾</span>
         </button>
-        <select class="filter-select" id="sort-select" onchange="currentSort=this.value;localStorage.setItem('te_admin_sort',this.value);_adminPage=1;renderTable();TE?.track('filter_sort',{sort:this.value})">
+        <select class="filter-select" id="sort-select" style="display:none" onchange="currentSort=this.value;localStorage.setItem('te_admin_sort',this.value);_adminPage=1;renderTable();TE?.track('filter_sort',{sort:this.value})">
           <option value="position">Mi orden</option>
           <option value="recent" selected>Recientes</option>
           <option value="name-az">A → Z</option>
@@ -303,6 +383,10 @@
           <option value="created-new">Nuevos</option>
           <option value="created-old">Viejos</option>
         </select>
+        <button id="sort-filter-btn" onclick="openSortSheet()">
+          <span id="sort-filter-btn-label">Recientes</span>
+          <span id="sort-filter-btn-arrow">▾</span>
+        </button>
         <select class="filter-select" id="creator-filter" style="display:none" onchange="_adminPage=1;renderTable();renderStats()">
           <option value="all">👤 Todos</option>
         </select>
@@ -693,6 +777,7 @@
 <script src="admin-scanner.js"></script>
 <script src="admin-utils.js"></script>
 <script src="admin-recv.js"></script>
+<script src="admin-recv-ia.js"></script>
 <script src="admin-capture.js"></script>
 <script src="admin-qv.js"></script>
 <script src="admin-kit-builder.js"></script>
@@ -772,6 +857,17 @@
     <input type="text" id="cat-sheet-search" placeholder="🔍 Buscar categoría..." oninput="_catSheetFilter(this.value)" autocomplete="off" style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;font-family:inherit;color:var(--charcoal);background:#fff;outline:none;box-sizing:border-box">
   </div>
   <div class="cat-sheet-list" id="cat-sheet-list"></div>
+</div>
+
+<!-- SORT BOTTOM SHEET -->
+<div id="sort-sheet-overlay" onclick="closeSortSheet()"></div>
+<div id="sort-sheet">
+  <div class="cat-sheet-pill"></div>
+  <div class="cat-sheet-header">
+    <span class="cat-sheet-title">Ordenar por</span>
+    <button class="cat-sheet-close" onclick="closeSortSheet()">✕</button>
+  </div>
+  <div class="cat-sheet-list" id="sort-sheet-list"></div>
 </div>
 <script src="shared.js"></script>
 </body>

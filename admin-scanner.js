@@ -130,6 +130,12 @@ function _onAdminScan(code) {
       recvSearch(code);
       break;
     }
+    case 'ria-match': {
+      const p = products.find(x => x.barcode === code);
+      if (p) { closeAdminScanner(); riaConfirmMatch(p.id); }
+      else _adminBarcodeNotFound(code);
+      break;
+    }
     case 'search':
     default: {
       const p = products.find(x => x.barcode === code);

@@ -150,6 +150,18 @@ function _statsScroll() {
   wrap.classList.toggle('at-end', atEnd);
 }
 
+/* Oculta el indicador "›" de .tb-actions-wrap cuando ya no hay más botones
+   a la derecha — mismo patrón que _statsScroll(). Se llama al hacer scroll
+   y cada vez que cambia cuántos botones están visibles (permisos/config),
+   porque eso cambia si la fila realmente desborda o no. */
+function _tbActionsScroll() {
+  const el = document.getElementById('tb-actions');
+  const wrap = document.getElementById('tb-actions-wrap');
+  if (!el || !wrap) return;
+  const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
+  wrap.classList.toggle('at-end', atEnd);
+}
+
 function dismissNoPriceAlert() {
   sessionStorage.setItem('te_no_price_dismissed', 'true');
   document.getElementById('no-price-alert').style.display = 'none';
@@ -816,6 +828,7 @@ function mobileCard(p) {
 }
 
 function renderTable() {
+  _updateSortFilterBtn(); // varios flujos cambian currentSort sin pasar por el sheet (drag&drop, mover al inicio) — sincronizar aquí garantiza que el botón nunca quede desactualizado
   const filtered  = getFilteredProducts();
   const mobile    = isMobile();
   // En mobile, "cards" también activa la vista de grid (2 columnas con adminCard)

@@ -4,6 +4,7 @@ let driveEp      = null;
 let driveSecret  = null;
 let _showCreator = false;
 let _showRecv    = false;
+let _showRecvIa  = false;
 let _userNames   = {};  // { "email@x.com": "Nombre visible" }
 
 // Fuente única para las tres entradas de IA del Inventario: formulario,
@@ -13,21 +14,17 @@ const GROQ_VISION_URL   = 'https://api.groq.com/openai/v1/chat/completions';
 
 function _groqErrorMessage(status, apiMessage) {
   if (status === 401) return 'La clave de Groq no es válida o fue revocada';
-  if (status === 413) return 'La imagen es demasiado pesada para analizarla';
+  if (status === 413) return apiMessage || 'El contenido enviado a la IA es demasiado grande';
   if (status === 429) return 'Groq alcanzó su límite temporal; intenta de nuevo en un momento';
   if (status >= 500) return 'Groq no está disponible temporalmente; intenta de nuevo';
   return apiMessage || `Groq respondió con error ${status}`;
 }
 
-async function _groqVisionJson(imageDataUrl, { systemPrompt = '', userPrompt = '', maxCompletionTokens = 700 } = {}) {
+// Núcleo compartido de las llamadas a Groq — recibe el `content` ya armado
+// (string para texto plano, array para visión con image_url) y centraliza
+// timeout, manejo de errores y parseo del JSON de respuesta.
+async function _groqChatJson(content, { maxCompletionTokens = 700 } = {}) {
   if (!groqApiKey) throw new Error('Configura la IA en Configuración');
-  if (!imageDataUrl) throw new Error('Primero agrega una imagen');
-
-  // Qwen recomienda concentrar las instrucciones en el mensaje de usuario.
-  // JSON mode evita depender de que el modelo respete “sin markdown”.
-  const prompt = [systemPrompt, userPrompt, 'Responde únicamente con un objeto JSON válido.']
-    .filter(Boolean)
-    .join('\n\n');
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 45000);
 
@@ -39,13 +36,7 @@ async function _groqVisionJson(imageDataUrl, { systemPrompt = '', userPrompt = '
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqApiKey}` },
       body: JSON.stringify({
         model: GROQ_VISION_MODEL,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'text', text: prompt },
-            { type: 'image_url', image_url: { url: imageDataUrl } }
-          ]
-        }],
+        messages: [{ role: 'user', content }],
         response_format: { type: 'json_object' },
         reasoning_effort: 'none',
         temperature: 0.3,
@@ -54,7 +45,7 @@ async function _groqVisionJson(imageDataUrl, { systemPrompt = '', userPrompt = '
       })
     });
   } catch (err) {
-    if (err?.name === 'AbortError') throw new Error('La IA tardó demasiado; intenta con otra foto');
+    if (err?.name === 'AbortError') throw new Error('La IA tardó demasiado; intenta de nuevo');
     throw new Error('No se pudo conectar con Groq; revisa tu conexión');
   } finally {
     clearTimeout(timeoutId);
@@ -63,15 +54,43 @@ async function _groqVisionJson(imageDataUrl, { systemPrompt = '', userPrompt = '
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(_groqErrorMessage(response.status, data?.error?.message));
 
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error('La IA devolvió una respuesta vacía');
+  const resultText = data.choices?.[0]?.message?.content;
+  if (!resultText) throw new Error('La IA devolvió una respuesta vacía');
   try {
-    const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+    const parsed = typeof resultText === 'string' ? JSON.parse(resultText) : resultText;
     if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') throw new Error();
     return parsed;
   } catch {
     throw new Error('La IA devolvió datos con un formato inválido');
   }
+}
+
+async function _groqVisionJson(imageDataUrl, { systemPrompt = '', userPrompt = '', maxCompletionTokens = 700 } = {}) {
+  if (!imageDataUrl) throw new Error('Primero agrega una imagen');
+  // Qwen recomienda concentrar las instrucciones en el mensaje de usuario.
+  // JSON mode evita depender de que el modelo respete “sin markdown”.
+  const prompt = [systemPrompt, userPrompt, 'Responde únicamente con un objeto JSON válido.']
+    .filter(Boolean)
+    .join('\n\n');
+  try {
+    return await _groqChatJson([
+      { type: 'text', text: prompt },
+      { type: 'image_url', image_url: { url: imageDataUrl } }
+    ], { maxCompletionTokens });
+  } catch (err) {
+    if (err.message === 'La IA tardó demasiado; intenta de nuevo') throw new Error('La IA tardó demasiado; intenta con otra foto');
+    throw err;
+  }
+}
+
+// Misma IA, sin imagen — para extraer datos de texto plano (ej. el texto
+// de un PDF ya extraído con pdf.js). Content siempre es un string.
+async function _groqTextJson(text, { systemPrompt = '', userPrompt = '', maxCompletionTokens = 700 } = {}) {
+  if (!text || !text.trim()) throw new Error('No hay texto para analizar');
+  const prompt = [systemPrompt, userPrompt, 'Responde únicamente con un objeto JSON válido.']
+    .filter(Boolean)
+    .join('\n\n');
+  return _groqChatJson(`${prompt}\n\n${text}`, { maxCompletionTokens });
 }
 
 function _creatorName(email) {
@@ -81,7 +100,7 @@ function _creatorName(email) {
 }
 
 async function loadAppConfig() {
-  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret,captura_rapida,dismissed_dups,show_creator,show_recv,user_names,user_permissions)&select=id,value');
+  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret,captura_rapida,dismissed_dups,show_creator,show_recv,show_recv_ia,user_names,user_permissions)&select=id,value');
   if (r.ok && r.data) {
     r.data.forEach(row => {
       if (row.id === 'groq_key')     groqApiKey  = row.value || null;
@@ -94,7 +113,7 @@ async function loadAppConfig() {
       if (row.id === 'captura_rapida') {
         // false solo si está explícitamente desactivado; por defecto activo
         if (row.value === 'false') {
-          document.getElementById('btn-capture-mode')?.style.setProperty('display', 'none');
+          document.querySelectorAll('.capture-mode-btn').forEach(b => b.style.setProperty('display', 'none'));
         }
       }
       if (row.id === 'show_creator') {
@@ -106,10 +125,16 @@ async function loadAppConfig() {
         const btn = document.getElementById('btn-recv-mode');
         if (btn) _showRecv ? btn.style.removeProperty('display') : btn.style.setProperty('display', 'none');
       }
+      if (row.id === 'show_recv_ia') {
+        _showRecvIa = row.value === 'true';
+        const btn = document.getElementById('btn-recv-ia-mode');
+        if (btn) _showRecvIa ? btn.style.removeProperty('display') : btn.style.setProperty('display', 'none');
+      }
       if (row.id === 'user_names') {
         try { _userNames = JSON.parse(row.value || '{}'); } catch { _userNames = {}; }
       }
     });
+    _tbActionsScroll(); // recalcula el indicador "›" — cambió cuántos botones hay visibles
   }
   // Migración automática: si había config en localStorage la subimos a Supabase una sola vez
   const migrations = [];

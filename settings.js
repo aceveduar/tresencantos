@@ -81,7 +81,7 @@ function logActivity(action, summary, meta = null) {
 /* ── INIT ── */
 async function init() {
   const [cfgR, catR, namesR] = await Promise.all([
-    api('config?id=in.(groq_key,drive_ep,drive_secret,wa_float,captura_rapida,show_creator,show_restock,show_recv,user_permissions)&select=id,value'),
+    api('config?id=in.(groq_key,drive_ep,drive_secret,wa_float,captura_rapida,show_creator,show_restock,show_recv,show_recv_ia,user_permissions)&select=id,value'),
     api('config?id=eq.categories&select=value'),
     api('config?id=eq.user_names&select=value')
   ]);
@@ -110,6 +110,10 @@ async function init() {
       }
       if (row.id === 'show_recv') {
         const toggle = document.getElementById('show-recv-toggle');
+        if (toggle) toggle.checked = row.value === 'true';
+      }
+      if (row.id === 'show_recv_ia') {
+        const toggle = document.getElementById('show-recv-ia-toggle');
         if (toggle) toggle.checked = row.value === 'true';
       }
     });
@@ -280,6 +284,21 @@ async function toggleShowRecv(enabled) {
   } else {
     toast('Error al guardar', 'err');
     document.getElementById('show-recv-toggle').checked = !enabled;
+  }
+}
+
+async function toggleShowRecvIa(enabled) {
+  const r = await api('config', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: 'show_recv_ia', value: String(enabled) })
+  });
+  if (r.ok) {
+    logActivity('configuracion_editada', `${enabled ? 'Activó' : 'Desactivó'} Recepción con IA`, { setting: 'show_recv_ia', value: enabled });
+    toast(enabled ? '📄 Recepción con IA activada en Inventario' : '📄 Recepción con IA desactivada', 'ok');
+  } else {
+    toast('Error al guardar', 'err');
+    document.getElementById('show-recv-ia-toggle').checked = !enabled;
   }
 }
 

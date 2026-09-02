@@ -242,6 +242,80 @@ function _updateCatFilterBtn() {
   }
 }
 
+/* ── Ordenar por — sheet propio, en vez del <select> nativo del navegador,
+   que no se puede re-diseñar y rompe el look del resto del toolbar. El
+   <select id="sort-select"> se queda oculto en el DOM como fuente real del
+   valor (varios flujos ya existentes — drag&drop, mover al inicio — lo
+   leen/escriben directo), este sheet es solo una interfaz más bonita
+   encima del mismo estado. ── */
+const SORT_OPTIONS = [
+  { value: 'position',    label: 'Mi orden' },
+  { value: 'recent',      label: 'Recientes' },
+  { value: 'name-az',     label: 'A → Z' },
+  { value: 'name-za',     label: 'Z → A' },
+  { value: 'price-desc',  label: '$ Mayor' },
+  { value: 'price-asc',   label: '$ Menor' },
+  { value: 'created-new', label: 'Nuevos' },
+  { value: 'created-old', label: 'Viejos' }
+];
+
+function openSortSheet() {
+  _renderSortSheetOptions();
+  document.getElementById('sort-sheet-overlay').classList.add('open');
+  document.getElementById('sort-sheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  _initSortSheetSwipe();
+}
+
+function _initSortSheetSwipe() {
+  const sheet = document.getElementById('sort-sheet');
+  if (!sheet || sheet._swipeInited) return;
+  sheet._swipeInited = true;
+  let sy = null, cy = 0;
+  sheet.addEventListener('touchstart', e => { sy = e.touches[0].clientY; cy = 0; }, { passive: true });
+  sheet.addEventListener('touchmove', e => {
+    if (sy === null) return;
+    const dy = e.touches[0].clientY - sy;
+    if (dy > 0) { cy = dy; sheet.style.transform = `translateY(${dy}px)`; }
+  }, { passive: true });
+  sheet.addEventListener('touchend', () => {
+    if (cy > 80) closeSortSheet();
+    sheet.style.transform = '';
+    sy = null; cy = 0;
+  }, { passive: true });
+}
+
+function closeSortSheet() {
+  document.getElementById('sort-sheet-overlay').classList.remove('open');
+  document.getElementById('sort-sheet').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function _renderSortSheetOptions() {
+  const list = document.getElementById('sort-sheet-list');
+  if (!list) return;
+  list.innerHTML = `<div style="padding:10px 16px 16px"><div class="bcp-chips">${SORT_OPTIONS.map(o =>
+    `<button class="bcp-chip${currentSort === o.value ? ' selected' : ''}" onclick="selectSortSheet('${o.value}')">${_esc(o.label)}</button>`
+  ).join('')}</div></div>`;
+}
+
+function selectSortSheet(value) {
+  currentSort = value;
+  localStorage.setItem('te_admin_sort', value);
+  const sel = document.getElementById('sort-select');
+  if (sel) sel.value = value;
+  _adminPage = 1;
+  renderTable();
+  TE?.track('filter_sort', { sort: value });
+  closeSortSheet();
+}
+
+function _updateSortFilterBtn() {
+  const lbl = document.getElementById('sort-filter-btn-label');
+  if (!lbl) return;
+  lbl.textContent = SORT_OPTIONS.find(o => o.value === currentSort)?.label || 'Ordenar';
+}
+
 function openCatSheet() {
   const searchEl = document.getElementById('cat-sheet-search');
   if (searchEl) searchEl.value = '';
@@ -824,10 +898,13 @@ function _applyRoleUI() {
       pubRow.style.pointerEvents = 'none';
     }
   }
-  // Botón Captura rápida — visible si puede agregar
+  // Botón Captura rápida — visible si puede agregar (dos copias en el DOM,
+  // una para desktop junto a Agregar/Kit y otra para mobile junto a
+  // Escanear/Recibir/Importar — el CSS decide cuál se ve según el ancho)
   if (can.addProduct) {
-    document.getElementById('btn-capture-mode')?.style.removeProperty('display');
+    document.querySelectorAll('.capture-mode-btn').forEach(b => b.style.removeProperty('display'));
   }
+  _tbActionsScroll();
 }
 
 function _refreshCreatorFilter() {
@@ -929,7 +1006,8 @@ function mapProduct(p) {
     createdBy: p.created_by || null,
     createdAt: p.created_at || null,
     isArchived: p.is_archived || false,
-    expiryDate: p.expiry_date || null
+    expiryDate: p.expiry_date || null,
+    supplierCode: p.supplier_code || null
   };
 }
 

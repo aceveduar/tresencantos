@@ -229,6 +229,7 @@ const ACTION_CFG = {
   producto_editado:      { type:'inventario', badge:'editado',   icon:_actIcoEdit(),  label:'Editado'   },
   producto_eliminado:    { type:'inventario', badge:'eliminado', icon:_actIcoTrash(), label:'Eliminado' },
   duplicado_descartado:  { type:'inventario', badge:'revisado',  icon:_actIcoEye(),   label:'Revisado'  },
+  recepcion_ia_aplicada: { type:'inventario', badge:'editado',   icon:_actIcoCheck(), label:'Recepción con IA' },
   permisos_editados:     { type:'sistema', badge:'editado',   icon:_actIcoEdit(),  label:'Permisos'  },
   configuracion_editada: { type:'sistema', badge:'editado',   icon:_actIcoEdit(),  label:'Configuración' },
   permiso_autorizado:    { type:'sistema', badge:'editado',   icon:_actIcoCheck(), label:'PIN autorizado' },
