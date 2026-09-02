@@ -369,11 +369,17 @@ function rootCats()    { return categories.filter(c => !c.parent); }
 function subCats(code) { return categories.filter(c => c.parent === code); }
 
 async function _saveCats() {
-  return api('config', {
+  const r = await api('config', {
     method: 'POST',
     headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify({ id: 'categories', value: JSON.stringify(categories) })
   });
+  // Ninguno de los llamadores revisaba r.ok -- si el guardado fallaba (RLS,
+  // red), la UI mutaba el estado local y mostraba un toast verde de éxito
+  // igual; el cambio se revertía solo al recargar, sin que nadie se enterara
+  // de que nunca se guardó de verdad.
+  if (!r.ok) toast('Error al guardar — el cambio no se guardó, recarga para verificar', 'err');
+  return r;
 }
 
 function openCatManager() {
@@ -688,17 +694,35 @@ async function updateCatLabel(idx, newLabel) {
 
 async function deleteCategoryAt(idx) {
   const c = categories[idx];
-  const r = await api(`products?category=eq.${c.code}&select=id`);
+  // Si es una raíz con subcategorías, hay que contar y borrar también sus
+  // hijas -- antes splice(idx,1) solo quitaba la raíz, dejando las
+  // subcategorías huérfanas en la config (con parent apuntando a un código
+  // que ya no existe) y el conteo del diálogo por debajo del real, porque
+  // solo consultaba productos con category=eq.<código de la raíz>.
+  const children = !c.parent ? subCats(c.code) : [];
+  const codes = [c.code, ...children.map(x => x.code)];
+  const r = await api(`products?category=in.(${codes.join(',')})&select=id`);
   const count = r.ok && Array.isArray(r.data) ? r.data.length : 0;
+  const childWarning = children.length
+    ? ` (incluye ${children.length} subcategoría${children.length !== 1 ? 's' : ''}: ${children.map(x => x.label).join(', ')})`
+    : '';
+  // El mensaje anterior decía "quedarán sin categoría", pero eso no es lo
+  // que pasa -- el producto conserva el código eliminado y desaparece de
+  // los filtros sin avisar (el riesgo ya documentado, causante de ~300
+  // productos huérfanos encontrados y corregidos por separado esta misma
+  // sesión). El mensaje ahora describe la consecuencia real.
   const msg = count > 0
-    ? `¿Eliminar "${c.label}"? ${count} producto(s) quedarán sin categoría. ¿Continuar?`
-    : `¿Eliminar la categoría "${c.label}"?`;
+    ? `¿Eliminar "${c.label}"${childWarning}? ${count} producto(s) quedarán con una categoría que ya no existe — desaparecerán de los filtros de Inventario/Caja/Tienda aunque sigan existiendo (solo se verán en "Todos" o buscando por texto). ¿Continuar?`
+    : `¿Eliminar la categoría "${c.label}"${childWarning}?`;
   if (!confirm(msg)) return;
-  categories.splice(idx, 1);
-  await _saveCats();
+  const removeCodes = new Set(codes);
+  const snapshot = categories;
+  categories = categories.filter(x => !removeCodes.has(x.code));
+  const saveResult = await _saveCats();
+  if (!saveResult.ok) { categories = snapshot; return; }
   renderCatList();
   populateCatParent();
-  logActivity('configuracion_editada', `Eliminó la categoría "${c.label}"`, { code: c.code, label: c.label });
+  logActivity('configuracion_editada', `Eliminó la categoría "${c.label}"${children.length ? ` y ${children.length} subcategoría(s)` : ''}`, { code: c.code, label: c.label, childCodes: children.map(x => x.code) });
   toast('Categoría eliminada', '');
 }
 
