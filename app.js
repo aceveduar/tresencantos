@@ -114,6 +114,26 @@ function updateCartQty(id, delta, btn) {
   renderCartBody();
 }
 
+// El carrito persiste en localStorage entre visitas, pero nunca se
+// revalidaba contra el catálogo recién cargado -- un producto agregado y
+// luego eliminado/despublicado/agotado se quedaba fantasma en "Mi pedido"
+// para siempre, con su precio/cantidad viejos, y hasta se incluía así en
+// el mensaje de WhatsApp. Se llama una vez al cargar la Tienda, después de
+// loadProducts().
+function _reconcileCart() {
+  if (!products.length) return; // el catálogo no cargó -- no tocar el carrito por una falla transitoria de red
+  let changed = false;
+  cart = cart.filter(item => {
+    const p = products.find(x => x.id === item.id);
+    if (!p) { changed = true; return false; }
+    const realStock = Array.isArray(p.kitItems) ? kitStock(p) : p.stock;
+    if (!realStock || realStock <= 0) { changed = true; return false; }
+    if (item.qty > realStock) { item.qty = realStock; changed = true; }
+    return true;
+  });
+  if (changed) saveCart();
+}
+
 function clearCart() {
   cart = [];
   saveCart();
@@ -383,6 +403,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   _initOfflineBanner();
   initAdminBar();
   await Promise.all([loadProducts(), loadRevista(), loadCategories()]);
+  _reconcileCart();
   render();
   renderNatura();
   updateRevistaBanner();
