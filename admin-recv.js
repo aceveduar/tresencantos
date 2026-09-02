@@ -115,8 +115,11 @@ async function _recvDoAdd(id, qty) {
 
   const existing = _recvSession.find(x => x.product.id === id);
   const prevStock = existing ? existing.prevStock : p.stock;
+  const prevOutOfStock = p.outOfStock;
+  const newStock = p.stock + qty;
+  const isNewEntry = !existing;
 
-  p.stock = p.stock + qty;
+  p.stock = newStock;
   if (p.outOfStock) p.outOfStock = false;
 
   if (existing) {
@@ -130,10 +133,27 @@ async function _recvDoAdd(id, qty) {
   _recvUpdateHeader();
   if (navigator.vibrate) navigator.vibrate(40);
 
-  await supabaseApi(`products?id=eq.${id}`, {
+  // Optimista a propósito (para que escanear se sienta instantáneo), pero
+  // antes no revisaba el resultado del PATCH en absoluto -- si el guardado
+  // fallaba (red, RLS), el stock local y la sesión de recepción seguían
+  // mostrando el aumento como si se hubiera guardado, sin ningún aviso.
+  const result = await supabaseApi(`products?id=eq.${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ stock: p.stock, out_of_stock: false })
+    body: JSON.stringify({ stock: newStock, out_of_stock: false })
   });
+  if (!result.ok) {
+    p.stock = prevStock;
+    p.outOfStock = prevOutOfStock;
+    if (isNewEntry) {
+      const idx = _recvSession.findIndex(x => x.product.id === id);
+      if (idx !== -1) _recvSession.splice(idx, 1);
+    } else {
+      existing.qtyAdded -= qty;
+    }
+    _renderRecvList();
+    _recvUpdateHeader();
+    toast('No se pudo guardar en el servidor — recepción no registrada, intenta de nuevo', 'error');
+  }
 }
 
 function _showRecvFeedback(p, totalQty) {
@@ -177,16 +197,31 @@ async function recvUndo(id) {
   const idx = _recvSession.findIndex(x => x.product.id === id);
   if (idx === -1) return;
   const { product: p, qtyAdded, prevStock } = _recvSession[idx];
+  const curStock = p.stock;
+  const curOutOfStock = p.outOfStock;
   p.stock = prevStock;
   p.outOfStock = prevStock === 0;
   _recvSession.splice(idx, 1);
   _renderRecvList();
   _recvUpdateHeader();
-  toast(`↩ ${p.name} revertido`);
-  await supabaseApi(`products?id=eq.${id}`, {
+  // El toast de éxito se disparaba ANTES del await que intenta el PATCH,
+  // y su resultado nunca se revisaba -- si deshacer fallaba en el
+  // servidor, la app ya había dicho "revertido" y el stock quedaba mal
+  // sincronizado hasta el siguiente reload.
+  const result = await supabaseApi(`products?id=eq.${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ stock: prevStock, out_of_stock: prevStock === 0 })
   });
+  if (result.ok) {
+    toast(`↩ ${p.name} revertido`);
+  } else {
+    p.stock = curStock;
+    p.outOfStock = curOutOfStock;
+    _recvSession.splice(idx, 0, { product: p, qtyAdded, prevStock });
+    _renderRecvList();
+    _recvUpdateHeader();
+    toast('No se pudo deshacer — el servidor no respondió, intenta de nuevo', 'error');
+  }
 }
 
 function _renderRecvList() {
