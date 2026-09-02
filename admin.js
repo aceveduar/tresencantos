@@ -419,7 +419,7 @@ function getFilteredProducts() {
       (_statFilter === 'sin-categ'    && p.category === 'por_revisar') ||
       (_statFilter === 'ultima-pieza' && p.stock === 1 && !p.outOfStock) ||
       (_statFilter === 'sin-precio'   && (!p.price || p.price === 0)) ||
-      (_statFilter === 'imagen-base64' && p.image?.startsWith('data:')) ||
+      (_statFilter === 'imagen-base64' && p.image?.startsWith('data:') && p.image !== DEFAULT_IMG) ||
       (_statFilter === 'kits'         && Array.isArray(p.kitItems)) ||
       (_statFilter === 'por-caducar'  && ['soon','expired'].includes(_expiryStatus(p)?.state)) ||
       (_statFilter === 'apartado'     && (p.isApartado || _apartadosMap[p.id])) ||

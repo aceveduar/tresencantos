@@ -190,7 +190,7 @@ async function uploadToDrive(b64) {
 }
 
 async function migrateBase64ToDrive() {
-  const toMigrate = products.filter(p => p.image?.startsWith('data:'));
+  const toMigrate = products.filter(p => p.image?.startsWith('data:') && p.image !== DEFAULT_IMG);
   if (!toMigrate.length) { toast('No hay imágenes base64 que migrar', ''); return; }
   if (!driveEp || !driveSecret) { toast('Configura Google Drive primero en Herramientas → Google Drive', 'error'); return; }
   if (!confirm(`¿Migrar ${toMigrate.length} imágenes a Google Drive automáticamente?\n\nTarda ~${toMigrate.length} segundos. No cierres la ventana.`)) return;
