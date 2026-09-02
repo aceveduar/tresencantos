@@ -101,7 +101,7 @@ function renderStats() {
     (sinCateg     > 0 ? chip('sin-categ',   AR_ICO_WARN(), sinCateg,    'Sin categoría', AR_C_AMBER) : '') +
     (() => {
       if (ROLE !== 'superadmin') return '';
-      const nBase64 = products.filter(p => !p.isArchived && !_ib(p) && p.image?.startsWith('data:')).length;
+      const nBase64 = products.filter(p => !p.isArchived && !_ib(p) && !Array.isArray(p.kitItems) && p.image?.startsWith('data:')).length;
       return nBase64 > 0 ? chip('imagen-base64', AR_ICO_ARCHIVE(), nBase64, 'Imagen base64', AR_C_NEUTRAL) : '';
     })() +
     (() => {
