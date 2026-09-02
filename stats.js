@@ -1278,7 +1278,7 @@ function renderCatChart() {
   sales.forEach(s => {
     if (!Array.isArray(s.items)) return;
     s.items.forEach(item => {
-      const prod = products.find(p => p.id === item.id);
+      const prod = products.find(p => +p.id === +item.id);
       const cat = prod?.category_label || prod?.category || 'Otro';
       catMap[cat] = (catMap[cat]||0) + (item.subtotal||0);
     });
