@@ -56,7 +56,11 @@ function addToCart(id, qty = 1) {
   if (!p) return false;
   const existing = cart.find(x => x.id === id);
   const currentQty = existing ? existing.qty : 0;
-  const available = (p.stock || 0) - currentQty;
+  // Un kit siempre tiene stock=0 en BD (su disponibilidad real vive en los
+  // componentes) -- usar p.stock aquí hacía que "Agregar" fallara siempre
+  // para cualquier kit, sin importar cuánto stock tuvieran sus componentes.
+  const realStock = Array.isArray(p.kitItems) ? kitStock(p) : p.stock;
+  const available = (realStock || 0) - currentQty;
   const toAdd = Math.min(qty, available);
   if (toAdd <= 0) return false;
   if (existing) existing.qty += toAdd;
@@ -97,7 +101,7 @@ function updateCartQty(id, delta, btn) {
   const item = cart.find(x => x.id === id);
   if (!item) return;
   const p = products.find(x => x.id === id);
-  const maxQty = p ? (p.stock || 1) : 1;
+  const maxQty = p ? (Array.isArray(p.kitItems) ? kitStock(p) : p.stock) || 1 : 1;
   const next = Math.max(1, Math.min(item.qty + delta, maxQty));
   if (next === item.qty && delta > 0 && btn) {
     btn.classList.remove('btn-at-max');
