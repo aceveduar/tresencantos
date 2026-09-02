@@ -238,6 +238,17 @@ function _kbSuggestPrice() {
   if (!priceEl.value) priceEl.value = sum;
 }
 
+// Stock en vivo del componente -- _kbComponents guarda un snapshot de
+// stock/oos tomado al momento de agregar, que nunca se releía después. Si
+// el kit se sigue armando mientras otro dispositivo recibe mercancía de
+// ese mismo componente (Modo Recepción corre en paralelo en esta misma
+// app), la vista previa "📦 N kits disponibles" y el aviso "Agotado" por
+// componente se quedaban congelados con el número viejo.
+function _kbLiveStock(id) {
+  const p = products.find(x => x.id === id);
+  return p ? p.stock : 0;
+}
+
 function _kbAddComponent(id) {
   const p = products.find(x => x.id === id);
   if (!p || _kbComponents.find(c => c.id === id)) return;
@@ -272,12 +283,12 @@ function _kbRenderComponents() {
     el.innerHTML = '<div style="text-align:center;padding:14px;color:var(--muted);font-size:.8rem;border:1.5px dashed var(--border);border-radius:10px">Busca productos arriba para agregarlos al kit</div>';
     return;
   }
-  el.innerHTML = _kbComponents.map(c => `
+  el.innerHTML = _kbComponents.map(c => { const oos = _kbLiveStock(c.id) === 0; return `
     <div class="kb-comp">
       <img src="${c.image || DEFAULT_IMG}" style="width:44px;height:44px;object-fit:cover;border-radius:9px;flex-shrink:0;cursor:zoom-in" onerror="this.src='${DEFAULT_IMG}'" onclick="_kitCompPopover(${c.id},event)" title="Ver producto">
       <div style="flex:1;min-width:0;cursor:pointer" onclick="_kitCompPopover(${c.id},event)" title="Ver producto">
         <div style="font-size:.84rem;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${_esc(c.name)}</div>
-        ${c.oos ? `<div style="font-size:.7rem;color:var(--red);margin-top:2px"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:2px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Agotado — disponibilidad calculada cuando haya stock</div>` : ''}
+        ${oos ? `<div style="font-size:.7rem;color:var(--red);margin-top:2px"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:2px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Agotado — disponibilidad calculada cuando haya stock</div>` : ''}
       </div>
       <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
         <button class="kb-qty-btn" onclick="_kbChangeQty(${c.id},-1)">−</button>
@@ -285,13 +296,13 @@ function _kbRenderComponents() {
         <button class="kb-qty-btn" onclick="_kbChangeQty(${c.id},1)">+</button>
         <button class="kb-qty-btn" onclick="_kbRemoveComponent(${c.id})" style="border-color:#FECACA;background:#FEF2F2;color:var(--red)">✕</button>
       </div>
-    </div>`).join('');
+    </div>`; }).join('');
 }
 
 function _kbUpdateStock() {
   const el = document.getElementById('kb-stock-preview');
   if (!_kbComponents.length) { el.textContent = ''; return; }
-  const avail = Math.min(..._kbComponents.map(c => Math.floor(c.stock / c.qty)));
+  const avail = Math.min(..._kbComponents.map(c => Math.floor(_kbLiveStock(c.id) / c.qty)));
   el.textContent = avail > 0
     ? `📦 ${avail} kit${avail !== 1 ? 's' : ''} disponibles con el stock actual`
     : '⚠️ Sin stock suficiente con el inventario actual';
