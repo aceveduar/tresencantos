@@ -842,7 +842,8 @@ function renderTable() {
 
   if (!filtered.length) {
     const isFiltered = (document.getElementById('search-input')?.value || '') ||
-                       (document.getElementById('cat-filter')?.value !== 'all');
+                       (document.getElementById('cat-filter')?.value !== 'all') ||
+                       !!_statFilter;
     const isFlagOnly = _showOnlyFlagged;
     const emptyHTML = `<div class="empty-state">
       <div class="es-icon" style="color:var(--muted-light)">${isFlagOnly ? AR_ICO_FLAG(40) : isFiltered ? AR_ICO_SEARCH(40) : AR_ICO_PACKAGE(40)}</div>
