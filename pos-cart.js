@@ -42,7 +42,10 @@ function renderFrecuentes(hide) {
   if (hide) { el.classList.remove('visible'); return; }
   const top = _topFromSales
     .map(id => products.find(p => p.id === id))
-    .filter(p => p && !p.outOfStock && p.stock > 0);
+    // getKitStock() ya devuelve p.stock tal cual para no-kits -- un kit
+    // frecuente con stock real en sus componentes nunca aparecía aquí
+    // porque p.stock de un kit siempre es 0 en BD por diseño.
+    .filter(p => p && !p.outOfStock && getKitStock(p) > 0);
   if (top.length < 3) { el.classList.remove('visible'); return; }
   el.innerHTML = `<span class="pos-freq-label">Freq.</span>` +
     top.map(p => `
