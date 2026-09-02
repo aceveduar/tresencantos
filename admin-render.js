@@ -800,7 +800,7 @@ function mobileCard(p) {
           ${flagDataMC?.note ? `<div class="flag-note-line">${AR_ICO_FLAG(13)}"${_esc(flagDataMC.note)}"</div>` : ''}
           <div class="mpc-cat-tag">
             <span class="cat-dot" style="background:${catColor}"></span>
-            <span class="${isSinCatMC ? 'cat-label-sin-cat' : ''}" style="font-size:.72rem;color:${isSinCatMC ? '' : 'var(--muted)'};font-weight:400">${isSinCatMC ? 'Sin categoría' : _esc(p.categoryLabel)}</span>
+            <span class="cat-label-inline${isSinCatMC ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría">${isSinCatMC ? 'Sin categoría' : _esc(p.categoryLabel)}</span>
             ${_showCreator && ROLE === 'superadmin' && p.createdBy ? `<span class="creator-chip" title="${p.createdBy}">${AR_ICO_USER()}${_creatorName(p.createdBy)}</span>` : ''}
           </div>
           <div class="mpc-price-row">
