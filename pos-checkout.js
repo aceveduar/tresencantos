@@ -604,8 +604,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const raw   = e.target.value.trim();
     const terms = _norm(raw).split(/\s+/).filter(Boolean);
     if (!terms.length) return;
+    // getKitStock() devuelve p.stock tal cual para no-kits -- antes un kit
+    // nunca hacía match aquí (Enter en el buscador, o el lector de código de
+    // barras USB que dispara este mismo listener) porque p.stock de un kit
+    // siempre es 0 en BD, sin importar cuánto stock real tuvieran sus
+    // componentes.
     const match = products.find(p =>
-      !p.outOfStock && p.stock > 0 && (
+      !p.outOfStock && getKitStock(p) > 0 && (
         terms.every(t => _norm(p.name).includes(t)) ||
         (p.barcode && p.barcode === raw)
       )
