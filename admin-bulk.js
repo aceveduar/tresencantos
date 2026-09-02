@@ -135,6 +135,14 @@ function _bcpFilter(q) {
   const list  = document.getElementById('bcp-list');
   let html = '';
 
+  // Edición de un solo producto: marcar su categoría actual entre los 30
+  // chips para que no haya que recordarla de memoria ni adivinar cuál está
+  // activa -- mismo tratamiento .selected que ya existe (borde+fondo dorado)
+  // pero hasta ahora nunca se usaba aquí.
+  const curCode = _bcpInlineId !== null ? products.find(x => x.id === _bcpInlineId)?.category : null;
+  const selCls = code => code === curCode ? ' selected' : '';
+  const CHECK = '<svg width="12" height="12" viewBox="0 0 10 8" fill="none" style="flex-shrink:0"><path d="M1 4l3 3 5-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+
   for (const root of roots) {
     const subs = categories.filter(c => c.parent === root.code);
     const all  = [root, ...subs];
@@ -143,15 +151,15 @@ function _bcpFilter(q) {
 
     if (!term) {
       html += `<div class="bcp-group-label">${_esc(root.label)}</div><div class="bcp-chips">`;
-      html += `<button class="bcp-chip" onclick="_bcpSelect('${root.code}')"><span class="bcp-dot" style="background:${root.color||'#9B8B78'}"></span>${_esc(root.label)}</button>`;
+      html += `<button class="bcp-chip${selCls(root.code)}" onclick="_bcpSelect('${root.code}')"><span class="bcp-dot" style="background:${root.color||'#9B8B78'}"></span>${_esc(root.label)}${root.code===curCode?CHECK:''}</button>`;
       subs.forEach(s => {
-        html += `<button class="bcp-chip bcp-sub-chip" onclick="_bcpSelect('${s.code}')"><span class="bcp-dot" style="background:${s.color||root.color||'#9B8B78'}"></span>${_esc(s.label)}</button>`;
+        html += `<button class="bcp-chip bcp-sub-chip${selCls(s.code)}" onclick="_bcpSelect('${s.code}')"><span class="bcp-dot" style="background:${s.color||root.color||'#9B8B78'}"></span>${_esc(s.label)}${s.code===curCode?CHECK:''}</button>`;
       });
       html += `</div>`;
     } else {
       html += `<div class="bcp-chips" style="margin-bottom:8px">`;
       visible.forEach(c => {
-        html += `<button class="bcp-chip" onclick="_bcpSelect('${c.code}')"><span class="bcp-dot" style="background:${c.color||'#9B8B78'}"></span>${_esc(c.label)}</button>`;
+        html += `<button class="bcp-chip${selCls(c.code)}" onclick="_bcpSelect('${c.code}')"><span class="bcp-dot" style="background:${c.color||'#9B8B78'}"></span>${_esc(c.label)}${c.code===curCode?CHECK:''}</button>`;
       });
       html += `</div>`;
     }
