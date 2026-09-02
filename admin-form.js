@@ -235,7 +235,13 @@ function clearAdminFilters() {
   const creatorSel = document.getElementById('creator-filter');
   if (s) s.value = '';
   if (c) { c.value = 'all'; _updateCatFilterBtn(); }
-  if (sortSel) { sortSel.value = 'recent'; currentSort = 'recent'; }
+  // También hay que limpiar localStorage, no solo la variable en memoria y
+  // el <select> visible -- si no, currentSort = localStorage.getItem(...)
+  // al recargar la página revivía el orden "limpiado" porque nunca se
+  // había borrado de ahí. Y 'created-new' (no 'recent') porque es el
+  // default real que usa el resto de la app cuando no hay nada guardado
+  // (admin.js) -- 'recent' era un valor viejo que ya no coincide.
+  if (sortSel) { sortSel.value = 'created-new'; currentSort = 'created-new'; localStorage.setItem('te_admin_sort', 'created-new'); }
   if (creatorSel) creatorSel.value = 'all';
   if (_showOnlyFlagged) { _showOnlyFlagged = false; _syncFlagFilter(); }
   _statFilter = null;
