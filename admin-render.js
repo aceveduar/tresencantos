@@ -823,11 +823,15 @@ function renderTable() {
 
   const countEl = document.getElementById('prod-count');
   if (countEl) {
-    countEl.style.display = products.length === 0 ? 'none' : '';
-    if (products.length > 0) {
-      countEl.textContent = filtered.length === products.length
-        ? `${products.length} producto${products.length !== 1 ? 's' : ''}`
-        : `${filtered.length} de ${products.length}`;
+    // El denominador debe ser el catálogo activo (o archivado, según la vista),
+    // no products.length crudo -- ese mezcla archivados con activos y no
+    // coincide con ningún número que el usuario reconozca (ni "Todos" ni nada).
+    const poolTotal = products.filter(p => _showingArchived ? p.isArchived : !p.isArchived).length;
+    countEl.style.display = poolTotal === 0 ? 'none' : '';
+    if (poolTotal > 0) {
+      countEl.textContent = filtered.length === poolTotal
+        ? `${poolTotal} producto${poolTotal !== 1 ? 's' : ''}`
+        : `${filtered.length} de ${poolTotal}`;
     }
   }
 
