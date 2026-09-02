@@ -302,6 +302,28 @@ td,th{overflow:hidden}
 .qv-flag-note-text{font-size:.82rem;color:#5D4037;margin-top:5px;font-style:italic;line-height:1.5}
 .qv-flag-ts{font-size:.65rem;color:var(--muted);margin-top:4px;display:block}
 .qv-flag-form{background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin:12px 0 2px}
+
+/* QV — banner prioritario del problema, solo visible navegando desde el
+   filtro "Por revisar" (_showOnlyFlagged). El motivo por el que se abrió
+   el Quick View en ese modo va primero, antes de nombre/precio/foto de
+   contexto -- "ver el problema, resolverlo", sin scroll. */
+.qv-flag-priority{
+  background:#FEF2F2;border:1.5px solid #FCA5A5;border-radius:var(--r-sm);
+  padding:12px 14px;margin-bottom:14px;animation:qvFlagPulse .5s ease;
+}
+.qv-flag-priority-title{display:flex;align-items:center;gap:6px;font-weight:700;color:#B91C1C;font-size:.78rem;text-transform:uppercase;letter-spacing:.03em}
+.qv-flag-priority-note{font-size:.92rem;color:#7F1D1D;font-style:italic;line-height:1.45;margin:6px 0}
+.qv-flag-priority-ts{font-size:.68rem;color:#B91C1C;opacity:.7;display:block;margin-bottom:8px}
+.qv-flag-priority-resolve{
+  background:#fff;border:1.5px solid #16A34A;color:#15803D;font-weight:700;font-size:.78rem;
+  padding:7px 14px;border-radius:50px;cursor:pointer;touch-action:manipulation;font-family:inherit;
+}
+.qv-flag-priority-resolve:active{background:#F0FDF4}
+@keyframes qvFlagPulse{
+  0%{transform:scale(.97);box-shadow:0 0 0 0 rgba(185,28,28,.35)}
+  70%{box-shadow:0 0 0 10px rgba(185,28,28,0)}
+  100%{transform:scale(1);box-shadow:0 0 0 0 rgba(185,28,28,0)}
+}
 .qv-flag-form label{font-size:.72rem;font-weight:600;color:var(--charcoal);display:block;margin-bottom:6px}
 .qv-flag-textarea{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:.85rem;font-family:inherit;resize:none;outline:none;transition:border-color .15s;background:#fff;line-height:1.5}
 .qv-flag-textarea:focus{border-color:var(--red)}

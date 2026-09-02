@@ -600,22 +600,38 @@ function _renderQV(p) {
     }
   }
 
-  // Zona de flag
+  // Zona de flag — banner prioritario arriba cuando se navega desde el
+  // filtro "Por revisar" (evita repetir el mismo mensaje dos veces en el
+  // mismo panel), caja normal abajo en cualquier otro contexto.
   const flagData = _flagItem(p.id);
   const flagZone = document.getElementById('qv-flag-zone');
-  if (flagZone) {
+  const flagPriorityZone = document.getElementById('qv-flag-priority');
+  if (flagZone && flagPriorityZone) {
     if (flagData) {
       const d = new Date(flagData.ts);
       const dateStr = d.toLocaleDateString('es-MX', { day:'numeric', month:'short' }) +
                       ' ' + d.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
-      flagZone.innerHTML = `
-        <div class="qv-flag-active">
-          <span class="qv-flag-title">${QV_ICO_FLAG(13)}Pendiente de revisión</span>
-          ${flagData.note ? `<p class="qv-flag-note-text">"${_esc(flagData.note)}"</p>` : ''}
-          <span class="qv-flag-ts">Marcado el ${dateStr}</span>
-        </div>`;
+      if (_showOnlyFlagged) {
+        flagPriorityZone.innerHTML = `
+          <div class="qv-flag-priority">
+            <span class="qv-flag-priority-title">${QV_ICO_FLAG(13)}Pendiente de revisión</span>
+            ${flagData.note ? `<p class="qv-flag-priority-note">"${_esc(flagData.note)}"</p>` : ''}
+            <span class="qv-flag-priority-ts">Marcado el ${dateStr}</span>
+            <button type="button" class="qv-flag-priority-resolve" onclick="unflagProduct(${p.id})">✓ Marcar como revisado</button>
+          </div>`;
+        flagZone.innerHTML = '';
+      } else {
+        flagPriorityZone.innerHTML = '';
+        flagZone.innerHTML = `
+          <div class="qv-flag-active">
+            <span class="qv-flag-title">${QV_ICO_FLAG(13)}Pendiente de revisión</span>
+            ${flagData.note ? `<p class="qv-flag-note-text">"${_esc(flagData.note)}"</p>` : ''}
+            <span class="qv-flag-ts">Marcado el ${dateStr}</span>
+          </div>`;
+      }
     } else {
       flagZone.innerHTML = '';
+      flagPriorityZone.innerHTML = '';
     }
   }
 
