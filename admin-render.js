@@ -464,28 +464,28 @@ async function editStockInline(e, id, chipEl) {
   chip.classList.add('stock-chip-editing');
 
   const backdrop = document.createElement('div');
-  backdrop.className = 'stock-pop-backdrop';
+  backdrop.className = 'field-pop-backdrop';
 
   const pop = document.createElement('div');
-  pop.className = 'stock-pop';
+  pop.className = 'field-pop';
   pop.innerHTML = `
-    <div class="stock-pop-label">Editar stock</div>
-    <div class="stock-pop-stepper">
+    <div class="field-pop-label">Editar stock</div>
+    <div class="field-pop-stepper">
       <button type="button" class="sp-minus">−</button>
       <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="${p.stock}">
       <button type="button" class="sp-plus">+</button>
     </div>
-    <div class="stock-pop-actions">
-      <button type="button" class="stock-pop-cancel">Cancelar</button>
-      <button type="button" class="stock-pop-save">Guardar</button>
+    <div class="field-pop-actions">
+      <button type="button" class="field-pop-cancel">Cancelar</button>
+      <button type="button" class="field-pop-save">Guardar</button>
     </div>`;
   document.body.append(backdrop, pop);
 
   const input     = pop.querySelector('input');
   const btnMinus  = pop.querySelector('.sp-minus');
   const btnPlus   = pop.querySelector('.sp-plus');
-  const btnSave   = pop.querySelector('.stock-pop-save');
-  const btnCancel = pop.querySelector('.stock-pop-cancel');
+  const btnSave   = pop.querySelector('.field-pop-save');
+  const btnCancel = pop.querySelector('.field-pop-cancel');
 
   const position = () => {
     const r = chip.getBoundingClientRect();
@@ -572,41 +572,65 @@ async function editPriceInlineAdmin(e, id) {
   if (!can.editProduct) { toast('Sin permiso para editar precios', 'error'); return; }
   _inlineEditActive = true;
 
+  // Mismo popover flotante que editStockInline — antes el precio se
+  // reemplazaba EN la fila (en mobile con su propio botón ✓ pegado a los
+  // demás chips de la tarjeta: stock, Web/Oculto). El valor original nunca
+  // se toca, así que cancelar no necesita re-renderizar nada.
   const trigger = e.currentTarget;
   const mobile = isMobile();
+  trigger.classList.add('field-value-editing');
 
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.inputMode = 'decimal';
-  input.pattern = '[0-9]*';
-  input.autocomplete = 'off';
-  input.value = p.price || '';
-  input.placeholder = '0';
-  input.style.cssText = 'width:80px;padding:3px 7px;border:2px solid var(--gold);border-radius:6px;font-size:16px;outline:none;font-family:inherit;font-weight:700;text-align:center;color:var(--charcoal)';
+  const backdrop = document.createElement('div');
+  backdrop.className = 'field-pop-backdrop';
 
-  let container;
-  if (mobile) {
-    container = document.createElement('span');
-    container.style.cssText = 'display:inline-flex;align-items:center;gap:4px;vertical-align:middle';
-    const btn = document.createElement('button');
-    btn.type = 'button'; btn.textContent = '✓';
-    btn.style.cssText = 'background:var(--gold);border:none;color:#fff;border-radius:6px;padding:4px 7px;font-size:.82rem;cursor:pointer;font-family:inherit;line-height:1;touch-action:manipulation';
-    btn.ontouchend = ev => { ev.preventDefault(); save(); };
-    btn.onclick = () => save();
-    container.appendChild(input); container.appendChild(btn);
-    trigger.replaceWith(container);
-  } else {
-    trigger.replaceWith(input);
-  }
+  const pop = document.createElement('div');
+  pop.className = 'field-pop';
+  pop.innerHTML = `
+    <div class="field-pop-label">Editar precio</div>
+    <div class="field-pop-input-row">
+      <span class="field-pop-currency">$</span>
+      <input type="text" inputmode="decimal" pattern="[0-9]*" autocomplete="off" value="${p.price || ''}" placeholder="0">
+    </div>
+    <div class="field-pop-actions">
+      <button type="button" class="field-pop-cancel">Cancelar</button>
+      <button type="button" class="field-pop-save">Guardar</button>
+    </div>`;
+  document.body.append(backdrop, pop);
+
+  const input     = pop.querySelector('input');
+  const btnSave   = pop.querySelector('.field-pop-save');
+  const btnCancel = pop.querySelector('.field-pop-cancel');
+
+  const position = () => {
+    const r = trigger.getBoundingClientRect();
+    const pw = pop.offsetWidth, ph = pop.offsetHeight;
+    let left = r.left + r.width / 2 - pw / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+    let top = r.bottom + 8;
+    if (top + ph > window.innerHeight - 8) top = r.top - ph - 8;
+    pop.style.left = `${left}px`;
+    pop.style.top = `${Math.max(8, top)}px`;
+  };
+  position();
 
   let saved = false;
+  const teardown = () => {
+    trigger.classList.remove('field-value-editing');
+    backdrop.remove(); pop.remove();
+    document.removeEventListener('keydown', onKey);
+    window.removeEventListener('scroll', onScroll, true);
+    window.removeEventListener('resize', position);
+    _inlineEditActive = false;
+  };
+  const cancel = () => { if (saved) return; saved = true; teardown(); };
+
   const save = async () => {
     if (saved) return;
     saved = true;
-    _inlineEditActive = false;
     const newPrice = parseFloat(input.value);
-    if (isNaN(newPrice) || newPrice < 0) { renderTable(); _qvRefresh(id); return; }
-    if (newPrice === p.price) { renderTable(); _qvRefresh(id); return; }
+    teardown();
+    if (isNaN(newPrice) || newPrice < 0) return;
+    if (newPrice === p.price) return;
 
     const result = await supabaseApi(`products?id=eq.${id}`, {
       method: 'PATCH', body: JSON.stringify({ price: newPrice })
@@ -621,14 +645,22 @@ async function editPriceInlineAdmin(e, id) {
     renderTable(); _qvRefresh(id);
   };
 
-  input.addEventListener('keydown', ev => {
+  btnSave.onclick   = () => save();
+  btnCancel.onclick = () => cancel();
+  backdrop.onclick  = () => cancel();
+
+  const onKey = ev => {
     if (ev.key === 'Enter')  { ev.preventDefault(); save(); }
-    if (ev.key === 'Escape') { saved = true; _inlineEditActive = false; renderTable(); _qvRefresh(id); }
-  });
+    if (ev.key === 'Escape') { ev.preventDefault(); cancel(); }
+  };
+  const onScroll = () => cancel();
+  document.addEventListener('keydown', onKey);
+  window.addEventListener('resize', position);
+  setTimeout(() => window.addEventListener('scroll', onScroll, true), 400);
+
   setTimeout(() => {
     input.focus();
     if (!mobile) input.select();
-    if (!mobile) setTimeout(() => { if (!saved) input.addEventListener('blur', save); }, 500);
   }, 50);
 }
 
