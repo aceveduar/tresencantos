@@ -457,47 +457,64 @@ async function editStockInline(e, id, chipEl) {
   const chip = chipEl || e.currentTarget || e.target.closest('.stock-chip,.qv-chip') || e.target;
   const mobile = isMobile();
 
-  // Stepper táctil — reemplaza el chip con [−] N [+] + botón Guardar
-  const input = document.createElement('input');
-  input.type = 'text'; input.inputMode = 'numeric'; input.pattern = '[0-9]*';
-  input.autocomplete = 'off'; input.value = p.stock;
-  input.style.cssText = 'width:52px;padding:4px 6px;border:2px solid var(--gold);border-radius:8px;font-size:1.1rem;font-weight:700;text-align:center;outline:none;font-family:inherit;color:var(--charcoal)';
+  // Cápsula flotante anclada al chip — antes el stepper [−] N [+] ✓ ✕ se
+  // insertaba EN la fila, apretado junto al precio y demás controles de la
+  // tarjeta (5-6 zonas táctiles pegadas). El chip nunca se toca/reemplaza,
+  // así que cancelar no necesita re-renderizar nada.
+  chip.classList.add('stock-chip-editing');
 
-  const btnMinus = document.createElement('button');
-  btnMinus.type = 'button'; btnMinus.textContent = '−';
-  btnMinus.style.cssText = 'width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:#fff;font-size:1.2rem;font-weight:700;cursor:pointer;touch-action:manipulation;font-family:inherit;display:flex;align-items:center;justify-content:center;flex-shrink:0';
-  btnMinus.ontouchend = e2 => { e2.preventDefault(); input.value = Math.max(0, parseInt(input.value)||0) - 1; };
-  btnMinus.onclick    = () => { input.value = Math.max(0, parseInt(input.value)||0) - 1; };
+  const backdrop = document.createElement('div');
+  backdrop.className = 'stock-pop-backdrop';
 
-  const btnPlus = document.createElement('button');
-  btnPlus.type = 'button'; btnPlus.textContent = '+';
-  btnPlus.style.cssText = btnMinus.style.cssText;
-  btnPlus.ontouchend = e2 => { e2.preventDefault(); input.value = (parseInt(input.value)||0) + 1; };
-  btnPlus.onclick    = () => { input.value = (parseInt(input.value)||0) + 1; };
+  const pop = document.createElement('div');
+  pop.className = 'stock-pop';
+  pop.innerHTML = `
+    <div class="stock-pop-label">Editar stock</div>
+    <div class="stock-pop-stepper">
+      <button type="button" class="sp-minus">−</button>
+      <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="${p.stock}">
+      <button type="button" class="sp-plus">+</button>
+    </div>
+    <div class="stock-pop-actions">
+      <button type="button" class="stock-pop-cancel">Cancelar</button>
+      <button type="button" class="stock-pop-save">Guardar</button>
+    </div>`;
+  document.body.append(backdrop, pop);
 
-  const btnSave = document.createElement('button');
-  btnSave.type = 'button'; btnSave.textContent = '✓';
-  btnSave.style.cssText = 'background:var(--gold);border:none;color:#fff;border-radius:50%;width:36px;height:36px;font-size:1rem;font-weight:700;cursor:pointer;touch-action:manipulation;font-family:inherit;flex-shrink:0;display:flex;align-items:center;justify-content:center';
-  btnSave.ontouchend = e2 => { e2.preventDefault(); save(); };
-  btnSave.onclick    = () => save();
+  const input     = pop.querySelector('input');
+  const btnMinus  = pop.querySelector('.sp-minus');
+  const btnPlus   = pop.querySelector('.sp-plus');
+  const btnSave   = pop.querySelector('.stock-pop-save');
+  const btnCancel = pop.querySelector('.stock-pop-cancel');
 
-  const btnCancel = document.createElement('button');
-  btnCancel.type = 'button'; btnCancel.textContent = '✕';
-  btnCancel.style.cssText = 'background:none;border:1.5px solid var(--border);color:var(--muted);border-radius:50%;width:32px;height:32px;font-size:.85rem;cursor:pointer;touch-action:manipulation;font-family:inherit;flex-shrink:0;display:flex;align-items:center;justify-content:center';
-  btnCancel.ontouchend = e2 => { e2.preventDefault(); saved = true; renderTable(); _qvRefresh(id); };
-  btnCancel.onclick    = () => { saved = true; renderTable(); _qvRefresh(id); };
-
-  const container = document.createElement('span');
-  container.style.cssText = 'display:flex;align-items:center;gap:6px;width:100%;padding:2px 0';
-  container.append(btnMinus, input, btnPlus, btnSave, btnCancel);
-  chip.replaceWith(container);
+  const position = () => {
+    const r = chip.getBoundingClientRect();
+    const pw = pop.offsetWidth, ph = pop.offsetHeight;
+    let left = r.left + r.width / 2 - pw / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+    let top = r.bottom + 8;
+    if (top + ph > window.innerHeight - 8) top = r.top - ph - 8;
+    pop.style.left = `${left}px`;
+    pop.style.top = `${Math.max(8, top)}px`;
+  };
+  position();
 
   let saved = false;
+  const teardown = () => {
+    chip.classList.remove('stock-chip-editing');
+    backdrop.remove(); pop.remove();
+    document.removeEventListener('keydown', onKey);
+    window.removeEventListener('scroll', onScroll, true);
+    window.removeEventListener('resize', position);
+  };
+  const cancel = () => { if (saved) return; saved = true; teardown(); };
+
   const save = async () => {
     if (saved) return;
     saved = true;
     const newStock = Math.max(0, parseInt(input.value) || 0);
-    if (newStock === p.stock) { renderTable(); _qvRefresh(id); return; }
+    teardown();
+    if (newStock === p.stock) return;
 
     const patch = { stock: newStock };
     if (newStock > 0 && p.outOfStock)  patch.out_of_stock = false;
@@ -522,29 +539,27 @@ async function editStockInline(e, id, chipEl) {
     renderTable(); _qvRefresh(id);
   };
 
-  input.addEventListener('keydown', ev => {
+  btnMinus.onclick  = () => { input.value = Math.max(0, parseInt(input.value)||0) - 1; };
+  btnPlus.onclick   = () => { input.value = (parseInt(input.value)||0) + 1; };
+  btnSave.onclick   = () => save();
+  btnCancel.onclick = () => cancel();
+  backdrop.onclick  = () => cancel();
+
+  const onKey = ev => {
     if (ev.key === 'Enter')  { ev.preventDefault(); save(); }
-    if (ev.key === 'Escape') { saved = true; renderTable(); _qvRefresh(id); }
-  });
+    if (ev.key === 'Escape') { ev.preventDefault(); cancel(); }
+  };
+  const onScroll = () => cancel();
+  document.addEventListener('keydown', onKey);
+  window.addEventListener('resize', position);
+  // Scroll listener con retraso: al enfocar el input, iOS/Android suelen
+  // hacer scroll automático para esquivar el teclado — sin este retraso ese
+  // scroll cerraría el popover de inmediato, apenas abierto.
+  setTimeout(() => window.addEventListener('scroll', onScroll, true), 400);
 
   setTimeout(() => {
     input.focus();
     if (!mobile) input.select();
-    // Click fuera del stepper → cancelar si sin cambios, guardar si hay cambios
-    setTimeout(() => {
-      if (saved) return;
-      const dismiss = (ev) => {
-        if (saved || container.contains(ev.target)) return;
-        document.removeEventListener('click', dismiss, true);
-        document.removeEventListener('touchend', dismiss, true);
-        if (!saved) {
-          if (parseInt(input.value) === p.stock) { saved = true; renderTable(); _qvRefresh(id); }
-          else save();
-        }
-      };
-      document.addEventListener('click', dismiss, true);
-      document.addEventListener('touchend', dismiss, true);
-    }, 300);
   }, 50);
 }
 
