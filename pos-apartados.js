@@ -463,12 +463,12 @@ async function toggleAptView(mode, target) {
 // no pisar este texto mientras loadApartados() sigue en vuelo) — pero volver
 // a Activos con el toggle (sin recargar del servidor) nunca lo restauraba,
 // dejando "N liquidados" pegado bajo el título "Apartados pendientes".
-function _updateAptOcActivosCount() {
+function _updateAptOcActivosCount(rowsParam) {
   const ocCount = document.getElementById('apt-oc-count');
   if (!ocCount) return;
   const todayKey = _posMexicoDayKey();
-  const vencidos = (_apartadosAll || []).filter(s => s.due_date && s.due_date < todayKey).length;
-  const rows = _apartadosAll || [];
+  const rows = rowsParam || _apartadosAll || [];
+  const vencidos = rows.filter(s => s.due_date && s.due_date < todayKey).length;
   const totalFalta = rows.reduce((sum, s) => sum + Math.max(0, (parseFloat(s.total) || 0) - parseFloat(s.paid_amount || 0)), 0);
   ocCount.textContent = rows.length
     ? `${rows.length} apartado${rows.length !== 1 ? 's' : ''} activo${rows.length !== 1 ? 's' : ''}${vencidos > 0 ? ` · ${vencidos} vencido${vencidos > 1 ? 's' : ''}` : ''} · $${totalFalta.toLocaleString('es-MX')} por cobrar`
@@ -700,13 +700,17 @@ function _renderApartadoCards(data, isLiquidado) {
   const ocTitle = document.getElementById('apt-oc-title');
   const ocCount = document.getElementById('apt-oc-count');
   if (!ocList) return;
-  // El conteo de "activos" (con vencidos) ya lo arma loadApartados() con más detalle —
-  // aquí solo se toca cuando se muestra la vista de liquidados, para no pisarlo
   if (isLiquidado) {
     if (ocTitle) ocTitle.innerHTML = '<svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:var(--green);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>Apartados liquidados';
     if (ocCount) ocCount.textContent = data.length ? `${data.length} liquidado${data.length !== 1 ? 's' : ''}` : '';
-  } else if (ocTitle) {
-    ocTitle.innerHTML = '<svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Apartados pendientes';
+  } else {
+    if (ocTitle) ocTitle.innerHTML = '<svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Apartados pendientes';
+    // Recalcular con `data` (el resultado ya filtrado por Vencidos/Próximos/Sin
+    // fecha + búsqueda) -- antes este conteo se dejaba fijo con el total sin
+    // filtrar, así que aplicar un filtro de fecha o buscar por cliente movía
+    // la lista de tarjetas pero el encabezado seguía diciendo el número de
+    // TODOS los apartados activos, no de los que realmente se veían.
+    _updateAptOcActivosCount(data);
   }
   if (!data.length) {
     ocList.innerHTML = `<div class="history-empty" style="grid-column:1/-1"><div style="margin-bottom:8px">${isLiquidado ? _uiIcoCheck('var(--green)', 30) : _uiIcoSearch(30)}</div>Sin ${isLiquidado ? 'apartados liquidados' : 'resultados'}</div>`;
