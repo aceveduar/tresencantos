@@ -80,6 +80,14 @@ async function cobrar() {
   const btn = document.getElementById('cobrar-btn');
   btn.setAttribute('data-loading', '1'); btn.disabled = true;
 
+  // Snapshot de qué se va a cobrar exactamente -- nada bloquea el carrito
+  // durante los `await` de abajo (customerId, el RPC), a propósito, para no
+  // frenar a la cajera si quiere empezar a cobrar al siguiente cliente
+  // mientras la venta anterior sigue en la red. Se usa al final para quitar
+  // solo lo que se cobró, no todo el carrito -- lo que se agregó durante la
+  // espera antes se perdía sin aviso cuando `cart = []` lo borraba también.
+  const chargedSnapshot = cart.map(({ product: p, qty }) => ({ id: p.id, qty }));
+
   const items = cart.map(({ product: p, qty, customPrice }) => {
     const pr = Math.round((customPrice ?? p.price) * 100) / 100;
     const isCustom = customPrice != null && customPrice !== p.price;
@@ -167,7 +175,12 @@ async function cobrar() {
   // Reset UI
   _clearOverrideTicket('canOverridePrice');
   _clearOverrideTicket('canApplyDiscount');
-  cart = [];
+  chargedSnapshot.forEach(({ id, qty }) => {
+    const idx = cart.findIndex(x => x.product.id === id);
+    if (idx === -1) return;
+    if (cart[idx].qty <= qty) cart.splice(idx, 1);
+    else cart[idx].qty -= qty;
+  });
   ['pos-cash','pos-discount','pos-note'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   document.getElementById('pos-is-apartado').checked = false;
   toggleApartadoMode(); // limpia phone/anticipo/pendiente/fecha/cliente-apartado y cierra el sheet
