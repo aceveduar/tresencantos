@@ -444,8 +444,13 @@ async function loadSales(mode = _statsMode, offset = _statsOffset, generation = 
     // "Movimientos de hoy" no reflejaba que se creó un apartado nuevo.
     _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&paid_amount=eq.0&cancelled_at=is.null&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&is_test=eq.false&order=created_at.desc,id.desc`),
     // Apartados nuevos del período (KPI) — se cuentan por fecha de creación,
-    // sin importar su estado actual (activo/liquidado), igual que "cuántos abrí".
-    _fetchAll(`sales?select=id&origin_type=eq.apartado&cancelled_at=is.null&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&is_test=eq.false&order=id.asc`)
+    // sin importar su estado actual (activo/liquidado/cancelado), igual que
+    // "cuántos abrí". Antes filtraba cancelled_at=is.null, contradiciendo su
+    // propio comentario: uno abierto y cancelado días después desaparecía de
+    // este conteo al ver el reporte de aquel día, aunque su anticipo (dinero,
+    // que sí sigue la fecha real del movimiento sin importar el estado
+    // actual) siguiera apareciendo — dos cifras del mismo día en desacuerdo.
+    _fetchAll(`sales?select=id&origin_type=eq.apartado&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&is_test=eq.false&order=id.asc`)
   ]);
   const directSales = (directSalesR.ok && Array.isArray(directSalesR.data)) ? directSalesR.data : [];
   const apartadoSales = (apartadoSalesR.ok && Array.isArray(apartadoSalesR.data)) ? apartadoSalesR.data : [];
