@@ -530,6 +530,8 @@ function isOos(p) {
 
 // stock=1 = ahora mismo, en esta tienda, queda 1 — sin promesas sobre origen ni reabasto
 function isLastPiece(p) {
+  // Un kit siempre tiene stock=0 en BD -- su disponibilidad real es kitStock().
+  if (Array.isArray(p.kitItems)) return kitStock(p) === 1;
   return p.stock === 1 && !p.isApartado;
 }
 
