@@ -497,6 +497,18 @@ function _dupOpenZoom(el) {
   requestAnimationFrame(() => overlay.classList.add('open'));
 }
 
+// closeCmpZoom() se llamaba desde el botón ✕, el toque en el fondo y la
+// tecla Escape (admin.html:786, admin.js:732) pero nunca estuvo definida
+// en ningún archivo -- cada intento de cerrar el zoom de comparación
+// lanzaba un ReferenceError silencioso y no pasaba nada, dejando el
+// overlay atascado. No toca document.body.style.overflow: el sheet de
+// duplicados de abajo ya lo puso en 'hidden' y lo restaura él mismo al
+// cerrarse (closeDupReview) -- este zoom es una capa encima, no un lock
+// independiente.
+function closeCmpZoom() {
+  document.getElementById('cmp-zoom')?.classList.remove('open');
+}
+
 function _dupCard(p, pairKey, isMed, otherImg) {
   const createdStr = p.createdAt
     ? new Date(p.createdAt).toLocaleDateString('es-MX', {day:'numeric', month:'short', year:'numeric'})
