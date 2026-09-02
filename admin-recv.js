@@ -38,10 +38,14 @@ function recvSearch(q) {
   const resultsEl = document.getElementById('recv-search-results');
   const val = q.trim();
   if (!val) { resultsEl.style.display = 'none'; return; }
+  // Un kit no tiene stock propio que "recibir" -- su disponibilidad depende
+  // de sus componentes. Sin este filtro, buscar/escanear un kit aquí
+  // terminaba escribiendo un número sin sentido en su campo stock (que el
+  // resto de la app siempre trata como fijo en 0 para kits).
   // Coincidencia exacta de código de barras → agregar automáticamente sin mostrar lista
-  const barcodeMatch = products.find(p => p.barcode && p.barcode === val);
+  const barcodeMatch = products.find(p => p.barcode && p.barcode === val && !Array.isArray(p.kitItems));
   if (barcodeMatch) { recvConfirmAdd(barcodeMatch.id); return; }
-  const matches = products.filter(p => _norm(p.name).includes(_norm(val))).slice(0, 8);
+  const matches = products.filter(p => !Array.isArray(p.kitItems) && _norm(p.name).includes(_norm(val))).slice(0, 8);
   resultsEl.style.display = 'block';
   if (!matches.length) {
     const safeVal = _esc(val).replace(/'/g, "\\'");
