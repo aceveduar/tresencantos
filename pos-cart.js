@@ -136,6 +136,16 @@ function _showRestockPrompt(id) {
   if (!_showRestock) return;
   const p = products.find(x => x.id === id);
   if (!p) return;
+  // Un kit no tiene un número de stock propio que "reabastecer" -- su
+  // disponibilidad depende de sus componentes (getKitStock). Antes este
+  // prompt se abría igual para un kit agotado: el PATCH escribía un valor
+  // sin efecto en products.stock (getKitStock lo ignora por completo para
+  // kits), addToCart() seguía viendo 0 de stock real y no hacía nada, pero
+  // el toast decía "agregado al carrito" de todos modos.
+  if (Array.isArray(p.kitItems)) {
+    toast('Este kit está agotado porque a algún componente se le acabó el stock — reabastece el componente desde Inventario', 'error');
+    return;
+  }
   _restockProductId = id;
   _restockQty = 1;
   document.getElementById('restock-prod-name').textContent = p.name;
