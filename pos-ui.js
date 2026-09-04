@@ -1149,7 +1149,12 @@ async function deleteSale(id) {
     : '';
   if (!confirm(`¿Cancelar el ${label} de $${total} (${itemCount} artículo${itemCount !== 1 ? 's' : ''})?\n\nSe restaurará el stock.${refundText}\n\nEsta acción no se puede deshacer.`)) return;
 
-  const delResult = await _posCancelSaleAtomic(id, sale, 'Cancelado desde Historial de Caja');
+  // Antes mandaba el texto fijo 'Cancelado desde Historial de Caja' -- no
+  // es un motivo real, solo repite desde dónde se tocó el botón (dato que
+  // la propia acción ya deja claro). null es más honesto que un texto que
+  // aparenta ser información real sin serlo. Capturar el motivo real aquí
+  // (como ya se hace en el cancelar de apartados de Caja) queda pendiente.
+  const delResult = await _posCancelSaleAtomic(id, sale, null);
   if (!delResult.ok) {
     toast(_posRpcError(delResult, `Error al cancelar el ${label}`), 'error');
     return;

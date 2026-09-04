@@ -377,6 +377,8 @@
     <h3>¿Cancelar este apartado?</h3>
     <p class="apt-info-lbl" id="cancel-apt-info"></p>
     <div id="cancel-apt-warning" style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:10px 14px;font-size:.82rem;color:#B91C1C;margin-bottom:16px;line-height:1.5"></div>
+    <label for="cancel-apt-reason" style="display:block;font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:6px">Motivo (opcional, queda en Actividad)</label>
+    <input type="text" id="cancel-apt-reason" placeholder="Ej. cliente se arrepintió, error de captura…" maxlength="140" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;font-family:inherit;margin-bottom:16px;box-sizing:border-box">
     <div class="abonar-footer">
       <button class="btn-cancel" onclick="_closeCancelAptModal()">No, mantenerlo</button>
       <button class="btn-confirm" id="cancel-apt-confirm-btn" style="background:var(--red)" onclick="_confirmCancelApartado()">Sí, cancelar apartado</button>

@@ -79,6 +79,8 @@ async function cancelApartado(id) {
   _cancelAptCtx = { id, sale, nombre, total, pagado, nItems };
 
   document.getElementById('cancel-apt-info').textContent = `${nombre} · $${total.toLocaleString('es-MX')} MXN · ${nItems} producto${nItems !== 1 ? 's' : ''}`;
+  const reasonEl = document.getElementById('cancel-apt-reason');
+  if (reasonEl) reasonEl.value = '';
   const warnEl = document.getElementById('cancel-apt-warning');
   warnEl.innerHTML = pagado > 0
     ? `<svg style="width:13px;height:13px;vertical-align:-2px;margin-right:3px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Ya se pagaron <strong>$${pagado.toLocaleString('es-MX')}</strong>. Al cancelar se registrará la devolución por los mismos métodos de pago y se restaurará el stock.<br>Esta acción no se puede deshacer.`
@@ -97,7 +99,14 @@ async function _confirmCancelApartado() {
   const btn = document.getElementById('cancel-apt-confirm-btn');
   btn.disabled = true; btn.textContent = 'Cancelando…';
 
-  const delResult = await _posCancelSaleAtomic(id, sale, 'Cancelado desde Caja');
+  // p_reason ya existía en el RPC y viajaba hasta activity_log.meta.reason,
+  // pero el cliente siempre mandaba el texto fijo "Cancelado desde Caja" --
+  // no explica NADA de lo que de verdad pasó, solo desde qué pantalla se
+  // tocó el botón (algo que la propia acción ya deja claro). Ahora manda lo
+  // que la cajera escribió, o null si lo dejó vacío (mejor sin dato que con
+  // uno falso que aparenta ser información real).
+  const reasonVal = (document.getElementById('cancel-apt-reason')?.value || '').trim();
+  const delResult = await _posCancelSaleAtomic(id, sale, reasonVal || null);
   if (!delResult.ok) {
     toast(_posRpcError(delResult, 'Error al cancelar apartado'), 'error');
     btn.disabled = false; btn.textContent = 'Sí, cancelar apartado';

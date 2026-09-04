@@ -527,6 +527,7 @@ function _actPopup(idx) {
     bodyHtml += `<div style="font-size:.82rem;color:#1C1817;margin-bottom:4px">${meta.items||0} producto${(meta.items||0)!==1?'s':''}</div>`;
     bodyHtml += `<div style="font-size:.82rem;color:#8A7564">${meta.method==='transferencia'?_actIcoPhone(12)+' Transferencia':_actIcoCash(12)+' Efectivo'}</div>`;
     if (meta.discount > 0) bodyHtml += `<div style="font-size:.78rem;color:#059669;margin-top:4px">Descuento −$${parseFloat(meta.discount).toLocaleString('es-MX')}</div>`;
+    if (meta.reason) bodyHtml += `<div style="font-size:.8rem;color:#1C1817;margin-top:8px;padding:8px 10px;background:#F7F2EB;border-radius:8px;font-style:italic">"${_esc(meta.reason)}"</div>`;
     bodyHtml += _renderItemsDetail(meta);
   } else if (isApt) {
     bodyHtml = `<div style="font-size:.9rem;font-weight:700;margin-bottom:6px">${_esc(meta.customer || item.summary)}</div>`;
@@ -539,6 +540,7 @@ function _actPopup(idx) {
     if (meta.refund != null)   bodyHtml += `<div style="font-size:.82rem;color:#E85D5D;margin-top:2px">Devuelto: $${parseFloat(meta.refund).toLocaleString('es-MX')}</div>`;
     if (meta.method)           bodyHtml += `<div style="font-size:.78rem;color:#8A7564;margin-top:2px">${meta.method==='transferencia'?_actIcoPhone(12)+' Transferencia':_actIcoCash(12)+' Efectivo'}</div>`;
     if (meta.dueDate)          bodyHtml += `<div style="font-size:.78rem;color:#8A7564;margin-top:2px">${_actIcoCalendar(12)} Vencía: ${_activityFormat(meta.dueDate+'T12:00:00Z',{day:'numeric',month:'short',year:'numeric'})}</div>`;
+    if (meta.reason) bodyHtml += `<div style="font-size:.8rem;color:#1C1817;margin-top:8px;padding:8px 10px;background:#F7F2EB;border-radius:8px;font-style:italic">"${_esc(meta.reason)}"</div>`;
     bodyHtml += _renderItemsDetail(meta);
   } else {
     bodyHtml = `<div style="font-size:.85rem;color:#1C1817">${_esc(item.summary)}</div>`;
