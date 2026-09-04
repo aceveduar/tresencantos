@@ -152,26 +152,6 @@ async function loadAppConfig() {
       _dismissedDupsCache = new Set();
     }
   }
-  if (!driveEp) {
-    const oldEp = localStorage.getItem('te_drive_ep');
-    const oldSecret = localStorage.getItem('te_drive_secret');
-    if (oldEp && oldSecret) {
-      driveEp = oldEp; driveSecret = oldSecret;
-      migrations.push(
-        supabaseApi('config', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates,return=minimal'}, body: JSON.stringify({id:'drive_ep',     value: oldEp}) }),
-        supabaseApi('config', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates,return=minimal'}, body: JSON.stringify({id:'drive_secret', value: oldSecret}) })
-      );
-    }
-  }
-  if (!groqApiKey) {
-    const oldKey = localStorage.getItem('te_groq_key');
-    if (oldKey) {
-      groqApiKey = oldKey;
-      migrations.push(
-        supabaseApi('config', { method:'POST', headers:{'Prefer':'resolution=merge-duplicates,return=minimal'}, body: JSON.stringify({id:'groq_key', value: oldKey}) })
-      );
-    }
-  }
   if (migrations.length) await Promise.all(migrations);
 }
 

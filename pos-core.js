@@ -294,29 +294,7 @@ function _posEnsureCurrentShift() {
   const today = _posMexicoDayKey();
   const dateKey = _posShiftStorageKey('shift_date');
   const startKey = _posShiftStorageKey('shift_start');
-  let storedDate = localStorage.getItem(dateKey);
-
-  // Primera ejecución tras actualizar: conservar el turno/caja local anterior
-  // para el usuario que tiene abierta la sesión, sin borrar las llaves legado.
-  if (!storedDate) {
-    const legacyDate = localStorage.getItem('te_shift_date');
-    const migrationOwnerKey = 'te_shift_legacy_migrated_owner';
-    const migrationOwner = localStorage.getItem(migrationOwnerKey);
-    if (legacyDate === today && (!migrationOwner || migrationOwner === _posShiftScope())) {
-      storedDate = legacyDate;
-      localStorage.setItem(dateKey, legacyDate);
-      const legacyStart = localStorage.getItem('te_shift_start');
-      if (legacyStart) localStorage.setItem(startKey, legacyStart);
-      ['gastos', 'fondo', 'conteo'].forEach(name => {
-        const legacyValue = localStorage.getItem(`te_${name}_${legacyDate}`);
-        const scopedKey = _posDailyStorageKey(name, legacyDate);
-        if (legacyValue != null && localStorage.getItem(scopedKey) == null) {
-          localStorage.setItem(scopedKey, legacyValue);
-        }
-      });
-      localStorage.setItem(migrationOwnerKey, _posShiftScope());
-    }
-  }
+  const storedDate = localStorage.getItem(dateKey);
 
   if (storedDate !== today) {
     localStorage.setItem(dateKey, today);
