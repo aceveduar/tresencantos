@@ -872,6 +872,11 @@ async function doLoginEmail() {
 }
 
 async function doLogout() {
+  // Se registra ANTES de invalidar el token (Supabase Auth /logout lo revoca)
+  // y de borrar la sesión local -- después de eso logActivity() ya no podría
+  // escribir. Junto con sesión_iniciada, completa la duración real de cada
+  // sesión en Actividad.
+  await logActivity('sesion_cerrada', 'Cerró sesión');
   try {
     const s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
     if (s.access_token) {

@@ -12,7 +12,8 @@ const SESSION_KEY = 'te_admin_session';
   } catch { window.location.href = 'admin.html'; }
 })();
 
-function doLogout() {
+async function doLogout() {
+  await logActivity('sesion_cerrada', 'Cerró sesión');
   sessionStorage.removeItem('te_user_can');
   localStorage.removeItem(SESSION_KEY);
   window.location.href = 'admin.html';
@@ -78,7 +79,7 @@ const _driveSz = (url, w) => (url && url.includes('drive.google.com')) ? url.rep
 
 const _myEmail = (() => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)||'{}')?.user?.email||''; } catch { return ''; } })();
 function logActivity(action, summary, meta = null) {
-  api('activity_log', {
+  return api('activity_log', {
     method: 'POST',
     body: JSON.stringify({ user_email: _myEmail, action, summary, meta })
   }).catch(() => {});

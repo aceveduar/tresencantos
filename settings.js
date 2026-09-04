@@ -15,7 +15,8 @@ let ROLE = 'operador';
   } catch { window.location.href = 'admin.html'; }
 })();
 
-function doLogout() {
+async function doLogout() {
+  await logActivity('sesion_cerrada', 'Cerró sesión');
   sessionStorage.removeItem('te_user_can');
   localStorage.removeItem(SESSION_KEY);
   window.location.href = 'admin.html';
@@ -72,7 +73,7 @@ let nameMap    = {};
 let userPermsMap = {};  // { "email": { role, canXxx: bool, … } }
 const _myEmail = (() => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)||'{}')?.user?.email||''; } catch { return ''; } })();
 function logActivity(action, summary, meta = null) {
-  api('activity_log', {
+  return api('activity_log', {
     method: 'POST',
     body: JSON.stringify({ user_email: _myEmail, action, summary, meta })
   }).catch(() => {});

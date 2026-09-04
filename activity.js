@@ -30,7 +30,23 @@ function _activityFormat(value, options) {
   } catch { window.location.href = 'admin.html'; }
 })();
 
-function doLogout() {
+// Actividad solo leía el log hasta ahora -- necesita su propio logActivity()
+// (igual que el resto de módulos, cada uno con su copia local) para poder
+// registrar el cierre de sesión desde aquí también.
+function logActivity(action, summary, meta = null) {
+  let email = 'desconocido';
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
+    email = s?.email || s?.user?.email || 'desconocido';
+  } catch {}
+  return api('activity_log', {
+    method: 'POST',
+    body: JSON.stringify({ user_email: email, action, summary, meta })
+  }).catch(() => {});
+}
+
+async function doLogout() {
+  await logActivity('sesion_cerrada', 'Cerró sesión');
   sessionStorage.removeItem('te_user_can');
   localStorage.removeItem(SESSION_KEY);
   window.location.href = 'admin.html';
@@ -239,6 +255,7 @@ const ACTION_CFG = {
   cliente_editado:       { type:'sistema', badge:'editado',   icon:_actIcoEdit(),  label:'Cliente editado' },
   respaldo_generado:     { type:'sistema', badge:'editado',   icon:_actIcoCheck(), label:'Respaldo generado' },
   sesion_iniciada:       { type:'sistema', badge:'creado',    icon:_actIcoUser(),  label:'Inicio de sesión' },
+  sesion_cerrada:        { type:'sistema', badge:'editado',   icon:_actIcoUser(),  label:'Cierre de sesión' },
   sesion_fallida:        { type:'sistema', badge:'eliminado', icon:_actIcoWarn(),  label:'Login bloqueado' },
 };
 

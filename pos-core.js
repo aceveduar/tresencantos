@@ -137,7 +137,8 @@ if (!isAuthenticated()) {
   window.location.href = 'admin.html';
 }
 
-function doLogout() {
+async function doLogout() {
+  await logActivity('sesion_cerrada', 'Cerró sesión');
   sessionStorage.removeItem('te_user_can');
   localStorage.removeItem(SESSION_KEY);
   window.location.href = 'admin.html';
@@ -743,7 +744,7 @@ function getCurrentUserEmail() {
   } catch { return 'desconocido'; }
 }
 function logActivity(action, summary, meta = null) {
-  api('activity_log', {
+  return api('activity_log', {
     method: 'POST',
     body: JSON.stringify({ user_email: getCurrentUserEmail(), action, summary, meta })
   }).catch(() => {});
