@@ -37,15 +37,6 @@ function _descHtml(desc) {
   return s;
 }
 
-function _descText(desc) {
-  if (!desc) return '';
-  return desc
-    .replace(/\*\*/g, '').replace(/\*/g, '')
-    .replace(/^[•\-]\s*/gm, '')
-    .replace(/\n+/g, ' ')
-    .trim();
-}
-
 /* ── CARRITO ── */
 let cart; try { cart = JSON.parse(localStorage.getItem('te_cart') || '[]'); } catch { cart = []; }
 
@@ -559,6 +550,8 @@ function cardHTML(p) {
   const priceHTML = pct > 0
     ? `<div class="product-price"><s class="price-before">$${p.originalPrice.toLocaleString('es-MX')}</s> $${p.price.toLocaleString('es-MX')}</div>`
     : `<div class="product-price">$${p.price.toLocaleString('es-MX')}</div>`;
+  const lastPieceChip = (!oos && !apt && isLastPiece(p))
+    ? `<p class="card-last-piece">⚡ Última pieza</p>` : '';
   const buyBtn = apt
     ? `<button class="btn-buy btn-buy-oos" onclick="event.stopPropagation();whatsapp(${p.id},this)" style="background:#92400E">${WA_SVG} Consultar</button>`
     : oos ? `<button class="btn-buy btn-buy-oos" disabled>Agotado</button>`
@@ -571,6 +564,7 @@ function cardHTML(p) {
   </div>
   <div class="product-body">
     <h3>${_esc(p.name)}</h3>
+    ${lastPieceChip}
     <div class="product-footer">
       ${priceHTML}
       ${buyBtn}
