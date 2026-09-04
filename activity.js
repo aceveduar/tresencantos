@@ -346,6 +346,12 @@ function populateUsers(data) {
   });
 }
 
+// Detalle completo (sin truncar) de cada tarjeta KPI, para el popup que se
+// abre al tocarla -- .sum-sub usa text-overflow:ellipsis y en mobile no hay
+// hover para leer el title completo, así que un día ocupado podía esconder
+// datos reales (ej. "1 cancelada") detrás de un "...".
+let _summaryDetail = { ventas: null, apt: null, inv: null };
+
 function updateSummary(logData, paymentData, allApartados) {
   // Acciones se cuentan desde el log en su fecha real; importes, solo desde el ledger.
   const ventas = logData.filter(item => item.action === 'venta').length;
@@ -367,6 +373,7 @@ function updateSummary(logData, paymentData, allApartados) {
       : 'Ingresos no disponibles',
     ventasCanceladas ? `${ventasCanceladas} cancelada${ventasCanceladas !== 1 ? 's' : ''}` : ''
   ].filter(Boolean).join(' · ');
+  _summaryDetail.ventas = { ventas, paymentsAvailable, netReceived, refunds, ventasCanceladas };
 
   // ── Apartados: acciones del período + pendientes actuales globales
   const aptNuevos = logData.filter(item => item.action === 'apartado_nuevo').length;
@@ -385,6 +392,7 @@ function updateSummary(logData, paymentData, allApartados) {
     aptCancelados ? `${aptCancelados} cancelado${aptCancelados !== 1 ? 's' : ''}` : '',
     aptPendientes == null ? 'Pendientes no disponibles' : aptPendientes > 0 ? `${aptPendientes} por cobrar (total)` : 'sin pendientes'
   ].filter(Boolean).join(' · ');
+  _summaryDetail.apt = { aptNuevos, aptAbonos, aptLiquidados, aptReembolsos, aptCancelados, aptPendientes };
 
   // ── Inventario: desglosado desde activity_log
   const creados   = logData.filter(d => d.action === 'producto_creado').length;
@@ -394,9 +402,61 @@ function updateSummary(logData, paymentData, allApartados) {
   document.getElementById('sum-inv').textContent = invTotal;
   document.getElementById('sum-inv-sub').innerHTML =
     invTotal > 0 ? `${_actIcoPlus(11)}${creados} ${_actIcoEdit(11)}${editados} ${_actIcoTrash(11)}${eliminados}` : '';
+  _summaryDetail.inv = { creados, editados, eliminados };
 
   const anyData = ventas + aptNuevos + aptAbonos + aptLiquidados + aptReembolsos + movements.length + invTotal > 0;
   if (anyData) document.getElementById('summary-row').style.display = '';
+}
+
+function _summaryDetailPopup(type) {
+  const d = _summaryDetail[type];
+  if (!d) return;
+  document.getElementById('sum-pop')?.remove();
+
+  let title, rows;
+  if (type === 'ventas') {
+    title = 'Ventas';
+    rows = [
+      ['Ventas completadas', d.ventas],
+      d.paymentsAvailable
+        ? [`Ingreso neto`, `${d.netReceived < 0 ? '−' : ''}$${Math.abs(d.netReceived).toLocaleString('es-MX')}`]
+        : ['Ingresos', 'No disponibles'],
+      d.refunds ? ['Devoluciones', d.refunds] : null,
+      d.ventasCanceladas ? ['Canceladas', d.ventasCanceladas] : null,
+    ].filter(Boolean);
+  } else if (type === 'apt') {
+    title = 'Apartados';
+    rows = [
+      ['Nuevos', d.aptNuevos],
+      d.aptAbonos ? ['Abonos', d.aptAbonos] : null,
+      d.aptLiquidados ? ['Liquidados', d.aptLiquidados] : null,
+      d.aptReembolsos ? ['Reembolsos', d.aptReembolsos] : null,
+      d.aptCancelados ? ['Cancelados', d.aptCancelados] : null,
+      ['Por cobrar (total histórico, no solo del período)', d.aptPendientes == null ? 'No disponible' : d.aptPendientes],
+    ].filter(Boolean);
+  } else {
+    title = 'Inventario';
+    rows = [
+      ['Productos creados', d.creados],
+      ['Productos editados', d.editados],
+      ['Productos eliminados', d.eliminados],
+    ];
+  }
+
+  const pop = document.createElement('div');
+  pop.id = 'sum-pop';
+  pop.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);animation:ap-in .15s ease';
+  pop.onclick = e => { if (e.target === pop) pop.remove(); };
+  pop.innerHTML = `
+    <style>@keyframes ap-in{from{opacity:0}to{opacity:1}}</style>
+    <div onclick="event.stopPropagation()" style="background:#fff;border-radius:18px;padding:18px;max-width:300px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,.28)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <h3 style="font-size:1rem;margin:0">${_esc(title)}</h3>
+        <button onclick="document.getElementById('sum-pop').remove()" style="background:none;border:none;font-size:1.1rem;color:var(--muted);cursor:pointer;padding:4px" aria-label="Cerrar">✕</button>
+      </div>
+      ${rows.map(([label, val]) => `<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--border);font-size:.85rem"><span style="color:var(--muted)">${_esc(label)}</span><span style="font-weight:700;text-align:right">${_esc(String(val))}</span></div>`).join('')}
+    </div>`;
+  document.body.appendChild(pop);
 }
 
 function render(data) {
