@@ -159,16 +159,32 @@ a{text-decoration:none}
   color: #fff;
 }
 
-/* ── Aviso de sistema — descartable, fijo abajo (mismo patrón que
-   #offline-banner: no afecta el layout de cada módulo, y se desplaza sobre
-   la tab bar de Caja igual que ese banner) ── */
-#sys-notice{
-  position:fixed;left:0;right:0;z-index:9998;
-  display:flex;align-items:center;gap:10px;
-  padding:10px 16px;
-  background:var(--gold-light);border-top:1px solid var(--gold);
-  color:var(--charcoal);font-size:.82rem;line-height:1.35;
+/* ── Campana de notificaciones — junto al avatar en la topbar ── */
+#notif-bell{
+  position:relative;display:flex;align-items:center;justify-content:center;
+  width:28px;height:28px;margin-right:8px;border-radius:50%;
+  background:transparent;border:none;color:rgba(255,255,255,.7);
+  cursor:pointer;transition:.15s;flex-shrink:0;
 }
-#sys-notice .sn-text{flex:1}
-#sys-notice .sn-close{flex-shrink:0;background:none;border:none;color:var(--muted);font-size:1rem;cursor:pointer;padding:4px 6px;line-height:1;transition:.15s}
-#sys-notice .sn-close:hover{color:var(--charcoal)}
+#notif-bell:hover{color:#fff;background:rgba(255,255,255,.1)}
+.notif-badge{
+  position:absolute;top:-2px;right:-2px;min-width:15px;height:15px;padding:0 3px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--red);color:#fff;font-size:.6rem;font-weight:700;
+  border-radius:50px;border:1.5px solid var(--charcoal);line-height:1;
+}
+#notif-pop{
+  position:fixed;z-index:99999;
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:10px;width:300px;max-width:calc(100vw - 16px);max-height:70vh;overflow-y:auto;
+  box-shadow:0 8px 32px rgba(28,24,23,.18);
+  animation:ud-in .15s ease;
+}
+.notif-pop-title{font-weight:700;font-size:.82rem;color:var(--charcoal);padding:4px 6px 8px}
+.notif-item{
+  font-size:.8rem;line-height:1.45;color:var(--charcoal);
+  padding:9px 8px;border-radius:8px;border-bottom:1px solid var(--border);
+}
+.notif-item:last-child{border-bottom:none}
+.notif-item.unread{background:var(--gold-light);font-weight:600}
+.notif-empty{font-size:.8rem;color:var(--muted);padding:14px 8px;text-align:center}

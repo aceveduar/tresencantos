@@ -125,18 +125,21 @@
   document.addEventListener('DOMContentLoaded', _initOfflineBanner);
 })();
 
-/* ── AVISOS DE SISTEMA — descartables, para cualquier usuario con sesión
-   activa (Ofelia, Areli, Eduardo, sin distinción de rol). Lista de anuncios
-   breves sobre cambios del sistema; se muestra uno a la vez (nunca varios
-   encimados) y cada uno se descarta por separado en localStorage, así que
-   un aviso nuevo agregado a SYS_NOTICES siempre aparece -- incluso si uno
-   viejo ya se cerró -- y el que se está viendo no desaparece solo, solo con
-   la ✕.
+/* ── AVISOS DE SISTEMA — campana de notificaciones en la topbar, para
+   cualquier usuario con sesión activa (Ofelia, Areli, Eduardo, sin
+   distinción de rol). Reemplaza al banner fijo que se descartaba una sola
+   vez y desaparecía para siempre (2026-08-21 a 2026-09-04) -- Eduardo pidió
+   un lugar donde poder releer lo que ya se mandó, sin que se amontone en
+   pantalla. Mismo patrón de lectura que Gmail/Slack: la campana muestra un
+   contador de no leídos; abrir el panel los marca leídos, pero la lista
+   completa (leídos incluidos) sigue disponible mientras el aviso no expire.
    `until` ('YYYY-MM-DD', inclusive, opcional) evita que un dispositivo
-   nuevo -- que nunca descartó nada en su localStorage -- reciba la cola
-   completa de avisos acumulados desde que existe esta lista; sin fecha,
-   un aviso viejo de hace semanas se le seguiría mostrando como si fuera
-   nuevo. Regla práctica: ~3 semanas de vida por aviso.
+   nuevo -- que nunca marcó nada como leído en su localStorage -- reciba la
+   cola completa de avisos acumulados desde que existe esta lista. Regla
+   práctica: ~3 semanas de vida por aviso.
+   Compatibilidad: reutiliza la misma llave `te_notice_${id}` que ya usaba
+   el banner viejo -- un aviso ya descartado antes de este cambio sigue
+   contando como leído, sin migración.
    Para agregar un aviso futuro: nuevo objeto {id, text, until} al arreglo. ── */
 (function () {
   const SYS_NOTICES = [
@@ -156,29 +159,83 @@
     } catch { return false; }
   }
 
-  function _initSysNotice() {
-    if (!_hasValidSession()) return;
+  function _activeNotices() {
     const todayKey = new Date().toISOString().slice(0, 10);
-    const notice = SYS_NOTICES.find(n =>
-      (!n.until || n.until >= todayKey) && !localStorage.getItem(`te_notice_${n.id}`));
-    if (!notice) return;
-
-    const banner = document.createElement('div');
-    banner.id = 'sys-notice';
-    banner.dataset.id = notice.id;
-    const hasPosTabBar = !!document.getElementById('pos-tab-bar') && window.matchMedia('(max-width:640px)').matches;
-    banner.style.bottom = hasPosTabBar ? '56px' : '0';
-    banner.innerHTML =
-      `<span class="sn-text">${notice.text}</span>` +
-      `<button type="button" class="sn-close" aria-label="Cerrar aviso">✕</button>`;
-    banner.querySelector('.sn-close').onclick = () => {
-      localStorage.setItem(`te_notice_${notice.id}`, '1');
-      banner.remove();
-    };
-    document.body.appendChild(banner);
+    return SYS_NOTICES.filter(n => !n.until || n.until >= todayKey);
   }
 
-  document.addEventListener('DOMContentLoaded', _initSysNotice);
+  function _isRead(id) { return !!localStorage.getItem(`te_notice_${id}`); }
+
+  function _updateBadge(bell) {
+    const count = _activeNotices().filter(n => !_isRead(n.id)).length;
+    let badge = bell.querySelector('.notif-badge');
+    if (count > 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'notif-badge';
+        bell.appendChild(badge);
+      }
+      badge.textContent = count > 9 ? '9+' : String(count);
+    } else if (badge) {
+      badge.remove();
+    }
+  }
+
+  function _toggleNotifPanel(bell) {
+    const existing = document.getElementById('notif-pop');
+    if (existing) { existing.remove(); return; }
+
+    const notices = _activeNotices().slice().reverse(); // más reciente primero
+    const unreadIds = new Set(notices.filter(n => !_isRead(n.id)).map(n => n.id));
+
+    const pop = document.createElement('div');
+    pop.id = 'notif-pop';
+    pop.innerHTML = `
+      <div class="notif-pop-title">Notificaciones</div>
+      ${notices.length
+        ? notices.map(n => `<div class="notif-item${unreadIds.has(n.id) ? ' unread' : ''}">${n.text}</div>`).join('')
+        : '<div class="notif-empty">Sin notificaciones por ahora.</div>'}`;
+    document.body.appendChild(pop);
+
+    const r = bell.getBoundingClientRect();
+    const pw = 300;
+    let left = r.right - pw;
+    if (left < 8) left = 8;
+    pop.style.cssText += `top:${r.bottom + 6}px;left:${left}px`;
+
+    // Marcar leído al abrir -- el resaltado de "no leído" se queda visible
+    // en esta misma vista (ya se calculó unreadIds antes de este paso).
+    unreadIds.forEach(id => localStorage.setItem(`te_notice_${id}`, '1'));
+    _updateBadge(bell);
+
+    setTimeout(() => {
+      document.addEventListener('click', function close(e) {
+        if (!pop.contains(e.target) && e.target !== bell && !bell.contains(e.target)) {
+          pop.remove();
+          document.removeEventListener('click', close);
+        }
+      });
+    }, 10);
+  }
+
+  function _initNotifBell() {
+    if (!_hasValidSession()) return;
+    const avatar = document.getElementById('user-avatar');
+    if (!avatar || !avatar.parentElement) return;
+
+    const bell = document.createElement('button');
+    bell.type = 'button';
+    bell.id = 'notif-bell';
+    bell.title = 'Notificaciones';
+    bell.setAttribute('aria-label', 'Notificaciones');
+    bell.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`;
+    bell.addEventListener('click', e => { e.stopPropagation(); _toggleNotifPanel(bell); });
+
+    avatar.parentElement.insertBefore(bell, avatar);
+    _updateBadge(bell);
+  }
+
+  document.addEventListener('DOMContentLoaded', _initNotifBell);
 })();
 
 /* ── NOTIFICACIONES DE VENTA — polling por dispositivo, sin cargar Realtime en los 5 módulos ── */
