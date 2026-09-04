@@ -822,6 +822,18 @@ async function doLoginEmail() {
   if (!result.ok || result.data?.error) {
     recordAttempt();
     const newWait = checkLockout();
+    // Solo se registra el momento en que se activa el bloqueo (5º intento
+    // seguido), no cada intento individual -- te_log_failed_login() del lado
+    // del servidor además nunca deja más de 1 fila por email cada 10 min,
+    // sin importar cuántas veces se llame. Sin sesión activa aquí (fire and
+    // forget con .catch vacío a propósito) -- un fallo de red nunca debe
+    // bloquear el mensaje de error al usuario.
+    if (newWait) {
+      supabaseApi('rpc/te_log_failed_login', {
+        method: 'POST',
+        body: JSON.stringify({ p_email: email })
+      }).catch(() => {});
+    }
     const supabaseMsg = result.data?.error_description || result.data?.msg || result.data?.message || '';
     console.error('Auth error:', result.status, result.data);
 

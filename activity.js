@@ -239,6 +239,7 @@ const ACTION_CFG = {
   cliente_editado:       { type:'sistema', badge:'editado',   icon:_actIcoEdit(),  label:'Cliente editado' },
   respaldo_generado:     { type:'sistema', badge:'editado',   icon:_actIcoCheck(), label:'Respaldo generado' },
   sesion_iniciada:       { type:'sistema', badge:'creado',    icon:_actIcoUser(),  label:'Inicio de sesión' },
+  sesion_fallida:        { type:'sistema', badge:'eliminado', icon:_actIcoWarn(),  label:'Login bloqueado' },
 };
 
 /* ── LOAD ── */
