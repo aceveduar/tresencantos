@@ -48,7 +48,12 @@ async function bulkDelete() {
   renderStats();
   updateBulkBar();
   const _delNames = toDelete.slice(0, 3).map(p => p.name).join(', ');
-  logActivity('producto_eliminado', `Eliminó ${toDelete.length} producto(s) (masivo): ${_delNames}${toDelete.length > 3 ? '…' : ''}`, { ids: toDelete.map(p => p.id), count: toDelete.length, bulk: true });
+  // names: el resumen solo nombra los primeros 3 (para no volver el texto
+  // ilegible), pero antes eso era TODO lo que quedaba visible -- el popup de
+  // detalle no sabía mostrar nada útil para una acción masiva (solo hay
+  // meta.ids, no un id singular), así que no había forma de confirmar desde
+  // la interfaz si un producto puntual estaba entre los N eliminados.
+  logActivity('producto_eliminado', `Eliminó ${toDelete.length} producto(s) (masivo): ${_delNames}${toDelete.length > 3 ? '…' : ''}`, { ids: toDelete.map(p => p.id), names: toDelete.map(p => p.name), count: toDelete.length, bulk: true });
   toast('Productos eliminados', 'success');
 }
 
@@ -284,7 +289,7 @@ async function _bcpSelect(code) {
     if (selectedIds.has(p.id)) { p.category = cat.code; p.categoryLabel = cat.label; }
   });
   renderTable(); renderStats();
-  logActivity('producto_editado', `Cambió categoría a "${cat.label}" en ${_bulkIds.length} producto(s) (masivo)`, { ids: _bulkIds, count: _bulkIds.length, category: cat.code, bulk: true });
+  logActivity('producto_editado', `Cambió categoría a "${cat.label}" en ${_bulkIds.length} producto(s) (masivo)`, { ids: _bulkIds, names: products.filter(p => _bulkIds.includes(p.id)).map(p => p.name), count: _bulkIds.length, category: cat.code, bulk: true });
   toast(`● ${cat.label} → ${selectedIds.size} producto${selectedIds.size > 1 ? 's' : ''}`, '');
 }
 
@@ -309,7 +314,7 @@ async function bulkToggleFeatured() {
   selected.forEach(p => { p.featured = newVal; });
   renderTable();
   renderStats();
-  logActivity('producto_editado', `${newVal ? 'Destacó' : 'Quitó destacado de'} ${selected.length} producto(s) (masivo)`, { ids: selected.map(p => p.id), count: selected.length, featured: newVal, bulk: true });
+  logActivity('producto_editado', `${newVal ? 'Destacó' : 'Quitó destacado de'} ${selected.length} producto(s) (masivo)`, { ids: selected.map(p => p.id), names: selected.map(p => p.name), count: selected.length, featured: newVal, bulk: true });
   toast(newVal ? `${selectedIds.size} producto(s) marcados como destacados ⭐` : `Destacado removido de ${selectedIds.size} producto(s)`, 'success');
 }
 
@@ -343,7 +348,7 @@ async function bulkToggleOOS() {
   selected.forEach(p => { p.outOfStock = newVal; });
   renderTable();
   renderStats();
-  logActivity('producto_editado', `Marcó ${selected.length} producto(s) como ${newVal ? 'agotados' : 'disponibles'} (masivo)`, { ids: selected.map(p => p.id), count: selected.length, outOfStock: newVal, bulk: true });
+  logActivity('producto_editado', `Marcó ${selected.length} producto(s) como ${newVal ? 'agotados' : 'disponibles'} (masivo)`, { ids: selected.map(p => p.id), names: selected.map(p => p.name), count: selected.length, outOfStock: newVal, bulk: true });
   toast(newVal
     ? `${selectedIds.size} producto(s) marcados como agotados`
     : `${selectedIds.size} producto(s) marcados como disponibles`, 'success');
@@ -381,7 +386,7 @@ async function bulkSetBadge() {
   renderTable();
   logActivity('producto_editado', finalBadge
     ? `Aplicó insignia "${finalBadge}" a ${_badgeIds.length} producto(s) (masivo)`
-    : `Quitó insignia de ${_badgeIds.length} producto(s) (masivo)`, { ids: _badgeIds, count: _badgeIds.length, badge: finalBadge, bulk: true });
+    : `Quitó insignia de ${_badgeIds.length} producto(s) (masivo)`, { ids: _badgeIds, names: products.filter(p => _badgeIds.includes(p.id)).map(p => p.name), count: _badgeIds.length, badge: finalBadge, bulk: true });
   toast(finalBadge
     ? `Insignia "${finalBadge}" aplicada a ${selectedIds.size} producto(s)`
     : `Insignias eliminadas de ${selectedIds.size} producto(s)`, 'success');
@@ -408,7 +413,7 @@ async function bulkTogglePublish() {
   selected.forEach(p => { p.isPublished = newVal; });
   renderTable();
   renderStats();
-  logActivity('producto_editado', `${newVal ? 'Publicó' : 'Ocultó'} ${selected.length} producto(s) en el sitio web (masivo)`, { ids: selected.map(p => p.id), count: selected.length, isPublished: newVal, bulk: true });
+  logActivity('producto_editado', `${newVal ? 'Publicó' : 'Ocultó'} ${selected.length} producto(s) en el sitio web (masivo)`, { ids: selected.map(p => p.id), names: selected.map(p => p.name), count: selected.length, isPublished: newVal, bulk: true });
   toast(newVal
     ? `${selectedIds.size} producto(s) publicados en sitio web 🌐`
     : `${selectedIds.size} producto(s) ocultados del sitio web 🙈`, 'success');
@@ -510,7 +515,7 @@ function importProducts(input) {
         newCount    ? `${newCount} agregado(s)` : '',
         updateCount ? `${updateCount} actualizado(s)` : ''
       ].filter(Boolean).join(', ');
-      logActivity('producto_editado', `Importó JSON: ${summary}`, { count: imported.length, newCount, updateCount, bulk: true, source: 'import_json' });
+      logActivity('producto_editado', `Importó JSON: ${summary}`, { ids: imported.map(p => p.id), names: imported.map(p => p.name), count: imported.length, newCount, updateCount, bulk: true, source: 'import_json' });
       toast(`Importación completa: ${summary} ✓`, 'success');
     } catch {
       toast('Archivo inválido. Usa un JSON exportado de esta página.', 'error');

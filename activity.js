@@ -606,7 +606,18 @@ function _actPopup(idx) {
   const isSale  = item.action === 'venta' || item.action === 'venta_cancelada';
   const isApt   = item.action.startsWith('apartado');
 
-  if (isProductAction && meta.id) {
+  if (meta.bulk && Array.isArray(meta.names) && meta.names.length) {
+    // Acciones masivas (editar/eliminar/publicar/etc. varios a la vez): el
+    // resumen visible en el feed solo nombra los primeros 3 para no volverse
+    // ilegible -- antes, tocar la tarjeta no mostraba nada más (el resto de
+    // este popup exige un meta.id singular, que una acción masiva no tiene).
+    // Ahora lista TODOS los productos afectados, para poder confirmar si uno
+    // puntual estuvo entre ellos.
+    bodyHtml = `<div style="font-size:.82rem;color:var(--muted);margin-bottom:8px;font-weight:600">${meta.names.length} producto${meta.names.length !== 1 ? 's' : ''} afectado${meta.names.length !== 1 ? 's' : ''}</div>` +
+      `<div style="max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">` +
+      meta.names.map(n => `<div style="font-size:.82rem;color:#1C1817;padding:6px 10px;background:#F7F2EB;border-radius:8px">${_esc(n || '(sin nombre)')}</div>`).join('') +
+      `</div>`;
+  } else if (isProductAction && meta.id) {
     const p = _prodMap[meta.id];
     const img = p?.image || DEFAULT_IMG;
     imgHtml = `<img src="${img}" onerror="this.src='${DEFAULT_IMG}'" style="width:100%;max-height:200px;object-fit:contain;border-radius:10px;background:#F7F2EB;margin-bottom:12px">`;
