@@ -186,11 +186,26 @@ function _getPosToken() {
     return s?.access_token || SUPABASE_ANON_KEY;
   } catch { return SUPABASE_ANON_KEY; }
 }
+// Sin timeout, un fetch() que nunca responde (red inestable, tienda con wifi
+// débil) deja la promesa colgada para siempre -- el botón de la acción
+// (ej. "Guardar cambios" al editar un apartado) se queda en su estado de
+// "procesando" sin ningún error visible, porque el catch/then que lo
+// resetearía nunca llega a ejecutarse. Afecta más a acciones donde la sesión
+// lleva rato abierta (editar un apartado: buscar, revisar, agregar) que a
+// una venta rápida, porque el token tiene más probabilidad de estar cerca de
+// expirar y disparar _refreshPosToken() justo antes de guardar. Reportado en
+// sucursal 2026-09-04 -- "Guardar cambios" se quedaba procesando sin avisar.
+function _posFetchTimeout(url, opts = {}, ms = 20000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+}
+
 async function _refreshPosToken() {
   try {
     const s = JSON.parse(localStorage.getItem(SESSION_KEY));
     if (!s?.refresh_token) return false;
-    const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+    const r = await _posFetchTimeout(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
       method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: s.refresh_token })
     });
@@ -219,7 +234,7 @@ function _posSessionEmailClaim() {
 }
 
 async function api(path, opts = {}) {
-  const _call = (tk) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+  const _call = (tk) => _posFetchTimeout(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...opts,
     headers: {
       apikey: SUPABASE_ANON_KEY,
