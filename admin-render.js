@@ -965,11 +965,9 @@ function selectAllVisible() {
 function updateBulkBar() {
   const bar = document.getElementById('bulk-bar');
   const countEl = document.getElementById('bulk-count');
-  const compareBtn = document.getElementById('bulk-compare-btn');
   if (selectedIds.size > 0) {
     bar.style.display = 'flex';
     countEl.textContent = `${selectedIds.size} seleccionado${selectedIds.size !== 1 ? 's' : ''}`;
-    if (compareBtn) compareBtn.style.display = selectedIds.size === 2 ? '' : 'none';
     _bulkBarScroll();
   } else {
     bar.style.display = 'none';
