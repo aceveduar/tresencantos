@@ -842,15 +842,6 @@ function _toggleApt(el, id) {
   }
 }
 
-/* ── HISTORIAL TOGGLE ── */
-function _toggleAbonos(titleEl) {
-  const body   = titleEl.nextElementSibling;
-  const arrow  = titleEl.querySelector('.apt-abonos-toggle');
-  const open   = body.style.maxHeight !== '0px' && body.style.maxHeight !== '0';
-  body.style.maxHeight  = open ? '0' : body.scrollHeight + 'px';
-  arrow.style.transform = open ? '' : 'rotate(180deg)';
-}
-
 /* ── POPUP IMAGEN PRODUCTO EN APARTADO ── */
 function _aptItemPopup(productId, triggerEl) {
   const prod = products.find(x => x.id === productId);
@@ -1009,18 +1000,6 @@ function filterApartados(q, target) {
     if (clearBtn) clearBtn.style.display = q.trim() ? '' : 'none';
     _renderAptPageCards(filtered, isLiq);
   }
-}
-
-function clearAptSearch() {
-  if (typeof clearAptSearchWithDue === 'function') {
-    clearAptSearchWithDue('offcanvas');
-    return;
-  }
-  const el = document.getElementById('apt-search');
-  if (el) { el.value = ''; el.focus(); }
-  document.getElementById('apt-search-clear').style.display = 'none';
-  const isLiq = _aptViewMode === 'liquidados';
-  _renderApartadoCards(isLiq ? _apartadosLiquidadosAll : _apartadosAll, isLiq);
 }
 
 function abonarApartado(id, total, pagado, nombre) {

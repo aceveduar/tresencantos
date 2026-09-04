@@ -368,10 +368,6 @@ function getRange(mode, offset) {
     toDay: _dayKey(toDay)
   };
 }
-function _currentFrom() { return getRange(_statsMode, _statsOffset).from; }
-function _currentTo()   { return getRange(_statsMode, _statsOffset).to; }
-function _prevRange()   { const r=getRange(_statsMode,_statsOffset-1); return [r.from,r.to]; }
-
 const PERIOD_LABELS = { today:'Hoy', week:'Esta semana', month:'Este mes', day_custom:'Este día', all:'Todo' };
 
 function _updateNavUI() {

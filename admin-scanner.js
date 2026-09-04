@@ -1,19 +1,7 @@
 /* ── BARCODE SCANNER ── */
 let _scanCtx = null;
 let _scanInst = null;
-let _quaggaActive = false;
 let _scanCooldown = false;
-
-function _loadQuagga() {
-  return new Promise((resolve, reject) => {
-    if (window.Quagga) { resolve(); return; }
-    const s = document.createElement('script');
-    s.src = 'https://unpkg.com/@ericblade/quagga2/dist/quagga.min.js';
-    s.onload = resolve;
-    s.onerror = reject;
-    document.head.appendChild(s);
-  });
-}
 
 function _loadHtml5Qrcode() {
   return new Promise((resolve, reject) => {

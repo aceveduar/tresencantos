@@ -667,10 +667,6 @@ button,a{touch-action:manipulation}
 .btn-wa-reminder{flex-shrink:0;width:44px;height:44px;padding:0;border-radius:8px;border:none;background:#25D366;color:#fff;font-size:1.05rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;line-height:1}
 .btn-wa-reminder:hover{background:#1da851;transform:scale(1.05)}
 /* HISTORIAL DE ABONOS */
-.apt-abonos{margin:0 0 4px;border-top:1px solid #F0E8DC;padding-top:7px}
-.apt-abonos-title{font-size:.68rem;font-weight:700;color:#9B8B78;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;-webkit-user-select:none}
-.apt-abonos-toggle{font-size:.7rem;transition:transform .2s}
-.apt-abonos-body{overflow:hidden;transition:max-height .25s ease}
 .apt-abono-row{display:flex;justify-content:space-between;align-items:center;font-size:.76rem;color:#9B8B78;padding:5px 0;border-bottom:1px dashed #F0E8DC}
 .apt-abono-row:last-child{border-bottom:none}
 .apt-abono-amount{font-weight:700;color:var(--charcoal);flex-shrink:0;margin-left:8px}

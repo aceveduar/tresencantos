@@ -108,7 +108,6 @@ a{text-decoration:none}
 .tbn-icon.tbn-active svg{stroke-width:2.5}
 .tbn-icon:not(.tbn-active):hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.09)}
 .tbn-icon:active{opacity:.6;transform:scale(.88)}
-.tbn-icon.tbn-logout:hover{color:#E85D5D;background:rgba(232,93,93,.12)}
 
 /* Mobile ≤640px — touch targets + labels */
 @media(max-width:640px){

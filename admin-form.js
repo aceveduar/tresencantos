@@ -953,18 +953,6 @@ function changeKitQty(productId, delta) {
 }
 
 /* ── ADDITIONAL IMAGES ── */
-async function _urlToBase64(url) {
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error('fetch failed');
-  const blob = await resp.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = e => resolve(e.target.result);
-    reader.readAsDataURL(blob);
-  });
-}
-
 function _fileToBase64Resized(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

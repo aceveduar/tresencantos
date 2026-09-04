@@ -338,18 +338,7 @@ function closeSaleDone() {
 
 /* ── SCANNER ── */
 let _posScanner = null;
-let _posQuaggaActive = false;
 let _posScanCooldown = false;
-
-function _loadQuaggaPos() {
-  return new Promise((resolve, reject) => {
-    if (window.Quagga) { resolve(); return; }
-    const s = document.createElement('script');
-    s.src = 'https://unpkg.com/@ericblade/quagga2/dist/quagga.min.js';
-    s.onload = resolve; s.onerror = reject;
-    document.head.appendChild(s);
-  });
-}
 
 function _loadHtml5QrcodePos() {
   return new Promise((resolve, reject) => {

@@ -105,20 +105,6 @@ async function _fetchAllActivity(path, pageSize = 1000) {
   }
 }
 
-function _activityPaymentAmount(payment) {
-  const amount = parseFloat(payment?.amount) || 0;
-  return payment?.kind === 'refund' ? -Math.abs(amount) : amount;
-}
-
-function _activityRefundCount(payments) {
-  const keys = new Set();
-  (payments || []).forEach(payment => {
-    if (payment?.kind !== 'refund') return;
-    keys.add(payment.request_id ? `${payment.sale_id}:${payment.request_id}` : `legacy:${payment.id}`);
-  });
-  return keys.size;
-}
-
 /* ── STATE ── */
 let allData     = [];
 let currentType = '';
