@@ -212,6 +212,7 @@ const _actIcoClipboard= (px) => _actIco('<rect x="8" y="2" width="8" height="4" 
 const _actIcoPhone    = (px) => _actIco('<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>', px);
 const _actIcoCalendar = (px) => _actIco('<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>', px);
 const _actIcoPackage  = (px) => _actIco('<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>', px);
+const _actIcoUser     = (px) => _actIco('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', px);
 
 /* ── ACTION CONFIG ── */
 const ACTION_CFG = {
@@ -237,6 +238,7 @@ const ACTION_CFG = {
   cliente_creado:        { type:'sistema', badge:'creado',    icon:_actIcoPlus(),  label:'Cliente nuevo' },
   cliente_editado:       { type:'sistema', badge:'editado',   icon:_actIcoEdit(),  label:'Cliente editado' },
   respaldo_generado:     { type:'sistema', badge:'editado',   icon:_actIcoCheck(), label:'Respaldo generado' },
+  sesion_iniciada:       { type:'sistema', badge:'creado',    icon:_actIcoUser(),  label:'Inicio de sesión' },
 };
 
 /* ── LOAD ── */

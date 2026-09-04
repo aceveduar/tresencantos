@@ -430,7 +430,11 @@ function getCurrentUserEmail() {
   } catch { return 'desconocido'; }
 }
 function logActivity(action, summary, meta = null) {
-  supabaseApi('activity_log', {
+  // Ahora devuelve la promesa -- ningún llamador existente la esperaba (todos
+  // son "fire and forget"), pero doLoginEmail() sí necesita esperar a que el
+  // POST realmente salga antes de location.reload(), o el request se corta
+  // a la mitad por la recarga.
+  return supabaseApi('activity_log', {
     method: 'POST',
     body: JSON.stringify({ user_email: getCurrentUserEmail(), action, summary, meta })
   }).catch(() => {});
@@ -846,6 +850,11 @@ async function doLoginEmail() {
     email:         result.data.user.email,
     user:          result.data.user
   }));
+  // Nadie tenía visibilidad de quién entró y cuándo -- Actividad solo
+  // registraba lo que cada quien hacía ya adentro. Se espera el POST antes
+  // de recargar (logActivity ahora sí devuelve su promesa) para que no se
+  // corte a la mitad por la recarga.
+  await logActivity('sesion_iniciada', 'Inició sesión', { email: result.data.user.email });
   // Recargar para que ROLE se re-evalúe con la sesión correcta
   location.reload();
 }
