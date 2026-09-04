@@ -20,6 +20,15 @@ function closeRecvMode() {
     toast(`✓ ${total} unidad${total!==1?'es':''} recibidas en ${prods} producto${prods!==1?'s':''}`);
     renderTable();
     renderStats();
+    // Modo Recepción no dejaba ningún rastro en Actividad -- ni por escaneo
+    // (sería demasiado ruido: decenas de filas por una sola sesión) ni un
+    // resumen al cerrar. Un solo registro por sesión, con detalle completo
+    // en meta.items por si hace falta ver exactamente qué se recibió.
+    logActivity('recepcion_mercancia',
+      `Recibió ${total} unidad${total !== 1 ? 'es' : ''} en ${prods} producto${prods !== 1 ? 's' : ''} (Modo Recepción)`,
+      { ids: _recvSession.map(x => x.product.id), names: _recvSession.map(x => x.product.name),
+        items: _recvSession.map(x => ({ id: x.product.id, name: x.product.name, qtyAdded: x.qtyAdded, prevStock: x.prevStock, newStock: x.product.stock })),
+        total, count: prods, bulk: true });
   }
   document.getElementById('recv-overlay').style.display = 'none';
   document.body.style.overflow = '';
