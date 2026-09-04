@@ -15,7 +15,57 @@ const _uiIcoWarn     = (px = 13) => _uiIco('<path d="m21.73 18-8-14a2 2 0 0 0-3.
 const _uiIcoZap      = () => `<svg style="width:13px;height:13px;vertical-align:-2px;fill:currentColor;stroke:none" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`;
 const _uiIcoFlask    = (px = 13) => _uiIco('<path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/>', px);
 const _uiIcoSend     = (px = 13) => _uiIco('<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>', px);
+const _uiIcoClock    = (px = 13) => _uiIco('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', px);
 const _uiIcoWA       = () => `<svg width="18" height="18" fill="#fff" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.374 0 0 5.373 0 12c0 2.124.553 4.118 1.522 5.85L.057 23.499l5.772-1.513A11.94 11.94 0 0012 24c6.626 0 12-5.373 12-12S18.626 0 12 0z"/></svg>`;
+
+/* ── HISTORIAL POR TRANSACCIÓN ────────────────────────────────────────────
+   Timeline de Actividad acotado a UNA venta/apartado -- para reconstruir un
+   caso puntual ("¿de verdad se canceló esto? ¿quién lo abonó y cuándo?") sin
+   tener que buscar a mano entre todo el feed general de Actividad. Reutiliza
+   la misma convención meta.id = id de la venta que ya usan las acciones
+   ligadas a ventas en activity_log (_SALE_LINKED_ACTIONS en activity.js). */
+const _TXN_TIMELINE_ACTIONS = 'venta,venta_cancelada,apartado_nuevo,apartado_abono,apartado_editado,apartado_liquidado,apartado_reembolso,apartado_cancelado,comprobante_enviado,comprobante_omitido';
+
+async function openTransactionTimeline(saleId) {
+  const overlay = document.getElementById('txn-timeline-overlay');
+  const listEl  = document.getElementById('txn-timeline-list');
+  const subEl   = document.getElementById('txn-timeline-sub');
+  if (!overlay || !listEl) return;
+  subEl.textContent = `Folio #${saleId}`;
+  listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:.85rem">Cargando…</div>';
+  overlay.style.display = 'flex';
+
+  const result = await api(`activity_log?select=action,summary,created_at,user_email,meta&meta->>id=eq.${saleId}&action=in.(${_TXN_TIMELINE_ACTIONS})&order=created_at.asc`);
+  if (overlay.style.display === 'none') return; // se cerró mientras cargaba
+  if (!result.ok || !Array.isArray(result.data)) {
+    listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--red);font-size:.85rem">No se pudo cargar el historial.</div>';
+    return;
+  }
+  if (!result.data.length) {
+    listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:.85rem">Sin eventos registrados para esta transacción.</div>';
+    return;
+  }
+  listEl.innerHTML = result.data.map(ev => {
+    const d = new Date(ev.created_at);
+    const when = d.toLocaleDateString('es-MX', { day:'numeric', month:'short', year:'numeric' }) + ' · ' + d.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
+    const who = (ev.user_email || 'desconocido').split('@')[0];
+    const reasonHTML = ev.meta?.reason
+      ? `<div style="font-size:.76rem;color:#1C1817;font-style:italic;margin-top:4px;background:#F7F2EB;border-radius:6px;padding:5px 8px">"${_esc(ev.meta.reason)}"</div>`
+      : '';
+    return `
+<div style="border-left:2px solid var(--gold);padding:2px 0 14px 14px;margin-left:4px;position:relative">
+  <span style="position:absolute;left:-5px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--gold)"></span>
+  <div style="font-size:.68rem;color:var(--muted);font-weight:600">${_esc(when)} · ${_esc(who)}</div>
+  <div style="font-size:.85rem;color:#1C1817;margin-top:2px">${_esc(ev.summary)}</div>
+  ${reasonHTML}
+</div>`;
+  }).join('');
+}
+
+function closeTransactionTimeline() {
+  const overlay = document.getElementById('txn-timeline-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
 
 /* ── SWIPE TO CLOSE (offcanvas desde la derecha) ── */
 function initSwipeToClose(panelId, backdropId, closeFn, backdropBaseOpacity = 0.35, ignoreSelector = null) {
@@ -580,7 +630,8 @@ function openAptDetail(id) {
   const telNum    = custParts[1] || '';
 
   document.getElementById('adm-customer').innerHTML = _uiIcoUser() + ' ' + _esc(nombre);
-  document.getElementById('adm-meta').innerHTML = _esc(t + ' · ' + nItems + ' producto' + (nItems !== 1 ? 's' : '')) + (telNum ? ' · ' + _uiIcoPhone() + ' ' + _esc(telNum) : '');
+  document.getElementById('adm-meta').innerHTML = _esc(t + ' · ' + nItems + ' producto' + (nItems !== 1 ? 's' : '')) + (telNum ? ' · ' + _uiIcoPhone() + ' ' + _esc(telNum) : '') +
+    ` · <a href="#" onclick="event.preventDefault();openTransactionTimeline(${id})" style="color:var(--gold-dark);font-weight:700;text-decoration:underline">${_uiIcoClock(11)} Ver historial</a>`;
 
   // Items
   const itemsHTML = (s.items || []).map(i => {
@@ -964,6 +1015,7 @@ async function loadHistory() {
       // memoria); ahora se reconstruye desde lo ya guardado en la BD, así
       // que sirve sin importar cuánto tiempo haya pasado.
       const resendBtn = `<button class="hi-del hi-send" onclick="event.stopPropagation();resendReceipt('${payment.id}')" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(13)}</button>`;
+      const timelineBtn = `<button class="hi-del" onclick="event.stopPropagation();openTransactionTimeline(${s.id})" title="Ver historial completo de esta transacción" aria-label="Ver historial completo de esta transacción">${_uiIcoClock(13)}</button>`;
 
       return `
 <div class="hi-card">
@@ -971,6 +1023,7 @@ async function loadHistory() {
     <span class="hi-time">${hora} · ${totalQty} art.</span>
     ${payBadge}
     <span class="hi-spacer"></span>
+    ${timelineBtn}
     ${resendBtn}
     <span class="hi-total"${amount < 0 ? ' style="color:var(--red)"' : ''}>${displayTotal}</span>
     ${testBtn}

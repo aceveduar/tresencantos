@@ -386,6 +386,18 @@
   </div>
 </div>
 
+<!-- HISTORIAL DE TRANSACCIÓN — timeline de Actividad para una venta/apartado puntual -->
+<div class="abonar-overlay" id="txn-timeline-overlay" style="display:none" onclick="if(event.target===this)closeTransactionTimeline()">
+  <div class="abonar-modal" style="max-height:78vh;display:flex;flex-direction:column">
+    <h3>🕐 Historial de esta transacción</h3>
+    <p class="apt-info-lbl" id="txn-timeline-sub"></p>
+    <div id="txn-timeline-list" style="overflow-y:auto;flex:1;margin:12px 0;min-height:60px"></div>
+    <div class="abonar-footer">
+      <button class="btn-cancel" onclick="closeTransactionTimeline()" style="width:100%">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- SALE DONE OVERLAY — onclick vacío: no cierra al tocar fuera -->
 <div class="overlay" id="sale-done-overlay" onclick="void 0">
   <div class="sale-done-modal">
