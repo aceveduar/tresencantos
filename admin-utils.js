@@ -120,7 +120,36 @@ function dictate(fieldId) {
   sr.start();
 }
 
-/* ── TOAST ── */
+/* ── PRODUCTOS EN APARTADOS ACTIVOS ──
+ * edit_apartado_atomic exige que TODOS los productos de un apartado (los que
+ * ya tenía + los que se agreguen) sigan existiendo en products antes de
+ * guardar cualquier cambio -- si uno se elimina del catálogo mientras el
+ * apartado sigue activo, ese apartado queda bloqueado para editarse hasta
+ * quitar esa línea a mano. Real en producción (2026-09-04): 8 apartados
+ * activos con un producto ya eliminado. Este chequeo se corre ANTES de
+ * borrar, para no seguir generando el mismo problema. */
+async function _productsInActiveApartados(ids) {
+  // Filtra el contenido de items (jsonb) del lado del cliente en vez de un
+  // operador cs./@> en la URL -- mismo patrón ya probado que usa
+  // loadApartados() en pos-apartados.js (fetch de todos los activos, hasta
+  // 100, con su columna items completa). El volumen de apartados activos es
+  // chico y esto solo corre al intentar borrar, no en un flujo caliente.
+  const idSet = new Set(ids);
+  const r = await supabaseApi(
+    'sales?origin_type=eq.apartado&status=eq.activo&is_test=eq.false&select=id,customer,items&limit=200'
+  );
+  if (!r.ok || !Array.isArray(r.data)) return {};
+  const hits = {};
+  r.data.forEach(s => {
+    (Array.isArray(s.items) ? s.items : []).forEach(item => {
+      const itemId = parseInt(item?.id, 10);
+      if (!idSet.has(itemId)) return;
+      const customer = (s.customer || '').split(' · ')[0] || 'Cliente';
+      (hits[itemId] ||= []).push({ id: s.id, customer });
+    });
+  });
+  return hits;
+}
 function toast(msg, type = '') {
   const el = document.getElementById('toast');
   el.textContent = msg;

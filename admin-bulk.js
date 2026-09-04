@@ -26,6 +26,17 @@ async function bulkDelete() {
 
   const toDelete = products.filter(p => selectedIds.has(p.id));
 
+  // Mismo guard que el borrado individual (ver askDelete en admin-form.js) --
+  // aquí importa aún más porque un borrado masivo puede llevarse varios
+  // productos de apartados activos a la vez sin que nadie los revise uno
+  // por uno.
+  const hits = await _productsInActiveApartados(toDelete.map(p => p.id));
+  const affected = toDelete.filter(p => hits[p.id]?.length);
+  if (affected.length) {
+    const lines = affected.map(p => `"${p.name}" — ${hits[p.id].map(a => a.customer).join(', ')}`).join('\n');
+    if (!confirm(`${affected.length} de estos productos siguen en apartados activos:\n\n${lines}\n\nSi los eliminas, esos apartados quedarán bloqueados para editarse hasta quitar la línea a mano. ¿Continuar de todos modos?`)) return;
+  }
+
   if (getSupabaseUrl()) {
     const ids = [...selectedIds].join(',');
     const result = await supabaseApi(`products?id=in.(${ids})`, {
