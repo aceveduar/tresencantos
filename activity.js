@@ -264,7 +264,6 @@ const ACTION_CFG = {
 async function load() {
   const loadGeneration = ++_activityLoadGeneration;
   document.getElementById('feed').innerHTML = '<div class="spinner"></div>';
-  document.getElementById('summary-row').style.display = 'none';
 
   const periodVal = document.getElementById('filter-period').value;
   const days = parseInt(periodVal);
@@ -278,7 +277,11 @@ async function load() {
     from = _activityDayStartIso(firstDay);
   } else from = null;
 
-  // Query activity_log (feed y conteos de acciones reales).
+  // Query activity_log (feed). Antes también se consultaban sale_payments y
+  // los apartados pendientes solo para alimentar la fila de tarjetas KPI
+  // (Ventas/Apartados/Inventario) -- se quitó (redundante con Reportes,
+  // riesgo real de que sus números no cuadraran entre sí), así que esas 2
+  // consultas también se quitan: ya no las usa nadie.
   let logQ = `activity_log?select=*&order=created_at.desc,id.desc`;
   if (currentSearch) {
     const qSafe = currentSearch.replace(/[,()]/g, ' ').trim();
@@ -292,22 +295,7 @@ async function load() {
   if (from) logQ += `&created_at=gte.${encodeURIComponent(from)}`;
   if (user) logQ += `&user_email=eq.${encodeURIComponent(user)}`;
 
-  // El dinero se consulta por la fecha real del movimiento. No se filtra por el
-  // estado actual de la venta: una cancelación posterior no debe borrar un cobro histórico.
-  // sale:sales(is_test) sí se pide para poder excluir pruebas (filtrado abajo).
-  let paymentsQ = `sale_payments?select=id,sale_id,request_id,request_line,amount,kind,method,paid_at,collected_by,collected_by_email,is_estimated,source,sale:sales(is_test)&order=paid_at.desc,id.desc`;
-  if (from) paymentsQ += `&paid_at=gte.${encodeURIComponent(from)}`;
-  if (user) paymentsQ += `&collected_by_email=eq.${encodeURIComponent(user)}`;
-
-  // Apartados con pendiente (todos, sin filtro de período)
-  let aptQ = `sales?select=id,total,paid_amount&origin_type=eq.apartado&status=eq.activo&is_test=eq.false&order=id.asc`;
-  if (user) aptQ += `&seller_email=eq.${encodeURIComponent(user)}`;
-
-  // logQ ya trae su propio limit= — usar _fetchAllActivity aquí anexaría un
-  // segundo &limit= (el de paginación, sin tope) que gana sobre el nuestro.
-  const [logRes, paymentsRes, aptRes] = await Promise.all([
-    api(logQ), _fetchAllActivity(paymentsQ), _fetchAllActivity(aptQ)
-  ]);
+  const logRes = await api(logQ);
   if (loadGeneration !== _activityLoadGeneration) return;
 
   if (!logRes.ok) {
@@ -317,15 +305,7 @@ async function load() {
 
   allData = await _filterOutTestSales(logRes.data || []);
   if (loadGeneration !== _activityLoadGeneration) return;
-  const paymentsClean = paymentsRes.ok && Array.isArray(paymentsRes.data)
-    ? paymentsRes.data.filter(p => !(Array.isArray(p.sale) ? p.sale[0] : p.sale)?.is_test)
-    : null;
   populateUsers(allData);
-  updateSummary(
-    allData,
-    paymentsClean,
-    aptRes.ok && Array.isArray(aptRes.data) ? aptRes.data : null
-  );
   render(allData);
 }
 
@@ -367,118 +347,6 @@ function populateUsers(data) {
   });
 }
 
-// Detalle completo (sin truncar) de cada tarjeta KPI, para el popup que se
-// abre al tocarla -- .sum-sub usa text-overflow:ellipsis y en mobile no hay
-// hover para leer el title completo, así que un día ocupado podía esconder
-// datos reales (ej. "1 cancelada") detrás de un "...".
-let _summaryDetail = { ventas: null, apt: null, inv: null };
-
-function updateSummary(logData, paymentData, allApartados) {
-  // Acciones se cuentan desde el log en su fecha real; importes, solo desde el ledger.
-  const ventas = logData.filter(item => item.action === 'venta').length;
-  // Cancelaciones no aparecían en ningún lado de este resumen -- justo el
-  // dato más útil para notar un patrón (ej. alguien que cancela mucho más
-  // que el resto) sin tener que leer el feed línea por línea. Al filtrar
-  // por una persona específica, esta cifra queda acotada a ella sola --
-  // la consulta al servidor ya filtra logData por user_email.
-  const ventasCanceladas = logData.filter(item => item.action === 'venta_cancelada').length;
-  const paymentsAvailable = Array.isArray(paymentData);
-  const movements = paymentData || [];
-  const rawNetReceived = movements.reduce((sum, payment) => sum + _activityPaymentAmount(payment), 0);
-  const netReceived = Math.round((rawNetReceived + Number.EPSILON) * 100) / 100;
-  const refunds = _activityRefundCount(movements);
-  document.getElementById('sum-ventas').textContent = ventas;
-  document.getElementById('sum-ventas-sub').textContent = [
-    paymentsAvailable
-      ? `${netReceived < 0 ? '−' : ''}$${Math.abs(netReceived).toLocaleString('es-MX')} neto${refunds ? ` · ${refunds} devolución${refunds !== 1 ? 'es' : ''}` : ''}`
-      : 'Ingresos no disponibles',
-    ventasCanceladas ? `${ventasCanceladas} cancelada${ventasCanceladas !== 1 ? 's' : ''}` : ''
-  ].filter(Boolean).join(' · ');
-  _summaryDetail.ventas = { ventas, paymentsAvailable, netReceived, refunds, ventasCanceladas };
-
-  // ── Apartados: acciones del período + pendientes actuales globales
-  const aptNuevos = logData.filter(item => item.action === 'apartado_nuevo').length;
-  const aptAbonos = logData.filter(item => item.action === 'apartado_abono').length;
-  const aptLiquidados = logData.filter(item => item.action === 'apartado_liquidado').length;
-  const aptReembolsos = logData.filter(item => item.action === 'apartado_reembolso').length;
-  const aptCancelados = logData.filter(item => item.action === 'apartado_cancelado').length;
-  const aptPendientes = Array.isArray(allApartados)
-    ? allApartados.filter(s => (parseFloat(s.paid_amount) || 0) < (parseFloat(s.total) || 0)).length
-    : null;
-  document.getElementById('sum-apt').textContent = aptNuevos;
-  document.getElementById('sum-apt-sub').textContent = [
-    aptAbonos ? `${aptAbonos} abono${aptAbonos !== 1 ? 's' : ''}` : '',
-    aptLiquidados ? `${aptLiquidados} liquidado${aptLiquidados !== 1 ? 's' : ''}` : '',
-    aptReembolsos ? `${aptReembolsos} reembolso${aptReembolsos !== 1 ? 's' : ''}` : '',
-    aptCancelados ? `${aptCancelados} cancelado${aptCancelados !== 1 ? 's' : ''}` : '',
-    aptPendientes == null ? 'Pendientes no disponibles' : aptPendientes > 0 ? `${aptPendientes} por cobrar (total)` : 'sin pendientes'
-  ].filter(Boolean).join(' · ');
-  _summaryDetail.apt = { aptNuevos, aptAbonos, aptLiquidados, aptReembolsos, aptCancelados, aptPendientes };
-
-  // ── Inventario: desglosado desde activity_log
-  const creados   = logData.filter(d => d.action === 'producto_creado').length;
-  const editados  = logData.filter(d => d.action === 'producto_editado').length;
-  const eliminados= logData.filter(d => d.action === 'producto_eliminado').length;
-  const invTotal  = creados + editados + eliminados;
-  document.getElementById('sum-inv').textContent = invTotal;
-  document.getElementById('sum-inv-sub').innerHTML =
-    invTotal > 0 ? `${_actIcoPlus(11)}${creados} ${_actIcoEdit(11)}${editados} ${_actIcoTrash(11)}${eliminados}` : '';
-  _summaryDetail.inv = { creados, editados, eliminados };
-
-  const anyData = ventas + aptNuevos + aptAbonos + aptLiquidados + aptReembolsos + movements.length + invTotal > 0;
-  if (anyData) document.getElementById('summary-row').style.display = '';
-}
-
-function _summaryDetailPopup(type) {
-  const d = _summaryDetail[type];
-  if (!d) return;
-  document.getElementById('sum-pop')?.remove();
-
-  let title, rows;
-  if (type === 'ventas') {
-    title = 'Ventas';
-    rows = [
-      ['Ventas completadas', d.ventas],
-      d.paymentsAvailable
-        ? [`Ingreso neto`, `${d.netReceived < 0 ? '−' : ''}$${Math.abs(d.netReceived).toLocaleString('es-MX')}`]
-        : ['Ingresos', 'No disponibles'],
-      d.refunds ? ['Devoluciones', d.refunds] : null,
-      d.ventasCanceladas ? ['Canceladas', d.ventasCanceladas] : null,
-    ].filter(Boolean);
-  } else if (type === 'apt') {
-    title = 'Apartados';
-    rows = [
-      ['Nuevos', d.aptNuevos],
-      d.aptAbonos ? ['Abonos', d.aptAbonos] : null,
-      d.aptLiquidados ? ['Liquidados', d.aptLiquidados] : null,
-      d.aptReembolsos ? ['Reembolsos', d.aptReembolsos] : null,
-      d.aptCancelados ? ['Cancelados', d.aptCancelados] : null,
-      ['Por cobrar (total histórico, no solo del período)', d.aptPendientes == null ? 'No disponible' : d.aptPendientes],
-    ].filter(Boolean);
-  } else {
-    title = 'Inventario';
-    rows = [
-      ['Productos creados', d.creados],
-      ['Productos editados', d.editados],
-      ['Productos eliminados', d.eliminados],
-    ];
-  }
-
-  const pop = document.createElement('div');
-  pop.id = 'sum-pop';
-  pop.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);animation:ap-in .15s ease';
-  pop.onclick = e => { if (e.target === pop) pop.remove(); };
-  pop.innerHTML = `
-    <style>@keyframes ap-in{from{opacity:0}to{opacity:1}}</style>
-    <div onclick="event.stopPropagation()" style="background:#fff;border-radius:18px;padding:18px;max-width:300px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,.28)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <h3 style="font-size:1rem;margin:0">${_esc(title)}</h3>
-        <button onclick="document.getElementById('sum-pop').remove()" style="background:none;border:none;font-size:1.1rem;color:var(--muted);cursor:pointer;padding:4px" aria-label="Cerrar">✕</button>
-      </div>
-      ${rows.map(([label, val]) => `<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--border);font-size:.85rem"><span style="color:var(--muted)">${_esc(label)}</span><span style="font-weight:700;text-align:right">${_esc(String(val))}</span></div>`).join('')}
-    </div>`;
-  document.body.appendChild(pop);
-}
 
 function render(data) {
   let filtered = currentType

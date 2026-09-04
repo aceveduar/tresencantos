@@ -10,9 +10,6 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal
 @media(max-width:1024px){
   .topbar{padding:0 12px;background:var(--charcoal)}
   .main{padding:14px 16px 40px}
-  .summary-row{gap:8px}
-  .sum-card{padding:12px 10px}
-  .sum-val{font-size:1.1rem}
   .act-card{padding:10px 12px;gap:10px}
   .act-avatar{width:34px;height:34px;font-size:.78rem}
 }
@@ -46,21 +43,6 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal
 .chip.active{background:var(--charcoal);color:#fff;border-color:var(--charcoal)}
 .chip:hover:not(.active){border-color:var(--gold);color:var(--gold-dark)}
 
-/* SUMMARY */
-.summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
-/* min-width:0 -- sin esto, un texto largo en .sum-sub (ej. "4 abonos · 6
-   liquidados · 57 por cobrar (total)") empuja el ancho mínimo del elemento
-   de grid más allá de su columna 1fr, aunque .sum-sub tenga overflow:hidden
-   -- el recorte con "..." nunca llega a aplicarse porque la tarjeta entera
-   (y con ella toda la fila de 3 columnas) ya se desbordó primero, forzando
-   scroll horizontal en toda la página y cortando el borde izquierdo de todo
-   lo demás (buscador, selects, chips). Mismo fix que .act-body ya usa más
-   abajo en este archivo para el mismo problema en un contexto flex. */
-.sum-card{background:#fff;border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:12px;padding:14px 12px;text-align:center;min-width:0}
-.sum-val{font-family:'Playfair Display',serif;font-size:1.25rem;font-weight:700}
-.sum-sub{font-size:.73rem;font-weight:600;color:var(--green);margin-top:2px;min-height:1.1em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sum-sub.muted{color:var(--muted)}
-.sum-lbl{font-size:.67rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:4px}
 
 /* FEED */
 .date-sep{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:16px 2px 6px}
@@ -95,9 +77,6 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal
   .user-name-lbl{display:none}
   .user-avatar{width:24px;height:24px;font-size:.68rem}
   .main{padding:14px 12px 40px}
-  .summary-row{gap:8px}
-  .sum-card{padding:12px 8px}
-  .sum-val{font-size:1.1rem}
   .act-card{padding:10px 12px;gap:10px}
   .act-avatar{width:32px;height:32px;font-size:.75rem}
   /* Selects: flex:1 para llenar la fila + tap target ≥44px */
