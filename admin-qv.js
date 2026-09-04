@@ -637,7 +637,8 @@ function _renderQV(p) {
 
   // ID + barcode en una línea
   const idEl = document.getElementById('qv-id');
-  idEl.innerHTML = `<span style="font-family:monospace">ID #${p.id}</span>${p.barcode ? `<span style="font-family:monospace;color:var(--muted)">· ${_esc(p.barcode)}</span>` : ''}`;
+  idEl.innerHTML = `<span style="font-family:monospace">ID #${p.id}</span>${p.barcode ? `<span style="font-family:monospace;color:var(--muted)">· ${_esc(p.barcode)}</span>` : ''}` +
+    ` <a href="#" onclick="event.preventDefault();openProductTimeline(${p.id},'${_esc(p.name).replace(/'/g,"\\'")}')" style="color:var(--gold-dark);font-weight:700;text-decoration:underline;font-family:inherit">${QV_ICO_CLOCK(11)} Ver historial</a>`;
 
   // Botones de acción
   const btnEdit = can.editProduct
@@ -716,3 +717,59 @@ document.addEventListener('keydown', e => {
     closeQV();
   }
 });
+
+/* ── HISTORIAL POR PRODUCTO ────────────────────────────────────────────────
+   Timeline de Actividad acotado a UN producto -- para investigar "¿por qué
+   cambió este precio/stock, quién lo hizo?" sin buscar a mano en el feed
+   general. Se crea el overlay dinámicamente (mismo patrón que #qv-zoom),
+   consulta activity_log por meta.id = id del producto en las acciones que
+   usan esa convención (producto_creado/editado/eliminado). */
+const _PROD_TIMELINE_ACTIONS = 'producto_creado,producto_editado,producto_eliminado';
+
+async function openProductTimeline(productId, productName) {
+  document.getElementById('prod-timeline-overlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'prod-timeline-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;animation:ap-in .15s ease';
+  overlay.onclick = e => { if (e.target === overlay) closeProductTimeline(); };
+  overlay.innerHTML = `
+    <style>@keyframes ap-in{from{opacity:0}to{opacity:1}}</style>
+    <div onclick="event.stopPropagation()" style="background:#fff;border-radius:18px;padding:18px;max-width:340px;width:90%;max-height:78vh;display:flex;flex-direction:column;box-shadow:0 12px 48px rgba(0,0,0,.28)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+        <h3 style="font-size:1rem;margin:0">${QV_ICO_CLOCK(15)} Historial</h3>
+        <button onclick="closeProductTimeline()" style="background:none;border:none;font-size:1.1rem;color:var(--muted);cursor:pointer;padding:4px" aria-label="Cerrar">✕</button>
+      </div>
+      <p style="font-size:.82rem;color:var(--muted);margin:0 0 12px;font-weight:600">${_esc(productName)}</p>
+      <div id="prod-timeline-list" style="overflow-y:auto;flex:1;min-height:60px">
+        <div style="text-align:center;padding:20px;color:var(--muted);font-size:.85rem">Cargando…</div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const listEl = document.getElementById('prod-timeline-list');
+  const result = await supabaseApi(`activity_log?select=action,summary,created_at,user_email,meta&meta->>id=eq.${productId}&action=in.(${_PROD_TIMELINE_ACTIONS})&order=created_at.asc`);
+  if (!document.getElementById('prod-timeline-overlay')) return; // se cerró mientras cargaba
+  if (!result.ok || !Array.isArray(result.data)) {
+    listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--red);font-size:.85rem">No se pudo cargar el historial.</div>';
+    return;
+  }
+  if (!result.data.length) {
+    listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:.85rem">Sin eventos registrados para este producto.</div>';
+    return;
+  }
+  listEl.innerHTML = result.data.map(ev => {
+    const d = new Date(ev.created_at);
+    const when = d.toLocaleDateString('es-MX', { day:'numeric', month:'short', year:'numeric' }) + ' · ' + d.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
+    const who = (ev.user_email || 'desconocido').split('@')[0];
+    return `
+<div style="border-left:2px solid var(--gold);padding:2px 0 14px 14px;margin-left:4px;position:relative">
+  <span style="position:absolute;left:-5px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--gold)"></span>
+  <div style="font-size:.68rem;color:var(--muted);font-weight:600">${_esc(when)} · ${_esc(who)}</div>
+  <div style="font-size:.85rem;color:#1C1817;margin-top:2px">${_esc(ev.summary)}</div>
+</div>`;
+  }).join('');
+}
+
+function closeProductTimeline() {
+  document.getElementById('prod-timeline-overlay')?.remove();
+}
