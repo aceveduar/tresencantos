@@ -349,21 +349,31 @@ function populateUsers(data) {
 function updateSummary(logData, paymentData, allApartados) {
   // Acciones se cuentan desde el log en su fecha real; importes, solo desde el ledger.
   const ventas = logData.filter(item => item.action === 'venta').length;
+  // Cancelaciones no aparecían en ningún lado de este resumen -- justo el
+  // dato más útil para notar un patrón (ej. alguien que cancela mucho más
+  // que el resto) sin tener que leer el feed línea por línea. Al filtrar
+  // por una persona específica, esta cifra queda acotada a ella sola --
+  // la consulta al servidor ya filtra logData por user_email.
+  const ventasCanceladas = logData.filter(item => item.action === 'venta_cancelada').length;
   const paymentsAvailable = Array.isArray(paymentData);
   const movements = paymentData || [];
   const rawNetReceived = movements.reduce((sum, payment) => sum + _activityPaymentAmount(payment), 0);
   const netReceived = Math.round((rawNetReceived + Number.EPSILON) * 100) / 100;
   const refunds = _activityRefundCount(movements);
   document.getElementById('sum-ventas').textContent = ventas;
-  document.getElementById('sum-ventas-sub').textContent = paymentsAvailable
-    ? `${netReceived < 0 ? '−' : ''}$${Math.abs(netReceived).toLocaleString('es-MX')} neto${refunds ? ` · ${refunds} devolución${refunds !== 1 ? 'es' : ''}` : ''}`
-    : 'Ingresos no disponibles';
+  document.getElementById('sum-ventas-sub').textContent = [
+    paymentsAvailable
+      ? `${netReceived < 0 ? '−' : ''}$${Math.abs(netReceived).toLocaleString('es-MX')} neto${refunds ? ` · ${refunds} devolución${refunds !== 1 ? 'es' : ''}` : ''}`
+      : 'Ingresos no disponibles',
+    ventasCanceladas ? `${ventasCanceladas} cancelada${ventasCanceladas !== 1 ? 's' : ''}` : ''
+  ].filter(Boolean).join(' · ');
 
   // ── Apartados: acciones del período + pendientes actuales globales
   const aptNuevos = logData.filter(item => item.action === 'apartado_nuevo').length;
   const aptAbonos = logData.filter(item => item.action === 'apartado_abono').length;
   const aptLiquidados = logData.filter(item => item.action === 'apartado_liquidado').length;
   const aptReembolsos = logData.filter(item => item.action === 'apartado_reembolso').length;
+  const aptCancelados = logData.filter(item => item.action === 'apartado_cancelado').length;
   const aptPendientes = Array.isArray(allApartados)
     ? allApartados.filter(s => (parseFloat(s.paid_amount) || 0) < (parseFloat(s.total) || 0)).length
     : null;
@@ -372,6 +382,7 @@ function updateSummary(logData, paymentData, allApartados) {
     aptAbonos ? `${aptAbonos} abono${aptAbonos !== 1 ? 's' : ''}` : '',
     aptLiquidados ? `${aptLiquidados} liquidado${aptLiquidados !== 1 ? 's' : ''}` : '',
     aptReembolsos ? `${aptReembolsos} reembolso${aptReembolsos !== 1 ? 's' : ''}` : '',
+    aptCancelados ? `${aptCancelados} cancelado${aptCancelados !== 1 ? 's' : ''}` : '',
     aptPendientes == null ? 'Pendientes no disponibles' : aptPendientes > 0 ? `${aptPendientes} por cobrar (total)` : 'sin pendientes'
   ].filter(Boolean).join(' · ');
 
