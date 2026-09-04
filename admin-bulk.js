@@ -22,20 +22,20 @@ async function bulkFlag() {
 
 async function bulkDelete() {
   if (!selectedIds.size) return;
-  if (!confirm(`¿Eliminar ${selectedIds.size} producto(s) seleccionado(s)?\nEsta acción no se puede deshacer.`)) return;
-
   const toDelete = products.filter(p => selectedIds.has(p.id));
 
-  // Mismo guard que el borrado individual (ver askDelete en admin-form.js) --
-  // aquí importa aún más porque un borrado masivo puede llevarse varios
-  // productos de apartados activos a la vez sin que nadie los revise uno
-  // por uno.
+  // Mismo bloqueo real que askDelete() en admin-form.js -- aquí importa aún
+  // más porque un borrado masivo puede llevarse varios productos de
+  // apartados activos a la vez sin que nadie los revise uno por uno.
   const hits = await _productsInActiveApartados(toDelete.map(p => p.id));
   const affected = toDelete.filter(p => hits[p.id]?.length);
   if (affected.length) {
     const lines = affected.map(p => `"${p.name}" — ${hits[p.id].map(a => a.customer).join(', ')}`).join('\n');
-    if (!confirm(`${affected.length} de estos productos siguen en apartados activos:\n\n${lines}\n\nSi los eliminas, esos apartados quedarán bloqueados para editarse hasta quitar la línea a mano. ¿Continuar de todos modos?`)) return;
+    alert(`No se puede eliminar -- ${affected.length} de los productos seleccionados ${affected.length === 1 ? 'sigue' : 'siguen'} en apartados activos:\n\n${lines}\n\nDeselecciona esos productos para eliminar el resto, o espera a que esos apartados se liquiden o cancelen.`);
+    return;
   }
+
+  if (!confirm(`¿Eliminar ${selectedIds.size} producto(s) seleccionado(s)?\nEsta acción no se puede deshacer.`)) return;
 
   if (getSupabaseUrl()) {
     const ids = [...selectedIds].join(',');

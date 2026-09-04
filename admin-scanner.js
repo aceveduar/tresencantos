@@ -573,6 +573,15 @@ function _dismissDupPair(pairKey) {
 
 async function _deleteDupProduct(id, pairKey) {
   if (!can.deleteProduct) return;
+  // Mismo bloqueo que askDelete() en admin-form.js -- ver ese comentario
+  // para el contexto completo (caso real 2026-09-04).
+  const hits = await _productsInActiveApartados([id]);
+  const aptHits = hits[id];
+  if (aptHits?.length) {
+    const nombres = aptHits.map(a => `"${a.customer}"`).join(', ');
+    alert(`No se puede eliminar -- este producto sigue en ${aptHits.length === 1 ? 'un apartado activo' : `${aptHits.length} apartados activos`} (${nombres}).\n\nSi lo borras, ese apartado quedará bloqueado para editarse. Espera a que se liquide o cancele, o usa "🙈 Oculto" para dejar de venderlo sin borrarlo.`);
+    return;
+  }
   if (!confirm('¿Eliminar este producto? Tendrás 7 segundos para deshacer.')) return;
   const deleted = products.find(p => p.id === id);
   const deletedIdx = products.findIndex(p => p.id === id);

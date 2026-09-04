@@ -1083,15 +1083,18 @@ async function askDelete(id) {
     const nombres = kitsAfectados.map(k => `"${k.name}"`).join(', ');
     if (!confirm(`Este producto es componente de ${kitsAfectados.length === 1 ? 'el kit' : 'los kits'} ${nombres}.\n\nAl eliminarlo esos kits quedarán sin stock. ¿Continuar?`)) return;
   }
-  // Un producto que sigue en un apartado activo bloquea después su edición
-  // por completo (edit_apartado_atomic exige que todo lo que se queda en el
-  // apartado siga existiendo) -- avisar aquí evita ese problema en vez de
-  // descubrirlo días después al intentar editar el apartado.
+  // Un producto que sigue en un apartado activo NUNCA se puede eliminar --
+  // edit_apartado_atomic (y cancel/refund) exigen que todo lo que sigue en
+  // el apartado siga existiendo en products; borrarlo deja ese apartado
+  // bloqueado para siempre hasta arreglarlo con SQL directo (caso real,
+  // 2026-09-04: 8 apartados quedaron así). Un confirm() se puede pasar por
+  // alto bajo presión -- esto es un bloqueo real, no una advertencia.
   const hits = await _productsInActiveApartados([id]);
   const aptHits = hits[id];
   if (aptHits?.length) {
     const nombres = aptHits.map(a => `"${a.customer}"`).join(', ');
-    if (!confirm(`Este producto sigue en ${aptHits.length === 1 ? 'un apartado activo' : `${aptHits.length} apartados activos`} (${nombres}).\n\nSi lo eliminas, ese apartado quedará bloqueado para editarse hasta quitar la línea a mano. ¿Continuar de todos modos?`)) return;
+    alert(`No se puede eliminar -- este producto sigue en ${aptHits.length === 1 ? 'un apartado activo' : `${aptHits.length} apartados activos`} (${nombres}).\n\nSi lo borras, ese apartado quedará bloqueado para editarse. Espera a que se liquide o cancele, o usa "🙈 Oculto" para dejar de venderlo sin borrarlo.`);
+    return;
   }
   deleteTargetId = id;
   document.getElementById('del-overlay').classList.add('open');
