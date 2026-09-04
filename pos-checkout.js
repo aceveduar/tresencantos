@@ -588,6 +588,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadApartados();
   showAllProducts();
   initRealtime();
+  setInterval(() => { if (document.visibilityState === 'visible') _silentStatsRefresh(); }, 90000);
 
   // Swipe para cerrar offcanvas (derecha)
   initSwipeToClose('corte-offcanvas',   'corte-backdrop',   closeCorte,      0.35);

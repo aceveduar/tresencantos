@@ -276,6 +276,7 @@ function switchPosTab(tab) {
   document.getElementById('tab-catalog')?.classList.toggle('active', isCatalog);
   document.getElementById('tab-cart')?.classList.toggle('active',    isCart);
   if (!isCatalog) updateChange();
+  if (isCatalog && typeof _silentStatsRefresh === 'function') _silentStatsRefresh();
   _updateMiniCartBar();
 }
 

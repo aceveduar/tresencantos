@@ -647,13 +647,24 @@ function getKitStock(p) {
 }
 
 /* ── LOAD CATEGORIES ── */
-async function refreshPosProducts() {
-  const btn = document.getElementById('pos-refresh-btn');
-  if (btn) { btn.style.opacity = '.4'; btn.style.pointerEvents = 'none'; }
-  await Promise.all([loadProducts(), loadSalesStats(), loadTopProductsFromSales(), loadPosRecentlyEdited()]);
+// Stock/precio de productos ya se sincronizan solos via Realtime
+// (initRealtime() arriba) -- esto solo refresca lo que Realtime no cubre:
+// "Hoy", Frecuentes y recientemente editados, que pueden quedar desfasados
+// si otra caja vende mientras esta pantalla sigue abierta. Antes era un
+// botón manual (#pos-refresh-btn) que casi nadie usaba a media venta;
+// ahora corre solo, en silencio, sin pedirle nada a la cajera.
+let _lastStatsRefresh = 0;
+async function _silentStatsRefresh() {
+  const nowTs = Date.now();
+  if (nowTs - _lastStatsRefresh < 30000) return;
+  _lastStatsRefresh = nowTs;
+  await Promise.all([
+    loadSalesStats(),
+    loadTopProductsFromSales(),
+    loadPosRecentlyEdited(),
+    typeof loadTodayStats === 'function' ? loadTodayStats() : Promise.resolve()
+  ]);
   showAllProducts();
-  if (btn) { btn.style.opacity = ''; btn.style.pointerEvents = ''; }
-  toast('Catálogo actualizado ✓', 'success');
 }
 
 async function loadPosCategories() {
