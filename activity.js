@@ -490,10 +490,32 @@ function render(data) {
     groups[key].push(item);
   });
 
+  // comprobante_enviado/omitido queda como una tarjeta idéntica en cliente,
+  // monto y minuto justo junto a su abono/liquidación/apartado nuevo -- se
+  // repite lo que la tarjeta vecina ya dice. Cuando son consecutivos y
+  // comparten meta.id (el id de la venta), se fusionan: el comprobante pasa
+  // a ser una pastilla dentro de la tarjeta del evento que lo originó, en
+  // vez de una tarjeta completa aparte.
+  const COMPROBANTE_ACTIONS = new Set(['comprobante_enviado', 'comprobante_omitido']);
+  const PARENT_ACTIONS = new Set(['apartado_abono', 'apartado_liquidado', 'apartado_nuevo', 'venta']);
+
   let html = '';
   for (const [date, items] of Object.entries(groups)) {
     html += `<div class="date-sep">${date}</div>`;
-    items.forEach(item => {
+
+    const comprobantePorPadre = new Map(); // índice del evento "padre" -> item comprobante
+    const skipIdx = new Set();
+    items.forEach((item, i) => {
+      if (!COMPROBANTE_ACTIONS.has(item.action) || item.meta?.id == null) return;
+      const next = items[i + 1];
+      if (next && PARENT_ACTIONS.has(next.action) && next.meta?.id === item.meta.id) {
+        comprobantePorPadre.set(i + 1, item);
+        skipIdx.add(i);
+      }
+    });
+
+    items.forEach((item, i) => {
+      if (skipIdx.has(i)) return;
       const cfg   = ACTION_CFG[item.action] || { badge:'inventario', icon:'•', label: item.action };
       const time  = _activityFormat(item.created_at, {hour:'2-digit', minute:'2-digit'});
       const meta  = item.meta || {};
@@ -517,6 +539,13 @@ function render(data) {
       else if (item.action === 'apartado_cancelado' && meta.refund > 0)
         detail = `Devuelto $${parseFloat(meta.refund).toLocaleString('es-MX')} · stock restaurado`;
 
+      const comprobantePair = comprobantePorPadre.get(i);
+      const comprobanteHTML = comprobantePair
+        ? comprobantePair.action === 'comprobante_enviado'
+          ? `<span class="act-badge badge-venta" style="margin-top:5px">✓ Comprobante enviado</span>`
+          : `<span class="act-badge badge-eliminado" style="margin-top:5px">⚠ Sin comprobante</span>`
+        : '';
+
       const idx = allData.indexOf(item);
       html += `<div class="act-card" onclick="_actPopup(${idx})" style="cursor:pointer">
   <div class="act-avatar" style="background:${color}">${ini}</div>
@@ -528,6 +557,7 @@ function render(data) {
     </div>
     <div class="act-summary">${_esc(item.summary)}</div>
     ${detail ? `<div class="act-detail">${detail}</div>` : ''}
+    ${comprobanteHTML}
   </div>
 </div>`;
     });
