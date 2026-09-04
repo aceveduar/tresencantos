@@ -33,7 +33,6 @@ const _isDuena = ROLE === 'duena';
 let can = {
   deleteProduct:   true,
   bulkDelete:      _isSuperOrEncargado,
-  importJSON:      ROLE === 'superadmin',
   manageSettings:  ROLE === 'superadmin',
   publishProduct:  true,
   editProduct:     true,
@@ -46,7 +45,6 @@ function _applyUserPermsToAdmin(up) {
   if (!up) return;
   if ('canDeleteProduct'  in up) can.deleteProduct  = up.canDeleteProduct;
   if ('canBulkDelete'     in up) can.bulkDelete     = up.canBulkDelete;
-  if ('canImportJSON'     in up) can.importJSON      = up.canImportJSON;
   if ('canManageSettings' in up) can.manageSettings  = up.canManageSettings;
   if ('canPublishProduct' in up) can.publishProduct  = up.canPublishProduct;
   if ('canEditProduct'    in up) can.editProduct     = up.canEditProduct;
