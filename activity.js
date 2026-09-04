@@ -479,6 +479,45 @@ function _renderItemsDetail(meta) {
   return `<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #EDE5DC">${rows}</div>`;
 }
 
+function _renderEditDiff(meta) {
+  // "Antes → Después" para apartado_editado -- itemsDetailPrevio/totalPrevio/
+  // discountPrevio/dueDatePrevio son el snapshot justo antes del UPDATE
+  // (agregado 2026-09-03); sin ellos (ediciones viejas, ya logueadas antes de
+  // este cambio) esta función no tiene nada que comparar y no se llama.
+  const before = Array.isArray(meta.itemsDetailPrevio) ? meta.itemsDetailPrevio : [];
+  const after  = Array.isArray(meta.itemsDetail) ? meta.itemsDetail : [];
+  const _accum = (map, i) => { const prevQty = map[i.id]?.qty || 0; map[i.id] = { name: i.name, qty: prevQty + (i.qty || 1) }; };
+  const beforeMap = {}, afterMap = {};
+  before.forEach(i => _accum(beforeMap, i));
+  after.forEach(i => _accum(afterMap, i));
+  const allIds = [...new Set([...Object.keys(beforeMap), ...Object.keys(afterMap)])];
+  const itemRows = [];
+  allIds.forEach(id => {
+    const b = beforeMap[id], a = afterMap[id];
+    const name = _esc(a?.name || b?.name || 'Producto');
+    if (b && !a) itemRows.push(`<div style="font-size:.78rem;color:#E85D5D;padding:2px 0">− Quitó ${name} (×${b.qty})</div>`);
+    else if (!b && a) itemRows.push(`<div style="font-size:.78rem;color:#059669;padding:2px 0">+ Agregó ${name} (×${a.qty})</div>`);
+    else if (b.qty !== a.qty) itemRows.push(`<div style="font-size:.78rem;color:#B45309;padding:2px 0">${name}: ×${b.qty} → ×${a.qty}</div>`);
+  });
+
+  const fieldRows = [];
+  const fmt = n => `$${parseFloat(n || 0).toLocaleString('es-MX')}`;
+  if (meta.totalPrevio != null && parseFloat(meta.totalPrevio) !== parseFloat(meta.total))
+    fieldRows.push(`<div style="font-size:.78rem;color:#1C1817;padding:2px 0">Total: ${fmt(meta.totalPrevio)} → <b>${fmt(meta.total)}</b></div>`);
+  if (meta.discountPrevio != null && parseFloat(meta.discountPrevio || 0) !== parseFloat(meta.discount || 0))
+    fieldRows.push(`<div style="font-size:.78rem;color:#1C1817;padding:2px 0">Descuento: ${fmt(meta.discountPrevio)} → <b>${fmt(meta.discount)}</b></div>`);
+  if (meta.dueDatePrevio !== undefined && meta.dueDatePrevio !== meta.due_date) {
+    const fmtD = d => d ? _activityFormat(d + 'T12:00:00Z', { day: 'numeric', month: 'short' }) : 'sin fecha';
+    fieldRows.push(`<div style="font-size:.78rem;color:#1C1817;padding:2px 0">Fecha límite: ${fmtD(meta.dueDatePrevio)} → <b>${fmtD(meta.due_date)}</b></div>`);
+  }
+
+  if (!itemRows.length && !fieldRows.length) return '';
+  return `<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #EDE5DC">
+    <div style="font-size:.68rem;color:#8A7564;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Cambios</div>
+    ${itemRows.join('')}${fieldRows.join('')}
+  </div>`;
+}
+
 function _actPopup(idx) {
   const item = allData[idx];
   if (!item) return;
@@ -543,6 +582,7 @@ function _actPopup(idx) {
     if (meta.dueDate)          bodyHtml += `<div style="font-size:.78rem;color:#8A7564;margin-top:2px">${_actIcoCalendar(12)} Vencía: ${_activityFormat(meta.dueDate+'T12:00:00Z',{day:'numeric',month:'short',year:'numeric'})}</div>`;
     if (meta.reason) bodyHtml += `<div style="font-size:.8rem;color:#1C1817;margin-top:8px;padding:8px 10px;background:#F7F2EB;border-radius:8px;font-style:italic">"${_esc(meta.reason)}"</div>`;
     bodyHtml += _renderItemsDetail(meta);
+    if (item.action === 'apartado_editado' && meta.itemsDetailPrevio) bodyHtml += _renderEditDiff(meta);
   } else {
     bodyHtml = `<div style="font-size:.85rem;color:#1C1817">${_esc(item.summary)}</div>`;
   }
