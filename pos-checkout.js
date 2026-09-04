@@ -168,7 +168,11 @@ async function cobrar() {
   const dueDateVal = apartadoActivo ? document.getElementById('pos-due-date')?.value : null;
 
   // La actividad y el libro de pagos quedaron registrados dentro del mismo RPC.
-  _lastSale = { total, paidAmount, change, disc, note, items, payMethod,
+  // id: sin esto, comprobante_enviado/comprobante_omitido de este flujo (justo
+  // debajo) se registraban sin meta.id -- no se podían asociar a la venta ni
+  // desde el historial por transacción ni desde _filterOutTestSales(), que
+  // depende de meta.id para saber si esconder el evento de una venta de prueba.
+  _lastSale = { id: rpcResult.data?.sale?.id ?? null, total, paidAmount, change, disc, note, items, payMethod,
     isApartado: apartadoActivo, apartadoLiquidado: apartadoPagadoCompleto,
     customer, dueDate: dueDateVal };
 
@@ -297,7 +301,7 @@ function sendWhatsAppTicket() {
     window.open(telLimpio ? `https://wa.me/52${telLimpio}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
     logActivity('comprobante_enviado',
       `Envió confirmación de apartado a ${nombre} — $${(s.total||0).toLocaleString('es-MX')}`,
-      { total: s.total, isApartado: s.isApartado, apartadoLiquidado: s.apartadoLiquidado });
+      { id: s.id, total: s.total, isApartado: s.isApartado, apartadoLiquidado: s.apartadoLiquidado });
     setTimeout(() => closeSaleDone(), 400);
     return;
   } else {
@@ -321,7 +325,7 @@ function closeSaleDone() {
     if (!confirm('¿Cerrar sin enviarle la confirmación por WhatsApp al cliente?')) return;
     logActivity('comprobante_omitido',
       `Cerró sin enviar confirmación de apartado a ${(s.customer||'').split(' · 📱 ')[0] || 'cliente'} — $${(s.total||0).toLocaleString('es-MX')}`,
-      { total: s.total, isApartado: s.isApartado, apartadoLiquidado: s.apartadoLiquidado });
+      { id: s.id, total: s.total, isApartado: s.isApartado, apartadoLiquidado: s.apartadoLiquidado });
   }
   const overlay = document.getElementById('sale-done-overlay');
   if (overlay._escGuard) {
