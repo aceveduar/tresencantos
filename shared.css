@@ -53,6 +53,8 @@ a{text-decoration:none}
 }
 @media(max-width:640px){.user-avatar{width:26px;height:26px;font-size:.7rem}}
 @media(max-width:380px){.user-avatar{width:24px;height:24px;font-size:.68rem}}
+@media(max-width:640px){#notif-bell{width:26px;height:26px;margin-right:6px}}
+@media(max-width:380px){#notif-bell{width:24px;height:24px;margin-right:4px}}
 
 /* ── Título de módulo — oculto cuando los íconos ya tienen label ───── */
 .topbar-title{display:none}
