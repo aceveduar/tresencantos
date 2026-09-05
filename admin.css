@@ -494,7 +494,7 @@ tr:hover .drag-handle{opacity:1}
    con un trazo claro cuando data-theme="dark" está activo (selector amplio
    sobre <select> para cubrir tanto .field select como los selects sueltos
    de la toolbar/filtros, que tienen su propia variante mobile más abajo). */
-:root[data-theme="dark"] select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23B9A890' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")!important}
+:root[data-theme="dark"] select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23B9A890' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-position:right 14px center!important;background-size:10px!important}
 .field input:focus,.field select:focus,.field textarea:focus,.form-input:focus{border-color:var(--gold);background:var(--surface);box-shadow:0 0 0 3px rgba(201,164,98,.12)}
 .field textarea{resize:vertical;min-height:90px;line-height:1.5}
 .field .hint{font-size:.73rem;color:var(--muted-light);margin-top:5px;line-height:1.4}
@@ -1000,7 +1000,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .kb-qty-btn{width:28px;height:28px;border-radius:7px;border:1.5px solid var(--border);background:var(--surface);font-size:1rem;font-weight:700;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .kb-result-item{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--border);cursor:pointer;touch-action:manipulation}
 .kb-result-item:last-child{border-bottom:none}
-.kb-result-item:active{background:#FFF8EE}
+.kb-result-item:active{background:var(--gold-light)}
 
 /* ══ LISTA COMO TARJETAS MPC (mobile + tablet ≤1024px) ════════════════════
    La vista lista usa tarjetas en ambos tamaños. El bloque ≤640px sobreescribe
@@ -1397,7 +1397,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .recv-search-results{margin-top:8px;max-height:200px;overflow-y:auto;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);display:none}
 .recv-result-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:.15s;touch-action:manipulation}
 .recv-result-item:last-child{border-bottom:none}
-.recv-result-item:active{background:#FFF8EE}
+.recv-result-item:active{background:var(--gold-light)}
 .recv-result-img{width:36px;height:36px;object-fit:cover;border-radius:6px;flex-shrink:0;background:var(--surface-soft)}
 .recv-result-name{font-size:.84rem;font-weight:600;flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .recv-result-stock{font-size:.7rem;color:var(--muted)}
