@@ -17,7 +17,19 @@
 -- Solo cambia el flag kit_snapshot_estimated -> false en el item que
 -- corresponde a cada kit; el resto del array items (nombre, precio, qty,
 -- kit_items, y los demas productos del apartado) queda intacto.
+--
+-- IMPORTANTE: un UPDATE directo a sales dispara te_sales_compat_before_write()
+-- (trigger legado, pre-Caja v2), que llama a te_snapshot_sale_items(NEW.items)
+-- con UN solo argumento -- ambiguo, porque hoy existen dos versiones de esa
+-- funcion (1 y 2 argumentos) y Postgres no puede elegir cual usar. Las RPC
+-- reales (record_sale_atomic_v2, edit_apartado_atomic) nunca pisan este
+-- problema porque activan tresencantos.rpc_v2='on' antes de escribir, y el
+-- trigger se retira de inmediato (RETURN NEW) cuando ve esa bandera activa.
+-- Replicamos exactamente eso aqui -- no se toca ni se borra ninguna funcion.
 -- -----------------------------------------------------------------------------
+BEGIN;
+SET LOCAL tresencantos.rpc_v2 = 'on';
+
 UPDATE public.sales
 SET items = (
   SELECT jsonb_agg(
@@ -43,3 +55,5 @@ SET items = (
   FROM jsonb_array_elements(items) WITH ORDINALITY AS t(elem, ord)
 )
 WHERE id = 458;
+
+COMMIT;
