@@ -533,8 +533,8 @@ function initDivider() {
 document.addEventListener('DOMContentLoaded', async () => {
   // Ocultar nav según rol + permisos individuales
   const _applyPosNav = (up) => {
-    const canStats    = up?.canViewReports    ?? (_posRole === 'superadmin' || _posRole === 'duena');
-    const canActivity = up?.canViewActivity   ?? (_posRole === 'superadmin' || _posRole === 'duena');
+    const canStats    = up?.canViewReports    ?? (_posRole === 'superadmin');
+    const canActivity = up?.canViewActivity   ?? (_posRole === 'superadmin');
     const canSettings = up?.canManageSettings ?? (_posRole === 'superadmin');
     document.querySelectorAll('a.tbn-icon[href="stats.html"]').forEach(a => a.style.display = canStats ? '' : 'none');
     document.querySelectorAll('a.tbn-icon[href="activity.html"]').forEach(a => a.style.display = canActivity ? '' : 'none');

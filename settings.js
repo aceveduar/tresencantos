@@ -92,7 +92,16 @@ async function init() {
       if (row.id === 'groq_key')          groqApiKey   = row.value || null;
       if (row.id === 'drive_ep')          driveEp      = row.value || null;
       if (row.id === 'drive_secret')      driveSecret  = row.value || null;
-      if (row.id === 'user_permissions')  { try { userPermsMap = JSON.parse(row.value||'{}'); } catch {} }
+      if (row.id === 'user_permissions')  {
+        try {
+          userPermsMap = JSON.parse(row.value||'{}');
+          // Rol 'dueña' retirado 2026-09-05 (nunca se mostraba en la UI y en la
+          // práctica ya corría con acceso de superadmin) -- normaliza cualquier
+          // cuenta que se haya quedado guardada con ese rol, sin necesitar una
+          // migración SQL aparte.
+          Object.values(userPermsMap).forEach(p => { if (p && p.role === 'duena') p.role = 'superadmin'; });
+        } catch {}
+      }
       if (row.id === 'wa_float') {
         const toggle = document.getElementById('wa-float-toggle');
         if (toggle) toggle.checked = row.value !== 'false';
@@ -991,7 +1000,7 @@ async function clearActivityLog() {
 }
 
 /* ── USER PERMISSIONS PANEL ── */
-const _UP_ROLE_LABELS = {superadmin:'Superadmin', encargado:'Encargada', duena:'Dueña', operador:'Operador'};
+const _UP_ROLE_LABELS = {superadmin:'Superadmin', encargado:'Encargada', operador:'Operador'};
 const _UP_AVATAR_COLORS = ['#C9A462','#60a5fa','#f472b6','#34d399','#a78bfa','#fb923c'];
 
 function _upAvatarColor(email) {
@@ -1117,7 +1126,7 @@ function _renderUserCard(email) {
   const perms  = userPermsMap[email] || {};
   const role   = perms.role || 'operador';
 
-  const roleOpts = ['superadmin','encargado','duena','operador'].map(v =>
+  const roleOpts = ['superadmin','encargado','operador'].map(v =>
     `<option value="${v}"${v===role?' selected':''}>${escH(_UP_ROLE_LABELS[v]||v)}</option>`
   ).join('');
   const overrideCount = _upOverrideCount(email);

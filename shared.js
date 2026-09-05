@@ -69,7 +69,7 @@ function _themeToggleRowHtml() {
       role  = meta.role || 'operador';
     } catch {}
 
-    const roleLabel = { superadmin:'Super Admin', duena:'Dueña', operador:'Operador' }[role] || role;
+    const roleLabel = { superadmin:'Super Admin', encargado:'Encargada', operador:'Operador' }[role] || role;
 
     const _up = (() => {
       try {
@@ -80,7 +80,7 @@ function _themeToggleRowHtml() {
     })();
     const canConfig   = ('canManageSettings' in _up ? _up.canManageSettings : role === 'superadmin')
                          || _up.canManageCatalogSettings === true;
-    const canActivity = 'canViewActivity'   in _up ? _up.canViewActivity   : (role === 'superadmin' || role === 'duena');
+    const canActivity = 'canViewActivity'   in _up ? _up.canViewActivity   : (role === 'superadmin');
 
     const configLink = (canConfig
       ? `<a class="ud-link" href="settings.html">
@@ -632,8 +632,7 @@ const UP_PERMS = [
 ];
 const UP_ROLE_DEFAULTS = {
   superadmin:{canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canCancelSale:true, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canMarkTestData:true, canViewReports:true, canViewActivity:true, canManageSettings:true, canManageCatalogSettings:false, canCloseShiftUnsupervised:true, canUseReceptionIA:true, canReceiveStock:true, canImportExport:true},
-  encargado: {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canCancelSale:true, canEditApartado:false, canOverridePrice:true, canApplyDiscount:true, canMarkTestData:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false, canCloseShiftUnsupervised:true, canUseReceptionIA:true, canReceiveStock:true, canImportExport:false},
-  duena:     {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:false, canCancelSale:false, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canMarkTestData:false, canViewReports:true, canViewActivity:true, canManageSettings:false, canManageCatalogSettings:false, canCloseShiftUnsupervised:true, canUseReceptionIA:true, canReceiveStock:true, canImportExport:false},
+  encargado: {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canCancelSale:true, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canMarkTestData:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false, canCloseShiftUnsupervised:true, canUseReceptionIA:true, canReceiveStock:true, canImportExport:false},
   operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:false, canPublishProduct:false, canBulkDelete:false, canCancelSale:false, canEditApartado:false, canOverridePrice:false, canApplyDiscount:false, canMarkTestData:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false, canCloseShiftUnsupervised:false, canUseReceptionIA:false, canReceiveStock:true, canImportExport:false},
 };
 

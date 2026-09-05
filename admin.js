@@ -14,8 +14,11 @@ const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS   = 60 * 1000; // 1 minuto de bloqueo por cada 5 intentos fallidos
 
 /* ── ROLES Y PERMISOS ── */
-// Roles válidos: 'superadmin' | 'encargado' | 'operador' | 'duena'
-// encargado = puede todo excepto: Reportes, Actividad, Configuración, Import/Export JSON
+// Roles válidos: 'superadmin' | 'encargado' | 'operador'
+// superadmin = dueños del negocio y del sistema, control total (incluye a Ofelia — el rol
+// 'dueña' se retiró 2026-09-05: nunca se mostró en la UI y en la práctica ya corría como superadmin)
+// encargado = confianza operativa total en Caja/Inventario, sin visibilidad de Reportes/Actividad/Configuración
+// operador = punto de partida seguro para cualquier persona nueva — casi nada por default
 // Sin rol definido → 'operador' (nunca escala permisos)
 function _parseRole() {
   try {
@@ -33,7 +36,6 @@ function _parseRole() {
 }
 const ROLE = _parseRole();
 const _isSuperOrEncargado = ROLE === 'superadmin' || ROLE === 'encargado';
-const _isDuena = ROLE === 'duena';
 let can = {
   deleteProduct:   true,
   bulkDelete:      _isSuperOrEncargado,
@@ -41,9 +43,9 @@ let can = {
   publishProduct:  true,
   editProduct:     true,
   addProduct:      true,
-  viewReports:     ROLE === 'superadmin' || ROLE === 'duena',
-  viewActivity:    ROLE === 'superadmin' || ROLE === 'duena',
-  useReceptionIA:  _isSuperOrEncargado || _isDuena,
+  viewReports:     ROLE === 'superadmin',
+  viewActivity:    ROLE === 'superadmin',
+  useReceptionIA:  _isSuperOrEncargado,
   receiveStock:    true,
 };
 
@@ -925,7 +927,7 @@ function _applyRoleUI() {
   if (!can.bulkDelete) {
     document.querySelector('.bulk-bar .btn-red')?.style.setProperty('display', 'none');
   }
-  // Botón "Publicar / Ocultar" en bulk bar — superadmin y duena
+  // Botón "Publicar / Ocultar" en bulk bar — según can.publishProduct
   if (!can.publishProduct) {
     document.getElementById('bulk-publish-btn')?.style.setProperty('display', 'none');
   }

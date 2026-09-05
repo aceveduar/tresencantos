@@ -293,33 +293,36 @@ El cambio aplica en el **próximo login** — la sesión activa usa el JWT viejo
 |---|---|
 | eacevedo@sunname.com.mx | superadmin |
 | ma.dolores.mtz.mtz@gmail.com | superadmin |
-| areli@tresencantos.com | operador |
-| ofe@tresencantos.com | duena |
+| ofe@tresencantos.com | superadmin |
+| areli@tresencantos.com | encargado |
 
 **Permisos por rol:**
-| Acción | superadmin | encargado | duena | operador |
-|---|---|---|---|---|
-| Ver productos | ✓ | ✓ | ✓ | ✓ |
-| Editar producto / precio | ✓ | ✓ | ✓ | ✓ |
-| Agregar producto | ✓ | ✓ | ✓ | ✓ |
-| Publicar en sitio web | ✓ | ✓ | ✓ | ✗ |
-| Eliminar producto | ✓ | ✓ | ✓ | ✗ |
-| Cancelar venta (Caja) | ✓ | ✓ | ✗ | ✗ |
-| Editar apartado | ✓ | ✗ | ✓ | ✗ |
-| Modificar precio al cobrar (Caja) | ✓ | ✓ | ✓ | ✗ |
-| Aplicar descuento (Caja) | ✓ | ✓ | ✓ | ✗ |
-| Marcar ventas/apartados como prueba | ✓ | ✗ | ✗ | ✗ |
-| Bulk delete | ✓ | ✓ | ✗ | ✗ |
-| Recepción con IA (Inventario) | ✓ | ✓ | ✓ | ✗ |
-| Recibir mercancía / escaneo (Inventario) | ✓ | ✓ | ✓ | ✓ |
-| Importar/Exportar JSON | ✓ | ✗ | ✗ | ✗ |
-| Ver Reportes | ✓ | ✗ | ✓ | ✗ |
-| Ver Actividad | ✓ | ✗ | ✓ | ✗ |
-| Configuración (completa) | ✓ | ✗ | ✗ | ✗ |
-| Configuración (solo Catálogo) | — | — | — | por override |
-| Configuración (solo Datos: JSON/nombres/duplicados) | — | — | — | por override |
+| Acción | superadmin | encargado | operador |
+|---|---|---|---|
+| Ver productos | ✓ | ✓ | ✓ |
+| Editar producto / precio | ✓ | ✓ | ✓ |
+| Agregar producto | ✓ | ✓ | ✓ |
+| Publicar en sitio web | ✓ | ✓ | ✗ |
+| Eliminar producto | ✓ | ✓ | ✗ |
+| Cancelar venta (Caja) | ✓ | ✓ | ✗ |
+| Editar apartado | ✓ | ✓ | ✗ |
+| Modificar precio al cobrar (Caja) | ✓ | ✓ | ✗ |
+| Aplicar descuento (Caja) | ✓ | ✓ | ✗ |
+| Cerrar turno con diferencia grande | ✓ | ✓ | ✗ |
+| Marcar ventas/apartados como prueba | ✓ | ✗ | ✗ |
+| Bulk delete | ✓ | ✓ | ✗ |
+| Recepción con IA (Inventario) | ✓ | ✓ | ✗ |
+| Recibir mercancía / escaneo (Inventario) | ✓ | ✓ | ✓ |
+| Importar/Exportar catálogo (Configuración → Datos) | ✓ | ✗ | ✗ |
+| Ver Reportes | ✓ | ✗ | ✗ |
+| Ver Actividad | ✓ | ✗ | ✗ |
+| Configuración (completa) | ✓ | ✗ | ✗ |
+| Configuración (solo Catálogo) | — | — | por override |
+| Configuración (solo Datos: JSON/nombres/duplicados) | — | — | por override |
 
-`encargado` — rol para cajera/encargada de turno con más permisos que operador (puede eliminar, cancelar ventas, bulk delete) pero sin acceso a Reportes, Actividad ni Configuración. No asignado a ningún usuario actualmente — disponible para cuando se necesite.
+`encargado` — rol para cajera/encargada de turno con confianza operativa total en Caja/Inventario (agregar/editar/eliminar/publicar producto, bulk delete, cancelar venta, editar apartado, modificar precio, descuento, cerrar turno con diferencia grande, recepción con IA, recibir mercancía) pero sin visibilidad del negocio (Reportes, Actividad, Configuración) — esa capa se reserva para quienes son dueños del negocio/sistema. `areli@tresencantos.com` tiene este rol hoy.
+
+**Reevaluación de roles — se retiró "dueña" (2026-09-05):** ver la entrada completa más abajo, en la sección de Configuración/Usuarios y Permisos, para el razonamiento y el detalle técnico. En resumen: quedan 3 roles (antes 4), no 4 — la distinción real que importa es *confianza operativa* (qué puedes hacer en Caja/Inventario) vs. *visibilidad del negocio* (Reportes/Actividad/Configuración), y "dueña" intentaba cubrir ambos ejes a medias sin encajar con nadie real.
 
 **Permiso `canManageCatalogSettings` (2026-08-20):** acceso parcial a Configuración — entra a la página pero solo ve la sección Catálogo (WhatsApp flotante, Captura rápida, Ver creador, Reabastecimiento en Caja, Recibir mercancía, Categorías del catálogo, Revista Digital Natura); no ve Usuarios y Permisos, Notificaciones, Datos ni Integraciones. No es un rol nuevo — es un permiso individual vía override en `config.id='user_permissions'` (mismo mecanismo que el resto de `UP_PERMS` en `shared.js`), asignable desde Configuración → Usuarios y Permisos. `areli@tresencantos.com` (operador) lo tiene activo, con `canManageSettings`, `canViewReports` y `canViewActivity` explícitamente en `false` — ve Configuración (solo Catálogo) en su avatar, pero no Reportes ni Actividad.
 
@@ -344,6 +347,22 @@ Migración de estos tres puntos: `supabase/migrations/20260820_01_permisos_caja_
 - **Los 2 permisos nuevos de Inventario no quedaban adyacentes en la grilla de 2 columnas** — `canUseReceptionIA`/`canReceiveStock` vivían al final del arreglo `UP_PERMS`, después de que Inventario ya había cerrado su grupo (5 ítems, cantidad impar) — en la grilla de 2 columnas terminaban en filas distintas, uno pegado a "Borrado masivo" y el otro solo. Movidos a justo después de "Editar y precios" (posición par dentro del grupo) para que ambos caigan en la misma fila.
 - **El tag interactivo "≠ rol ↺" y el badge informativo "N personalizados" se veían casi idénticos** (mismo tono ámbar sólido, misma forma de pastilla) pese a que uno es un botón que actúa al tocarlo y el otro es solo un contador de la tarjeta colapsada, sin acción alguna. Aclarado `.up-override-badge` a un contorno neutro sin relleno (`var(--border)`/`var(--muted)`) — el tag `.up-perm-diff-tag` se queda con su tono ámbar sólido y su ícono de flecha, ahora el único elemento ámbar de la fila que de verdad se puede tocar.
 CACHE_VERSION v412→v413.
+
+**Mejoras UX/UI de la vista Matriz de permisos (2026-09-05)** — Eduardo, tras aprobar la vista de lista, pidió el mismo tipo de revisión sobre la Matriz (permisos × personas). 5 hallazgos, los 5 corregidos:
+- **Sin leyenda visible** — el único texto explicando el punto dorado con borde vivía al fondo de la tabla, fácil de perderse en el scroll interno de la matriz (`max-height:70vh` en mobile). Agregada una leyenda compacta (`.up-mx-legend`, Activo/Inactivo/Distinto del rol) arriba de la tabla, junto al buscador.
+- **Los encabezados de grupo (INVENTARIO/CAJA/MÓDULOS) no eran sticky verticalmente** — el encabezado de personas sí se quedaba fijo arriba (`position:sticky;top:0`), pero la etiqueta de sección se iba con el scroll, perdiendo contexto de en qué sección se estaba a media lista. `.up-mx-group-row td` gana `top:66px` (58px en mobile) — stacking sticky de dos niveles, calculado para coincidir exactamente con la altura fija que ahora tienen `.up-mx-person`/`.up-mx-corner`.
+- **Sin highlight de fila** — en una tabla ancha (5+ personas) es fácil perder la columna correcta con el ojo. Agregado highlight de fila completa (`:hover`) sobre `.up-mx-cell` y `.up-mx-perm-name`.
+- **El contador de personalizaciones no aparecía en la matriz** — la vista de lista ya mostraba "N personalizados" por persona; la matriz no tenía equivalente. Ahora aparece junto al rol en el encabezado de cada persona ("Encargada · 5≠"), reutilizando `_upOverrideCount()`.
+- **Borde "distinto del rol" muy sutil** — de `#FDE68A`/2px a `#E8A93D`/2.5px, más fácil de detectar a simple vista.
+CACHE_VERSION v413→v414.
+
+**Reevaluación de roles — se retira "dueña" como rol independiente (2026-09-05)** — a petición de Eduardo, tras la reconstrucción de la Matriz, de estudiar y proponer un modelo de roles bien definido pensando en: qué debe tener alguien nuevo por default, si el rol "dueña" seguía siendo necesario o podía colapsarse en superadmin, y qué encaja con el patrón real de Areli. Diagnóstico entregado y aprobado: el sistema mezclaba dos ejes en una sola escalera — *confianza operativa* (qué puedes **hacer** en Caja/Inventario) y *visibilidad del negocio* (qué puedes **ver**: Reportes/Actividad/Configuración) — y "dueña" intentaba cubrir ambos a medias sin encajar con nadie real; prueba de esto es que en la práctica Ofelia ya corría como `superadmin` literal, no `duena`, mucho antes de este cambio. El rol tampoco se mostraba en ninguna pantalla (el chip de rol se quitó de la topbar hace tiempo), así que mantenerlo como una etiqueta aparte no daba ningún beneficio a cambio del costo de tenerlo sincronizado para siempre.
+- **De 4 roles a 3**: `superadmin` (dueños del negocio y del sistema — Eduardo, Ofelia, control total sin excepción), `encargado` (confianza operativa total en Caja/Inventario, cero visibilidad del negocio — Areli), `operador` (punto de partida seguro para cualquier persona nueva u ocasional — casi nada por default, se activa con el tiempo por override). Tabla completa arriba, en "Permisos por rol".
+- **Cambio de permisos real, no solo de nombres: `canEditApartado` pasa a `true` por default en `encargado`** — Areli (encargado) ya tenía ese permiso activado como override individual antes de este cambio, señal directa de que el default estaba desalineado con lo que un encargado de confianza real necesita hacer. Sus otros dos overrides (`canApplyDiscount` y `canCloseShiftUnsupervised` en `false`) se mantienen intactos como personalización suya — a diferencia del anterior, esos sí leen como una restricción deliberada de Eduardo sobre decisiones de dinero discrecional, no como un default mal puesto.
+- **Retiro seguro, sin migración de datos aparte**: en vez de borrar el token `'duena'` de las listas de validación (lo que dejaría sin ningún permiso a cualquier cuenta que se hubiera quedado con ese valor guardado), se trata como **alias de `'superadmin'`** en los 2 puntos donde el servidor resuelve el rol efectivo (`get_user_role()`, usado por las políticas RLS de `products`/`sales`/`config`/`activity_log`/`recently_edited`; y `_te_permission_for_email()`, del que `te_has_permission()` ya depende desde `20260821_02_can_mark_test_data.sql`). Cualquier cuenta que aún dijera `duena` en `auth.users.raw_app_meta_data` o en `config.user_permissions` sigue funcionando exactamente como `superadmin`, sin arriesgar dejar a nadie fuera. El mismo alias se aplicó del lado del cliente (`settings.js`, al cargar `config.id='user_permissions'`) para que la Matriz/Lista de Configuración nunca muestren un rol que ya no existe en el selector.
+- **Bug real encontrado y corregido de paso: los 3 permisos nuevos de esta semana (`canUseReceptionIA`, `canReceiveStock`, `canImportExport`) nunca estuvieron conectados en el servidor** — se agregaron a `UP_PERMS`/`UP_ROLE_DEFAULTS` (`shared.js`) y `admin.js` ya sabía leerlos de la respuesta de `get_my_permissions()` (`if ('canUseReceptionIA' in up) ...`), pero `get_my_permissions()`/`_te_permission_for_email()` en Postgres nunca los devolvían ni los evaluaban — la clave simplemente no existía en la respuesta, así que activar/desactivar esos permisos por persona desde Configuración no tenía **ningún efecto real**, solo cambiaba lo que se veía en la UI de permisos. Corregido en la misma migración: los 3 permisos ahora se resuelven por rol igual que el resto (`canUseReceptionIA`/`canReceiveStock` true para superadmin/encargado, `canReceiveStock` también true para operador, `canImportExport` solo superadmin) y se incluyen en la respuesta de `get_my_permissions()`.
+- Migración: `supabase/migrations/20260905_01_retire_duena_role.sql` — pendiente de ejecutar en el SQL Editor de Supabase, después de `20260904_07_close_shift_authorization.sql`.
+CACHE_VERSION v414→v415.
 
 **PIN de autorización de gerente (2026-08-21):** cuando alguien sin un permiso necesita hacer esa acción de todos modos porque quien sí lo tiene se lo autoriza (ej. Ofelia le autoriza a Areli por teléfono modificar un precio estando ella fuera), esa persona teclea su **propio PIN** (4-6 dígitos, separado de su contraseña — mismo patrón que Square/Shopify POS) en el dispositivo de quien va a hacer la acción, sin cerrar la sesión activa.
 - **`user_pins`** — cada usuario fija/cambia solo su propio PIN vía `te_set_my_pin(p_pin)` (hash con `pgcrypto`/`crypt()`). Nadie, ni superadmin, puede ver o resetear el PIN de otra persona — si se olvida, cada quien lo vuelve a fijar. Autoservicio desde el menú del avatar ("🔑 Mi PIN de autorización", `openMyPinModal()` en `shared.js`).
