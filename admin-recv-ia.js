@@ -714,7 +714,7 @@ function _renderRecvIaReview() {
       <input type="number" min="0" step="0.01" inputmode="decimal" value="${it.priceToApply ?? ''}" oninput="riaUpdateField(${idx},'priceToApply',this.value)">
     </div>
   </div>
-  <div class="ria-item-warn" style="${priceWarn ? 'display:block' : ''}">⚠️ El precio de venta es menor al costo — revisa este renglón</div>
+  <div class="ria-item-warn" style="${priceWarn ? 'display:block' : ''}"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>El precio de venta es menor al costo — revisa este renglón</div>
 </div>`;
   }).join('');
   document.querySelectorAll('.ria-item-name').forEach(_riaAutoGrow);
@@ -780,7 +780,7 @@ function _renderRiaSummary() {
     ? ` Ya suma los ${_riaKits.length} kit${_riaKits.length !== 1 ? 's' : ''} de promoción de abajo — si a esa lista le falta algún kit comparado con tu PDF, esa es la causa más probable.`
     : ' Tu pedido no trajo ningún kit de promoción detectado — si en el PDF sí hay, prueba extraer de nuevo.';
   el.innerHTML = `
-<span>${closeEnough ? '✓' : '⚠️'} Extraído: <strong>$${extracted.toFixed(2)}</strong> · Documento dice: <strong>$${_riaDocTotal.toFixed(2)}</strong></span>
+<span>${closeEnough ? '✓' : '<svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'} Extraído: <strong>$${extracted.toFixed(2)}</strong> · Documento dice: <strong>$${_riaDocTotal.toFixed(2)}</strong></span>
 ${closeEnough ? '' : `<span>Diferencia de $${Math.abs(diff).toFixed(2)} — revisa los renglones antes de continuar.${kitHint}</span>`}`;
 }
 

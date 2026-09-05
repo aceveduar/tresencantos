@@ -42,6 +42,13 @@
      toda la página alrededor ya esté oscura. */
   color-scheme:dark;
 }
+/* Estos 3 tenían su propio literal ya distinto del resto (no encajaban en
+   ningún token compartido) -- se quedan con su valor de claro exacto de
+   siempre, y solo se agrega aquí su variante oscura, para no mover el modo
+   claro ni un tono de donde ya estaba. */
+:root[data-theme="dark"] .checkbox-row input[type=checkbox]{background:#4A4038}
+:root[data-theme="dark"] .ria-item-field.ria-cost input{border-color:var(--tint-amber-border)}
+:root[data-theme="dark"] .cat-sheet-item.warn{color:var(--tint-amber-strong)}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal);min-height:100vh}
 a{text-decoration:none;color:inherit}
@@ -334,7 +341,7 @@ td,th{overflow:hidden}
 /* Cat sheet — sección por revisar */
 .cat-sheet-warn-section{background:var(--tint-amber-bg);border-bottom:1px solid var(--tint-amber-border);margin-bottom:4px}
 .cat-sheet-warn-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--tint-amber-strong);padding:10px 18px 4px;display:block}
-.cat-sheet-item.warn{color:var(--tint-amber-strong);background:var(--tint-amber-bg)}
+.cat-sheet-item.warn{color:#92400E;background:var(--tint-amber-bg)}
 .cat-sheet-item.warn:active,.cat-sheet-item.warn.active{background:#FEF3C7;color:#78350F}
 /* QV — zona de flag */
 .qv-flag-active{
@@ -503,7 +510,7 @@ tr:hover .drag-handle{opacity:1}
 .checkbox-row{display:flex;align-items:center;gap:12px;font-size:.88rem;cursor:pointer;color:var(--charcoal)}
 .checkbox-row input[type=checkbox]{
   appearance:none;-webkit-appearance:none;
-  width:44px;height:26px;border-radius:13px;background:var(--border);
+  width:44px;height:26px;border-radius:13px;background:#D1D5DB;
   border:none;flex-shrink:0;position:relative;cursor:pointer;
   transition:background .22s;margin:0;
 }
@@ -1417,7 +1424,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .recv-fb-qty{font-size:1.1rem;font-weight:700;min-width:32px;text-align:center;color:var(--charcoal)}
 .recv-fb-ok{margin-left:auto;background:var(--ink);color:#fff;border:none;border-radius:9px;padding:7px 16px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation}
 /* Lista */
-.recv-list-wrap{flex:1;overflow-y:auto;overscroll-behavior:contain}
+.recv-list-wrap{flex:1;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column}
 .recv-list-head{padding:10px 16px 8px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);background:var(--surface);position:sticky;top:0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;z-index:1}
 .recv-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)}
 .recv-item-img{width:42px;height:42px;object-fit:cover;border-radius:8px;flex-shrink:0;background:var(--surface-soft)}
@@ -1426,13 +1433,21 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .recv-item-arrow{font-size:.71rem;color:var(--muted);margin-top:2px}
 .recv-item-arrow strong{color:#10B981}
 .recv-badge{background:#D1FAE5;color:#065F46;border-radius:50px;padding:3px 11px;font-size:.8rem;font-weight:700;white-space:nowrap;flex-shrink:0}
-.recv-undo-btn{background:none;border:1.5px solid var(--border);border-radius:8px;padding:5px 9px;font-size:.72rem;color:var(--muted);cursor:pointer;font-family:inherit;touch-action:manipulation;flex-shrink:0}
+.recv-undo-btn{background:none;border:1.5px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.72rem;color:var(--muted);cursor:pointer;font-family:inherit;touch-action:manipulation;flex-shrink:0;white-space:nowrap}
 .recv-undo-btn:active{background:#FFF5F5;border-color:#FECACA;color:#E85D5D}
-.recv-empty{text-align:center;padding:40px 20px;color:var(--muted-light);font-size:.84rem}
+#recv-list{flex:1;display:flex;flex-direction:column}
+.recv-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;color:var(--muted-light);font-size:.84rem}
 .recv-empty-icon{font-size:2rem;margin-bottom:8px}
+/* Desktop -- el buscador y la lista no deben estirarse a todo el ancho de un
+   monitor grande (se veía vacío/sin terminar); header y footer se quedan a
+   todo lo ancho, como una topbar/action-bar. */
+@media(min-width:900px){
+  .recv-scan-zone,.recv-list-wrap{max-width:680px;margin:0 auto;width:100%}
+  .recv-fb{left:12px;right:12px;max-width:680px;margin:0 auto}
+}
 /* Footer */
 .recv-footer{padding:12px 14px;padding-bottom:max(20px, env(safe-area-inset-bottom));border-top:1px solid var(--border);background:var(--surface);flex-shrink:0;display:flex;gap:8px;align-items:stretch}
-.recv-btn-wa{background:#25D366;color:#fff;border:none;border-radius:12px;padding:0 14px;cursor:pointer;touch-action:manipulation;flex-shrink:0;display:flex;align-items:center;justify-content:center;min-height:48px}
+.recv-btn-wa{background:#25D366;color:#fff;border:none;border-radius:50%;width:48px;height:48px;cursor:pointer;touch-action:manipulation;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .recv-btn-finish{flex:1;background:var(--gold);color:#fff;border:none;border-radius:12px;padding:14px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation;min-height:48px}
 
 /* ══ RECEPCIÓN CON IA ════════════════════════════════════════════════ */
@@ -1531,7 +1546,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .ria-item-field label{font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;display:block;margin-bottom:3px}
 .ria-item-field input{width:100%;padding:8px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;font-family:inherit;outline:none;background:var(--surface)}
 .ria-item-field input:focus{border-color:var(--gold)}
-.ria-item-field.ria-cost input{border-color:var(--tint-amber-border);background:var(--tint-amber-bg)}
+.ria-item-field.ria-cost input{border-color:#FCD34D;background:var(--tint-amber-bg)}
 .ria-item-warn{margin-top:8px;font-size:.72rem;color:#92400E;background:#FEF3C7;border-radius:7px;padding:5px 9px;display:none}
 .ria-kits-section{border-top:1px solid var(--border);flex-shrink:0;max-height:38%;overflow-y:auto;background:var(--surface-soft)}
 .ria-kits-head{font-size:.74rem;font-weight:700;color:#92400E;padding:10px 16px 6px}
@@ -1582,7 +1597,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .cap-btn-skip{flex:1;padding:11px;border-radius:50px;border:1.5px solid var(--border);background:var(--surface);font-size:.82rem;font-weight:600;color:var(--muted);cursor:pointer;transition:.15s;font-family:inherit}
 .cap-btn-skip:hover{border-color:var(--charcoal);color:var(--charcoal)}
 .cap-btn-save{flex:2;padding:11px;border-radius:50px;border:none;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;transition:.15s;font-family:inherit}
-.cap-btn-save:disabled{background:#D1C4B8;cursor:not-allowed}
+.cap-btn-save:disabled{background:var(--border);color:var(--muted);cursor:not-allowed}
 .cap-btn-save:not(:disabled):hover{opacity:.9;transform:translateY(-1px)}
 @keyframes aiPulse{0%{box-shadow:0 0 0 0 rgba(201,164,98,.5)}70%{box-shadow:0 0 0 8px rgba(201,164,98,0)}100%{box-shadow:0 0 0 0 rgba(201,164,98,0)}}
 @media(max-width:480px){

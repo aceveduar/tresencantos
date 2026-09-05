@@ -3,7 +3,19 @@ let _kbComponents = [];
 let _kbImageDataUrl = null;
 let _kbSelectedCatCode = '';
 
-const KIT_DEFAULT_IMG = `data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20fill%3D%22%23F7F2EB%22%2F%3E%3Cg%20transform%3D%22translate(28%2C28)%20scale(1.85)%22%20stroke%3D%22%23D4BC94%22%20stroke-width%3D%222.2%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%228%22%20width%3D%2218%22%20height%3D%224%22%20rx%3D%221%22%2F%3E%3Cpath%20d%3D%22M12%208v13%22%2F%3E%3Cpath%20d%3D%22M19%2012v7a2%202%200%200%201-2%202H7a2%202%200%200%201-2-2v-7%22%2F%3E%3Cpath%20d%3D%22M7.5%208a2.5%202.5%200%200%201%200-5C11%203%2012%208%2012%208s1-5%204.5-5a2.5%202.5%200%200%201%200%205%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E`;
+/* Sin fondo pintado en el SVG a propósito (igual que DEFAULT_IMG en admin.js) --
+   transparente para heredar el fondo ya themado del contenedor. */
+const KIT_DEFAULT_IMG = `data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cg%20transform%3D%22translate(28%2C28)%20scale(1.85)%22%20stroke%3D%22%23D4BC94%22%20stroke-width%3D%222.2%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%228%22%20width%3D%2218%22%20height%3D%224%22%20rx%3D%221%22%2F%3E%3Cpath%20d%3D%22M12%208v13%22%2F%3E%3Cpath%20d%3D%22M19%2012v7a2%202%200%200%201-2%202H7a2%202%200%200%201-2-2v-7%22%2F%3E%3Cpath%20d%3D%22M7.5%208a2.5%202.5%200%200%201%200-5C11%203%2012%208%2012%208s1-5%204.5-5a2.5%202.5%200%200%201%200%205%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E`;
+
+// Google Drive a veces rechaza/tarda en servir varias miniaturas pedidas casi
+// al mismo tiempo (ej. al agregar varios componentes seguidos a un kit) --
+// un solo error no significa que la imagen no exista. Reintenta una vez
+// después de una pequeña pausa antes de rendirse y mostrar el placeholder.
+function _kbImgRetry(img, url) {
+  if (!url || img.dataset.kbRetried) { img.src = DEFAULT_IMG; return; }
+  img.dataset.kbRetried = '1';
+  setTimeout(() => { img.src = url + (url.includes('?') ? '&' : '?') + '_r=' + Date.now(); }, 600);
+}
 
 function _kbAutoSuggestCat() {
   if (_kbSelectedCatCode) return;
@@ -140,7 +152,7 @@ function _kbSearch(q) {
       : `${p.stock} en stock`;
     return `
     <div class="kb-result-item" onclick="_kbAddComponent(${p.id})" style="${isOos ? 'opacity:.75' : ''}">
-      <img src="${_driveSz(p.image, 80)}" style="width:36px;height:36px;object-fit:cover;border-radius:7px;flex-shrink:0;background:var(--surface-soft)" onerror="this.src='${DEFAULT_IMG}'">
+      <img data-src="${_driveSz(p.image, 80)}" style="width:36px;height:36px;object-fit:cover;border-radius:7px;flex-shrink:0;background:var(--surface-soft)" onerror="_kbImgRetry(this,'${_driveSz(p.image, 80) || ''}')">
       <div style="flex:1;min-width:0">
         <div style="font-size:.84rem;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${_esc(p.name)}</div>
         <div style="font-size:.72rem;color:var(--muted);margin-top:1px">${stockTxt}</div>
@@ -149,6 +161,7 @@ function _kbSearch(q) {
     </div>`;
   }).join('') + createBtn;
   res.style.display = 'block';
+  _staggerImgLoad(res);
   _kbToggleBelow(false);
   document.getElementById('kb-search')?.scrollIntoView({ behavior:'smooth', block:'start' });
 }
@@ -285,7 +298,7 @@ function _kbRenderComponents() {
   }
   el.innerHTML = _kbComponents.map(c => { const oos = _kbLiveStock(c.id) === 0; return `
     <div class="kb-comp">
-      <img src="${c.image || DEFAULT_IMG}" style="width:44px;height:44px;object-fit:cover;border-radius:9px;flex-shrink:0;cursor:zoom-in" onerror="this.src='${DEFAULT_IMG}'" onclick="_kitCompPopover(${c.id},event)" title="Ver producto">
+      <img data-src="${_driveSz(c.image, 80) || DEFAULT_IMG}" style="width:44px;height:44px;object-fit:cover;border-radius:9px;flex-shrink:0;cursor:zoom-in;background:var(--surface-soft)" onerror="_kbImgRetry(this,'${_driveSz(c.image, 80) || ''}')" onclick="_kitCompPopover(${c.id},event)" title="Ver producto">
       <div style="flex:1;min-width:0;cursor:pointer" onclick="_kitCompPopover(${c.id},event)" title="Ver producto">
         <div style="font-size:.84rem;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${_esc(c.name)}</div>
         ${oos ? `<div style="font-size:.7rem;color:var(--red);margin-top:2px"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:2px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Agotado — disponibilidad calculada cuando haya stock</div>` : ''}
@@ -297,15 +310,26 @@ function _kbRenderComponents() {
         <button class="kb-qty-btn" onclick="_kbRemoveComponent(${c.id})" style="border-color:#FECACA;background:#FEF2F2;color:var(--red)">✕</button>
       </div>
     </div>`; }).join('');
+  _staggerImgLoad(el);
+}
+
+// Dispara los <img data-src> uno por uno con un pequeño espacio entre cada
+// uno, en vez de todos a la vez -- pedir muchas miniaturas de Drive en el
+// mismo instante hace que Drive rechace/tarde en servir varias de ellas
+// (confirmado: 8 componentes a la vez fallaban varios, 7 cargaban todos).
+function _staggerImgLoad(container) {
+  container.querySelectorAll('img[data-src]').forEach((img, i) => {
+    setTimeout(() => { img.src = img.dataset.src; img.removeAttribute('data-src'); }, i * 150);
+  });
 }
 
 function _kbUpdateStock() {
   const el = document.getElementById('kb-stock-preview');
   if (!_kbComponents.length) { el.textContent = ''; return; }
   const avail = Math.min(..._kbComponents.map(c => Math.floor(_kbLiveStock(c.id) / c.qty)));
-  el.textContent = avail > 0
+  el.innerHTML = avail > 0
     ? `📦 ${avail} kit${avail !== 1 ? 's' : ''} disponibles con el stock actual`
-    : '⚠️ Sin stock suficiente con el inventario actual';
+    : '<svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Sin stock suficiente con el inventario actual';
   el.style.color = avail > 0 ? 'var(--green)' : 'var(--red)';
 }
 

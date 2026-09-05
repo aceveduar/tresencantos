@@ -17,6 +17,16 @@ function closeRecvMode() {
   const total = _recvSession.reduce((s, x) => s + x.qtyAdded, 0);
   const prods = _recvSession.length;
   if (total > 0) {
+    // Cada "+ Recibir" ya se guardó en el momento -- cerrar no deshace nada.
+    // Este mensaje existe para que quede claro antes de salir, con la opción
+    // de cancelar y usar "Deshacer todo" o el deshacer por producto si algo
+    // se recibió por error.
+    const ok = confirm(
+      `Recibiste ${total} unidad${total!==1?'es':''} en ${prods} producto${prods!==1?'s':''} en esta sesión — ya quedaron guardados en el inventario.\n\n` +
+      `Aceptar: cerrar esta pantalla (no se deshace nada).\n` +
+      `Cancelar: seguir aquí para revisar o deshacer algo antes de salir.`
+    );
+    if (!ok) return;
     toast(`✓ ${total} unidad${total!==1?'es':''} recibidas en ${prods} producto${prods!==1?'s':''}`);
     renderTable();
     renderStats();
@@ -30,6 +40,15 @@ function closeRecvMode() {
         items: _recvSession.map(x => ({ id: x.product.id, name: x.product.name, qtyAdded: x.qtyAdded, prevStock: x.prevStock, newStock: x.product.stock })),
         total, count: prods, bulk: true });
   }
+  _recvHideOverlay();
+}
+
+// Solo esconde la pantalla, sin confirmar ni tocar _recvSession -- lo usan
+// closeRecvMode() (tras su propio confirm) y recvCreateProduct() (que
+// necesita cerrar Recepción para abrir el formulario de producto nuevo a
+// medio escaneo, sin que le salga un diálogo de "vas a cerrar/perder todo"
+// que no tiene nada que ver con lo que está haciendo).
+function _recvHideOverlay() {
   document.getElementById('recv-overlay').style.display = 'none';
   document.body.style.overflow = '';
   document.getElementById('recv-search').value = '';
@@ -79,9 +98,7 @@ function recvSearch(q) {
 }
 
 function recvCreateProduct(val) {
-  document.getElementById('recv-search').value = '';
-  document.getElementById('recv-search-results').style.display = 'none';
-  closeRecvMode();
+  _recvHideOverlay();
   openForm();
   // Pre-llenar barcode si es numérico (pistola), o nombre si es texto
   setTimeout(() => {
@@ -233,6 +250,57 @@ async function recvUndo(id) {
   }
 }
 
+// Snapshot de los ids antes de empezar -- recvUndo va recortando _recvSession
+// conforme confirma cada PATCH, así que iterar sobre el arreglo original
+// evita saltarse elementos al desplazarse los índices. Sin confirm() propio
+// -- lo piden por separado recvUndoAll() y recvDiscardAndClose(), cada uno
+// con su propio mensaje.
+async function _recvUndoAllSilent() {
+  const ids = _recvSession.map(x => x.product.id);
+  let failed = 0;
+  for (const id of ids) {
+    const before = _recvSession.length;
+    await recvUndo(id);
+    if (_recvSession.length === before) failed++; // recvUndo no lo quitó -> falló
+  }
+  return failed;
+}
+
+async function recvUndoAll() {
+  if (!_recvSession.length) return;
+  const total = _recvSession.reduce((s, x) => s + x.qtyAdded, 0);
+  const prods = _recvSession.length;
+  const ok = confirm(`¿Deshacer TODO lo recibido en esta sesión?\n\nSe revertirán ${total} unidad${total!==1?'es':''} en ${prods} producto${prods!==1?'s':''}.`);
+  if (!ok) return;
+  const failed = await _recvUndoAllSilent();
+  if (failed) toast(`${failed} producto${failed!==1?'s':''} no se pudo deshacer — revisa la conexión e intenta de nuevo`, 'error');
+  else toast('↩ Toda la sesión fue revertida');
+}
+
+// "✕ Descartar" (antes "Cerrar/Salir") -- a diferencia de "Finalizar
+// recepción", esta es la ruta que NO deja nada guardado: si hay algo
+// recibido en la sesión, primero avisa y solo si se confirma revierte todo
+// (mismo camino que "Deshacer todo") antes de cerrar. La única forma de
+// quedarse con lo recibido es el botón grande de abajo.
+async function recvDiscardAndClose() {
+  const total = _recvSession.reduce((s, x) => s + x.qtyAdded, 0);
+  const prods = _recvSession.length;
+  if (total > 0) {
+    const ok = confirm(
+      `Si cierras aquí se PERDERÁ todo lo recibido en esta sesión (${total} unidad${total!==1?'es':''} en ${prods} producto${prods!==1?'s':''}) y NO se reabastecerá.\n\n` +
+      `Para guardarlo, cancela y usa "Finalizar recepción" en vez de Descartar.\n\n` +
+      `¿Cerrar de todos modos y perder estos cambios?`
+    );
+    if (!ok) return;
+    const failed = await _recvUndoAllSilent();
+    if (failed) {
+      toast(`${failed} producto${failed!==1?'s':''} no se pudo revertir — revisa la conexión antes de salir`, 'error');
+      return; // no cerrar con productos a medio revertir por una falla de red
+    }
+  }
+  _recvHideOverlay();
+}
+
 function _renderRecvList() {
   const el = document.getElementById('recv-list');
   if (!_recvSession.length) {
@@ -248,7 +316,7 @@ function _renderRecvList() {
     <div class="recv-item-arrow">${prevStock} → <strong>+${qtyAdded} = ${p.stock}</strong> uds.</div>
   </div>
   <span class="recv-badge">+${qtyAdded}</span>
-  <button class="recv-undo-btn" onclick="recvUndo(${p.id})" title="Deshacer"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+  <button class="recv-undo-btn" onclick="recvUndo(${p.id})" title="Deshacer este producto"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Deshacer</button>
 </div>`).join('');
 }
 
@@ -256,10 +324,12 @@ function _recvUpdateHeader() {
   const total = _recvSession.reduce((s, x) => s + x.qtyAdded, 0);
   const badge = document.getElementById('recv-count-badge');
   const sessionTotal = document.getElementById('recv-session-total');
+  const undoAllBtn = document.getElementById('recv-undo-all-btn');
   if (badge) badge.textContent = total > 0 ? `· ${total} unidades` : '';
   if (sessionTotal) sessionTotal.textContent = total > 0
     ? `${total} unid. · ${_recvSession.length} producto${_recvSession.length!==1?'s':''}`
     : '';
+  if (undoAllBtn) undoAllBtn.style.display = total > 0 ? 'inline-flex' : 'none';
 }
 
 function recvShareWA() {

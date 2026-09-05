@@ -568,7 +568,19 @@ function _actPopup(idx) {
   const isSale  = item.action === 'venta' || item.action === 'venta_cancelada';
   const isApt   = item.action.startsWith('apartado');
 
-  if (meta.bulk && Array.isArray(meta.names) && meta.names.length) {
+  if (item.action === 'recepcion_mercancia' && Array.isArray(meta.items) && meta.items.length) {
+    // Recepción ya guardaba prevStock/qtyAdded/newStock por producto en el
+    // momento de cerrar la sesión, pero este popup solo mostraba los nombres
+    // (rama genérica de meta.bulk, de abajo) -- sin decir cuánto había ni en
+    // cuánto quedó. El dato ya existía, solo faltaba mostrarlo.
+    bodyHtml = `<div style="font-size:.82rem;color:var(--muted);margin-bottom:8px;font-weight:600">${meta.items.length} producto${meta.items.length !== 1 ? 's' : ''} recibido${meta.items.length !== 1 ? 's' : ''}</div>` +
+      `<div style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">` +
+      meta.items.map(it => `<div style="font-size:.82rem;padding:8px 10px;background:#F7F2EB;border-radius:8px">
+        <div style="font-weight:600;color:#1C1817">${_esc(it.name || '(sin nombre)')}</div>
+        <div style="font-size:.75rem;color:#8A7564;margin-top:2px">${it.prevStock} → <strong style="color:#2D6A4F">+${it.qtyAdded}</strong> = ${it.newStock} uds.</div>
+      </div>`).join('') +
+      `</div>`;
+  } else if (meta.bulk && Array.isArray(meta.names) && meta.names.length) {
     // Acciones masivas (editar/eliminar/publicar/etc. varios a la vez): el
     // resumen visible en el feed solo nombra los primeros 3 para no volverse
     // ilegible -- antes, tocar la tarjeta no mostraba nada más (el resto de
