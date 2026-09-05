@@ -1318,6 +1318,7 @@ function _upAddUser() {
   const role    = roleSel?.value || 'operador';
   if (!email || !email.includes('@')) { toast('Ingresa un correo válido', 'err'); return; }
   if (userPermsMap[email]) { toast('Este usuario ya está en la lista', ''); input.value=''; return; }
+  if (!confirm(`¿Ya creaste la cuenta de ${email} en Supabase (Authentication → Users)?\n\nEsta pantalla solo asigna rol y permisos — si el correo no existe ahí todavía, no podrá iniciar sesión aunque lo agregues aquí.`)) return;
   userPermsMap[email] = { ...UP_ROLE_DEFAULTS[role]||UP_ROLE_DEFAULTS.operador, role };
   input.value = '';
   if (roleSel) roleSel.value = 'operador';
