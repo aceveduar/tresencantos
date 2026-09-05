@@ -15,6 +15,13 @@ button,a,[onclick]{touch-action:manipulation}
 
 /* ── MAIN ── */
 .main{flex:1;max-width:680px;width:100%;margin:0 auto;padding:24px 16px 56px}
+/* Desktop ancho -- Configuración completa se veía como un layout de mobile
+   abandonado en medio de un monitor grande. No a todo lo ancho a propósito
+   (una fila de toggle estirada a 1900px se lee peor, no mejor) -- solo un
+   ancho de lectura cómodo, mismo criterio que dashboards serios. Va DESPUÉS
+   de la regla base -- misma especificidad, así que el orden es lo que
+   decide cuál gana dentro del media query. */
+@media(min-width:1025px){.main{max-width:960px}}
 
 /* ── SECTION ── */
 .section-label{font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-light);padding:0 2px;margin:28px 0 10px}
@@ -177,6 +184,13 @@ button,a,[onclick]{touch-action:manipulation}
 
 /* ── Vista de matriz (permisos × personas) ── */
 .up-mx-scroll{overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:10px;max-height:70vh}
+/* Desktop -- deja que la tabla fluya con el scroll normal de la página en
+   vez de tener su propio scroll interno (dos scrollbars distintas se
+   sentía raro, y en desktop ya hay espacio de sobra para verla completa).
+   Sin max-height, la caja crece a su alto natural -- overflow:auto sigue
+   ahí por el scroll horizontal (columnas de personas), pero nunca se activa
+   verticalmente porque ya no hay una altura máxima que el contenido supere. */
+@media(min-width:1025px){.up-mx-scroll{max-height:none}}
 .up-mx-table{border-collapse:collapse;font-size:.78rem;white-space:nowrap;width:100%}
 .up-mx-corner{position:sticky;left:0;top:0;z-index:4;background:#fff;min-width:160px}
 .up-mx-person{position:sticky;top:0;z-index:3;background:#fff;padding:8px 10px;text-align:center;border-bottom:1px solid var(--border);border-left:1px solid var(--border-light);display:table-cell}
