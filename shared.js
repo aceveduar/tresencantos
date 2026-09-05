@@ -613,6 +613,8 @@ function _themeToggleRowHtml() {
 const UP_PERMS = [
   {key:'canAddProduct',     label:'Agregar productos',   group:'Inventario', desc:'Crear productos nuevos en el catálogo'},
   {key:'canEditProduct',    label:'Editar y precios',    group:'Inventario', desc:'Editar nombre, descripción, categoría y precio de un producto existente'},
+  {key:'canUseReceptionIA', label:'Recepción con IA',  group:'Inventario', desc:'Subir una factura/foto de proveedor para crear productos y actualizar costo/precio en bulto'},
+  {key:'canReceiveStock',   label:'Recibir mercancía (escaneo)', group:'Inventario', desc:'Escanear o buscar productos para sumar el stock recibido'},
   {key:'canDeleteProduct',  label:'Eliminar productos',  group:'Inventario', desc:'Borrar un producto por completo del catálogo'},
   {key:'canPublishProduct', label:'Publicar en web',     group:'Inventario', desc:'Mostrar u ocultar un producto en la Tienda pública'},
   {key:'canBulkDelete',     label:'Borrado masivo',      group:'Inventario', desc:'Eliminar varios productos seleccionados a la vez'},
@@ -626,8 +628,6 @@ const UP_PERMS = [
   {key:'canViewActivity',   label:'Ver Actividad',       group:'Módulos', desc:'Entrar al módulo de Actividad (auditoría)'},
   {key:'canManageSettings', label:'Configuración',       group:'Módulos', desc:'Acceso completo a Configuración, incluyendo Usuarios y Permisos'},
   {key:'canManageCatalogSettings', label:'Configuración (solo Catálogo)', group:'Módulos', desc:'Entra a Configuración pero solo ve la sección Catálogo'},
-  {key:'canUseReceptionIA', label:'Recepción con IA',  group:'Inventario', desc:'Subir una factura/foto de proveedor para crear productos y actualizar costo/precio en bulto'},
-  {key:'canReceiveStock',   label:'Recibir mercancía (escaneo)', group:'Inventario', desc:'Escanear o buscar productos para sumar el stock recibido'},
   {key:'canImportExport',   label:'Importar/Exportar catálogo', group:'Módulos', desc:'Entra a Configuración pero solo ve Datos (JSON, nombres de usuario, revisión de duplicados) — sin Usuarios y Permisos, Notificaciones ni Integraciones'},
 ];
 const UP_ROLE_DEFAULTS = {

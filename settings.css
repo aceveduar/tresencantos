@@ -149,11 +149,13 @@ button,a,[onclick]{touch-action:manipulation}
 .up-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;color:#fff;flex-shrink:0}
 .up-meta{flex:1;min-width:0}
 .up-name{font-size:.85rem;font-weight:600;display:flex;align-items:center;gap:4px;min-width:0;overflow:hidden}
-.up-name-inp{flex:1;min-width:60px;background:none;border:none;outline:none;font-size:inherit;font-weight:inherit;color:inherit;font-family:inherit;cursor:text;padding:2px 4px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.up-name-inp:focus{background:var(--gold-light);outline:2px solid var(--gold);cursor:auto}
+.up-name-inp{flex:0 1 auto;min-width:24px;max-width:150px;background:none;border:none;border-bottom:1px dashed var(--muted-light);outline:none;font-size:inherit;font-weight:inherit;color:inherit;font-family:inherit;cursor:text;padding:2px 4px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.up-name-inp:focus{background:var(--gold-light);outline:2px solid var(--gold);border-bottom-color:transparent;cursor:auto}
+.up-name-edit-ico{background:none;border:none;padding:3px;margin:0;color:var(--muted-light);cursor:pointer;display:inline-flex;align-items:center;flex-shrink:0;border-radius:4px}
+.up-name-edit-ico:hover{color:var(--gold-dark);background:var(--gold-light)}
 .up-email{font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .up-me{display:inline-block;padding:1px 7px;background:var(--gold-light);border:1px solid var(--gold);border-radius:50px;font-size:.62rem;font-weight:700;color:var(--gold-dark)}
-.up-override-badge{display:inline-block;padding:1px 7px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:50px;font-size:.62rem;font-weight:700;color:#92400E;flex-shrink:0}
+.up-override-badge{display:inline-block;padding:1px 7px;background:none;border:1px solid var(--border);border-radius:50px;font-size:.62rem;font-weight:600;color:var(--muted);flex-shrink:0}
 .up-role-sel{padding:6px 10px;border:1.5px solid var(--border);border-radius:50px;font-size:.75rem;font-weight:600;background:#fff;color:var(--charcoal);outline:none;cursor:pointer;flex-shrink:0}
 .up-role-sel:focus{border-color:var(--gold)}
 .up-role-sel:disabled{opacity:.45;cursor:not-allowed}
@@ -176,6 +178,13 @@ button,a,[onclick]{touch-action:manipulation}
 .up-perm-overridden .up-perm-label{color:#92400E;font-weight:600}
 .up-perm-diff-tag{font-size:.6rem;font-weight:700;color:#92400E;background:#FDE68A;border:none;border-radius:50px;padding:2px 7px;flex-shrink:0;margin-left:auto;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:2px;transition:.15s}
 .up-perm-diff-tag:hover{background:#FCD34D}
+
+/* ── Copiar permisos de otra persona ── */
+.up-copy-row{display:flex;gap:8px;margin-top:14px;align-items:stretch}
+.up-copy-sel{flex:1;min-width:0;padding:9px 12px;border:1.5px solid var(--border);border-radius:50px;font-size:.78rem;font-family:inherit;background:#fff;color:var(--charcoal);cursor:pointer;outline:none}
+.up-copy-sel:focus{border-color:var(--gold)}
+.up-copy-btn{background:none;border:1.5px solid var(--border);border-radius:50px;padding:8px 16px;font-size:.75rem;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;transition:.15s;flex-shrink:0}
+.up-copy-btn:hover{border-color:var(--gold);color:var(--gold-dark)}
 
 /* ── Selector Lista / Matriz ── */
 .up-view-switch{display:flex;gap:2px;background:var(--cream);border-radius:50px;padding:3px;flex-shrink:0}

@@ -1130,10 +1130,12 @@ function _renderUserCard(email) {
         <div class="up-avatar" style="background:${color}">${escH(initial)}</div>
         <div class="up-meta">
           <div class="up-name">
-            <input class="up-name-inp" value="${escH(name)}" data-orig="${escH(name)}"
+            <input class="up-name-inp" style="width:${Math.max(name.length,3)+1.5}ch" value="${escH(name)}" data-orig="${escH(name)}" title="Tocar para editar el nombre"
               onclick="event.stopPropagation()"
+              oninput="this.style.width=(Math.max(this.value.length,3)+1.5)+'ch'"
               onblur="_upSaveName(this,'${escH(email).replace(/'/g,"\\'")}')"
-              onkeydown="if(event.key==='Enter')this.blur();else if(event.key==='Escape'){this.value=this.dataset.orig;this.blur()}">
+              onkeydown="if(event.key==='Enter')this.blur();else if(event.key==='Escape'){this.value=this.dataset.orig;this.style.width=(Math.max(this.dataset.orig.length,3)+1.5)+'ch';this.blur()}">
+            <button type="button" class="up-name-edit-ico" title="Editar nombre" onclick="event.stopPropagation();const i=this.closest('.up-name').querySelector('.up-name-inp');i.focus();i.select()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
             ${isMe?` <span class="up-me">tú</span>`:''}
             ${overrideBadge}
           </div>
@@ -1173,7 +1175,44 @@ function _renderPermsBody(email) {
       <div class="up-perm-grid">${rows}</div>
     </div>`;
   }).join('');
-  return intro + groupsHtml + `<button class="up-reset-btn" onclick="_upResetPerms('${escH(email).replace(/'/g,"\\'")}')" ${!overrideCount ? 'disabled' : ''}><svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Restablecer al rol</button>`;
+  const otherEmails = [...new Set([...Object.keys(nameMap), ...Object.keys(userPermsMap)])]
+    .filter(e => e !== email).sort();
+  const copyRow = otherEmails.length ? `<div class="up-copy-row">
+      <select class="up-copy-sel">
+        <option value="">Copiar permisos de…</option>
+        ${otherEmails.map(e => `<option value="${escH(e)}">${escH(nameMap[e] || e.split('@')[0])}</option>`).join('')}
+      </select>
+      <button type="button" class="up-copy-btn" onclick="_upCopyFrom('${escH(email).replace(/'/g,"\\'")}', this.previousElementSibling.value)">Copiar</button>
+    </div>` : '';
+  return intro + groupsHtml + copyRow + `<button class="up-reset-btn" onclick="_upResetPerms('${escH(email).replace(/'/g,"\\'")}')" ${!overrideCount ? 'disabled' : ''}><svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Restablecer al rol</button>`;
+}
+
+// Copia TODOS los valores de permisos (no el rol) de sourceEmail a email --
+// para el patrón real de Eduardo de "le doy a X algo, luego decido que Y
+// también debería tenerlo" sin repetir el trabajo permiso por permiso.
+function _upCopyFrom(email, sourceEmail) {
+  if (!sourceEmail) { toast('Elige de quién copiar', 'error'); return; }
+  const sourcePerms = userPermsMap[sourceEmail];
+  if (!sourcePerms) { toast('Esa persona no tiene permisos guardados todavía', 'error'); return; }
+  const targetName = nameMap[email] || email.split('@')[0];
+  const sourceName = nameMap[sourceEmail] || sourceEmail.split('@')[0];
+  if (!confirm(`¿Copiar todos los permisos de ${sourceName} a ${targetName}?\n\nEsto reemplaza los permisos actuales de ${targetName} (su rol se mantiene igual: ${_UP_ROLE_LABELS[userPermsMap[email]?.role||'operador']}).`)) return;
+
+  const role = userPermsMap[email]?.role || 'operador';
+  const sourceDefs = UP_ROLE_DEFAULTS[sourcePerms.role || 'operador'] || UP_ROLE_DEFAULTS.operador;
+  const newPerms = { role };
+  UP_PERMS.forEach(p => { newPerms[p.key] = p.key in sourcePerms ? sourcePerms[p.key] : sourceDefs[p.key]; });
+  userPermsMap[email] = newPerms;
+
+  const card = document.querySelector(`.up-card[data-email="${CSS.escape(email)}"]`);
+  if (card) {
+    const permsDiv = card.querySelector('.up-perms');
+    if (permsDiv) permsDiv.innerHTML = _renderPermsBody(email);
+  }
+  _upRefreshBadge(email);
+  _upSavePerms();
+  _renderUpMatrix();
+  toast(`Permisos de ${sourceName} copiados a ${targetName} ✓`, 'ok');
 }
 
 function _upToggleCard(el) {
@@ -1308,6 +1347,9 @@ function _upRemoveUser(email) {
 }
 
 function _upResetPerms(email) {
+  const name = nameMap[email] || email.split('@')[0];
+  const n = _upOverrideCount(email);
+  if (!confirm(`¿Restablecer TODOS los permisos de ${name} al default de su rol?\n\nSe perderán ${n} personalización${n!==1?'es':''} — esto no se puede deshacer.`)) return;
   const role = userPermsMap[email]?.role || 'operador';
   userPermsMap[email] = { ...UP_ROLE_DEFAULTS[role], role };
   const card = document.querySelector(`.up-card[data-email="${CSS.escape(email)}"]`);
