@@ -93,7 +93,7 @@ function _startMultiDrag(e) {
   document.getElementById('products-card-grid')?.classList.add('multi-dragging');
   const ghost = document.createElement('div');
   ghost.textContent = `${selectedIds.size} productos`;
-  ghost.style.cssText = 'position:fixed;left:-9999px;top:0;background:var(--charcoal);color:#fff;padding:7px 16px;border-radius:50px;font-weight:700;font-size:.82rem;white-space:nowrap';
+  ghost.style.cssText = 'position:fixed;left:-9999px;top:0;background:var(--ink);color:#fff;padding:7px 16px;border-radius:50px;font-weight:700;font-size:.82rem;white-space:nowrap';
   document.body.appendChild(ghost);
   e.dataTransfer.setDragImage(ghost, 70, 18);
   requestAnimationFrame(() => ghost.remove());
@@ -776,6 +776,18 @@ function showAuthScreen() {
 }
 
 /* ── AUTH ── */
+function _toggleLoginPwd() {
+  const input = document.getElementById('pwd-input');
+  const icon = document.getElementById('pwd-eye-icon');
+  const btn = document.getElementById('pwd-toggle-btn');
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
+  icon.innerHTML = show
+    ? '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.8 21.8 0 0 1 5.06-6.06M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a21.8 21.8 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/>';
+}
+
 async function doLoginEmail() {
   const email    = document.getElementById('email-input').value.trim();
   const password = document.getElementById('pwd-input').value;

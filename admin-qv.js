@@ -131,7 +131,7 @@ async function _qvEditName(e, id) {
 
   const btnCancel = document.createElement('button');
   btnCancel.type = 'button'; btnCancel.textContent = '✕';
-  btnCancel.style.cssText = 'padding:9px 14px;background:#fff;color:var(--muted);border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;touch-action:manipulation;font-family:inherit';
+  btnCancel.style.cssText = 'padding:9px 14px;background:var(--surface);color:var(--muted);border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;touch-action:manipulation;font-family:inherit';
 
   row.append(btnSave, btnCancel);
   wrap.append(ta, row);
@@ -181,7 +181,7 @@ async function _qvEditDesc(e, id) {
 
   const btnCancel = document.createElement('button');
   btnCancel.type = 'button'; btnCancel.textContent = '✕';
-  btnCancel.style.cssText = 'padding:10px 14px;background:#fff;color:var(--muted);border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;cursor:pointer;touch-action:manipulation;font-family:inherit';
+  btnCancel.style.cssText = 'padding:10px 14px;background:var(--surface);color:var(--muted);border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;cursor:pointer;touch-action:manipulation;font-family:inherit';
 
   row.append(btnSave, btnCancel);
   wrap.append(ta, row);
@@ -544,12 +544,12 @@ function _renderQV(p) {
           // nombre -- reemplaza el "Falta: nombre truncado" que antes vivía
           // en el chip resumen (inútil en mobile, sin hover para el title).
           const compOos = !comp || comp.outOfStock || comp.stock === 0;
-          const baseBg = compOos ? '#FEF2F2' : '';
+          const baseBg = compOos ? 'var(--tint-red-bg)' : '';
           const rowStyle = `display:flex;align-items:center;gap:8px;padding:5px 6px;margin:0 -6px;border-radius:6px;background:${baseBg};${compOos ? '' : 'border-bottom:1px solid var(--border-light);'}`;
           const clickable = comp ? `onclick="_kitCompPopup(${comp.id},this)" style="${rowStyle}cursor:pointer;transition:background .15s" onmouseenter="this.style.background='var(--gold-light)'" onmouseleave="this.style.background='${baseBg}'"` : `style="${rowStyle}"`;
           const oosTag = compOos ? `<span style="font-size:.66rem;font-weight:700;color:#991B1B;background:#FEE2E2;padding:1px 7px;border-radius:50px;flex-shrink:0">Sin stock</span>` : '';
           return `<div ${clickable}>
-            <img src="${_driveSz(comp?.image || DEFAULT_IMG, 80)}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0;background:#F0EBE3" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
+            <img src="${_driveSz(comp?.image || DEFAULT_IMG, 80)}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0;background:var(--surface-soft)" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
             <span style="flex:1;font-size:.82rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${_esc(comp?.name || item.name)}</span>
             ${oosTag}
             <span style="font-size:.75rem;color:var(--muted);font-weight:600;flex-shrink:0">×${item.qty}</span>
@@ -570,8 +570,8 @@ function _renderQV(p) {
     const aptList   = _apartadosDetail[p.id];
     const kitParent = !aptList?.length ? _findKitApartadoParent(p.id) : null;
     const renderList = (list, title) => `
-        <div class="qv-flag-active" style="border-color:#B45309;background:#FFFBEB">
-          <span class="qv-flag-title" style="color:#B45309">${title}</span>
+        <div class="qv-flag-active" style="border-color:var(--tint-amber-border);background:var(--tint-amber-bg)">
+          <span class="qv-flag-title" style="color:var(--tint-amber-strong)">${title}</span>
           ${list.map(a => {
             const d = a.createdAt ? new Date(a.createdAt) : null;
             const dateStr = d ? d.toLocaleDateString('es-MX', { day:'numeric', month:'short' }) : '';
@@ -589,8 +589,8 @@ function _renderQV(p) {
       aptZone.innerHTML = renderList(_apartadosDetail[kitParent.id], `${QV_ICO_BOOKMARK(13)}Reservado como parte del kit "${_esc(kitParent.name)}"`);
     } else if (p.isApartado) {
       aptZone.innerHTML = `
-        <div class="qv-flag-active" style="border-color:#B91C1C;background:#FEF2F2">
-          <span class="qv-flag-title" style="color:#B91C1C">${QV_ICO_WARN(13)}Marcado como apartado, pero sin apartado activo</span>
+        <div class="qv-flag-active" style="border-color:var(--tint-red-border);background:var(--tint-red-bg)">
+          <span class="qv-flag-title" style="color:var(--tint-red-strong)">${QV_ICO_WARN(13)}Marcado como apartado, pero sin apartado activo</span>
           <p class="qv-flag-note-text">No encontramos ningún apartado pendiente en Caja que lo respalde — probablemente quedó la marca pegada de un apartado ya cancelado. Verifica en Caja → Apartados antes de quitarlo si tienes dudas.</p>
           ${can.editProduct ? `<button class="btn btn-sm" style="margin-top:8px;background:#B91C1C;color:#fff;border:none" onclick="_clearOrphanApartado(${p.id})">Quitar marca de apartado</button>` : ''}
         </div>`;
@@ -733,7 +733,7 @@ async function openProductTimeline(productId, productName) {
   overlay.onclick = e => { if (e.target === overlay) closeProductTimeline(); };
   overlay.innerHTML = `
     <style>@keyframes ap-in{from{opacity:0}to{opacity:1}}</style>
-    <div onclick="event.stopPropagation()" style="background:#fff;border-radius:18px;padding:18px;max-width:340px;width:90%;max-height:78vh;display:flex;flex-direction:column;box-shadow:0 12px 48px rgba(0,0,0,.28)">
+    <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;padding:18px;max-width:340px;width:90%;max-height:78vh;display:flex;flex-direction:column;box-shadow:0 12px 48px rgba(0,0,0,.28)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
         <h3 style="font-size:1rem;margin:0">${QV_ICO_CLOCK(15)} Historial</h3>
         <button onclick="closeProductTimeline()" style="background:none;border:none;font-size:1.1rem;color:var(--muted);cursor:pointer;padding:4px" aria-label="Cerrar">✕</button>

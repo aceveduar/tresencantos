@@ -13,6 +13,13 @@
   --r:10px;
   --shadow-sm:0 1px 4px rgba(28,24,23,.07);
   --shadow-lg:0 8px 40px rgba(28,24,23,.18);
+  /* Tokens de tema, compartidos por los 5 módulos admin — ver admin.css para
+     el bloque [data-theme="dark"] vigente hoy solo en Inventario. --ink/
+     --ink-soft son fijos a propósito (topbar, badges: chrome ya oscuro que
+     no debe invertirse). Un módulo que sume su propio modo oscuro solo
+     necesita definir su [data-theme="dark"] — estos defaults ya lo cubren. */
+  --ink:#1C1817;--ink-soft:#2E2825;
+  --surface:#fff;--surface-soft:#F8F4EF;
 }
 
 /* ── Reset mínimo ──────────────────────────────────────────────────── */
@@ -24,7 +31,7 @@ a{text-decoration:none}
 /* ── Dropdown de usuario ───────────────────────────────────────────── */
 #ud-pop{
   position:fixed;z-index:99999;
-  background:#fff;border:1px solid var(--border);border-radius:14px;
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
   padding:14px;min-width:210px;
   box-shadow:0 8px 32px rgba(28,24,23,.18);
   animation:ud-in .15s ease;
@@ -38,6 +45,18 @@ a{text-decoration:none}
 .ud-link{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border-radius:8px;color:var(--charcoal);font-size:.82rem;font-weight:600;text-decoration:none;transition:.15s;margin-bottom:2px}
 .ud-link:hover{background:var(--cream)}
 .ud-link svg{flex-shrink:0;color:var(--muted)}
+
+/* ── Toggle de modo oscuro (dentro del dropdown de cuenta) ── */
+.ud-theme-row{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:8px 10px;border-radius:8px;color:var(--charcoal);font-size:.82rem;font-weight:600;margin-bottom:2px;cursor:pointer}
+.ud-theme-row:hover{background:var(--cream)}
+.ud-theme-row-label{display:flex;align-items:center;gap:8px}
+.ud-theme-row-label svg{flex-shrink:0;color:var(--muted)}
+.ud-theme-switch{position:relative;display:inline-block;width:36px;height:21px;flex-shrink:0}
+.ud-theme-switch input{opacity:0;width:0;height:0;position:absolute}
+.ud-theme-switch-slider{position:absolute;inset:0;background:var(--border);border-radius:50px;transition:.2s;pointer-events:none}
+.ud-theme-switch-slider::before{content:'';position:absolute;width:15px;height:15px;left:3px;top:3px;background:var(--surface);border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.ud-theme-switch input:checked + .ud-theme-switch-slider{background:var(--gold-dark)}
+.ud-theme-switch input:checked + .ud-theme-switch-slider::before{transform:translateX(15px)}
 .ud-logout{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:none;border-radius:8px;background:transparent;color:var(--red);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s}
 .ud-logout:hover{background:#FFF5F5}
 .ud-logout svg{flex-shrink:0}
@@ -67,7 +86,7 @@ a{text-decoration:none}
 .topbar{
   position:relative;display:flex;align-items:center;justify-content:space-between;
   height:56px;padding:0 16px;
-  background:var(--charcoal);color:#fff;
+  background:var(--ink);color:#fff;
   flex-shrink:0;z-index:50;
 }
 /* Safe area para dispositivos con notch */
@@ -173,11 +192,11 @@ a{text-decoration:none}
   position:absolute;top:-2px;right:-2px;min-width:15px;height:15px;padding:0 3px;
   display:flex;align-items:center;justify-content:center;
   background:var(--red);color:#fff;font-size:.6rem;font-weight:700;
-  border-radius:50px;border:1.5px solid var(--charcoal);line-height:1;
+  border-radius:50px;border:1.5px solid var(--ink);line-height:1;
 }
 #notif-pop{
   position:fixed;z-index:99999;
-  background:#fff;border:1px solid var(--border);border-radius:14px;
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
   padding:10px;width:300px;max-width:calc(100vw - 16px);max-height:70vh;overflow-y:auto;
   box-shadow:0 8px 32px rgba(28,24,23,.18);
   animation:ud-in .15s ease;

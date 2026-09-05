@@ -31,7 +31,7 @@ function renderStats() {
   if (_showingArchived) {
     document.getElementById('stats').innerHTML =
       `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <button class="stat-chip stat-chip-filter sc-active" onclick="toggleArchivedView()" style="background:var(--charcoal);border-color:var(--charcoal);color:#fff;gap:6px">
+        <button class="stat-chip stat-chip-filter sc-active" onclick="toggleArchivedView()" style="background:var(--ink);border-color:var(--ink);color:#fff;gap:6px">
           <span class="sc-icon">${_arIco('<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>')}</span><span class="sc-lbl">Volver al inventario</span>
         </button>
         <span style="font-size:.82rem;color:var(--muted)">${nArchivados} producto${nArchivados !== 1 ? 's' : ''} archivado${nArchivados !== 1 ? 's' : ''}</span>

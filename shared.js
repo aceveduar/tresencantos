@@ -1,6 +1,45 @@
 /* shared.js — Dropdown de usuario para todos los módulos admin
    Requiere: shared.css, elemento #user-avatar, función doLogout() en el módulo */
 
+/* ── MODO OSCURO — infraestructura compartida (2026-09-04) ──
+   `data-theme="dark"` en <html> activa el bloque [data-theme="dark"] que
+   cada módulo defina en su propia hoja de estilos. Hoy solo admin.css lo
+   define — Inventario es el primer módulo con paleta oscura real. El
+   resto de módulos ya recibe estos tokens con sus valores claros de
+   siempre (ver :root en shared.css), así que activar el toggle ahí no
+   rompe nada, solo no cambia de color todavía. Cuando otro módulo sume su
+   propio bloque [data-theme="dark"], el toggle ya aparece solo — no hace
+   falta tocar shared.js — con solo agregar data-theme-ready="1" en su
+   <html> (ver admin.html).
+   La aplicación temprana (antes del primer paint, para evitar flash)
+   vive en un <script> inline en el <head> de cada módulo — esto de aquí
+   es una red de seguridad por si un módulo futuro olvida ese inline. */
+try {
+  if (localStorage.getItem('te_theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+} catch (e) {}
+
+function _themeSupported() { return document.documentElement.hasAttribute('data-theme-ready'); }
+
+function _toggleTheme(isDark) {
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  try { localStorage.setItem('te_theme', isDark ? 'dark' : 'light'); } catch (e) {}
+}
+
+function _themeToggleRowHtml() {
+  if (!_themeSupported()) return '';
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  return `<label class="ud-theme-row">
+      <span class="ud-theme-row-label">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        Modo oscuro
+      </span>
+      <span class="ud-theme-switch">
+        <input type="checkbox" ${isDark ? 'checked' : ''} onchange="_toggleTheme(this.checked)">
+        <span class="ud-theme-switch-slider"></span>
+      </span>
+    </label>`;
+}
+
 (function () {
   function _initUserDropdown() {
     const avatar = document.getElementById('user-avatar');
@@ -67,6 +106,7 @@
         <span class="ud-role">${roleLabel}</span>
       </div>
       <div class="ud-divider"></div>
+      ${_themeToggleRowHtml()}
       ${configLink}
       <button class="ud-logout" onclick="document.getElementById('ud-pop')?.remove();doLogout()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>

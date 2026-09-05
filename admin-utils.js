@@ -303,7 +303,7 @@ function _qvShowFlagForm(id) {
   // Mostrar el formulario en el área de acciones (siempre visible, sin scroll)
   const actions = document.getElementById('qv-actions');
   if (!actions) return;
-  actions.style.cssText = 'display:block;padding:10px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--border);background:#fff';
+  actions.style.cssText = 'display:block;padding:10px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--border);background:var(--surface)';
   actions.innerHTML = `
     <div style="font-size:.72rem;font-weight:600;color:var(--charcoal);margin-bottom:5px">Nota para recordar qué revisar:</div>
     <textarea class="qv-flag-textarea" id="qv-flag-ta" rows="2"

@@ -187,7 +187,7 @@ function _bcpFilter(q) {
       <p style="color:var(--muted);font-size:.85rem;text-align:center;padding:16px 0 10px">Sin resultados para "<strong>${_esc(label)}</strong>"</p>
       <div style="display:flex;flex-direction:column;gap:10px;padding:0 8px 8px">
         <button onclick="_bcpCreateAndSelect(null)"
-          style="background:var(--charcoal);color:#fff;border:none;border-radius:10px;padding:11px 20px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">
+          style="background:var(--ink);color:#fff;border:none;border-radius:10px;padding:11px 20px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">
           + Crear "${_esc(label)}" como categoría
         </button>
         <button onclick="_bcpToggleParentPicker(this)"

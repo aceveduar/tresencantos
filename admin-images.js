@@ -203,7 +203,7 @@ async function migrateBase64ToDrive() {
   // Crear overlay de progreso
   const overlay = document.createElement('div');
   overlay.id = 'migrate-progress';
-  overlay.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--charcoal);color:#fff;padding:14px 20px;border-radius:12px;font-size:.85rem;z-index:9999;min-width:260px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.4)';
+  overlay.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:14px 20px;border-radius:12px;font-size:.85rem;z-index:9999;min-width:260px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.4)';
   document.body.appendChild(overlay);
 
   const setProgress = (cur, total, name) => {
