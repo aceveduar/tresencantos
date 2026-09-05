@@ -230,9 +230,18 @@ function _themeToggleRowHtml() {
   }
 
   function _isRead(id) { return !!localStorage.getItem(`te_notice_${id}`); }
+  // "Descartado" es independiente de "leído" -- abrir el panel ya marca todo
+  // como leído de golpe (para el badge), pero eso no debe hacer que la fila
+  // desaparezca de la lista sola; solo el ✕ (o "Descartar todo") la quita.
+  function _isDismissed(id) { return !!localStorage.getItem(`te_notice_dismissed_${id}`); }
+  function _visibleNotices() { return _activeNotices().filter(n => !_isDismissed(n.id)); }
+  function _markDismissed(id) {
+    localStorage.setItem(`te_notice_dismissed_${id}`, '1');
+    localStorage.setItem(`te_notice_${id}`, '1');
+  }
 
   function _updateBadge(bell) {
-    const count = _activeNotices().filter(n => !_isRead(n.id)).length;
+    const count = _visibleNotices().filter(n => !_isRead(n.id)).length;
     let badge = bell.querySelector('.notif-badge');
     if (count > 0) {
       if (!badge) {
@@ -250,32 +259,72 @@ function _themeToggleRowHtml() {
     const existing = document.getElementById('notif-pop');
     if (existing) { existing.remove(); return; }
 
-    const notices = _activeNotices().slice().reverse(); // más reciente primero
+    const notices = _visibleNotices().slice().reverse(); // más reciente primero
     const unreadIds = new Set(notices.filter(n => !_isRead(n.id)).map(n => n.id));
 
     const pop = document.createElement('div');
     pop.id = 'notif-pop';
+
+    const dismissBtnHtml = id => `<button type="button" class="notif-item-dismiss" data-id="${id}" aria-label="Descartar aviso">✕</button>`;
+    const renderRows = list => list.map(n => n.title
+        // Avisos largos: título siempre visible, el detalle se desglosa al
+        // tocar -- evita un bloque de texto largo por default en una lista
+        // que se supone hojear rápido. Es <div>, no <button>, porque ya
+        // lleva un botón real (✕) adentro y un botón no puede anidar otro.
+        ? `<div class="notif-item notif-item-expandable${unreadIds.has(n.id) ? ' unread' : ''}" data-notice-id="${n.id}">
+            <span class="notif-item-icon">${_notifIconSvg(n.icon)}</span>
+            <span class="notif-item-text notif-item-toggle-zone">
+              <span class="notif-item-title">${n.title}<svg class="notif-item-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+              <span class="notif-item-body">${n.text}</span>
+            </span>
+            ${dismissBtnHtml(n.id)}
+          </div>`
+        : `<div class="notif-item${unreadIds.has(n.id) ? ' unread' : ''}" data-notice-id="${n.id}">
+            <span class="notif-item-icon">${_notifIconSvg(n.icon)}</span>
+            <span class="notif-item-text">${n.text}</span>
+            ${dismissBtnHtml(n.id)}
+          </div>`
+      ).join('');
+
     pop.innerHTML = `
-      <div class="notif-pop-title">Notificaciones</div>
-      ${notices.length
-        ? notices.map(n => n.title
-            // Avisos largos: título siempre visible, el detalle se desglosa
-            // al tocar -- evita un bloque de texto largo por default en una
-            // lista que se supone hojear rápido.
-            ? `<button type="button" class="notif-item notif-item-expandable${unreadIds.has(n.id) ? ' unread' : ''}" onclick="this.classList.toggle('open')">
-                <span class="notif-item-icon">${_notifIconSvg(n.icon)}</span>
-                <span class="notif-item-text">
-                  <span class="notif-item-title">${n.title}<svg class="notif-item-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
-                  <span class="notif-item-body">${n.text}</span>
-                </span>
-              </button>`
-            : `<div class="notif-item${unreadIds.has(n.id) ? ' unread' : ''}">
-                <span class="notif-item-icon">${_notifIconSvg(n.icon)}</span>
-                <span class="notif-item-text">${n.text}</span>
-              </div>`
-          ).join('')
-        : '<div class="notif-empty">Sin notificaciones por ahora.</div>'}`;
+      <div class="notif-pop-head">
+        <span class="notif-pop-title">Notificaciones</span>
+        ${notices.length ? '<button type="button" id="notif-dismiss-all">Descartar todo</button>' : ''}
+      </div>
+      <div id="notif-pop-list">${notices.length ? renderRows(notices) : '<div class="notif-empty">Sin notificaciones por ahora.</div>'}</div>`;
     document.body.appendChild(pop);
+
+    // Un solo listener delegado cubre las 3 interacciones nuevas: descartar
+    // un aviso, descartar todos, y el acordeón (abrir uno cierra los demás,
+    // para que la lista no se vuelva un scroll interminable de avisos
+    // abiertos a la vez).
+    pop.addEventListener('click', e => {
+      const dismissBtn = e.target.closest('.notif-item-dismiss');
+      if (dismissBtn) {
+        e.stopPropagation();
+        const id = dismissBtn.dataset.id;
+        _markDismissed(id);
+        dismissBtn.closest('[data-notice-id]')?.remove();
+        _updateBadge(bell);
+        if (!pop.querySelector('[data-notice-id]')) {
+          document.getElementById('notif-pop-list').innerHTML = '<div class="notif-empty">Sin notificaciones por ahora.</div>';
+          document.getElementById('notif-dismiss-all')?.remove();
+        }
+        return;
+      }
+      if (e.target.closest('#notif-dismiss-all')) {
+        _visibleNotices().forEach(n => _markDismissed(n.id));
+        _updateBadge(bell);
+        pop.remove();
+        return;
+      }
+      const item = e.target.closest('.notif-item-expandable');
+      if (item) {
+        const wasOpen = item.classList.contains('open');
+        pop.querySelectorAll('.notif-item-expandable.open').forEach(el => el.classList.remove('open'));
+        if (!wasOpen) item.classList.add('open');
+      }
+    });
 
     const r = bell.getBoundingClientRect();
     const pw = 300;

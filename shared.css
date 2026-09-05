@@ -201,7 +201,10 @@ a{text-decoration:none}
   box-shadow:0 8px 32px rgba(28,24,23,.18);
   animation:ud-in .15s ease;
 }
-.notif-pop-title{font-weight:700;font-size:.82rem;color:var(--charcoal);padding:4px 6px 8px}
+.notif-pop-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 6px 8px}
+.notif-pop-title{font-weight:700;font-size:.82rem;color:var(--charcoal)}
+#notif-dismiss-all{background:none;border:none;font-family:inherit;font-size:.72rem;font-weight:600;color:var(--gold-dark);cursor:pointer;padding:2px 4px;flex-shrink:0;border-radius:6px}
+#notif-dismiss-all:hover{background:var(--cream)}
 .notif-item{
   display:flex;align-items:flex-start;gap:10px;
   font-size:.8rem;line-height:1.45;color:var(--charcoal);
@@ -218,11 +221,19 @@ a{text-decoration:none}
 .notif-item.unread .notif-item-icon{background:var(--gold);color:#fff}
 .notif-item.unread .notif-item-text{font-weight:600}
 .notif-item-text{padding-top:3px;flex:1;min-width:0}
+.notif-item-dismiss{
+  flex-shrink:0;width:22px;height:22px;margin-top:1px;border-radius:50%;
+  border:none;background:none;color:var(--muted-light);font-size:.7rem;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .15s,color .15s;
+}
+.notif-item-dismiss:hover{background:var(--border);color:var(--red)}
 .notif-empty{font-size:.8rem;color:var(--muted);padding:14px 8px;text-align:center}
 
-/* Aviso largo: título siempre visible, cuerpo se desglosa al tocar */
-.notif-item-expandable{width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--border);font-family:inherit;cursor:pointer;margin:0}
-.notif-item-expandable:last-child{border-bottom:none}
+/* Aviso largo: título siempre visible, cuerpo se desglosa al tocar (acordeón
+   -- abrir uno cierra los demás, ver el listener delegado en shared.js) */
+.notif-item-expandable{cursor:pointer}
+.notif-item-toggle-zone{cursor:pointer}
 .notif-item-title{display:flex;align-items:center;gap:6px;font-weight:700}
 .notif-item.unread .notif-item-title{color:var(--charcoal)}
 .notif-item-chevron{flex-shrink:0;color:var(--muted);transition:transform .2s}
