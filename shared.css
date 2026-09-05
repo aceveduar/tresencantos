@@ -217,5 +217,15 @@ a{text-decoration:none}
 }
 .notif-item.unread .notif-item-icon{background:var(--gold);color:#fff}
 .notif-item.unread .notif-item-text{font-weight:600}
-.notif-item-text{padding-top:3px}
+.notif-item-text{padding-top:3px;flex:1;min-width:0}
 .notif-empty{font-size:.8rem;color:var(--muted);padding:14px 8px;text-align:center}
+
+/* Aviso largo: título siempre visible, cuerpo se desglosa al tocar */
+.notif-item-expandable{width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--border);font-family:inherit;cursor:pointer;margin:0}
+.notif-item-expandable:last-child{border-bottom:none}
+.notif-item-title{display:flex;align-items:center;gap:6px;font-weight:700}
+.notif-item.unread .notif-item-title{color:var(--charcoal)}
+.notif-item-chevron{flex-shrink:0;color:var(--muted);transition:transform .2s}
+.notif-item-expandable.open .notif-item-chevron{transform:rotate(180deg)}
+.notif-item-body{display:block;max-height:0;overflow:hidden;opacity:0;font-weight:400!important;color:var(--muted);transition:max-height .25s ease,opacity .2s,margin-top .25s ease}
+.notif-item-expandable.open .notif-item-body{max-height:220px;opacity:1;margin-top:5px}

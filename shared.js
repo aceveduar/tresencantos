@@ -196,6 +196,10 @@ function _themeToggleRowHtml() {
     { id: 'resend-receipt-2026-09b', icon: 'send', text: 'En Apartados, la flecha junto a cada pago reenvía ese comprobante por WhatsApp.', until: '2026-09-22' },
     { id: 'edit-apt-phone-2026-09', icon: 'phone', text: 'Ya puedes agregar o corregir el teléfono del cliente al editar un apartado.', until: '2026-09-22' },
     { id: 'edit-apt-fix-2026-09', icon: 'wrench', text: 'Se arregló que "Editar apartado" no guardaba al agregar un producto.', until: '2026-09-25' },
+    { id: 'turno-caja-2026-09', icon: 'wallet',
+      title: 'Abrir turno de caja ya es obligatorio',
+      text: 'Antes de vender, Caja te va a pedir abrir tu turno: declara cuánto efectivo tienes al empezar (puede ser $0). Al terminar tu día, ciérralo desde "🧾 Corte" contando el efectivo real que tienes en la caja. Si se te olvida cerrarlo, el sistema lo cierra solo la próxima vez que entres, pero sin tu conteo — mejor ciérralo tú misma cada día para que el corte salga exacto.',
+      until: '2026-09-26' },
   ];
 
   const _NOTIF_ICONS = {
@@ -205,6 +209,7 @@ function _themeToggleRowHtml() {
     send:     '<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
     lock:     '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
     flag:     '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>',
+    wallet:   '<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>',
     info:     '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>'
   };
   function _notifIconSvg(name) {
@@ -253,10 +258,22 @@ function _themeToggleRowHtml() {
     pop.innerHTML = `
       <div class="notif-pop-title">Notificaciones</div>
       ${notices.length
-        ? notices.map(n => `<div class="notif-item${unreadIds.has(n.id) ? ' unread' : ''}">
-            <span class="notif-item-icon">${_notifIconSvg(n.icon)}</span>
-            <span class="notif-item-text">${n.text}</span>
-          </div>`).join('')
+        ? notices.map(n => n.title
+            // Avisos largos: título siempre visible, el detalle se desglosa
+            // al tocar -- evita un bloque de texto largo por default en una
+            // lista que se supone hojear rápido.
+            ? `<button type="button" class="notif-item notif-item-expandable${unreadIds.has(n.id) ? ' unread' : ''}" onclick="this.classList.toggle('open')">
+                <span class="notif-item-icon">${_notifIconSvg(n.icon)}</span>
+                <span class="notif-item-text">
+                  <span class="notif-item-title">${n.title}<svg class="notif-item-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+                  <span class="notif-item-body">${n.text}</span>
+                </span>
+              </button>`
+            : `<div class="notif-item${unreadIds.has(n.id) ? ' unread' : ''}">
+                <span class="notif-item-icon">${_notifIconSvg(n.icon)}</span>
+                <span class="notif-item-text">${n.text}</span>
+              </div>`
+          ).join('')
         : '<div class="notif-empty">Sin notificaciones por ahora.</div>'}`;
     document.body.appendChild(pop);
 
