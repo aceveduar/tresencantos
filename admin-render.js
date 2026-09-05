@@ -9,7 +9,6 @@ const AR_ICO_BOOKMARK = (px=13) => _arIco('<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 
 const AR_ICO_EYEOFF   = (px=13) => _arIco('<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/>', px);
 const AR_ICO_GLOBE    = (px=13) => _arIco('<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>', px);
 const AR_ICO_CLOCK    = (px=13) => _arIco('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', px);
-const AR_ICO_FILE     = (px=13) => _arIco('<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>', px);
 const AR_ICO_FLAG     = (px=13) => _arIco('<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>', px);
 const AR_ICO_BARCODE  = (px=13) => _arIco('<line x1="4" y1="6" x2="4" y2="18"/><line x1="8" y1="6" x2="8" y2="18"/><line x1="11" y1="6" x2="11" y2="18"/><line x1="14" y1="6" x2="14" y2="18"/><line x1="18" y1="6" x2="18" y2="18"/><line x1="20" y1="6" x2="20" y2="18"/>', px);
 const AR_ICO_WARN     = (px=13) => _arIco('<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>', px);
@@ -43,11 +42,7 @@ function renderStats() {
     return;
   }
 
-  // Helper: define borrador igual que getFilteredProducts para que contador = lo que se ve al filtrar
-  const _ib = p => !Array.isArray(p.kitItems) && !p.isPublished && (!p.price || p.price === 0);
-
-  const nBorradores = products.filter(p => !p.isArchived && _ib(p)).length;
-  const visible     = p => !p.isArchived && !_ib(p) && !Array.isArray(p.kitItems); // no archivado, no borrador, no kit
+  const visible     = p => !p.isArchived && !Array.isArray(p.kitItems); // no archivado, no kit
   const total       = products.filter(visible).length;
   const conStock    = products.filter(p => visible(p) && p.stock > 0 && !p.outOfStock).length;
   const sinStock    = products.filter(p => visible(p) && (p.stock === 0 || p.outOfStock)).length;
@@ -57,11 +52,9 @@ function renderStats() {
   const sinCodigo   = products.filter(p => visible(p) && !p.barcode).length;
   const sinCateg    = products.filter(p => visible(p) && p.category === 'por_revisar').length;
   const porCaducar  = products.filter(p => visible(p) && ['soon','expired'].includes(_expiryStatus(p)?.state)).length;
+  const sinPrecio   = products.filter(p => visible(p) && (!p.price || p.price === 0)).length;
   const nApartado   = products.filter(p => !p.isArchived && (p.isApartado || _apartadosMap[p.id])).length;
-  const nFlag = _flagged.filter(f => {
-    const p = products.find(x => x.id === f.id);
-    return p && !_ib(p);
-  }).length;
+  const nFlag = _flagged.filter(f => products.find(x => x.id === f.id)).length;
   const anyFilter   = _statFilter || _showOnlyFlagged;
 
   const chip = (key, icon, count, label, activeColor) => {
@@ -95,26 +88,14 @@ function renderStats() {
     (nApartado > 0 ? chip('apartado', AR_ICO_BOOKMARK(), nApartado, 'Apartado', AR_C_AMBER) : '') +
     (sinPublicar  > 0 ? chip('sin-publicar', AR_ICO_EYEOFF(), sinPublicar, 'Sin publicar', AR_C_AMBER) : '') +
     (porCaducar   > 0 ? chip('por-caducar', AR_ICO_CLOCK(),  porCaducar,  'Por caducar', AR_C_RED) : '') +
-    (nBorradores > 0 ? chip('borradores', AR_ICO_FILE(), nBorradores, 'Borradores', AR_C_NEUTRAL) : '') +
     (nFlag        > 0 ? chip('revisar',     AR_ICO_FLAG(),     nFlag,       'Por revisar',  AR_C_RED) : '') +
     (sinCodigo    > 0 ? chip('sin-codigo',  AR_ICO_BARCODE(),   sinCodigo,   'Sin código',   AR_C_NEUTRAL) : '') +
     (sinCateg     > 0 ? chip('sin-categ',   AR_ICO_WARN(), sinCateg,    'Sin categoría', AR_C_AMBER) : '') +
+    (sinPrecio > 0 && can.publishProduct ? chip('sin-precio', AR_ICO_DOLLAR(), sinPrecio, 'Sin precio', AR_C_AMBER) : '') +
     (() => {
       if (ROLE !== 'superadmin') return '';
-      const nBase64 = products.filter(p => !p.isArchived && !_ib(p) && !Array.isArray(p.kitItems) && p.image?.startsWith('data:') && p.image !== DEFAULT_IMG).length;
+      const nBase64 = products.filter(p => !p.isArchived && !Array.isArray(p.kitItems) && p.image?.startsWith('data:') && p.image !== DEFAULT_IMG).length;
       return nBase64 > 0 ? chip('imagen-base64', AR_ICO_ARCHIVE(), nBase64, 'Imagen base64', AR_C_NEUTRAL) : '';
-    })() +
-    (() => {
-      if (!can.publishProduct) return '';
-      const sinPrecio = products.filter(p => !_ib(p) && (!p.price || p.price === 0));
-      if (!sinPrecio.length) return '';
-      const dismissed = sessionStorage.getItem('te_no_price_dismissed') === 'true';
-      if (!dismissed) return '';
-      return `<button class="stat-chip stat-chip-filter" onclick="showNoPriceAlert()" style="" title="Ver productos sin precio">
-        <span class="sc-icon">${AR_ICO_DOLLAR()}</span>
-        <span class="sc-num">${sinPrecio.length}</span>
-        <span class="sc-lbl">Sin precio</span>
-      </button>`;
     })() +
     (nArchivados > 0 && can.deleteProduct ? `<button class="stat-chip" onclick="toggleArchivedView()" title="Ver productos archivados" style="border-color:var(--muted-light);color:var(--muted)">
       <span class="sc-icon">${AR_ICO_ARCHIVE()}</span>
@@ -122,22 +103,6 @@ function renderStats() {
       <span class="sc-lbl">Archivados</span>
     </button>` : '');
 
-  // Alerta de productos sin precio — solo visible para superadmin
-  if (can.publishProduct) {
-    const sinPrecio = products.filter(p => !p.isArchived && !_ib(p) && (!p.price || p.price === 0));
-    const alertEl   = document.getElementById('no-price-alert');
-    const alertTxt  = document.getElementById('no-price-alert-text');
-    if (alertEl && alertTxt) {
-      if (sinPrecio.length > 0) {
-        alertTxt.textContent = `${sinPrecio.length} producto${sinPrecio.length > 1 ? 's' : ''} sin precio — pendiente de revisión`;
-        const dismissed = sessionStorage.getItem('te_no_price_dismissed') === 'true';
-        alertEl.style.display = dismissed ? 'none' : 'flex';
-      } else {
-        alertEl.style.display = 'none';
-        sessionStorage.removeItem('te_no_price_dismissed');
-      }
-    }
-  }
   _statsScroll();
 }
 
@@ -160,34 +125,6 @@ function _tbActionsScroll() {
   if (!el || !wrap) return;
   const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
   wrap.classList.toggle('at-end', atEnd);
-}
-
-function dismissNoPriceAlert() {
-  sessionStorage.setItem('te_no_price_dismissed', 'true');
-  document.getElementById('no-price-alert').style.display = 'none';
-  renderStats(); // actualiza chips para mostrar el chip 💲
-}
-
-function showNoPriceAlert() {
-  sessionStorage.removeItem('te_no_price_dismissed');
-  const alertEl = document.getElementById('no-price-alert');
-  if (alertEl) {
-    alertEl.style.display = 'flex';
-    alertEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-  renderStats(); // quita el chip 💲
-}
-
-function filterNoPriceProducts() {
-  const catFilter   = document.getElementById('cat-filter');
-  const searchInput = document.getElementById('search-input');
-  if (catFilter)   catFilter.value   = 'all';
-  if (searchInput) searchInput.value = '';
-  if (_showOnlyFlagged) { _showOnlyFlagged = false; localStorage.setItem('te_flag_filter','0'); }
-  _statFilter = 'sin-precio';
-  _adminPage  = 1;
-  renderStats();
-  renderTable();
 }
 
 // Refrescar ingresos/ventas del día cuando el usuario vuelve a esta pestaña

@@ -122,7 +122,7 @@ let _adminPage = 1;
 const ADMIN_PAGE_SIZE = 50;
 let _adminLoadObserver = null;
 let _realtimeChannel = null;
-let _statFilter = null; // 'con-stock' | 'sin-stock' | 'sin-publicar' | 'sin-codigo' | 'ultima-pieza' | 'apartado' | 'kits' | 'borradores'
+let _statFilter = null; // 'con-stock' | 'sin-stock' | 'sin-publicar' | 'sin-codigo' | 'ultima-pieza' | 'apartado' | 'kits'
 let _showingArchived = false;
 
 /* Categorías — cargadas dinámicamente desde config.categories */
@@ -498,13 +498,10 @@ function getFilteredProducts() {
       (_statFilter === 'imagen-base64' && p.image?.startsWith('data:') && p.image !== DEFAULT_IMG) ||
       (_statFilter === 'kits'         && Array.isArray(p.kitItems)) ||
       (_statFilter === 'por-caducar'  && ['soon','expired'].includes(_expiryStatus(p)?.state)) ||
-      (_statFilter === 'apartado'     && (p.isApartado || _apartadosMap[p.id])) ||
-      (_statFilter === 'borradores');
+      (_statFilter === 'apartado'     && (p.isApartado || _apartadosMap[p.id]));
     const isKit      = Array.isArray(p.kitItems);
-    const isBorrador = !isKit && !p.isPublished && (!p.price || p.price === 0);
-    const matchKit      = _statFilter === 'kits'      ? isKit      : !isKit;
-    const matchBorrador = _statFilter === 'borradores' ? isBorrador : !isBorrador;
-    return matchCat && matchQ && matchFlag && matchStat && matchKit && matchBorrador && matchCreator;
+    const matchKit   = _statFilter === 'kits' ? isKit : !isKit;
+    return matchCat && matchQ && matchFlag && matchStat && matchKit && matchCreator;
   });
 
   switch (currentSort) {
