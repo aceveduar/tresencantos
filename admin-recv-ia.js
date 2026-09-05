@@ -91,6 +91,7 @@ function _riaSetStatus(msg) {
 
 /* ── Overlay ── */
 function openRecvIaMode() {
+  if (!can.useReceptionIA) { toast('Sin permiso para usar Recepción con IA', 'error'); return; }
   document.getElementById('recv-ia-overlay').style.display = 'flex';
   document.body.style.overflow = 'hidden';
   if (_riaTryRestoreDraft()) {

@@ -1020,9 +1020,92 @@ function renderUsersPerms() {
   const allEmails = [...new Set([...Object.keys(nameMap), ...Object.keys(userPermsMap)])].sort();
   if (!allEmails.length) {
     list.innerHTML = '<div class="up-loading">Sin usuarios registrados</div>';
-    return;
+  } else {
+    list.innerHTML = allEmails.map(email => _renderUserCard(email)).join('');
   }
-  list.innerHTML = allEmails.map(email => _renderUserCard(email)).join('');
+  _renderUpMatrix();
+}
+
+/* ── VISTA DE MATRIZ (permisos × personas) ──
+   Complementa la lista (que edita a una persona a la vez): aquí se ve todo
+   el panorama de un vistazo -- quién tiene qué, y quién ya no coincide con
+   el default de su rol -- sin tener que abrir tarjeta por tarjeta. Los
+   puntos son interactivos: togglear aquí escribe en el mismo userPermsMap
+   de siempre, así que la lista queda sincronizada al volver a ella. */
+function _upSetView(mode) {
+  const listBtn   = document.getElementById('up-view-btn-list');
+  const matrixBtn = document.getElementById('up-view-btn-matrix');
+  const listCard  = document.getElementById('up-list-card');
+  const matrixCard= document.getElementById('up-matrix-card');
+  const isMatrix  = mode === 'matrix';
+  listBtn?.classList.toggle('up-view-active', !isMatrix);
+  matrixBtn?.classList.toggle('up-view-active', isMatrix);
+  if (listCard) listCard.style.display = isMatrix ? 'none' : '';
+  if (matrixCard) matrixCard.style.display = isMatrix ? '' : 'none';
+  if (isMatrix) _renderUpMatrix();
+}
+
+function _renderUpMatrix() {
+  const wrap = document.getElementById('up-matrix');
+  if (!wrap) return;
+  const allEmails = [...new Set([...Object.keys(nameMap), ...Object.keys(userPermsMap)])].sort();
+  if (!allEmails.length) { wrap.innerHTML = '<div class="up-loading">Sin usuarios registrados</div>'; return; }
+
+  const term = (document.getElementById('up-matrix-search')?.value || '').toLowerCase().trim();
+  const groups = [...new Set(UP_PERMS.map(p => p.group))];
+
+  const personHeadHtml = allEmails.map(email => {
+    const name = nameMap[email] || email.split('@')[0];
+    const role = userPermsMap[email]?.role || 'operador';
+    return `<th class="up-mx-person" title="${escH(email)}">
+      <span class="up-mx-avatar" style="background:${_upAvatarColor(email)}">${escH(name.slice(0,1).toUpperCase())}</span>
+      <span class="up-mx-name">${escH(name)}</span>
+      <span class="up-mx-role">${escH(_UP_ROLE_LABELS[role]||role)}</span>
+    </th>`;
+  }).join('');
+
+  const bodyHtml = groups.map(group => {
+    const items = UP_PERMS.filter(p => p.group === group && (!term || p.label.toLowerCase().includes(term)));
+    if (!items.length) return '';
+    const rows = items.map(p => {
+      const cells = allEmails.map(email => {
+        const perms = userPermsMap[email] || {};
+        const role  = perms.role || 'operador';
+        const defs  = UP_ROLE_DEFAULTS[role] || UP_ROLE_DEFAULTS.operador;
+        const val   = p.key in perms ? perms[p.key] : defs[p.key];
+        const isOverride = val !== defs[p.key];
+        const name  = nameMap[email] || email.split('@')[0];
+        return `<td class="up-mx-cell">
+          <button type="button" class="up-mx-dot${val ? ' up-mx-on' : ''}${isOverride ? ' up-mx-override' : ''}"
+            onclick="_upMatrixToggle('${escH(email).replace(/'/g,"\\'")}','${p.key}')"
+            title="${escH(p.label)} — ${escH(name)}${isOverride ? ' (≠ rol)' : ''}"></button>
+        </td>`;
+      }).join('');
+      return `<tr><th class="up-mx-perm-name" title="${escH(p.desc||'')}">${escH(p.label)}</th>${cells}</tr>`;
+    }).join('');
+    return `<tr class="up-mx-group-row"><td colspan="${allEmails.length+1}">${escH(group)}</td></tr>${rows}`;
+  }).join('');
+
+  wrap.innerHTML = `<div class="up-mx-scroll"><table class="up-mx-table">
+    <thead><tr><th class="up-mx-corner"></th>${personHeadHtml}</tr></thead>
+    <tbody>${bodyHtml || `<tr><td colspan="${allEmails.length+1}" class="up-loading">Sin resultados para "${escH(term)}"</td></tr>`}</tbody>
+  </table></div>`;
+}
+
+function _upMatrixToggle(email, key) {
+  const role = userPermsMap[email]?.role || 'operador';
+  const defs = UP_ROLE_DEFAULTS[role] || UP_ROLE_DEFAULTS.operador;
+  if (!userPermsMap[email]) userPermsMap[email] = { ...defs, role };
+  const perms = userPermsMap[email];
+  const current = key in perms ? perms[key] : defs[key];
+  perms[key] = !current;
+  _renderUpMatrix();
+  _upRefreshBadge(email);
+  // Si la tarjeta de esa persona está abierta en la vista de lista, se
+  // refresca también para que no se vea desactualizada al cambiar de vista.
+  const card = document.querySelector(`.up-card[data-email="${CSS.escape(email)}"] .up-perms`);
+  if (card && card.style.display !== 'none') card.innerHTML = _renderPermsBody(email);
+  _upSavePerms();
 }
 
 function _renderUserCard(email) {
@@ -1082,7 +1165,7 @@ function _renderPermsBody(email) {
       return `<label class="up-perm-row${isOverride ? ' up-perm-overridden' : ''}" title="${escH(p.desc||'')}">
         <input type="checkbox" class="up-perm-cb"${val?' checked':''} onchange="_upPermChange(this,'${p.key}')">
         <span class="up-perm-label">${escH(p.label)}</span>
-        ${isOverride ? '<span class="up-perm-diff-tag">≠ rol</span>' : ''}
+        ${isOverride ? `<button type="button" class="up-perm-diff-tag" title="Regresar solo este permiso al default de ${escH(_UP_ROLE_LABELS[role]||role)}" onclick="event.preventDefault();event.stopPropagation();_upRevertOne('${escH(email).replace(/'/g,"\\'")}','${p.key}')">≠ rol <svg width="9" height="9" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>` : ''}
       </label>`;
     }).join('');
     return `<div class="up-perm-group">
@@ -1130,6 +1213,7 @@ function _upRoleChange(sel) {
   if (permsDiv) permsDiv.innerHTML = _renderPermsBody(email);
   _upRefreshBadge(email);
   _upSavePerms();
+  _renderUpMatrix();
 }
 
 // Refresca solo el badge "N personalizados" de una tarjeta sin
@@ -1175,6 +1259,7 @@ function _upPermChange(cb, key) {
   _upRefreshBadge(email);
 
   _upSavePerms();
+  _renderUpMatrix();
 }
 
 function _upAddUser() {
@@ -1232,7 +1317,27 @@ function _upResetPerms(email) {
   }
   _upRefreshBadge(email);
   _upSavePerms();
+  _renderUpMatrix();
   toast('Permisos restablecidos al rol ✓', 'ok');
+}
+
+// Revierte SOLO un permiso puntual al default de su rol -- a diferencia de
+// _upResetPerms() (todo o nada), para cuando cambiaste de opinión sobre una
+// sola cosa y no quieres perder el resto de tus ajustes para esa persona.
+function _upRevertOne(email, key) {
+  const perms = userPermsMap[email] || {};
+  const role  = perms.role || 'operador';
+  const defs  = UP_ROLE_DEFAULTS[role] || UP_ROLE_DEFAULTS.operador;
+  if (!userPermsMap[email]) userPermsMap[email] = { ...defs, role };
+  userPermsMap[email][key] = defs[key];
+  const card = document.querySelector(`.up-card[data-email="${CSS.escape(email)}"]`);
+  if (card) {
+    const permsDiv = card.querySelector('.up-perms');
+    if (permsDiv) permsDiv.innerHTML = _renderPermsBody(email);
+  }
+  _upRefreshBadge(email);
+  _upSavePerms();
+  _renderUpMatrix();
 }
 
 let _upSaveTimer = null;
@@ -1275,14 +1380,25 @@ document.addEventListener('keydown', e => {
 document.addEventListener('DOMContentLoaded', async () => {
   const permissionState = await _loadMyPerms({ requireFresh: true, withMeta: true });
   const permissions = permissionState?.permissions;
-  const isFullSettings = permissions?.canManageSettings === true;
-  const isCatalogOnly  = !isFullSettings && permissions?.canManageCatalogSettings === true;
-  if (permissionState?.source !== 'server' || (!isFullSettings && !isCatalogOnly)) {
+  const isFullSettings   = permissions?.canManageSettings === true;
+  const isCatalogOnly    = !isFullSettings && permissions?.canManageCatalogSettings === true;
+  const isImportExportOnly = !isFullSettings && !isCatalogOnly && permissions?.canImportExport === true;
+  if (permissionState?.source !== 'server' || (!isFullSettings && !isCatalogOnly && !isImportExportOnly)) {
     window.location.replace('admin.html');
     return;
   }
   if (isCatalogOnly) {
     ['section-users', 'section-notifications', 'section-data', 'section-integrations'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+  }
+  if (isImportExportOnly) {
+    // Igual que "solo Catálogo" pero para Datos: entra a Configuración y ve
+    // únicamente esa sección (JSON, nombres de usuario, revisión de
+    // duplicados) -- "Limpiar historial" sigue oculto por su propio check
+    // ROLE==='superadmin' más abajo, sin importar este permiso.
+    ['section-users', 'section-catalog', 'section-notifications', 'section-integrations'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });

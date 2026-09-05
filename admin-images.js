@@ -122,13 +122,11 @@ async function loadAppConfig() {
       }
       if (row.id === 'show_recv') {
         _showRecv = row.value === 'true';
-        const btn = document.getElementById('btn-recv-mode');
-        if (btn) _showRecv ? btn.style.removeProperty('display') : btn.style.setProperty('display', 'none');
+        _applyRoleUI(); // combina el toggle global con el permiso individual (canReceiveStock)
       }
       if (row.id === 'show_recv_ia') {
         _showRecvIa = row.value === 'true';
-        const btn = document.getElementById('btn-recv-ia-mode');
-        if (btn) _showRecvIa ? btn.style.removeProperty('display') : btn.style.setProperty('display', 'none');
+        _applyRoleUI(); // combina el toggle global con el permiso individual (canUseReceptionIA)
       }
       if (row.id === 'user_names') {
         try { _userNames = JSON.parse(row.value || '{}'); } catch { _userNames = {}; }

@@ -46,8 +46,14 @@
 
   <!-- ─── USUARIOS Y PERMISOS ─────────────────────────────── -->
   <div id="section-users">
-  <div class="section-label">Usuarios y permisos</div>
-  <div class="settings-card" style="padding:0;overflow:hidden">
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+    <span>Usuarios y permisos</span>
+    <div class="up-view-switch">
+      <button type="button" class="up-view-btn up-view-active" id="up-view-btn-list" onclick="_upSetView('list')">☰ Lista</button>
+      <button type="button" class="up-view-btn" id="up-view-btn-matrix" onclick="_upSetView('matrix')">▦ Matriz</button>
+    </div>
+  </div>
+  <div class="settings-card" style="padding:0;overflow:hidden" id="up-list-card">
     <div id="up-list"><div class="up-loading">Cargando usuarios…</div></div>
     <div class="up-add-row">
       <input type="email" class="field-input" id="up-new-email" placeholder="correo@ejemplo.com" style="flex:1;min-width:0" onkeydown="if(event.key==='Enter')_upAddUser()">
@@ -60,10 +66,16 @@
       <button class="btn btn-outline btn-sm" onclick="_upAddUser()">+ Agregar</button>
     </div>
   </div>
+  <div class="settings-card" style="padding:12px;display:none" id="up-matrix-card">
+    <input type="text" class="field-input" id="up-matrix-search" placeholder="🔍 Buscar un permiso…" oninput="_renderUpMatrix()" style="margin-bottom:10px">
+    <div id="up-matrix"></div>
+    <p class="field-hint" style="padding:8px 2px 0">Toca un punto para activar/desactivar ese permiso para esa persona. El punto dorado con borde indica que ya no coincide con el default de su rol.</p>
+  </div>
   <p class="field-hint" style="padding:4px 2px 0">Los permisos se aplican al siguiente inicio de sesión de cada usuario.</p>
   </div>
 
   <!-- ─── CATÁLOGO ─────────────────────────────────────────── -->
+  <div id="section-catalog">
   <div class="section-label">Catálogo</div>
 
   <div class="settings-card">
@@ -166,6 +178,7 @@
         <button class="btn btn-outline btn-sm" onclick="openRevista()">Editar</button>
       </div>
     </div>
+  </div>
   </div>
 
   <!-- ─── NOTIFICACIONES ───────────────────────────────────────── -->

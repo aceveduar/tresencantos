@@ -43,6 +43,8 @@ let can = {
   addProduct:      true,
   viewReports:     ROLE === 'superadmin' || ROLE === 'duena',
   viewActivity:    ROLE === 'superadmin' || ROLE === 'duena',
+  useReceptionIA:  _isSuperOrEncargado || _isDuena,
+  receiveStock:    true,
 };
 
 function _applyUserPermsToAdmin(up) {
@@ -52,6 +54,8 @@ function _applyUserPermsToAdmin(up) {
   if ('canManageSettings' in up) can.manageSettings  = up.canManageSettings;
   if ('canPublishProduct' in up) can.publishProduct  = up.canPublishProduct;
   if ('canEditProduct'    in up) can.editProduct     = up.canEditProduct;
+  if ('canUseReceptionIA' in up) can.useReceptionIA = up.canUseReceptionIA;
+  if ('canReceiveStock'   in up) can.receiveStock   = up.canReceiveStock;
   if ('canAddProduct'     in up) can.addProduct      = up.canAddProduct;
   if ('canViewReports'    in up) can.viewReports     = up.canViewReports;
   if ('canViewActivity'   in up) can.viewActivity    = up.canViewActivity;
@@ -940,6 +944,15 @@ function _applyRoleUI() {
   if (can.addProduct) {
     document.querySelectorAll('.capture-mode-btn').forEach(b => b.style.removeProperty('display'));
   }
+  // "Recibir" / "Importar" (Recepción con IA) -- visibles solo si el toggle
+  // global del negocio está activo (_showRecv/_showRecvIa, Configuración →
+  // Catálogo) Y la persona tiene el permiso individual. Se reevalúa aquí
+  // porque _applyRoleUI() ya se re-llama tanto al cargar config como al
+  // cargar permisos, sin importar cuál de los dos termine primero.
+  const recvBtn = document.getElementById('btn-recv-mode');
+  if (recvBtn) recvBtn.style.display = (_showRecv && can.receiveStock) ? '' : 'none';
+  const recvIaBtn = document.getElementById('btn-recv-ia-mode');
+  if (recvIaBtn) recvIaBtn.style.display = (_showRecvIa && can.useReceptionIA) ? '' : 'none';
   _tbActionsScroll();
 }
 

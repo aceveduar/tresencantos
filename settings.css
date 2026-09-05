@@ -167,7 +167,30 @@ button,a,[onclick]{touch-action:manipulation}
 .up-perm-label{font-size:.8rem;color:var(--charcoal);line-height:1.2}
 .up-perm-overridden{background:#FEF3C7}
 .up-perm-overridden .up-perm-label{color:#92400E;font-weight:600}
-.up-perm-diff-tag{font-size:.6rem;font-weight:700;color:#92400E;background:#FDE68A;border-radius:50px;padding:1px 6px;flex-shrink:0;margin-left:auto}
+.up-perm-diff-tag{font-size:.6rem;font-weight:700;color:#92400E;background:#FDE68A;border:none;border-radius:50px;padding:2px 7px;flex-shrink:0;margin-left:auto;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:2px;transition:.15s}
+.up-perm-diff-tag:hover{background:#FCD34D}
+
+/* ── Selector Lista / Matriz ── */
+.up-view-switch{display:flex;gap:2px;background:var(--cream);border-radius:50px;padding:3px;flex-shrink:0}
+.up-view-btn{background:none;border:none;font-family:inherit;font-size:.72rem;font-weight:600;color:var(--muted);padding:6px 12px;border-radius:50px;cursor:pointer;transition:.15s;white-space:nowrap}
+.up-view-btn.up-view-active{background:#fff;color:var(--charcoal);box-shadow:0 1px 4px rgba(28,24,23,.1)}
+
+/* ── Vista de matriz (permisos × personas) ── */
+.up-mx-scroll{overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:10px;max-height:70vh}
+.up-mx-table{border-collapse:collapse;font-size:.78rem;white-space:nowrap;width:100%}
+.up-mx-corner{position:sticky;left:0;top:0;z-index:4;background:#fff;min-width:160px}
+.up-mx-person{position:sticky;top:0;z-index:3;background:#fff;padding:8px 10px;text-align:center;border-bottom:1px solid var(--border);border-left:1px solid var(--border-light);display:table-cell}
+.up-mx-avatar{display:block;width:24px;height:24px;border-radius:50%;line-height:24px;text-align:center;font-weight:700;font-size:.7rem;color:#fff;margin:0 auto 3px}
+.up-mx-name{display:block;font-size:.72rem;font-weight:600;color:var(--charcoal)}
+.up-mx-role{display:block;font-size:.6rem;color:var(--muted)}
+.up-mx-perm-name{position:sticky;left:0;z-index:2;background:#fff;text-align:left;padding:7px 10px;font-size:.76rem;font-weight:500;color:var(--charcoal);border-bottom:1px solid var(--border-light);min-width:160px;white-space:normal}
+.up-mx-group-row td{position:sticky;left:0;z-index:1;background:var(--cream);font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-light);padding:6px 10px;border-bottom:1px solid var(--border)}
+.up-mx-cell{text-align:center;padding:6px;border-bottom:1px solid var(--border-light);border-left:1px solid var(--border-light)}
+.up-mx-dot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border);background:#fff;cursor:pointer;padding:0;transition:.15s;touch-action:manipulation}
+.up-mx-dot.up-mx-on{background:var(--muted-light);border-color:var(--muted-light)}
+.up-mx-dot.up-mx-override{border-color:#FDE68A;border-width:2px}
+.up-mx-dot.up-mx-on.up-mx-override{background:var(--gold);border-color:#92400E}
+.up-mx-dot:hover{transform:scale(1.2)}
 .up-reset-btn{margin-top:14px;background:none;border:1.5px solid var(--border);border-radius:50px;padding:8px 16px;font-size:.75rem;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;transition:.15s;display:block;width:100%;text-align:center}
 .up-reset-btn:hover:not(:disabled){border-color:var(--gold);color:var(--gold-dark)}
 .up-reset-btn:disabled{cursor:not-allowed;opacity:.4}
@@ -183,6 +206,10 @@ button,a,[onclick]{touch-action:manipulation}
   .up-add-row{flex-wrap:wrap}
   #up-new-email{width:100%;flex:none}
   #up-new-role{flex:1}
+  .up-mx-dot{width:26px;height:26px}
+  .up-mx-cell{padding:5px}
+  .up-mx-person{padding:6px 8px}
+  .up-mx-corner,.up-mx-perm-name{min-width:130px}
 }
 
 @media(max-width:640px){

@@ -4,6 +4,7 @@ let _recvFbTimer = null;
 let _recvFbPendingId = null;
 
 function openRecvMode() {
+  if (!can.receiveStock) { toast('Sin permiso para recibir mercancía', 'error'); return; }
   _recvSession = [];
   _renderRecvList();
   _recvUpdateHeader();
