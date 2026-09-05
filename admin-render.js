@@ -2,7 +2,6 @@
 const _arIco = (p, px = 13, sw = 1.75) => `<svg width="${px}" height="${px}" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px">${p}</svg>`;
 const AR_ICO_PACKAGE  = (px=13) => _arIco('<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>', px);
 const AR_ICO_GIFT     = (px=13) => _arIco('<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/>', px, 1.5);
-const AR_ICO_CHECK    = (px=13) => _arIco('<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>', px);
 const AR_ICO_XCIRCLE  = (px=13) => _arIco('<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>', px);
 const AR_ICO_ZAP      = (px=13) => `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="vertical-align:-2px;margin-right:3px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`;
 const AR_ICO_BOOKMARK = (px=13) => _arIco('<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>', px);
@@ -19,7 +18,6 @@ const AR_ICO_USER     = (px=13) => _arIco('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 
 // Paleta semántica de los chips de filtro — 4 colores fijos en vez de uno
 // distinto por chip: gris=neutro, verde=ok, ámbar=atención, rojo=crítico.
 const AR_C_NEUTRAL = '#6B7280';
-const AR_C_GREEN   = '#059669';
 const AR_C_AMBER   = '#92400E';
 const AR_C_RED     = '#dc2626';
 const _arStar = (filled, px=13) => filled
@@ -44,7 +42,6 @@ function renderStats() {
 
   const visible     = p => !p.isArchived && !Array.isArray(p.kitItems); // no archivado, no kit
   const total       = products.filter(visible).length;
-  const conStock    = products.filter(p => visible(p) && p.stock > 0 && !p.outOfStock).length;
   const sinStock    = products.filter(p => visible(p) && (p.stock === 0 || p.outOfStock)).length;
   const ultimaPieza = products.filter(p => visible(p) && p.stock === 1 && !p.outOfStock).length;
   const sinPublicar = products.filter(p => visible(p) && p.isPublished === false).length;
@@ -82,7 +79,6 @@ function renderStats() {
        <span class="sc-lbl">Todos</span>
      </button>` +
     (nKits > 0 ? chip('kits', AR_ICO_GIFT(), nKits, 'Kits', AR_C_NEUTRAL) : '') +
-    chip('con-stock',   AR_ICO_CHECK(), conStock,    'Con stock',    AR_C_GREEN) +
     (sinStock > 0 ? chip('sin-stock', AR_ICO_XCIRCLE(), sinStock, 'Sin stock', AR_C_RED) : '') +
     (ultimaPieza > 0 ? chip('ultima-pieza', AR_ICO_ZAP(), ultimaPieza, 'Última pieza', AR_C_AMBER) : '') +
     (nApartado > 0 ? chip('apartado', AR_ICO_BOOKMARK(), nApartado, 'Apartado', AR_C_AMBER) : '') +

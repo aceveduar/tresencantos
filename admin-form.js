@@ -178,7 +178,7 @@ function _updateActiveFiltersBar() {
   if (sortLabels[sortVal]) chips.push({ icon: ICO_SORT, label: sortLabels[sortVal], type: 'sort' });
 
   if (_statFilter) {
-    const statLabels = { 'con-stock':'Con stock','sin-stock':'Sin stock','ultima-pieza':'Última pieza','sin-publicar':'Sin publicar','sin-codigo':'Sin código','sin-categ':'Sin categoría','sin-precio':'Sin precio','imagen-base64':'Imagen base64' };
+    const statLabels = { 'sin-stock':'Sin stock','ultima-pieza':'Última pieza','sin-publicar':'Sin publicar','sin-codigo':'Sin código','sin-categ':'Sin categoría','sin-precio':'Sin precio','imagen-base64':'Imagen base64' };
     chips.push({ label: statLabels[_statFilter] || _statFilter, type: 'stat' });
   }
 

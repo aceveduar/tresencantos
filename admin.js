@@ -122,7 +122,7 @@ let _adminPage = 1;
 const ADMIN_PAGE_SIZE = 50;
 let _adminLoadObserver = null;
 let _realtimeChannel = null;
-let _statFilter = null; // 'con-stock' | 'sin-stock' | 'sin-publicar' | 'sin-codigo' | 'ultima-pieza' | 'apartado' | 'kits'
+let _statFilter = null; // 'sin-stock' | 'sin-publicar' | 'sin-codigo' | 'ultima-pieza' | 'apartado' | 'kits'
 let _showingArchived = false;
 
 /* Categorías — cargadas dinámicamente desde config.categories */
@@ -488,7 +488,6 @@ function getFilteredProducts() {
     const matchFlag    = !_showOnlyFlagged || !!_flagItem(p.id);
     const matchCreator = creatorVal === 'all' || p.createdBy === creatorVal || (!p.createdBy && creatorVal === '__none__');
     const matchStat = !_statFilter ||
-      (_statFilter === 'con-stock'    && p.stock > 0 && !p.outOfStock) ||
       (_statFilter === 'sin-stock'    && (p.stock === 0 || p.outOfStock)) ||
       (_statFilter === 'sin-publicar' && p.isPublished === false) ||
       (_statFilter === 'sin-codigo'   && !p.barcode) ||
