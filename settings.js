@@ -1057,10 +1057,11 @@ function _renderUpMatrix() {
   const personHeadHtml = allEmails.map(email => {
     const name = nameMap[email] || email.split('@')[0];
     const role = userPermsMap[email]?.role || 'operador';
+    const overrideN = _upOverrideCount(email);
     return `<th class="up-mx-person" title="${escH(email)}">
       <span class="up-mx-avatar" style="background:${_upAvatarColor(email)}">${escH(name.slice(0,1).toUpperCase())}</span>
       <span class="up-mx-name">${escH(name)}</span>
-      <span class="up-mx-role">${escH(_UP_ROLE_LABELS[role]||role)}</span>
+      <span class="up-mx-role">${escH(_UP_ROLE_LABELS[role]||role)}${overrideN ? ` · ${overrideN}≠` : ''}</span>
     </th>`;
   }).join('');
 

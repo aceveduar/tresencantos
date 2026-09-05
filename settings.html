@@ -68,8 +68,13 @@
   </div>
   <div class="settings-card" style="padding:12px;display:none" id="up-matrix-card">
     <input type="text" class="field-input" id="up-matrix-search" placeholder="🔍 Buscar un permiso…" oninput="_renderUpMatrix()" style="margin-bottom:10px">
+    <div class="up-mx-legend">
+      <span class="up-mx-legend-item"><i class="up-mx-legend-dot up-mx-legend-on"></i>Activo</span>
+      <span class="up-mx-legend-item"><i class="up-mx-legend-dot"></i>Inactivo</span>
+      <span class="up-mx-legend-item"><i class="up-mx-legend-dot up-mx-legend-override"></i>Distinto del rol</span>
+    </div>
     <div id="up-matrix"></div>
-    <p class="field-hint" style="padding:8px 2px 0">Toca un punto para activar/desactivar ese permiso para esa persona. El punto dorado con borde indica que ya no coincide con el default de su rol.</p>
+    <p class="field-hint" style="padding:8px 2px 0">Toca un punto para activar o desactivar ese permiso solo para esa persona.</p>
   </div>
   <p class="field-hint" style="padding:4px 2px 0">Los permisos se aplican al siguiente inicio de sesión de cada usuario.</p>
   </div>
