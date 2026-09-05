@@ -31,7 +31,7 @@ async function bulkDelete() {
   const affected = toDelete.filter(p => hits[p.id]?.length);
   if (affected.length) {
     const lines = affected.map(p => `"${p.name}" — ${hits[p.id].map(a => a.customer).join(', ')}`).join('\n');
-    alert(`No se puede eliminar -- ${affected.length} de los productos seleccionados ${affected.length === 1 ? 'sigue' : 'siguen'} en apartados activos:\n\n${lines}\n\nDeselecciona esos productos para eliminar el resto, o espera a que esos apartados se liquiden o cancelen.`);
+    alert(`No se puede eliminar -- ${affected.length} de los productos seleccionados ${affected.length === 1 ? 'sigue' : 'siguen'} en apartados activos (como producto o como componente de un kit):\n\n${lines}\n\nDeselecciona esos productos para eliminar el resto, o espera a que esos apartados se liquiden (se paguen completo).`);
     return;
   }
 

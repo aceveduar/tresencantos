@@ -121,13 +121,17 @@ function dictate(fieldId) {
 }
 
 /* ── PRODUCTOS EN APARTADOS ACTIVOS ──
- * edit_apartado_atomic exige que TODOS los productos de un apartado (los que
- * ya tenía + los que se agreguen) sigan existiendo en products antes de
- * guardar cualquier cambio -- si uno se elimina del catálogo mientras el
- * apartado sigue activo, ese apartado queda bloqueado para editarse hasta
- * quitar esa línea a mano. Real en producción (2026-09-04): 8 apartados
- * activos con un producto ya eliminado. Este chequeo se corre ANTES de
- * borrar, para no seguir generando el mismo problema. */
+ * edit_apartado_atomic Y cancel_sale_atomic exigen que TODOS los productos
+ * de un apartado -- incluyendo los COMPONENTES de cualquier kit dentro de
+ * él, no solo el kit mismo -- sigan existiendo en products antes de guardar
+ * un cambio o cancelarlo. Si uno se elimina del catálogo mientras el
+ * apartado sigue activo, ese apartado queda bloqueado (para editarse Y para
+ * cancelarse) hasta quitar esa línea a mano. Real en producción
+ * (2026-09-04): 8 apartados activos con un producto ya eliminado. Este
+ * chequeo se corre ANTES de borrar, para no seguir generando el mismo
+ * problema -- y revisa dentro de item.kit_items, no solo item.id, porque
+ * borrar un ingrediente de un kit (sin tocar el kit en sí) cae en el mismo
+ * bloqueo por una puerta distinta. */
 async function _productsInActiveApartados(ids) {
   // Filtra el contenido de items (jsonb) del lado del cliente en vez de un
   // operador cs./@> en la URL -- mismo patrón ya probado que usa
@@ -140,12 +144,16 @@ async function _productsInActiveApartados(ids) {
   );
   if (!r.ok || !Array.isArray(r.data)) return {};
   const hits = {};
+  const addHit = (rawId, saleId, customer) => {
+    const id = parseInt(rawId, 10);
+    if (!idSet.has(id)) return;
+    (hits[id] ||= []).push({ id: saleId, customer });
+  };
   r.data.forEach(s => {
+    const customer = (s.customer || '').split(' · ')[0] || 'Cliente';
     (Array.isArray(s.items) ? s.items : []).forEach(item => {
-      const itemId = parseInt(item?.id, 10);
-      if (!idSet.has(itemId)) return;
-      const customer = (s.customer || '').split(' · ')[0] || 'Cliente';
-      (hits[itemId] ||= []).push({ id: s.id, customer });
+      addHit(item?.id, s.id, customer);
+      (Array.isArray(item?.kit_items) ? item.kit_items : []).forEach(comp => addHit(comp?.id, s.id, customer));
     });
   });
   return hits;

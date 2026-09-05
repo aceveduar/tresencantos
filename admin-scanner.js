@@ -579,7 +579,7 @@ async function _deleteDupProduct(id, pairKey) {
   const aptHits = hits[id];
   if (aptHits?.length) {
     const nombres = aptHits.map(a => `"${a.customer}"`).join(', ');
-    alert(`No se puede eliminar -- este producto sigue en ${aptHits.length === 1 ? 'un apartado activo' : `${aptHits.length} apartados activos`} (${nombres}).\n\nSi lo borras, ese apartado quedará bloqueado para editarse. Espera a que se liquide o cancele, o usa "🙈 Oculto" para dejar de venderlo sin borrarlo.`);
+    alert(`No se puede eliminar -- este producto sigue en ${aptHits.length === 1 ? 'un apartado activo' : `${aptHits.length} apartados activos`} (${nombres}), como producto o como componente de un kit.\n\nSi lo borras, ese apartado quedará bloqueado para editarse Y para cancelarse. Espera a que se liquide (se pague completo), o usa "🙈 Oculto" para dejar de venderlo sin borrarlo.`);
     return;
   }
   if (!confirm('¿Eliminar este producto? Tendrás 7 segundos para deshacer.')) return;
