@@ -180,6 +180,7 @@ Los módulos ocultan ítems según los permisos efectivos del usuario. Reportes,
 | `kit_items` | jsonb nullable | `[{id, name, qty}]` — componentes del kit. Si presente, stock se calcula desde componentes |
 | `images` | jsonb nullable | `["url1","url2",...]` — imágenes adicionales (máx 5). La imagen principal sigue en `image` |
 | `expiry_date` | date nullable | Fecha de caducidad — para productos Natura/naturales (desodorantes, cremas, etc.). Alerta visual en Inventario cuando faltan ≤60 días o ya caducó (`_expiryStatus()`, `admin.js`) |
+| `is_archived` | bool DEFAULT false | Soft-delete reversible — ver "Archivar productos" abajo |
 
 **Regla de stock:** al marcar disponible con stock=0 → auto stock=1. Al vender en POS con stock resultante=0 → auto `out_of_stock=true`.
 
@@ -483,6 +484,21 @@ Productos compuestos por otros productos del catálogo. Al vender un kit en Caja
 - `searchKitProducts(query)` — buscador de componentes
 - `addKitComponent(id)` / `removeKitComponent(id)` / `changeKitQty(id, delta)`
 - `getKitStock(p)` en `pos.html` — calcula disponibilidad desde componentes
+
+### Archivar productos — soft-delete reversible (preexistente, documentado 2026-09-04)
+
+Alternativa a "🗑️ Eliminar" para productos viejos/creados por error que no se quieren en el catálogo activo pero que **no deben borrarse de verdad** — ni la Tienda ni el Historial pierden nada, y siempre se puede deshacer.
+
+- **Columna `is_archived BOOL DEFAULT false`** en `products`. Gateado por el mismo permiso que eliminar (`can.deleteProduct`) — no es un permiso nuevo.
+- **`archiveProduct(id)`** (`admin-scanner.js`) — desde el Quick View, botón "📦 Archivar" junto a "✕ Eliminar". Confirma, hace `PATCH is_archived=true, is_published=false, out_of_stock=true` y muestra un toast con "Deshacer" (`toastUndo`, 7s) además de quedar restaurable después desde la vista "Archivados".
+- **`restoreProduct(id)`** / **`toggleArchivedView()`** — el chip "📦 N Archivados" (visible solo con permiso, en `renderStats()`) alterna `_showingArchived` y filtra `getFilteredProducts()` para mostrar solo archivados, con botón "Restaurar" en vez de "Archivar" en cada Quick View.
+- **Dónde desaparece / dónde no:**
+  - **Inventario** — `admin.js` carga `products?select=*` (sin filtrar `is_archived` en el fetch) y filtra del lado del cliente según `_showingArchived` — un producto archivado sigue en el array local, solo oculto de la vista normal.
+  - **Caja** — `pos-core.js` sí filtra en el fetch (`is_archived=eq.false`) y además lo quita del array local en vivo vía Realtime (`_handleRealtimeProduct`) si se archiva mientras una caja tiene la sesión abierta — no hace falta recargar para que desaparezca del catálogo de venta.
+  - **Tienda** — sin filtro propio necesario: como `archiveProduct()` ya pone `is_published=false` y `out_of_stock=true`, el filtro existente del sitio (`is_published=eq.true` + `out_of_stock=false`) ya lo excluye automáticamente.
+  - **Historial/Reportes** — no se tocan; las ventas ya hechas siguen mostrando el producto por su snapshot en `sales.items`, con el mismo fallback que ya existe para productos borrados/renombrados.
+- **Sin acción bulk** — solo uno a la vez desde el Quick View; no hay bandera de bulk archive en `admin-bulk.js`.
+- **Por qué no hay borrado real automático:** un producto puede seguir siendo componente vivo de un kit (`kit_items` de otro producto, no solo referencia histórica) — borrarlo de verdad rompería el cálculo de disponibilidad de ese kit para siempre, no solo su historial. Archivar es reversible y no toca esa relación; por eso es la vía recomendada para "limpieza de catálogo" en vez de un borrado masivo o programado (evaluado y descartado el 2026-09-04 — ver Deudas Técnicas/notas de esa fecha en Actividad si aplica).
 
 ### Fotos del producto — flujo unificado (2026-06-12)
 
