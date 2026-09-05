@@ -1279,7 +1279,6 @@ async function _confirmAddToKit(kitId) {
   const kit = products.find(p => p.id === kitId);
   if (!kit) return;
   const idsToAdd = [..._addToKitIds]; // guardar antes de que _closeAddToKit limpie el array
-  _closeAddToKit();
 
   const existing = new Set((kit.kitItems || []).map(i => i.id));
   const toAdd = idsToAdd
@@ -1291,9 +1290,13 @@ async function _confirmAddToKit(kitId) {
     .filter(Boolean);
 
   if (!toAdd.length) {
+    _closeAddToKit();
     toast('Todos los productos seleccionados ya están en ese kit', '');
     return;
   }
+
+  if (!confirm(`¿Agregar ${toAdd.length} producto${toAdd.length>1?'s':''} al kit "${kit.name}"?`)) return;
+  _closeAddToKit();
 
   const updated = [...(kit.kitItems || []), ...toAdd];
   kit.kitItems = updated;

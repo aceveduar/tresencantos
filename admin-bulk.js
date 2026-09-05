@@ -286,6 +286,7 @@ async function _bcpSelect(code) {
     return;
   }
 
+  if (!confirm(`¿Cambiar la categoría de ${selectedIds.size} producto${selectedIds.size>1?'s':''} a "${cat.label}"?`)) return;
   closeBulkCatPicker();
 
   const ids = [...selectedIds].join(',');
@@ -309,6 +310,7 @@ async function bulkToggleFeatured() {
   const selected = products.filter(p => selectedIds.has(p.id));
   // Si todos son destacados → quitar. En cualquier otro caso → destacar todos.
   const newVal = !selected.every(p => p.featured);
+  if (!confirm(`¿${newVal ? 'Destacar' : 'Quitar destacado de'} ${selected.length} producto${selected.length>1?'s':''}?`)) return;
 
   if (getSupabaseUrl()) {
     const ids = [...selectedIds].join(',');
@@ -333,6 +335,7 @@ async function bulkToggleOOS() {
   if (!selectedIds.size) return;
   const selected = products.filter(p => selectedIds.has(p.id));
   const newVal = !selected.every(p => p.outOfStock);
+  if (!confirm(`¿Marcar ${selected.length} producto${selected.length>1?'s':''} como ${newVal ? 'agotados' : 'disponibles'}?`)) return;
 
   if (getSupabaseUrl()) {
     // PATCH base: cambiar out_of_stock para todos
@@ -409,10 +412,12 @@ async function bulkTogglePublish() {
   const selected = products.filter(p => selectedIds.has(p.id));
   // Si todos están publicados → ocultar; si alguno no lo está → publicar todos
   const newVal = !selected.every(p => p.isPublished !== false);
+  let msg = `¿${newVal ? 'Publicar' : 'Ocultar'} ${selected.length} producto${selected.length>1?'s':''} ${newVal ? 'en' : 'del'} sitio web?`;
   if (newVal) {
     const agotados = selected.filter(p => p.outOfStock).length;
-    if (agotados > 0 && !confirm(`${agotados} producto(s) están agotados y no aparecerán en el sitio web aunque se publiquen.\n\n¿Continuar?`)) return;
+    if (agotados > 0) msg += `\n\n${agotados} producto(s) están agotados y no aparecerán en el sitio web aunque se publiquen.`;
   }
+  if (!confirm(msg)) return;
   if (getSupabaseUrl()) {
     const ids = [...selectedIds].join(',');
     const result = await supabaseApi(`products?id=in.(${ids})`, {
