@@ -184,14 +184,32 @@ function _themeToggleRowHtml() {
    contando como leído, sin migración.
    Para agregar un aviso futuro: nuevo objeto {id, text, until} al arreglo. ── */
 (function () {
+  // `icon` referencia un ícono SVG fijo (_NOTIF_ICONS más abajo) en vez de un
+  // emoji embebido en el texto -- un emoji se ve distinto (a veces roto) según
+  // el teléfono/SO; un ícono propio se ve igual en todos. `text` se acortó a
+  // una sola línea, en el lenguaje de "qué cambia para ti", no un reporte
+  // técnico del bug.
   const SYS_NOTICES = [
-    { id: 'staff-access-2026-08', text: '🔒 El acceso a Caja e Inventario cambió de lugar — ahora está arriba, junto al carrito, en la Tienda.', until: '2026-08-31' },
-    { id: 'por-revisar-2026-08',  text: '🚩 Revisen los productos marcados "Por revisar" en Inventario — usen el chip de filtro para verlos.', until: '2026-08-31' },
-    { id: 'edit-apt-due-date-2026-09', text: '📅 Al editar un apartado ahora puedes ver y ajustar la fecha límite de pago — antes no aparecía ahí.', until: '2026-09-22' },
-    { id: 'resend-receipt-2026-09b', text: '➤ En Apartados, junto a cada pago hay un ícono de enviar (flecha) para reenviar ese comprobante por WhatsApp — úsalo si la clienta dice que no le llegó.', until: '2026-09-22' },
-    { id: 'edit-apt-phone-2026-09', text: '📱 Al editar un apartado ahora puedes agregar o corregir el teléfono del cliente — así se puede enviar el comprobante aunque no se haya capturado al crearlo.', until: '2026-09-22' },
-    { id: 'edit-apt-fix-2026-09', text: '🔧 Se resolvió el problema de "Editar apartado" que no guardaba al agregar un producto. Además, ahora Inventario no te deja borrar un producto si sigue en un apartado activo, para que esto no se repita.', until: '2026-09-25' },
+    { id: 'staff-access-2026-08', icon: 'lock', text: 'El acceso a Caja e Inventario se movió arriba, junto al carrito, en la Tienda.', until: '2026-08-31' },
+    { id: 'por-revisar-2026-08',  icon: 'flag', text: 'Revisen los productos marcados "Por revisar" — usen el chip de filtro para verlos.', until: '2026-08-31' },
+    { id: 'edit-apt-due-date-2026-09', icon: 'calendar', text: 'Editar apartado ahora muestra y deja ajustar la fecha límite de pago.', until: '2026-09-22' },
+    { id: 'resend-receipt-2026-09b', icon: 'send', text: 'En Apartados, la flecha junto a cada pago reenvía ese comprobante por WhatsApp.', until: '2026-09-22' },
+    { id: 'edit-apt-phone-2026-09', icon: 'phone', text: 'Ya puedes agregar o corregir el teléfono del cliente al editar un apartado.', until: '2026-09-22' },
+    { id: 'edit-apt-fix-2026-09', icon: 'wrench', text: 'Se arregló que "Editar apartado" no guardaba al agregar un producto.', until: '2026-09-25' },
   ];
+
+  const _NOTIF_ICONS = {
+    wrench:   '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/>',
+    calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+    phone:    '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>',
+    send:     '<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
+    lock:     '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+    flag:     '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>',
+    info:     '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>'
+  };
+  function _notifIconSvg(name) {
+    return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${_NOTIF_ICONS[name] || _NOTIF_ICONS.info}</svg>`;
+  }
 
   function _hasValidSession() {
     try {
@@ -235,7 +253,10 @@ function _themeToggleRowHtml() {
     pop.innerHTML = `
       <div class="notif-pop-title">Notificaciones</div>
       ${notices.length
-        ? notices.map(n => `<div class="notif-item${unreadIds.has(n.id) ? ' unread' : ''}">${n.text}</div>`).join('')
+        ? notices.map(n => `<div class="notif-item${unreadIds.has(n.id) ? ' unread' : ''}">
+            <span class="notif-item-icon">${_notifIconSvg(n.icon)}</span>
+            <span class="notif-item-text">${n.text}</span>
+          </div>`).join('')
         : '<div class="notif-empty">Sin notificaciones por ahora.</div>'}`;
     document.body.appendChild(pop);
 

@@ -203,9 +203,19 @@ a{text-decoration:none}
 }
 .notif-pop-title{font-weight:700;font-size:.82rem;color:var(--charcoal);padding:4px 6px 8px}
 .notif-item{
+  display:flex;align-items:flex-start;gap:10px;
   font-size:.8rem;line-height:1.45;color:var(--charcoal);
   padding:9px 8px;border-radius:8px;border-bottom:1px solid var(--border);
+  transition:background .15s;
 }
 .notif-item:last-child{border-bottom:none}
-.notif-item.unread{background:var(--gold-light);font-weight:600}
+.notif-item:hover{background:var(--cream)}
+.notif-item-icon{
+  flex-shrink:0;width:26px;height:26px;margin-top:1px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--border);color:var(--muted);transition:background .2s,color .2s;
+}
+.notif-item.unread .notif-item-icon{background:var(--gold);color:#fff}
+.notif-item.unread .notif-item-text{font-weight:600}
+.notif-item-text{padding-top:3px}
 .notif-empty{font-size:.8rem;color:var(--muted);padding:14px 8px;text-align:center}
