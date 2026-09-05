@@ -60,14 +60,14 @@ button,a,[onclick]{touch-action:manipulation}
 #auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:linear-gradient(150deg,#FAF5EE 0%,#EDE0CE 100%)}
 /* Login — a propósito NO usa los tokens de tema (--surface/--charcoal/--border):
    es la única pantalla sin sesión todavía, nadie tiene una preferencia guardada
-   ahí, así que se queda siempre igual (oscuro+dorado) sin importar el toggle
-   de modo oscuro del resto de la app. */
-.auth-box{background:var(--ink);border-radius:20px;padding:52px 44px;max-width:400px;width:100%;box-shadow:var(--shadow-lg);text-align:center}
+   ahí, así que se queda siempre igual (claro, como era antes de que existiera
+   el modo oscuro) sin importar el toggle del resto de la app. */
+.auth-box{background:#fff;border-radius:20px;padding:52px 44px;max-width:400px;width:100%;box-shadow:var(--shadow-lg);text-align:center}
 .auth-box img{height:56px;margin:0 auto 24px;border-radius:8px}
-.auth-box h1{font-family:'Playfair Display',serif;font-size:1.55rem;margin-bottom:8px;color:#F1E8DB}
-.auth-box p{font-size:.88rem;color:var(--gold);margin-bottom:32px;line-height:1.5}
-.auth-box input{width:100%;padding:13px 18px;border:1.5px solid rgba(255,255,255,.14);border-radius:var(--r);font-size:.95rem;outline:none;transition:.2s;background:var(--ink-soft);color:#F1E8DB}
-.auth-box input:focus{border-color:var(--gold);background:var(--ink-soft);box-shadow:0 0 0 3px rgba(201,164,98,.18)}
+.auth-box h1{font-family:'Playfair Display',serif;font-size:1.55rem;margin-bottom:8px;color:#1C1817}
+.auth-box p{font-size:.88rem;color:#8A7564;margin-bottom:32px;line-height:1.5}
+.auth-box input{width:100%;padding:13px 18px;border:1.5px solid #EAE0D4;border-radius:var(--r);font-size:.95rem;outline:none;transition:.2s;background:#FDFAF7}
+.auth-box input:focus{border-color:var(--gold);background:#fff;box-shadow:0 0 0 3px rgba(201,164,98,.12)}
 .auth-box .err{font-size:.82rem;color:var(--red);margin-top:8px;display:none}
 .auth-box .err.show{display:block}
 .btn-login{width:100%;margin-top:16px;padding:14px;background:var(--ink);color:#fff;border:none;border-radius:var(--r);font-size:.95rem;font-weight:600;cursor:pointer;transition:.2s;letter-spacing:.02em}
