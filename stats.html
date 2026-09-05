@@ -151,6 +151,18 @@
     </div>
   </div>
 
+  <!-- TURNOS DE CAJA — historial de apertura/cierre por empleado, no
+       filtrado por período (igual que Apartados pendientes/Clientes frecuentes) -->
+  <div class="card" id="turnos-card" style="margin-bottom:16px">
+    <div class="card-head">
+      <h2><svg class="card-h-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Turnos de caja</h2>
+      <span id="turnos-label" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body" id="turnos-body" style="max-height:400px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain">
+      <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
+    </div>
+  </div>
+
   <!-- PRODUCTOS POR CADUCAR -->
   <div class="card" id="expiring-card" style="margin-bottom:16px">
     <div class="card-head">

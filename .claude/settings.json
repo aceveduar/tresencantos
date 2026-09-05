@@ -8,7 +8,11 @@
       "Bash(git -C \"/c/Users/Aceveduar/Documents/tresencantos\" add admin.js pos-checkout.js pos-core.js shared.js)",
       "Bash(git -C /c/Users/Aceveduar/Documents/tresencantos commit -m ' *)",
       "Bash(grep -n \"innerHTML.*\\\\${p\\\\.name\\\\|innerHTML.*\\\\${p\\\\.description\\\\|innerHTML.*\\\\${p\\\\.badge\" \"c:\\\\Users\\\\Aceveduar\\\\Documents\\\\tresencantos\\\\admin-render.js\" \"c:\\\\Users\\\\Aceveduar\\\\Documents\\\\tresencantos\\\\pos-core.js\")",
-      "Bash(node -e \"const fs=require\\('fs'\\); new Function\\(fs.readFileSync\\('stats.js','utf8'\\)\\); console.log\\('OK stats.js'\\);\")"
+      "Bash(node -e \"const fs=require\\('fs'\\); new Function\\(fs.readFileSync\\('stats.js','utf8'\\)\\); console.log\\('OK stats.js'\\);\")",
+      "Bash(node -c pos-core.js)",
+      "Bash(node -c pos-checkout.js)",
+      "Bash(node -c stats.js)",
+      "Bash(node -c pos-cart.js)"
     ]
   }
 }

@@ -42,6 +42,7 @@
     const canConfig   = ('canManageSettings' in _up ? _up.canManageSettings : role === 'superadmin')
                          || _up.canManageCatalogSettings === true;
     const canActivity = 'canViewActivity'   in _up ? _up.canViewActivity   : (role === 'superadmin' || role === 'duena');
+
     const configLink = (canConfig
       ? `<a class="ud-link" href="settings.html">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -87,6 +88,7 @@
         if (!pop.contains(e.target)) { pop.remove(); document.removeEventListener('click', close); }
       });
     }, 10);
+    _udOpening = false;
   }
 
   document.addEventListener('DOMContentLoaded', _initUserDropdown);
@@ -492,16 +494,17 @@ const UP_PERMS = [
   {key:'canOverridePrice',  label:'Modificar precio al cobrar', group:'Caja', desc:'Cambiar el precio de un producto en el carrito antes de cobrar'},
   {key:'canApplyDiscount',  label:'Aplicar descuentos',  group:'Caja', desc:'Usar el campo "Agregar descuento" al cobrar'},
   {key:'canMarkTestData',   label:'Marcar pruebas',      group:'Caja', desc:'Ocultar una venta/apartado de prueba de Historial, Reportes y Corte de caja sin borrarlo'},
+  {key:'canCloseShiftUnsupervised', label:'Cerrar turno con diferencia grande', group:'Caja', desc:'Cerrar un turno de caja sin pedir autorización aunque la diferencia sea de $100 o más'},
   {key:'canViewReports',    label:'Ver Reportes',        group:'Módulos', desc:'Entrar al módulo de Reportes'},
   {key:'canViewActivity',   label:'Ver Actividad',       group:'Módulos', desc:'Entrar al módulo de Actividad (auditoría)'},
   {key:'canManageSettings', label:'Configuración',       group:'Módulos', desc:'Acceso completo a Configuración, incluyendo Usuarios y Permisos'},
   {key:'canManageCatalogSettings', label:'Configuración (solo Catálogo)', group:'Módulos', desc:'Entra a Configuración pero solo ve la sección Catálogo'},
 ];
 const UP_ROLE_DEFAULTS = {
-  superadmin:{canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canCancelSale:true, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canMarkTestData:true, canViewReports:true, canViewActivity:true, canManageSettings:true, canManageCatalogSettings:false},
-  encargado: {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canCancelSale:true, canEditApartado:false, canOverridePrice:true, canApplyDiscount:true, canMarkTestData:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false},
-  duena:     {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:false, canCancelSale:false, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canMarkTestData:false, canViewReports:true, canViewActivity:true, canManageSettings:false, canManageCatalogSettings:false},
-  operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:false, canPublishProduct:false, canBulkDelete:false, canCancelSale:false, canEditApartado:false, canOverridePrice:false, canApplyDiscount:false, canMarkTestData:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false},
+  superadmin:{canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canCancelSale:true, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canMarkTestData:true, canViewReports:true, canViewActivity:true, canManageSettings:true, canManageCatalogSettings:false, canCloseShiftUnsupervised:true},
+  encargado: {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canCancelSale:true, canEditApartado:false, canOverridePrice:true, canApplyDiscount:true, canMarkTestData:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false, canCloseShiftUnsupervised:true},
+  duena:     {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:false, canCancelSale:false, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canMarkTestData:false, canViewReports:true, canViewActivity:true, canManageSettings:false, canManageCatalogSettings:false, canCloseShiftUnsupervised:true},
+  operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:false, canPublishProduct:false, canBulkDelete:false, canCancelSale:false, canEditApartado:false, canOverridePrice:false, canApplyDiscount:false, canMarkTestData:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false, canCloseShiftUnsupervised:false},
 };
 
 /* ── PIN DE AUTORIZACIÓN (override puntual de un permiso bloqueado) ──
@@ -647,6 +650,26 @@ function openMyPinModal() {
   };
   document.getElementById('mypin-submit').onclick = submit;
   document.getElementById('mypin-input').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+}
+
+// Ubicación (2026-09-04) -- no bloquea nada, solo intenta obtener lat/lng
+// para que el servidor calcule qué tan lejos del local se hizo la acción
+// (te_open_cash_shift/te_close_cash_shift ya aceptan p_lat/p_lng opcionales
+// -- se usaba también para el checador, retirado el mismo día, ver
+// CLAUDE.md). Sin permiso, sin GPS, o si tarda más de 6s, resuelve null --
+// la acción sigue igual, solo queda "sin ubicación" en vez de con distancia.
+function _getGeoLocation(timeoutMs = 6000) {
+  return new Promise(resolve => {
+    if (!navigator.geolocation) { resolve(null); return; }
+    let done = false;
+    const finish = v => { if (!done) { done = true; resolve(v); } };
+    const timer = setTimeout(() => finish(null), timeoutMs);
+    navigator.geolocation.getCurrentPosition(
+      pos => { clearTimeout(timer); finish({ lat: pos.coords.latitude, lng: pos.coords.longitude }); },
+      () => { clearTimeout(timer); finish(null); },
+      { enableHighAccuracy: false, timeout: timeoutMs, maximumAge: 60000 }
+    );
+  });
 }
 
 // Bucle de paginación por offset/limit compartido por _posFetchAll

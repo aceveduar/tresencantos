@@ -500,6 +500,11 @@ button,a{touch-action:manipulation}
 #apt-venc-banner .apt-venc-banner-main{flex:1;display:flex;align-items:center;gap:8px;min-width:0;background:none;border:none;padding:9px 0;color:inherit;font-size:.82rem;font-weight:700;font-family:inherit;text-align:left;cursor:pointer;touch-action:manipulation}
 #apt-venc-banner .apt-venc-banner-close{flex-shrink:0;width:44px;height:44px;background:none;border:none;color:#B91C1C;opacity:.6;font-size:.95rem;cursor:pointer;touch-action:manipulation}
 #apt-venc-banner .apt-venc-banner-close:hover{opacity:1}
+.shift-reminder-banner{display:none;width:100%;min-height:44px;background:var(--gold-light);border:0;border-bottom:2px solid rgba(201,164,98,.35);padding:0 6px 0 16px;align-items:center;gap:4px;color:var(--gold-dark)}
+.shift-reminder-banner.show{display:flex}
+.shift-reminder-banner .shift-reminder-banner-main{flex:1;display:flex;align-items:center;gap:8px;min-width:0;background:none;border:none;padding:9px 0;color:inherit;font-size:.82rem;font-weight:700;font-family:inherit;text-align:left;cursor:pointer;touch-action:manipulation}
+.shift-reminder-banner .shift-reminder-banner-close{flex-shrink:0;width:44px;height:44px;background:none;border:none;color:var(--gold-dark);opacity:.6;font-size:.95rem;cursor:pointer;touch-action:manipulation}
+.shift-reminder-banner .shift-reminder-banner-close:hover{opacity:1}
 #apt-vencidos-alert{min-height:44px}
 #apt-search{min-height:44px;padding-right:44px!important}
 #apt-search-clear{width:44px;height:44px}

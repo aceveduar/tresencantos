@@ -49,10 +49,20 @@ function canApplyDiscount() {
   if (up && 'canApplyDiscount' in up) return up.canApplyDiscount;
   const r = getPosRole(); return r === 'superadmin' || r === 'encargado' || r === 'duena';
 }
+function canCloseShiftUnsupervised() {
+  const up = _getMyPermsCached();
+  if (up && 'canCloseShiftUnsupervised' in up) return up.canCloseShiftUnsupervised;
+  const r = getPosRole(); return r === 'superadmin' || r === 'encargado' || r === 'duena';
+}
 function canManageSettings() {
   const up = _getMyPermsCached();
   if (up && 'canManageSettings' in up) return up.canManageSettings;
   return getPosRole() === 'superadmin';
+}
+function canViewReports() {
+  const up = _getMyPermsCached();
+  if (up && 'canViewReports' in up) return up.canViewReports;
+  const r = getPosRole(); return r === 'superadmin' || r === 'duena';
 }
 function canMarkTestData() {
   const up = _getMyPermsCached();
@@ -305,23 +315,146 @@ function _posDailyStorageKey(name, date = null) {
   return `te_${name}_${_posShiftScope()}_${day}`;
 }
 
-function _posEnsureCurrentShift() {
-  const today = _posMexicoDayKey();
-  const dateKey = _posShiftStorageKey('shift_date');
-  const startKey = _posShiftStorageKey('shift_start');
-  const storedDate = localStorage.getItem(dateKey);
+/* ── TURNO DE CAJA — apertura/cierre real, en servidor ──────────────
+ * Reemplaza el "turno" anterior (solo localStorage del dispositivo, creado
+ * en silencio al primer uso del día -- nunca visible para Ofelia). Ahora
+ * abrir/cerrar caja es una acción real: te_open_cash_shift/te_close_cash_shift
+ * (RPC) guardan hora, fondo, conteo y diferencia en cash_shifts, quedan en
+ * Actividad (turno_abierto/turno_cerrado/turno_cerrado_auto) y en Reportes.
+ * _posShiftGateInit() bloquea el resto de Caja (#open-shift-overlay) hasta
+ * que el usuario tenga un turno abierto -- ver init() en pos-checkout.js.
+ */
+let _currentShift = null;
+let _shiftGateResolve = null;
+let _shiftGateWired = false;
 
-  if (storedDate !== today) {
-    localStorage.setItem(dateKey, today);
-    localStorage.setItem(startKey, new Date().toISOString());
-  } else if (!localStorage.getItem(startKey)) {
-    localStorage.setItem(startKey, new Date().toISOString());
+function _posShiftScopedKey(name) {
+  const id = _currentShift?.id ?? 'sin_turno';
+  return `te_${name}_${_posShiftScope()}_shift${id}`;
+}
+
+async function _posFetchOpenShift() {
+  const email = _posCurrentUserEmail();
+  if (!email) return { ok: false, shift: null };
+  const r = await api(`cash_shifts?user_email=eq.${encodeURIComponent(email)}&status=eq.abierto&order=opened_at.desc&limit=1&select=*`);
+  return { ok: r.ok, shift: r.ok ? (r.data?.[0] || null) : null };
+}
+
+async function _posShiftGateAttempt() {
+  const overlay   = document.getElementById('open-shift-overlay');
+  const checking  = document.getElementById('open-shift-checking');
+  const form      = document.getElementById('open-shift-form');
+  const retryWrap = document.getElementById('open-shift-retry-wrap');
+  const errBox    = document.getElementById('open-shift-error');
+  const fondoIn   = document.getElementById('open-shift-fondo');
+
+  overlay?.classList.add('open');
+  if (checking) checking.style.display = '';
+  if (form) form.style.display = 'none';
+  if (retryWrap) retryWrap.style.display = 'none';
+  if (errBox) errBox.style.display = 'none';
+
+  const { ok, shift } = await _posFetchOpenShift();
+  if (!ok) {
+    if (checking) checking.style.display = 'none';
+    if (retryWrap) retryWrap.style.display = '';
+    return;
   }
-  return {
-    date: today,
-    start: localStorage.getItem(startKey),
-    actorEmail: _posCurrentUserEmail()
-  };
+  if (shift) {
+    _currentShift = shift;
+    overlay?.classList.remove('open');
+    _posCheckShiftReminder();
+    const resolve = _shiftGateResolve;
+    _shiftGateResolve = null;
+    resolve?.();
+    return;
+  }
+  if (checking) checking.style.display = 'none';
+  if (form) form.style.display = '';
+  fondoIn?.focus();
+}
+
+function _posWireShiftGateButtons() {
+  if (_shiftGateWired) return;
+  _shiftGateWired = true;
+  const errBox   = document.getElementById('open-shift-error');
+  const fondoIn  = document.getElementById('open-shift-fondo');
+  const openBtn  = document.getElementById('open-shift-btn');
+  const retryBtn = document.getElementById('open-shift-retry-btn');
+
+  retryBtn?.addEventListener('click', _posShiftGateAttempt);
+  openBtn?.addEventListener('click', async () => {
+    const raw = fondoIn?.value;
+    const fondo = raw === '' ? 0 : parseFloat(raw);
+    if (Number.isNaN(fondo) || fondo < 0) {
+      if (errBox) { errBox.textContent = 'Ingresa un fondo válido (puede ser $0).'; errBox.style.display = ''; }
+      return;
+    }
+    openBtn.disabled = true;
+    const prevLabel = openBtn.textContent;
+    openBtn.textContent = 'Abriendo…';
+    const geo = await _getGeoLocation();
+    const r = await api('rpc/te_open_cash_shift', {
+      method: 'POST',
+      body: JSON.stringify({ p_fondo_inicial: fondo, p_lat: geo?.lat ?? null, p_lng: geo?.lng ?? null })
+    });
+    openBtn.disabled = false;
+    openBtn.textContent = prevLabel;
+    if (!r.ok || !r.data) {
+      if (errBox) { errBox.textContent = 'No se pudo abrir la caja. Intenta de nuevo.'; errBox.style.display = ''; }
+      return;
+    }
+    _currentShift = r.data;
+    document.getElementById('open-shift-overlay')?.classList.remove('open');
+    _posCheckShiftReminder();
+    const resolve = _shiftGateResolve;
+    _shiftGateResolve = null;
+    resolve?.();
+  });
+}
+
+// Punto de entrada: llamado en init() y otra vez tras cerrar un turno (para
+// exigir abrir uno nuevo antes de seguir vendiendo). Resuelve la promesa
+// solo cuando _currentShift queda listo (turno existente o recién abierto).
+function _posShiftGateInit() {
+  _posWireShiftGateButtons();
+  return new Promise(resolve => {
+    _shiftGateResolve = resolve;
+    _posShiftGateAttempt();
+  });
+}
+
+// Recordatorio de fin de turno (2026-09-04) -- abrir caja es obligatorio,
+// pero cerrarla depende de que alguien se acuerde de dar clic; sin este
+// aviso, un turno se puede quedar abierto días enteros sin que nadie haga un
+// conteo real (el auto-cierre al reabrir solo tapa el hueco, sin conteo).
+// No bloquea nada -- solo invita a cerrar, descartable por lo que dure este
+// turno (vuelve a aparecer en el turno siguiente si aplica).
+function _posShiftReminderDismissKey() { return _posShiftScopedKey('reminder_dismissed'); }
+
+function _posCheckShiftReminder() {
+  const banner = document.getElementById('shift-reminder-banner');
+  const txt = document.getElementById('shift-reminder-txt');
+  if (!banner || !txt || !_currentShift?.opened_at) return;
+  if (localStorage.getItem(_posShiftReminderDismissKey())) {
+    banner.classList.remove('show');
+    return;
+  }
+  const hoursOpen = (Date.now() - new Date(_currentShift.opened_at).getTime()) / 3600000;
+  const mxHour = Number(new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Mexico_City', hour: '2-digit', hourCycle: 'h23'
+  }).format(new Date()));
+  if (hoursOpen < 10 && mxHour < 21) {
+    banner.classList.remove('show');
+    return;
+  }
+  txt.textContent = `Tu turno lleva ${Math.floor(hoursOpen)}h abierto — ¿ya terminaste? Ciérralo en Corte.`;
+  banner.classList.add('show');
+}
+
+function dismissShiftReminder() {
+  localStorage.setItem(_posShiftReminderDismissKey(), '1');
+  document.getElementById('shift-reminder-banner')?.classList.remove('show');
 }
 
 /* ── RPC IDEMPOTENTES ──

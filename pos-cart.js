@@ -468,6 +468,11 @@ let _corteData = null;
 let _corteMode = 'mio'; // 'mio' | 'general'
 
 function setCorteMode(mode) {
+  // "General — hoy" muestra cuánto cobró CADA cajera hoy ("Por cajero") --
+  // ver eso sin permiso de Reportes es un camino lateral para lo mismo que
+  // canViewReports ya restringe en el módulo Reportes. Reutiliza ese mismo
+  // permiso en vez de crear uno nuevo.
+  if (mode === 'general' && !canViewReports()) return;
   if (_corteMode === mode) return;
   _corteMode = mode;
   document.getElementById('corte-mode-mio')?.classList.toggle('active', mode === 'mio');
@@ -486,6 +491,8 @@ async function openCorte() {
   _corteMode = 'mio';
   document.getElementById('corte-mode-mio')?.classList.add('active');
   document.getElementById('corte-mode-general')?.classList.remove('active');
+  const generalBtn = document.getElementById('corte-mode-general');
+  if (generalBtn) generalBtn.style.display = canViewReports() ? '' : 'none';
   document.getElementById('corte-personal-sections').style.display = '';
   await loadCorte();
   renderGastos();
@@ -509,17 +516,18 @@ async function loadCorte() {
   const TZ = 'America/Mexico_City';
   const now = new Date();
   const ahoraMX = new Intl.DateTimeFormat('es-MX', { timeZone:TZ, dateStyle:'full', timeStyle:'short' }).format(now);
-  const shift = _posEnsureCurrentShift();
-  if (!shift.actorEmail) {
-    content.innerHTML = '<div style="color:var(--red);text-align:center">No se pudo identificar al usuario de esta caja. Vuelve a iniciar sesión.</div>';
+  const actorEmail = _posCurrentUserEmail();
+  if (!actorEmail || !_currentShift) {
+    content.innerHTML = '<div style="color:var(--red);text-align:center">No se pudo identificar tu turno. Cierra y vuelve a abrir Caja.</div>';
     return;
   }
   const isGeneral = _corteMode === 'general';
   const hoyMX = _posMexicoDayKey(now);
   const hoyInicio = new Date(`${hoyMX}T00:00:00-06:00`);
-  const rawShiftStart = new Date(shift.start || '');
-  const shiftStart = !Number.isNaN(rawShiftStart.getTime()) && rawShiftStart >= hoyInicio && rawShiftStart <= now
-    ? rawShiftStart : hoyInicio;
+  // El turno real (te_open_cash_shift) sí puede empezar antes de medianoche
+  // si alguien trabaja hasta pasada la hora -- a diferencia del "turno"
+  // anterior (solo localStorage), aquí no hace falta acotarlo a "hoy".
+  const shiftStart = new Date(_currentShift.opened_at);
   // General suma la tienda completa desde medianoche — otras cajeras pueden
   // haber empezado su turno antes que el actual, no tendría sentido acotar
   // al horario de quien está viendo la pantalla.
@@ -527,7 +535,7 @@ async function loadCorte() {
   const from = encodeURIComponent(rangeStart.toISOString());
   const to   = encodeURIComponent(now.toISOString());
   const inicioMX = new Intl.DateTimeFormat('es-MX', { timeZone:TZ, hour:'2-digit', minute:'2-digit' }).format(rangeStart);
-  const actorLabel = shift.actorEmail.split('@')[0];
+  const actorLabel = actorEmail.split('@')[0];
   periodoEl.textContent = isGeneral
     ? `General — hoy desde las ${inicioMX}, todas las cajeras`
     : `Turno de ${actorLabel} desde ${inicioMX}`;
@@ -550,14 +558,14 @@ async function loadCorte() {
   });
   const money = value => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
   const payments = isGeneral ? allPayments : allPayments.filter(payment =>
-    String(payment.collected_by_email || '').toLowerCase() === shift.actorEmail
+    String(payment.collected_by_email || '').toLowerCase() === actorEmail
   );
   const unassignedPayments = allPayments.filter(payment => !payment.collected_by_email);
   const otherCashiers = allPayments.filter(payment =>
-    payment.collected_by_email && String(payment.collected_by_email).toLowerCase() !== shift.actorEmail
+    payment.collected_by_email && String(payment.collected_by_email).toLowerCase() !== actorEmail
   );
   const created = isGeneral ? (createdResult.data || []) : (createdResult.data || []).filter(sale =>
-    String(sale.seller_email || '').toLowerCase() === shift.actorEmail
+    String(sale.seller_email || '').toLowerCase() === actorEmail
   );
   let efectivo = 0, transferencia = 0, otros = 0, devoluciones = 0, anticipos = 0;
 
@@ -661,7 +669,10 @@ function _renderCorteBreakdown(rows, fmt) {
 }
 
 /* ── GASTOS DEL TURNO ────────────────────────────────────────────── */
-function _gastosKey() { return _posDailyStorageKey('gastos'); }
+// Ligados al turno real (_currentShift.id), no al día -- si alguien abre y
+// cierra caja más de una vez el mismo día, cada turno empieza con su propia
+// lista vacía en vez de arrastrar los gastos del turno anterior ya cerrado.
+function _gastosKey() { return _posShiftScopedKey('gastos'); }
 function _getGastos() { try { return JSON.parse(localStorage.getItem(_gastosKey())) || []; } catch { return []; } }
 function _saveGastos(g) { localStorage.setItem(_gastosKey(), JSON.stringify(g)); }
 
@@ -732,50 +743,88 @@ function renderGastos() {
   _renderCierre();
 }
 
-/* ── CIERRE DE CAJA (FONDO INICIAL + CONTEO FÍSICO) ──────────────── */
-function _fondoKey()  { return _posDailyStorageKey('fondo'); }
-function _conteoKey() { return _posDailyStorageKey('conteo'); }
+/* ── CIERRE DE CAJA (FONDO INICIAL + CONTEO FÍSICO) ────────────────
+ * El fondo ya no es un campo libre: es el que se declaró al abrir el turno
+ * (te_open_cash_shift), de solo lectura aquí.
+ *
+ * Conteo a ciegas (2026-09-04): "Efectivo esperado" y "Diferencia" ya no se
+ * calculan en cuanto se abre el panel -- si la cajera ve el esperado antes
+ * de contar, el conteo deja de ser un conteo real y se vuelve "escribir el
+ * número que ya vi". _conteoRevealed solo se vuelve true al tocar
+ * "Comparar conteo", después de haber capturado un valor; "Corregir conteo"
+ * regresa al estado oculto para volver a contar sin perder lo ya escrito. */
+function _conteoKey() { return _posShiftScopedKey('conteo'); }
+let _conteoRevealed = false;
 
 function _initCierreInputs() {
-  const fondo  = localStorage.getItem(_fondoKey());
+  const fondoEl = document.getElementById('corte-fondo');
+  if (fondoEl) fondoEl.value = _currentShift?.fondo_inicial ?? 0;
+  const abiertoEl = document.getElementById('corte-turno-abierto');
+  if (abiertoEl && _currentShift?.opened_at) {
+    abiertoEl.textContent = 'Abierto ' + new Intl.DateTimeFormat('es-MX', {
+      timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit'
+    }).format(new Date(_currentShift.opened_at));
+  }
   const conteo = localStorage.getItem(_conteoKey());
-  document.getElementById('corte-fondo').value  = fondo  != null ? fondo  : '';
   document.getElementById('corte-conteo').value = conteo != null ? conteo : '';
+  _conteoRevealed = false;
   _renderCierre();
 }
 
-function _onFondoChange() {
-  const val = document.getElementById('corte-fondo').value;
-  if (val === '') localStorage.removeItem(_fondoKey());
-  else localStorage.setItem(_fondoKey(), parseFloat(val) || 0);
-  _renderCierre();
-}
-
-function _onConteoChange() {
+function _onConteoInput() {
   const val = document.getElementById('corte-conteo').value;
   if (val === '') localStorage.removeItem(_conteoKey());
   else localStorage.setItem(_conteoKey(), parseFloat(val) || 0);
+  // Cambiar el conteo después de haber comparado invalida la comparación --
+  // vuelve a ocultarse hasta tocar "Comparar conteo" otra vez.
+  if (_conteoRevealed) { _conteoRevealed = false; _renderCierre(); }
+}
+
+function compararConteo() {
+  if (!_corteData) {
+    alert('Aún no se termina de calcular tu corte -- espera un momento e intenta de nuevo.');
+    return;
+  }
+  const conteoRaw = document.getElementById('corte-conteo').value;
+  if (conteoRaw === '') {
+    alert('Captura tu conteo físico antes de comparar.');
+    document.getElementById('corte-conteo')?.focus();
+    return;
+  }
+  _conteoRevealed = true;
   _renderCierre();
 }
 
+function corregirConteo() {
+  _conteoRevealed = false;
+  _renderCierre();
+  document.getElementById('corte-conteo')?.focus();
+}
+
 function _renderCierre() {
-  if (!_corteData) {
-    const expected = document.getElementById('corte-esperado');
-    const diffRow = document.getElementById('corte-diff-row');
-    if (expected) expected.textContent = '—';
+  const esperadoRow = document.getElementById('corte-esperado-row');
+  const diffRow      = document.getElementById('corte-diff-row');
+  const compararBtn  = document.getElementById('corte-comparar-btn');
+  const corregirBtn  = document.getElementById('corte-corregir-btn');
+  const cerrarBtn    = document.getElementById('corte-cerrar-btn');
+
+  if (!_corteData || !_conteoRevealed) {
+    if (esperadoRow) esperadoRow.style.display = 'none';
     if (diffRow) diffRow.style.display = 'none';
+    if (compararBtn) compararBtn.style.display = 'block';
+    if (corregirBtn) corregirBtn.style.display = 'none';
+    if (cerrarBtn) cerrarBtn.style.display = 'none';
     return;
   }
-  const fondo = parseFloat(localStorage.getItem(_fondoKey())) || 0;
+
+  const fondo = _currentShift?.fondo_inicial ?? 0;
   const totalGastos = _getGastos().reduce((s, g) => s + g.amount, 0);
   const esperado = Math.round((fondo + _corteData.efectivo - totalGastos + Number.EPSILON) * 100) / 100;
+  if (esperadoRow) esperadoRow.style.display = 'flex';
   document.getElementById('corte-esperado').textContent = '$' + esperado.toLocaleString('es-MX');
 
   const conteoRaw = localStorage.getItem(_conteoKey());
-  const diffRow = document.getElementById('corte-diff-row');
   const diffVal = document.getElementById('corte-diff-val');
-  if (conteoRaw == null) { diffRow.style.display = 'none'; return; }
-
   const diff = Math.round(((parseFloat(conteoRaw) || 0) - esperado + Number.EPSILON) * 100) / 100;
   diffRow.style.display = 'flex';
   if (Math.abs(diff) < .005) {
@@ -788,6 +837,10 @@ function _renderCierre() {
     diffVal.textContent = `-$${Math.abs(diff).toLocaleString('es-MX')} faltante`;
     diffVal.style.color = 'var(--red)';
   }
+
+  if (compararBtn) compararBtn.style.display = 'none';
+  if (corregirBtn) corregirBtn.style.display = 'block';
+  if (cerrarBtn) cerrarBtn.style.display = 'inline-flex';
 }
 
 function compartirCorteWA() {
@@ -827,7 +880,7 @@ function compartirCorteWA() {
   // Cierre de caja (fondo + conteo) — es del cajón de quien tiene la sesión
   // abierta en este dispositivo, no tiene sentido combinado en "General".
   if (!isGeneral) {
-    const fondo = parseFloat(localStorage.getItem(_fondoKey())) || 0;
+    const fondo = _currentShift?.fondo_inicial ?? 0;
     const esperado = fondo + efectivo - totalGastos;
     const conteoRaw = localStorage.getItem(_conteoKey());
     if (fondo > 0 || conteoRaw != null) {
@@ -844,4 +897,62 @@ function compartirCorteWA() {
   }
 
   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// Cierra el turno real en el servidor (te_close_cash_shift) -- exige el
+// conteo físico, calcula la diferencia del lado del servidor y vuelve a
+// bloquear Caja hasta que se abra un turno nuevo. A diferencia de "Corte"
+// (consulta en vivo, se puede abrir mil veces sin dejar rastro), esto sí
+// queda guardado con hora real y visible para Ofelia en Actividad/Reportes.
+async function confirmCloseTurno() {
+  if (!_currentShift) return;
+  const conteoRaw = document.getElementById('corte-conteo').value;
+  if (conteoRaw === '' || !_conteoRevealed) {
+    alert('Primero compara tu conteo físico contra el esperado.');
+    document.getElementById('corte-conteo')?.focus();
+    return;
+  }
+  if (!confirm('¿Cerrar tu turno? No podrás seguir vendiendo hasta que abras uno nuevo.')) return;
+
+  const conteo = parseFloat(conteoRaw) || 0;
+  const totalGastos = _getGastos().reduce((s, g) => s + g.amount, 0);
+
+  // Diferencia grande (mismo umbral que el servidor, $100) -- cerrar sin
+  // supervisión ya no basta, igual que precio/descuento/cancelar/editar
+  // apartado; el servidor vuelve a validarlo, esto solo evita un viaje
+  // redondo con error si ya sabemos que hace falta autorización.
+  const esperadoPreview = Math.round(((_currentShift?.fondo_inicial ?? 0) + (_corteData?.efectivo ?? 0) - totalGastos + Number.EPSILON) * 100) / 100;
+  const diffPreview = Math.round((conteo - esperadoPreview + Number.EPSILON) * 100) / 100;
+  if (Math.abs(diffPreview) >= 100 && !canCloseShiftUnsupervised()) {
+    const granted = await requestOverride('canCloseShiftUnsupervised', 'Cerrar turno con diferencia grande');
+    if (!granted) return;
+  }
+
+  const btn = document.getElementById('corte-cerrar-btn');
+  const label = document.getElementById('corte-cerrar-label');
+  const prevLabel = label?.textContent;
+  if (btn) btn.disabled = true;
+  if (label) label.textContent = 'Cerrando…';
+
+  const geo = await _getGeoLocation();
+  const r = await api('rpc/te_close_cash_shift', {
+    method: 'POST',
+    body: JSON.stringify({
+      p_conteo_final: conteo, p_gastos_total: totalGastos, p_lat: geo?.lat ?? null, p_lng: geo?.lng ?? null,
+      p_override_tickets: _collectOverrideTickets(['canCloseShiftUnsupervised'])
+    })
+  });
+
+  if (!r.ok || !r.data) {
+    if (btn) btn.disabled = false;
+    if (label) label.textContent = prevLabel;
+    alert(r.data?.message || 'No se pudo cerrar tu turno. Revisa tu conexión e intenta de nuevo.');
+    return;
+  }
+
+  _currentShift = null;
+  _conteoRevealed = false;
+  document.getElementById('shift-reminder-banner')?.classList.remove('show');
+  closeCorte();
+  _posShiftGateInit();
 }

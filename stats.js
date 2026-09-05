@@ -712,6 +712,7 @@ function renderAll() {
   renderRentabilidad();
   renderVendedores();
   renderTopClientes();
+  renderTurnos();
   renderCalendar();
   renderWeekdayChart();
 }
@@ -1684,6 +1685,127 @@ async function loadApartadosPendientes() {
    de fetch propio que Apartados pendientes. Solo cuenta ventas/apartados ya
    vinculados a un customer_id (customers es aditivo: ventas viejas sin
    teléfono capturado se quedan fuera hasta que esa clienta vuelva a comprar). ── */
+let turnosLoaded = false;
+let _turnos = [];
+
+// Historial real de apertura/cierre de caja (cash_shifts) -- reemplaza el
+// "turno" que antes solo vivía en localStorage y nunca era visible aquí.
+async function loadTurnos() {
+  const r = await _fetchAll(`cash_shifts?select=id,user_email,opened_at,closed_at,fondo_inicial,conteo_final,gastos_total,esperado,diferencia,status&is_test=eq.false&order=opened_at.desc&limit=60`);
+  turnosLoaded = r.ok;
+  _turnos = r.ok ? (r.data || []) : [];
+}
+
+// Mismo patrón que markSaleAsTest (pos-apartados.js) -- solo marca (no
+// desmarca) y no borra el registro, solo lo saca de esta vista y de
+// Actividad al recargar. Gateado en el servidor por canMarkTestData.
+async function markShiftAsTest(id) {
+  if (!confirm('¿Marcar este turno como prueba?\n\nDejará de aparecer en Reportes y Actividad (el registro no se borra).')) return;
+  const r = await _sharedRpc('te_set_shift_test_flag', { p_shift_id: id, p_is_test: true });
+  if (!r.ok || !r.data?.ok) {
+    alert(r.data?.message || 'No se pudo marcar como prueba');
+    return;
+  }
+  await loadTurnos();
+  renderTurnos();
+}
+
+// Mismo umbral que usa te_close_cash_shift del lado del servidor (para el
+// "⚠️" que antepone al summary de turno_cerrado en Actividad) -- si cambia
+// uno, cambiar el otro (supabase/migrations/20260904_02_cash_shift_diff_alert.sql).
+const _DIFF_ALERTA_MONTO = 100;
+
+function renderTurnos() {
+  const card  = document.getElementById('turnos-card');
+  const body  = document.getElementById('turnos-body');
+  const label = document.getElementById('turnos-label');
+  if (!card || !body) return;
+  if (!turnosLoaded) {
+    label.textContent = 'No disponible';
+    body.innerHTML = '<p class="no-data">No disponible</p>';
+    return;
+  }
+  if (!_turnos.length) {
+    label.textContent = '';
+    body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:.84rem">Aún no hay turnos registrados</div>';
+    return;
+  }
+  const abiertos = _turnos.filter(t => t.status === 'abierto').length;
+  const grandes = _turnos.filter(t => t.diferencia != null && Math.abs(Number(t.diferencia)) >= _DIFF_ALERTA_MONTO).length;
+  label.textContent = [
+    abiertos ? `${abiertos} en curso` : `Últimos ${_turnos.length}`,
+    grandes ? `⚠️ ${grandes} con diferencia grande` : ''
+  ].filter(Boolean).join(' · ');
+
+  const fmtHora = v => v ? new Intl.DateTimeFormat('es-MX', {
+    timeZone: 'America/Mexico_City', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+  }).format(new Date(v)) : '—';
+  const fmtMoney = n => `${n < 0 ? '−' : '+'}$${Math.abs(Math.round((n + Number.EPSILON) * 100) / 100).toLocaleString('es-MX')}`;
+
+  // Acumulado por cajera -- solo turnos con conteo real (diferencia != null;
+  // los cerrado_auto nunca tuvieron conteo, así que no distorsionan el total.
+  const agg = new Map();
+  _turnos.forEach(t => {
+    if (t.diferencia == null) return;
+    const key = t.user_email || '(sin usuario)';
+    const cur = agg.get(key) || { total: 0, count: 0, grandes: 0 };
+    cur.total += Number(t.diferencia);
+    cur.count += 1;
+    if (Math.abs(Number(t.diferencia)) >= _DIFF_ALERTA_MONTO) cur.grandes += 1;
+    agg.set(key, cur);
+  });
+  const aggRows = [...agg.entries()]
+    .map(([email, s]) => ({ email, ...s, total: Math.round((s.total + Number.EPSILON) * 100) / 100 }))
+    .sort((a, b) => a.total - b.total);
+
+  const aggHtml = aggRows.length ? `
+    <div style="padding:8px 0 12px;border-bottom:1px solid var(--border);margin-bottom:8px">
+      <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px">👥 Acumulado por cajera</div>
+      ${aggRows.map(r => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:.8rem">
+          <span>${_esc(r.email.split('@')[0])}<span style="color:var(--muted);font-weight:400;margin-left:6px;font-size:.72rem">${r.count} turno${r.count !== 1 ? 's' : ''}${r.grandes ? ` · ⚠️ ${r.grandes} grande${r.grandes !== 1 ? 's' : ''}` : ''}</span></span>
+          <span style="font-weight:700;color:${Math.abs(r.total) < .005 ? 'var(--green)' : r.total > 0 ? 'var(--gold-dark)' : 'var(--red)'}">${Math.abs(r.total) < .005 ? '✓ Cuadra' : fmtMoney(r.total)}</span>
+        </div>`).join('')}
+    </div>` : '';
+
+  const canMarkTest = _getMyPermsCached()?.canMarkTestData === true;
+
+  const turnosHtml = _turnos.map(t => {
+    const nombre = (t.user_email || '').split('@')[0] || 'Sin usuario';
+    const enCurso = t.status === 'abierto';
+    const sinCierre = t.status === 'cerrado_auto';
+    const diff = t.diferencia != null ? Math.round((Number(t.diferencia) + Number.EPSILON) * 100) / 100 : null;
+    const esGrande = diff != null && Math.abs(diff) >= _DIFF_ALERTA_MONTO;
+    const diffTxt = diff == null ? '—'
+      : Math.abs(diff) < .005 ? '✓ Cuadra'
+      : `${esGrande ? '⚠️ ' : ''}${diff > 0 ? '+' : '-'}$${Math.abs(diff).toLocaleString('es-MX')}`;
+    const diffColor = diff == null ? 'var(--muted)'
+      : Math.abs(diff) < .005 ? 'var(--green)'
+      : diff > 0 ? 'var(--gold-dark)' : 'var(--red)';
+    const estadoChip = enCurso
+      ? '<span style="font-size:.68rem;font-weight:700;color:var(--green);background:#EAF7EF;border-radius:50px;padding:2px 9px;white-space:nowrap">● En curso</span>'
+      : sinCierre
+        ? '<span style="font-size:.68rem;font-weight:700;color:var(--red);background:#FEF2F2;border-radius:50px;padding:2px 9px;white-space:nowrap">Sin cerrar</span>'
+        : '';
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--border)${esGrande ? ';border-left:3px solid var(--red);padding-left:8px' : ''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-size:.84rem;font-weight:600">${_esc(nombre)}</span>
+        <span style="display:flex;align-items:center;gap:6px">
+          ${estadoChip}
+          ${canMarkTest ? `<button onclick="markShiftAsTest(${t.id})" title="Marcar como prueba" style="background:none;border:none;color:var(--muted);opacity:.55;cursor:pointer;font-size:.8rem;padding:2px">🧪</button>` : ''}
+        </span>
+      </div>
+      <div style="font-size:.74rem;color:var(--muted);margin-bottom:4px">${fmtHora(t.opened_at)} → ${enCurso ? 'ahora' : fmtHora(t.closed_at)}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:.76rem">
+        <span style="color:var(--muted)">Fondo $${Number(t.fondo_inicial || 0).toLocaleString('es-MX')}${t.conteo_final != null ? ` · Contado $${Number(t.conteo_final).toLocaleString('es-MX')}` : ''}</span>
+        <span style="font-weight:700;color:${diffColor}">${diffTxt}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  body.innerHTML = aggHtml + turnosHtml;
+}
+
 async function loadClientesReport() {
   const [custR, salesR] = await Promise.all([
     _fetchAll(`customers?select=id,name,phone,notes,created_at&order=created_at.desc`),
@@ -2060,6 +2182,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadPreviousSales(initialMode, initialOffset, initialGeneration),
         loadApartadosPendientes(),
         loadClientesReport(),
+        loadTurnos(),
         loadNameMap(),
         loadTodaySales(initialGeneration),
         loadCategories()
@@ -2080,6 +2203,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     todaySummaryLoaded = false;
     apartadosPendientesLoaded = false;
     clientesLoaded = false;
+    turnosLoaded = false;
     renderAll();
     const aptLabel = document.getElementById('apt-summary-label');
     const aptBody = document.getElementById('apt-pending-body');

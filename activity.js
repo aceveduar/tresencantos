@@ -109,6 +109,7 @@ async function _fetchAllActivity(path, pageSize = 1000) {
 let allData     = [];
 let currentType = '';
 let currentSearch = '';
+let currentNightOnly = false;
 let _activityLoadGeneration = 0;
 const _knownActivityUsers = new Set();
 let nameMap     = {}; // { email: displayName }
@@ -157,7 +158,32 @@ function _chipsScroll() {
 /* ── FILTERS ── */
 function setType(btn, type) {
   currentType = type;
-  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.type === type));
+  document.querySelectorAll('.chip[data-type]').forEach(c => c.classList.toggle('active', c.dataset.type === type));
+  render(allData);
+}
+
+// "Fuera de horario" (2026-09-04) -- Eduardo pidió un track de si se mueve
+// algo fuera de horario, pero los horarios varían demasiado por persona/día
+// (Areli 11-5, a veces 11-2, Eduardo a veces 9:30-1:30) para comparar contra
+// un horario fijo por empleado. En vez de eso: una franja nocturna amplia
+// (23:00-06:00 hora CDMX) donde nadie de piso debería estar vendiendo o
+// moviendo inventario, sin importar qué tan variable sea su horario del día
+// -- y se excluye a quienes sí trabajan de noche legítimamente en el sistema
+// (Ofelia revisando, Eduardo corrigiendo). Es independiente del filtro de
+// tipo (Ventas/Inventario/Apartados/Sistema) -- se pueden combinar.
+const _NIGHT_EXEMPT_EMAILS = ['eacevedo@sunname.com.mx', 'ma.dolores.mtz.mtz@gmail.com', 'ofe@tresencantos.com'];
+
+function _isNightActivity(item) {
+  if (_NIGHT_EXEMPT_EMAILS.includes((item.user_email || '').toLowerCase())) return false;
+  const h = Number(new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Mexico_City', hour: '2-digit', hourCycle: 'h23'
+  }).format(new Date(item.created_at)));
+  return h >= 23 || h < 6;
+}
+
+function toggleNightFilter(btn) {
+  currentNightOnly = !currentNightOnly;
+  btn.classList.toggle('active', currentNightOnly);
   render(allData);
 }
 
@@ -215,6 +241,7 @@ const _actIcoPhone    = (px) => _actIco('<rect x="5" y="2" width="14" height="20
 const _actIcoCalendar = (px) => _actIco('<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>', px);
 const _actIcoPackage  = (px) => _actIco('<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>', px);
 const _actIcoUser     = (px) => _actIco('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', px);
+const _actIcoClock    = (px) => _actIco('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', px);
 
 /* ── ACTION CONFIG ── */
 const ACTION_CFG = {
@@ -244,6 +271,9 @@ const ACTION_CFG = {
   sesion_iniciada:       { type:'sistema', badge:'creado',    icon:_actIcoUser(),  label:'Inicio de sesión' },
   sesion_cerrada:        { type:'sistema', badge:'editado',   icon:_actIcoUser(),  label:'Cierre de sesión' },
   sesion_fallida:        { type:'sistema', badge:'eliminado', icon:_actIcoWarn(),  label:'Login bloqueado' },
+  turno_abierto:         { type:'sistema', badge:'creado',    icon:_actIcoClock(), label:'Turno abierto' },
+  turno_cerrado:         { type:'sistema', badge:'editado',   icon:_actIcoClock(), label:'Turno cerrado' },
+  turno_cerrado_auto:    { type:'sistema', badge:'eliminado', icon:_actIcoWarn(),  label:'Turno sin cerrar' },
 };
 
 /* ── LOAD ── */
@@ -289,7 +319,7 @@ async function load() {
     return;
   }
 
-  allData = await _filterOutTestSales(logRes.data || []);
+  allData = await _filterOutTestData(logRes.data || []);
   if (loadGeneration !== _activityLoadGeneration) return;
   populateUsers(allData);
   render(allData);
@@ -298,24 +328,40 @@ async function load() {
 // Las acciones ligadas a una venta/apartado guardan el sale_id en meta.id --
 // para las demás (producto_*, permisos_*, configuracion_editada, etc.) ese
 // mismo campo significa otra cosa (id de producto, por ejemplo), así que
-// nunca se cruzan contra sales.is_test.
+// nunca se cruzan contra sales.is_test. Las de turno de caja usan
+// meta.shift_id (no meta.id) y se cruzan aparte contra cash_shifts.is_test
+// (2026-09-04 -- mismo hueco que sales tenía antes del fix de is_test).
 const _SALE_LINKED_ACTIONS = new Set([
   'venta', 'venta_cancelada', 'apartado_nuevo', 'apartado_abono', 'apartado_editado',
   'apartado_liquidado', 'apartado_reembolso', 'apartado_cancelado',
   'comprobante_enviado', 'comprobante_omitido'
 ]);
-async function _filterOutTestSales(logData) {
-  const ids = [...new Set(
-    logData
-      .filter(item => _SALE_LINKED_ACTIONS.has(item.action) && Number.isFinite(item.meta?.id))
-      .map(item => item.meta.id)
+const _SHIFT_LINKED_ACTIONS = new Set(['turno_abierto', 'turno_cerrado', 'turno_cerrado_auto']);
+
+async function _filterOutTestData(logData) {
+  const saleIds = [...new Set(
+    logData.filter(item => _SALE_LINKED_ACTIONS.has(item.action) && Number.isFinite(item.meta?.id)).map(item => item.meta.id)
   )];
-  if (!ids.length) return logData;
-  const r = await _fetchAllActivity(`sales?id=in.(${ids.join(',')})&select=id,is_test`);
-  if (!r.ok || !Array.isArray(r.data)) return logData; // si falla la consulta, no ocultar de más
-  const testIds = new Set(r.data.filter(s => s.is_test).map(s => s.id));
-  if (!testIds.size) return logData;
-  return logData.filter(item => !(_SALE_LINKED_ACTIONS.has(item.action) && testIds.has(item.meta?.id)));
+  const shiftIds = [...new Set(
+    logData.filter(item => _SHIFT_LINKED_ACTIONS.has(item.action) && Number.isFinite(item.meta?.shift_id)).map(item => item.meta.shift_id)
+  )];
+
+  let testSaleIds = new Set();
+  if (saleIds.length) {
+    const r = await _fetchAllActivity(`sales?id=in.(${saleIds.join(',')})&select=id,is_test`);
+    if (r.ok && Array.isArray(r.data)) testSaleIds = new Set(r.data.filter(s => s.is_test).map(s => s.id));
+  }
+  let testShiftIds = new Set();
+  if (shiftIds.length) {
+    const r = await _fetchAllActivity(`cash_shifts?id=in.(${shiftIds.join(',')})&select=id,is_test`);
+    if (r.ok && Array.isArray(r.data)) testShiftIds = new Set(r.data.filter(s => s.is_test).map(s => s.id));
+  }
+  if (!testSaleIds.size && !testShiftIds.size) return logData;
+
+  return logData.filter(item =>
+    !(_SALE_LINKED_ACTIONS.has(item.action) && testSaleIds.has(item.meta?.id)) &&
+    !(_SHIFT_LINKED_ACTIONS.has(item.action) && testShiftIds.has(item.meta?.shift_id))
+  );
 }
 
 function populateUsers(data) {
@@ -339,6 +385,7 @@ function render(data) {
     ? data.filter(d => (ACTION_CFG[d.action]?.type || 'inventario') === currentType)
     : data;
   if (currentSearch) filtered = filtered.filter(d => _matchesSearch(d, currentSearch));
+  if (currentNightOnly) filtered = filtered.filter(_isNightActivity);
 
   const feed = document.getElementById('feed');
   if (!filtered.length) {
@@ -346,7 +393,7 @@ function render(data) {
     // ocupado con el chip "Sistema" activo (y nada de ese tipo en el
     // período) se veía idéntico a un día genuinamente sin actividad, sin
     // forma de distinguir "no pasó nada" de "tu filtro no encontró nada".
-    const isFiltered = !!currentType || !!currentSearch;
+    const isFiltered = !!currentType || !!currentSearch || currentNightOnly;
     feed.innerHTML = `<div class="empty-state"><div class="em">${_actIcoClipboard(32)}</div>${isFiltered ? 'Ningún resultado con este filtro' : 'Sin actividad en este período'}</div>`;
     return;
   }
@@ -422,13 +469,14 @@ function render(data) {
         : '';
 
       const idx = allData.indexOf(item);
-      html += `<div class="act-card" onclick="_actPopup(${idx})" style="cursor:pointer">
+      const nightFlag = _isNightActivity(item);
+      html += `<div class="act-card"${nightFlag ? ' style="cursor:pointer;border-left:3px solid var(--red)"' : ' style="cursor:pointer"'} onclick="_actPopup(${idx})">
   <div class="act-avatar" style="background:${color}">${ini}</div>
   <div class="act-body">
     <div class="act-top">
       <span class="act-badge badge-${cfg.badge}">${cfg.icon} ${cfg.label}</span>
       <span class="act-user">${_esc(name)}</span>
-      <span class="act-time">${time}</span>
+      <span class="act-time">${nightFlag ? '🌙 ' : ''}${time}</span>
     </div>
     <div class="act-summary">${_esc(item.summary)}</div>
     ${detail ? `<div class="act-detail">${detail}</div>` : ''}

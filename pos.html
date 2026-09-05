@@ -16,7 +16,33 @@
 <input id="scan-trap" type="text" inputmode="none" tabindex="-1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
   style="position:fixed;top:-200px;left:-200px;width:1px;height:1px;opacity:0;border:none;outline:none;padding:0;margin:0;pointer-events:none">
 
-
+<!-- ABRIR CAJA — bloqueante, sin botón de cerrar (onclick vacío en el fondo).
+     Visible por default para que no haya un parpadeo del resto de Caja antes
+     de confirmar si hay turno abierto; _posShiftGateInit() (pos-core.js) la
+     retira en cuanto confirma un turno, o la deja para declarar el fondo. -->
+<div class="overlay open" id="open-shift-overlay" onclick="void 0">
+  <div class="sale-done-modal" style="text-align:left;max-width:340px">
+    <div id="open-shift-checking" style="text-align:center;padding:24px 0">
+      <p style="font-size:.86rem;color:var(--muted)">Verificando tu turno…</p>
+    </div>
+    <div id="open-shift-form" style="display:none">
+      <h2 style="text-align:center;margin-bottom:4px">Abrir caja</h2>
+      <p style="text-align:center;font-size:.82rem;color:var(--muted);margin-bottom:18px">Antes de vender, declara el fondo con el que empiezas tu turno.</p>
+      <label for="open-shift-fondo" style="font-size:.8rem;font-weight:600;color:var(--charcoal);display:block;margin-bottom:6px">Fondo inicial</label>
+      <div style="display:flex;align-items:center;gap:6px;border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:6px">
+        <span style="font-size:1rem;color:var(--muted)">$</span>
+        <input id="open-shift-fondo" type="number" min="0" inputmode="decimal" placeholder="0" style="flex:1;border:none;outline:none;font-size:1.1rem;font-weight:700;font-family:inherit;text-align:right">
+      </div>
+      <p style="font-size:.72rem;color:var(--muted);margin-bottom:16px">Cuenta el efectivo que hay en la caja ahora mismo. Puede ser $0.</p>
+      <div id="open-shift-error" style="display:none;background:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B;border-radius:8px;padding:8px 12px;font-size:.78rem;margin-bottom:12px"></div>
+      <button id="open-shift-btn" style="width:100%;padding:13px;border-radius:50px;border:none;background:var(--charcoal);color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit">Abrir caja e iniciar turno</button>
+    </div>
+    <div id="open-shift-retry-wrap" style="display:none;text-align:center;padding:12px 0">
+      <p style="font-size:.84rem;color:var(--red);margin-bottom:12px">No se pudo verificar tu turno. Revisa tu conexión.</p>
+      <button id="open-shift-retry-btn" style="padding:10px 20px;border-radius:50px;border:1.5px solid var(--border);background:#fff;font-size:.84rem;font-weight:700;cursor:pointer;font-family:inherit">Reintentar</button>
+    </div>
+  </div>
+</div>
 
 <!-- TOPBAR -->
 <div class="topbar">
@@ -77,6 +103,17 @@
     <span style="margin-left:auto;font-size:.75rem;font-weight:600;opacity:.7">Ver →</span>
   </button>
   <button type="button" class="apt-venc-banner-close" onclick="event.stopPropagation();dismissAptVencBannerToday()" aria-label="Cerrar por hoy" title="Cerrar por hoy">✕</button>
+</div>
+
+<!-- RECORDATORIO DE FIN DE TURNO — no bloquea nada, solo invita a cerrar
+     caja con conteo real en vez de dejar el turno abierto indefinidamente -->
+<div id="shift-reminder-banner" class="shift-reminder-banner">
+  <button type="button" class="shift-reminder-banner-main" onclick="openCorte()" aria-label="Abrir Corte de caja">
+    <svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    <span id="shift-reminder-txt"></span>
+    <span style="margin-left:auto;font-size:.75rem;font-weight:600;opacity:.7">Corte →</span>
+  </button>
+  <button type="button" class="shift-reminder-banner-close" onclick="event.stopPropagation();dismissShiftReminder()" aria-label="Cerrar por este turno" title="Cerrar por este turno">✕</button>
 </div>
 
 <!-- MAIN -->
@@ -569,32 +606,42 @@
 
       <!-- CIERRE DE CAJA (EFECTIVO) -->
       <div style="margin-top:14px;background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
-        <div style="padding:10px 16px;border-bottom:1px solid var(--border)">
+        <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
           <span style="font-size:.82rem;font-weight:700;color:var(--charcoal)"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>Cierre de caja</span>
+          <span id="corte-turno-abierto" style="font-size:.7rem;color:var(--muted);white-space:nowrap"></span>
         </div>
         <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <span style="font-size:.8rem;color:var(--muted);font-weight:600">Fondo inicial</span>
+          <span style="font-size:.8rem;color:var(--muted);font-weight:600">Fondo inicial<span style="font-weight:400;margin-left:6px;color:#B5A696">declarado al abrir</span></span>
           <div style="display:flex;align-items:center;gap:4px">
             <span style="font-size:.84rem;color:var(--muted)">$</span>
-            <input id="corte-fondo" type="number" min="0" inputmode="decimal" placeholder="0" oninput="_onFondoChange()" style="width:100px;padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;font-weight:700;font-family:inherit;outline:none;text-align:right">
+            <input id="corte-fondo" type="number" readonly tabindex="-1" style="width:100px;padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;font-weight:700;font-family:inherit;outline:none;text-align:right;background:var(--cream);color:var(--muted)">
           </div>
         </div>
-        <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <span style="font-size:.8rem;color:var(--muted);font-weight:600">Conteo físico<span style="font-weight:400;margin-left:6px;color:#B5A696">cuenta el efectivo primero</span></span>
+          <div style="display:flex;align-items:center;gap:4px">
+            <span style="font-size:.84rem;color:var(--muted)">$</span>
+            <input id="corte-conteo" type="number" min="0" inputmode="decimal" placeholder="0" oninput="_onConteoInput()" style="width:100px;padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;font-weight:700;font-family:inherit;outline:none;text-align:right">
+          </div>
+        </div>
+        <!-- Conteo a ciegas: "Efectivo esperado" no se muestra hasta después
+             de comparar -- verlo antes invitaría a copiar el número en vez
+             de contar el efectivo de verdad. -->
+        <button id="corte-comparar-btn" onclick="compararConteo()" style="display:block;width:calc(100% - 32px);margin:10px 16px;padding:10px;border-radius:8px;border:1.5px dashed var(--gold);background:var(--gold-light);color:var(--gold-dark);font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit">🔍 Comparar conteo</button>
+        <div id="corte-esperado-row" style="display:none;padding:10px 16px;border-bottom:1px solid var(--border);border-top:1px solid var(--border);justify-content:space-between;align-items:center">
           <span style="font-size:.8rem;color:var(--muted);font-weight:600">Efectivo esperado<span style="font-weight:400;margin-left:6px;color:#B5A696">fondo + ventas − gastos</span></span>
           <span id="corte-esperado" style="font-weight:700;font-size:.9rem">$0</span>
-        </div>
-        <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <span style="font-size:.8rem;color:var(--muted);font-weight:600">Conteo físico</span>
-          <div style="display:flex;align-items:center;gap:4px">
-            <span style="font-size:.84rem;color:var(--muted)">$</span>
-            <input id="corte-conteo" type="number" min="0" inputmode="decimal" placeholder="0" oninput="_onConteoChange()" style="width:100px;padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;font-weight:700;font-family:inherit;outline:none;text-align:right">
-          </div>
         </div>
         <div id="corte-diff-row" style="display:none;padding:12px 16px;justify-content:space-between;align-items:center">
           <span style="font-weight:700;font-size:.88rem">Diferencia</span>
           <span id="corte-diff-val" style="font-size:1.1rem;font-weight:800"></span>
         </div>
+        <button id="corte-corregir-btn" onclick="corregirConteo()" style="display:none;width:100%;padding:8px;border:none;background:none;color:var(--muted);font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:underline">✏️ Corregir conteo</button>
       </div>
+      <button id="corte-cerrar-btn" onclick="confirmCloseTurno()" style="display:none;margin-top:10px;width:100%;padding:12px;border-radius:50px;border:1.5px solid var(--red);background:#fff;color:var(--red);font-size:.86rem;font-weight:700;cursor:pointer;font-family:inherit;align-items:center;justify-content:center;gap:7px">
+        <svg width="15" height="15" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span id="corte-cerrar-label">Cerrar turno</span>
+      </button>
     </div>
 
     <button id="corte-wa-btn" onclick="compartirCorteWA()" style="margin-top:14px;width:100%;padding:12px;border-radius:50px;border:none;background:#25D366;color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:7px">

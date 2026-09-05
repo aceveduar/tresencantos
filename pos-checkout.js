@@ -552,8 +552,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       filterApartados(document.getElementById('apt-page-search')?.value || '', 'page');
     }
   });
-  // Registrar inicio de turno por usuario y por fecha de Ciudad de México.
-  _posEnsureCurrentShift();
+  // Turno de caja: bloquea el resto de Caja hasta declarar la apertura real
+  // (fondo inicial) en el servidor -- ver _posShiftGateInit() en pos-core.js.
+  await _posShiftGateInit();
+  // Recordatorio de fin de turno -- _posShiftGateAttempt() ya revisa al
+  // resolver la apertura; este intervalo lo vuelve a revisar cada 15 min
+  // mientras la pestaña siga abierta, para no depender de que alguien recargue.
+  setInterval(_posCheckShiftReminder, 15 * 60 * 1000);
   // Nombre del usuario en topbar
   try {
     const _s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
