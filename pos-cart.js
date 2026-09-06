@@ -293,62 +293,11 @@ function _updateMiniCartBar() {
   }
 }
 
-/* ── CART TOPBAR PREVIEW ── */
-function toggleCartPreview() {
-  // En mobile las pestañas reemplazan el dropdown
-  if (isTabMode()) { switchPosTab(_currentTab === 'cart' ? 'catalog' : 'cart'); return; }
-  const preview = document.getElementById('cart-preview');
-  const backdrop = document.getElementById('cart-preview-backdrop');
-  const isOpen = preview.classList.contains('open');
-  if (isOpen) { closeCartPreview(); return; }
-  renderCartPreview();
-  preview.classList.add('open');
-  backdrop.classList.add('open');
-}
-
-function closeCartPreview() {
-  document.getElementById('cart-preview')?.classList.remove('open');
-  document.getElementById('cart-preview-backdrop')?.classList.remove('open');
-}
-
-function renderCartPreview() {
-  const el = document.getElementById('cp-items');
-  const totalEl = document.getElementById('cp-total');
-  const cobrarBtn = document.getElementById('cp-cobrar-btn');
-  if (!el) return;
-  if (!cart.length) {
-    el.innerHTML = '<div class="cp-empty">El carrito está vacío</div>';
-    if (totalEl) totalEl.textContent = '$0';
-    if (cobrarBtn) cobrarBtn.disabled = true;
-    return;
-  }
-  el.innerHTML = cart.map(({ product: p, qty, customPrice }) => {
-    const effPrice = customPrice ?? p.price;
-    return `
-<div class="cp-item">
-  <img class="cp-item-img" src="${_driveSz(p.image,80)}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
-  <span class="cp-item-name" title="${_esc(p.name)}">${_esc(p.name)}</span>
-  <span class="cp-item-qty">×${qty}</span>
-  <span class="cp-item-sub">$${(effPrice*qty).toLocaleString('es-MX')}</span>
-</div>`;
-  }).join('');
-  const total = getDiscountedTotal();
-  if (totalEl) totalEl.textContent = `$${total.toLocaleString('es-MX')}`;
-  if (cobrarBtn) cobrarBtn.disabled = false;
-}
-
 function syncCartTopbar() {
   const totalItems = cart.reduce((s, x) => s + x.qty, 0);
-  // Badge topbar (desktop)
-  const badge = document.getElementById('cart-topbar-badge');
-  const btn   = document.getElementById('cart-topbar-btn');
-  if (badge) { badge.textContent = totalItems > 0 ? totalItems : ''; badge.style.display = totalItems > 0 ? 'flex' : 'none'; }
-  if (btn)   btn.classList.toggle('has-items', totalItems > 0);
   // Badge pestaña (mobile)
   const tabBadge = document.getElementById('tab-cart-badge');
   if (tabBadge) { tabBadge.textContent = totalItems > 0 ? totalItems : ''; tabBadge.style.display = totalItems > 0 ? 'flex' : 'none'; }
-  // Preview abierto → actualizar
-  if (document.getElementById('cart-preview')?.classList.contains('open')) renderCartPreview();
 }
 
 function renderCart() {

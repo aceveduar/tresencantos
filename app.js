@@ -1125,7 +1125,7 @@ function notifyRestock(id, btn) {
 }
 
 function changeModalQty(delta) {
-  const maxQty = activeProduct ? (activeProduct.stock || 1) : 1;
+  const maxQty = activeProduct ? (Array.isArray(activeProduct.kitItems) ? kitStock(activeProduct) : activeProduct.stock) || 1 : 1;
   const next = Math.max(1, Math.min(_modalQty + delta, maxQty));
   if (next === _modalQty && delta > 0) {
     const btn = document.getElementById('modal-qty-plus');

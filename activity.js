@@ -260,6 +260,7 @@ const ACTION_CFG = {
   producto_eliminado:    { type:'inventario', badge:'eliminado', icon:_actIcoTrash(), label:'Eliminado' },
   duplicado_descartado:  { type:'inventario', badge:'revisado',  icon:_actIcoEye(),   label:'Revisado'  },
   recepcion_ia_aplicada: { type:'inventario', badge:'editado',   icon:_actIcoCheck(), label:'Recepción con IA' },
+  recepcion_ia_deshecha: { type:'inventario', badge:'eliminado', icon:_actIcoWarn(),  label:'Recepción deshecha' },
   recepcion_mercancia:   { type:'inventario', badge:'editado',   icon:_actIcoPackage(),label:'Recepción' },
   permisos_editados:     { type:'sistema', badge:'editado',   icon:_actIcoEdit(),  label:'Permisos'  },
   configuracion_editada: { type:'sistema', badge:'editado',   icon:_actIcoEdit(),  label:'Configuración' },
@@ -302,7 +303,18 @@ async function load() {
   if (currentSearch) {
     const qSafe = currentSearch.replace(/[,()]/g, ' ').trim();
     const pat = encodeURIComponent(`*${qSafe}*`);
-    logQ += `&or=(summary.ilike.${pat},meta->>customer.ilike.${pat},meta->>name.ilike.${pat})&limit=1000`;
+    // meta::text cubre lo que summary/meta->>customer/meta->>name se pierden
+    // en una venta o apartado de varios productos: sus nombres viven en
+    // meta.itemsDetail (un array), no en un campo de texto plano contra el
+    // que un .ilike normal pueda comparar. Castear meta completo a texto y
+    // buscar ahí adentro sí encuentra esos casos -- _matchesSearch() (abajo)
+    // ya sabía revisar itemsDetail del lado del cliente, pero nunca tenía
+    // oportunidad de hacerlo porque el registro ni siquiera llegaba del
+    // servidor. Riesgo aceptado: en teoría podría encontrar una coincidencia
+    // dentro de otro campo de meta que no es el nombre de un producto -- en
+    // el peor caso aparece un resultado de más en la lista, no un dato
+    // sensible ni una falla.
+    logQ += `&or=(summary.ilike.${pat},meta->>customer.ilike.${pat},meta->>name.ilike.${pat},meta::text.ilike.${pat})&limit=1000`;
   } else {
     // Tope al feed de auditoría — sin esto, período "Todo" trae el
     // activity_log completo desde el primer día de la tienda.

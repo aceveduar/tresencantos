@@ -342,56 +342,11 @@ async function toggleWaFloat(enabled) {
   }
 }
 
-/* ── NOTIFICACIONES DE VENTA (por dispositivo — ver shared.js) ── */
-async function toggleSalesNotif(checked) {
-  const toggle = document.getElementById('sales-notif-toggle');
-  if (checked) {
-    if (!('Notification' in window)) {
-      toast('Tu navegador no soporta notificaciones', 'err');
-      if (toggle) toggle.checked = false;
-      return;
-    }
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted') {
-      if (toggle) toggle.checked = false;
-      toast('Permiso de notificaciones denegado — actívalo en los ajustes del navegador', 'err');
-      _renderSalesNotifHint();
-      return;
-    }
-    localStorage.setItem('te_sales_notif_enabled', '1');
-    toast('Notificaciones de venta activadas en este dispositivo ✓', 'ok');
-    window._startSalesNotifPolling?.();
-  } else {
-    localStorage.setItem('te_sales_notif_enabled', '0');
-    window._stopSalesNotifPolling?.();
-    toast('Notificaciones de venta desactivadas', 'ok');
-  }
-  _renderSalesNotifHint();
-}
-
-function _renderSalesNotifHint() {
-  const row  = document.getElementById('sales-notif-hint-row');
-  const hint = document.getElementById('sales-notif-hint');
-  if (!row || !hint) return;
-  if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
-    hint.innerHTML = '<svg style="width:13px;height:13px;vertical-align:-2px;margin-right:3px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Bloqueadas en este navegador — actívalas en los ajustes del sitio (candado en la barra de direcciones) para poder usarlas aquí.';
-    row.style.display = '';
-  } else if (localStorage.getItem('te_sales_notif_enabled') === '1') {
-    hint.textContent = 'Activas en este dispositivo. Solo llegan mientras tengas una pestaña de Tres Encantos abierta (puede estar en segundo plano) — si cierras el navegador del todo, no llegan.';
-    row.style.display = '';
-  } else {
-    row.style.display = 'none';
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  const toggle = document.getElementById('sales-notif-toggle');
-  if (toggle) {
-    toggle.checked = typeof Notification !== 'undefined' && Notification.permission === 'granted'
-      && localStorage.getItem('te_sales_notif_enabled') === '1';
-  }
-  _renderSalesNotifHint();
-});
+// El toggle "Avisarme al vender" vivía aquí y se movió al menú del avatar
+// (shared.js, 2026-09-06) -- es una preferencia por dispositivo, no un
+// ajuste de negocio, así que no debía depender de tener acceso a
+// Configuración. El motor de polling (_startSalesNotifPolling, etc.) sigue
+// en shared.js, sin cambios -- solo se movió la fila de UI que lo prendía.
 
 /* ── CATEGORIES ── */
 function rootCats()    { return categories.filter(c => !c.parent); }
@@ -1441,7 +1396,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
   if (isCatalogOnly) {
-    ['section-users', 'section-notifications', 'section-data', 'section-integrations'].forEach(id => {
+    ['section-users', 'section-data', 'section-integrations'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
@@ -1451,10 +1406,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // únicamente esa sección (JSON, nombres de usuario, revisión de
     // duplicados) -- "Limpiar historial" sigue oculto por su propio check
     // ROLE==='superadmin' más abajo, sin importar este permiso.
-    ['section-users', 'section-catalog', 'section-notifications', 'section-integrations'].forEach(id => {
+    ['section-users', 'section-catalog', 'section-integrations'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
+    // "Exportar todo" es más sensible que el resto de Datos -- descarga
+    // groq_key/drive_secret en texto plano -- y se queda encerrado en
+    // canManageSettings a propósito, sin volverse más delegable (ver
+    // CLAUDE.md). canImportExport solo da acceso al resto de la sección.
+    const backupFull = document.getElementById('scard-backup-full');
+    if (backupFull) backupFull.style.display = 'none';
   }
   if (permissions.role) ROLE = permissions.role;
   try {

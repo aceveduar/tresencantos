@@ -47,7 +47,6 @@
   <div class="topbar">
     <div class="topbar-left"></div>
     <div class="topbar-right">
-      <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
       <!-- Navegación unificada — íconos en todos los dispositivos -->
       <nav class="topbar-nav-mobile" aria-label="Módulos">
         <a href="pos.html" class="tbn-icon" title="Caja">
@@ -158,7 +157,7 @@
                 <input id="kb-search" class="kb-input" type="text" placeholder="Buscar producto para agregar..." oninput="_kbSearch(this.value);document.getElementById('kb-search-clear').style.display=this.value?'flex':'none'" style="width:100%;margin-bottom:0;padding-right:32px;padding-left:34px">
                 <button type="button" id="kb-search-clear" onclick="document.getElementById('kb-search').value='';_kbSearch('');this.style.display='none'" style="display:none;position:absolute;right:6px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;border:none;background:var(--border);color:var(--muted);font-size:.72rem;font-weight:700;cursor:pointer;align-items:center;justify-content:center;touch-action:manipulation">✕</button>
               </div>
-              <button type="button" onclick="openKitScanner()" style="flex-shrink:0;width:44px;height:44px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation" title="Escanear código de barras"><svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></button>
+              <button type="button" onclick="openKitScanner()" style="flex-shrink:0;width:44px;height:44px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation" title="Escanear código de barras"><svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5v14"/><path d="M7 5v14"/><path d="M11 5v14"/><path d="M14 5v14"/><path d="M18 5v14"/><path d="M21 5v14"/></svg></button>
             </div>
             <div id="kb-search-results" style="display:none;max-height:260px;overflow-y:auto;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);margin-bottom:10px"></div>
             <div id="kb-components"></div>
@@ -182,7 +181,7 @@
       <div class="recv-scan-zone">
         <div class="recv-search-row">
           <input id="recv-search" class="recv-search" placeholder="Buscar producto por nombre…" oninput="recvSearch(this.value)" onkeydown="recvSearchKey(event)" autocomplete="off">
-          <button class="recv-scan-btn" onclick="openRecvScanner()"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Escanear</button>
+          <button class="recv-scan-btn" onclick="openRecvScanner()"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M3 5v14"/><path d="M7 5v14"/><path d="M11 5v14"/><path d="M14 5v14"/><path d="M18 5v14"/><path d="M21 5v14"/></svg>Escanear</button>
         </div>
         <div id="recv-search-results" class="recv-search-results"></div>
       </div>
@@ -212,6 +211,7 @@
 
   <!-- RECEPCIÓN CON IA -->
   <div id="recv-ia-overlay" class="recv-overlay" style="display:none">
+   <div class="recv-panel">
     <div class="recv-header">
       <div class="recv-title"><svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:5px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Recepción con IA</div>
       <button class="recv-close" onclick="closeRecvIaMode()">✕ Salir</button>
@@ -219,6 +219,17 @@
     <div class="recv-body">
       <!-- Paso 1: elegir origen -->
       <div id="ria-upload-step" class="ria-upload-step">
+        <div id="ria-undo-banner"></div>
+        <div class="ria-mode-toggle">
+          <button id="ria-mode-stock" class="ria-mode-btn active" onclick="riaSetMode('stock')">
+            <svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
+            Mercancía nueva
+          </button>
+          <button id="ria-mode-costonly" class="ria-mode-btn" onclick="riaSetMode('costOnly')">
+            <svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Solo costos
+          </button>
+        </div>
         <div class="ria-source-row">
           <button class="ria-source-btn" onclick="document.getElementById('ria-pdf-input').click()">
             <svg width="26" height="26" viewBox="0 0 24 24" stroke="var(--gold-dark)" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -233,7 +244,7 @@
         </div>
         <input type="file" id="ria-pdf-input" accept="application/pdf" style="display:none" onchange="handleRecvIaPdf(this)">
         <input type="file" id="ria-photo-input" accept="image/*" capture="environment" style="display:none" onchange="handleRecvIaPhoto(this)">
-        <p class="ria-upload-hint">¿Prefieres sumar stock a mano? Usa <a href="#" onclick="event.preventDefault();closeRecvIaMode();openRecvMode()">Recibir mercancía</a>.</p>
+        <p id="ria-upload-hint" class="ria-upload-hint">¿Prefieres sumar stock a mano? Usa <a href="#" onclick="event.preventDefault();closeRecvIaMode();openRecvMode()">Recibir mercancía</a>.</p>
       </div>
       <!-- Fotos en cola antes de extraer -->
       <div id="ria-photo-stage" class="ria-photo-stage" style="display:none">
@@ -263,6 +274,7 @@
       <!-- Paso 3: resultado de aplicar (o simular) -->
       <div id="ria-result-step" class="ria-result-step" style="display:none">
         <div id="ria-result-content"></div>
+        <div id="ria-result-undo"></div>
         <button class="ria-result-close-btn" onclick="resetRecvIa()">↺ Empezar de nuevo</button>
       </div>
     </div>
@@ -270,6 +282,7 @@
       <div id="ria-dry-badge" class="ria-dry-badge">🧪 Modo de prueba — no se guarda nada todavía</div>
       <button id="ria-apply-btn" class="ria-apply-btn" onclick="riaApplyChanges()">Simular aplicar (0)</button>
     </div>
+   </div>
   </div>
 
   <!-- RECEPCIÓN CON IA — vincular producto -->
@@ -279,8 +292,9 @@
         <div class="bcp-title">Vincular producto</div>
         <button class="bcp-close" onclick="closeRiaMatchPicker()">✕</button>
       </div>
+      <div id="ria-match-picker-context" class="ria-mpc"></div>
       <div class="bcp-search"><input id="ria-match-search-input" placeholder="Buscar en tu catálogo…" oninput="riaSearchMatchPicker(this.value)" autocomplete="off"></div>
-      <button class="ria-match-scan-btn" onclick="openRiaMatchScanner()"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Tengo el producto — escanear código de barras</button>
+      <button class="ria-match-scan-btn" onclick="openRiaMatchScanner()"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M3 5v14"/><path d="M7 5v14"/><path d="M11 5v14"/><path d="M14 5v14"/><path d="M18 5v14"/><path d="M21 5v14"/></svg>Tengo el producto — escanear código de barras</button>
       <div id="ria-match-picker-results" class="bcp-list"></div>
       <button id="ria-match-set-new-btn" class="ria-match-new-btn" onclick="riaConfirmSetNew()">+ Es un producto nuevo (no existe en el catálogo)</button>
     </div>
@@ -335,7 +349,7 @@
             <label>Código de barras <span style="font-weight:400;color:var(--muted-light)">(opcional)</span></label>
             <div style="display:flex;gap:6px">
               <input type="text" id="cap-barcode" placeholder="Escanea o escribe…" style="flex:1" autocomplete="off">
-              <button type="button" class="btn btn-outline btn-sm" onclick="openCapScanner()" title="Escanear"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="openCapScanner()" title="Escanear"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5v14"/><path d="M7 5v14"/><path d="M11 5v14"/><path d="M14 5v14"/><path d="M18 5v14"/><path d="M21 5v14"/></svg></button>
             </div>
           </div>
         </div>
@@ -372,7 +386,7 @@
         <div class="tb-actions-wrap" id="tb-actions-wrap">
         <div class="tb-actions" id="tb-actions" onscroll="_tbActionsScroll()">
           <button class="btn btn-outline btn-sm btn-ia-accent capture-mode-btn" id="btn-capture-mode-mobile" onclick="openCaptureMode()" title="Captura rápida con IA" style="display:none"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg> <span class="tb-btn-label">Captura</span></button>
-          <button class="btn btn-outline btn-sm" onclick="openSearchScanner()" title="Buscar por código de barras"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> <span class="tb-btn-label">Escanear</span></button>
+          <button class="btn btn-outline btn-sm" onclick="openSearchScanner()" title="Buscar por código de barras"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M3 5v14"/><path d="M7 5v14"/><path d="M11 5v14"/><path d="M14 5v14"/><path d="M18 5v14"/><path d="M21 5v14"/></svg> <span class="tb-btn-label">Escanear</span></button>
           <button class="btn btn-outline btn-sm" id="btn-recv-mode" onclick="openRecvMode()" title="Recibir mercancía" style="display:none"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> <span class="tb-btn-label">Recibir</span></button>
           <button class="btn btn-outline btn-sm" id="btn-recv-ia-mode" onclick="openRecvIaMode()" title="Recepción con IA — importar pedido de proveedor" style="display:none"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> <span class="tb-btn-label">Importar</span></button>
         </div>
@@ -605,7 +619,7 @@
           <label>Código de barras <span style="font-weight:400;color:var(--muted-light)">(opcional)</span></label>
           <div style="display:flex;gap:8px">
             <input type="text" id="f-barcode" placeholder="Escanea o escribe el código..." style="flex:1" onblur="checkBarcodeConflict()">
-            <button type="button" class="btn btn-outline btn-sm" onclick="openFormScanner()" title="Usar cámara"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="openFormScanner()" title="Escanear código de barras"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5v14"/><path d="M7 5v14"/><path d="M11 5v14"/><path d="M14 5v14"/><path d="M18 5v14"/><path d="M21 5v14"/></svg></button>
           </div>
           <p class="hint">EAN-13, QR, Code-128</p>
           <div id="f-barcode-warn" class="dup-warn" style="display:none"></div>

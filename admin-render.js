@@ -90,7 +90,7 @@ function renderStats() {
     (sinPrecio > 0 && can.publishProduct ? chip('sin-precio', AR_ICO_DOLLAR(), sinPrecio, 'Sin precio', AR_C_AMBER) : '') +
     (() => {
       if (ROLE !== 'superadmin') return '';
-      const nBase64 = products.filter(p => !p.isArchived && !Array.isArray(p.kitItems) && p.image?.startsWith('data:') && p.image !== DEFAULT_IMG).length;
+      const nBase64 = products.filter(p => !p.isArchived && !Array.isArray(p.kitItems) && _isRealBase64Image(p.image)).length;
       return nBase64 > 0 ? chip('imagen-base64', AR_ICO_ARCHIVE(), nBase64, 'Imagen base64', AR_C_NEUTRAL) : '';
     })() +
     (nArchivados > 0 && can.deleteProduct ? `<button class="stat-chip" onclick="toggleArchivedView()" title="Ver productos archivados" style="border-color:var(--muted-light);color:var(--muted)">

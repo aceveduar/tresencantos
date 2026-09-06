@@ -704,7 +704,6 @@ button,a{touch-action:manipulation}
   .user-avatar{width:24px;height:24px;font-size:.68rem}
   .btn-label{display:none}
   .topbar-sep-user{display:none!important}
-  .cart-topbar-btn{padding:5px 8px!important}
   .cat-chip{padding:5px 12px;font-size:.72rem}
   .cart-header{padding:8px 12px}
   .ci-qty button{min-height:38px;min-width:38px;width:38px;height:38px}
@@ -808,7 +807,6 @@ button,a{touch-action:manipulation}
   .pos-right.tab-active .cart-items{max-height:none!important;overflow-y:visible}
   .pos-right.tab-active .pos-checkout{overflow-y:visible;max-height:none}
   #cobrar-btn{position:sticky;bottom:0;z-index:5;margin-top:4px}
-  #cart-topbar-btn{display:none}
 }
 
 /* ── TABLET (641–1024px) — split view + tarjetas refinadas ──────────── */
@@ -888,56 +886,6 @@ button,a{touch-action:manipulation}
   .pos-freq-price{font-size:.62rem}
 }
 
-/* CART TOPBAR BUTTON */
-.cart-topbar-btn{
-  position:relative;display:inline-flex;align-items:center;gap:5px;
-  padding:6px 14px;border-radius:50px;border:1.5px solid rgba(255,255,255,.3);
-  background:transparent;color:#fff;font-size:.78rem;font-weight:600;cursor:pointer;
-  transition:.15s;font-family:inherit;white-space:nowrap;
-}
-.cart-topbar-btn:hover{background:rgba(255,255,255,.12)}
-.cart-topbar-btn.has-items{border-color:var(--gold);background:rgba(201,164,98,.18)}
-.cart-badge{
-  position:absolute;top:-5px;right:-5px;
-  background:var(--gold);color:#fff;
-  font-size:.58rem;font-weight:800;
-  width:17px;height:17px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  border:1.5px solid var(--charcoal);line-height:1;
-}
-
-/* CART PREVIEW DROPDOWN */
-.cart-preview-backdrop{
-  position:fixed;inset:0;z-index:580;
-  opacity:0;pointer-events:none;transition:opacity .2s;
-}
-.cart-preview-backdrop.open{opacity:1;pointer-events:all}
-.cart-preview{
-  position:fixed;top:58px;right:12px;z-index:590;
-  width:min(340px,calc(100vw - 24px));
-  background:#fff;border-radius:14px;
-  box-shadow:0 8px 32px rgba(28,24,23,.22);
-  transform:translateY(-8px) scale(.97);opacity:0;pointer-events:none;
-  transition:transform .22s cubic-bezier(.34,1.56,.64,1),opacity .18s;
-  overflow:hidden;
-}
-.cart-preview.open{transform:translateY(0) scale(1);opacity:1;pointer-events:all}
-.cp-head{padding:12px 16px;border-bottom:1px solid var(--border);font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:space-between}
-.cp-close{background:none;border:none;font-size:.9rem;cursor:pointer;color:#9B8B78;padding:2px 6px;border-radius:6px}
-.cp-close:hover{background:#F0E8E0;color:var(--charcoal)}
-.cp-items{max-height:240px;overflow-y:auto;padding:6px 10px}
-.cp-item{display:flex;align-items:center;gap:7px;padding:5px 4px;border-bottom:1px solid #F5F0EB;font-size:.8rem}
-.cp-item:last-child{border-bottom:none}
-.cp-item-img{width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0}
-.cp-item-name{flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cp-item-qty{color:#9B8B78;white-space:nowrap}
-.cp-item-sub{font-weight:700;font-family:'Playfair Display',serif;white-space:nowrap}
-.cp-empty{padding:20px;text-align:center;color:#9B8B78;font-size:.84rem}
-.cp-foot{padding:10px 14px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;background:#FDFAF6}
-.cp-total{font-family:'Playfair Display',serif;font-weight:700;font-size:1.05rem}
-.cp-cobrar{flex-shrink:0;padding:8px 16px;border-radius:50px;border:none;background:var(--green);color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit}
-.cp-cobrar:hover{background:#1B4332}
-.cp-cobrar:disabled{background:#ccc;cursor:not-allowed}
 
 /* ── Tablet (768–1024px): Corte e Historial estilo ícono+texto como el nav ── */
 @media(min-width:768px) and (max-width:1024px){
@@ -969,8 +917,6 @@ button,a{touch-action:manipulation}
   .cat-chip{padding:5px 9px;font-size:.68rem}
   .cash-quick button{font-size:.72rem;padding:6px 1px}
 }
-/* Tablet (≥641px): carrito en panel — botón topbar redundante */
-@media(min-width:641px){#cart-topbar-btn{display:none}}
 /* Resumen "Hoy" — solo mobile */
 @media(min-width:641px){#daily-summary-mobile{display:none!important}}
 /* Desktop: nav centrada */

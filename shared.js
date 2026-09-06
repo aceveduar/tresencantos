@@ -28,14 +28,14 @@ function _toggleTheme(isDark) {
 function _themeToggleRowHtml() {
   if (!_themeSupported()) return '';
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  return `<label class="ud-theme-row">
-      <span class="ud-theme-row-label">
+  return `<label class="ud-toggle-row">
+      <span class="ud-toggle-row-label">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         Modo oscuro
       </span>
-      <span class="ud-theme-switch">
+      <span class="ud-toggle-switch">
         <input type="checkbox" ${isDark ? 'checked' : ''} onchange="_toggleTheme(this.checked)">
-        <span class="ud-theme-switch-slider"></span>
+        <span class="ud-toggle-switch-slider"></span>
       </span>
     </label>`;
 }
@@ -107,6 +107,7 @@ function _themeToggleRowHtml() {
       </div>
       <div class="ud-divider"></div>
       ${_themeToggleRowHtml()}
+      ${(role === 'superadmin' && window._salesNotifToggleRowHtml) ? window._salesNotifToggleRowHtml() : ''}
       ${configLink}
       <button class="ud-logout" onclick="document.getElementById('ud-pop')?.remove();doLogout()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -390,6 +391,67 @@ function _themeToggleRowHtml() {
     return typeof Notification !== 'undefined' && Notification.permission === 'granted'
       && localStorage.getItem('te_sales_notif_enabled') === '1';
   }
+
+  // Fila de toggle en el menú del avatar (2026-09-06) -- movida aquí desde
+  // Configuración: es una preferencia por dispositivo ("cada quien la activa
+  // en el suyo", nunca se guarda en Supabase), del mismo tipo que "Mi PIN de
+  // autorización" o "Modo oscuro" -- no debería depender de tener permisos
+  // de Configuración para poder activarla. Antes, alguien sin acceso a esa
+  // pantalla (ej. Areli con el rol encargado) no tenía forma de prenderla.
+  // Restringida a superadmin en el llamado (_toggleUserDropdown, más abajo
+  // en este archivo) por decisión de negocio, no por falta de acceso: quien
+  // cobra ya sabe que acaba de vender, avisarle su propia venta es ruido;
+  // a quien vigila el negocio a distancia (Ofelia/Eduardo) sí le sirve.
+  function _salesNotifHintText() {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+      return 'Bloqueadas en este navegador — actívalas en los ajustes del sitio (candado en la barra de direcciones).';
+    }
+    if (localStorage.getItem('te_sales_notif_enabled') === '1') {
+      return 'Activas en este dispositivo mientras tengas una pestaña abierta.';
+    }
+    return '';
+  }
+
+  window._salesNotifToggleRowHtml = function () {
+    return `<label class="ud-toggle-row">
+      <span class="ud-toggle-row-label">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        Avisarme al vender
+      </span>
+      <span class="ud-toggle-switch">
+        <input type="checkbox" id="ud-sales-notif-input" ${_notifEnabled() ? 'checked' : ''} onchange="_toggleSalesNotifDevice(this.checked)">
+        <span class="ud-toggle-switch-slider"></span>
+      </span>
+    </label>
+    <div class="ud-toggle-hint" id="ud-sales-notif-hint">${_salesNotifHintText()}</div>`;
+  };
+
+  window._toggleSalesNotifDevice = async function (checked) {
+    const input = document.getElementById('ud-sales-notif-input');
+    const hintEl = document.getElementById('ud-sales-notif-hint');
+    if (checked) {
+      if (!('Notification' in window)) {
+        window.toast?.('Tu navegador no soporta notificaciones', 'err');
+        if (input) input.checked = false;
+        return;
+      }
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        if (input) input.checked = false;
+        window.toast?.('Permiso de notificaciones denegado — actívalo en los ajustes del navegador', 'err');
+        if (hintEl) hintEl.textContent = _salesNotifHintText();
+        return;
+      }
+      localStorage.setItem('te_sales_notif_enabled', '1');
+      window.toast?.('Notificaciones de venta activadas en este dispositivo ✓', 'ok');
+      window._startSalesNotifPolling?.();
+    } else {
+      localStorage.setItem('te_sales_notif_enabled', '0');
+      window._stopSalesNotifPolling?.();
+      window.toast?.('Notificaciones de venta desactivadas', 'ok');
+    }
+    if (hintEl) hintEl.textContent = _salesNotifHintText();
+  };
 
   function _showSaleNotification(title, body, tag) {
     const opts = { body, icon: 'icono-192.png', badge: 'icono-192.png', tag };

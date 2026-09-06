@@ -1,13 +1,23 @@
 /* ══ RECEPCIÓN CON IA — PDF (Natura) o foto → matching contra catálogo →
-   aplicar (stock/costo/precio, o crear producto nuevo). ══════════════════
+   aplicar. Dos modos (_riaMode, elegido en la pantalla inicial, ver
+   riaSetMode): "stock" (default — mercancía nueva: suma stock, actualiza
+   costo/precio, puede crear productos nuevos) y "costOnly" (2026-09-06 —
+   facturas viejas: solo rellena `cost` de productos que YA existen, nunca
+   toca stock ni precio de venta, nunca crea productos nuevos — lo que no
+   se vincula se omite). El matching (nombre, código de proveedor aprendido,
+   escáner, orden por categoría-guess) es el mismo motor en ambos modos.
+   ══════════════════
 
-   ⚠️ MODO DE PRUEBA: mientras _RIA_DRY_RUN sea true, "Aplicar cambios" NUNCA
-   escribe en Supabase — solo simula y muestra qué habría pasado. Cambiar a
-   false solo cuando se haya validado el matching contra catálogo real y se
-   tenga un pedido vigente para aplicar de verdad. También requiere haber
-   ejecutado antes la migración supabase/migrations/20260902_01_supplier_code.sql
-   (si no, el PATCH/POST real fallaría al mandar la columna supplier_code). */
-const _RIA_DRY_RUN = true;
+   ✅ EN PRODUCCIÓN desde 2026-09-06 — "Aplicar cambios" escribe de verdad en
+   Supabase. Migración supabase/migrations/20260902_01_supplier_code.sql ya
+   ejecutada en el SQL Editor (confirmado por Eduardo: "Success. No rows
+   returned"). Validado antes de este cambio: costo/cantidad deterministas,
+   precio de venta prioriza revista, matching nunca autoselecciona por
+   nombre (solo por código de proveedor aprendido), categoría de producto
+   nuevo editable. Si algún día hace falta volver a modo de prueba (ej. para
+   probar un cambio grande sin arriesgar el catálogo real), regresar esta
+   constante a `true`. */
+const _RIA_DRY_RUN = false;
 
 let _riaItems  = [];  // [{supplierCode, rawName, qty, cost, suggestedPrice, categoryGuess, matchProductId, matchCandidates, isNew, priceToApply}]
 let _riaKits   = [];  // [{raw_name, components:[...], tu_pagas}] — promociones, no se procesan
@@ -15,10 +25,21 @@ let _riaPhotos = [];  // [dataUrl] — fotos en cola antes de extraer (camino de
 let _riaDocTotal = null;     // "Total a pagar" del documento — solo para el chequeo de sanidad
 let _riaMatchTargetIdx = null; // índice de _riaItems que el picker de vinculación está editando
 
-/* ── Umbrales de matching por nombre — provisionales, a calibrar con uso
-   real (mismo criterio que ya se usó para el escáner: probar y ajustar
-   contra la realidad, no quedarse con el número teórico). ── */
-const _RIA_MATCH_HIGH = 0.55; // score ≥ esto → preseleccionado como match
+// 'stock' (default, comportamiento de siempre — suma stock, actualiza costo
+// y precio) vs. 'costOnly' (facturas viejas — solo rellena `cost` de
+// productos que YA existen, nunca toca stock ni precio de venta, nunca crea
+// productos nuevos). Se elige en la pantalla inicial, antes de extraer, y
+// no cambia a medio revisar — ver riaSetMode(). El matching (nombre,
+// código de proveedor aprendido, escáner, categoría-guess para ordenar
+// resultados) es EXACTAMENTE el mismo motor en ambos modos — aprender un
+// código de proveedor en un modo sirve también para el otro.
+let _riaMode = 'stock';
+
+/* ── Umbral de matching por nombre — solo decide qué se MUESTRA como
+   candidato, nunca qué se autoselecciona (ver _riaMatchCatalog: un score
+   alto puede venir de palabras genéricas compartidas por casi cualquier
+   producto de la misma línea, no de que sea el producto correcto — probado
+   en la práctica el 2026-09-05, no es un caso hipotético). ── */
 const _RIA_MATCH_SHOW = 0.28; // score ≥ esto → se muestra como candidato
 
 function _riaCatList() {
@@ -117,10 +138,139 @@ function resetRecvIa() {
   _riaDocTotal = null;
   _riaClearDraft();
   _riaShowState('choice');
+  _riaRenderChoiceUndoBanner();
+  // Siempre vuelve al modo default ("recibiendo mercancía") al empezar de
+  // nuevo — que el modo "solo costos" sobreviviera solo por accidente entre
+  // sesiones sería justo el tipo de sorpresa silenciosa que hay que evitar
+  // (aplicar de más o de menos sin darte cuenta de en qué modo estabas).
+  riaSetMode('stock');
   const pdfInput = document.getElementById('ria-pdf-input');
   const photoInput = document.getElementById('ria-photo-input');
   if (pdfInput) pdfInput.value = '';
   if (photoInput) photoInput.value = '';
+}
+
+// Se elige en la pantalla inicial, antes de subir el documento — nunca a
+// medio revisar (los botones de modo solo existen en #ria-upload-step).
+function riaSetMode(mode) {
+  _riaMode = mode;
+  const stockBtn = document.getElementById('ria-mode-stock');
+  const costBtn = document.getElementById('ria-mode-costonly');
+  if (stockBtn) stockBtn.classList.toggle('active', mode === 'stock');
+  if (costBtn) costBtn.classList.toggle('active', mode === 'costOnly');
+  const hint = document.getElementById('ria-upload-hint');
+  if (hint) {
+    hint.innerHTML = mode === 'costOnly'
+      ? 'Para facturas viejas — solo actualiza el <strong>costo</strong> de productos que ya existen en tu catálogo. No toca stock ni precio de venta, y no crea productos nuevos: lo que no vincules se omite.'
+      : '¿Prefieres sumar stock a mano? Usa <a href="#" onclick="event.preventDefault();closeRecvIaMode();openRecvMode()">Recibir mercancía</a>.';
+  }
+}
+
+/* ── Deshacer la última recepción aplicada — a propósito NO es el toast de
+   7 segundos que ya usa el resto de Inventario (Duplicar/Archivar): Eduardo
+   pidió explícitamente más tiempo, porque uno puede darse cuenta del error
+   minutos u horas después, no solo en los segundos siguientes. Vive en
+   localStorage (sobrevive cerrar el overlay o recargar la página) y solo
+   se invalida cuando: (1) el usuario ya lo usó, o (2) se aplica OTRA
+   recepción real después — solo el lote más reciente se puede deshacer,
+   nunca un historial completo. Deliberadamente NO intenta detectar si algo
+   más tocó estos productos mientras tanto (edición manual en Inventario,
+   otra recepción de otro flujo) — sería mucho más complejo y frágil; en vez
+   de eso, el propio botón avisa ese riesgo en el confirm() antes de actuar,
+   y quien deshace decide con esa información. ── */
+const _RIA_UNDO_KEY = 'te_ria_last_undo';
+
+function _riaSaveUndoSnapshot(updated, created) {
+  if (!updated.length && !created.length) { _riaClearUndoSnapshot(); return; }
+  try {
+    localStorage.setItem(_RIA_UNDO_KEY, JSON.stringify({ appliedAt: Date.now(), updated, created }));
+  } catch { /* localStorage lleno o no disponible — no bloquea el flujo, solo no habrá deshacer */ }
+}
+
+function _riaClearUndoSnapshot() {
+  try { localStorage.removeItem(_RIA_UNDO_KEY); } catch {}
+}
+
+function _riaLoadUndoSnapshot() {
+  try {
+    const raw = localStorage.getItem(_RIA_UNDO_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function _riaAgeLabel(ts) {
+  const ageMin = Math.round((Date.now() - ts) / 60000);
+  return ageMin < 1 ? 'hace un momento' : ageMin < 60 ? `hace ${ageMin} min` : `hace ${Math.round(ageMin / 60)} h`;
+}
+
+// Banner en la pantalla inicial (elegir PDF/foto) — para cuando ya se cerró
+// el resultado de la recepción, o incluso se cerró el overlay por completo,
+// y solo hasta después se nota el error.
+function _riaRenderChoiceUndoBanner() {
+  const el = document.getElementById('ria-undo-banner');
+  if (!el) return;
+  const snap = _riaLoadUndoSnapshot();
+  if (!snap) { el.innerHTML = ''; return; }
+  const n = snap.updated.length + snap.created.length;
+  el.innerHTML = `
+<div class="ria-undo-card">
+  <span>Tu última recepción con IA (${n} producto${n !== 1 ? 's' : ''}, aplicada ${_riaAgeLabel(snap.appliedAt)}) se puede deshacer.</span>
+  <button class="ria-undo-btn" onclick="riaUndoLastApply()">↩ Deshacer esa recepción</button>
+</div>`;
+}
+
+async function riaUndoLastApply() {
+  const snap = _riaLoadUndoSnapshot();
+  if (!snap) return;
+  const n = snap.updated.length + snap.created.length;
+  const ok = confirm(
+    `¿Deshacer la recepción aplicada ${_riaAgeLabel(snap.appliedAt)} (${n} producto${n !== 1 ? 's' : ''})?\n\n` +
+    `Se restará el stock que sumó, y costo/precio/código de proveedor regresan a como estaban antes. Los productos nuevos que creó se archivan (no se borran — quedan reversibles desde "📦 Archivados").\n\n` +
+    `Si desde entonces editaste estos productos por otro lado (Inventario, otra recepción), esos cambios también se perderían.`
+  );
+  if (!ok) return;
+
+  let okCount = 0, failCount = 0;
+  for (const u of snap.updated) {
+    try {
+      const product = (products || []).find(p => p.id === u.productId);
+      // Resta por DIFERENCIA, no por valor absoluto — si alguien vendió parte
+      // de este stock en Caja mientras tanto, esa venta real no se borra.
+      const currentStock = product ? product.stock : null;
+      const newStock = currentStock != null ? Math.max(0, currentStock - u.deltaQty) : null;
+      const payload = { cost: u.before.cost, price: u.before.price, supplier_code: u.before.supplierCode };
+      if (newStock != null) { payload.stock = newStock; payload.out_of_stock = newStock > 0 ? false : true; }
+      const r = await supabaseApi(`products?id=eq.${u.productId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      if (!r.ok) throw new Error('fail');
+      if (product) {
+        if (newStock != null) { product.stock = newStock; product.outOfStock = payload.out_of_stock; }
+        product.cost = payload.cost;
+        product.price = payload.price;
+        product.supplierCode = payload.supplier_code;
+      }
+      okCount++;
+    } catch { failCount++; }
+  }
+  for (const c of snap.created) {
+    try {
+      const r = await supabaseApi(`products?id=eq.${c.productId}`, { method: 'PATCH', body: JSON.stringify({ is_archived: true, is_published: false, out_of_stock: true }) });
+      if (!r.ok) throw new Error('fail');
+      const product = (products || []).find(p => p.id === c.productId);
+      if (product) { product.isArchived = true; product.isPublished = false; product.outOfStock = true; }
+      okCount++;
+    } catch { failCount++; }
+  }
+
+  renderTable();
+  renderStats();
+  logActivity('recepcion_ia_deshecha',
+    `Deshizo una recepción con IA: ${okCount} revertido${okCount !== 1 ? 's' : ''}${failCount ? `, ${failCount} con error` : ''}`,
+    { reverted: okCount, failed: failCount });
+  _riaClearUndoSnapshot();
+  toast(failCount ? `Deshecho con ${failCount} error(es) — revisa esos productos a mano` : 'Recepción deshecha', failCount ? 'error' : 'success');
+  _riaRenderChoiceUndoBanner();
+  const resultUndoEl = document.getElementById('ria-result-undo');
+  if (resultUndoEl) resultUndoEl.innerHTML = '';
 }
 
 /* ── Guardado automático — sobrevive a un cierre accidental o un recargue
@@ -134,7 +284,7 @@ function _riaSaveDraft() {
   if (!_riaItems.length && !_riaKits.length) { _riaClearDraft(); return; }
   try {
     localStorage.setItem(_RIA_DRAFT_KEY, JSON.stringify({
-      items: _riaItems, kits: _riaKits, docTotal: _riaDocTotal, savedAt: Date.now()
+      items: _riaItems, kits: _riaKits, docTotal: _riaDocTotal, mode: _riaMode, savedAt: Date.now()
     }));
   } catch { /* localStorage lleno o no disponible — no bloquea el flujo */ }
 }
@@ -164,6 +314,7 @@ function _riaTryRestoreDraft() {
   _riaItems = draft.items;
   _riaKits = draft.kits || [];
   _riaDocTotal = draft.docTotal ?? null;
+  _riaMode = draft.mode === 'costOnly' ? 'costOnly' : 'stock';
   return true;
 }
 
@@ -460,6 +611,7 @@ function _riaComputeItem(raw) {
     // se llenan en _riaMatchCatalog():
     matchProductId: null,
     matchCandidates: [],
+    matchScore: null, // score del match automático por nombre — null si fue por código exacto o manual (ambos de confianza plena)
     isNew: true,
     priceToApply: null,
     matchManual: false // true solo si el usuario lo eligió a propósito (candidato/buscador/escáner) — nunca lo pisa un recálculo automático
@@ -506,13 +658,23 @@ function _riaMatchCatalog() {
     if (codeMatch) {
       it.matchProductId = codeMatch.id;
       it.matchCandidates = [];
+      it.matchScore = null; // código exacto — no es una suposición, no necesita score
       it.isNew = false;
       _riaUpdatePriceToApply(it);
       return;
     }
-    // 2) similitud de nombre — mismo motor que la detección de duplicados,
-    // con un castigo fuerte si hay un marcador de variante en conflicto
-    // (ver _RIA_VARIANT_MARKERS arriba).
+    // 2) similitud de nombre — mismo motor que la detección de duplicados.
+    // Probado en la práctica (2026-09-05, caso real de Eduardo): palabras
+    // genéricas que casi todos los perfumes comparten ("Frescor", "Eau de
+    // Toilette", "Ekos") pesan tanto o más que la única palabra que de
+    // verdad distingue el producto (el aroma — "Acai" vs "Maracujá"), así
+    // que un score alto NO es evidencia confiable de que sea el producto
+    // correcto. Por eso esto NUNCA autoselecciona — solo el código de
+    // proveedor ya aprendido (punto 1, arriba) lo hace. Aquí solo se arma
+    // la lista de candidatos para que una persona elija; el renglón
+    // siempre arranca como "producto nuevo" hasta que alguien confirme uno
+    // a mano (y a partir de ahí, la próxima vez con el mismo código de
+    // proveedor sí sería un match aprendido y confiable).
     const scored = (products || [])
       .map(p => {
         let score = _wordSim(it.rawName, p.name);
@@ -523,25 +685,32 @@ function _riaMatchCatalog() {
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);
     it.matchCandidates = scored;
-    it.matchProductId = (scored[0] && scored[0].score >= _RIA_MATCH_HIGH) ? scored[0].id : null;
-    it.isNew = !it.matchProductId;
+    it.matchProductId = null;
+    it.matchScore = null;
+    it.isNew = true;
     _riaUpdatePriceToApply(it);
   });
 }
 
-// El precio que se va a aplicar arranca del precio actual del producto (si
-// ya existe) — nunca del precio sugerido por el proveedor, que solo es
-// referencia. Si es un producto nuevo, no hay precio actual del que partir,
-// así que usa el sugerido como punto de partida (siempre editable).
+// El precio que se va a aplicar arranca del precio de revista (el dato que
+// trae el propio pedido, más confiable que un precio de catálogo que puede
+// llevar meses sin tocarse) — Eduardo lo pidió así explícitamente el
+// 2026-09-05 tras ver que se sugería el precio viejo del catálogo ($200) en
+// vez del de revista ($383.50): Ofelia siempre puede editarlo, pero el punto
+// de partida debe ser el dato más reciente, no el más viejo. Solo cuando el
+// proveedor no trae precio de revista (ej. foto de otro proveedor sin esa
+// columna) se usa el precio actual del producto ya vinculado como respaldo.
 function _riaUpdatePriceToApply(it) {
+  if (it.suggestedPrice != null) { it.priceToApply = it.suggestedPrice; return; }
   const matched = it.matchProductId ? (products || []).find(p => p.id === it.matchProductId) : null;
-  it.priceToApply = matched ? matched.price : (it.suggestedPrice ?? 0);
+  it.priceToApply = matched ? matched.price : 0;
 }
 
 function riaSetMatch(idx, productId) {
   const it = _riaItems[idx];
   if (!it) return;
   it.matchProductId = productId;
+  it.matchScore = null; // elegido a mano — no es una suposición del algoritmo
   it.isNew = false;
   it.matchManual = true;
   _riaUpdatePriceToApply(it);
@@ -552,18 +721,39 @@ function riaSetMatchNew(idx) {
   const it = _riaItems[idx];
   if (!it) return;
   it.matchProductId = null;
+  it.matchScore = null;
   it.isNew = true;
   it.matchManual = true;
   _riaUpdatePriceToApply(it);
   _renderRecvIaReview();
 }
 
-/* ── Picker de vinculación manual — mismo patrón de buscador que Kit Builder ── */
+/* ── Picker de vinculación manual — mismo patrón de buscador que Kit Builder.
+   Ahora que ningún match se autoselecciona por nombre (2026-09-05), este
+   picker es el camino principal para casi todos los renglones — de ahí las
+   3 mejoras de agilidad de ese mismo día: (1) el header muestra qué renglón
+   estás buscando, para no perderlo de vista entre 15-18 productos parecidos;
+   (2) el buscador ordena primero por la categoría que ya adivinó la IA
+   (nunca autoselecciona, solo reduce el scroll); (3) escanear código de
+   barras — el método que Eduardo ya usa cuando tiene el producto físico en
+   mano, más confiable que cualquier búsqueda por nombre — ahora también se
+   puede iniciar directo desde la tarjeta, sin pasar por este picker. ── */
 function riaOpenMatchPicker(idx) {
   _riaMatchTargetIdx = idx;
+  const it = _riaItems[idx];
   const input = document.getElementById('ria-match-search-input');
   input.value = '';
   document.getElementById('ria-match-picker-results').innerHTML = '';
+  const ctxEl = document.getElementById('ria-match-picker-context');
+  if (ctxEl && it) {
+    ctxEl.innerHTML = `${_esc(it.rawName)}${it.supplierCode ? ` <span class="ria-mpc-code">· código ${_esc(it.supplierCode)}</span>` : ''}`;
+  }
+  // En modo "solo costos" no tiene sentido crear un producto nuevo desde una
+  // factura vieja (quedaría con stock=0 solo para tener dónde poner el
+  // costo) — se oculta la salida de escape, el renglón se omite si no se
+  // vincula a algo que ya existe.
+  const newBtn = document.getElementById('ria-match-set-new-btn');
+  if (newBtn) newBtn.style.display = _riaMode === 'costOnly' ? 'none' : '';
   document.getElementById('ria-match-overlay').style.display = 'flex';
   document.body.style.overflow = 'hidden';
   setTimeout(() => input.focus(), 200);
@@ -575,11 +765,29 @@ function closeRiaMatchPicker() {
   _riaMatchTargetIdx = null;
 }
 
+// Escanear directo desde la tarjeta, sin abrir el picker primero — el
+// escaneo no necesita buscador, así que forzar ese paso intermedio solo
+// suma un toque innecesario al método que ya es el más confiable.
+function riaOpenScannerFor(idx) {
+  _riaMatchTargetIdx = idx;
+  openRiaMatchScanner();
+}
+
 function riaSearchMatchPicker(q) {
   const resultsEl = document.getElementById('ria-match-picker-results');
   const query = q.trim().toLowerCase();
   if (!query) { resultsEl.innerHTML = ''; return; }
-  const matches = (products || []).filter(p => p.name.toLowerCase().includes(query)).slice(0, 25);
+  // La categoría que adivinó la IA para este renglón no es un match — sigue
+  // siendo aventurada, no hay que confiar en ella a ciegas (mismo motivo por
+  // el que ya no autoseleccionamos nada) — pero sí sirve para ORDENAR: si es
+  // correcta, el producto que buscas aparece arriba sin scroll; si está
+  // mal, no pierdes nada porque el resto de resultados sigue ahí debajo.
+  const targetItem = _riaMatchTargetIdx != null ? _riaItems[_riaMatchTargetIdx] : null;
+  const guessCat = targetItem ? targetItem.categoryGuess : null;
+  const matches = (products || [])
+    .filter(p => p.name.toLowerCase().includes(query))
+    .sort((a, b) => (guessCat ? (a.category === guessCat ? 0 : 1) - (b.category === guessCat ? 0 : 1) : 0))
+    .slice(0, 25);
   if (!matches.length) {
     resultsEl.innerHTML = '<div style="padding:14px;text-align:center;color:var(--muted);font-size:.82rem">Sin resultados</div>';
     return;
@@ -664,32 +872,102 @@ function _riaAutoGrow(el) {
   el.style.height = el.scrollHeight + 'px';
 }
 
+// Mismo patrón de <optgroup> que el select del formulario de producto
+// (renderCategorySelects() en admin.js) — reutiliza rootCats()/subCats() en
+// vez de duplicar la estructura de categorías.
+function _riaCategoryOptions(selectedCode) {
+  const sel = selectedCode || 'por_revisar';
+  let html = `<option value="por_revisar"${sel === 'por_revisar' ? ' selected' : ''}>📋 Por revisar</option>`;
+  html += rootCats().filter(r => r.code !== 'por_revisar').map(r => {
+    const subs = subCats(r.code);
+    const rootOpt = `<option value="${r.code}"${sel === r.code ? ' selected' : ''}>${_esc(r.label)}${subs.length ? ' — General' : ''}</option>`;
+    const subOpts = subs.map(s => `<option value="${s.code}"${sel === s.code ? ' selected' : ''}>${_esc(s.label)}</option>`).join('');
+    return subs.length ? `<optgroup label="${_esc(r.label)}">${rootOpt}${subOpts}</optgroup>` : rootOpt;
+  }).join('');
+  return html;
+}
+
+function riaUpdateCategory(idx, code) {
+  const it = _riaItems[idx];
+  if (!it) return;
+  it.categoryGuess = code || null;
+  _riaSaveDraftDebounced();
+}
+
 /* ── Lista editable + matching (compartida por ambos orígenes) ── */
 function _renderRecvIaReview() {
   _riaShowState('review');
 
   const linked = _riaItems.filter(it => it.matchProductId).length;
   const nuevos = _riaItems.length - linked;
-  document.getElementById('ria-review-count').textContent =
-    `${_riaItems.length} producto${_riaItems.length !== 1 ? 's' : ''} · ${linked} vinculado${linked !== 1 ? 's' : ''} · ${nuevos} nuevo${nuevos !== 1 ? 's' : ''}`;
+  document.getElementById('ria-review-count').textContent = _riaMode === 'costOnly'
+    ? `${_riaItems.length} producto${_riaItems.length !== 1 ? 's' : ''} · ${linked} vinculado${linked !== 1 ? 's' : ''} · ${nuevos} sin vincular (se omite${nuevos !== 1 ? 'n' : ''})`
+    : `${_riaItems.length} producto${_riaItems.length !== 1 ? 's' : ''} · ${linked} vinculado${linked !== 1 ? 's' : ''} · ${nuevos} nuevo${nuevos !== 1 ? 's' : ''}`;
 
   _renderRiaSummary();
 
   document.getElementById('ria-items-list').innerHTML = _riaItems.map((it, idx) => {
     const matched = it.matchProductId ? (products || []).find(p => p.id === it.matchProductId) : null;
     const matchImgAttr = matched ? _riaHoverAttrs(matched.image) : '';
+    // El score solo existe para un match automático por nombre (nunca por
+    // código exacto ni por elección manual) — es justo el caso donde puede
+    // estar mal, así que se muestra siempre en el chip en vez de esconderse
+    // detrás de un ✓ que se ve igual de seguro sea cual sea el origen del match.
+    const scoreLabel = (matched && !it.matchManual && it.matchScore != null) ? ` · ${Math.round(it.matchScore * 100)}%` : '';
     const matchChip = matched
-      ? `<button class="ria-match-chip ria-match-linked" onclick="riaOpenMatchPicker(${idx})" ${matchImgAttr}>✓ <span>${_esc(matched.name)}</span></button>`
-      : `<button class="ria-match-chip ria-match-newchip" onclick="riaOpenMatchPicker(${idx})">+ Producto nuevo</button>`;
-    const candidatesHtml = (!matched && it.matchCandidates.length)
-      ? `<div class="ria-match-candidates"><span class="ria-match-cand-label">¿O tal vez?</span>${it.matchCandidates.map(c => `<button class="ria-match-cand-btn" onclick="riaSetMatch(${idx},${c.id})" ${_riaHoverAttrs(c.image)}>${_esc(c.name)} · ${Math.round(c.score * 100)}%</button>`).join('')}</div>`
+      ? `<button class="ria-match-chip ria-match-linked" onclick="riaOpenMatchPicker(${idx})" title="¿No es este producto? Toca para cambiarlo" ${matchImgAttr}>✓ <span>${_esc(matched.name)}${scoreLabel}</span></button>`
+      : _riaMode === 'costOnly'
+        ? `<button class="ria-match-chip ria-match-newchip" onclick="riaOpenMatchPicker(${idx})">Vincular (o quitar)</button>`
+        : `<button class="ria-match-chip ria-match-newchip" onclick="riaOpenMatchPicker(${idx})">+ Producto nuevo</button>`;
+    // Escanear el código de barras del producto físico es más confiable que
+    // cualquier búsqueda por nombre (Eduardo ya lo usa así) — un ícono
+    // directo en la tarjeta evita tener que abrir el picker solo para llegar
+    // a ese botón cuando ya se tiene el producto en la mano.
+    const scanBtn = `<button class="ria-scan-icon-btn" onclick="riaOpenScannerFor(${idx})" title="Tengo el producto — escanear código de barras"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5v14"/><path d="M7 5v14"/><path d="M11 5v14"/><path d="M14 5v14"/><path d="M18 5v14"/><path d="M21 5v14"/></svg></button>`;
+    // Las alternativas se quedan visibles aunque ya haya un match preseleccionado
+    // (solo se ocultan si el usuario ya lo confirmó a mano) — un match por
+    // nombre es una suposición, nunca un hecho, y la corrección debe ser tan
+    // fácil como tocar el candidato correcto, sin tener que abrir el buscador.
+    const otherCandidates = it.matchCandidates.filter(c => c.id !== it.matchProductId);
+    const candidatesHtml = (!it.matchManual && otherCandidates.length)
+      ? `<div class="ria-match-candidates"><span class="ria-match-cand-label">${matched ? '¿No es este? Prueba:' : '¿O tal vez?'}</span>${otherCandidates.map(c => `<button class="ria-match-cand-btn" onclick="riaSetMatch(${idx},${c.id})" ${_riaHoverAttrs(c.image)}>${_esc(c.name)} · ${Math.round(c.score * 100)}%</button>`).join('')}</div>`
       : '';
-    // El hint del sugerido solo aporta cuando difiere del precio que se va a
-    // aplicar — en un producto nuevo, sin precio propio del catálogo con
-    // qué contrastar, ambos valores arrancan iguales y mostrarlo es ruido.
-    const suggHint = (it.suggestedPrice != null && Number(it.priceToApply) !== Number(it.suggestedPrice))
-      ? ` <span class="ria-sugg-hint">(sug. $${it.suggestedPrice})</span>` : '';
-    const priceWarn = (it.priceToApply != null && it.cost != null && Number(it.priceToApply) < it.cost);
+    // El hint junto al precio muestra el precio ACTUAL del producto vinculado
+    // cuando difiere del que se va a aplicar — además de servir de referencia,
+    // una diferencia enorme (ej. $200 vs $383.50) es en sí misma una señal de
+    // que el match de arriba puede estar equivocado. Sin match (producto
+    // nuevo), muestra el precio de revista si el usuario lo editó a mano.
+    const suggHint = (matched && Number(it.priceToApply) !== Number(matched.price))
+      ? ` <span class="ria-sugg-hint">(catálogo: $${matched.price})</span>`
+      : (!matched && it.suggestedPrice != null && Number(it.priceToApply) !== Number(it.suggestedPrice))
+        ? ` <span class="ria-sugg-hint">(sug. $${it.suggestedPrice})</span>` : '';
+    // En modo "solo costos" nunca se toca el precio de venta, así que el
+    // riesgo real no es "vas a vender perdiendo con el precio que estás por
+    // escribir" (no hay ninguno) sino "el costo que la factura vieja revela
+    // ya es MAYOR que el precio actual del producto" — es decir, esta
+    // factura acaba de descubrir que ya se estaba vendiendo perdiendo dinero,
+    // aunque esta operación no vaya a cambiar el precio para arreglarlo.
+    const priceWarn = _riaMode === 'costOnly'
+      ? (matched && it.cost != null && Number(it.cost) > Number(matched.price))
+      : (it.priceToApply != null && it.cost != null && Number(it.priceToApply) < it.cost);
+    const priceWarnMsg = _riaMode === 'costOnly'
+      ? 'Este costo es mayor al precio de venta actual del producto — ya se está vendiendo perdiendo dinero, aunque este modo no cambia el precio. Revísalo en Inventario.'
+      : 'El precio de venta es menor al costo — revisa este renglón';
+    // La categoría solo se pide/edita para productos NUEVOS, y solo existen
+    // productos nuevos en modo "recibiendo mercancía" — en "solo costos"
+    // nunca se crea nada, lo que no vincula se omite (ver omitNote abajo).
+    const categoryFieldHtml = (!matched && _riaMode === 'stock') ? `
+    <div class="ria-item-field ria-cat">
+      <label>Categoría</label>
+      <select onchange="riaUpdateCategory(${idx},this.value)">${_riaCategoryOptions(it.categoryGuess)}</select>
+    </div>` : '';
+    const priceFieldHtml = _riaMode === 'costOnly' ? '' : `
+    <div class="ria-item-field">
+      <label>Precio de venta${suggHint}</label>
+      <input type="number" min="0" step="0.01" inputmode="decimal" value="${it.priceToApply ?? ''}" oninput="riaUpdateField(${idx},'priceToApply',this.value)">
+    </div>`;
+    const omitNote = (!matched && _riaMode === 'costOnly')
+      ? `<div class="ria-item-warn ria-item-omit" style="display:block">Sin vincular — este renglón se omite al aplicar en este modo (no crea productos nuevos).</div>` : '';
     return `
 <div class="ria-item-card">
   <div class="ria-item-top">
@@ -698,24 +976,26 @@ function _renderRecvIaReview() {
   </div>
   ${it.supplierCode ? `<div class="ria-item-code">Código proveedor: ${_esc(it.supplierCode)}</div>` : ''}
   <div class="ria-match-row">
-    ${matchChip}
+    <div class="ria-match-chip-row">
+      ${matchChip}
+      ${scanBtn}
+    </div>
     ${candidatesHtml}
   </div>
-  <div class="ria-item-fields">
+  <div class="ria-item-fields${_riaMode === 'costOnly' ? ' ria-costonly-fields' : ''}">
     <div class="ria-item-field">
-      <label>Cantidad</label>
+      <label>${_riaMode === 'costOnly' ? 'Cantidad (factura)' : 'Cantidad'}</label>
       <input type="number" min="1" inputmode="numeric" value="${it.qty}" oninput="riaUpdateField(${idx},'qty',this.value)">
     </div>
     <div class="ria-item-field ria-cost">
       <label>Costo</label>
       <input type="number" min="0" step="0.01" inputmode="decimal" value="${it.cost ?? ''}" oninput="riaUpdateField(${idx},'cost',this.value)">
     </div>
-    <div class="ria-item-field">
-      <label>Precio de venta${suggHint}</label>
-      <input type="number" min="0" step="0.01" inputmode="decimal" value="${it.priceToApply ?? ''}" oninput="riaUpdateField(${idx},'priceToApply',this.value)">
-    </div>
+    ${priceFieldHtml}
+    ${categoryFieldHtml}
   </div>
-  <div class="ria-item-warn" style="${priceWarn ? 'display:block' : ''}"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>El precio de venta es menor al costo — revisa este renglón</div>
+  <div class="ria-item-warn" style="${priceWarn ? 'display:block' : ''}"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>${priceWarnMsg}</div>
+  ${omitNote}
 </div>`;
   }).join('');
   document.querySelectorAll('.ria-item-name').forEach(_riaAutoGrow);
@@ -735,7 +1015,8 @@ function _renderRecvIaReview() {
   const applyBtn = document.getElementById('ria-apply-btn');
   if (applyBtn) {
     applyBtn.disabled = !_riaItems.length;
-    applyBtn.textContent = (_RIA_DRY_RUN ? 'Simular aplicar (' : 'Aplicar cambios (') + _riaItems.length + ')';
+    const label = _riaMode === 'costOnly' ? 'Actualizar costos (' : 'Aplicar cambios (';
+    applyBtn.textContent = (_RIA_DRY_RUN ? 'Simular: ' + label : label) + _riaItems.length + ')';
   }
   const badge = document.getElementById('ria-dry-badge');
   if (badge) badge.classList.toggle('show', _RIA_DRY_RUN);
@@ -764,16 +1045,24 @@ function riaRemoveItem(idx) {
 // Chequeo de sanidad: suma lo que la IA calculó como costo de cada producto
 // + kit, y lo compara contra el "Total a pagar" real del documento — nunca
 // se guarda en ningún producto, es solo para detectar de un vistazo si algo
-// se leyó mal antes de aplicar cambios.
-function _renderRiaSummary() {
-  const el = document.getElementById('ria-review-summary');
-  if (_riaDocTotal == null) { el.style.display = 'none'; return; }
-
+// se leyó mal antes de aplicar cambios. Extraído a función propia porque el
+// confirm() de riaApplyChanges() necesita el mismo cálculo — un solo lugar
+// evita que ambos se desalineen si el criterio de tolerancia cambia.
+function _riaSanityCheck() {
+  if (_riaDocTotal == null) return null;
   const itemsSum = _riaItems.reduce((s, it) => s + (it.cost != null ? it.cost * it.qty : 0), 0);
   const kitsSum = _riaKits.reduce((s, k) => s + (k.tu_pagas != null && !isNaN(Number(k.tu_pagas)) ? Number(k.tu_pagas) : 0), 0);
   const extracted = Math.round((itemsSum + kitsSum) * 100) / 100;
   const diff = Math.round((extracted - _riaDocTotal) * 100) / 100;
   const closeEnough = Math.abs(diff) <= Math.max(5, _riaDocTotal * 0.01); // tolera redondeos y cargos administrativos menores
+  return { extracted, diff, closeEnough };
+}
+
+function _renderRiaSummary() {
+  const el = document.getElementById('ria-review-summary');
+  const check = _riaSanityCheck();
+  if (!check) { el.style.display = 'none'; return; }
+  const { extracted, diff, closeEnough } = check;
 
   el.style.display = 'flex';
   el.className = 'ria-review-summary ' + (closeEnough ? 'ria-sum-ok' : 'ria-sum-warn');
@@ -785,45 +1074,95 @@ function _renderRiaSummary() {
 ${closeEnough ? '' : `<span>Diferencia de $${Math.abs(diff).toFixed(2)} — revisa los renglones antes de continuar.${kitHint}</span>`}`;
 }
 
+// Confirmación final antes de escribir en Supabase — solo en modo real
+// ("Simular aplicar" ya es de bajo riesgo, no necesita este paso). No es un
+// "¿estás seguro?" genérico que se ignora a fuerza de verlo siempre: solo
+// aparece (y solo menciona) los dos riesgos reales que el propio código ya
+// detecta pero que son fáciles de pasar por alto entre 15-18 tarjetas —
+// precio por debajo del costo (perder dinero en cada venta) y el total que
+// no cuadra contra el documento (algo se leyó mal). Si nada de eso aplica,
+// el mensaje es un resumen corto, no una advertencia.
+function _riaConfirmApply() {
+  const linked = _riaItems.filter(it => it.matchProductId).length;
+  const nuevos = _riaItems.length - linked;
+  let msg;
+  let lossItems;
+  if (_riaMode === 'costOnly') {
+    msg = `¿Aplicar esta actualización de costos?\n\nSe actualizará el costo de ${linked} producto${linked !== 1 ? 's' : ''} existente${linked !== 1 ? 's' : ''}. No se toca stock ni precio de venta.${nuevos ? ` ${nuevos} renglón${nuevos !== 1 ? 'es' : ''} sin vincular se omitirá${nuevos !== 1 ? 'n' : ''}.` : ''}`;
+    lossItems = _riaItems.filter(it => {
+      const matched = it.matchProductId ? (products || []).find(p => p.id === it.matchProductId) : null;
+      return matched && it.cost != null && Number(it.cost) > Number(matched.price);
+    });
+    if (lossItems.length) {
+      msg += `\n\n⚠️ ${lossItems.length} con costo MAYOR al precio de venta actual (ya se venden perdiendo dinero, aunque este modo no cambia el precio):\n${lossItems.slice(0, 8).map(it => `• ${it.rawName}`).join('\n')}${lossItems.length > 8 ? `\n… y ${lossItems.length - 8} más` : ''}`;
+    }
+  } else {
+    msg = `¿Aplicar esta recepción?\n\n${linked} producto${linked !== 1 ? 's' : ''} existente${linked !== 1 ? 's' : ''} se actualizará${linked !== 1 ? 'n' : ''} (stock/costo/precio) y ${nuevos} producto${nuevos !== 1 ? 's' : ''} nuevo${nuevos !== 1 ? 's' : ''} se crearán.`;
+    lossItems = _riaItems.filter(it => it.priceToApply != null && it.cost != null && Number(it.priceToApply) < it.cost);
+    if (lossItems.length) {
+      msg += `\n\n⚠️ ${lossItems.length} con precio de venta MENOR al costo (se venderían perdiendo dinero):\n${lossItems.slice(0, 8).map(it => `• ${it.rawName}`).join('\n')}${lossItems.length > 8 ? `\n… y ${lossItems.length - 8} más` : ''}`;
+    }
+  }
+
+  const check = _riaSanityCheck();
+  if (check && !check.closeEnough) {
+    msg += `\n\n⚠️ El total extraído ($${check.extracted.toFixed(2)}) no cuadra con el documento ($${_riaDocTotal.toFixed(2)}) — diferencia de $${Math.abs(check.diff).toFixed(2)}. Puede que algo se haya leído mal.`;
+  }
+
+  return confirm(msg);
+}
+
 /* ── Aplicar cambios (o simular, mientras _RIA_DRY_RUN sea true) ── */
 async function riaApplyChanges() {
   if (!_riaItems.length) return;
+  if (!_RIA_DRY_RUN && !_riaConfirmApply()) return;
   const btn = document.getElementById('ria-apply-btn');
   btn.disabled = true;
   btn.textContent = _RIA_DRY_RUN ? 'Simulando…' : 'Aplicando…';
 
-  const results = { updated: [], created: [], failed: [] };
+  const results = { updated: [], created: [], failed: [], skipped: [] };
+  const undoUpdated = []; // reversión por diferencia — ver riaUndoLastApply()
+  const undoCreated = [];
   let nextNewId = (products || []).reduce((m, p) => Math.max(m, p.id), 0) + 1;
+  const costOnly = _riaMode === 'costOnly';
 
   for (const it of _riaItems) {
     try {
       if (it.matchProductId) {
         const product = (products || []).find(p => p.id === it.matchProductId);
         if (!product) throw new Error('Producto no encontrado en el catálogo local');
-        const newStock = product.stock + (it.qty || 0);
-        const payload = {
-          stock: newStock,
-          out_of_stock: newStock > 0 ? false : product.outOfStock,
+        const beforeSnapshot = { cost: product.cost, price: product.price, supplierCode: product.supplierCode };
+        // Modo "solo costos": nunca toca stock ni precio de venta — solo
+        // costo (y el código de proveedor, que aprende igual en ambos modos).
+        const payload = costOnly ? {
+          cost: it.cost != null ? it.cost : product.cost,
+          supplier_code: it.supplierCode || product.supplierCode || null
+        } : {
+          stock: product.stock + (it.qty || 0),
+          out_of_stock: (product.stock + (it.qty || 0)) > 0 ? false : product.outOfStock,
           cost: it.cost != null ? it.cost : product.cost,
           price: it.priceToApply != null ? it.priceToApply : product.price,
           supplier_code: it.supplierCode || product.supplierCode || null
         };
+        const diffText = costOnly
+          ? `costo $${product.cost ?? '—'}→$${payload.cost ?? '—'}`
+          : `stock ${product.stock}→${payload.stock} · costo $${product.cost ?? '—'}→$${payload.cost ?? '—'} · precio $${product.price}→$${payload.price}`;
         if (_RIA_DRY_RUN) {
-          results.updated.push({
-            name: product.name,
-            diff: `stock ${product.stock}→${payload.stock} · costo $${product.cost ?? '—'}→$${payload.cost ?? '—'} · precio $${product.price}→$${payload.price}`
-          });
+          results.updated.push({ name: product.name, diff: diffText });
         } else {
           const r = await supabaseApi(`products?id=eq.${product.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
           if (!r.ok) throw new Error('Error al guardar en Supabase');
-          const diffText = `stock ${product.stock}→${payload.stock} · costo $${product.cost ?? '—'}→$${payload.cost ?? '—'} · precio $${product.price}→$${payload.price}`;
-          product.stock = payload.stock;
-          product.outOfStock = payload.out_of_stock;
+          if (payload.stock != null) { product.stock = payload.stock; product.outOfStock = payload.out_of_stock; }
           product.cost = payload.cost;
-          product.price = payload.price;
+          if (payload.price != null) product.price = payload.price;
           product.supplierCode = payload.supplier_code;
           results.updated.push({ name: product.name, diff: diffText });
+          undoUpdated.push({ productId: product.id, deltaQty: costOnly ? 0 : (it.qty || 0), before: beforeSnapshot });
         }
+      } else if (costOnly) {
+        // Sin vincular en modo "solo costos" — nunca crea un producto
+        // fantasma solo para tener dónde poner el costo, se omite.
+        results.skipped.push({ name: it.rawName });
       } else {
         const newId = nextNewId++;
         const catMatch = it.categoryGuess ? (categories || []).find(c => c.code === it.categoryGuess) : null;
@@ -848,6 +1187,7 @@ async function riaApplyChanges() {
           });
           await flagProduct(newId, 'Creado por Recepción con IA — falta foto/descripción/revisar categoría');
           results.created.push({ name: cleanName, diff: `stock ${draft.stock} · costo $${draft.cost ?? '—'} · precio $${draft.price} · categoría ${categoryLabel}` });
+          undoCreated.push({ productId: newId });
         }
       }
     } catch (err) {
@@ -859,9 +1199,12 @@ async function riaApplyChanges() {
     renderTable();
     renderStats();
     logActivity('recepcion_ia_aplicada',
-      `Recepción con IA: ${results.updated.length} actualizados, ${results.created.length} nuevos${results.failed.length ? `, ${results.failed.length} con error` : ''}`,
-      { updated: results.updated.length, created: results.created.length, failed: results.failed.length });
+      costOnly
+        ? `Recepción con IA (solo costos): ${results.updated.length} actualizados${results.skipped.length ? `, ${results.skipped.length} omitidos` : ''}${results.failed.length ? `, ${results.failed.length} con error` : ''}`
+        : `Recepción con IA: ${results.updated.length} actualizados, ${results.created.length} nuevos${results.failed.length ? `, ${results.failed.length} con error` : ''}`,
+      { mode: _riaMode, updated: results.updated.length, created: results.created.length, skipped: results.skipped.length, failed: results.failed.length });
     _riaClearDraft();
+    _riaSaveUndoSnapshot(undoUpdated, undoCreated);
   }
 
   _riaShowApplyResult(results);
@@ -882,5 +1225,14 @@ ${rows.map(r => `<div class="ria-result-row ${isFail ? 'ria-result-fail' : ''}">
   el.innerHTML = banner
     + section('Actualizados', results.updated, false)
     + section('Nuevos', results.created, false)
+    + section('Omitidos — sin vincular', results.skipped, false)
     + section('Con error', results.failed, true);
+
+  const undoEl = document.getElementById('ria-result-undo');
+  if (undoEl) {
+    const canUndo = !_RIA_DRY_RUN && (results.updated.length + results.created.length > 0);
+    undoEl.innerHTML = canUndo
+      ? `<button class="ria-undo-btn" onclick="riaUndoLastApply()">↩ Deshacer esta recepción</button>`
+      : '';
+  }
 }

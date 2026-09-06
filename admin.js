@@ -7,6 +7,14 @@ const LOCKOUT_KEY  = "te_admin_lock";
    (--surface-soft, etc.) en cada lugar donde se usa. */
 const DEFAULT_IMG  = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22400%22%20viewBox%3D%220%200%20400%20400%22%3E%3Crect%20x%3D%22130%22%20y%3D%22100%22%20width%3D%22140%22%20height%3D%22140%22%20rx%3D%2210%22%20fill%3D%22none%22%20stroke%3D%22%23D4BC94%22%20stroke-width%3D%223%22%2F%3E%3Ccircle%20cx%3D%22158%22%20cy%3D%22127%22%20r%3D%2214%22%20fill%3D%22%23D4BC94%22%2F%3E%3Cpath%20d%3D%22M130%20210%20L175%20165%20L210%20195%20L255%20150%20L280%20180%20L280%20240%20L130%20240Z%22%20fill%3D%22%23D4BC94%22%20fill-opacity%3D%22.4%22%2F%3E%3C%2Fsvg%3E';
 
+// "Imagen base64 real" (candidata a migrar a Drive) se distingue por tipo, no por igualar
+// el string exacto de DEFAULT_IMG: una foto real siempre se guarda como JPEG raster en
+// base64 (_fileToBase64Resized), el placeholder de "sin foto" siempre es svg+xml. Versiones
+// anteriores de DEFAULT_IMG (antes tenía fondo crema horneado, ver comentario arriba) dejaron
+// productos viejos con un string de placeholder distinto al actual — comparar por igualdad
+// exacta los colaba como "con foto", incluyendo en la migración masiva a Drive.
+const _isRealBase64Image = img => !!img && img.startsWith('data:') && !img.startsWith('data:image/svg+xml');
+
 // SVG icons — renderizado fiable en iOS y Android (emoji ✏⧉ fallan en muchas fuentes)
 const ICON_EDIT = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
 const ICON_COPY = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
@@ -504,7 +512,7 @@ function getFilteredProducts() {
       (_statFilter === 'sin-categ'    && p.category === 'por_revisar') ||
       (_statFilter === 'ultima-pieza' && p.stock === 1 && !p.outOfStock) ||
       (_statFilter === 'sin-precio'   && (!p.price || p.price === 0)) ||
-      (_statFilter === 'imagen-base64' && p.image?.startsWith('data:') && p.image !== DEFAULT_IMG) ||
+      (_statFilter === 'imagen-base64' && _isRealBase64Image(p.image)) ||
       (_statFilter === 'kits'         && Array.isArray(p.kitItems)) ||
       (_statFilter === 'por-caducar'  && ['soon','expired'].includes(_expiryStatus(p)?.state)) ||
       (_statFilter === 'apartado'     && (p.isApartado || _apartadosMap[p.id]));
