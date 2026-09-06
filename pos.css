@@ -285,7 +285,8 @@ button,a{touch-action:manipulation}
 .hi-total{font-weight:700;font-family:'Playfair Display',serif;color:var(--charcoal);font-size:.95rem;white-space:nowrap}
 .hi-del{
   background:none;border:none;color:#C8BAB0;cursor:pointer;
-  font-size:.85rem;padding:4px 6px;border-radius:6px;transition:.15s;line-height:1;
+  font-size:.85rem;border-radius:8px;transition:.15s;line-height:1;
+  width:44px;height:44px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
 }
 .hi-del:hover{color:var(--red);background:#FEE2E2}
 /* Reenviar comprobante no es una acción destructiva -- no debe ponerse rojo
@@ -500,6 +501,12 @@ button,a{touch-action:manipulation}
 #apt-venc-banner .apt-venc-banner-main{flex:1;display:flex;align-items:center;gap:8px;min-width:0;background:none;border:none;padding:9px 0;color:inherit;font-size:.82rem;font-weight:700;font-family:inherit;text-align:left;cursor:pointer;touch-action:manipulation}
 #apt-venc-banner .apt-venc-banner-close{flex-shrink:0;width:44px;height:44px;background:none;border:none;color:#B91C1C;opacity:.6;font-size:.95rem;cursor:pointer;touch-action:manipulation}
 #apt-venc-banner .apt-venc-banner-close:hover{opacity:1}
+/* En ≥641px el chip #apt-vencidos-alert de la topbar ya avisa lo mismo
+   (mismo conteo, mismo onclick) -- sin este límite, loadApartados()
+   (pos-apartados.js) prende los dos a la vez con el mismo vencidos>0,
+   duplicando la alerta en tablet/desktop. El banner se queda como la
+   única señal en mobile, donde el chip está oculto. */
+@media(min-width:641px){#apt-venc-banner{display:none!important}}
 .shift-reminder-banner{display:none;width:100%;min-height:44px;background:var(--gold-light);border:0;border-bottom:2px solid rgba(201,164,98,.35);padding:0 6px 0 16px;align-items:center;gap:4px;color:var(--gold-dark)}
 .shift-reminder-banner.show{display:flex}
 .shift-reminder-banner .shift-reminder-banner-main{flex:1;display:flex;align-items:center;gap:8px;min-width:0;background:none;border:none;padding:9px 0;color:inherit;font-size:.82rem;font-weight:700;font-family:inherit;text-align:left;cursor:pointer;touch-action:manipulation}

@@ -676,7 +676,7 @@ function renderGastos() {
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-weight:700;color:var(--red);font-size:.84rem">-$${g.amount.toLocaleString('es-MX')}</span>
-        <button onclick="eliminarGasto(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;padding:2px 4px">✕</button>
+        <button onclick="eliminarGasto(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;width:44px;height:44px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center">✕</button>
       </div>
     </div>`).join('');
   totRow.style.display = 'flex';
