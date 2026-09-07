@@ -166,6 +166,27 @@ function checkBarcodeConflict() {
   warn.style.display = 'block';
 }
 
+// Mismo patrón que checkBarcodeConflict() de arriba, pero SIN la clase
+// 'error' -- a propósito solo avisa, nunca bloquea el guardado (ver
+// saveProduct(), admin-form.js). El código de barras se usa para cobrar en
+// Caja, un duplicado ahí es un riesgo real de dinero; el código de
+// proveedor solo ayuda a Recepción con IA a reconocer el producto -- si se
+// repite, ese producto simplemente no se auto-vincula y hay que buscarlo a
+// mano, molesto pero no riesgoso.
+function checkSupplierCodeConflict() {
+  const warn = document.getElementById('f-supplier-code-warn');
+  if (!warn) return;
+  const code = document.getElementById('f-supplier-code').value.trim();
+  const editingId = parseInt(document.getElementById('f-id').value) || null;
+  warn.style.display = 'none';
+  if (!code) return;
+  const conflict = products.find(p => p.supplierCode === code && p.id !== editingId);
+  if (!conflict) return;
+  warn.className = 'dup-warn';
+  warn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Este código ya lo usa <strong>${_esc(conflict.name)}</strong> — <button type="button" class="dup-link" onclick="closeForm();openForm(${conflict.id})">Ver producto →</button>`;
+  warn.style.display = 'block';
+}
+
 function checkNameSimilarity() {
   const warn = document.getElementById('f-name-warn');
   const name = document.getElementById('f-name').value.trim();
@@ -213,7 +234,7 @@ function checkNameSimilarity() {
 }
 
 function _clearDupWarnings() {
-  ['f-name-warn', 'f-barcode-warn'].forEach(id => {
+  ['f-name-warn', 'f-barcode-warn', 'f-supplier-code-warn'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.style.display = 'none'; el.innerHTML = ''; }
   });

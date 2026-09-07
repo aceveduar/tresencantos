@@ -499,21 +499,31 @@ function _productPassesNonSearchFilters(p, cat, creatorVal) {
   if (!adminCatMatches(p.category, cat)) return false;
   if (_showOnlyFlagged && !_flagItem(p.id)) return false;
   if (!(creatorVal === 'all' || p.createdBy === creatorVal || (!p.createdBy && creatorVal === '__none__'))) return false;
+  // Un kit siempre trae stock=0/out_of_stock=false fijos en BD (su
+  // disponibilidad real se calcula desde sus componentes) -- para "Sin
+  // stock"/"Última pieza" hay que usar ese cálculo real (_kitInfo, admin-render.js),
+  // nunca el valor crudo de la columna, o CUALQUIER kit calificaría siempre
+  // como "sin stock" sin importar cuántos se puedan armar de verdad.
+  const isKit = Array.isArray(p.kitItems);
+  const kitStockNow = isKit ? (_kitInfo(p)?.stock ?? 0) : null;
   const matchStat = !_statFilter ||
-    (_statFilter === 'sin-stock'    && (p.stock === 0 || p.outOfStock)) ||
+    (_statFilter === 'sin-stock'    && (isKit ? kitStockNow === 0 : (p.stock === 0 || p.outOfStock))) ||
     (_statFilter === 'sin-publicar' && p.isPublished === false) ||
     (_statFilter === 'sin-codigo'   && !p.barcode) ||
     (_statFilter === 'sin-cod-proveedor' && !p.supplierCode) ||
     (_statFilter === 'sin-categ'    && p.category === 'por_revisar') ||
-    (_statFilter === 'ultima-pieza' && p.stock === 1 && !p.outOfStock) ||
+    (_statFilter === 'ultima-pieza' && (isKit ? kitStockNow === 1 : (p.stock === 1 && !p.outOfStock))) ||
     (_statFilter === 'sin-precio'   && (!p.price || p.price === 0)) ||
     (_statFilter === 'imagen-base64' && _isRealBase64Image(p.image)) ||
-    (_statFilter === 'kits'         && Array.isArray(p.kitItems)) ||
+    (_statFilter === 'kits'         && isKit) ||
     (_statFilter === 'por-caducar'  && ['soon','expired'].includes(_expiryStatus(p)?.state)) ||
     (_statFilter === 'apartado'     && (p.isApartado || _apartadosMap[p.id]));
   if (!matchStat) return false;
-  const isKit = Array.isArray(p.kitItems);
-  return _statFilter === 'kits' ? isKit : !isKit;
+  // Antes, cualquier vista que no fuera el chip "Kits" excluía los kits por
+  // completo -- incluida la búsqueda, que ni siquiera encontraba un kit por
+  // su nombre exacto. "Kits" sigue siendo un filtro más (arriba), no el
+  // único lugar donde un kit puede aparecer.
+  return true;
 }
 
 function getFilteredProducts() {

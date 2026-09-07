@@ -635,8 +635,9 @@
       <div class="form-row">
         <div class="field" style="grid-column:1/-1">
           <label>Código de proveedor <span style="font-weight:400;color:var(--muted-light)">(opcional)</span></label>
-          <input type="text" id="f-supplier-code" placeholder="Ej. 75955">
+          <input type="text" id="f-supplier-code" placeholder="Ej. 75955" onblur="checkSupplierCodeConflict()">
           <p class="hint">El código interno de Natura/Avon — no es el código de barras. Cópialo de su catálogo digital o de una factura ("Código"). Sirve para que Recepción con IA reconozca este producto solo con ese código la próxima vez, sin tener que buscarlo por nombre.</p>
+          <div id="f-supplier-code-warn" class="dup-warn" style="display:none"></div>
         </div>
       </div>
       <p class="form-section" style="justify-content:space-between">

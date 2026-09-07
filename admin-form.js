@@ -599,11 +599,28 @@ async function saveProduct() {
   // Re-corre checks de duplicado por si el usuario no pasó por blur
   checkBarcodeConflict();
   checkNameSimilarity();
+  checkSupplierCodeConflict();
   const barcodeWarn = document.getElementById('f-barcode-warn');
   const nameWarn    = document.getElementById('f-name-warn');
-  if (barcodeWarn?.style.display !== 'none' && barcodeWarn?.classList.contains('error')) return;
+  const supplierCodeWarn = document.getElementById('f-supplier-code-warn');
+  if (barcodeWarn?.style.display !== 'none' && barcodeWarn?.classList.contains('error')) {
+    // Bloqueo real (a diferencia de nombre/código de proveedor, que solo
+    // avisan) -- sin este toast, tocar "Guardar" no hacía nada visible más
+    // allá del aviso rojo que ya estaba en pantalla, confuso si no se veía
+    // (scroll, pantalla chica).
+    toast('Corrige el código de barras duplicado antes de guardar', 'error');
+    return;
+  }
   if (nameWarn?.style.display !== 'none') {
     if (!confirm('El sistema detectó un producto similar en el catálogo.\n¿Confirmas que es un producto diferente?')) return;
+  }
+  // Código de proveedor: solo avisa, no bloquea -- a diferencia del código
+  // de barras (que se usa para cobrar en Caja, un duplicado ahí es un
+  // riesgo real de dinero), este solo ayuda a Recepción con IA a reconocer
+  // el producto. Si se repite, lo peor que pasa es que ese producto no se
+  // auto-vincule y haya que buscarlo a mano -- molesto, no riesgoso.
+  if (supplierCodeWarn?.style.display !== 'none') {
+    if (!confirm('Este código de proveedor ya lo usa otro producto.\n¿Confirmas que quieres repetirlo de todos modos?')) return;
   }
 
   const name = document.getElementById('f-name').value.trim();

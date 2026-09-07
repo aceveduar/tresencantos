@@ -346,15 +346,15 @@ function adminCard(p, editable = false) {
 function _kitInfo(p) {
   if (!Array.isArray(p.kitItems)) return null;
   if (!p.kitItems.length) return { stock: 0, empty: true };
-  let min = Infinity, blocker = null;
+  let min = Infinity, blocker = null, blockerId = null;
   for (const comp of p.kitItems) {
     const c = products.find(x => x.id === comp.id);
-    if (!c || c.outOfStock || c.stock === 0) return { stock: 0, blocker: comp.name };
+    if (!c || c.outOfStock || c.stock === 0) return { stock: 0, blocker: comp.name, blockerId: comp.id };
     const avail = Math.floor(c.stock / comp.qty);
-    if (avail < min) { min = avail; blocker = comp.name; }
+    if (avail < min) { min = avail; blocker = comp.name; blockerId = comp.id; }
   }
   const stock = min === Infinity ? 0 : min;
-  return { stock, blocker: stock === 0 ? blocker : null };
+  return { stock, blocker: stock === 0 ? blocker : null, blockerId: stock === 0 ? blockerId : null };
 }
 
 function expiryChip(p) {
@@ -376,6 +376,18 @@ function stockChip(p, editable = false) {
       // completo) no se dispara con el dedo. En vez de eso: etiqueta corta
       // y completa siempre, toca para ver exactamente cuál falta en el QV
       // (que ya resalta el componente agotado en la lista "Incluye").
+      //
+      // "Reabastecer" y "está apartado" se ven IDÉNTICOS si no se
+      // distinguen -- ambos son ki.stock===0 -- pero significan cosas muy
+      // distintas: uno dice "no hay nada, hay que comprar más", el otro
+      // dice "sí hay, pero ya está comprometido con un cliente, se libera
+      // solo si se cancela ese apartado". Sin esto, no había forma de
+      // saber la diferencia sin ir a buscar el componente por separado.
+      const blockerP = ki.blockerId ? products.find(x => x.id === ki.blockerId) : null;
+      const blockerReserved = blockerP && (blockerP.isApartado || _apartadosMap[blockerP.id]);
+      if (blockerReserved) {
+        return `<span class="stock-chip stock-apt" onclick="event.stopPropagation();openQV(${p.id})" ontouchstart="event.stopPropagation()" title="'${_esc(ki.blocker)}' está apartado — toca para ver detalle" style="cursor:pointer">${AR_ICO_BOOKMARK(13)}0 · Apartado</span>`;
+      }
       return `<span class="stock-chip stock-sold" onclick="event.stopPropagation();openQV(${p.id})" ontouchstart="event.stopPropagation()" title="Falta: ${_esc(ki.blocker ?? 'componente agotado')} — toca para ver detalle" style="cursor:pointer">${AR_ICO_GIFT(13)}Reabastecer</span>`;
     }
     const n = ki?.stock ?? 0;
