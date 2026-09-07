@@ -9,12 +9,14 @@
   --shadow:0 4px 20px rgba(28,24,23,.10);
   --shadow-lg:0 8px 40px rgba(28,24,23,.16);
   --r:12px;--r-sm:8px;
-  /* Paneles de alerta grandes (QV: apartado/revisión, categorías sin asignar) —
-     a diferencia de un chip chico, un bloque grande en color claro fijo se ve
-     mal sobre fondo oscuro. Chips/badges pequeños se quedan con su tinte
-     literal (aceptable como acento), estos paneles usan tokens. */
+  /* Paneles de alerta grandes (QV: apartado/revisión, categorías sin asignar)
+     y, desde 2026-09-06, los chips de stock/publicado de la tarjeta de
+     Inventario (antes se dejaban con su tinte claro literal como "acento
+     aceptable" -- Eduardo pidió que combinaran con el resto del modo
+     oscuro en vez de destacar por descuido). */
   --tint-red-bg:#fff3f3;--tint-red-border:rgba(232,93,93,.25);--tint-red-strong:#c62828;--tint-red-text:#5D4037;
   --tint-amber-bg:#FFFBEB;--tint-amber-border:#B45309;--tint-amber-strong:#B45309;--tint-amber-text:#5D4037;
+  --tint-green-bg:#ECFDF5;--tint-green-border:#6EE7B7;--tint-green-strong:#065F46;
   /* Tokens de tema — fijos, no cambian con modo oscuro (chrome intencionalmente oscuro: topbar, toasts, FABs) */
   --ink:#1C1817;--ink-soft:#2E2825;
   /* Tokens de tema — sí cambian con modo oscuro */
@@ -36,19 +38,36 @@
   --shadow-lg:0 8px 45px rgba(0,0,0,.7);
   --tint-red-bg:#332020;--tint-red-border:rgba(248,113,113,.35);--tint-red-strong:#F87171;--tint-red-text:#E8D3CE;
   --tint-amber-bg:#332A14;--tint-amber-border:rgba(251,191,36,.4);--tint-amber-strong:#FBBF24;--tint-amber-text:#E8DCC2;
+  --tint-green-bg:#1B2E22;--tint-green-border:rgba(110,231,183,.35);--tint-green-strong:#6EE7B7;
   /* Controles nativos (checkboxes sin appearance:none, el selector de fecha,
      scrollbars) no siguen nuestras variables -- siguen color-scheme. Sin esto
      el navegador los sigue dibujando en su tema claro por default aunque
      toda la página alrededor ya esté oscura. */
   color-scheme:dark;
 }
-/* Estos 3 tenían su propio literal ya distinto del resto (no encajaban en
+/* Estos tenían su propio literal ya distinto del resto (no encajaban en
    ningún token compartido) -- se quedan con su valor de claro exacto de
    siempre, y solo se agrega aquí su variante oscura, para no mover el modo
    claro ni un tono de donde ya estaba. */
 :root[data-theme="dark"] .checkbox-row input[type=checkbox]{background:#4A4038}
 :root[data-theme="dark"] .ria-item-field.ria-cost input{border-color:var(--tint-amber-border)}
 :root[data-theme="dark"] .cat-sheet-item.warn{color:var(--tint-amber-strong)}
+/* Chips de stock/publicado (tarjeta de Inventario) -- a propósito se habían
+   dejado con su tinte claro literal como "acento aceptable" al hacer el
+   modo oscuro, pero terminaban destacando de más sobre una tarjeta ya
+   oscurecida, en vez de leerse como parte del mismo diseño. Eduardo pidió
+   que combinen -- mismo patrón de
+   tinte oscuro ya usado arriba para rojo/ámbar, con "verde" nuevo para
+   stock-ok/pub-visible y gris neutro (reutilizando --surface-soft/--muted,
+   sin token nuevo porque solo lo usa esta tarjeta) para pub-hidden. */
+:root[data-theme="dark"] .stock-ok{background:var(--tint-green-bg);color:var(--tint-green-strong);border-color:var(--tint-green-border)}
+:root[data-theme="dark"] .stock-one{background:var(--tint-amber-bg);color:var(--tint-amber-strong);border-color:var(--tint-amber-border)}
+:root[data-theme="dark"] .stock-sold{background:var(--tint-red-bg);color:var(--tint-red-strong);border-color:var(--tint-red-border)}
+:root[data-theme="dark"] .stock-apt{background:var(--tint-amber-bg);color:var(--tint-amber-strong);border-color:var(--tint-amber-border)}
+:root[data-theme="dark"] .pub-visible{background:var(--tint-green-bg);color:var(--tint-green-strong);border-color:var(--tint-green-border)}
+:root[data-theme="dark"] .pub-visible:hover{background:var(--tint-green-border);color:var(--tint-green-strong)}
+:root[data-theme="dark"] .pub-hidden{background:var(--surface-soft);color:var(--muted);border-color:var(--border)}
+:root[data-theme="dark"] .pub-hidden:hover{background:var(--border);color:var(--charcoal-soft)}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal);min-height:100vh}
 a{text-decoration:none;color:inherit}
