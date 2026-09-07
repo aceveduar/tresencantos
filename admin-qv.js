@@ -764,7 +764,7 @@ async function openProductTimeline(productId, productName) {
 <div style="border-left:2px solid var(--gold);padding:2px 0 14px 14px;margin-left:4px;position:relative">
   <span style="position:absolute;left:-5px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--gold)"></span>
   <div style="font-size:.68rem;color:var(--muted);font-weight:600">${_esc(when)} · ${_esc(who)}</div>
-  <div style="font-size:.85rem;color:#1C1817;margin-top:2px">${_esc(ev.summary)}</div>
+  <div style="font-size:.85rem;color:var(--charcoal);margin-top:2px">${_esc(ev.summary)}</div>
 </div>`;
   }).join('');
 }

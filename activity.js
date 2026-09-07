@@ -300,21 +300,26 @@ async function load() {
   // riesgo real de que sus números no cuadraran entre sí), así que esas 2
   // consultas también se quitan: ya no las usa nadie.
   let logQ = `activity_log?select=*&order=created_at.desc,id.desc`;
+  let metaRpcBody = null;
   if (currentSearch) {
     const qSafe = currentSearch.replace(/[,()]/g, ' ').trim();
     const pat = encodeURIComponent(`*${qSafe}*`);
-    // meta::text cubre lo que summary/meta->>customer/meta->>name se pierden
-    // en una venta o apartado de varios productos: sus nombres viven en
-    // meta.itemsDetail (un array), no en un campo de texto plano contra el
-    // que un .ilike normal pueda comparar. Castear meta completo a texto y
-    // buscar ahí adentro sí encuentra esos casos -- _matchesSearch() (abajo)
-    // ya sabía revisar itemsDetail del lado del cliente, pero nunca tenía
-    // oportunidad de hacerlo porque el registro ni siquiera llegaba del
-    // servidor. Riesgo aceptado: en teoría podría encontrar una coincidencia
-    // dentro de otro campo de meta que no es el nombre de un producto -- en
-    // el peor caso aparece un resultado de más en la lista, no un dato
-    // sensible ni una falla.
-    logQ += `&or=(summary.ilike.${pat},meta->>customer.ilike.${pat},meta->>name.ilike.${pat},meta::text.ilike.${pat})&limit=1000`;
+    logQ += `&or=(summary.ilike.${pat},meta->>customer.ilike.${pat},meta->>name.ilike.${pat})&limit=1000`;
+    // Lo de arriba no encuentra una venta/apartado de varios productos --
+    // esos nombres viven en meta.itemsDetail (un array), no en un campo de
+    // texto plano contra el que un .ilike normal pueda comparar. La forma
+    // obvia de cubrirlo sería castear meta completo a texto (meta::text) y
+    // buscar ahí adentro, pero PostgREST no soporta un cast de columna
+    // dentro de un or=(...) (PGRST100 "failed to parse logic tree",
+    // confirmado en vivo) NI como filtro suelto fuera de or() con ilike
+    // (Postgres tira "operator does not exist: jsonb ~~* unknown" -- el
+    // cast no se aplica antes del operador de patrón). El cast sí funciona
+    // en SQL crudo, de ahí el RPC `te_search_activity_meta` (ver migración
+    // 20260907_01), llamado en paralelo a la consulta de arriba y fusionado
+    // abajo por id. _matchesSearch() (abajo) ya sabía revisar itemsDetail
+    // del lado del cliente -- antes nunca tenía oportunidad porque el
+    // registro ni siquiera llegaba del servidor.
+    metaRpcBody = JSON.stringify({ p_pattern: `%${qSafe}%`, p_from: from, p_user: user || null });
   } else {
     // Tope al feed de auditoría — sin esto, período "Todo" trae el
     // activity_log completo desde el primer día de la tienda.
@@ -323,7 +328,11 @@ async function load() {
   if (from) logQ += `&created_at=gte.${encodeURIComponent(from)}`;
   if (user) logQ += `&user_email=eq.${encodeURIComponent(user)}`;
 
-  const logRes = await api(logQ);
+  const logResPromise  = api(logQ);
+  const metaResPromise = metaRpcBody
+    ? api('rpc/te_search_activity_meta', { method: 'POST', body: metaRpcBody })
+    : null;
+  const logRes = await logResPromise;
   if (loadGeneration !== _activityLoadGeneration) return;
 
   if (!logRes.ok) {
@@ -331,7 +340,20 @@ async function load() {
     return;
   }
 
-  allData = await _filterOutTestData(logRes.data || []);
+  let combined = logRes.data || [];
+  if (metaResPromise) {
+    const metaRes = await metaResPromise;
+    if (loadGeneration !== _activityLoadGeneration) return;
+    if (metaRes.ok && Array.isArray(metaRes.data) && metaRes.data.length) {
+      const seen = new Set(combined.map(d => d.id));
+      for (const row of metaRes.data) {
+        if (!seen.has(row.id)) { combined.push(row); seen.add(row.id); }
+      }
+      combined.sort((a, b) => (b.created_at < a.created_at ? -1 : b.created_at > a.created_at ? 1 : b.id - a.id));
+    }
+  }
+
+  allData = await _filterOutTestData(combined);
   if (loadGeneration !== _activityLoadGeneration) return;
   populateUsers(allData);
   render(allData);
