@@ -15,6 +15,7 @@ const AR_ICO_ARCHIVE  = (px=13) => _arIco('<rect x="2" y="3" width="20" height="
 const AR_ICO_DOLLAR   = (px=13) => _arIco('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', px);
 const AR_ICO_SEARCH   = (px=13) => _arIco('<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>', px);
 const AR_ICO_USER     = (px=13) => _arIco('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', px);
+const AR_ICO_TAG      = (px=13) => _arIco('<path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z"/><line x1="7" y1="7" x2="7.01" y2="7"/>', px);
 // Paleta semántica de los chips de filtro — 4 colores fijos en vez de uno
 // distinto por chip: gris=neutro, verde=ok, ámbar=atención, rojo=crítico.
 const AR_C_NEUTRAL = '#6B7280';
@@ -47,6 +48,7 @@ function renderStats() {
   const sinPublicar = products.filter(p => visible(p) && p.isPublished === false).length;
   const nKits       = products.filter(p => Array.isArray(p.kitItems)).length;
   const sinCodigo   = products.filter(p => visible(p) && !p.barcode).length;
+  const sinCodProv  = products.filter(p => visible(p) && !p.supplierCode).length;
   const sinCateg    = products.filter(p => visible(p) && p.category === 'por_revisar').length;
   const porCaducar  = products.filter(p => visible(p) && ['soon','expired'].includes(_expiryStatus(p)?.state)).length;
   const sinPrecio   = products.filter(p => visible(p) && (!p.price || p.price === 0)).length;
@@ -86,6 +88,7 @@ function renderStats() {
     (porCaducar   > 0 ? chip('por-caducar', AR_ICO_CLOCK(),  porCaducar,  'Por caducar', AR_C_RED) : '') +
     (nFlag        > 0 ? chip('revisar',     AR_ICO_FLAG(),     nFlag,       'Por revisar',  AR_C_RED) : '') +
     (sinCodigo    > 0 ? chip('sin-codigo',  AR_ICO_BARCODE(),   sinCodigo,   'Sin código',   AR_C_NEUTRAL) : '') +
+    (sinCodProv   > 0 ? chip('sin-cod-proveedor', AR_ICO_TAG(), sinCodProv, 'Sin cód. proveedor', AR_C_NEUTRAL) : '') +
     (sinCateg     > 0 ? chip('sin-categ',   AR_ICO_WARN(), sinCateg,    'Sin categoría', AR_C_AMBER) : '') +
     (sinPrecio > 0 && can.publishProduct ? chip('sin-precio', AR_ICO_DOLLAR(), sinPrecio, 'Sin precio', AR_C_AMBER) : '') +
     (() => {
@@ -778,6 +781,10 @@ function renderTable() {
       countEl.textContent = filtered.length === poolTotal
         ? `${poolTotal} producto${poolTotal !== 1 ? 's' : ''}`
         : `${filtered.length} de ${poolTotal}`;
+      // Aviso honesto de que esto es una sugerencia por parecido, no una
+      // coincidencia exacta -- mismo principio que ya se aplicó en
+      // Recepción con IA: nunca dar por hecho un match sin decirlo.
+      if (_searchFuzzyFallback) countEl.textContent += ' · sin match exacto, parecidos por nombre';
     }
   }
 

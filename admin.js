@@ -489,37 +489,75 @@ const _norm = s => {
   return v;
 };
 
+// true cuando la búsqueda exacta no encontró nada y getFilteredProducts()
+// cayó al respaldo por similitud de palabras -- renderTable() lo lee para
+// avisar que son parecidos, no coincidencias exactas.
+let _searchFuzzyFallback = false;
+
+function _productPassesNonSearchFilters(p, cat, creatorVal) {
+  if (_showingArchived ? !p.isArchived : p.isArchived) return false;
+  if (!adminCatMatches(p.category, cat)) return false;
+  if (_showOnlyFlagged && !_flagItem(p.id)) return false;
+  if (!(creatorVal === 'all' || p.createdBy === creatorVal || (!p.createdBy && creatorVal === '__none__'))) return false;
+  const matchStat = !_statFilter ||
+    (_statFilter === 'sin-stock'    && (p.stock === 0 || p.outOfStock)) ||
+    (_statFilter === 'sin-publicar' && p.isPublished === false) ||
+    (_statFilter === 'sin-codigo'   && !p.barcode) ||
+    (_statFilter === 'sin-cod-proveedor' && !p.supplierCode) ||
+    (_statFilter === 'sin-categ'    && p.category === 'por_revisar') ||
+    (_statFilter === 'ultima-pieza' && p.stock === 1 && !p.outOfStock) ||
+    (_statFilter === 'sin-precio'   && (!p.price || p.price === 0)) ||
+    (_statFilter === 'imagen-base64' && _isRealBase64Image(p.image)) ||
+    (_statFilter === 'kits'         && Array.isArray(p.kitItems)) ||
+    (_statFilter === 'por-caducar'  && ['soon','expired'].includes(_expiryStatus(p)?.state)) ||
+    (_statFilter === 'apartado'     && (p.isApartado || _apartadosMap[p.id]));
+  if (!matchStat) return false;
+  const isKit = Array.isArray(p.kitItems);
+  return _statFilter === 'kits' ? isKit : !isKit;
+}
+
 function getFilteredProducts() {
-  const q           = _norm(document.getElementById('search-input')?.value) || '';
+  const qRaw        = document.getElementById('search-input')?.value || '';
+  const q           = _norm(qRaw);
   const cat         = document.getElementById('cat-filter')?.value || 'all';
   const creatorVal  = document.getElementById('creator-filter')?.value || 'all';
-  const filtered = products.filter(p => {
-    if (_showingArchived ? !p.isArchived : p.isArchived) return false;
-    const matchCat = adminCatMatches(p.category, cat);
-    const groups = q ? q.split(',').map(g => g.trim().split(/\s+/).filter(Boolean)).filter(g => g.length) : [];
-    const matchQ = !groups.length || groups.some(g => g.every(t =>
-      _norm(p.name).includes(t) ||
-      _norm(p.categoryLabel).includes(t) ||
-      (p.barcode && p.barcode.includes(t)) ||
-      t === String(Math.round(p.price || 0))
-    ));
-    const matchFlag    = !_showOnlyFlagged || !!_flagItem(p.id);
-    const matchCreator = creatorVal === 'all' || p.createdBy === creatorVal || (!p.createdBy && creatorVal === '__none__');
-    const matchStat = !_statFilter ||
-      (_statFilter === 'sin-stock'    && (p.stock === 0 || p.outOfStock)) ||
-      (_statFilter === 'sin-publicar' && p.isPublished === false) ||
-      (_statFilter === 'sin-codigo'   && !p.barcode) ||
-      (_statFilter === 'sin-categ'    && p.category === 'por_revisar') ||
-      (_statFilter === 'ultima-pieza' && p.stock === 1 && !p.outOfStock) ||
-      (_statFilter === 'sin-precio'   && (!p.price || p.price === 0)) ||
-      (_statFilter === 'imagen-base64' && _isRealBase64Image(p.image)) ||
-      (_statFilter === 'kits'         && Array.isArray(p.kitItems)) ||
-      (_statFilter === 'por-caducar'  && ['soon','expired'].includes(_expiryStatus(p)?.state)) ||
-      (_statFilter === 'apartado'     && (p.isApartado || _apartadosMap[p.id]));
-    const isKit      = Array.isArray(p.kitItems);
-    const matchKit   = _statFilter === 'kits' ? isKit : !isKit;
-    return matchCat && matchQ && matchFlag && matchStat && matchKit && matchCreator;
-  });
+  _searchFuzzyFallback = false;
+
+  const pool = products.filter(p => _productPassesNonSearchFilters(p, cat, creatorVal));
+  const groups = q ? q.split(',').map(g => g.trim().split(/\s+/).filter(Boolean)).filter(g => g.length) : [];
+  let filtered = !groups.length ? pool : pool.filter(p => groups.some(g => g.every(t =>
+    _norm(p.name).includes(t) ||
+    _norm(p.categoryLabel).includes(t) ||
+    (p.barcode && p.barcode.includes(t)) ||
+    t === String(Math.round(p.price || 0))
+  )));
+
+  // Búsqueda difusa -- solo entra cuando la búsqueda exacta no encontró NADA
+  // y el texto parece un nombre completo (2+ palabras), no una palabra suelta
+  // a medio escribir (ahí la búsqueda exacta ya funciona bien y no hay que
+  // tocarla). Resuelve el descontrol real de nombres -- el mismo producto
+  // escrito distinto por la IA, por un usuario, o copiado tal cual de la
+  // revista digital de un proveedor -- reutilizando _wordSim() (conteo
+  // simple de palabras compartidas, admin-scanner.js), el mismo motor ya
+  // usado en Recepción con IA y detección de duplicados. Se probaron 3
+  // variantes pesadas por rareza de palabra (2026-09-06) para el caso real
+  // "EKOS ACAI FRESCOR EAU DE TOILETTE 150 ML" → "Perfume Natura Acai" --
+  // ninguna lo resolvió de forma confiable sin poder probar contra el
+  // catálogo real, y Eduardo pidió regresar a esta versión simple en vez
+  // de seguir adivinando. Nunca autoselecciona nada -- solo ordena por
+  // parecido para que la persona elija con sus propios ojos.
+  if (groups.length && !filtered.length && qRaw.trim().split(/\s+/).filter(Boolean).length >= 2) {
+    const scored = pool
+      .map(p => ({ p, score: _wordSim(qRaw, p.name) }))
+      .filter(x => x.score >= 0.28)
+      .sort((a, b) => b.score - a.score);
+    if (scored.length) {
+      filtered = scored.map(x => x.p);
+      _searchFuzzyFallback = true;
+    }
+  }
+
+  if (_searchFuzzyFallback) return filtered; // ya viene ordenado por similitud -- no aplicar el sort normal
 
   switch (currentSort) {
     case 'recent': {

@@ -3,7 +3,7 @@ let _formSnapshot = null;
 let _savingProduct = false;
 
 function _takeFormSnapshot() {
-  const ids = ['f-name','f-price','f-original-price','f-description','f-image','f-category','f-badge','f-badge-type','f-barcode','f-stock','f-cost','f-expiry-date'];
+  const ids = ['f-name','f-price','f-original-price','f-description','f-image','f-category','f-badge','f-badge-type','f-barcode','f-stock','f-cost','f-expiry-date','f-supplier-code'];
   const snap = {};
   ids.forEach(id => { const el = document.getElementById(id); if (el) snap[id] = el.value; });
   ['f-featured','f-out-of-stock','f-published','f-is-kit'].forEach(id => {
@@ -49,6 +49,7 @@ function openForm(id) {
     document.getElementById('f-stock').value = p.stock ?? 0;
     document.getElementById('f-cost').value = p.cost ?? '';
     document.getElementById('f-expiry-date').value = p.expiryDate || '';
+    document.getElementById('f-supplier-code').value = p.supplierCode || '';
     updateMarginDisplay();
     const isKit = Array.isArray(p.kitItems);
     document.getElementById('f-is-kit').checked = isKit;
@@ -76,6 +77,7 @@ function openForm(id) {
     document.getElementById('f-stock').value = 1;
     document.getElementById('f-cost').value = '';
     document.getElementById('f-expiry-date').value = '';
+    document.getElementById('f-supplier-code').value = '';
     document.getElementById('f-margin-display').textContent = 'Margen: —';
     document.getElementById('f-img-file').value = '';
     document.getElementById('f-img-camera').value = '';
@@ -178,7 +180,7 @@ function _updateActiveFiltersBar() {
   if (sortLabels[sortVal]) chips.push({ icon: ICO_SORT, label: sortLabels[sortVal], type: 'sort' });
 
   if (_statFilter) {
-    const statLabels = { 'sin-stock':'Sin stock','ultima-pieza':'Última pieza','sin-publicar':'Sin publicar','sin-codigo':'Sin código','sin-categ':'Sin categoría','sin-precio':'Sin precio','imagen-base64':'Imagen base64' };
+    const statLabels = { 'sin-stock':'Sin stock','ultima-pieza':'Última pieza','sin-publicar':'Sin publicar','sin-codigo':'Sin código','sin-cod-proveedor':'Sin cód. proveedor','sin-categ':'Sin categoría','sin-precio':'Sin precio','imagen-base64':'Imagen base64' };
     chips.push({ label: statLabels[_statFilter] || _statFilter, type: 'stat' });
   }
 
@@ -642,6 +644,7 @@ async function saveProduct() {
     stock: parseInt(document.getElementById('f-stock').value) || 0,
     cost: parseFloat(document.getElementById('f-cost').value) || null,
     expiryDate: document.getElementById('f-expiry-date').value || null,
+    supplierCode: document.getElementById('f-supplier-code').value.trim() || null,
     isPublished: publishedVal,
     kitItems: document.getElementById('f-is-kit').checked
       ? _kitItemsEdit.map(item => {
@@ -675,6 +678,7 @@ async function saveProduct() {
     stock: data.stock,
     cost: data.cost,
     expiry_date: data.expiryDate,
+    supplier_code: data.supplierCode,
     is_published: data.isPublished,
     kit_items: data.kitItems,
     images: data.images,
