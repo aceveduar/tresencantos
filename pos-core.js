@@ -10,22 +10,25 @@ const SESSION_KEY = 'te_admin_session';
 // tener que armar un selector dinámico para un caso de una sola persona.
 const _COLLECTED_BY_ALT_EMAIL = 'ofe@tresencantos.com';
 const _COLLECTED_BY_ALT_LABEL = 'Ofelia';
-// Los 4 checkboxes "Ya lo cobró Ofelia" (venta, apartado nuevo, abono,
-// liquidar) viven como HTML estático en pos.html -- se ocultan solo para la
-// propia Ofelia (no tiene sentido que se atribuya el cobro a sí misma; el
-// servidor además exige que el target sea siempre una cuenta superadmin/
-// dueña, así que mostrárselo a alguien más nunca serviría de nada distinto).
+// Los 4 botones "Ya lo cobró Ofelia" (venta, apartado nuevo, abono, liquidar)
+// viven como HTML estático en pos.html -- un solo tap alterna su clase
+// .active (mismo patrón que .pay-btn/.discount-type-btn, no un checkbox
+// aparte -- colapsado por default para no sumarle una fila permanente más a
+// una pantalla ya de por sí cargada). Se ocultan solo para la propia Ofelia
+// (no tiene sentido que se atribuya el cobro a sí misma; el servidor además
+// exige que el target sea siempre una cuenta superadmin/dueña, así que
+// mostrárselo a alguien más nunca serviría de nada distinto).
 const _COLLECTED_BY_CHECK_IDS = ['pos-collected-ofelia', 'apt-collected-ofelia', 'abonar-collected-ofelia', 'liq-collected-ofelia'];
 function _initCollectedByChecks() {
   const myEmail = (_posSession?.user?.email || '').toLowerCase();
   if (myEmail !== _COLLECTED_BY_ALT_EMAIL) return;
   for (const id of _COLLECTED_BY_CHECK_IDS) {
-    document.getElementById(id)?.closest('label')?.remove();
+    document.getElementById(id)?.remove();
   }
 }
 function _collectedByEmailFromCheck(id) {
   const el = document.getElementById(id);
-  return (el && el.checked) ? _COLLECTED_BY_ALT_EMAIL : null;
+  return (el && el.classList.contains('active')) ? _COLLECTED_BY_ALT_EMAIL : null;
 }
 const TE = null; // tracking removed — stub keeps TE?.track() calls safe
 const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

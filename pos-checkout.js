@@ -187,12 +187,15 @@ async function cobrar() {
     else cart[idx].qty -= qty;
   });
   ['pos-cash','pos-discount','pos-note'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
-  ['pos-collected-ofelia','apt-collected-ofelia'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
+  ['pos-collected-ofelia','apt-collected-ofelia'].forEach(id => { document.getElementById(id)?.classList.remove('active'); });
   document.getElementById('pos-is-apartado').checked = false;
   toggleApartadoMode(); // limpia phone/anticipo/pendiente/fecha/cliente-apartado y cierra el sheet
   clearNoteField();
   clearCustomerField();
   clearDiscountField();
+  const moreOptionsWrap = document.getElementById('more-options-wrap');
+  if (moreOptionsWrap) moreOptionsWrap.style.display = 'none';
+  _updateMoreOptionsLabel();
   renderCart(); updateChange();
   document.getElementById('pos-search').value = '';
   showAllProducts();

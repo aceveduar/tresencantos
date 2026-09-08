@@ -178,19 +178,6 @@
            vacío, en vez de mostrar un formulario de cobro inutilizable. -->
       <div id="checkout-fields-wrap" style="display:none">
 
-      <!-- Descuento -->
-      <button type="button" class="note-toggle-btn" id="discount-toggle-btn" onclick="toggleDiscountField()"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42Z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>Agregar descuento</button>
-      <div id="discount-row-wrap" style="display:none">
-      <div class="discount-row">
-        <span class="discount-label">Descuento</span>
-        <button class="discount-type-btn" id="disc-pct-btn" onclick="setDiscountType('pct')">%</button>
-        <button class="discount-type-btn active" id="disc-fixed-btn" onclick="setDiscountType('fixed')">$</button>
-        <input type="number" id="pos-discount" min="0" placeholder="0" oninput="clampDiscount();updateChange()" onblur="autoCollapseDiscount()">
-        <span class="discount-amount" id="pos-discount-amount"></span>
-        <button type="button" class="discount-clear-btn" onclick="clearDiscountField()" title="Quitar descuento">✕</button>
-      </div>
-      </div>
-
       <!-- Total con descuento — solo visible cuando hay un descuento activo, para no dejar la resta al cajero -->
       <div class="total-row total-row-discounted" id="total-discounted-row" style="display:none">
         <span class="total-label" id="total-discounted-label">Total a cobrar</span>
@@ -202,7 +189,6 @@
         <button class="pay-btn active" id="pay-efectivo" onclick="setPayMethod('efectivo')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>Efectivo</button>
         <button class="pay-btn" id="pay-transferencia" onclick="setPayMethod('transferencia')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>Transferencia</button>
       </div>
-      <label class="collected-by-check" id="pos-collected-ofelia-row"><input type="checkbox" id="pos-collected-ofelia">Ya lo cobró Ofelia (no está en la caja)</label>
 
       <!-- Efectivo (solo si pago en efectivo) -->
       <div id="cash-section">
@@ -224,16 +210,9 @@
         </div>
       </div>
 
-      <!-- Nota -->
-      <div class="note-cliente-row">
-        <button type="button" class="note-toggle-btn" id="note-toggle-btn" onclick="toggleNoteField()"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Agregar nota</button>
-        <div class="note-input-wrap" id="note-input-wrap" style="display:none">
-          <input type="text" id="pos-note" placeholder="Escribe una nota…" onblur="autoCollapseNote()">
-          <button type="button" class="note-clear-btn" onclick="clearNoteField()" title="Quitar nota">✕</button>
-        </div>
-      </div>
-
-      <!-- Apartado — agrupado visualmente en su propio bloque; se resalta cuando está activo -->
+      <!-- Apartado — agrupado visualmente en su propio bloque; se resalta cuando está activo. Se
+           queda siempre visible (no colapsado en "Más opciones") porque cambia todo el flujo de
+           cobro, a diferencia de descuento/nota/cliente/Ofelia que solo agregan información. -->
       <div class="apartado-group" id="apartado-group">
         <label class="apartado-toggle-label">
           <input type="checkbox" id="pos-is-apartado" onchange="toggleApartadoMode()">
@@ -243,17 +222,49 @@
         <div class="apartado-summary-row" id="apartado-summary" style="display:none" onclick="openApartadoSheet()"></div>
       </div>
 
-      <!-- Cliente (venta normal, opcional) — oculto durante apartado, donde el cliente vive en el sheet -->
-      <div class="note-cliente-row" id="cliente-normal-row">
-        <button type="button" class="note-toggle-btn" id="customer-toggle-btn" onclick="toggleCustomerField()"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Agregar cliente</button>
-        <div class="note-input-wrap" id="customer-input-wrap" style="display:none">
-          <input type="text" id="pos-customer" placeholder="Nombre del cliente" oninput="updateAnticipoInfo()" onblur="autoCollapseCustomer()">
-          <button type="button" class="note-clear-btn" onclick="clearCustomerField()" title="Quitar cliente">✕</button>
+      <!-- Más opciones — agrupa descuento/nota/cliente/"Ya lo cobró Ofelia": 4 add-ons que casi
+           nunca se usan juntos y antes competían por espacio, uno tras otro, con lo esencial de
+           arriba. Colapsado por default; el contador (N) evita que algo quede activo sin verse
+           una vez cerrado (ver _updateMoreOptionsLabel(), pos-apartados.js). -->
+      <button type="button" class="note-toggle-btn" id="more-options-toggle-btn" onclick="toggleMoreOptions()">▾ Más opciones</button>
+      <div id="more-options-wrap" style="display:none">
+
+        <!-- Descuento -->
+        <button type="button" class="note-toggle-btn" id="discount-toggle-btn" onclick="toggleDiscountField()"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42Z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>Agregar descuento</button>
+        <div id="discount-row-wrap" style="display:none">
+        <div class="discount-row">
+          <span class="discount-label">Descuento</span>
+          <button class="discount-type-btn" id="disc-pct-btn" onclick="setDiscountType('pct')">%</button>
+          <button class="discount-type-btn active" id="disc-fixed-btn" onclick="setDiscountType('fixed')">$</button>
+          <input type="number" id="pos-discount" min="0" placeholder="0" oninput="clampDiscount();updateChange();_updateMoreOptionsLabel()" onblur="autoCollapseDiscount()">
+          <span class="discount-amount" id="pos-discount-amount"></span>
+          <button type="button" class="discount-clear-btn" onclick="clearDiscountField()" title="Quitar descuento">✕</button>
         </div>
-        <div class="note-input-wrap" id="customer-phone-wrap" style="display:none">
-          <input type="tel" id="pos-customer-phone" placeholder="Teléfono (opcional)" maxlength="10" inputmode="numeric" onblur="_lookupCustomerByPhone('pos-customer-phone','pos-customer','pos-customer-hint')">
         </div>
-        <p class="cust-hint" id="pos-customer-hint" style="display:none"></p>
+
+        <button type="button" class="collected-by-btn" id="pos-collected-ofelia" onclick="this.classList.toggle('active');_updateMoreOptionsLabel()"><svg style="width:13px;height:13px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>Ya lo cobró Ofelia (no está en la caja)</button>
+
+        <!-- Nota -->
+        <div class="note-cliente-row">
+          <button type="button" class="note-toggle-btn" id="note-toggle-btn" onclick="toggleNoteField()"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Agregar nota</button>
+          <div class="note-input-wrap" id="note-input-wrap" style="display:none">
+            <input type="text" id="pos-note" placeholder="Escribe una nota…" oninput="_updateMoreOptionsLabel()" onblur="autoCollapseNote()">
+            <button type="button" class="note-clear-btn" onclick="clearNoteField()" title="Quitar nota">✕</button>
+          </div>
+        </div>
+
+        <!-- Cliente (venta normal, opcional) — oculto durante apartado, donde el cliente vive en el sheet -->
+        <div class="note-cliente-row" id="cliente-normal-row">
+          <button type="button" class="note-toggle-btn" id="customer-toggle-btn" onclick="toggleCustomerField()"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Agregar cliente</button>
+          <div class="note-input-wrap" id="customer-input-wrap" style="display:none">
+            <input type="text" id="pos-customer" placeholder="Nombre del cliente" oninput="updateAnticipoInfo();_updateMoreOptionsLabel()" onblur="autoCollapseCustomer()">
+            <button type="button" class="note-clear-btn" onclick="clearCustomerField()" title="Quitar cliente">✕</button>
+          </div>
+          <div class="note-input-wrap" id="customer-phone-wrap" style="display:none">
+            <input type="tel" id="pos-customer-phone" placeholder="Teléfono (opcional)" maxlength="10" inputmode="numeric" onblur="_lookupCustomerByPhone('pos-customer-phone','pos-customer','pos-customer-hint')">
+          </div>
+          <p class="cust-hint" id="pos-customer-hint" style="display:none"></p>
+        </div>
       </div>
 
       </div>
@@ -317,7 +328,7 @@
       <button class="abonar-pay-btn active" id="abpay-efectivo" onclick="setAbonarMethod('efectivo')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>Efectivo</button>
       <button class="abonar-pay-btn" id="abpay-transferencia" onclick="setAbonarMethod('transferencia')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>Transferencia</button>
     </div>
-    <label class="collected-by-check"><input type="checkbox" id="abonar-collected-ofelia">Ya lo cobró Ofelia (no está en la caja)</label>
+    <button type="button" class="collected-by-btn" id="abonar-collected-ofelia" onclick="this.classList.toggle('active')"><svg style="width:13px;height:13px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>Ya lo cobró Ofelia (no está en la caja)</button>
     <div class="abonar-footer">
       <button class="btn-cancel" onclick="closeAbonarModal()">Cancelar</button>
       <button class="btn-confirm" id="abonar-confirm-btn" onclick="confirmAbonar()">Confirmar abono</button>
@@ -359,7 +370,7 @@
         <button class="pay-btn active" id="apt-pay-efectivo" onclick="setPayMethod('efectivo')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>Efectivo</button>
         <button class="pay-btn" id="apt-pay-transferencia" onclick="setPayMethod('transferencia')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>Transferencia</button>
       </div>
-      <label class="collected-by-check" style="margin-top:10px"><input type="checkbox" id="apt-collected-ofelia">Ya lo cobró Ofelia (no está en la caja)</label>
+      <button type="button" class="collected-by-btn" id="apt-collected-ofelia" style="margin-top:10px" onclick="this.classList.toggle('active')"><svg style="width:13px;height:13px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>Ya lo cobró Ofelia (no está en la caja)</button>
     </div>
     <div class="cash-field">
       <label><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Fecha límite de pago</label>
@@ -481,7 +492,7 @@
       <button class="abonar-pay-btn active" id="liq-pay-efectivo" onclick="setLiqMethod('efectivo')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>Efectivo</button>
       <button class="abonar-pay-btn" id="liq-pay-transf" onclick="setLiqMethod('transferencia')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>Transferencia</button>
     </div>
-    <label class="collected-by-check"><input type="checkbox" id="liq-collected-ofelia">Ya lo cobró Ofelia (no está en la caja)</label>
+    <button type="button" class="collected-by-btn" id="liq-collected-ofelia" onclick="this.classList.toggle('active')"><svg style="width:13px;height:13px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>Ya lo cobró Ofelia (no está en la caja)</button>
     <div class="abonar-footer">
       <button class="btn-cancel" onclick="closeLiqModal()">Cancelar</button>
       <button class="btn-confirm" id="liq-confirm-btn" onclick="confirmLiquidar()">✓ Liquidar</button>

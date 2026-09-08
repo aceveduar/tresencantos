@@ -42,6 +42,7 @@ function clearDiscountField() {
   document.getElementById('discount-row-wrap').style.display = 'none';
   document.getElementById('discount-toggle-btn').style.display = '';
   updateChange();
+  _updateMoreOptionsLabel();
 }
 function autoCollapseDiscount() {
   const val = parseFloat(document.getElementById('pos-discount')?.value) || 0;
@@ -79,6 +80,7 @@ function clearNoteField() {
   document.getElementById('pos-note').value = '';
   document.getElementById('note-input-wrap').style.display = 'none';
   document.getElementById('note-toggle-btn').style.display = '';
+  _updateMoreOptionsLabel();
 }
 function autoCollapseNote() {
   const val = document.getElementById('pos-note')?.value.trim();
@@ -102,6 +104,7 @@ function clearCustomerField() {
   document.getElementById('customer-phone-wrap').style.display = 'none';
   document.getElementById('customer-toggle-btn').style.display = '';
   updateAnticipoInfo();
+  _updateMoreOptionsLabel();
 }
 function autoCollapseCustomer() {
   const val = document.getElementById('pos-customer')?.value.trim();
@@ -144,6 +147,33 @@ async function _getOrCreateCustomerId(name, phone) {
   } catch { return null; }
 }
 
+/* ── MÁS OPCIONES — agrupa descuento/nota/cliente/"Ya lo cobró Ofelia" ── */
+function toggleMoreOptions() {
+  const wrap = document.getElementById('more-options-wrap');
+  if (!wrap) return;
+  wrap.style.display = wrap.style.display === 'none' ? '' : 'none';
+  _updateMoreOptionsLabel();
+}
+function _moreOptionsActiveCount() {
+  let n = 0;
+  if ((parseFloat(document.getElementById('pos-discount')?.value) || 0) > 0) n++;
+  if (document.getElementById('pos-note')?.value.trim()) n++;
+  if (document.getElementById('pos-customer')?.value.trim()) n++;
+  if (document.getElementById('pos-collected-ofelia')?.classList.contains('active')) n++;
+  return n;
+}
+// El contador (N) es lo que evita que algo quede activo sin verse una vez
+// que el grupo está cerrado -- ej. si se escribió una nota y luego se
+// colapsa "Más opciones", el botón mismo avisa que sigue ahí.
+function _updateMoreOptionsLabel() {
+  const btn = document.getElementById('more-options-toggle-btn');
+  const wrap = document.getElementById('more-options-wrap');
+  if (!btn || !wrap) return;
+  const expanded = wrap.style.display !== 'none';
+  const n = _moreOptionsActiveCount();
+  btn.textContent = `${expanded ? '▴' : '▾'} Más opciones${n ? ` (${n})` : ''}`;
+}
+
 /* ── APARTADO ── */
 function toggleApartadoMode() {
   const isApt = document.getElementById('pos-is-apartado').checked;
@@ -154,7 +184,7 @@ function toggleApartadoMode() {
   // Método de pago: en apartado vive dentro del sheet (junto al anticipo), no en la columna principal
   const payRowMain = document.getElementById('pay-method-row-main');
   if (payRowMain) payRowMain.style.display = isApt ? 'none' : '';
-  const collectedRow = document.getElementById('pos-collected-ofelia-row');
+  const collectedRow = document.getElementById('pos-collected-ofelia');
   if (collectedRow) collectedRow.style.display = isApt ? 'none' : '';
   document.getElementById('apartado-group')?.classList.toggle('active', isApt);
   if (isApt) {
@@ -182,8 +212,7 @@ function toggleApartadoMode() {
     });
     const aptHint = document.getElementById('pos-apt-customer-hint');
     if (aptHint) aptHint.style.display = 'none';
-    const aptCollected = document.getElementById('apt-collected-ofelia');
-    if (aptCollected) aptCollected.checked = false;
+    document.getElementById('apt-collected-ofelia')?.classList.remove('active');
     document.getElementById('cliente-normal-row').style.display = '';
     document.querySelectorAll('.anticipo-quick button').forEach(b => b.classList.remove('active-cash'));
     const hint = document.getElementById('cobrar-hint');
@@ -1066,8 +1095,7 @@ function validateAbonarAmount() {
 function closeAbonarModal() {
   document.getElementById('abonar-overlay').style.display = 'none';
   _abonarCtx = null;
-  const chk = document.getElementById('abonar-collected-ofelia');
-  if (chk) chk.checked = false;
+  document.getElementById('abonar-collected-ofelia')?.classList.remove('active');
 }
 
 async function confirmAbonar() {
@@ -1437,8 +1465,7 @@ function setLiqMethod(m) {
 function closeLiqModal() {
   document.getElementById('liquidar-overlay').style.display = 'none';
   _liqCtx = null;
-  const chk = document.getElementById('liq-collected-ofelia');
-  if (chk) chk.checked = false;
+  document.getElementById('liq-collected-ofelia')?.classList.remove('active');
 }
 
 async function confirmLiquidar() {
