@@ -279,20 +279,29 @@ button,a{touch-action:manipulation}
 }
 .hi-card:hover{box-shadow:0 2px 10px rgba(28,24,23,.08)}
 
-/* Cabecera */
+/* Cabecera — dos filas a propósito: info arriba (hora/badge/total), acciones
+   abajo. Antes era una sola fila con hora+badge+total+hasta 4 botones de
+   44px -- no cabían y `flex-wrap` los mandaba a una segunda línea por
+   accidente, viéndose como una cabecera pesada/desordenada. */
 .hi-head{
-  display:flex;align-items:center;gap:6px;
-  padding:10px 12px;background:#FDFAF6;
-  border-bottom:1px solid #EDE5DC;flex-wrap:wrap;
+  display:flex;flex-direction:column;gap:4px;
+  padding:8px 12px;background:#FDFAF6;
+  border-bottom:1px solid #EDE5DC;
 }
+.hi-head-row1{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.hi-head-row2{display:flex;align-items:center;justify-content:flex-end;gap:2px;flex-wrap:wrap}
 .hi-time{font-size:.74rem;color:#9B8B78;white-space:nowrap}
 .hi-spacer{flex:1}
 .hi-total{font-weight:700;font-family:'Playfair Display',serif;color:var(--charcoal);font-size:.95rem;white-space:nowrap}
 .hi-del{
   background:none;border:none;color:#C8BAB0;cursor:pointer;
-  font-size:.85rem;border-radius:8px;transition:.15s;line-height:1;
-  width:44px;height:44px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  font-size:.8rem;border-radius:8px;transition:.15s;line-height:1;position:relative;
+  width:30px;height:30px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
 }
+/* El botón se ve compacto (30px) pero el área que de verdad responde al
+   toque sigue siendo ~44px -- un ::after invisible que se extiende más
+   allá del borde visible, sin ocupar ese espacio en el layout de la fila. */
+.hi-del::after{content:'';position:absolute;inset:-7px}
 .hi-del:hover{color:var(--red);background:#FEE2E2}
 /* Reenviar comprobante no es una acción destructiva -- no debe ponerse rojo
    al hover como el resto de .hi-del (✕ cancelar, 🧪 marcar prueba). */
@@ -696,7 +705,8 @@ button,a{touch-action:manipulation}
 .abonar-modal input[type=number]{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:1.1rem;outline:none;font-family:inherit;color:var(--charcoal);margin-bottom:14px}
 .abonar-modal input[type=number]:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,164,98,.12)}
 .abonar-pay-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
-#more-options-wrap{margin-top:2px;padding-top:6px;border-top:1px dashed var(--border)}
+#more-options-toggle-btn.active{background:#FFFBEB;border:1.5px dashed #FDE68A;color:var(--gold-dark);font-weight:600}
+#more-options-wrap{margin:2px 0 5px;padding:10px 10px 2px;background:#fff;border:1px solid var(--border);border-radius:10px}
 .collected-by-btn{width:100%;padding:7px 10px;border:1.5px dashed var(--border);border-radius:7px;background:transparent;color:#9B8B78;font-size:.8rem;font-weight:500;cursor:pointer;text-align:left;font-family:inherit;margin:2px 0 16px;transition:.15s;display:flex;align-items:center;gap:6px}
 .collected-by-btn:hover{border-color:var(--gold);color:var(--gold-dark)}
 .collected-by-btn.active{background:#FFFBEB;border:1.5px solid #FDE68A;color:var(--gold-dark);font-weight:600}

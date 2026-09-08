@@ -1020,14 +1020,18 @@ async function loadHistory() {
       return `
 <div class="hi-card">
   <div class="hi-head">
-    <span class="hi-time">${hora} · ${totalQty} art.</span>
-    ${payBadge}
-    <span class="hi-spacer"></span>
-    ${timelineBtn}
-    ${resendBtn}
-    <span class="hi-total"${amount < 0 ? ' style="color:var(--red)"' : ''}>${displayTotal}</span>
-    ${testBtn}
-    ${canCancelThis ? `<button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar registro completo" aria-label="Cancelar registro completo">✕</button>` : ''}
+    <div class="hi-head-row1">
+      <span class="hi-time">${hora} · ${totalQty} art.</span>
+      ${payBadge}
+      <span class="hi-spacer"></span>
+      <span class="hi-total"${amount < 0 ? ' style="color:var(--red)"' : ''}>${displayTotal}</span>
+    </div>
+    <div class="hi-head-row2">
+      ${timelineBtn}
+      ${resendBtn}
+      ${testBtn}
+      ${canCancelThis ? `<button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar registro completo" aria-label="Cancelar registro completo">✕</button>` : ''}
+    </div>
   </div>
   <div class="hi-items">${itemsHTML || '<div style="color:#9B8B78;font-size:.78rem;padding:4px 0">Sin detalle</div>'}</div>
   ${footerHTML}

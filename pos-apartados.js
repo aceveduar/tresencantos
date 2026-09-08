@@ -172,6 +172,10 @@ function _updateMoreOptionsLabel() {
   const expanded = wrap.style.display !== 'none';
   const n = _moreOptionsActiveCount();
   btn.textContent = `${expanded ? '▴' : '▾'} Más opciones${n ? ` (${n})` : ''}`;
+  // Con algo activo, el propio botón se resalta en ámbar (igual que los
+  // botones de adentro cuando están en uso) -- así se nota sin tener que
+  // leer el número, incluso colapsado.
+  btn.classList.toggle('active', n > 0);
 }
 
 /* ── APARTADO ── */
