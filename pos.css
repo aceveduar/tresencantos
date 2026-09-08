@@ -9,9 +9,14 @@ button,input,select{font-family:inherit}
 *{-webkit-tap-highlight-color:transparent}
 button,a{touch-action:manipulation}
 
-/* iOS input zoom fix — crítico en teléfono físico */
+/* iOS input zoom fix — crítico en teléfono físico. Excluye checkbox/radio:
+   -webkit-appearance:none les quita el glifo nativo sin dejar nada en su
+   lugar (invisibles pero funcionales -- se podían seguir tocando, solo no
+   se veían). Ese hueco ya existía para "Es apartado/anticipo" (se notaba
+   menos porque su fila entera cambia de fondo al activarse); con el
+   checkbox nuevo de "Ya lo cobró Ofelia" (sin ese fondo) quedó evidente. */
 @media(max-width:768px){
-  input,select{font-size:16px!important;-webkit-appearance:none}
+  input:not([type="checkbox"]):not([type="radio"]),select{font-size:16px!important;-webkit-appearance:none}
   /* Safe area topbar */
 
   /* Safe area inferior (home indicator iPhone X+) */
