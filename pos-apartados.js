@@ -154,6 +154,8 @@ function toggleApartadoMode() {
   // Método de pago: en apartado vive dentro del sheet (junto al anticipo), no en la columna principal
   const payRowMain = document.getElementById('pay-method-row-main');
   if (payRowMain) payRowMain.style.display = isApt ? 'none' : '';
+  const collectedRow = document.getElementById('pos-collected-ofelia-row');
+  if (collectedRow) collectedRow.style.display = isApt ? 'none' : '';
   document.getElementById('apartado-group')?.classList.toggle('active', isApt);
   if (isApt) {
     const cashEl = document.getElementById('pos-cash');
@@ -180,6 +182,8 @@ function toggleApartadoMode() {
     });
     const aptHint = document.getElementById('pos-apt-customer-hint');
     if (aptHint) aptHint.style.display = 'none';
+    const aptCollected = document.getElementById('apt-collected-ofelia');
+    if (aptCollected) aptCollected.checked = false;
     document.getElementById('cliente-normal-row').style.display = '';
     document.querySelectorAll('.anticipo-quick button').forEach(b => b.classList.remove('active-cash'));
     const hint = document.getElementById('cobrar-hint');
@@ -1062,6 +1066,8 @@ function validateAbonarAmount() {
 function closeAbonarModal() {
   document.getElementById('abonar-overlay').style.display = 'none';
   _abonarCtx = null;
+  const chk = document.getElementById('abonar-collected-ofelia');
+  if (chk) chk.checked = false;
 }
 
 async function confirmAbonar() {
@@ -1080,7 +1086,8 @@ async function confirmAbonar() {
       p_sale_id: _abonarCtx.id,
       p_expected_version: _abonarCtx.version,
       p_method: _abonarMethod,
-      p_amount: monto
+      p_amount: monto,
+      p_collected_by_email: _collectedByEmailFromCheck('abonar-collected-ofelia')
     }
   });
   if (!r.ok) {
@@ -1430,6 +1437,8 @@ function setLiqMethod(m) {
 function closeLiqModal() {
   document.getElementById('liquidar-overlay').style.display = 'none';
   _liqCtx = null;
+  const chk = document.getElementById('liq-collected-ofelia');
+  if (chk) chk.checked = false;
 }
 
 async function confirmLiquidar() {
@@ -1455,7 +1464,8 @@ async function confirmLiquidar() {
       p_sale_id: id,
       p_expected_version: sale.version ?? 0,
       p_method: method,
-      p_amount: null
+      p_amount: null,
+      p_collected_by_email: _collectedByEmailFromCheck('liq-collected-ofelia')
     }
   });
   btn.disabled = false; btn.textContent = '✓ Liquidar';

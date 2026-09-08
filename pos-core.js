@@ -2,6 +2,31 @@
 const SUPABASE_URL      = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjYyMjYsImV4cCI6MjA5NDEwMjIyNn0.irCFwOR5HL_ZOVjFGVw9LqmzYicDZTNEmxcknu_j6cI';
 const SESSION_KEY = 'te_admin_session';
+// Ofelia cobra en efectivo fuera de la tienda y le dicta a Areli que lo
+// capture en el sistema -- sin esto, ese efectivo (que nunca toca la caja
+// de Areli) se le sumaba a su turno como si lo tuviera ella. Hardcodeado a
+// propósito (mismo criterio que _NIGHT_EXEMPT_EMAILS en activity.js) -- el
+// servidor igual exige que sea una cuenta superadmin/dueña, esto solo evita
+// tener que armar un selector dinámico para un caso de una sola persona.
+const _COLLECTED_BY_ALT_EMAIL = 'ofe@tresencantos.com';
+const _COLLECTED_BY_ALT_LABEL = 'Ofelia';
+// Los 4 checkboxes "Ya lo cobró Ofelia" (venta, apartado nuevo, abono,
+// liquidar) viven como HTML estático en pos.html -- se ocultan solo para la
+// propia Ofelia (no tiene sentido que se atribuya el cobro a sí misma; el
+// servidor además exige que el target sea siempre una cuenta superadmin/
+// dueña, así que mostrárselo a alguien más nunca serviría de nada distinto).
+const _COLLECTED_BY_CHECK_IDS = ['pos-collected-ofelia', 'apt-collected-ofelia', 'abonar-collected-ofelia', 'liq-collected-ofelia'];
+function _initCollectedByChecks() {
+  const myEmail = (_posSession?.user?.email || '').toLowerCase();
+  if (myEmail !== _COLLECTED_BY_ALT_EMAIL) return;
+  for (const id of _COLLECTED_BY_CHECK_IDS) {
+    document.getElementById(id)?.closest('label')?.remove();
+  }
+}
+function _collectedByEmailFromCheck(id) {
+  const el = document.getElementById(id);
+  return (el && el.checked) ? _COLLECTED_BY_ALT_EMAIL : null;
+}
 const TE = null; // tracking removed — stub keeps TE?.track() calls safe
 const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const _giftIconSvg  = (px = 14) => `<svg style="width:${px}px;height:${px}px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>`;

@@ -20,10 +20,12 @@
 const _RIA_DRY_RUN = false;
 
 let _riaItems  = [];  // [{supplierCode, rawName, qty, cost, suggestedPrice, categoryGuess, matchProductId, matchCandidates, isNew, priceToApply}]
-let _riaKits   = [];  // [{raw_name, components:[...], tu_pagas}] — promociones, no se procesan
+let _riaKits   = [];  // [{raw_name, tu_pagas, components:[{name,matchProductId,matchManual,isNew,cost}]}] — promociones; los componentes SÍ se pueden vincular y costear, ver _riaNormalizeKit()
 let _riaPhotos = [];  // [dataUrl] — fotos en cola antes de extraer (camino de foto)
 let _riaDocTotal = null;     // "Total a pagar" del documento — solo para el chequeo de sanidad
 let _riaMatchTargetIdx = null; // índice de _riaItems que el picker de vinculación está editando
+let _riaMatchTargetKit = null; // {kitIdx,compIdx} cuando el picker abrió desde un componente de kit en vez de un renglón normal -- mutuamente excluyente con _riaMatchTargetIdx
+let _riaKitsExpanded = false; // colapsado por default -- ver _riaToggleKitsSection()
 
 // 'stock' (default, comportamiento de siempre — suma stock, actualiza costo
 // y precio) vs. 'costOnly' (facturas viejas — solo rellena `cost` de
@@ -41,6 +43,44 @@ let _riaMode = 'stock';
    producto de la misma línea, no de que sea el producto correcto — probado
    en la práctica el 2026-09-05, no es un caso hipotético). ── */
 const _RIA_MATCH_SHOW = 0.28; // score ≥ esto → se muestra como candidato
+
+// La IA solo entrega los componentes de un kit como nombres sueltos (sin
+// código de proveedor, sin precio individual -- la factura nunca lo da).
+// Los envuelve aquí en el mismo tipo de objeto vinculable que un renglón
+// normal, con el costo pre-cargado a un reparto parejo del total del kit
+// (editable -- si Eduardo sabe que unos componentes valen más que otros,
+// ajusta cada uno a mano). Idempotente: si ya viene en el formato nuevo
+// (ej. al restaurar un borrador guardado después de este cambio), no lo
+// vuelve a envolver.
+function _riaNormalizeKit(k) {
+  const rawComps = Array.isArray(k.components) ? k.components : [];
+  const evenCost = (k.tu_pagas != null && rawComps.length)
+    ? Math.round((Number(k.tu_pagas) / rawComps.length) * 100) / 100
+    : null;
+  return {
+    raw_name: k.raw_name,
+    tu_pagas: k.tu_pagas,
+    components: rawComps.map(c => (typeof c === 'string'
+      ? { name: c, matchProductId: null, matchManual: false, isNew: false, cost: evenCost }
+      : c))
+  };
+}
+
+// Componentes de kit que Eduardo sí decidió tocar (vinculó o marcó "producto
+// nuevo") -- uno que se quedó en su estado default ("Vincular", sin tocar)
+// se ignora por completo al aplicar, mismo criterio que un renglón normal
+// sin vincular en modo costOnly: nunca se inventa nada sin decisión humana.
+function _riaActionableKitComponents() {
+  const out = [];
+  for (let ki = 0; ki < _riaKits.length; ki++) {
+    const comps = _riaKits[ki].components || [];
+    for (let ci = 0; ci < comps.length; ci++) {
+      const c = comps[ci];
+      if (c.matchProductId || c.isNew) out.push({ kit: _riaKits[ki], comp: c });
+    }
+  }
+  return out;
+}
 
 function _riaCatList() {
   return (typeof categories !== 'undefined' ? categories : []).map(c => `"${c.code}" (${c.label})`).join(', ');
@@ -134,6 +174,7 @@ function closeRecvIaMode() {
 function resetRecvIa() {
   _riaItems = [];
   _riaKits = [];
+  _riaKitsExpanded = false;
   _riaPhotos = [];
   _riaDocTotal = null;
   _riaClearDraft();
@@ -312,7 +353,7 @@ function _riaTryRestoreDraft() {
   if (!wantsRestore) { _riaClearDraft(); return false; }
 
   _riaItems = draft.items;
-  _riaKits = draft.kits || [];
+  _riaKits = (draft.kits || []).map(_riaNormalizeKit);
   _riaDocTotal = draft.docTotal ?? null;
   _riaMode = draft.mode === 'costOnly' ? 'costOnly' : 'stock';
   return true;
@@ -360,7 +401,7 @@ async function handleRecvIaPdf(input) {
     }
 
     _riaItems = allItems.map(_riaComputeItem).filter(Boolean);
-    _riaKits = allKits.filter(k => k && k.raw_name);
+    _riaKits = allKits.filter(k => k && k.raw_name).map(_riaNormalizeKit);
     _riaDocTotal = (docTotal != null && !isNaN(docTotal)) ? docTotal : null;
     console.log('[Recepción IA] fragmentos:', chunks.length, '· productos:', _riaItems.length, '· kits:', _riaKits.length, '· total documento:', _riaDocTotal);
     if (!_riaItems.length && !_riaKits.length) throw new Error('La IA no encontró productos en este PDF');
@@ -572,7 +613,7 @@ async function recvIaExtractPhotos() {
       if (i < total - 1) await new Promise(r => setTimeout(r, 2500));
     }
     _riaItems = allItems.map(_riaComputeItem).filter(Boolean);
-    _riaKits = allKits.filter(k => k && k.raw_name);
+    _riaKits = allKits.filter(k => k && k.raw_name).map(_riaNormalizeKit);
     _riaDocTotal = (docTotal != null && !isNaN(docTotal)) ? docTotal : null;
     if (!_riaItems.length && !_riaKits.length) throw new Error('La IA no encontró productos en las fotos');
     _riaMatchCatalog();
@@ -600,13 +641,18 @@ function _riaComputeItem(raw) {
     const cu = Number(raw.costo_unitario);
     if (!isNaN(cu)) cost = Math.round(cu * 100) / 100;
   }
-  const suggestedPrice = raw.precio_revista != null ? Number(raw.precio_revista) : null;
+  // Precio de venta (revista) SÍ se redondea a pesos enteros -- Ofelia nunca
+  // cobra centavos, aunque Natura sí los liste en su revista ($383.50). El
+  // costo (arriba) es dato interno para calcular margen y se queda exacto,
+  // nunca se redondea a entero.
+  const suggestedPriceRaw = raw.precio_revista != null ? Number(raw.precio_revista) : null;
+  const suggestedPrice = (suggestedPriceRaw != null && !isNaN(suggestedPriceRaw)) ? Math.round(suggestedPriceRaw) : null;
   return {
     supplierCode: raw.supplier_code ? String(raw.supplier_code) : null,
     rawName: String(raw.raw_name).trim(),
     qty,
     cost,
-    suggestedPrice: (suggestedPrice != null && !isNaN(suggestedPrice)) ? suggestedPrice : null,
+    suggestedPrice,
     categoryGuess: raw.category_guess || null,
     // se llenan en _riaMatchCatalog():
     matchProductId: null,
@@ -728,6 +774,43 @@ function riaSetMatchNew(idx) {
   _renderRecvIaReview();
 }
 
+// Componentes de kit -- mismo par de acciones que riaSetMatch/riaSetMatchNew,
+// pero sobre _riaKits[kitIdx].components[compIdx] en vez de _riaItems[idx].
+// Sin priceToApply: la factura nunca da precio individual por componente, así
+// que nunca se toca el precio de venta del producto vinculado, solo su costo.
+function riaSetKitCompMatch(kitIdx, compIdx, productId) {
+  const comp = _riaKits[kitIdx]?.components?.[compIdx];
+  if (!comp) return;
+  comp.matchProductId = productId;
+  comp.isNew = false;
+  comp.matchManual = true;
+  _renderRecvIaReview();
+}
+
+function riaSetKitCompNew(kitIdx, compIdx) {
+  const comp = _riaKits[kitIdx]?.components?.[compIdx];
+  if (!comp) return;
+  comp.matchProductId = null;
+  comp.isNew = true;
+  comp.matchManual = true;
+  _renderRecvIaReview();
+}
+
+function riaUpdateKitCompCost(kitIdx, compIdx, value) {
+  const comp = _riaKits[kitIdx]?.components?.[compIdx];
+  if (!comp) return;
+  const num = parseFloat(value);
+  comp.cost = isNaN(num) ? null : num;
+  _riaSaveDraftDebounced();
+}
+
+// Quitar el kit completo de la revisión -- para cuando no se quiere armar ese
+// kit en absoluto (mismo criterio que riaRemoveItem con un renglón normal).
+function riaRemoveKit(kitIdx) {
+  _riaKits.splice(kitIdx, 1);
+  _renderRecvIaReview();
+}
+
 /* ── Picker de vinculación manual — mismo patrón de buscador que Kit Builder.
    Ahora que ningún match se autoselecciona por nombre (2026-09-05), este
    picker es el camino principal para casi todos los renglones — de ahí las
@@ -740,6 +823,7 @@ function riaSetMatchNew(idx) {
    puede iniciar directo desde la tarjeta, sin pasar por este picker. ── */
 function riaOpenMatchPicker(idx) {
   _riaMatchTargetIdx = idx;
+  _riaMatchTargetKit = null;
   const it = _riaItems[idx];
   const input = document.getElementById('ria-match-search-input');
   input.value = '';
@@ -759,10 +843,33 @@ function riaOpenMatchPicker(idx) {
   setTimeout(() => input.focus(), 200);
 }
 
+// Mismo picker que arriba, pero para un componente de kit (_riaKits[kitIdx]
+// .components[compIdx]) en vez de un renglón normal -- riaConfirmMatch/
+// riaConfirmSetNew despachan a uno u otro según cuál target esté activo.
+function riaOpenKitCompPicker(kitIdx, compIdx) {
+  _riaMatchTargetIdx = null;
+  _riaMatchTargetKit = { kitIdx, compIdx };
+  const kit = _riaKits[kitIdx];
+  const comp = kit?.components?.[compIdx];
+  const input = document.getElementById('ria-match-search-input');
+  input.value = '';
+  document.getElementById('ria-match-picker-results').innerHTML = '';
+  const ctxEl = document.getElementById('ria-match-picker-context');
+  if (ctxEl && comp) {
+    ctxEl.innerHTML = `${_esc(comp.name)} <span class="ria-mpc-code">· componente de "${_esc(kit.raw_name || '')}"</span>`;
+  }
+  const newBtn = document.getElementById('ria-match-set-new-btn');
+  if (newBtn) newBtn.style.display = _riaMode === 'costOnly' ? 'none' : '';
+  document.getElementById('ria-match-overlay').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => input.focus(), 200);
+}
+
 function closeRiaMatchPicker() {
   document.getElementById('ria-match-overlay').style.display = 'none';
   document.body.style.overflow = '';
   _riaMatchTargetIdx = null;
+  _riaMatchTargetKit = null;
 }
 
 // Escanear directo desde la tarjeta, sin abrir el picker primero — el
@@ -770,6 +877,26 @@ function closeRiaMatchPicker() {
 // suma un toque innecesario al método que ya es el más confiable.
 function riaOpenScannerFor(idx) {
   _riaMatchTargetIdx = idx;
+  _riaMatchTargetKit = null;
+  openRiaMatchScanner();
+}
+
+// Colapsado por default -- con muchos componentes por vincular (chip + botón
+// de escaneo + costo por cada uno) esta sección puede volverse más alta que
+// la lista de productos normales de arriba, quitándole protagonismo al flujo
+// principal. El resumen del encabezado (armado en _renderRecvIaReview) sigue
+// visible siempre, colapsado o no, para no esconder que falta vincular algo.
+function _riaToggleKitsSection() {
+  _riaKitsExpanded = !_riaKitsExpanded;
+  const list = document.getElementById('ria-kits-list');
+  const ico = document.getElementById('ria-kits-toggle-ico');
+  if (list) list.style.display = _riaKitsExpanded ? 'block' : 'none';
+  if (ico) ico.textContent = _riaKitsExpanded ? '▴' : '▾';
+}
+
+function riaOpenKitCompScanner(kitIdx, compIdx) {
+  _riaMatchTargetIdx = null;
+  _riaMatchTargetKit = { kitIdx, compIdx };
   openRiaMatchScanner();
 }
 
@@ -810,12 +937,22 @@ function openRiaMatchScanner() {
 }
 
 function riaConfirmMatch(productId) {
+  if (_riaMatchTargetKit) {
+    riaSetKitCompMatch(_riaMatchTargetKit.kitIdx, _riaMatchTargetKit.compIdx, productId);
+    closeRiaMatchPicker();
+    return;
+  }
   if (_riaMatchTargetIdx == null) return;
   riaSetMatch(_riaMatchTargetIdx, productId);
   closeRiaMatchPicker();
 }
 
 function riaConfirmSetNew() {
+  if (_riaMatchTargetKit) {
+    riaSetKitCompNew(_riaMatchTargetKit.kitIdx, _riaMatchTargetKit.compIdx);
+    closeRiaMatchPicker();
+    return;
+  }
   if (_riaMatchTargetIdx == null) return;
   riaSetMatchNew(_riaMatchTargetIdx);
   closeRiaMatchPicker();
@@ -1003,18 +1140,51 @@ function _renderRecvIaReview() {
   const kitsSection = document.getElementById('ria-kits-section');
   if (_riaKits.length) {
     kitsSection.style.display = 'block';
-    document.getElementById('ria-kits-list').innerHTML = _riaKits.map(k => `
+    const totalComps = _riaKits.reduce((n, k) => n + (k.components || []).length, 0);
+    const pendingComps = _riaKits.reduce((n, k) => n + (k.components || []).filter(c => !c.matchProductId && !c.isNew).length, 0);
+    const kitsTotal = _riaKits.reduce((s, k) => s + (k.tu_pagas != null && !isNaN(Number(k.tu_pagas)) ? Number(k.tu_pagas) : 0), 0);
+    const labelEl = document.getElementById('ria-kits-head-label');
+    if (labelEl) {
+      labelEl.textContent = `Kits de promoción (${_riaKits.length}) — $${kitsTotal.toFixed(2)} · ${totalComps} componente${totalComps !== 1 ? 's' : ''}${pendingComps ? `, ${pendingComps} sin vincular` : ''}`;
+    }
+    const listEl = document.getElementById('ria-kits-list');
+    if (listEl) listEl.style.display = _riaKitsExpanded ? 'block' : 'none';
+    const icoEl = document.getElementById('ria-kits-toggle-ico');
+    if (icoEl) icoEl.textContent = _riaKitsExpanded ? '▴' : '▾';
+    document.getElementById('ria-kits-list').innerHTML = _riaKits.map((k, ki) => {
+      const compsHtml = (k.components || []).map((c, ci) => {
+        const matched = c.matchProductId ? (products || []).find(p => p.id === c.matchProductId) : null;
+        const chip = matched
+          ? `<button class="ria-match-chip ria-match-linked" onclick="riaOpenKitCompPicker(${ki},${ci})" title="¿No es este producto? Toca para cambiarlo">✓ <span>${_esc(matched.name)}</span></button>`
+          : (c.isNew
+              ? `<button class="ria-match-chip ria-match-newchip" onclick="riaOpenKitCompPicker(${ki},${ci})"><span>+ Producto nuevo</span></button>`
+              : `<button class="ria-match-chip ria-match-newchip" onclick="riaOpenKitCompPicker(${ki},${ci})"><span>Vincular</span></button>`);
+        return `
+    <div class="ria-kit-comp-row">
+      <div class="ria-kit-comp-name">${_esc(c.name)}</div>
+      <div class="ria-match-chip-row">
+        ${chip}
+        <button class="ria-scan-icon-btn" onclick="riaOpenKitCompScanner(${ki},${ci})" title="Tengo el producto — escanear código de barras"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5v14"/><path d="M7 5v14"/><path d="M11 5v14"/><path d="M14 5v14"/><path d="M18 5v14"/><path d="M21 5v14"/></svg></button>
+        <input type="number" step="0.01" inputmode="decimal" class="ria-kit-comp-cost" placeholder="Costo" value="${c.cost != null ? c.cost : ''}" oninput="riaUpdateKitCompCost(${ki},${ci},this.value)">
+      </div>
+    </div>`;
+      }).join('');
+      return `
 <div class="ria-kit-item">
-  <div class="ria-kit-name">${_esc(k.raw_name || '')}${k.tu_pagas != null ? ` — $${Number(k.tu_pagas).toFixed(2)}` : ''}</div>
-  <div class="ria-kit-comps">${(k.components || []).map(c => _esc(c)).join(' · ')}</div>
-</div>`).join('');
+  <div class="ria-kit-top">
+    <div class="ria-kit-name">${_esc(k.raw_name || '')}${k.tu_pagas != null ? ` — $${Number(k.tu_pagas).toFixed(2)}` : ''}</div>
+    <button class="ria-item-remove" onclick="riaRemoveKit(${ki})" title="Quitar este kit — no se va a armar">✕</button>
+  </div>
+  <div class="ria-kit-comp-list">${compsHtml}</div>
+</div>`;
+    }).join('');
   } else {
     kitsSection.style.display = 'none';
   }
 
   const applyBtn = document.getElementById('ria-apply-btn');
   if (applyBtn) {
-    applyBtn.disabled = !_riaItems.length;
+    applyBtn.disabled = !_riaItems.length && !_riaActionableKitComponents().length;
     const label = _riaMode === 'costOnly' ? 'Actualizar costos (' : 'Aplicar cambios (';
     applyBtn.textContent = (_RIA_DRY_RUN ? 'Simular: ' + label : label) + _riaItems.length + ')';
   }
@@ -1085,10 +1255,16 @@ ${closeEnough ? '' : `<span>Diferencia de $${Math.abs(diff).toFixed(2)} — revi
 function _riaConfirmApply() {
   const linked = _riaItems.filter(it => it.matchProductId).length;
   const nuevos = _riaItems.length - linked;
+  const kitComps = _riaActionableKitComponents();
+  const kitLinked = kitComps.filter(x => x.comp.matchProductId).length;
+  const kitNuevos = kitComps.length - kitLinked;
+  const kitLine = kitComps.length
+    ? `\n\nDe los componentes de kit: ${kitLinked} componente${kitLinked !== 1 ? 's' : ''} existente${kitLinked !== 1 ? 's' : ''} se actualizará${kitLinked !== 1 ? 'n' : ''}${kitNuevos ? ` y ${kitNuevos} se crearán como producto nuevo` : ''}.`
+    : '';
   let msg;
   let lossItems;
   if (_riaMode === 'costOnly') {
-    msg = `¿Aplicar esta actualización de costos?\n\nSe actualizará el costo de ${linked} producto${linked !== 1 ? 's' : ''} existente${linked !== 1 ? 's' : ''}. No se toca stock ni precio de venta.${nuevos ? ` ${nuevos} renglón${nuevos !== 1 ? 'es' : ''} sin vincular se omitirá${nuevos !== 1 ? 'n' : ''}.` : ''}`;
+    msg = `¿Aplicar esta actualización de costos?\n\nSe actualizará el costo de ${linked} producto${linked !== 1 ? 's' : ''} existente${linked !== 1 ? 's' : ''}. No se toca stock ni precio de venta.${nuevos ? ` ${nuevos} renglón${nuevos !== 1 ? 'es' : ''} sin vincular se omitirá${nuevos !== 1 ? 'n' : ''}.` : ''}${kitLine}`;
     lossItems = _riaItems.filter(it => {
       const matched = it.matchProductId ? (products || []).find(p => p.id === it.matchProductId) : null;
       return matched && it.cost != null && Number(it.cost) > Number(matched.price);
@@ -1097,7 +1273,7 @@ function _riaConfirmApply() {
       msg += `\n\n⚠️ ${lossItems.length} con costo MAYOR al precio de venta actual (ya se venden perdiendo dinero, aunque este modo no cambia el precio):\n${lossItems.slice(0, 8).map(it => `• ${it.rawName}`).join('\n')}${lossItems.length > 8 ? `\n… y ${lossItems.length - 8} más` : ''}`;
     }
   } else {
-    msg = `¿Aplicar esta recepción?\n\n${linked} producto${linked !== 1 ? 's' : ''} existente${linked !== 1 ? 's' : ''} se actualizará${linked !== 1 ? 'n' : ''} (stock/costo/precio) y ${nuevos} producto${nuevos !== 1 ? 's' : ''} nuevo${nuevos !== 1 ? 's' : ''} se crearán.`;
+    msg = `¿Aplicar esta recepción?\n\n${linked} producto${linked !== 1 ? 's' : ''} existente${linked !== 1 ? 's' : ''} se actualizará${linked !== 1 ? 'n' : ''} (stock/costo/precio) y ${nuevos} producto${nuevos !== 1 ? 's' : ''} nuevo${nuevos !== 1 ? 's' : ''} se crearán.${kitLine}`;
     lossItems = _riaItems.filter(it => it.priceToApply != null && it.cost != null && Number(it.priceToApply) < it.cost);
     if (lossItems.length) {
       msg += `\n\n⚠️ ${lossItems.length} con precio de venta MENOR al costo (se venderían perdiendo dinero):\n${lossItems.slice(0, 8).map(it => `• ${it.rawName}`).join('\n')}${lossItems.length > 8 ? `\n… y ${lossItems.length - 8} más` : ''}`;
@@ -1114,7 +1290,8 @@ function _riaConfirmApply() {
 
 /* ── Aplicar cambios (o simular, mientras _RIA_DRY_RUN sea true) ── */
 async function riaApplyChanges() {
-  if (!_riaItems.length) return;
+  const actionableKitComps = _riaActionableKitComponents();
+  if (!_riaItems.length && !actionableKitComps.length) return;
   if (!_RIA_DRY_RUN && !_riaConfirmApply()) return;
   const btn = document.getElementById('ria-apply-btn');
   btn.disabled = true;
@@ -1192,6 +1369,67 @@ async function riaApplyChanges() {
       }
     } catch (err) {
       results.failed.push({ name: it.rawName, error: err.message });
+    }
+  }
+
+  // Componentes de kit -- mismo patrón que un renglón normal (vincula/crea),
+  // con dos diferencias: nunca hay precio de revista propio (la factura solo
+  // da el total del kit, nunca por componente) así que jamás se toca el
+  // precio de venta, y la cantidad siempre es 1 por componente por kit (no
+  // hay un dato de "cuántos" distinto en la factura para esto).
+  for (const { kit, comp } of actionableKitComps) {
+    try {
+      if (comp.matchProductId) {
+        const product = (products || []).find(p => p.id === comp.matchProductId);
+        if (!product) throw new Error('Producto no encontrado en el catálogo local');
+        const beforeSnapshot = { cost: product.cost, price: product.price, supplierCode: product.supplierCode };
+        const payload = costOnly
+          ? { cost: comp.cost != null ? comp.cost : product.cost }
+          : { stock: product.stock + 1, out_of_stock: (product.stock + 1) > 0 ? false : product.outOfStock, cost: comp.cost != null ? comp.cost : product.cost };
+        const diffText = (costOnly
+          ? `costo $${product.cost ?? '—'}→$${payload.cost ?? '—'}`
+          : `stock ${product.stock}→${payload.stock} · costo $${product.cost ?? '—'}→$${payload.cost ?? '—'}`) + ` (kit "${kit.raw_name || ''}")`;
+        if (_RIA_DRY_RUN) {
+          results.updated.push({ name: product.name, diff: diffText });
+        } else {
+          const r = await supabaseApi(`products?id=eq.${product.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+          if (!r.ok) throw new Error('Error al guardar en Supabase');
+          if (payload.stock != null) { product.stock = payload.stock; product.outOfStock = payload.out_of_stock; }
+          product.cost = payload.cost;
+          results.updated.push({ name: product.name, diff: diffText });
+          undoUpdated.push({ productId: product.id, deltaQty: costOnly ? 0 : 1, before: beforeSnapshot });
+        }
+      } else if (costOnly) {
+        // Igual que un renglón normal sin vincular en "solo costos": nunca
+        // crea un producto fantasma, se omite.
+        results.skipped.push({ name: comp.name });
+      } else {
+        const newId = nextNewId++;
+        const cleanName = toTitleCase(comp.name);
+        const draft = {
+          id: newId, name: cleanName, category: 'por_revisar', category_label: 'Por revisar',
+          price: 0, cost: comp.cost ?? null, description: '', stock: 1,
+          out_of_stock: false, is_published: false, featured: false, image: DEFAULT_IMG,
+          position: (products || []).length, supplier_code: null
+        };
+        const kitTag = ` (kit "${kit.raw_name || ''}")`;
+        if (_RIA_DRY_RUN) {
+          results.created.push({ name: cleanName, diff: `stock ${draft.stock} · costo $${draft.cost ?? '—'} · precio $${draft.price} · categoría Por revisar${kitTag}` });
+        } else {
+          const r = await supabaseApi('products', { method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(draft) });
+          if (!r.ok) throw new Error('Error al crear en Supabase');
+          products.push({
+            id: newId, name: cleanName, category: 'por_revisar', categoryLabel: 'Por revisar', price: draft.price, cost: draft.cost,
+            description: '', stock: draft.stock, outOfStock: false, isPublished: false, featured: false,
+            image: DEFAULT_IMG, position: draft.position, kitItems: null, supplierCode: null
+          });
+          await flagProduct(newId, 'Creado por Recepción con IA (componente de kit) — falta foto/descripción/revisar categoría y precio de venta');
+          results.created.push({ name: cleanName, diff: `stock ${draft.stock} · costo $${draft.cost ?? '—'} · precio $${draft.price} · categoría Por revisar${kitTag}` });
+          undoCreated.push({ productId: newId });
+        }
+      }
+    } catch (err) {
+      results.failed.push({ name: comp.name, error: err.message });
     }
   }
 

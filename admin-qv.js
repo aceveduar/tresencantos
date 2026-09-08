@@ -636,7 +636,7 @@ function _renderQV(p) {
 
   // ID + barcode en una línea
   const idEl = document.getElementById('qv-id');
-  idEl.innerHTML = `<span style="font-family:monospace">ID #${p.id}</span>${p.barcode ? `<span style="font-family:monospace;color:var(--muted)">· ${_esc(p.barcode)}</span>` : ''}` +
+  idEl.innerHTML = `<span style="font-family:monospace">ID #${p.id}</span>${p.barcode ? `<span style="font-family:monospace;color:var(--muted)">· ${_esc(p.barcode)}</span>` : ''}${p.supplierCode ? `<span style="font-family:monospace;color:var(--muted-light)">· prov. ${_esc(p.supplierCode)}</span>` : ''}` +
     ` <a href="#" onclick="event.preventDefault();openProductTimeline(${p.id},'${_esc(p.name).replace(/'/g,"\\'")}')" style="color:var(--gold-dark);font-weight:700;text-decoration:underline;font-family:inherit">${QV_ICO_CLOCK(11)} Ver historial</a>`;
 
   // Botones de acción

@@ -142,7 +142,8 @@ async function cobrar() {
       p_customer:        saleData.customer || null,
       p_due_date:        saleData.due_date || null,
       p_override_tickets: _collectOverrideTickets(['canOverridePrice', 'canApplyDiscount']),
-      p_customer_id:     customerId
+      p_customer_id:     customerId,
+      p_collected_by_email: _collectedByEmailFromCheck(isApartado ? 'apt-collected-ofelia' : 'pos-collected-ofelia')
     }
   });
   if (!rpcResult.ok) {
@@ -186,6 +187,7 @@ async function cobrar() {
     else cart[idx].qty -= qty;
   });
   ['pos-cash','pos-discount','pos-note'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  ['pos-collected-ofelia','apt-collected-ofelia'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
   document.getElementById('pos-is-apartado').checked = false;
   toggleApartadoMode(); // limpia phone/anticipo/pendiente/fecha/cliente-apartado y cierra el sheet
   clearNoteField();
@@ -531,6 +533,7 @@ function initDivider() {
 
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
+  _initCollectedByChecks();
   // Ocultar nav según rol + permisos individuales
   const _applyPosNav = (up) => {
     const canStats    = up?.canViewReports    ?? (_posRole === 'superadmin');

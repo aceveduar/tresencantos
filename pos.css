@@ -691,6 +691,8 @@ button,a{touch-action:manipulation}
 .abonar-modal input[type=number]{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:1.1rem;outline:none;font-family:inherit;color:var(--charcoal);margin-bottom:14px}
 .abonar-modal input[type=number]:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,164,98,.12)}
 .abonar-pay-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.collected-by-check{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--muted);margin:2px 0 16px;cursor:pointer}
+.collected-by-check input{width:17px;height:17px;flex-shrink:0;accent-color:var(--gold)}
 .abonar-pay-btn{padding:10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s;color:var(--muted)}
 .abonar-pay-btn.active{border-color:var(--charcoal);background:var(--charcoal);color:#fff}
 .abonar-footer{display:flex;gap:10px}

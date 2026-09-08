@@ -1616,10 +1616,21 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .ria-item-warn.ria-item-omit{margin-top:6px;color:var(--muted);background:var(--surface-soft);border:1px dashed var(--border)}
 .ria-item-fields.ria-costonly-fields{grid-template-columns:1fr 1fr}
 .ria-kits-section{border-top:1px solid var(--border);flex-shrink:0;max-height:38%;overflow-y:auto;background:var(--surface-soft)}
-.ria-kits-head{font-size:.74rem;font-weight:700;color:#92400E;padding:10px 16px 6px}
+.ria-kits-head{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;font-size:.74rem;font-weight:700;color:#92400E;padding:10px 16px;background:none;border:none;cursor:pointer;font-family:inherit;text-align:left;touch-action:manipulation}
+.ria-kits-head span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ria-kits-head:hover{background:rgba(146,64,14,.06)}
+#ria-kits-toggle-ico{flex-shrink:0;font-size:.8rem}
 .ria-kit-item{padding:6px 16px 10px;font-size:.8rem}
+.ria-kit-item+.ria-kit-item{border-top:1px dashed var(--border);padding-top:10px}
+.ria-kit-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
 .ria-kit-name{font-weight:600;color:var(--charcoal)}
-.ria-kit-comps{font-size:.74rem;color:var(--muted);margin-top:2px}
+.ria-kit-comp-list{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.ria-kit-comp-row{display:flex;flex-direction:column;gap:5px}
+.ria-kit-comp-name{font-size:.76rem;color:var(--muted);line-height:1.3}
+.ria-kit-comp-row .ria-match-chip-row{gap:6px}
+.ria-kit-comp-row .ria-scan-icon-btn{width:26px;height:26px}
+.ria-kit-comp-cost{width:76px;flex-shrink:0;padding:6px 8px;border:1.5px solid #FCD34D;background:var(--tint-amber-bg);border-radius:8px;font-size:.8rem;font-family:inherit;outline:none;color:var(--charcoal)}
+.ria-kit-comp-cost:focus{border-color:var(--gold)}
 .ria-review-footer{padding:10px 16px;padding-bottom:max(14px, env(safe-area-inset-bottom));border-top:1px solid var(--border);background:var(--cream);color:var(--muted);font-size:.76rem;text-align:center;flex-shrink:0}
 
 /* ══ MODO CAPTURA ════════════════════════════════════════════════════ */
