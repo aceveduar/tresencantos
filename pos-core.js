@@ -176,6 +176,17 @@ if (!isAuthenticated()) {
 }
 
 async function doLogout() {
+  // Cerrar sesión y cerrar turno de caja son cosas independientes -- salir
+  // de la app nunca cierra el turno solo. Este es el único momento donde la
+  // intención de irse es clara (a diferencia de cerrar la pestaña sin
+  // querer), así que es el punto correcto para un recordatorio -- suave,
+  // no bloqueante: "Cancelar" solo cancela el logout, nunca fuerza cerrar
+  // el turno antes de poder salir.
+  if (_currentShift?.opened_at) {
+    const hoursOpen = Math.floor((Date.now() - new Date(_currentShift.opened_at).getTime()) / 3600000);
+    const ok = confirm(`Tu turno de caja sigue abierto (lleva ${hoursOpen}h) — ¿seguro que quieres cerrar sesión sin cerrarlo en Corte primero?`);
+    if (!ok) return;
+  }
   await logActivity('sesion_cerrada', 'Cerró sesión');
   sessionStorage.removeItem('te_user_can');
   localStorage.removeItem(SESSION_KEY);
