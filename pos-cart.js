@@ -490,7 +490,7 @@ async function loadCorte() {
     : `Turno de ${actorLabel} desde ${inicioMX}`;
 
   const [paymentsResult, createdResult] = await Promise.all([
-    _posFetchAll(`sale_payments?paid_at=gte.${from}&paid_at=lte.${to}&select=sale_id,amount,kind,method,paid_at,source,collected_by_email,sale:sales(origin_type,status,is_test)&order=paid_at.asc,id.asc`),
+    _posFetchAll(`sale_payments?paid_at=gte.${from}&paid_at=lte.${to}&select=sale_id,amount,kind,method,paid_at,source,collected_by_email,sale:sales(origin_type,status,is_test,customer,items)&order=paid_at.asc,id.asc`),
     _posFetchAll(`sales?created_at=gte.${from}&created_at=lte.${to}&select=id,origin_type,status,seller_email,is_test&is_test=eq.false&order=created_at.asc,id.asc`)
   ]);
   if (!paymentsResult.ok || !createdResult.ok) {
@@ -586,6 +586,61 @@ async function loadCorte() {
 
   const breakdownEl = document.getElementById('corte-breakdown');
   if (breakdownEl) breakdownEl.innerHTML = isGeneral ? _renderCorteBreakdown(breakdown, fmt) : '';
+
+  const detalleEl = document.getElementById('corte-detalle-section');
+  if (detalleEl) detalleEl.innerHTML = isGeneral ? '' : _renderCorteDetalle(payments);
+}
+
+// Desglose renglón por renglón de "Mi turno" — colapsado por default, para
+// no repetir a mano lo que ya hicimos en Actividad la vez que un turno no
+// cuadró (revisar acción por acción y sumar). Mismo lenguaje de colores/tags
+// que "Movimientos de hoy" en Reportes (Venta/Liquidado verde, Abono morado,
+// Apartado nuevo dorado, Devolución rojo) para no inventar un patrón nuevo.
+function _corteToggleDetalle() {
+  const list = document.getElementById('corte-detalle-list');
+  const btn  = document.getElementById('corte-detalle-toggle');
+  if (!list || !btn) return;
+  const expanded = list.style.display !== 'none';
+  list.style.display = expanded ? 'none' : '';
+  btn.textContent = btn.textContent.replace(expanded ? '▴' : '▾', expanded ? '▾' : '▴');
+}
+function _renderCorteDetalle(payments) {
+  if (!payments || !payments.length) return '';
+  const rows = [...payments].sort((a, b) => new Date(a.paid_at) - new Date(b.paid_at)).map(payment => {
+    const sale = Array.isArray(payment.sale) ? payment.sale[0] : payment.sale;
+    const items = Array.isArray(sale?.items) ? sale.items : [];
+    const isRefund = payment.kind === 'refund';
+    const tagText = isRefund ? 'DEVOLUCIÓN'
+      : payment.source === 'rpc_apartado_initial' ? 'APARTADO NUEVO'
+      : payment.source === 'rpc_apartado_liquidation' ? 'LIQUIDADO'
+      : payment.source === 'rpc_apartado_payment' ? 'ABONO'
+      : payment.source === 'rpc_direct_sale' ? 'VENTA'
+      : 'MOVIMIENTO';
+    const tagStyle = isRefund ? 'background:#FEE2E2;color:#991B1B'
+      : tagText === 'APARTADO NUEVO' ? 'background:#FFF8EE;color:#9A742D'
+      : tagText === 'ABONO' ? 'background:#F1EAFB;color:#5B3FA0'
+      : tagText === 'MOVIMIENTO' ? 'background:var(--border);color:var(--muted)'
+      : 'background:#DCFCE7;color:#166534';
+    const origin = sale?.origin_type;
+    const nombre = origin === 'apartado'
+      ? _esc((sale?.customer || '').split(' · 📱 ')[0] || `Apartado #${payment.sale_id}`)
+      : _esc(items.length <= 2 ? items.map(i => i.name).join(', ') : `${items[0]?.name || ''} +${items.length - 1} más`) || `Venta #${payment.sale_id}`;
+    const time = new Intl.DateTimeFormat('es-MX', { timeZone:'America/Mexico_City', hour:'2-digit', minute:'2-digit' }).format(new Date(payment.paid_at));
+    const amount = parseFloat(payment.amount) || 0;
+    const amountText = `${isRefund ? '−' : ''}$${Math.abs(amount).toLocaleString('es-MX')}`;
+    const methodIco = payment.method === 'transferencia' ? _icoPhone() : _icoCash();
+    return `
+      <div style="padding:9px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+        <span style="font-size:.7rem;color:var(--muted-light);flex-shrink:0;width:38px">${time}</span>
+        <span style="font-size:.62rem;${tagStyle};padding:1px 6px;border-radius:50px;font-weight:700;flex-shrink:0">${tagText}</span>
+        <span style="font-size:.78rem;color:var(--charcoal);flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${nombre}</span>
+        <span style="font-size:.7rem;color:var(--muted-light);flex-shrink:0">${methodIco}</span>
+        <span style="font-weight:700;font-size:.84rem;flex-shrink:0;color:${isRefund ? 'var(--red)' : 'var(--charcoal)'}">${amountText}</span>
+      </div>`;
+  }).join('');
+  return `
+    <button type="button" id="corte-detalle-toggle" onclick="_corteToggleDetalle()" style="width:100%;text-align:left;padding:10px 14px;border:1.5px dashed var(--border);border-radius:10px;background:transparent;color:var(--muted);font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;touch-action:manipulation">▾ Ver detalle de mis cobros (${payments.length})</button>
+    <div id="corte-detalle-list" style="display:none;margin-top:6px;background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">${rows}</div>`;
 }
 
 // Quién cobró qué, sumado en efectivo+transferencia (mismo criterio que el
