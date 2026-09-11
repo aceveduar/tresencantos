@@ -109,20 +109,64 @@ function updateCartQty(id, delta, btn) {
 // revalidaba contra el catálogo recién cargado -- un producto agregado y
 // luego eliminado/despublicado/agotado se quedaba fantasma en "Mi pedido"
 // para siempre, con su precio/cantidad viejos, y hasta se incluía así en
-// el mensaje de WhatsApp. Se llama una vez al cargar la Tienda, después de
-// loadProducts().
+// el mensaje de WhatsApp. Devuelve un resumen de lo que cambió (o null si
+// nada cambió) para poder avisarle a la clienta, en vez de ajustar en
+// silencio -- mismo criterio que ZARA/Amazon: nunca mandar un pedido con
+// datos viejos, pero tampoco esconder que algo se ajustó.
 function _reconcileCart() {
-  if (!products.length) return; // el catálogo no cargó -- no tocar el carrito por una falla transitoria de red
+  if (!products.length) return null; // el catálogo no cargó -- no tocar el carrito por una falla transitoria de red
   let changed = false;
+  const removed = [], adjusted = [], repriced = [];
   cart = cart.filter(item => {
     const p = products.find(x => x.id === item.id);
-    if (!p) { changed = true; return false; }
+    if (!p) { changed = true; removed.push(item.name); return false; }
     const realStock = Array.isArray(p.kitItems) ? kitStock(p) : p.stock;
-    if (!realStock || realStock <= 0) { changed = true; return false; }
-    if (item.qty > realStock) { item.qty = realStock; changed = true; }
+    if (!realStock || realStock <= 0) { changed = true; removed.push(item.name); return false; }
+    if (item.qty > realStock) { adjusted.push({ name: item.name, to: realStock }); item.qty = realStock; changed = true; }
+    if (p.price !== item.price) { repriced.push({ name: item.name, to: p.price }); item.price = p.price; changed = true; }
+    if (p.image && p.image !== item.image) item.image = p.image;
     return true;
   });
   if (changed) saveCart();
+  return changed ? { removed, adjusted, repriced } : null;
+}
+
+function _cartSyncMessage(changes) {
+  const lines = [];
+  changes.removed.forEach(name => lines.push(`"${name}" ya no está disponible — la quitamos de tu pedido.`));
+  changes.adjusted.forEach(a => lines.push(`Ajustamos "${a.name}" a ${a.to} — es lo que queda en stock.`));
+  changes.repriced.forEach(r => lines.push(`El precio de "${r.name}" cambió a $${r.to.toLocaleString('es-MX')} MXN.`));
+  return lines;
+}
+
+// Refresca el catálogo y vuelve a reconciliar el carrito contra datos
+// frescos de Supabase -- se llama al abrir "Mi pedido", que es siempre el
+// paso previo a mandar el WhatsApp. Deliberadamente NO se llama dentro de
+// cartWhatsApp(): un `await` ahí retrasaría el window.open() más allá del
+// gesto de tap original y Safari/iOS lo bloquearía como pop-up. Al abrir el
+// carrito ya queda tiempo de sobra para que esto resuelva antes de que la
+// clienta llegue a tocar "Pedir por WhatsApp".
+async function _syncCartOnOpen() {
+  if (!cart.length) return;
+  let fresh = null;
+  try { fresh = await _fetchProductsList(); } catch { fresh = null; }
+  if (fresh === null) return; // falla de red transitoria -- no tocar el carrito con un catálogo vacío
+  products = fresh;
+  const changes = _reconcileCart();
+  renderCartBadge();
+  renderCartBody();
+  if (changes) _renderCartSyncNotice(_cartSyncMessage(changes));
+}
+
+function _renderCartSyncNotice(lines) {
+  const body = document.getElementById('cart-body');
+  if (!body || !lines.length) return;
+  const html = `<div class="cart-sync-notice" id="cart-sync-notice">
+    <svg width="15" height="15" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    <div>${lines.map(l => `<p>${_esc(l)}</p>`).join('')}</div>
+    <button onclick="document.getElementById('cart-sync-notice')?.remove()" aria-label="Cerrar">✕</button>
+  </div>`;
+  body.insertAdjacentHTML('afterbegin', html);
 }
 
 function clearCart() {
@@ -179,6 +223,7 @@ function openCart() {
   renderCartBody();
   document.getElementById('cart-overlay')?.classList.add('open');
   document.body.style.overflow = 'hidden';
+  _syncCartOnOpen(); // en segundo plano -- no bloquea la apertura del carrito
 }
 
 function closeCart() {
@@ -240,37 +285,43 @@ function showSkeleton() {
     </div>`).join('');
 }
 
+// Fetch + mapeo puros, sin tocar el skeleton/grid -- usado tanto por
+// loadProducts() (carga inicial, sí gestiona skeleton/error visual) como
+// por _syncCartOnOpen() (refresco en segundo plano mientras el carrito está
+// abierto, donde disparar el skeleton dejaría el catálogo detrás pegado en
+// "cargando" para siempre sin un render() posterior).
+async function _fetchProductsList() {
+  // Publicados con stock O apartados activos
+  const result = await supabaseApi('products?select=id,name,category,category_label,price,original_price,description,image,badge,badge_type,featured,out_of_stock,is_apartado,stock,images,kit_items&is_published=eq.true&category=neq.por_revisar&or=(out_of_stock.eq.false,is_apartado.eq.true)&order=position.asc');
+  if (result.ok && Array.isArray(result.data) && result.data.length) {
+    return result.data.map(p => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      categoryLabel: p.category_label,
+      price: p.price,
+      description: p.description,
+      image: p.image,
+      badge: p.badge,
+      badgeType: p.badge_type,
+      featured: p.featured,
+      outOfStock: p.out_of_stock,
+      isApartado: p.is_apartado || false,
+      originalPrice: p.original_price,
+      stock: p.stock,
+      images: p.images || null,
+      kitItems: p.kit_items || null
+    }));
+  }
+  return result.ok ? [] : null; // null = fetch falló (distinto de "catálogo vacío")
+}
+
 async function loadProducts() {
   showSkeleton();
-  let failed = false;
-  try {
-    // Publicados con stock O apartados activos
-    const result = await supabaseApi('products?select=id,name,category,category_label,price,original_price,description,image,badge,badge_type,featured,out_of_stock,is_apartado,stock,images,kit_items&is_published=eq.true&category=neq.por_revisar&or=(out_of_stock.eq.false,is_apartado.eq.true)&order=position.asc');
-    if (result.ok && Array.isArray(result.data) && result.data.length) {
-      products = result.data.map(p => ({
-        id: p.id,
-        name: p.name,
-        category: p.category,
-        categoryLabel: p.category_label,
-        price: p.price,
-        description: p.description,
-        image: p.image,
-        badge: p.badge,
-        badgeType: p.badge_type,
-        featured: p.featured,
-        outOfStock: p.out_of_stock,
-        isApartado: p.is_apartado || false,
-        originalPrice: p.original_price,
-        stock: p.stock,
-        images: p.images || null,
-        kitItems: p.kit_items || null
-      }));
-      return;
-    }
-    if (!result.ok) failed = true;
-  } catch { failed = true; }
-  products = [];
-  if (failed) _showCatalogError();
+  let list = null;
+  try { list = await _fetchProductsList(); } catch { list = null; }
+  if (list === null) { products = []; _showCatalogError(); return; }
+  products = list;
 }
 
 function _showCatalogError() {
