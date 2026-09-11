@@ -1310,6 +1310,8 @@ CACHE_VERSION v426→v430 (acumulado con los fixes de esta misma sesión).
 - **`assets/MANUAL.md`** — nueva sección "Recibir mercancía" bajo Inventario (entre "Cambiar stock" y "Publicar/ocultar"), con los dos modos, cuándo usar cada uno, y el flujo completo (escanear/buscar, qué hacer si no se encuentra, deshacer, finalizar).
 - CACHE_VERSION v470→v471.
 
+**Orden del selector — "Con factura" primero, "Rápido" después (2026-09-11)** — a pedido de Eduardo, se invirtió el orden visual de los dos botones (`admin.html`). El modo activo por default al abrir sigue siendo "Rápido" (no se tocó `openRecvMode()`/`recvSetMode('fast')`) — solo cambió cuál aparece primero de izquierda a derecha, no cuál queda seleccionado al entrar. CACHE_VERSION v471→v472.
+
 **Nota aparte, sin tocar todavía** — al escribir la sección nueva se notó que "## Staging" en `assets/MANUAL.md` describe la "Carga masiva con IA" (botón 🤖 IA, "Analizar todas", "Publicar listas") — una función eliminada por completo el 2026-08-20 (ver esa entrada arriba). Esa sección del manual está obsoleta desde entonces; no se tocó porque no era el pedido de esta sesión, pero es un pendiente real de higiene documental — Ofelia/Areli podrían buscar un botón que ya no existe.
 
 ## Deudas Técnicas
