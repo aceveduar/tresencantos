@@ -1257,7 +1257,11 @@ function _upPermChange(cb, key) {
   const isOverride = cb.checked !== defs[key];
   row?.classList.toggle('up-perm-overridden', isOverride);
   row?.querySelector('.up-perm-diff-tag')?.remove();
-  if (isOverride && row) row.insertAdjacentHTML('beforeend', '<span class="up-perm-diff-tag">≠ rol</span>');
+  if (isOverride && row) {
+    const roleLabel = escH(_UP_ROLE_LABELS[role] || role);
+    const emailEsc  = escH(email).replace(/'/g, "\\'");
+    row.insertAdjacentHTML('beforeend', `<button type="button" class="up-perm-diff-tag" title="Regresar solo este permiso al default de ${roleLabel}" onclick="event.preventDefault();event.stopPropagation();_upRevertOne('${emailEsc}','${key}')">≠ rol <svg width="9" height="9" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>`);
+  }
   const resetBtn = card.querySelector('.up-reset-btn');
   if (resetBtn) resetBtn.disabled = _upOverrideCount(email) === 0;
   _upRefreshBadge(email);

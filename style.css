@@ -367,7 +367,11 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .footer-col ul a:hover{color:var(--gold)}
 .footer-bottom{max-width:1200px;margin:0 auto;padding-top:26px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:.78rem}
 .footer-bottom a{color:var(--gold);text-decoration:none}
-.admin-link{opacity:.18;font-size:1rem;color:inherit!important;transition:opacity .25s;display:flex;align-items:center}
+/* Ícono deliberadamente chico (no es un CTA para clientas) -- pero el área
+   de toque real crece a ~40px con un ::after invisible, mismo hit-slop que
+   .hi-del en Caja, para que siga siendo fácil de tocar en mobile. */
+.admin-link{opacity:.18;font-size:1rem;color:inherit!important;transition:opacity .25s;display:flex;align-items:center;position:relative}
+.admin-link::after{content:'';position:absolute;inset:-10px}
 .admin-link:hover{opacity:.55}
 
 /* Botón compartir en modal */
@@ -448,6 +452,10 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .modal-wa-mobile{display:none}
 @media(max-width:600px){
   .modal-wa-mobile{display:flex;width:100%;justify-content:center;align-items:center;gap:7px;padding:10px 0 2px;background:transparent;border:none;color:var(--wa);font-size:.85rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
+  /* .modal-wa-mobile ya cubre "pedir por WhatsApp" con etiqueta completa en
+     esta fila -- el ícono suelto de la fila del precio quedaba duplicado
+     (misma acción, dos botones a la vez) sin ninguna regla que lo ocultara. */
+  .modal-wa-direct{display:none}
 }
 
 /* ── CARRITO ── */

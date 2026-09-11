@@ -1500,11 +1500,8 @@ function renderExpiringProducts() {
     .filter(p => p._days <= 60)
     .sort((a, b) => a._days - b._days);
 
-  if (!withExpiry.length) {
-    label.textContent = '';
-    body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:.84rem">Sin productos por caducar</div>';
-    return;
-  }
+  if (!withExpiry.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
 
   const vencidos    = withExpiry.filter(p => p._days < 0).length;
   const valorRiesgo = withExpiry.reduce((s, p) => s + (p.price || 0) * (p.stock || 0), 0);

@@ -35,7 +35,10 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .smode-btn.active{background:var(--charcoal);color:#fff}
 .smode-btn:hover:not(.active){background:var(--cream);color:var(--charcoal)}
 .stats-range-nav{display:flex;align-items:center;gap:2px;background:#fff;border:1px solid var(--border);border-radius:50px;padding:4px 8px;box-shadow:0 2px 8px rgba(28,24,23,.07)}
-.srn-btn{width:28px;height:28px;border-radius:50%;border:none;background:transparent;cursor:pointer;color:var(--charcoal);font-size:1.1rem;line-height:1;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0}
+/* Se ven compactos (28px) pero el área de toque real es ~44px -- mismo
+   hit-slop que .hi-del en Historial de Caja. */
+.srn-btn{width:28px;height:28px;border-radius:50%;border:none;background:transparent;cursor:pointer;color:var(--charcoal);font-size:1.1rem;line-height:1;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0;position:relative}
+.srn-btn::after{content:'';position:absolute;inset:-8px}
 .srn-btn:hover:not(:disabled){background:var(--cream)}
 .srn-btn:disabled{opacity:.3;cursor:default}
 .srn-label{font-size:.82rem;font-weight:600;color:var(--charcoal);min-width:110px;text-align:center;white-space:nowrap;padding:0 4px}
