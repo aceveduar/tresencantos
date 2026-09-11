@@ -1,17 +1,39 @@
-/* ══ MODO RECEPCIÓN ══════════════════════════════════════════════════ */
-let _recvSession = []; // [{product, qtyAdded, prevStock}]
+/* ══ MODO RECEPCIÓN ══════════════════════════════════════════════════
+   Dos modos (_recvMode, elegido en la pantalla inicial, ver recvSetMode):
+   "fast" (default -- comportamiento de siempre: escanear/buscar solo suma
+   stock, tarjeta de feedback transitoria) y "invoice" (2026-09-11 -- cuando
+   sí tienes una factura/nota en la mano: cada renglón de la lista muestra
+   Costo/Precio/Código de proveedor editables ahí mismo, save-on-blur, igual
+   patrón que ya usa Inventario para editar inline. El mode solo decide QUÉ
+   SE MUESTRA -- los tres campos se snapshotean siempre (ver _recvDoAdd),
+   así que cambiar de modo a medio sesión no pierde nada y los renglones ya
+   agregados en "fast" también quedan editables si cambias a "invoice". */
+let _recvSession = []; // [{product, qtyAdded, prevStock, prevCost, prevPrice, prevSupplierCode, isNewlyCreated?}]
+let _recvMode = 'fast';
 let _recvFbTimer = null;
 let _recvFbPendingId = null;
 
 function openRecvMode() {
   if (!can.receiveStock) { toast('Sin permiso para recibir mercancía', 'error'); return; }
   _recvSession = [];
+  recvSetMode('fast');
   _renderRecvList();
   _recvUpdateHeader();
   document.getElementById('recv-overlay').style.display = 'flex';
   document.getElementById('recv-fb').style.display = 'none';
   document.body.style.overflow = 'hidden';
   setTimeout(() => document.getElementById('recv-search')?.focus(), 300);
+}
+
+function recvSetMode(mode) {
+  _recvMode = mode;
+  const fastBtn = document.getElementById('recv-mode-fast');
+  const invBtn = document.getElementById('recv-mode-invoice');
+  if (fastBtn) fastBtn.classList.toggle('active', mode === 'fast');
+  if (invBtn) invBtn.classList.toggle('active', mode === 'invoice');
+  const hint = document.getElementById('recv-mode-hint');
+  if (hint) hint.style.display = mode === 'invoice' ? 'block' : 'none';
+  _renderRecvList(); // los renglones ya en la lista también deben mostrar/ocultar los campos extra
 }
 
 function closeRecvMode() {
@@ -28,18 +50,25 @@ function closeRecvMode() {
       `Cancelar: seguir aquí para revisar o deshacer algo antes de salir.`
     );
     if (!ok) return;
+    const nuevos = _recvSession.filter(x => x.isNewlyCreated).length;
     toast(`✓ ${total} unidad${total!==1?'es':''} recibidas en ${prods} producto${prods!==1?'s':''}`);
     renderTable();
     renderStats();
     // Modo Recepción no dejaba ningún rastro en Actividad -- ni por escaneo
     // (sería demasiado ruido: decenas de filas por una sola sesión) ni un
     // resumen al cerrar. Un solo registro por sesión, con detalle completo
-    // en meta.items por si hace falta ver exactamente qué se recibió.
+    // en meta.items por si hace falta ver exactamente qué se recibió --
+    // incluye costo/precio/código actuales y si el producto se creó en la
+    // misma sesión (modo "Con factura" + alta desde "Recibir mercancía").
     logActivity('recepcion_mercancia',
-      `Recibió ${total} unidad${total !== 1 ? 'es' : ''} en ${prods} producto${prods !== 1 ? 's' : ''} (Modo Recepción)`,
+      `Recibió ${total} unidad${total !== 1 ? 'es' : ''} en ${prods} producto${prods !== 1 ? 's' : ''}${nuevos ? ` (${nuevos} nuevo${nuevos!==1?'s':''})` : ''} (Modo Recepción)`,
       { ids: _recvSession.map(x => x.product.id), names: _recvSession.map(x => x.product.name),
-        items: _recvSession.map(x => ({ id: x.product.id, name: x.product.name, qtyAdded: x.qtyAdded, prevStock: x.prevStock, newStock: x.product.stock })),
-        total, count: prods, bulk: true });
+        items: _recvSession.map(x => ({
+          id: x.product.id, name: x.product.name, qtyAdded: x.qtyAdded, prevStock: x.prevStock, newStock: x.product.stock,
+          cost: x.product.cost, price: x.product.price, supplierCode: x.product.supplierCode,
+          ...(x.isNewlyCreated ? { isNewlyCreated: true } : {})
+        })),
+        total, count: prods, nuevos, bulk: true });
   }
   _recvHideOverlay();
 }
@@ -99,6 +128,11 @@ function recvSearch(q) {
 }
 
 function recvCreateProduct(val) {
+  // _returnToRecv (admin.js) le dice a closeForm() que, al cerrar el
+  // formulario completo -- se guarde o se cancele -- regrese aquí en vez de
+  // dejar al usuario en el catálogo general. Antes se perdía la sesión de
+  // recepción a medio hacer sin ninguna forma de volver (el bug reportado).
+  _returnToRecv = true;
   _recvHideOverlay();
   openForm();
   // Pre-llenar barcode si es numérico (pistola), o nombre si es texto
@@ -112,6 +146,34 @@ function recvCreateProduct(val) {
       if (nm) { nm.value = val; nm.focus(); }
     }
   }, 150);
+}
+
+// saveProduct() (admin-form.js) llama esto justo después de crear el
+// producto, solo si _returnToRecv estaba activo -- se registra en la
+// sesión como "recibido" (su stock inicial = la cantidad recibida) para que
+// aparezca en la lista, el resumen de WhatsApp y el registro de Actividad
+// al finalizar, igual que cualquier producto escaneado normal.
+function _recvRegisterCreatedProduct(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  _recvSession.unshift({
+    product: p, qtyAdded: p.stock, prevStock: 0,
+    prevCost: p.cost, prevPrice: p.price, prevSupplierCode: p.supplierCode,
+    isNewlyCreated: true
+  });
+  _showRecvFeedback(p, p.stock);
+}
+
+// Reabre Recepción tal como quedó -- a diferencia de openRecvMode(), NUNCA
+// reinicia _recvSession (por eso es una función separada: openRecvMode()
+// siempre empieza sesión nueva a propósito, esta nunca debe hacerlo).
+function _recvResumeOverlay() {
+  _renderRecvList();
+  _recvUpdateHeader();
+  document.getElementById('recv-overlay').style.display = 'flex';
+  document.getElementById('recv-fb').style.display = 'none';
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('recv-search')?.focus(), 300);
 }
 
 function recvSearchKey(e) {
@@ -142,6 +204,13 @@ async function _recvDoAdd(id, qty) {
 
   const existing = _recvSession.find(x => x.product.id === id);
   const prevStock = existing ? existing.prevStock : p.stock;
+  // Snapshot de costo/precio/código -- se captura solo la primera vez que el
+  // producto entra a la sesión (igual que prevStock), para que "Deshacer"
+  // pueda restaurarlos aunque se hayan editado en modo "Con factura" y sin
+  // importar si el modo cambió a medio camino.
+  const prevCost = existing ? existing.prevCost : p.cost;
+  const prevPrice = existing ? existing.prevPrice : p.price;
+  const prevSupplierCode = existing ? existing.prevSupplierCode : p.supplierCode;
   const prevOutOfStock = p.outOfStock;
   const newStock = p.stock + qty;
   const isNewEntry = !existing;
@@ -152,7 +221,7 @@ async function _recvDoAdd(id, qty) {
   if (existing) {
     existing.qtyAdded += qty;
   } else {
-    _recvSession.unshift({ product: p, qtyAdded: qty, prevStock });
+    _recvSession.unshift({ product: p, qtyAdded: qty, prevStock, prevCost, prevPrice, prevSupplierCode });
   }
 
   _showRecvFeedback(p, existing ? existing.qtyAdded : qty);
@@ -180,6 +249,40 @@ async function _recvDoAdd(id, qty) {
     _renderRecvList();
     _recvUpdateHeader();
     toast('No se pudo guardar en el servidor — recepción no registrada, intenta de nuevo', 'error');
+  }
+}
+
+// Modo "Con factura": edita costo/precio/código de proveedor directo en la
+// lista, con el mismo patrón "tocar → editar → blur = guardar" que ya usa
+// Inventario para stock/categoría -- cada campo se guarda por separado, sin
+// depender de la tarjeta de feedback (que sigue siendo solo para la
+// cantidad, transitoria). Deliberadamente sin las validaciones/advertencias
+// de Recepción con IA (precio bajo el costo, chequeo de sanidad, etc.) --
+// este flujo es para una recepción rápida sin documento, no para el
+// análisis a fondo de una factura completa, que ya cubre esa herramienta.
+const _RECV_FIELD_MAP = { cost: 'cost', price: 'price', supplierCode: 'supplier_code' };
+async function recvUpdateExtraField(id, field, rawValue) {
+  const p = products.find(x => x.id === id);
+  const dbField = _RECV_FIELD_MAP[field];
+  if (!p || !dbField) return;
+  let value;
+  if (field === 'supplierCode') {
+    value = rawValue.trim() || null;
+  } else {
+    const n = parseFloat(rawValue);
+    value = (rawValue.trim() === '' || isNaN(n)) ? null : n;
+  }
+  const prev = p[field] ?? null;
+  if (value === prev) return; // sin cambio real -- nada que guardar
+  p[field] = value;
+  const result = await supabaseApi(`products?id=eq.${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ [dbField]: value })
+  });
+  if (!result.ok) {
+    p[field] = prev;
+    _renderRecvList();
+    toast('No se pudo guardar — el servidor no respondió, intenta de nuevo', 'error');
   }
 }
 
@@ -223,11 +326,38 @@ function _recvFbClose() {
 async function recvUndo(id) {
   const idx = _recvSession.findIndex(x => x.product.id === id);
   if (idx === -1) return;
-  const { product: p, qtyAdded, prevStock } = _recvSession[idx];
-  const curStock = p.stock;
-  const curOutOfStock = p.outOfStock;
-  p.stock = prevStock;
-  p.outOfStock = prevStock === 0;
+  const item = _recvSession[idx];
+  const { product: p } = item;
+
+  if (item.isNewlyCreated) {
+    // Un producto creado en esta misma sesión no tiene un "stock anterior"
+    // real que restaurar -- se archiva, mismo mecanismo reversible que ya
+    // usa "🗑️ Eliminar"/Recepción con IA para este caso exacto.
+    const result = await supabaseApi(`products?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_archived: true, is_published: false, out_of_stock: true })
+    });
+    if (result.ok) {
+      p.isArchived = true; p.isPublished = false; p.outOfStock = true;
+      _recvSession.splice(idx, 1);
+      _renderRecvList();
+      _recvUpdateHeader();
+      toast(`📦 "${p.name}" archivado — reversible desde "📦 Archivados"`);
+    } else {
+      toast('No se pudo archivar — el servidor no respondió, intenta de nuevo', 'error');
+    }
+    return;
+  }
+
+  const curStock = p.stock, curOutOfStock = p.outOfStock;
+  const curCost = p.cost, curPrice = p.price, curSupplierCode = p.supplierCode;
+  p.stock = item.prevStock;
+  p.outOfStock = item.prevStock === 0;
+  // Restaura también costo/precio/código -- no-op si nunca se tocaron
+  // (modo "Rápido" o si nadie editó esos campos en "Con factura").
+  p.cost = item.prevCost;
+  p.price = item.prevPrice;
+  p.supplierCode = item.prevSupplierCode;
   _recvSession.splice(idx, 1);
   _renderRecvList();
   _recvUpdateHeader();
@@ -237,14 +367,17 @@ async function recvUndo(id) {
   // sincronizado hasta el siguiente reload.
   const result = await supabaseApi(`products?id=eq.${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ stock: prevStock, out_of_stock: prevStock === 0 })
+    body: JSON.stringify({
+      stock: item.prevStock, out_of_stock: item.prevStock === 0,
+      cost: p.cost, price: p.price, supplier_code: p.supplierCode
+    })
   });
   if (result.ok) {
     toast(`↩ ${p.name} revertido`);
   } else {
-    p.stock = curStock;
-    p.outOfStock = curOutOfStock;
-    _recvSession.splice(idx, 0, { product: p, qtyAdded, prevStock });
+    p.stock = curStock; p.outOfStock = curOutOfStock;
+    p.cost = curCost; p.price = curPrice; p.supplierCode = curSupplierCode;
+    _recvSession.splice(idx, 0, item);
     _renderRecvList();
     _recvUpdateHeader();
     toast('No se pudo deshacer — el servidor no respondió, intenta de nuevo', 'error');
@@ -309,15 +442,37 @@ function _renderRecvList() {
     return;
   }
   const PH = DEFAULT_IMG;
-  el.innerHTML = _recvSession.map(({ product: p, qtyAdded, prevStock }) => `
-<div class="recv-item">
-  <img class="recv-item-img" src="${_driveSz(p.image, 80)}" onerror="this.src='${PH}'" alt="">
-  <div class="recv-item-info">
-    <div class="recv-item-name">${_esc(p.name)}</div>
-    <div class="recv-item-arrow">${prevStock} → <strong>+${qtyAdded} = ${p.stock}</strong> uds.</div>
+  const invoiceMode = _recvMode === 'invoice';
+  el.innerHTML = _recvSession.map(({ product: p, qtyAdded, prevStock, isNewlyCreated }) => `
+<div class="recv-item-card">
+  <div class="recv-item">
+    <img class="recv-item-img" src="${_driveSz(p.image, 80)}" onerror="this.src='${PH}'" alt="">
+    <div class="recv-item-info">
+      <div class="recv-item-name">${_esc(p.name)}${isNewlyCreated ? '<span class="recv-new-badge">✨ Nuevo</span>' : ''}</div>
+      <div class="recv-item-arrow">${prevStock} → <strong>+${qtyAdded} = ${p.stock}</strong> uds.</div>
+    </div>
+    <span class="recv-badge">+${qtyAdded}</span>
+    ${isNewlyCreated
+      ? `<button class="recv-undo-btn recv-archive-btn" onclick="recvUndo(${p.id})" title="Se creó en esta sesión -- archivarlo es la forma de deshacerlo"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>Archivar</button>`
+      : `<button class="recv-undo-btn" onclick="recvUndo(${p.id})" title="Deshacer este producto"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Deshacer</button>`}
   </div>
-  <span class="recv-badge">+${qtyAdded}</span>
-  <button class="recv-undo-btn" onclick="recvUndo(${p.id})" title="Deshacer este producto"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Deshacer</button>
+  ${invoiceMode ? `
+  <div class="recv-item-extra">
+    <div class="ria-item-fields">
+      <div class="ria-item-field ria-cost">
+        <label>Costo</label>
+        <input type="number" min="0" step="0.01" inputmode="decimal" value="${p.cost ?? ''}" onblur="recvUpdateExtraField(${p.id},'cost',this.value)">
+      </div>
+      <div class="ria-item-field">
+        <label>Precio</label>
+        <input type="number" min="0" step="0.01" inputmode="decimal" value="${p.price ?? ''}" onblur="recvUpdateExtraField(${p.id},'price',this.value)">
+      </div>
+      <div class="ria-item-field">
+        <label>Cód. proveedor</label>
+        <input type="text" value="${_esc(p.supplierCode || '')}" onblur="recvUpdateExtraField(${p.id},'supplierCode',this.value)">
+      </div>
+    </div>
+  </div>` : ''}
 </div>`).join('');
 }
 

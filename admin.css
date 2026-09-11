@@ -1471,15 +1471,30 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 /* Lista */
 .recv-list-wrap{flex:1;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column}
 .recv-list-head{padding:10px 16px 8px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);background:var(--surface);position:sticky;top:0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;z-index:1}
-.recv-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)}
+/* .recv-item-card envuelve la fila (imagen/nombre/badge/deshacer) y, en modo
+   "Con factura", la fila extra de campos debajo -- el borde inferior vive
+   aquí (no en .recv-item) para que ambas filas se lean como una sola tarjeta. */
+.recv-item-card{border-bottom:1px solid var(--border)}
+.recv-item-card:last-child{border-bottom:none}
+.recv-item{display:flex;align-items:center;gap:10px;padding:10px 14px}
 .recv-item-img{width:42px;height:42px;object-fit:cover;border-radius:8px;flex-shrink:0;background:var(--surface-soft)}
 .recv-item-info{flex:1;min-width:0}
 .recv-item-name{font-size:.83rem;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--charcoal)}
 .recv-item-arrow{font-size:.71rem;color:var(--muted);margin-top:2px}
 .recv-item-arrow strong{color:#10B981}
+.recv-new-badge{font-size:.6rem;font-weight:700;color:var(--gold-dark);background:var(--gold-light);border-radius:50px;padding:1px 7px;margin-left:6px;vertical-align:1px;white-space:nowrap}
 .recv-badge{background:#D1FAE5;color:#065F46;border-radius:50px;padding:3px 11px;font-size:.8rem;font-weight:700;white-space:nowrap;flex-shrink:0}
 .recv-undo-btn{background:none;border:1.5px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.72rem;color:var(--muted);cursor:pointer;font-family:inherit;touch-action:manipulation;flex-shrink:0;white-space:nowrap}
 .recv-undo-btn:active{background:#FFF5F5;border-color:#FECACA;color:#E85D5D}
+.recv-undo-btn.recv-archive-btn:active{background:var(--gold-light);border-color:var(--gold);color:var(--gold-dark)}
+/* Modo "Con factura" -- reutiliza el mismo grid de campos (.ria-item-fields/
+   .ria-item-field) que ya usa Recepción con IA, para que ambas herramientas
+   de recepción compartan el mismo lenguaje visual en vez de inventar uno
+   paralelo solo para esta pantalla. */
+.recv-item-extra{padding:0 14px 12px}
+.recv-mode-toggle{margin-bottom:2px}
+.recv-mode-hint{font-size:.72rem;color:var(--muted);margin:6px 2px 10px;line-height:1.4}
+.recv-mode-hint strong{color:var(--charcoal)}
 #recv-list{flex:1;display:flex;flex-direction:column}
 .recv-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;color:var(--muted-light);font-size:.84rem}
 .recv-empty-icon{font-size:2rem;margin-bottom:8px}

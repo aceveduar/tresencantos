@@ -82,6 +82,7 @@ let _returnToDupReview = false;
 let _returnToKitId = null;     // ID del kit cuyo formulario se debe reabrir al cerrar un componente
 let _returnToKitQVId = null;   // ID del kit cuyo QV se debe reabrir al cerrar un componente
 let _scrollToKitOnOpen = false; // al regresar al kit, hacer scroll hasta la sección de componentes
+let _returnToRecv = false;     // true si el formulario se abrió desde "Recibir mercancía" (producto no encontrado) -- al cerrar (se guarde o se cancele), regresa ahí en vez de dejar al usuario en el catálogo general
 let _salesCountMap = new Map(); // productId → qty vendida total
 let deleteTargetId = null;
 let selectedIds = new Set();

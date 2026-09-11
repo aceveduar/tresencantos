@@ -126,6 +126,11 @@ function closeForm() {
   if (_returnToDupReview) { _returnToDupReview = false; setTimeout(openDupReview, 80); }
   if (_returnToKitId)   { const id = _returnToKitId;   _returnToKitId   = null; _scrollToKitOnOpen = true; setTimeout(() => openForm(id), 80); }
   if (_returnToKitQVId) { const id = _returnToKitQVId; _returnToKitQVId = null; setTimeout(() => openQV(id), 80); }
+  // Se guardó o se canceló, da igual -- si vinimos de "Recibir mercancía"
+  // (código sin encontrar → crear producto), la sesión de recepción sigue
+  // intacta en memoria (_recvHideOverlay nunca la toca) y solo hace falta
+  // volver a mostrarla, sin reiniciarla como openRecvMode() sí hace.
+  if (_returnToRecv) { _returnToRecv = false; setTimeout(_recvResumeOverlay, 80); }
 }
 
 
@@ -782,6 +787,11 @@ async function saveProduct() {
   } else {
     const newId = products[products.length - 1]?.id;
     if (newId) _trackEdit(newId);
+    // Se llegó aquí desde "Recibir mercancía" (código/nombre sin encontrar) --
+    // se registra como recibido en esa sesión (su stock inicial = cantidad
+    // recibida) para que aparezca en la lista, el resumen de WhatsApp y el
+    // registro de Actividad al finalizar, igual que cualquier otro escaneo.
+    if (newId && _returnToRecv) _recvRegisterCreatedProduct(newId);
     logActivity('producto_creado', `Creó "${name}" — $${price.toLocaleString('es-MX')}`, { id: newId, name, price });
     TE?.track('product_saved', { action: 'add', name });
   }
