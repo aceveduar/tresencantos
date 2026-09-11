@@ -401,20 +401,23 @@ async function handleRecvIaPdf(input) {
     let docTotal = null;
     for (let i = 0; i < chunks.length; i++) {
       _riaSetStatus(chunks.length > 1 ? `Extrayendo con IA (${i + 1}/${chunks.length})…` : 'Extrayendo productos con IA…');
-      // reasoning_effort:'default' (no 'none') y más margen de tokens que el
-      // resto de usos de IA del proyecto (2026-09-11) -- un pedido con varios
-      // productos Y varios kits de promoción puede dividirse en un fragmento
-      // que le toque casi puros renglones "KIT" al final, sin la tabla
-      // completa a la vista; confirmado contra una factura real de Natura
-      // que la IA perdía 2-3 de 5 kits de forma inconsistente entre corridas
-      // (los 16 productos normales siempre salían bien, solo los kits, que
-      // van al final del JSON de respuesta). Sin poder probarlo en vivo desde
-      // aquí -- pendiente que Eduardo confirme contra el papel la próxima vez.
+      // Más margen de tokens que el resto de usos de IA del proyecto
+      // (2026-09-11) -- un pedido con varios productos Y varios kits de
+      // promoción puede dividirse en un fragmento que le toque casi puros
+      // renglones "KIT" al final, sin la tabla completa a la vista;
+      // confirmado contra una factura real de Natura que la IA perdía 2-3 de
+      // 5 kits de forma inconsistente entre corridas (los 16 productos
+      // normales siempre salían bien, solo los kits, que van al final del
+      // JSON de respuesta). Reforzado también con la instrucción explícita
+      // de abajo. `reasoningEffort:'default'` se probó el mismo día y se
+      // revirtió de inmediato -- rompía el modo JSON estricto de este modelo
+      // (Groq devolvía "Failed to validate JSON", confirmado en producción
+      // por Eduardo) -- se queda en 'none' (el default de _groqTextJson) y
+      // NO reintentar subirlo sin poder probarlo primero.
       const result = await _riaCallGroq(() => _groqTextJson(chunks[i], {
         systemPrompt: _riaTextPrompt(),
         userPrompt: 'Extrae los renglones de producto de este fragmento del pedido según las reglas de arriba — es un fragmento del documento completo, puede empezar o terminar a mitad de una sección. Presta especial atención a los renglones "KIT": revisa el fragmento completo de inicio a fin y no omitas ninguno, aunque haya varios seguidos o el fragmento termine justo después del último.',
-        maxCompletionTokens: 3000,
-        reasoningEffort: 'default'
+        maxCompletionTokens: 3000
       }));
       allItems.push(...(result.items || []));
       allKits.push(...(result.kits_pendientes || []));
@@ -625,15 +628,16 @@ async function recvIaExtractPhotos() {
     for (let i = 0; i < total; i++) {
       _riaSetStatus(total > 1 ? `Leyendo foto ${i + 1} de ${total}…` : 'Leyendo foto con IA…');
       // Mismo ajuste que en el camino de PDF (ver handleRecvIaPdf) -- más
-      // razonamiento y margen de tokens, e insistencia explícita en no
-      // saltarse ningún "KIT", por el mismo problema confirmado contra una
-      // factura real (kits perdidos de forma inconsistente, casi siempre los
-      // últimos en aparecer en la hoja).
+      // margen de tokens e insistencia explícita en no saltarse ningún
+      // "KIT", por el mismo problema confirmado contra una factura real
+      // (kits perdidos de forma inconsistente, casi siempre los últimos en
+      // aparecer en la hoja). `reasoningEffort` se queda en 'none' -- subirlo
+      // a 'default' rompe el modo JSON estricto de este modelo (confirmado
+      // en producción el mismo día, ver el comentario en handleRecvIaPdf).
       const result = await _riaCallGroq(() => _groqVisionJson(_riaPhotos[i], {
         systemPrompt: _riaVisionPrompt(),
         userPrompt: 'Extrae los renglones de producto de esta foto según las reglas de arriba. Presta especial atención a los renglones "KIT": revisa la foto completa de inicio a fin y no omitas ninguno, aunque haya varios seguidos.',
-        maxCompletionTokens: 3000,
-        reasoningEffort: 'default'
+        maxCompletionTokens: 3000
       }));
       allItems.push(...(result.items || []));
       allKits.push(...(result.kits_pendientes || []));

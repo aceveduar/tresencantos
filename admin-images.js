@@ -23,10 +23,16 @@ function _groqErrorMessage(status, apiMessage) {
 // Núcleo compartido de las llamadas a Groq — recibe el `content` ya armado
 // (string para texto plano, array para visión con image_url) y centraliza
 // timeout, manejo de errores y parseo del JSON de respuesta.
-// reasoningEffort: 'none' por default (velocidad, suficiente para "completar
-// 3 campos desde 1 foto") -- Recepción con IA lo sube a 'default' para sus
-// extracciones (ver admin-recv-ia.js), donde hay más renglones que rastrear
-// y la consistencia importa más que la latencia.
+// reasoningEffort: 'none' en todos los usos actuales del proyecto -- se
+// probó subirlo a 'default' en Recepción con IA (2026-09-11, buscando que la
+// IA fuera más consistente extrayendo kits) y se revirtió el mismo día:
+// rompe el modo JSON estricto de este modelo -- con reasoning activado el
+// razonamiento se mezcla con la respuesta y Groq la rechaza directo
+// ("Failed to validate JSON... See 'failed_generation'"), confirmado en
+// producción. El parámetro se deja parametrizable por si algún día cambia el
+// modelo/proveedor, pero NO reintentar 'default' (ni ningún valor que no sea
+// 'none') con qwen/qwen3.6-27b en modo response_format:json_object sin poder
+// probarlo primero.
 async function _groqChatJson(content, { maxCompletionTokens = 700, reasoningEffort = 'none' } = {}) {
   if (!groqApiKey) throw new Error('Configura la IA en Configuración');
   const controller = new AbortController();
