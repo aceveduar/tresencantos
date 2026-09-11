@@ -842,12 +842,12 @@ function riaOpenMatchPicker(idx) {
   document.getElementById('ria-match-picker-results').innerHTML = '';
   const ctxEl = document.getElementById('ria-match-picker-context');
   if (ctxEl && it) {
-    ctxEl.innerHTML = `${_esc(it.rawName)}${it.supplierCode ? ` <span class="ria-mpc-code">· código ${_esc(it.supplierCode)}</span>` : ''}`;
+    ctxEl.innerHTML = `${_esc(toTitleCase(it.rawName))}${it.supplierCode ? ` <span class="ria-mpc-code">· código ${_esc(it.supplierCode)}</span>` : ''}`;
   }
-  // En modos "solo costos"/"solo código" no tiene sentido crear un producto
-  // nuevo desde una factura vieja o desde una página de catálogo (quedaría
-  // con stock=0 solo para tener dónde poner el dato) — se oculta la salida
-  // de escape, el renglón se omite si no se vincula a algo que ya existe.
+  // En "Actualizar" no tiene sentido crear un producto nuevo desde una
+  // factura vieja o desde una página de catálogo (quedaría con stock=0 solo
+  // para tener dónde poner el dato) — se oculta la salida de escape, el
+  // renglón se omite si no se vincula a algo que ya existe.
   const newBtn = document.getElementById('ria-match-set-new-btn');
   if (newBtn) newBtn.style.display = _riaMode !== 'stock' ? 'none' : '';
   document.getElementById('ria-match-overlay').style.display = 'flex';
@@ -868,7 +868,7 @@ function riaOpenKitCompPicker(kitIdx, compIdx) {
   document.getElementById('ria-match-picker-results').innerHTML = '';
   const ctxEl = document.getElementById('ria-match-picker-context');
   if (ctxEl && comp) {
-    ctxEl.innerHTML = `${_esc(comp.name)} <span class="ria-mpc-code">· componente de "${_esc(kit.raw_name || '')}"</span>`;
+    ctxEl.innerHTML = `${_esc(toTitleCase(comp.name))} <span class="ria-mpc-code">· componente de "${_esc(toTitleCase(kit.raw_name || ''))}"</span>`;
   }
   const newBtn = document.getElementById('ria-match-set-new-btn');
   if (newBtn) newBtn.style.display = _riaMode !== 'stock' ? 'none' : '';
@@ -1192,7 +1192,7 @@ function _renderRecvIaReview() {
               : `<button class="ria-match-chip ria-match-newchip" onclick="riaOpenKitCompPicker(${ki},${ci})"><span>Vincular</span></button>`);
         return `
     <div class="ria-kit-comp-row">
-      <div class="ria-kit-comp-name">${_esc(c.name)}</div>
+      <div class="ria-kit-comp-name">${_esc(toTitleCase(c.name))}</div>
       <div class="ria-match-chip-row">
         ${chip}
         <button class="ria-scan-icon-btn" onclick="riaOpenKitCompScanner(${ki},${ci})" title="Tengo el producto — escanear código de barras"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5v14"/><path d="M7 5v14"/><path d="M11 5v14"/><path d="M14 5v14"/><path d="M18 5v14"/><path d="M21 5v14"/></svg></button>
@@ -1203,7 +1203,7 @@ function _renderRecvIaReview() {
       return `
 <div class="ria-kit-item">
   <div class="ria-kit-top">
-    <div class="ria-kit-name">${_esc(k.raw_name || '')}${k.tu_pagas != null ? ` — $${Number(k.tu_pagas).toFixed(2)}` : ''}</div>
+    <div class="ria-kit-name">${_esc(toTitleCase(k.raw_name || ''))}${k.tu_pagas != null ? ` — $${Number(k.tu_pagas).toFixed(2)}` : ''}</div>
     <button class="ria-item-remove" onclick="riaRemoveKit(${ki})" title="Quitar este kit — no se va a armar">✕</button>
   </div>
   <div class="ria-kit-comp-list">${compsHtml}</div>
@@ -1314,13 +1314,13 @@ function _riaConfirmApply() {
       return matched && it.cost != null && Number(it.cost) > Number(matched.price);
     });
     if (lossItems.length) {
-      msg += `\n\n⚠️ ${lossItems.length} con costo MAYOR al precio de venta actual (ya se venden perdiendo dinero, aunque este modo no cambia el precio):\n${lossItems.slice(0, 8).map(it => `• ${it.rawName}`).join('\n')}${lossItems.length > 8 ? `\n… y ${lossItems.length - 8} más` : ''}`;
+      msg += `\n\n⚠️ ${lossItems.length} con costo MAYOR al precio de venta actual (ya se venden perdiendo dinero, aunque este modo no cambia el precio):\n${lossItems.slice(0, 8).map(it => `• ${toTitleCase(it.rawName)}`).join('\n')}${lossItems.length > 8 ? `\n… y ${lossItems.length - 8} más` : ''}`;
     }
   } else {
     msg = `¿Aplicar esta recepción?\n\n${linked} producto${linked !== 1 ? 's' : ''} existente${linked !== 1 ? 's' : ''} se actualizará${linked !== 1 ? 'n' : ''} (stock/costo/precio) y ${nuevos} producto${nuevos !== 1 ? 's' : ''} nuevo${nuevos !== 1 ? 's' : ''} se crearán.${kitLine}`;
     lossItems = _riaItems.filter(it => it.priceToApply != null && it.cost != null && Number(it.priceToApply) < it.cost);
     if (lossItems.length) {
-      msg += `\n\n⚠️ ${lossItems.length} con precio de venta MENOR al costo (se venderían perdiendo dinero):\n${lossItems.slice(0, 8).map(it => `• ${it.rawName}`).join('\n')}${lossItems.length > 8 ? `\n… y ${lossItems.length - 8} más` : ''}`;
+      msg += `\n\n⚠️ ${lossItems.length} con precio de venta MENOR al costo (se venderían perdiendo dinero):\n${lossItems.slice(0, 8).map(it => `• ${toTitleCase(it.rawName)}`).join('\n')}${lossItems.length > 8 ? `\n… y ${lossItems.length - 8} más` : ''}`;
     }
   }
 
@@ -1384,7 +1384,7 @@ async function riaApplyChanges() {
       } else if (costOnly) {
         // Sin vincular en "Actualizar" — nunca crea un producto fantasma
         // solo para tener dónde poner el dato, se omite.
-        results.skipped.push({ name: it.rawName });
+        results.skipped.push({ name: toTitleCase(it.rawName) });
       } else {
         const newId = nextNewId++;
         const catMatch = it.categoryGuess ? (categories || []).find(c => c.code === it.categoryGuess) : null;
@@ -1413,7 +1413,7 @@ async function riaApplyChanges() {
         }
       }
     } catch (err) {
-      results.failed.push({ name: it.rawName, error: err.message });
+      results.failed.push({ name: toTitleCase(it.rawName), error: err.message });
     }
   }
 
@@ -1433,7 +1433,7 @@ async function riaApplyChanges() {
           : { stock: product.stock + 1, out_of_stock: (product.stock + 1) > 0 ? false : product.outOfStock, cost: comp.cost != null ? comp.cost : product.cost };
         const diffText = (costOnly
           ? `costo $${product.cost ?? '—'}→$${payload.cost ?? '—'}`
-          : `stock ${product.stock}→${payload.stock} · costo $${product.cost ?? '—'}→$${payload.cost ?? '—'}`) + ` (kit "${kit.raw_name || ''}")`;
+          : `stock ${product.stock}→${payload.stock} · costo $${product.cost ?? '—'}→$${payload.cost ?? '—'}`) + ` (kit "${toTitleCase(kit.raw_name || '')}")`;
         if (_RIA_DRY_RUN) {
           results.updated.push({ name: product.name, diff: diffText });
         } else {
@@ -1445,9 +1445,9 @@ async function riaApplyChanges() {
           undoUpdated.push({ productId: product.id, deltaQty: costOnly ? 0 : 1, before: beforeSnapshot });
         }
       } else if (costOnly) {
-        // Igual que un renglón normal sin vincular en "solo costos": nunca
+        // Igual que un renglón normal sin vincular en "Actualizar": nunca
         // crea un producto fantasma, se omite.
-        results.skipped.push({ name: comp.name });
+        results.skipped.push({ name: toTitleCase(comp.name) });
       } else {
         const newId = nextNewId++;
         const cleanName = toTitleCase(comp.name);
@@ -1457,7 +1457,7 @@ async function riaApplyChanges() {
           out_of_stock: false, is_published: false, featured: false, image: DEFAULT_IMG,
           position: (products || []).length, supplier_code: null
         };
-        const kitTag = ` (kit "${kit.raw_name || ''}")`;
+        const kitTag = ` (kit "${toTitleCase(kit.raw_name || '')}")`;
         if (_RIA_DRY_RUN) {
           results.created.push({ name: cleanName, diff: `stock ${draft.stock} · costo $${draft.cost ?? '—'} · precio $${draft.price} · categoría Por revisar${kitTag}` });
         } else {
@@ -1474,7 +1474,7 @@ async function riaApplyChanges() {
         }
       }
     } catch (err) {
-      results.failed.push({ name: comp.name, error: err.message });
+      results.failed.push({ name: toTitleCase(comp.name), error: err.message });
     }
   }
 
