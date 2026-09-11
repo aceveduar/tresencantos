@@ -106,17 +106,57 @@ function recvSearch(q) {
   const matches = products.filter(p => !Array.isArray(p.kitItems) && _norm(p.name).includes(_norm(val))).slice(0, 8);
   resultsEl.style.display = 'block';
   if (!matches.length) {
+    // "No encontrado" no significa "no existe" -- puede ser que el código de
+    // barras esté dañado, cambiado por el proveedor, o nunca se haya
+    // capturado. Antes esta pantalla solo ofrecía "+ Crear producto", sin
+    // ninguna forma de revisar primero si ya existe con otro nombre/código
+    // -- riesgo real de terminar con un producto duplicado por un código que
+    // simplemente no coincidió. Nuevo buscador por nombre embebido aquí
+    // mismo (recvSearchInNotFound) como paso intermedio antes de crear.
     const safeVal = _esc(val).replace(/'/g, "\\'");
     resultsEl.innerHTML = `<div class="recv-no-found" style="padding:18px 16px;text-align:center">
       <div style="margin-bottom:6px"><svg width="28" height="28" viewBox="0 0 24 24" stroke="var(--muted-light)" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
       <div style="font-weight:600;color:var(--charcoal);font-size:.88rem;margin-bottom:4px">Producto no encontrado</div>
       <div style="font-size:.76rem;color:var(--muted);margin-bottom:14px;word-break:break-all;max-width:260px;margin-left:auto;margin-right:auto">${_esc(val)}</div>
-      <button onclick="recvCreateProduct('${safeVal}')" style="width:100%;padding:11px 16px;background:var(--ink);color:#fff;border:none;border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">+ Crear producto →</button>
+      <div style="text-align:left;margin-bottom:12px">
+        <label style="display:block;font-size:.72rem;font-weight:600;color:var(--muted);margin-bottom:5px">Antes de crear uno nuevo, prueba buscarlo por nombre — el código puede no coincidir aunque el producto ya exista:</label>
+        <input type="text" class="recv-search" placeholder="Nombre del producto…" oninput="recvSearchInNotFound(this.value)" style="width:100%;box-sizing:border-box">
+        <div id="recv-nf-results" style="margin-top:6px"></div>
+      </div>
+      <button onclick="recvCreateProduct('${safeVal}')" style="width:100%;padding:11px 16px;background:var(--ink);color:#fff;border:none;border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">+ Crear producto nuevo →</button>
     </div>`;
     return;
   }
   const PH = DEFAULT_IMG;
   resultsEl.innerHTML = matches.map(p => `
+<div class="recv-result-item" onclick="recvConfirmAdd(${p.id})">
+  <img class="recv-result-img" src="${_driveSz(p.image, 80)}" onerror="this.src='${PH}'" alt="">
+  <div style="flex:1;min-width:0">
+    <div class="recv-result-name">${_esc(p.name)}</div>
+    <div class="recv-result-stock">Stock actual: ${p.stock}</div>
+  </div>
+  <span class="recv-result-add">+ Recibir</span>
+</div>`).join('');
+}
+
+// Buscador secundario dentro de la tarjeta "Producto no encontrado" --
+// independiente del buscador principal (que ya falló), le da al usuario una
+// segunda oportunidad de encontrar el producto por nombre antes de decidir
+// crear uno nuevo. Elegir un resultado llama recvConfirmAdd(), que limpia y
+// oculta #recv-search-results por completo (incluida esta tarjeta), igual
+// que cualquier otra selección normal.
+function recvSearchInNotFound(q) {
+  const el = document.getElementById('recv-nf-results');
+  if (!el) return;
+  const val = q.trim();
+  if (val.length < 2) { el.innerHTML = ''; return; }
+  const matches = products.filter(p => !Array.isArray(p.kitItems) && _norm(p.name).includes(_norm(val))).slice(0, 6);
+  if (!matches.length) {
+    el.innerHTML = `<div style="padding:8px 2px;font-size:.76rem;color:var(--muted-light)">Sin coincidencias por ahora…</div>`;
+    return;
+  }
+  const PH = DEFAULT_IMG;
+  el.innerHTML = matches.map(p => `
 <div class="recv-result-item" onclick="recvConfirmAdd(${p.id})">
   <img class="recv-result-img" src="${_driveSz(p.image, 80)}" onerror="this.src='${PH}'" alt="">
   <div style="flex:1;min-width:0">
