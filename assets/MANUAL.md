@@ -68,6 +68,20 @@ Toca el número de stock en cualquier fila — se convierte en un campo editable
 - Stock **1** = "Última pieza" (se muestra en el sitio con aviso de urgencia).
 - Al marcar un producto como disponible con stock 0 → el sistema lo sube a 1 automáticamente.
 
+### Recibir mercancía
+Para cuando llega un pedido y quieres sumar stock rápido, sin abrir el formulario de cada producto uno por uno. Botón **📦 Recibir** en la barra superior del Inventario.
+
+Al entrar, elige el modo — cambia el resultado, así que vale la pena pensarlo:
+
+- **⚡ Rápido** — solo suma stock. Úsalo cuando el precio y el costo del producto ya están bien y solo estás reabasteciendo (el caso más común).
+- **🧾 Con factura** — además de stock, cada producto de la lista trae campos para capturar/corregir **costo, precio y código de proveedor**. Úsalo cuando tienes la factura del proveedor en la mano y quieres dejar esos datos al día de una vez.
+
+Puedes cambiar de modo a media sesión sin perder nada de lo ya recibido.
+
+**Para recibir un producto:** escanea su código de barras o búscalo por nombre — cada vez suma 1 a su stock (ajustable con los botones +/− que aparecen). Si no lo encuentra, antes de crear uno nuevo prueba buscarlo por nombre en el mismo cuadro que aparece — el código puede no coincidir aunque el producto ya exista.
+
+Pulsa **✓ Finalizar recepción** al terminar. Si te equivocas, cada producto de la lista tiene un botón para deshacerlo.
+
 ### Publicar / ocultar del sitio web
 El badge **🌐 Web** / **🙈 Oculto** en cada producto es un botón. Tócalo para alternar.
 

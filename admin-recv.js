@@ -31,8 +31,13 @@ function recvSetMode(mode) {
   const invBtn = document.getElementById('recv-mode-invoice');
   if (fastBtn) fastBtn.classList.toggle('active', mode === 'fast');
   if (invBtn) invBtn.classList.toggle('active', mode === 'invoice');
+  // Antes solo describía "Con factura" (oculto en "Rápido") -- ahora explica
+  // los dos, siempre visible, para que la elección de cuál usar se aprenda
+  // en el momento y no dependa de haber leído el manual antes.
   const hint = document.getElementById('recv-mode-hint');
-  if (hint) hint.style.display = mode === 'invoice' ? 'block' : 'none';
+  if (hint) hint.innerHTML = mode === 'invoice'
+    ? 'Además de stock, cada producto trae campos para <strong>costo, precio y código de proveedor</strong> — úsalo con la factura en la mano.'
+    : 'Solo suma stock — para cuando el precio y el costo ya están bien.';
   _renderRecvList(); // los renglones ya en la lista también deben mostrar/ocultar los campos extra
 }
 
