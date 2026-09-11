@@ -1628,9 +1628,19 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .ria-result-row .ria-result-diff{color:var(--muted);font-size:.76rem;display:block;margin-top:2px}
 .ria-result-row.ria-result-fail{color:var(--red)}
 .ria-result-close-btn{margin-top:auto;padding:12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--charcoal);font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit;touch-action:manipulation}
-.ria-item-card{border:1.5px solid var(--border);border-radius:12px;padding:12px;background:var(--surface)}
+/* min-width:0 en .ria-item-card (2026-09-11) -- sin esto, como grid item
+   dentro de .ria-items-list (≥1000px, ver más abajo) el navegador nunca deja
+   que la tarjeta se encoja por debajo del ancho mínimo de su contenido
+   (textarea del nombre, inputs de Cantidad/Costo), así que en vez de
+   ajustarse a las columnas del grid, toda la lista se desbordaba horizontal
+   -- confirmado en captura real de escritorio con la cuadrícula de 3
+   columnas. Mismo motivo por el que .ria-match-chip-row .ria-match-chip ya
+   tenía min-width:0 desde antes; faltaba aplicarlo un nivel arriba, en la
+   tarjeta completa (y en .ria-item-field, ver abajo, por el mismo problema
+   con los inputs numéricos). */
+.ria-item-card{border:1.5px solid var(--border);border-radius:12px;padding:12px;background:var(--surface);min-width:0}
 .ria-item-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:10px}
-.ria-item-name{flex:1;font-size:.86rem;font-weight:600;font-family:inherit;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;outline:none;background:var(--surface-soft);resize:none;overflow:hidden;line-height:1.3;min-height:1.3em}
+.ria-item-name{flex:1;min-width:0;font-size:.86rem;font-weight:600;font-family:inherit;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;outline:none;background:var(--surface-soft);resize:none;overflow:hidden;line-height:1.3;min-height:1.3em}
 .ria-item-name:focus{border-color:var(--gold);background:var(--surface)}
 .ria-item-code{font-size:.68rem;color:var(--muted-light);white-space:nowrap;padding:4px 0}
 .ria-item-remove{background:none;border:none;color:var(--muted-light);cursor:pointer;font-size:1rem;padding:2px 6px;flex-shrink:0;touch-action:manipulation}
@@ -1641,6 +1651,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .ria-item-fields .ria-item-field:last-child{grid-column:1 / -1}
   .ria-item-fields.ria-costonly-fields .ria-item-field:last-child{grid-column:auto}
 }
+.ria-item-field{min-width:0}
 .ria-item-field label{font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;display:block;margin-bottom:3px}
 .ria-item-field input{width:100%;padding:8px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;font-family:inherit;outline:none;background:var(--surface)}
 .ria-item-field input:focus{border-color:var(--gold)}

@@ -1139,10 +1139,18 @@ function _renderRecvIaReview() {
     ${priceFieldHtml}
     ${categoryFieldHtml}
   </div>`;
+    // toTitleCase() solo aquí, para mostrar -- it.rawName sigue guardado tal
+    // cual llegó de la factura (MAYÚSCULAS). Leer 16 nombres en mayúsculas
+    // sostenidas es más difícil de escanear que en Título; si el usuario
+    // escribe algo distinto, riaUpdateField() guarda exactamente lo que
+    // tecleó (no se re-normaliza sobre la marcha, solo al renderizar de
+    // nuevo). El único lugar que de verdad persiste el nombre (crear
+    // producto nuevo en modo "Mercancía nueva") ya aplicaba toTitleCase() al
+    // aplicar, sin cambios ahí.
     return `
 <div class="ria-item-card">
   <div class="ria-item-top">
-    <textarea class="ria-item-name" rows="1" oninput="riaUpdateField(${idx},'rawName',this.value);_riaAutoGrow(this)" onfocus="_riaAutoGrow(this)">${_esc(it.rawName)}</textarea>
+    <textarea class="ria-item-name" rows="1" oninput="riaUpdateField(${idx},'rawName',this.value);_riaAutoGrow(this)" onfocus="_riaAutoGrow(this)">${_esc(toTitleCase(it.rawName))}</textarea>
     <button class="ria-item-remove" onclick="riaRemoveItem(${idx})" title="Quitar">✕</button>
   </div>
   ${it.supplierCode ? `<div class="ria-item-code">Código proveedor: ${_esc(it.supplierCode)}</div>` : ''}
