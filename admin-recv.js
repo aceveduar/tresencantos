@@ -459,7 +459,7 @@ function _renderRecvList() {
   ${invoiceMode ? `
   <div class="recv-item-extra">
     <div class="ria-item-fields">
-      <div class="ria-item-field ria-cost">
+      <div class="ria-item-field">
         <label>Costo</label>
         <input type="number" min="0" step="0.01" inputmode="decimal" value="${p.cost ?? ''}" onblur="recvUpdateExtraField(${p.id},'cost',this.value)">
       </div>
