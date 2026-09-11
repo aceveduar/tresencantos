@@ -1486,7 +1486,11 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
    columnas de escritorio (ver #recv-list más abajo) sin depender de
    :last-child, que con un grid ya no identifica de forma confiable "la
    última tarjeta visual". */
-.recv-item-card{border:1.5px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden}
+/* min-width:0 (2026-09-11) -- mismo motivo que .ria-item-card en Recepción
+   con IA: ahora que #recv-list también es grid en tablet/escritorio (ver
+   más abajo), una tarjeta sin esto podría resistirse a encogerse por debajo
+   del ancho mínimo de su contenido y desbordar la cuadrícula horizontalmente. */
+.recv-item-card{border:1.5px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;min-width:0}
 .recv-item{display:flex;align-items:center;gap:10px;padding:10px 14px}
 .recv-item-img{width:42px;height:42px;object-fit:cover;border-radius:8px;flex-shrink:0;background:var(--surface-soft)}
 .recv-item-info{flex:1;min-width:0}
@@ -1523,7 +1527,14 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .recv-scan-zone{max-width:680px;margin:0 auto;width:100%}
   .recv-fb{left:12px;right:12px;max-width:680px;margin:0 auto}
 }
-@media(min-width:1000px){
+/* 901px, no 1000px (2026-09-11) -- coincide con el breakpoint de la tarjeta
+   centrada de arriba: sin esto, tablets entre esos dos anchos (ej. Galaxy
+   Tab, ~912px) ya se veían como tarjeta flotante pero con una sola columna
+   de tarjetas estiradas a todo lo ancho, desperdiciando el espacio que la
+   propia tarjeta centrada ya prometía. A 901px el panel mide ~825px de
+   contenido útil — ~407px por columna, cómodo incluso para las tarjetas más
+   simples de esta pantalla. */
+@media(min-width:901px){
   #recv-list{display:grid;grid-template-columns:1fr 1fr;align-content:start;gap:10px}
 }
 /* Footer */
