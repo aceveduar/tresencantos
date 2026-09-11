@@ -1442,13 +1442,18 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .recv-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--ink);color:#fff;flex-shrink:0}
 .recv-title{font-weight:700;font-size:.95rem;display:flex;align-items:center;gap:8px;color:#fff}
 .recv-count-badge{font-size:.72rem;opacity:.6;font-weight:400}
-.recv-close{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;touch-action:manipulation}
+/* El botón se ve compacto pero el área que de verdad responde al toque es
+   ~44px -- mismo truco de hit-slop ya usado en .hi-del (Historial de Caja):
+   un ::after invisible que se extiende más allá del borde visible, sin
+   ocupar ese espacio en el layout del header. */
+.recv-close{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;touch-action:manipulation;position:relative}
+.recv-close::after{content:'';position:absolute;inset:-9px}
 .recv-body{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
 .recv-scan-zone{padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface-soft)}
 .recv-search-row{display:flex;gap:8px}
-.recv-search{flex:1;min-width:0;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:.88rem;font-family:inherit;outline:none;background:var(--surface)}
+.recv-search{flex:1;min-width:0;padding:13px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:.88rem;font-family:inherit;outline:none;background:var(--surface)}
 .recv-search:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,164,98,.1)}
-.recv-scan-btn{background:var(--gold);color:#fff;border:none;border-radius:10px;padding:10px 14px;font-size:.85rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;touch-action:manipulation;flex-shrink:0}
+.recv-scan-btn{background:var(--gold);color:#fff;border:none;border-radius:10px;padding:13px 14px;font-size:.85rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;touch-action:manipulation;flex-shrink:0}
 /* 200px→420px (2026-09-11) -- la tarjeta "no encontrado" ahora trae un
    buscador por nombre embebido + sus resultados (ver recvSearchInNotFound,
    admin-recv.js); a 200px quedaba apretada con scroll interno innecesario.
@@ -1478,7 +1483,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .recv-fb-ok{margin-left:auto;background:var(--ink);color:#fff;border:none;border-radius:9px;padding:7px 16px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation}
 /* Lista */
 .recv-list-wrap{flex:1;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column}
-.recv-list-head{padding:10px 16px 8px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);background:var(--surface);position:sticky;top:0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;z-index:1}
+.recv-list-head{padding:10px 16px 8px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);background:var(--surface);position:sticky;top:0;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 12px;z-index:1}
 /* .recv-item-card envuelve la fila (imagen/nombre/badge/deshacer) y, en modo
    "Con factura", la fila extra de campos debajo -- tarjeta propia con borde
    completo (2026-09-11, antes solo un borde inferior en una lista plana) para
@@ -1499,7 +1504,10 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .recv-item-arrow strong{color:#10B981}
 .recv-new-badge{font-size:.6rem;font-weight:700;color:var(--gold-dark);background:var(--gold-light);border-radius:50px;padding:1px 7px;margin-left:6px;vertical-align:1px;white-space:nowrap}
 .recv-badge{background:#D1FAE5;color:#065F46;border-radius:50px;padding:3px 11px;font-size:.8rem;font-weight:700;white-space:nowrap;flex-shrink:0}
-.recv-undo-btn{background:none;border:1.5px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.72rem;color:var(--muted);cursor:pointer;font-family:inherit;touch-action:manipulation;flex-shrink:0;white-space:nowrap}
+/* Mismo hit-slop que .recv-close/.hi-del -- se ve compacto (para no inflar
+   la fila de 42px del thumbnail) pero el área de toque real es ~44px. */
+.recv-undo-btn{background:none;border:1.5px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.72rem;color:var(--muted);cursor:pointer;font-family:inherit;touch-action:manipulation;flex-shrink:0;white-space:nowrap;position:relative}
+.recv-undo-btn::after{content:'';position:absolute;inset:-9px}
 .recv-undo-btn:active{background:#FFF5F5;border-color:#FECACA;color:#E85D5D}
 .recv-undo-btn.recv-archive-btn:active{background:var(--gold-light);border-color:var(--gold);color:var(--gold-dark)}
 /* Modo "Con factura" -- reutiliza el mismo grid de campos (.ria-item-fields/
@@ -1550,7 +1558,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .ria-undo-btn:hover{background:var(--gold-dark);color:#fff}
 #ria-result-undo:empty{display:none}
 .ria-mode-toggle{display:flex;gap:8px;width:100%;max-width:420px;background:var(--surface-soft);border:1.5px solid var(--border);border-radius:12px;padding:4px}
-.ria-mode-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 8px;border-radius:9px;border:none;background:none;color:var(--muted);font-weight:600;font-size:.76rem;cursor:pointer;font-family:inherit;touch-action:manipulation;text-align:center}
+.ria-mode-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:13px 8px;border-radius:9px;border:none;background:none;color:var(--muted);font-weight:600;font-size:.76rem;cursor:pointer;font-family:inherit;touch-action:manipulation;text-align:center}
 .ria-mode-btn svg{flex-shrink:0}
 .ria-mode-btn.active{background:var(--surface);color:var(--charcoal);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .ria-source-row{display:flex;gap:12px;width:100%;max-width:420px}
@@ -1613,7 +1621,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 #ria-match-sheet{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:600px;max-height:82dvh;display:flex;flex-direction:column}
 .ria-match-new-btn{margin:0 16px 16px;padding:12px;border-radius:10px;border:1.5px dashed var(--border);background:none;color:var(--gold-dark);font-weight:600;font-size:.84rem;cursor:pointer;font-family:inherit;touch-action:manipulation;flex-shrink:0}
 .ria-match-new-btn:hover{border-color:var(--gold);background:var(--gold-light)}
-.ria-match-scan-btn{margin:0 16px 10px;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--charcoal);font-weight:600;font-size:.82rem;cursor:pointer;font-family:inherit;touch-action:manipulation;flex-shrink:0}
+.ria-match-scan-btn{margin:0 16px 10px;padding:13px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--charcoal);font-weight:600;font-size:.82rem;cursor:pointer;font-family:inherit;touch-action:manipulation;flex-shrink:0}
 .ria-match-scan-btn:hover{border-color:var(--gold);background:var(--gold-light)}
 .ria-match-result-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;cursor:pointer;touch-action:manipulation}
 .ria-match-result-item:hover{background:var(--gold-light)}
