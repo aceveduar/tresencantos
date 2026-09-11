@@ -16,7 +16,10 @@ let _recvFbPendingId = null;
 function openRecvMode() {
   if (!can.receiveStock) { toast('Sin permiso para recibir mercancía', 'error'); return; }
   _recvSession = [];
-  recvSetMode('fast');
+  // "Con factura" es el default al abrir (2026-09-11, corrección de
+  // Eduardo -- el pedido original era que al presionar "Recibir" cayera
+  // directo ahí, no solo que el botón apareciera primero a la izquierda).
+  recvSetMode('invoice');
   _renderRecvList();
   _recvUpdateHeader();
   document.getElementById('recv-overlay').style.display = 'flex';
