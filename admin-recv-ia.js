@@ -211,7 +211,7 @@ function riaSetMode(mode) {
   const hint = document.getElementById('ria-upload-hint');
   if (hint) {
     hint.innerHTML = mode === 'costOnly'
-      ? 'Para productos que ya existen en tu catálogo — actualiza el <strong>costo</strong> (si el documento lo trae, ej. una factura vieja) y el <strong>código de proveedor</strong> (ej. copiando el "Cod:" de la revista digital de Natura, aunque no traiga costo). No toca stock ni precio de venta, y no crea productos nuevos: lo que no vincules se omite.'
+      ? 'Para productos que ya existen: actualiza <strong>costo</strong> (si el documento lo trae) y <strong>código de proveedor</strong>. No toca stock ni precio, y no crea productos nuevos.'
       : '¿Prefieres sumar stock a mano? Usa <a href="#" onclick="event.preventDefault();closeRecvIaMode();openRecvMode()">Recibir mercancía</a>.';
   }
 }
