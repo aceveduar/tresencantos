@@ -1417,17 +1417,17 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 
 /* ══ MODO RECEPCIÓN ══════════════════════════════════════════════════ */
 .recv-overlay{position:fixed;inset:0;z-index:400;background:var(--surface);display:flex;flex-direction:column;overflow:hidden}
-/* .recv-panel envuelve header+body+footer dentro de #recv-ia-overlay — en
-   mobile es transparente (llena la pantalla completa, igual que antes); en
-   desktop se convierte en una tarjeta centrada de tamaño fijo en vez de
-   dejar el contenido angosto flotando en medio de un monitor ancho — mismo
-   patrón ya usado en Quick View/Kit Builder (2026-06-12). Solo aplica a
-   #recv-ia-overlay (Recepción con IA) — el modo simple "Recibir mercancía"
-   (#recv-overlay) comparte la clase .recv-overlay pero no tiene este
-   wrapper, así que no se ve afectado. */
+/* .recv-panel envuelve header+body+footer dentro de #recv-ia-overlay y
+   #recv-overlay (2026-09-11 -- antes solo el primero) — en mobile es
+   transparente (llena la pantalla completa, igual que antes); en desktop se
+   convierte en una tarjeta centrada de tamaño fijo en vez de dejar el
+   contenido angosto flotando solo en medio de un monitor ancho — mismo
+   patrón ya usado en Quick View/Kit Builder (2026-06-12). Cada overlay tiene
+   su propio max-width/alto (ver abajo) porque "Recibir mercancía" es una
+   herramienta más ligera que Recepción con IA -- no necesita tanto ancho. */
 .recv-panel{display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden;background:var(--surface)}
 @media(min-width:901px){
-  #recv-ia-overlay{align-items:center;justify-content:center;background:rgba(20,16,14,.55);padding:24px}
+  #recv-ia-overlay,#recv-overlay{align-items:center;justify-content:center;background:rgba(20,16,14,.55);padding:24px}
   /* 1400px, no 960px — el paso 2 (revisión) ya tiene su propio grid de
      2-3 columnas para monitores anchos (≥1000px/≥1500px, ver .ria-items-list
      más abajo); un panel más angosto lo hubiera apretado sin necesidad. El
@@ -1435,6 +1435,9 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
      enmarcados por la tarjeta con sombra — no hace falta que el panel sea
      angosto para que dejen de verse "flotando" en la pantalla. */
   #recv-ia-overlay .recv-panel{max-width:1400px;height:min(85vh,860px);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+  /* "Recibir mercancía" -- 1100px basta para 2 columnas de tarjetas cómodas
+     (ver #recv-list más abajo, grid a partir de 1000px de viewport). */
+  #recv-overlay .recv-panel{max-width:1100px;height:min(82vh,780px);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
 }
 .recv-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--ink);color:#fff;flex-shrink:0}
 .recv-title{font-weight:700;font-size:.95rem;display:flex;align-items:center;gap:8px;color:#fff}
@@ -1472,10 +1475,13 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .recv-list-wrap{flex:1;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column}
 .recv-list-head{padding:10px 16px 8px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);background:var(--surface);position:sticky;top:0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;z-index:1}
 /* .recv-item-card envuelve la fila (imagen/nombre/badge/deshacer) y, en modo
-   "Con factura", la fila extra de campos debajo -- el borde inferior vive
-   aquí (no en .recv-item) para que ambas filas se lean como una sola tarjeta. */
-.recv-item-card{border-bottom:1px solid var(--border)}
-.recv-item-card:last-child{border-bottom:none}
+   "Con factura", la fila extra de campos debajo -- tarjeta propia con borde
+   completo (2026-09-11, antes solo un borde inferior en una lista plana) para
+   que funcione igual de bien apilada en mobile o en la cuadrícula de 2
+   columnas de escritorio (ver #recv-list más abajo) sin depender de
+   :last-child, que con un grid ya no identifica de forma confiable "la
+   última tarjeta visual". */
+.recv-item-card{border:1.5px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden}
 .recv-item{display:flex;align-items:center;gap:10px;padding:10px 14px}
 .recv-item-img{width:42px;height:42px;object-fit:cover;border-radius:8px;flex-shrink:0;background:var(--surface-soft)}
 .recv-item-info{flex:1;min-width:0}
@@ -1495,15 +1501,25 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .recv-mode-toggle{margin-bottom:2px}
 .recv-mode-hint{font-size:.72rem;color:var(--muted);margin:6px 2px 10px;line-height:1.4}
 .recv-mode-hint strong{color:var(--charcoal)}
-#recv-list{flex:1;display:flex;flex-direction:column}
-.recv-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;color:var(--muted-light);font-size:.84rem}
+#recv-list{flex:1;display:flex;flex-direction:column;gap:8px;padding:10px 14px}
+.recv-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;color:var(--muted-light);font-size:.84rem;grid-column:1/-1}
 .recv-empty-icon{font-size:2rem;margin-bottom:8px}
-/* Desktop -- el buscador y la lista no deben estirarse a todo el ancho de un
-   monitor grande (se veía vacío/sin terminar); header y footer se quedan a
-   todo lo ancho, como una topbar/action-bar. */
+/* Desktop -- el buscador (una sola cosa, no necesita más ancho) se queda
+   angosto y centrado, igual que antes. La lista de recibidos, en cambio,
+   pasó de esa misma jaula de 680px a usar el ancho completo del panel: a
+   partir de 1000px de viewport se acomoda en 2 columnas (mismo criterio que
+   .ria-items-list de Recepción con IA, misma pantalla hermana) — con "Con
+   factura" activo cada tarjeta ya trae 3 campos más, una sola columna
+   angosta hubiera significado mucho scroll para una sesión de varios
+   productos. .recv-empty gana grid-column:1/-1 arriba para que el mensaje
+   "Escanea o busca..." siga centrado en las 2 columnas, no encajonado en la
+   mitad izquierda. */
 @media(min-width:900px){
-  .recv-scan-zone,.recv-list-wrap{max-width:680px;margin:0 auto;width:100%}
+  .recv-scan-zone{max-width:680px;margin:0 auto;width:100%}
   .recv-fb{left:12px;right:12px;max-width:680px;margin:0 auto}
+}
+@media(min-width:1000px){
+  #recv-list{display:grid;grid-template-columns:1fr 1fr;align-content:start;gap:10px}
 }
 /* Footer */
 .recv-footer{padding:12px 14px;padding-bottom:max(20px, env(safe-area-inset-bottom));border-top:1px solid var(--border);background:var(--surface);flex-shrink:0;display:flex;gap:8px;align-items:stretch}
