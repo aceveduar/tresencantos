@@ -1088,22 +1088,24 @@ function openModal(id) {
       : oos ? `<span class="product-badge badge-oos" style="position:absolute;top:10px;left:10px;background:#9B8B78">Agotado</span>` : ''}
     ${modalBadgeArea}
   </div>
-  <div class="modal-body">
-    <p class="modal-cat">${catDisplay}</p>
-    <h2 class="modal-title">${_esc(p.name)}</h2>
-    ${descHTML}
-    ${kitHTML}
-    ${urgencyText}
-  </div>
-  <div class="modal-cta">
-    <div class="modal-cta-row">
-      ${ctaPriceHTML}
-      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-        ${waDirectBtn}
-        ${shareBtn}
-      </div>
+  <div class="modal-right">
+    <div class="modal-body">
+      <p class="modal-cat">${catDisplay}</p>
+      <h2 class="modal-title">${_esc(p.name)}</h2>
+      ${descHTML}
+      ${kitHTML}
+      ${urgencyText}
     </div>
-    ${modalBtn}
+    <div class="modal-cta">
+      <div class="modal-cta-row">
+        ${ctaPriceHTML}
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          ${waDirectBtn}
+          ${shareBtn}
+        </div>
+      </div>
+      ${modalBtn}
+    </div>
   </div>
 </div>`;
   requestAnimationFrame(() => overlay.classList.add('open'));

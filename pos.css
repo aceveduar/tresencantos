@@ -891,8 +891,12 @@ button,a{touch-action:manipulation}
 }
 
 @media(max-width:640px){
-  .pos-view-toggle{display:none}
-  .pos-view-toggle + .pos-sort-sep{display:none}
+  /* Antes se ocultaba por completo aquí (sin espacio en la barra) -- se
+     restaura encogiendo view-toggle/sort-toggle a 32px (en vez de los 36px
+     de tablet) para dejarle suficiente ancho al buscador. Confirmar en un
+     teléfono real que el buscador no queda demasiado apretado. */
+  .pos-vbtn{width:32px;height:32px}
+  .pos-sort-btn{width:32px;height:32px}
   /* Fila de íconos (WhatsApp/editar/cancelar) arriba, acciones de dinero
      abajo a ancho completo -- antes el botón de WhatsApp se ocultaba aquí
      por verse apretado junto a 4 botones más; en vez de perderlo, se separa

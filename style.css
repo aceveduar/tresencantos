@@ -512,6 +512,20 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
   .modal-qty-row{padding:6px 0 8px}
 }
 
+/* .modal-right envuelve body+cta -- display:contents por default (cero
+   cambio visual en mobile/tablet, donde .modal sigue en columna única).
+   En escritorio se activa como columna derecha real, mismo patrón ya usado
+   en el Quick View de Inventario (imagen a la izquierda a todo lo alto,
+   info+CTA a la derecha con el CTA siempre visible sin scroll). */
+.modal-right{display:contents}
+@media(min-width:901px){
+  .modal{flex-direction:row;max-width:900px;height:min(78vh,620px);max-height:min(78vh,620px)}
+  .modal-img-wrap{flex:0 0 400px;display:flex;flex-direction:column;height:100%}
+  .modal-img,.modal-gallery{flex:1;min-height:0;aspect-ratio:auto;max-height:none}
+  .modal-gallery-img{aspect-ratio:auto;max-height:none;height:100%}
+  .modal-right{display:flex;flex-direction:column;flex:1;min-width:0}
+}
+
 
 /* ── ANIMATIONS ── */
 .reveal{opacity:0;transition:opacity .5s ease}
