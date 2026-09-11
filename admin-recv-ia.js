@@ -1,11 +1,16 @@
 /* ══ RECEPCIÓN CON IA — PDF (Natura) o foto → matching contra catálogo →
-   aplicar. Dos modos (_riaMode, elegido en la pantalla inicial, ver
+   aplicar. Tres modos (_riaMode, elegido en la pantalla inicial, ver
    riaSetMode): "stock" (default — mercancía nueva: suma stock, actualiza
-   costo/precio, puede crear productos nuevos) y "costOnly" (2026-09-06 —
+   costo/precio, puede crear productos nuevos), "costOnly" (2026-09-06 —
    facturas viejas: solo rellena `cost` de productos que YA existen, nunca
    toca stock ni precio de venta, nunca crea productos nuevos — lo que no
-   se vincula se omite). El matching (nombre, código de proveedor aprendido,
-   escáner, orden por categoría-guess) es el mismo motor en ambos modos.
+   se vincula se omite) y "codeOnly" (2026-09-11 — enseñar códigos de
+   proveedor sin tocar nada más: solo escribe `supplier_code` de productos
+   YA existentes; nunca toca stock, costo ni precio de venta, y nunca crea
+   productos nuevos ni procesa kits, porque sus componentes nunca traen
+   código propio en la extracción). El matching (nombre, código de
+   proveedor aprendido, escáner, orden por categoría-guess) es el mismo
+   motor en los tres modos.
    ══════════════════
 
    ✅ EN PRODUCCIÓN desde 2026-09-06 — "Aplicar cambios" escribe de verdad en
@@ -30,11 +35,13 @@ let _riaKitsExpanded = false; // colapsado por default -- ver _riaToggleKitsSect
 // 'stock' (default, comportamiento de siempre — suma stock, actualiza costo
 // y precio) vs. 'costOnly' (facturas viejas — solo rellena `cost` de
 // productos que YA existen, nunca toca stock ni precio de venta, nunca crea
+// productos nuevos) vs. 'codeOnly' (enseñar códigos de proveedor — solo
+// escribe `supplier_code`, nunca toca stock/costo/precio, nunca crea
 // productos nuevos). Se elige en la pantalla inicial, antes de extraer, y
 // no cambia a medio revisar — ver riaSetMode(). El matching (nombre,
 // código de proveedor aprendido, escáner, categoría-guess para ordenar
-// resultados) es EXACTAMENTE el mismo motor en ambos modos — aprender un
-// código de proveedor en un modo sirve también para el otro.
+// resultados) es EXACTAMENTE el mismo motor en los tres modos — aprender un
+// código de proveedor en un modo sirve también para los otros.
 let _riaMode = 'stock';
 
 /* ── Umbral de matching por nombre — solo decide qué se MUESTRA como
@@ -197,13 +204,17 @@ function riaSetMode(mode) {
   _riaMode = mode;
   const stockBtn = document.getElementById('ria-mode-stock');
   const costBtn = document.getElementById('ria-mode-costonly');
+  const codeBtn = document.getElementById('ria-mode-codeonly');
   if (stockBtn) stockBtn.classList.toggle('active', mode === 'stock');
   if (costBtn) costBtn.classList.toggle('active', mode === 'costOnly');
+  if (codeBtn) codeBtn.classList.toggle('active', mode === 'codeOnly');
   const hint = document.getElementById('ria-upload-hint');
   if (hint) {
     hint.innerHTML = mode === 'costOnly'
       ? 'Para facturas viejas — solo actualiza el <strong>costo</strong> de productos que ya existen en tu catálogo. No toca stock ni precio de venta, y no crea productos nuevos: lo que no vincules se omite.'
-      : '¿Prefieres sumar stock a mano? Usa <a href="#" onclick="event.preventDefault();closeRecvIaMode();openRecvMode()">Recibir mercancía</a>.';
+      : mode === 'codeOnly'
+        ? 'Solo <strong>asigna/corrige el código de proveedor</strong> de productos que ya existen (ej. copiando el "Cod:" de la revista digital de Natura). No toca stock, costo ni precio de venta, y no crea productos nuevos: lo que no vincules se omite.'
+        : '¿Prefieres sumar stock a mano? Usa <a href="#" onclick="event.preventDefault();closeRecvIaMode();openRecvMode()">Recibir mercancía</a>.';
   }
 }
 
@@ -355,7 +366,7 @@ function _riaTryRestoreDraft() {
   _riaItems = draft.items;
   _riaKits = (draft.kits || []).map(_riaNormalizeKit);
   _riaDocTotal = draft.docTotal ?? null;
-  _riaMode = draft.mode === 'costOnly' ? 'costOnly' : 'stock';
+  _riaMode = draft.mode === 'costOnly' ? 'costOnly' : draft.mode === 'codeOnly' ? 'codeOnly' : 'stock';
   return true;
 }
 
@@ -832,12 +843,12 @@ function riaOpenMatchPicker(idx) {
   if (ctxEl && it) {
     ctxEl.innerHTML = `${_esc(it.rawName)}${it.supplierCode ? ` <span class="ria-mpc-code">· código ${_esc(it.supplierCode)}</span>` : ''}`;
   }
-  // En modo "solo costos" no tiene sentido crear un producto nuevo desde una
-  // factura vieja (quedaría con stock=0 solo para tener dónde poner el
-  // costo) — se oculta la salida de escape, el renglón se omite si no se
-  // vincula a algo que ya existe.
+  // En modos "solo costos"/"solo código" no tiene sentido crear un producto
+  // nuevo desde una factura vieja o desde una página de catálogo (quedaría
+  // con stock=0 solo para tener dónde poner el dato) — se oculta la salida
+  // de escape, el renglón se omite si no se vincula a algo que ya existe.
   const newBtn = document.getElementById('ria-match-set-new-btn');
-  if (newBtn) newBtn.style.display = _riaMode === 'costOnly' ? 'none' : '';
+  if (newBtn) newBtn.style.display = _riaMode !== 'stock' ? 'none' : '';
   document.getElementById('ria-match-overlay').style.display = 'flex';
   document.body.style.overflow = 'hidden';
   setTimeout(() => input.focus(), 200);
@@ -846,6 +857,8 @@ function riaOpenMatchPicker(idx) {
 // Mismo picker que arriba, pero para un componente de kit (_riaKits[kitIdx]
 // .components[compIdx]) en vez de un renglón normal -- riaConfirmMatch/
 // riaConfirmSetNew despachan a uno u otro según cuál target esté activo.
+// Inalcanzable en modo "codeOnly" -- la sección de kits se oculta ahí porque
+// sus componentes nunca traen código de proveedor propio en la extracción.
 function riaOpenKitCompPicker(kitIdx, compIdx) {
   _riaMatchTargetIdx = null;
   _riaMatchTargetKit = { kitIdx, compIdx };
@@ -859,7 +872,7 @@ function riaOpenKitCompPicker(kitIdx, compIdx) {
     ctxEl.innerHTML = `${_esc(comp.name)} <span class="ria-mpc-code">· componente de "${_esc(kit.raw_name || '')}"</span>`;
   }
   const newBtn = document.getElementById('ria-match-set-new-btn');
-  if (newBtn) newBtn.style.display = _riaMode === 'costOnly' ? 'none' : '';
+  if (newBtn) newBtn.style.display = _riaMode !== 'stock' ? 'none' : '';
   document.getElementById('ria-match-overlay').style.display = 'flex';
   document.body.style.overflow = 'hidden';
   setTimeout(() => input.focus(), 200);
@@ -1035,9 +1048,12 @@ function riaUpdateCategory(idx, code) {
 function _renderRecvIaReview() {
   _riaShowState('review');
 
+  // "costOnly" y "codeOnly" comparten el mismo criterio de nunca crear
+  // productos nuevos -- lo que no se vincula se omite en ambos.
+  const neverCreates = _riaMode === 'costOnly' || _riaMode === 'codeOnly';
   const linked = _riaItems.filter(it => it.matchProductId).length;
   const nuevos = _riaItems.length - linked;
-  document.getElementById('ria-review-count').textContent = _riaMode === 'costOnly'
+  document.getElementById('ria-review-count').textContent = neverCreates
     ? `${_riaItems.length} producto${_riaItems.length !== 1 ? 's' : ''} · ${linked} vinculado${linked !== 1 ? 's' : ''} · ${nuevos} sin vincular (se omite${nuevos !== 1 ? 'n' : ''})`
     : `${_riaItems.length} producto${_riaItems.length !== 1 ? 's' : ''} · ${linked} vinculado${linked !== 1 ? 's' : ''} · ${nuevos} nuevo${nuevos !== 1 ? 's' : ''}`;
 
@@ -1053,7 +1069,7 @@ function _renderRecvIaReview() {
     const scoreLabel = (matched && !it.matchManual && it.matchScore != null) ? ` · ${Math.round(it.matchScore * 100)}%` : '';
     const matchChip = matched
       ? `<button class="ria-match-chip ria-match-linked" onclick="riaOpenMatchPicker(${idx})" title="¿No es este producto? Toca para cambiarlo" ${matchImgAttr}>✓ <span>${_esc(matched.name)}${scoreLabel}</span></button>`
-      : _riaMode === 'costOnly'
+      : neverCreates
         ? `<button class="ria-match-chip ria-match-newchip" onclick="riaOpenMatchPicker(${idx})">Vincular (o quitar)</button>`
         : `<button class="ria-match-chip ria-match-newchip" onclick="riaOpenMatchPicker(${idx})">+ Producto nuevo</button>`;
     // Escanear el código de barras del producto físico es más confiable que
@@ -1084,27 +1100,47 @@ function _renderRecvIaReview() {
     // ya es MAYOR que el precio actual del producto" — es decir, esta
     // factura acaba de descubrir que ya se estaba vendiendo perdiendo dinero,
     // aunque esta operación no vaya a cambiar el precio para arreglarlo.
-    const priceWarn = _riaMode === 'costOnly'
+    // En "codeOnly" no se toca costo ni precio -- no hay nada que advertir
+    // sobre perder dinero, así que no aplica ninguna de las dos advertencias.
+    const priceWarn = _riaMode === 'codeOnly' ? false : _riaMode === 'costOnly'
       ? (matched && it.cost != null && Number(it.cost) > Number(matched.price))
       : (it.priceToApply != null && it.cost != null && Number(it.priceToApply) < it.cost);
     const priceWarnMsg = _riaMode === 'costOnly'
       ? 'Este costo es mayor al precio de venta actual del producto — ya se está vendiendo perdiendo dinero, aunque este modo no cambia el precio. Revísalo en Inventario.'
       : 'El precio de venta es menor al costo — revisa este renglón';
     // La categoría solo se pide/edita para productos NUEVOS, y solo existen
-    // productos nuevos en modo "recibiendo mercancía" — en "solo costos"
-    // nunca se crea nada, lo que no vincula se omite (ver omitNote abajo).
+    // productos nuevos en modo "recibiendo mercancía" — en "solo costos"/
+    // "solo código" nunca se crea nada, lo que no vincula se omite (ver
+    // omitNote abajo).
     const categoryFieldHtml = (!matched && _riaMode === 'stock') ? `
     <div class="ria-item-field ria-cat">
       <label>Categoría</label>
       <select onchange="riaUpdateCategory(${idx},this.value)">${_riaCategoryOptions(it.categoryGuess)}</select>
     </div>` : '';
-    const priceFieldHtml = _riaMode === 'costOnly' ? '' : `
+    const priceFieldHtml = neverCreates ? '' : `
     <div class="ria-item-field">
       <label>Precio de venta${suggHint}</label>
       <input type="number" min="0" step="0.01" inputmode="decimal" value="${it.priceToApply ?? ''}" oninput="riaUpdateField(${idx},'priceToApply',this.value)">
     </div>`;
-    const omitNote = (!matched && _riaMode === 'costOnly')
+    const omitNote = (!matched && neverCreates)
       ? `<div class="ria-item-warn ria-item-omit" style="display:block">Sin vincular — este renglón se omite al aplicar en este modo (no crea productos nuevos).</div>` : '';
+    // En "codeOnly" no hay ningún campo que editar por renglón -- ni
+    // cantidad, ni costo, ni precio se tocan en este modo, así que mostrar
+    // esos inputs solo invitaría a tocar un dato que la operación va a
+    // ignorar. Se omite el bloque de campos por completo.
+    const itemFieldsHtml = _riaMode === 'codeOnly' ? '' : `
+  <div class="ria-item-fields${_riaMode === 'costOnly' ? ' ria-costonly-fields' : ''}">
+    <div class="ria-item-field">
+      <label>${_riaMode === 'costOnly' ? 'Cantidad (factura)' : 'Cantidad'}</label>
+      <input type="number" min="1" inputmode="numeric" value="${it.qty}" oninput="riaUpdateField(${idx},'qty',this.value)">
+    </div>
+    <div class="ria-item-field ria-cost">
+      <label>Costo</label>
+      <input type="number" min="0" step="0.01" inputmode="decimal" value="${it.cost ?? ''}" oninput="riaUpdateField(${idx},'cost',this.value)">
+    </div>
+    ${priceFieldHtml}
+    ${categoryFieldHtml}
+  </div>`;
     return `
 <div class="ria-item-card">
   <div class="ria-item-top">
@@ -1119,26 +1155,19 @@ function _renderRecvIaReview() {
     </div>
     ${candidatesHtml}
   </div>
-  <div class="ria-item-fields${_riaMode === 'costOnly' ? ' ria-costonly-fields' : ''}">
-    <div class="ria-item-field">
-      <label>${_riaMode === 'costOnly' ? 'Cantidad (factura)' : 'Cantidad'}</label>
-      <input type="number" min="1" inputmode="numeric" value="${it.qty}" oninput="riaUpdateField(${idx},'qty',this.value)">
-    </div>
-    <div class="ria-item-field ria-cost">
-      <label>Costo</label>
-      <input type="number" min="0" step="0.01" inputmode="decimal" value="${it.cost ?? ''}" oninput="riaUpdateField(${idx},'cost',this.value)">
-    </div>
-    ${priceFieldHtml}
-    ${categoryFieldHtml}
-  </div>
-  <div class="ria-item-warn" style="${priceWarn ? 'display:block' : ''}"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>${priceWarnMsg}</div>
+  ${itemFieldsHtml}
+  ${_riaMode === 'codeOnly' ? '' : `<div class="ria-item-warn" style="${priceWarn ? 'display:block' : ''}"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>${priceWarnMsg}</div>`}
   ${omitNote}
 </div>`;
   }).join('');
   document.querySelectorAll('.ria-item-name').forEach(_riaAutoGrow);
 
+  // Los componentes de kit nunca traen código de proveedor propio en la
+  // extracción -- en "codeOnly" no hay nada útil que hacer con ellos, así
+  // que la sección entera se oculta en vez de mostrar un picker que no
+  // llevaría a ningún cambio real al aplicar.
   const kitsSection = document.getElementById('ria-kits-section');
-  if (_riaKits.length) {
+  if (_riaKits.length && _riaMode !== 'codeOnly') {
     kitsSection.style.display = 'block';
     const totalComps = _riaKits.reduce((n, k) => n + (k.components || []).length, 0);
     const pendingComps = _riaKits.reduce((n, k) => n + (k.components || []).filter(c => !c.matchProductId && !c.isNew).length, 0);
@@ -1185,7 +1214,7 @@ function _renderRecvIaReview() {
   const applyBtn = document.getElementById('ria-apply-btn');
   if (applyBtn) {
     applyBtn.disabled = !_riaItems.length && !_riaActionableKitComponents().length;
-    const label = _riaMode === 'costOnly' ? 'Actualizar costos (' : 'Aplicar cambios (';
+    const label = _riaMode === 'costOnly' ? 'Actualizar costos (' : _riaMode === 'codeOnly' ? 'Vincular código (' : 'Aplicar cambios (';
     applyBtn.textContent = (_RIA_DRY_RUN ? 'Simular: ' + label : label) + _riaItems.length + ')';
   }
   const badge = document.getElementById('ria-dry-badge');
@@ -1219,7 +1248,10 @@ function riaRemoveItem(idx) {
 // confirm() de riaApplyChanges() necesita el mismo cálculo — un solo lugar
 // evita que ambos se desalineen si el criterio de tolerancia cambia.
 function _riaSanityCheck() {
-  if (_riaDocTotal == null) return null;
+  // En "codeOnly" no se toca costo ni precio -- comparar un total de costos
+  // contra el documento sería ruido irrelevante para lo único que importa
+  // aquí (vincular códigos), así que este chequeo no aplica en ese modo.
+  if (_riaMode === 'codeOnly' || _riaDocTotal == null) return null;
   const itemsSum = _riaItems.reduce((s, it) => s + (it.cost != null ? it.cost * it.qty : 0), 0);
   const kitsSum = _riaKits.reduce((s, k) => s + (k.tu_pagas != null && !isNaN(Number(k.tu_pagas)) ? Number(k.tu_pagas) : 0), 0);
   const extracted = Math.round((itemsSum + kitsSum) * 100) / 100;
@@ -1262,8 +1294,12 @@ function _riaConfirmApply() {
     ? `\n\nDe los componentes de kit: ${kitLinked} componente${kitLinked !== 1 ? 's' : ''} existente${kitLinked !== 1 ? 's' : ''} se actualizará${kitLinked !== 1 ? 'n' : ''}${kitNuevos ? ` y ${kitNuevos} se crearán como producto nuevo` : ''}.`
     : '';
   let msg;
-  let lossItems;
-  if (_riaMode === 'costOnly') {
+  let lossItems = [];
+  if (_riaMode === 'codeOnly') {
+    // Sin costo ni precio de por medio, no hay ningún riesgo de "perder
+    // dinero" que advertir -- el mensaje es solo el resumen del vínculo.
+    msg = `¿Vincular código de proveedor?\n\nSe asignará/actualizará el código de proveedor de ${linked} producto${linked !== 1 ? 's' : ''} existente${linked !== 1 ? 's' : ''}. No se toca stock, costo ni precio de venta.${nuevos ? ` ${nuevos} renglón${nuevos !== 1 ? 'es' : ''} sin vincular se omitirá${nuevos !== 1 ? 'n' : ''}.` : ''}`;
+  } else if (_riaMode === 'costOnly') {
     msg = `¿Aplicar esta actualización de costos?\n\nSe actualizará el costo de ${linked} producto${linked !== 1 ? 's' : ''} existente${linked !== 1 ? 's' : ''}. No se toca stock ni precio de venta.${nuevos ? ` ${nuevos} renglón${nuevos !== 1 ? 'es' : ''} sin vincular se omitirá${nuevos !== 1 ? 'n' : ''}.` : ''}${kitLine}`;
     lossItems = _riaItems.filter(it => {
       const matched = it.matchProductId ? (products || []).find(p => p.id === it.matchProductId) : null;
@@ -1302,6 +1338,8 @@ async function riaApplyChanges() {
   const undoCreated = [];
   let nextNewId = (products || []).reduce((m, p) => Math.max(m, p.id), 0) + 1;
   const costOnly = _riaMode === 'costOnly';
+  const codeOnly = _riaMode === 'codeOnly';
+  const neverCreates = costOnly || codeOnly;
 
   for (const it of _riaItems) {
     try {
@@ -1309,9 +1347,12 @@ async function riaApplyChanges() {
         const product = (products || []).find(p => p.id === it.matchProductId);
         if (!product) throw new Error('Producto no encontrado en el catálogo local');
         const beforeSnapshot = { cost: product.cost, price: product.price, supplierCode: product.supplierCode };
-        // Modo "solo costos": nunca toca stock ni precio de venta — solo
-        // costo (y el código de proveedor, que aprende igual en ambos modos).
-        const payload = costOnly ? {
+        // "codeOnly": solo el código de proveedor -- ni costo, ni stock, ni
+        // precio. "costOnly": costo (y el código, que aprende igual en los
+        // tres modos). Cualquier otro caso: el flujo normal completo.
+        const payload = codeOnly ? {
+          supplier_code: it.supplierCode || product.supplierCode || null
+        } : costOnly ? {
           cost: it.cost != null ? it.cost : product.cost,
           supplier_code: it.supplierCode || product.supplierCode || null
         } : {
@@ -1321,24 +1362,26 @@ async function riaApplyChanges() {
           price: it.priceToApply != null ? it.priceToApply : product.price,
           supplier_code: it.supplierCode || product.supplierCode || null
         };
-        const diffText = costOnly
-          ? `costo $${product.cost ?? '—'}→$${payload.cost ?? '—'}`
-          : `stock ${product.stock}→${payload.stock} · costo $${product.cost ?? '—'}→$${payload.cost ?? '—'} · precio $${product.price}→$${payload.price}`;
+        const diffText = codeOnly
+          ? `código de proveedor: ${product.supplierCode ?? '—'}→${payload.supplier_code ?? '—'}`
+          : costOnly
+            ? `costo $${product.cost ?? '—'}→$${payload.cost ?? '—'}`
+            : `stock ${product.stock}→${payload.stock} · costo $${product.cost ?? '—'}→$${payload.cost ?? '—'} · precio $${product.price}→$${payload.price}`;
         if (_RIA_DRY_RUN) {
           results.updated.push({ name: product.name, diff: diffText });
         } else {
           const r = await supabaseApi(`products?id=eq.${product.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
           if (!r.ok) throw new Error('Error al guardar en Supabase');
           if (payload.stock != null) { product.stock = payload.stock; product.outOfStock = payload.out_of_stock; }
-          product.cost = payload.cost;
+          if (payload.cost !== undefined) product.cost = payload.cost;
           if (payload.price != null) product.price = payload.price;
           product.supplierCode = payload.supplier_code;
           results.updated.push({ name: product.name, diff: diffText });
-          undoUpdated.push({ productId: product.id, deltaQty: costOnly ? 0 : (it.qty || 0), before: beforeSnapshot });
+          undoUpdated.push({ productId: product.id, deltaQty: neverCreates ? 0 : (it.qty || 0), before: beforeSnapshot });
         }
-      } else if (costOnly) {
-        // Sin vincular en modo "solo costos" — nunca crea un producto
-        // fantasma solo para tener dónde poner el costo, se omite.
+      } else if (neverCreates) {
+        // Sin vincular en "solo costos"/"solo código" — nunca crea un
+        // producto fantasma solo para tener dónde poner el dato, se omite.
         results.skipped.push({ name: it.rawName });
       } else {
         const newId = nextNewId++;
@@ -1376,7 +1419,9 @@ async function riaApplyChanges() {
   // con dos diferencias: nunca hay precio de revista propio (la factura solo
   // da el total del kit, nunca por componente) así que jamás se toca el
   // precio de venta, y la cantidad siempre es 1 por componente por kit (no
-  // hay un dato de "cuántos" distinto en la factura para esto).
+  // hay un dato de "cuántos" distinto en la factura para esto). En "codeOnly"
+  // este bucle no hace nada -- la sección de kits se oculta en la revisión
+  // (ver _renderRecvIaReview), así que actionableKitComps siempre llega vacío.
   for (const { kit, comp } of actionableKitComps) {
     try {
       if (comp.matchProductId) {
@@ -1437,9 +1482,11 @@ async function riaApplyChanges() {
     renderTable();
     renderStats();
     logActivity('recepcion_ia_aplicada',
-      costOnly
-        ? `Recepción con IA (solo costos): ${results.updated.length} actualizados${results.skipped.length ? `, ${results.skipped.length} omitidos` : ''}${results.failed.length ? `, ${results.failed.length} con error` : ''}`
-        : `Recepción con IA: ${results.updated.length} actualizados, ${results.created.length} nuevos${results.failed.length ? `, ${results.failed.length} con error` : ''}`,
+      codeOnly
+        ? `Recepción con IA (solo código de proveedor): ${results.updated.length} vinculados${results.skipped.length ? `, ${results.skipped.length} omitidos` : ''}${results.failed.length ? `, ${results.failed.length} con error` : ''}`
+        : costOnly
+          ? `Recepción con IA (solo costos): ${results.updated.length} actualizados${results.skipped.length ? `, ${results.skipped.length} omitidos` : ''}${results.failed.length ? `, ${results.failed.length} con error` : ''}`
+          : `Recepción con IA: ${results.updated.length} actualizados, ${results.created.length} nuevos${results.failed.length ? `, ${results.failed.length} con error` : ''}`,
       { mode: _riaMode, updated: results.updated.length, created: results.created.length, skipped: results.skipped.length, failed: results.failed.length });
     _riaClearDraft();
     _riaSaveUndoSnapshot(undoUpdated, undoCreated);
