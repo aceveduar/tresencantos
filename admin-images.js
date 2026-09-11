@@ -23,7 +23,11 @@ function _groqErrorMessage(status, apiMessage) {
 // Núcleo compartido de las llamadas a Groq — recibe el `content` ya armado
 // (string para texto plano, array para visión con image_url) y centraliza
 // timeout, manejo de errores y parseo del JSON de respuesta.
-async function _groqChatJson(content, { maxCompletionTokens = 700 } = {}) {
+// reasoningEffort: 'none' por default (velocidad, suficiente para "completar
+// 3 campos desde 1 foto") -- Recepción con IA lo sube a 'default' para sus
+// extracciones (ver admin-recv-ia.js), donde hay más renglones que rastrear
+// y la consistencia importa más que la latencia.
+async function _groqChatJson(content, { maxCompletionTokens = 700, reasoningEffort = 'none' } = {}) {
   if (!groqApiKey) throw new Error('Configura la IA en Configuración');
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 45000);
@@ -38,7 +42,7 @@ async function _groqChatJson(content, { maxCompletionTokens = 700 } = {}) {
         model: GROQ_VISION_MODEL,
         messages: [{ role: 'user', content }],
         response_format: { type: 'json_object' },
-        reasoning_effort: 'none',
+        reasoning_effort: reasoningEffort,
         temperature: 0.3,
         max_completion_tokens: maxCompletionTokens,
         stream: false
@@ -65,7 +69,7 @@ async function _groqChatJson(content, { maxCompletionTokens = 700 } = {}) {
   }
 }
 
-async function _groqVisionJson(imageDataUrl, { systemPrompt = '', userPrompt = '', maxCompletionTokens = 700 } = {}) {
+async function _groqVisionJson(imageDataUrl, { systemPrompt = '', userPrompt = '', maxCompletionTokens = 700, reasoningEffort = 'none' } = {}) {
   if (!imageDataUrl) throw new Error('Primero agrega una imagen');
   // Qwen recomienda concentrar las instrucciones en el mensaje de usuario.
   // JSON mode evita depender de que el modelo respete “sin markdown”.
@@ -76,7 +80,7 @@ async function _groqVisionJson(imageDataUrl, { systemPrompt = '', userPrompt = '
     return await _groqChatJson([
       { type: 'text', text: prompt },
       { type: 'image_url', image_url: { url: imageDataUrl } }
-    ], { maxCompletionTokens });
+    ], { maxCompletionTokens, reasoningEffort });
   } catch (err) {
     if (err.message === 'La IA tardó demasiado; intenta de nuevo') throw new Error('La IA tardó demasiado; intenta con otra foto');
     throw err;
@@ -85,12 +89,12 @@ async function _groqVisionJson(imageDataUrl, { systemPrompt = '', userPrompt = '
 
 // Misma IA, sin imagen — para extraer datos de texto plano (ej. el texto
 // de un PDF ya extraído con pdf.js). Content siempre es un string.
-async function _groqTextJson(text, { systemPrompt = '', userPrompt = '', maxCompletionTokens = 700 } = {}) {
+async function _groqTextJson(text, { systemPrompt = '', userPrompt = '', maxCompletionTokens = 700, reasoningEffort = 'none' } = {}) {
   if (!text || !text.trim()) throw new Error('No hay texto para analizar');
   const prompt = [systemPrompt, userPrompt, 'Responde únicamente con un objeto JSON válido.']
     .filter(Boolean)
     .join('\n\n');
-  return _groqChatJson(`${prompt}\n\n${text}`, { maxCompletionTokens });
+  return _groqChatJson(`${prompt}\n\n${text}`, { maxCompletionTokens, reasoningEffort });
 }
 
 function _creatorName(email) {

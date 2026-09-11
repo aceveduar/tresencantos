@@ -107,7 +107,7 @@ REGLAS:
    - "precio_revista": número, el precio POR UNIDAD de la columna "Precio Revista"
    - "tu_pagas": número, el valor de la columna "Tú Pagas" (el total de ese renglón completo, no por unidad)
    - "category_guess": el código exacto de categoría que mejor le quede de esta lista: ${_riaCatList()}. "" si no tienes ninguna pista clara.
-2. Los renglones que empiezan con "KIT" son promociones armadas con componentes ("Comp.") debajo — NO los proceses como productos individuales. SIEMPRE agrégalos a "kits_pendientes" con su descripción, la lista de nombres de sus componentes ("Comp."), y el valor de su propia columna "Tú Pagas" (el total de ese KIT) — nunca los descartes ni los omitas en silencio, aunque no tengan precio individual por componente.
+2. Los renglones que empiezan con "KIT" son promociones armadas con componentes ("Comp.") debajo — NO los proceses como productos individuales. SIEMPRE agrégalos a "kits_pendientes" con su descripción, la lista de nombres de sus componentes ("Comp."), y el valor de su propia columna "Tú Pagas" (el total de ese KIT) — nunca los descartes ni los omitas en silencio, aunque no tengan precio individual por componente. Es común que aparezcan VARIOS renglones "KIT" seguidos, cada uno con su propio "Comp." debajo — revísalos todos, uno por uno, de inicio a fin del fragmento antes de responder; omitir alguno (sobre todo los últimos) es un error frecuente y cuesta dinero real si pasa desapercibido.
 3. Ignora POR COMPLETO la sección "Regalos" (al final del documento, productos sin precio) — nunca la incluyas.
 4. Ignora encabezados de tabla, subtotales, información de crédito/pago/penalizaciones/deudas anteriores — solo extrae renglones de producto reales.
 5. Si este fragmento contiene la línea "Total a pagar" (el total final de todo el pedido, generalmente cerca del final, después de "Subtotales"), extráelo en "total_documento". Si no aparece en este fragmento, usa null.
@@ -132,7 +132,7 @@ REGLAS:
    - "tu_pagas": número, el TOTAL que paga la consultora por ese renglón completo (no por unidad); null si la hoja no trae un total por renglón
    - "costo_unitario": número, úsalo SOLO si la hoja trae directamente un costo por unidad y no un total por renglón; null en cualquier otro caso
    - "category_guess": el código exacto de categoría que mejor le quede de esta lista: ${_riaCatList()}. "" si no tienes ninguna pista clara.
-2. Si hay renglones tipo "KIT"/promoción con componentes agrupados debajo sin precio individual propio, NO los proceses como productos individuales — agrégalos a "kits_pendientes" con su descripción, los nombres de sus componentes, y su propio total (columna tipo "Tú Pagas" o similar) si es visible; null si no.
+2. Si hay renglones tipo "KIT"/promoción con componentes agrupados debajo sin precio individual propio, NO los proceses como productos individuales — agrégalos a "kits_pendientes" con su descripción, los nombres de sus componentes, y su propio total (columna tipo "Tú Pagas" o similar) si es visible; null si no. Es común que aparezcan VARIOS renglones "KIT" seguidos, cada uno con sus propios componentes debajo — revísalos todos, uno por uno, de inicio a fin de la foto antes de responder; omitir alguno (sobre todo los últimos) es un error frecuente y cuesta dinero real si pasa desapercibido.
 3. Ignora regalos/muestras sin precio, totales, información de crédito/pago/penalizaciones — solo extrae renglones de producto reales.
 4. Si la foto muestra un total general del pedido completo (ej. "Total a pagar"), extráelo en "total_documento"; null si no se ve.
 5. Si un número no es legible o falta, usa null — nunca lo inventes.
@@ -401,10 +401,20 @@ async function handleRecvIaPdf(input) {
     let docTotal = null;
     for (let i = 0; i < chunks.length; i++) {
       _riaSetStatus(chunks.length > 1 ? `Extrayendo con IA (${i + 1}/${chunks.length})…` : 'Extrayendo productos con IA…');
+      // reasoning_effort:'default' (no 'none') y más margen de tokens que el
+      // resto de usos de IA del proyecto (2026-09-11) -- un pedido con varios
+      // productos Y varios kits de promoción puede dividirse en un fragmento
+      // que le toque casi puros renglones "KIT" al final, sin la tabla
+      // completa a la vista; confirmado contra una factura real de Natura
+      // que la IA perdía 2-3 de 5 kits de forma inconsistente entre corridas
+      // (los 16 productos normales siempre salían bien, solo los kits, que
+      // van al final del JSON de respuesta). Sin poder probarlo en vivo desde
+      // aquí -- pendiente que Eduardo confirme contra el papel la próxima vez.
       const result = await _riaCallGroq(() => _groqTextJson(chunks[i], {
         systemPrompt: _riaTextPrompt(),
-        userPrompt: 'Extrae los renglones de producto de este fragmento del pedido según las reglas de arriba — es un fragmento del documento completo, puede empezar o terminar a mitad de una sección.',
-        maxCompletionTokens: 2000
+        userPrompt: 'Extrae los renglones de producto de este fragmento del pedido según las reglas de arriba — es un fragmento del documento completo, puede empezar o terminar a mitad de una sección. Presta especial atención a los renglones "KIT": revisa el fragmento completo de inicio a fin y no omitas ninguno, aunque haya varios seguidos o el fragmento termine justo después del último.',
+        maxCompletionTokens: 3000,
+        reasoningEffort: 'default'
       }));
       allItems.push(...(result.items || []));
       allKits.push(...(result.kits_pendientes || []));
@@ -614,10 +624,16 @@ async function recvIaExtractPhotos() {
     let docTotal = null;
     for (let i = 0; i < total; i++) {
       _riaSetStatus(total > 1 ? `Leyendo foto ${i + 1} de ${total}…` : 'Leyendo foto con IA…');
+      // Mismo ajuste que en el camino de PDF (ver handleRecvIaPdf) -- más
+      // razonamiento y margen de tokens, e insistencia explícita en no
+      // saltarse ningún "KIT", por el mismo problema confirmado contra una
+      // factura real (kits perdidos de forma inconsistente, casi siempre los
+      // últimos en aparecer en la hoja).
       const result = await _riaCallGroq(() => _groqVisionJson(_riaPhotos[i], {
         systemPrompt: _riaVisionPrompt(),
-        userPrompt: 'Extrae los renglones de producto de esta foto según las reglas de arriba.',
-        maxCompletionTokens: 2500
+        userPrompt: 'Extrae los renglones de producto de esta foto según las reglas de arriba. Presta especial atención a los renglones "KIT": revisa la foto completa de inicio a fin y no omitas ninguno, aunque haya varios seguidos.',
+        maxCompletionTokens: 3000,
+        reasoningEffort: 'default'
       }));
       allItems.push(...(result.items || []));
       allKits.push(...(result.kits_pendientes || []));
