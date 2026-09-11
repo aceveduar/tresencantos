@@ -539,6 +539,7 @@ function getFilteredProducts() {
     _norm(p.name).includes(t) ||
     _norm(p.categoryLabel).includes(t) ||
     (p.barcode && p.barcode.includes(t)) ||
+    (p.supplierCode && _norm(p.supplierCode).includes(t)) ||
     t === String(Math.round(p.price || 0))
   )));
 
