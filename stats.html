@@ -113,6 +113,13 @@
   </div>
   <div id="ds-best-row" style="display:none"></div>
 
+  <!-- ══ ZONA 1: HISTORIA DEL PERÍODO — lo que pasó en el Día/Semana/Mes
+       seleccionado. Todo lo de aquí abajo hasta la Zona 2 responde a
+       "¿cómo le fue al negocio en este período?" (2026-09-11, reordenado
+       a pedido de Eduardo -- antes 4 tarjetas de vigencia continua se
+       anteponían a estas gráficas de tendencia, empujándolas más abajo de
+       lo que su importancia amerita). ══ -->
+
   <!-- VENTAS DEL DÍA -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-head">
@@ -125,6 +132,97 @@
       </div>
     </div>
   </div>
+
+  <!-- TOP PRODUCTOS -->
+  <div class="bottom-row">
+    <div class="card">
+      <div class="card-head">
+        <h2>Productos más vendidos</h2>
+        <span id="top-prod-period"></span>
+      </div>
+      <div class="card-body" style="padding-top:8px;padding-bottom:8px">
+        <div id="top-products">
+          <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRÁFICAS -->
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-head">
+        <h2 id="revenue-chart-title">Ingresos por día</h2>
+        <span id="chart-period-label"></span>
+      </div>
+      <div class="card-body">
+        <div id="week-summary" style="display:none"></div>
+        <div class="chart-canvas-wrap">
+          <canvas id="revenue-chart"></canvas>
+        </div>
+        <div id="day-hour-summary" class="day-hour-summary" style="display:none"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Por categoría</h2>
+      </div>
+      <div class="card-body">
+        <div class="chart-canvas-wrap" id="cat-chart-wrap" style="height:220px">
+          <canvas id="cat-chart"></canvas>
+        </div>
+        <div id="cat-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HORA PICO — solo desktop/tablet -->
+  <div class="card" id="hora-pico-card" style="margin-bottom:16px">
+    <div class="card-head">
+      <h2>Hora pico</h2>
+      <span id="hour-period-label"></span>
+    </div>
+    <div class="card-body">
+      <div class="chart-canvas-wrap" style="height:200px">
+        <canvas id="hour-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- CALENDAR HEATMAP (mes) -->
+  <div class="card" id="calendar-card" style="display:none;margin-bottom:16px">
+    <div class="card-head"><h2><svg class="card-h-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Mapa del mes</h2></div>
+    <div class="card-body"><div id="sales-calendar"></div></div>
+  </div>
+
+  <!-- DÍAS MÁS RENTABLES (mes) — solo desktop/tablet -->
+  <div class="card" id="weekday-card" style="display:none;margin-bottom:16px">
+    <div class="card-head">
+      <h2>Días más rentables</h2>
+      <span id="weekday-period-label" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body">
+      <div class="chart-canvas-wrap" style="height:180px"><canvas id="weekday-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- VENDEDORES -->
+  <div class="card" id="vendedores-card" style="display:none;margin-bottom:16px">
+    <div class="card-head">
+      <h2><svg class="card-h-icon" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Por vendedor</h2>
+      <span id="vendedores-label" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body" id="vendedores-body">
+      <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
+    </div>
+  </div>
+
+  <!-- ══ ZONA 2: OPERATIVO — vigencia continua, no se filtra por el
+       selector de período (Apartados/Clientes/Turnos ya eran así desde
+       antes; Estado del inventario/Valor en venta/Rentabilidad son salud
+       de catálogo, tampoco atada al período). Responde a "¿qué necesito
+       vigilar o atender ahora?", no a "¿cómo fue este período?". ══ -->
 
   <!-- APARTADOS PENDIENTES -->
   <div class="card" style="margin-bottom:16px">
@@ -174,50 +272,6 @@
     </div>
   </div>
 
-  <!-- TOP PRODUCTOS -->
-  <div class="bottom-row">
-    <div class="card">
-      <div class="card-head">
-        <h2>Productos más vendidos</h2>
-        <span id="top-prod-period"></span>
-      </div>
-      <div class="card-body" style="padding-top:8px;padding-bottom:8px">
-        <div id="top-products">
-          <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- GRÁFICAS -->
-  <div class="charts-row">
-    <div class="card">
-      <div class="card-head">
-        <h2 id="revenue-chart-title">Ingresos por día</h2>
-        <span id="chart-period-label"></span>
-      </div>
-      <div class="card-body">
-        <div id="week-summary" style="display:none"></div>
-        <div class="chart-canvas-wrap">
-          <canvas id="revenue-chart"></canvas>
-        </div>
-        <div id="day-hour-summary" class="day-hour-summary" style="display:none"></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-head">
-        <h2>Por categoría</h2>
-      </div>
-      <div class="card-body">
-        <div class="chart-canvas-wrap" id="cat-chart-wrap" style="height:220px">
-          <canvas id="cat-chart"></canvas>
-        </div>
-        <div id="cat-list"></div>
-      </div>
-    </div>
-  </div>
-
   <!-- INVENTARIO -->
   <div class="card" style="margin-bottom:16px">
     <div class="card-head">
@@ -262,47 +316,6 @@
     </div>
     <div class="card-body" id="capital-cat-body" style="max-height:400px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain">
       <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
-    </div>
-  </div>
-
-  <!-- CALENDAR HEATMAP (mes) -->
-  <div class="card" id="calendar-card" style="display:none;margin-bottom:16px">
-    <div class="card-head"><h2><svg class="card-h-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Mapa del mes</h2></div>
-    <div class="card-body"><div id="sales-calendar"></div></div>
-  </div>
-
-  <!-- VENDEDORES -->
-  <div class="card" id="vendedores-card" style="display:none;margin-bottom:16px">
-    <div class="card-head">
-      <h2><svg class="card-h-icon" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Por vendedor</h2>
-      <span id="vendedores-label" style="font-size:.75rem;color:var(--muted)"></span>
-    </div>
-    <div class="card-body" id="vendedores-body">
-      <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
-    </div>
-  </div>
-
-  <!-- HORA PICO — solo desktop/tablet -->
-  <div class="card" id="hora-pico-card" style="margin-bottom:16px">
-    <div class="card-head">
-      <h2>Hora pico</h2>
-      <span id="hour-period-label"></span>
-    </div>
-    <div class="card-body">
-      <div class="chart-canvas-wrap" style="height:200px">
-        <canvas id="hour-chart"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- DÍAS MÁS RENTABLES (mes) — solo desktop/tablet -->
-  <div class="card" id="weekday-card" style="display:none;margin-bottom:16px">
-    <div class="card-head">
-      <h2>Días más rentables</h2>
-      <span id="weekday-period-label" style="font-size:.75rem;color:var(--muted)"></span>
-    </div>
-    <div class="card-body">
-      <div class="chart-canvas-wrap" style="height:180px"><canvas id="weekday-chart"></canvas></div>
     </div>
   </div>
 
