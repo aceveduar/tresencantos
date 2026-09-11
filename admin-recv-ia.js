@@ -1198,6 +1198,12 @@ function _renderRecvIaReview() {
     if (labelEl) {
       labelEl.textContent = `Kits de promoción (${_riaKits.length}) — $${kitsTotal.toFixed(2)} · ${totalComps} componente${totalComps !== 1 ? 's' : ''}${pendingComps ? `, ${pendingComps} sin vincular` : ''}`;
     }
+    // El ícono (stroke="currentColor") y el texto se ven en ámbar/advertencia
+    // mientras falte vincular algo -- una vez que ya no hay pendientes, no
+    // tiene sentido que el encabezado se siga viendo como una alerta cuando
+    // ya no hay nada de qué alertar.
+    const headEl = document.getElementById('ria-kits-head');
+    if (headEl) headEl.classList.toggle('ria-kits-ok', pendingComps === 0);
     const listEl = document.getElementById('ria-kits-list');
     if (listEl) listEl.style.display = _riaKitsExpanded ? 'block' : 'none';
     const icoEl = document.getElementById('ria-kits-toggle-ico');
@@ -1315,6 +1321,13 @@ function _riaConfirmApply() {
   const kitLine = kitComps.length
     ? `\n\nDe los componentes de kit: ${kitLinked} componente${kitLinked !== 1 ? 's' : ''} existente${kitLinked !== 1 ? 's' : ''} se actualizará${kitLinked !== 1 ? 'n' : ''}${kitNuevos ? ` y ${kitNuevos} se crearán como producto nuevo` : ''}.`
     : '';
+  // Si hay kits en el documento pero ninguno de sus componentes se tocó (ni
+  // vinculado ni marcado nuevo), riaApplyChanges() los omite por completo y
+  // en silencio -- sin este aviso, ese dinero desaparece sin dejar ningún
+  // rastro. Confirmado con una factura real (2026-09-11) donde $358.08 en 5
+  // kits quedaron sin vincular sin que nada lo señalara en este diálogo.
+  const untouchedKits = _riaKits.filter(k => !(k.components || []).some(c => c.matchProductId || c.isNew));
+  const untouchedKitsValue = untouchedKits.reduce((s, k) => s + (k.tu_pagas != null && !isNaN(Number(k.tu_pagas)) ? Number(k.tu_pagas) : 0), 0);
   let msg;
   let lossItems = [];
   if (_riaMode === 'costOnly') {
@@ -1347,6 +1360,10 @@ function _riaConfirmApply() {
   const check = _riaSanityCheck();
   if (check && !check.closeEnough) {
     msg += `\n\n⚠️ El total extraído ($${check.extracted.toFixed(2)}) no cuadra con el documento ($${_riaDocTotal.toFixed(2)}) — diferencia de $${Math.abs(check.diff).toFixed(2)}. Puede que algo se haya leído mal.`;
+  }
+
+  if (untouchedKits.length) {
+    msg += `\n\n⚠️ ${untouchedKits.length} kit${untouchedKits.length !== 1 ? 's' : ''} de promoción ($${untouchedKitsValue.toFixed(2)}) sin vincular ningún componente — se van a omitir por completo, sin ningún registro. Para aplicarlos, vincula al menos un componente de cada uno (▾ Kits de promoción, arriba de este botón) antes de continuar.`;
   }
 
   return confirm(msg);

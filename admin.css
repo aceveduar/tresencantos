@@ -1666,6 +1666,11 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .ria-kits-head{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;font-size:.74rem;font-weight:700;color:#92400E;padding:10px 16px;background:none;border:none;cursor:pointer;font-family:inherit;text-align:left;touch-action:manipulation}
 .ria-kits-head span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .ria-kits-head:hover{background:rgba(146,64,14,.06)}
+/* Sin componentes pendientes -- deja de verse como una alerta cuando ya no
+   hay nada de qué alertar (el ícono usa stroke="currentColor", así que
+   cambia junto con el texto). */
+.ria-kits-head.ria-kits-ok{color:var(--muted)}
+.ria-kits-head.ria-kits-ok:hover{background:var(--surface)}
 #ria-kits-toggle-ico{flex-shrink:0;font-size:.8rem}
 .ria-kit-item{padding:6px 16px 10px;font-size:.8rem}
 .ria-kit-item+.ria-kit-item{border-top:1px dashed var(--border);padding-top:10px}
