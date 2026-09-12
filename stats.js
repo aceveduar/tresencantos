@@ -26,11 +26,20 @@ function _getStatsToken() {
     return s?.access_token || SUPABASE_ANON_KEY;
   } catch { return SUPABASE_ANON_KEY; }
 }
+// Sin esto, una conexión colgada deja fetch() esperando para siempre --
+// mismo bug ya encontrado y corregido en Caja (2026-09-04, _posFetchTimeout):
+// "Guardar" se quedaba pegado sin ningún error visible. Aquí el síntoma
+// sería un KPI atorado en "…" para siempre al cambiar de período.
+function _statsFetchTimeout(url, opts = {}, ms = 20000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+}
 async function _refreshStatsToken() {
   try {
     const s = JSON.parse(localStorage.getItem(SESSION_KEY));
     if (!s?.refresh_token) return false;
-    const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+    const r = await _statsFetchTimeout(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
       method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: s.refresh_token })
     });
@@ -45,7 +54,7 @@ async function _refreshStatsToken() {
   } catch { return false; }
 }
 async function api(path, opts={}) {
-  const _call = (tk) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+  const _call = (tk) => _statsFetchTimeout(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...opts,
     headers: {
       apikey: SUPABASE_ANON_KEY,
@@ -1583,16 +1592,17 @@ function renderBestSeller() {
   }
   // Productos/unidades siguen la fecha real de finalización: created_at en
   // venta directa y liquidated_at en apartado.
-  const ventas = sales;
-  if (!ventas.length) { el.style.display = 'none'; return; }
-  const freq = {};
-  ventas.forEach(v => (v.items || []).forEach(i => {
-    freq[i.name] = (freq[i.name] || 0) + parseFloat(i.subtotal ?? i.price * (i.qty||1));
-  }));
-  const best = Object.entries(freq).sort((a,b) => b[1]-a[1])[0];
+  if (!sales.length) { el.style.display = 'none'; return; }
+  // Reusa aggregateProducts() (agrupa por id, ordena por unidades) -- antes
+  // este renglón calculaba su propio "más vendido" agrupando por nombre y
+  // ordenando por ingreso, así que podía nombrar un producto distinto al de
+  // la tarjeta "Productos más vendidos" en la misma pantalla. Agrupar por
+  // nombre también se prestaba a mezclar productos distintos que compartan
+  // nombre, o partir en dos al mismo producto si su nombre cambió.
+  const best = aggregateProducts()[0];
   if (!best) { el.style.display = 'none'; return; }
   el.style.display = '';
-  el.innerHTML = `<div style="font-size:.76rem;color:var(--muted);padding:0 2px 10px;display:flex;align-items:center;gap:5px;overflow:hidden"><svg style="width:13px;height:13px;flex-shrink:0;fill:var(--gold-dark);stroke:none" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Más vendido: <strong style="color:var(--charcoal)">${_esc(best[0])}</strong> · $${Math.round(best[1]).toLocaleString('es-MX')} en ventas</span></div>`;
+  el.innerHTML = `<div style="font-size:.76rem;color:var(--muted);padding:0 2px 10px;display:flex;align-items:center;gap:5px;overflow:hidden"><svg style="width:13px;height:13px;flex-shrink:0;fill:var(--gold-dark);stroke:none" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Más vendido: <strong style="color:var(--charcoal)">${_esc(best.name)}</strong> · $${Math.round(best.revenue).toLocaleString('es-MX')} en ventas</span></div>`;
 }
 
 /* ── APARTADOS PENDIENTES ── */
