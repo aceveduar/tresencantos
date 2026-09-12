@@ -192,7 +192,6 @@ async function doLogout() {
 let products      = [];
 let posCategories = [];
 let cart          = [];
-let salesStats    = {};
 let salesCache  = {};
 let paymentsCache = {}; // sale_payments.id → payment row (para reenviar comprobante desde Historial)
 let currentCat  = 'all';
@@ -220,7 +219,10 @@ function _restoreCart() {
   } catch { cart = []; }
 }
 let posView     = (window.innerWidth <= 1024) ? 'list' : (localStorage.getItem('te_pos_view') || 'list');
-let posSort     = localStorage.getItem('te_pos_sort') || 'position';
+// Orden default del catálogo: recién dado de alta o con precio/stock recién
+// tocado primero (sin carril aparte -- se probó y se veía muy apretado con
+// nombres ilegibles) -- alimentado por recently_edited, mismo mecanismo ya
+// ampliado a edición inline y ambos flujos de recepción.
 let _posRecentOrder = JSON.parse(localStorage.getItem('te_recently_edited') || '[]');
 
 /* ── API ── */
@@ -819,12 +821,21 @@ async function _silentStatsRefresh() {
   if (nowTs - _lastStatsRefresh < 30000) return;
   _lastStatsRefresh = nowTs;
   await Promise.all([
-    loadSalesStats(),
     loadTopProductsFromSales(),
     loadPosRecentlyEdited(),
     typeof loadTodayStats === 'function' ? loadTodayStats() : Promise.resolve()
   ]);
   showAllProducts();
+}
+
+async function loadPosRecentlyEdited() {
+  try {
+    const r = await api('recently_edited?select=product_id&order=edited_at.desc&limit=60');
+    if (r.ok && Array.isArray(r.data)) {
+      _posRecentOrder = r.data.map(d => d.product_id);
+      localStorage.setItem('te_recently_edited', JSON.stringify(_posRecentOrder));
+    }
+  } catch {}
 }
 
 async function loadPosCategories() {
@@ -839,37 +850,6 @@ async function loadPosConfig() {
     const r = await api('config?id=eq.show_restock&select=id,value');
     if (r.ok && r.data?.length) _showRestock = r.data[0].value !== 'false';
   } catch {}
-}
-
-async function loadPosRecentlyEdited() {
-  try {
-    const r = await api('recently_edited?select=product_id&order=edited_at.desc&limit=60');
-    if (r.ok && Array.isArray(r.data)) {
-      _posRecentOrder = r.data.map(d => d.product_id);
-      localStorage.setItem('te_recently_edited', JSON.stringify(_posRecentOrder));
-    }
-  } catch {}
-}
-
-async function loadSalesStats() {
-  try {
-    const r = await api('sales?select=items&cancelled_at=is.null&order=created_at.desc&limit=200');
-    if (!r.ok) return;
-    salesStats = {};
-    (r.data || []).forEach(sale => {
-      if (!Array.isArray(sale.items)) return;
-      sale.items.forEach(item => {
-        if (item.id) salesStats[item.id] = (salesStats[item.id] || 0) + (item.qty || 1);
-      });
-    });
-  } catch {}
-}
-
-function applySort(list) {
-  switch (posSort) {
-    case 'populares': return [...list].sort((a, b) => (salesStats[b.id] || 0) - (salesStats[a.id] || 0));
-    default: return list;
-  }
 }
 
 function catMatchesFilter(productCat, filterCat) {
@@ -998,7 +978,16 @@ function getFilteredProducts(q = '', includeOos = false) {
     ));
     return matchCat && matchQ;
   });
-  const sorted = applySort(filtered);
+  // Orden default: recién dado de alta o con precio/stock recién tocado
+  // primero (_posRecentOrder, tabla recently_edited) -- lo no tocado cae al
+  // final, más nuevo (id más alto) primero entre sí.
+  const recentIdx = new Map(_posRecentOrder.map((id, i) => [id, i]));
+  const sorted = [...filtered].sort((a, b) => {
+    const ia = recentIdx.has(a.id) ? recentIdx.get(a.id) : _posRecentOrder.length;
+    const ib = recentIdx.has(b.id) ? recentIdx.get(b.id) : _posRecentOrder.length;
+    if (ia !== ib) return ia - ib;
+    return b.id - a.id;
+  });
   // OOS al final cuando se incluyen
   if (includeOos) {
     sorted.sort((a, b) => {
