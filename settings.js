@@ -61,6 +61,24 @@ async function api(path, opts = {}) {
   return r;
 }
 
+// Invoca una Supabase Edge Function con el JWT de la sesión activa -- mismo
+// patrón que api() (refresca el token una vez si viene expirado), pero
+// contra /functions/v1/ en vez de /rest/v1/.
+async function edgeFn(name, payload = {}) {
+  const _call = (tk) => fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(async r => {
+    const text = await r.text();
+    let data; try { data = JSON.parse(text); } catch { data = text || null; }
+    return { ok: r.ok, status: r.status, data };
+  });
+  const r = await _call(_getSettingsToken());
+  if (r.status === 401 && await _refreshSettingsToken()) return _call(_getSettingsToken());
+  return r;
+}
+
 /* ── STATE ── */
 let categories = [];
 let groqApiKey = null;
@@ -1270,19 +1288,28 @@ function _upPermChange(cb, key) {
   _renderUpMatrix();
 }
 
-function _upAddUser() {
+async function _upAddUser() {
   const input   = document.getElementById('up-new-email');
   const roleSel = document.getElementById('up-new-role');
+  const btn     = document.getElementById('up-add-btn');
   const email   = (input?.value||'').trim().toLowerCase();
   const role    = roleSel?.value || 'operador';
   if (!email || !email.includes('@')) { toast('Ingresa un correo válido', 'err'); return; }
   if (userPermsMap[email]) { toast('Este usuario ya está en la lista', ''); input.value=''; return; }
-  if (!confirm(`¿Ya creaste la cuenta de ${email} en Supabase (Authentication → Users)?\n\nEsta pantalla solo asigna rol y permisos — si el correo no existe ahí todavía, no podrá iniciar sesión aunque lo agregues aquí.`)) return;
+  if (!confirm(`¿Crear la cuenta de ${email} como ${_UP_ROLE_LABELS[role]||role}?\n\nSe le enviará un correo de invitación para que fije su propia contraseña.`)) return;
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Creando…'; }
+  const r = await edgeFn('create-user', { email, role });
+  if (btn) { btn.disabled = false; btn.textContent = '+ Agregar'; }
+
+  if (!r.ok) { toast(r.data?.error || 'No se pudo crear la cuenta', 'err'); return; }
+
   userPermsMap[email] = { ...UP_ROLE_DEFAULTS[role]||UP_ROLE_DEFAULTS.operador, role };
   input.value = '';
   if (roleSel) roleSel.value = 'operador';
   renderUsersPerms();
   _upSavePerms();
+  toast(`Cuenta creada — le llegará un correo de invitación a ${email}`, 'ok');
 }
 
 async function _upSaveName(inp, email) {

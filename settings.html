@@ -62,9 +62,9 @@
         <option value="encargado">Encargada</option>
         <option value="superadmin">Superadmin</option>
       </select>
-      <button class="btn btn-outline btn-sm" onclick="_upAddUser()">+ Agregar</button>
+      <button class="btn btn-outline btn-sm" id="up-add-btn" onclick="_upAddUser()">+ Agregar</button>
     </div>
-    <p class="field-hint" style="padding:0 16px 12px">⚠️ Primero crea su cuenta en Supabase (Authentication → Users) — aquí solo se le asigna el rol y los permisos, no una contraseña de acceso.</p>
+    <p class="field-hint" style="padding:0 16px 12px">Se crea la cuenta y se le envía un correo de invitación para que fije su propia contraseña — no hace falta entrar a Supabase.</p>
   </div>
   <div class="settings-card" style="padding:12px;display:none" id="up-matrix-card">
     <input type="text" class="field-input" id="up-matrix-search" placeholder="🔍 Buscar un permiso…" oninput="_renderUpMatrix()" style="margin-bottom:10px">
