@@ -250,7 +250,7 @@ function _updateCatFilterBtn() {
   if (!btn || !lbl) return;
   const val = document.getElementById('cat-filter')?.value || 'all';
   if (val === 'all') {
-    lbl.textContent = 'Categorías';
+    lbl.textContent = 'Todas';
     btn.classList.remove('has-filter');
   } else {
     const cat = categories.find(c => c.code === val);

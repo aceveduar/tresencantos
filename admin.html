@@ -435,7 +435,7 @@
           <option value="all">Todas las categorías</option>
         </select>
         <button id="cat-filter-btn" onclick="openCatSheet()">
-          <span id="cat-filter-btn-label">Categoría</span>
+          <span id="cat-filter-btn-label">Todas</span>
           <span id="cat-filter-btn-arrow">▾</span>
         </button>
         <select class="filter-select" id="sort-select" style="display:none" onchange="currentSort=this.value;localStorage.setItem('te_admin_sort',this.value);_adminPage=1;renderTable();TE?.track('filter_sort',{sort:this.value})">
