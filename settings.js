@@ -294,11 +294,22 @@ function closeDriveAudit() {
   document.body.style.overflow = '';
 }
 
+// Spinner animado (mismo estilo que "Cargando catálogo…" en Inventario) con
+// un mensaje que cambia por paso -- el proceso son 2 llamadas encadenadas
+// (catálogo, luego Drive) y la segunda puede tardar si hay muchos archivos;
+// sin esto se sentía "atorado" en un solo texto estático.
+function _driveAuditSpinner(msg) {
+  return `<div style="text-align:center;padding:28px 0;color:var(--muted)">
+    <div style="display:inline-block;width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:12px"></div>
+    <br>${msg}
+  </div>`;
+}
+
 async function _runDriveAudit() {
   const body = document.getElementById('drive-audit-body');
   const foot = document.getElementById('drive-audit-foot');
   foot.style.display = 'none';
-  body.innerHTML = '<p class="field-hint">Buscando archivos sin usar…</p>';
+  body.innerHTML = _driveAuditSpinner('Leyendo tu catálogo de productos…');
   if (!driveEp || !driveSecret) {
     body.innerHTML = '<p class="field-hint">Conecta Google Drive primero (arriba, en Integraciones).</p>';
     return;
@@ -317,6 +328,7 @@ async function _runDriveAudit() {
   });
 
   // 2) Todos los archivos que de verdad existen en la carpeta de Drive.
+  body.innerHTML = _driveAuditSpinner(`Comparando contra ${used.size} imagen(es) en uso… listando Drive, puede tardar si hay muchos archivos.`);
   let listRes;
   try {
     const r = await fetch(driveEp, { method: 'POST', body: JSON.stringify({ secret: driveSecret, action: 'list' }) });
