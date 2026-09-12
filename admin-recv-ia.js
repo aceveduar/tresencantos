@@ -1417,7 +1417,10 @@ async function riaApplyChanges() {
           product.supplierCode = payload.supplier_code;
           results.updated.push({ name: product.name, diff: diffText });
           undoUpdated.push({ productId: product.id, deltaQty: costOnly ? 0 : (it.qty || 0), before: beforeSnapshot });
-          _trackEdit(product.id);
+          // "Recién preparados" en Caja solo reacciona a precio/stock -- en
+          // modo "Actualizar" (costOnly) solo se toca costo/código de
+          // proveedor, así que no cuenta.
+          if (!costOnly) _trackEdit(product.id);
         }
       } else if (costOnly) {
         // Sin vincular en "Actualizar" — nunca crea un producto fantasma
@@ -1482,7 +1485,7 @@ async function riaApplyChanges() {
           product.cost = payload.cost;
           results.updated.push({ name: product.name, diff: diffText });
           undoUpdated.push({ productId: product.id, deltaQty: costOnly ? 0 : 1, before: beforeSnapshot });
-          _trackEdit(product.id);
+          if (!costOnly) _trackEdit(product.id);
         }
       } else if (costOnly) {
         // Igual que un renglón normal sin vincular en "Actualizar": nunca

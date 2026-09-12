@@ -767,7 +767,6 @@ async function saveProduct() {
   }
 
   if (idVal) {
-    _trackEdit(parseInt(idVal));
     const _changes = [];
     if (_prev) {
       if (_prev.name !== data.name) _changes.push(`Nombre: "${_prev.name}" → "${data.name}"`);
@@ -780,6 +779,10 @@ async function saveProduct() {
       if (_prev.barcode !== data.barcode) _changes.push('Código de barras');
       if (_prev.description !== data.description) _changes.push('Descripción');
       if (_prev.image !== data.image) _changes.push('Imagen');
+      // "Recién preparados" en Caja solo debe reaccionar a precio/stock -- no
+      // a cualquier edición (una foto o descripción nueva no significa que
+      // el producto esté listo para venderse ya).
+      if (_prev.price !== data.price || _prev.stock !== data.stock) _trackEdit(parseInt(idVal));
     }
     const summary = _changes.length ? `Editó "${name}" — ${_changes.join(', ')}` : `Editó "${name}"`;
     logActivity('producto_editado', summary, { id: parseInt(idVal), name, price, changes: _changes });
