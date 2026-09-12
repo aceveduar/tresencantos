@@ -11,7 +11,6 @@ const PROD_PLACEHOLDER = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fww
 let products = [];
 let publicCategories = [];
 let waFloatEnabled = true;
-let _salesCounts = {}; // { productId: qtySold } — cargado desde config
 let revistaUrl = "";
 let revistaCover = "";
 let currentFilter = 'all';
@@ -361,14 +360,11 @@ function updateRevistaBanner() {
 
 async function loadCategories() {
   try {
-    const result = await supabaseApi('config?id=in.(categories,wa_float,sales_counts)&select=id,value');
+    const result = await supabaseApi('config?id=in.(categories,wa_float)&select=id,value');
     if (result.ok && result.data) {
       result.data.forEach(row => {
         if (row.id === 'categories' && row.value) publicCategories = JSON.parse(row.value);
         if (row.id === 'wa_float') waFloatEnabled = row.value !== 'false';
-        if (row.id === 'sales_counts' && row.value) {
-          try { _salesCounts = JSON.parse(row.value); } catch {}
-        }
       });
     }
   } catch {}
@@ -451,7 +447,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateRevistaBanner();
   renderHeroVisual();
   renderHeroMobileStrip();
-  initAutoScroll();
   initFilters();
   initNav();
   initReveal();
@@ -509,12 +504,11 @@ function render() {
     case 'price-asc':  list = [...list].sort((a, b) => a.price - b.price); break;
     case 'price-desc': list = [...list].sort((a, b) => b.price - a.price); break;
     case 'name':       list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'es')); break;
-    case 'popular':    list = [...list].sort((a, b) => (_salesCounts[b.id] || 0) - (_salesCounts[a.id] || 0)); break;
   }
 
   if (!list.length) {
     const msg = searchQuery
-      ? `No encontramos "${searchQuery}". <a href="https://wa.me/${WA}?text=${encodeURIComponent(`¡Hola! Busco: ${searchQuery}`)}" target="_blank" rel="noopener" style="color:var(--gold)">Pregunta por WhatsApp →</a>`
+      ? `No encontramos "${_esc(searchQuery)}". <a href="https://wa.me/${WA}?text=${encodeURIComponent(`¡Hola! Busco: ${searchQuery}`)}" target="_blank" rel="noopener" style="color:var(--gold)">Pregunta por WhatsApp →</a>`
       : 'No hay productos aquí todavía.<br>¡Escríbenos y te decimos qué tenemos!';
     const emIconSvg = searchQuery
       ? '<svg width="42" height="42" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
@@ -638,12 +632,8 @@ function renderHeroMobileStrip() {
     <div class="hms-price">$${p.price.toLocaleString('es-MX')}</div>
   </div>
 </div>`;
-  // Renderizar una sola copia; initAutoScroll duplica solo si el contenido desborda
   container.innerHTML = `<div class="hms-inner">${items.map(cardHTML).join('')}</div>`;
 }
-
-/* Auto-scroll eliminado — scroll manual con momentum nativo */
-function initAutoScroll() { /* no-op */ }
 
 /* ── HERO VISUAL ── */
 function renderHeroVisual() {
@@ -665,11 +655,6 @@ function renderHeroVisual() {
 let _ncTimer = null;
 let _ncPage  = 0;
 
-const _ncCatLabel = code => ({
-  natura_perfumes:'Perfumería', natura_cuerpo:'Cuerpo', natura_facial:'Facial',
-  natura_cabello:'Cabello', natura_maquillaje:'Maquillaje'
-})[code] || 'Natura';
-
 function renderNatura() {
   const wrap = document.getElementById('nc-wrap');
   if (!wrap) return;
@@ -687,7 +672,7 @@ function renderNatura() {
     <div class="nc-overlay"><span>Ver producto →</span></div>
   </div>
   <div class="nc-info">
-    <div class="nc-cat">${_ncCatLabel(p.category)}</div>
+    <div class="nc-cat">${_esc(p.categoryLabel)}</div>
     <div class="nc-name">${_esc(p.name)}</div>
     <div class="nc-price">$${p.price.toLocaleString('es-MX')}</div>
   </div>
@@ -1111,7 +1096,7 @@ function openModal(id) {
           const comp = products.find(x => x.id === item.id);
           const img  = comp?.image || item.image;
           return `<div class="modal-kit-item">
-            ${img ? `<img src="${img}" alt="${_esc(item.name)}" onerror="this.style.display='none'">` : ''}
+            ${img ? `<img src="${_driveSz(img, 80)}" alt="${_esc(item.name)}" onerror="this.style.display='none'">` : ''}
             <span>${_esc(item.name)}</span>
             ${item.qty > 1 ? `<span class="modal-kit-qty">×${item.qty}</span>` : ''}
           </div>`;
