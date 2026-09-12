@@ -2132,9 +2132,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const _meta = _s?.user?.user_metadata || {};
     const _name = _meta.full_name || _meta.name || _s?.user?.email?.split('@')[0] || '';
     const _av = document.getElementById('user-avatar');
-    const _nl = document.getElementById('user-name-label');
     if (_av) _av.textContent = _name ? _name[0].toUpperCase() : '?';
-    if (_nl) _nl.textContent = _name;
     const ga = document.getElementById('ga4-link-card');
     if (ga) ga.style.display = _meta.role === 'superadmin'
       && String(_s?.user?.email || '').toLowerCase() === 'eacevedo@sunname.com.mx' ? '' : 'none';

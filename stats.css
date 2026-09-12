@@ -23,7 +23,6 @@ button,select{font-family:inherit}
 .topbar-title{font-family:'Playfair Display',serif;font-size:1rem;color:rgba(255,255,255,.9)}
 .topbar-right{display:flex;gap:10px;align-items:center}
 .user-avatar{width:28px;height:28px;border-radius:50%;background:rgba(201,164,98,.25);color:var(--gold);font-size:.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1.5px solid rgba(201,164,98,.45);user-select:none}
-.user-name-label{font-size:.75rem;color:rgba(255,255,255,.65);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ── MAIN ── */
 main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
@@ -204,7 +203,6 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .dv-icon{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .dv-sale-names{flex:1;min-width:0;font-size:.78rem;color:var(--charcoal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dv-sale-total{font-family:'Playfair Display',serif;font-weight:700;font-size:.92rem;color:var(--green);white-space:nowrap;display:flex;align-items:baseline;gap:3px}
-.dv-total-of{font-size:.7rem;font-weight:500;color:var(--muted);font-family:inherit}
 .dv-pay-efec{color:#2D6A4F}
 .dv-pay-trans{color:#1565C0}
 .dv-sale-arrow{font-size:.7rem;color:var(--muted);transition:transform .2s;flex-shrink:0}
@@ -236,7 +234,6 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   .topbar-title{
     font-style:italic;font-size:1rem;white-space:nowrap;
   }
-  .user-name-label{display:none}
   .user-avatar{width:24px;height:24px;font-size:.68rem}
 
   /* Nav período en mobile */

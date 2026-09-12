@@ -570,9 +570,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const _name = _meta.full_name || _meta.name || _s?.user?.email?.split('@')[0] || '';
     const _initial = _name ? _name[0].toUpperCase() : '?';
     const _av = document.getElementById('user-avatar');
-    const _nl = document.getElementById('user-name-label');
     if (_av) _av.textContent = _initial;
-    if (_nl) _nl.textContent = _name;
   } catch {}
   initDivider();
   await Promise.all([loadProducts(), loadPosCategories(), loadTopProductsFromSales(), loadPosNameMap(), loadPosConfig(), loadPosRecentlyEdited()]);

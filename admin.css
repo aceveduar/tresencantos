@@ -51,7 +51,6 @@
    claro ni un tono de donde ya estaba. */
 :root[data-theme="dark"] .checkbox-row input[type=checkbox]{background:#4A4038}
 :root[data-theme="dark"] .ria-item-field.ria-cost input{border-color:var(--tint-amber-border)}
-:root[data-theme="dark"] .cat-sheet-item.warn{color:var(--tint-amber-strong)}
 /* Chips de stock/publicado (tarjeta de Inventario) -- a propósito se habían
    dejado con su tinte claro literal como "acento aceptable" al hacer el
    modo oscuro, pero terminaban destacando de más sobre una tarjeta ya
@@ -116,9 +115,6 @@ button,a,[onclick]{touch-action:manipulation}
 .btn-outline:hover{border-color:var(--gold);color:var(--gold-dark);background:var(--gold-light)}
 .btn-red{background:var(--red);color:#fff;box-shadow:0 2px 8px rgba(232,93,93,.3)}
 .btn-red:hover{background:#c84444;transform:translateY(-1px)}
-.btn-green{background:var(--green);color:#fff}
-.btn-green:hover{background:#1B4332}
-.user-display{display:flex;align-items:center;gap:7px;flex-shrink:0}
 .user-avatar{width:28px;height:28px;border-radius:50%;background:rgba(201,164,98,.25);color:var(--gold);font-size:.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1.5px solid rgba(201,164,98,.45);letter-spacing:0;user-select:none}
 .user-name{font-size:.75rem;color:rgba(255,255,255,.65);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
@@ -168,14 +164,6 @@ main{max-width:1080px;margin:0 auto;padding:28px 32px}
 .cat-sheet-title{font-size:.9rem;font-weight:700;color:var(--charcoal)}
 .cat-sheet-close{width:28px;height:28px;border-radius:50%;border:none;background:var(--cream);color:var(--charcoal);font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .cat-sheet-list{overflow-y:auto;flex:1;padding:6px 0 20px;-webkit-overflow-scrolling:touch}
-.cat-sheet-group-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:12px 18px 4px;display:block}
-.cat-sheet-item{display:flex;align-items:center;justify-content:space-between;padding:11px 18px;font-size:.88rem;font-weight:500;color:var(--charcoal);cursor:pointer;transition:background .12s;border:none;background:none;width:100%;text-align:left;font-family:inherit}
-.cat-sheet-item:active{background:var(--cream)}
-.cat-sheet-item.active{color:var(--gold-dark);font-weight:700;background:var(--gold-light)}
-.cat-sheet-item.sub{padding-left:30px;font-size:.84rem;color:var(--charcoal-soft)}
-.cat-sheet-item.sub.active{color:var(--gold-dark)}
-.cat-sheet-check{font-size:.85rem;opacity:0}
-.cat-sheet-item.active .cat-sheet-check{opacity:1}
 /* Botón de filtro categoría en mobile */
 #cat-filter-btn,#sort-filter-btn{display:flex;align-items:center;gap:6px;padding:10px 14px 10px 16px;border:1.5px solid var(--border);border-radius:50px;background:var(--surface-soft);font-size:.84rem;font-weight:400;color:var(--charcoal);cursor:pointer;font-family:inherit;white-space:nowrap;transition:.2s;min-width:0;flex:1}
 #cat-filter-btn:hover,#sort-filter-btn:hover{border-color:#ccc}
@@ -371,11 +359,6 @@ td,th{overflow:hidden}
 .flag-note-line{font-size:.68rem;color:#c62828;margin-top:2px;line-height:1.3;
   display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;
   font-style:italic;opacity:.85}
-/* Cat sheet — sección por revisar */
-.cat-sheet-warn-section{background:var(--tint-amber-bg);border-bottom:1px solid var(--tint-amber-border);margin-bottom:4px}
-.cat-sheet-warn-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--tint-amber-strong);padding:10px 18px 4px;display:block}
-.cat-sheet-item.warn{color:#92400E;background:var(--tint-amber-bg)}
-.cat-sheet-item.warn:active,.cat-sheet-item.warn.active{background:#FEF3C7;color:#78350F}
 /* QV — zona de flag */
 .qv-flag-active{
   background:var(--tint-red-bg);border:1px solid var(--tint-red-border);
@@ -384,7 +367,6 @@ td,th{overflow:hidden}
 .qv-flag-title{font-size:.73rem;font-weight:700;color:var(--tint-red-strong)}
 .qv-flag-note-text{font-size:.82rem;color:var(--tint-red-text);margin-top:5px;font-style:italic;line-height:1.5}
 .qv-flag-ts{font-size:.65rem;color:var(--muted);margin-top:4px;display:block}
-.qv-flag-form{background:var(--surface-soft);border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin:12px 0 2px}
 
 /* QV — banner prioritario del problema, solo visible navegando desde el
    filtro "Por revisar" (_showOnlyFlagged). El motivo por el que se abrió
@@ -407,17 +389,12 @@ td,th{overflow:hidden}
   70%{box-shadow:0 0 0 10px rgba(185,28,28,0)}
   100%{transform:scale(1);box-shadow:0 0 0 0 rgba(185,28,28,0)}
 }
-.qv-flag-form label{font-size:.72rem;font-weight:600;color:var(--charcoal);display:block;margin-bottom:6px}
 .qv-flag-textarea{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:.85rem;font-family:inherit;resize:none;outline:none;transition:border-color .15s;background:var(--surface);line-height:1.5}
 .qv-flag-textarea:focus{border-color:var(--red)}
-.qv-flag-btns{display:flex;gap:7px;margin-top:8px}
 .qv-btn-flag{background:#fff3f3;color:#c62828;border:1.5px solid rgba(232,93,93,.3)}
 .qv-btn-flag:hover{background:#E85D5D;color:#fff}
 .qv-btn-flagdone{background:#e8f5e9;color:#2D6A4F;border:1.5px solid rgba(45,106,79,.3)}
 .qv-btn-flagdone:hover{background:#2D6A4F;color:#fff}
-/* Chip de filtro "Revisar" en toolbar */
-.filter-btn-flag{border-color:rgba(232,93,93,.4);color:#c62828;background:#fff3f3}
-.filter-btn-flag.active{background:#E85D5D;color:#fff;border-color:#E85D5D}
 .ac-star{
   position:absolute;bottom:8px;right:10px;
   background:transparent;color:#fff;
@@ -467,7 +444,6 @@ tr:hover .drag-handle{opacity:1}
 
 .prod-meta{font-size:.72rem;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:5px;min-width:0}
 .prod-meta-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:1;min-width:0}
-.badge-xs{font-size:.61rem!important;padding:2px 6px!important;flex-shrink:0}
 .state-cell{display:flex;align-items:center;gap:6px}
 .price-cell{font-weight:700;font-family:'Playfair Display',serif;font-size:1rem;color:var(--charcoal)}
 
@@ -481,7 +457,6 @@ tr:hover .drag-handle{opacity:1}
 .toggle-featured{background:none;border:none;font-size:.9rem;cursor:pointer;padding:3px;border-radius:6px;transition:.15s;line-height:1;flex-shrink:0;color:#C9BCAA}
 .toggle-featured:hover{background:var(--surface-soft);transform:scale(1.15);color:var(--gold-dark)}
 .toggle-featured.feat-active{color:var(--gold-dark)}
-.empty-row td{text-align:center;padding:64px;color:var(--muted)}
 
 /* ══ DUPLICADOS ════════════════════════════════════════════════════════ */
 /* Modal de revisión */
@@ -746,9 +721,6 @@ tr.drop-below{box-shadow:0 3px 0 var(--gold);background:var(--gold-light)}
 .admin-card.card-drop-after{box-shadow:0 3px 0 var(--gold),var(--shadow-sm);background:var(--gold-light)}
 .drag-handle:hover{color:var(--gold)}
 
-/* Out of stock */
-.badge-oos{background:#9B8B78}
-
 /* Strikethrough price */
 .orig-price-cell{font-size:.73rem;color:var(--muted-light);text-decoration:line-through;display:block;margin-bottom:2px}
 
@@ -932,7 +904,6 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 
 /* ══ SCANNER ════════════════════════════════════════════════════════════ */
 .scanner-wrap{position:relative;background:#111;border-radius:var(--r);overflow:hidden;min-height:260px;display:flex;align-items:center;justify-content:center}
-.scanner-hint{color:#fff;font-size:.85rem;opacity:.7;text-align:center;padding:20px}
 #scanner-reader{width:100%}
 #scanner-reader video,#scanner-reader canvas{width:100%!important;max-width:100%!important;height:auto!important;border-radius:var(--r)}
 
@@ -1015,7 +986,6 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   -webkit-tap-highlight-color:transparent;
 }
 .fab-add:active{transform:scale(.88);box-shadow:0 3px 12px rgba(201,164,98,.4)}
-.fab-add.fab-hidden{opacity:0;pointer-events:none;transform:scale(.7)}
 /* Chip de producto por caducar / caducado */
 .exp-chip{display:inline-flex;align-items:center;gap:2px;font-size:.68rem;font-weight:700;border-radius:50px;padding:2px 7px;white-space:nowrap;cursor:default}
 .exp-chip-soon{background:#FEF3C7;color:#92400E;border:1.5px solid #FDE68A}
@@ -1080,12 +1050,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .mpc-price{font-size:1.2rem;font-weight:700;font-family:'Playfair Display',serif;line-height:1;color:var(--charcoal)}
   .mpc-price-orig{font-size:.74rem;color:var(--muted-light);text-decoration:line-through;font-family:'Inter',sans-serif}
   .mpc-stock-inline{margin-left:0}
-  .mpc-bar{display:flex;align-items:center;gap:8px;padding:10px 14px 12px;border-top:1px solid var(--border-light);background:linear-gradient(180deg,#FAFAF7 0%,#F5EFE8 100%)}
   .mpc-star{position:absolute;bottom:5px;right:5px;background:transparent;color:#fff;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45));border:none;border-radius:8px;padding:3px 5px;font-size:.8rem;cursor:pointer;line-height:1;transition:.15s;touch-action:manipulation}
   .mpc-star.feat-active{background:#FFF8E7;color:#C9A462;box-shadow:0 1px 5px rgba(0,0,0,.14);filter:none}
-  .mpc-badge-inline{vertical-align:middle;margin-left:2px}
-  .mpc-icon-group{display:flex;gap:6px;margin-left:auto;flex-shrink:0}
-  .mpc-oos-btn{font-size:.72rem!important;flex-shrink:0;min-height:40px;padding:0 12px!important}
 }
 
 /* ══ MOBILE ═════════════════════════════════════════════════════════════
@@ -1104,9 +1070,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .bulk-bar{top:calc(64px + env(safe-area-inset-top))}
 
   /* Targets táctiles mínimos 44px */
-  .btn,.btn-login,.mpc-oos-btn,.mpc-feat-btn{min-height:44px}
-  .mpc-oos-btn{padding:0 14px!important}
-  .mpc-feat-btn{min-height:40px}
+  .btn,.btn-login{min-height:44px}
 
   /* ── TOPBAR ─────────────────────────────────────────────────── */
   .topbar{
@@ -1234,13 +1198,6 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .mpc-price{font-size:1.15rem;font-weight:700;font-family:'Playfair Display',serif;line-height:1;color:var(--charcoal)}
   .mpc-price-orig{font-size:.74rem;color:var(--muted-light);text-decoration:line-through;font-family:'Inter',sans-serif}
   .mpc-stock-inline{margin-left:0}
-  /* Action bar — única franja de acciones */
-  .mpc-bar{
-    display:flex;align-items:center;gap:7px;
-    padding:9px 12px 11px;
-    border-top:1px solid var(--border-light);
-    background:linear-gradient(180deg,#FAFAF7 0%,#F5EFE8 100%);
-  }
   /* ⭐ Estrella — top-right, cancela bottom del breakpoint 1024px */
   .mpc-star{
     position:absolute;top:5px;right:5px;bottom:auto;
@@ -1250,11 +1207,6 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
     touch-action:manipulation;
   }
   .mpc-star.feat-active{background:#FFF8E7;color:#C9A462;box-shadow:0 1px 5px rgba(0,0,0,.14);filter:none}
-  /* Badge del producto junto a la categoría */
-  .mpc-badge-inline{vertical-align:middle;margin-left:2px}
-  /* Grupo de iconos de acción */
-  .mpc-icon-group{display:flex;gap:5px;margin-left:auto;flex-shrink:0}
-  .mpc-oos-btn{font-size:.72rem!important;flex-shrink:0;min-height:38px;padding:0 11px!important}
 
   /* Vista tarjetas en mobile: 2 columnas compactas */
   .admin-cards-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px;padding:8px}
@@ -1372,7 +1324,6 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 
   /* ── Topbar: solo nav de íconos ── */
   .topbar{padding:0 16px;background:var(--ink)}
-  .session-user{display:none}
   .topbar-right .btn-gold{display:none}
   .topbar-nav-mobile{gap:1px}
 }
@@ -1387,7 +1338,6 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 @media(min-width:1025px){
   .topbar{background:var(--ink)}
   .topbar-right .btn-gold{display:none}
-  .session-user{display:none}
   /* Toolbar en desktop: búsqueda arriba, filtros abajo */
   .toolbar{flex-direction:column;gap:8px;padding:14px 18px}
   .tb-search-row{width:100%}
@@ -1612,7 +1562,6 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .ria-match-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:50px;font-size:.78rem;font-weight:600;cursor:pointer;border:1.5px solid transparent;touch-action:manipulation;max-width:100%}
 .ria-match-chip span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .ria-match-linked{background:#ECFDF5;color:#065F46;border-color:#A7F3D0}
-.ria-match-code{background:#EFF6FF;color:#1E40AF;border-color:#BFDBFE}
 .ria-match-newchip{background:#FFF8EE;color:var(--gold-dark);border-color:var(--gold)}
 .ria-match-chip-row{display:flex;align-items:center;gap:8px}
 .ria-match-chip-row .ria-match-chip{flex:1;min-width:0}
