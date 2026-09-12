@@ -1071,11 +1071,16 @@ function _posSearchDebounce(q) {
 }
 
 function searchProducts(q) {
-  _posPage = 1;
   renderFrecuentes(!!q.trim());
+  // Sin texto de búsqueda (con o sin categoría elegida) = navegar, no buscar
+  // -- usa showAllProducts(), que ya pagina de verdad (50/lote) y ya sabe
+  // mostrar "Sin productos en esta categoría". Antes solo delegaba ahí con
+  // "Todos" seleccionado; con una categoría específica el catálogo se
+  // recortaba a 40 sin aviso, escondiendo el resto sin que nadie lo notara.
+  if (!q.trim()) { showAllProducts(); return; }
+  _posPage = 1;
   const el = document.getElementById('pos-results');
-  const matches = getFilteredProducts(q, !!q.trim()).slice(0, 40);
-  if (!q.trim() && currentCat === 'all') { showAllProducts(); return; }
+  const matches = getFilteredProducts(q, true).slice(0, 40);
   if (!matches.length) {
     el.innerHTML = `<div class="pos-empty"><div class="em"><svg style="width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>Sin resultados</div>`;
     return;
