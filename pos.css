@@ -445,10 +445,6 @@ button,a{touch-action:manipulation}
 .sd-change strong{color:var(--green);font-size:1.15rem}
 .sale-done-modal .btn-green{margin-top:18px;border-radius:12px;font-size:.95rem;padding:13px}
 
-/* CATEGORY HEADERS in product list */
-.cat-header{font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--gold-dark);padding:6px 10px;margin:6px 0 2px;background:var(--cream);border-radius:6px;border-left:3px solid var(--gold)}
-.cat-header:first-child{margin-top:0}
-
 /* VIEW TOGGLE POS */
 .pos-view-toggle{display:flex;gap:2px;background:var(--cream);border-radius:8px;padding:2px;flex-shrink:0}
 .pos-vbtn{width:30px;height:30px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:.15s;color:var(--muted)}
