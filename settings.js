@@ -269,93 +269,81 @@ async function testDriveEndpoint() {
   btn.textContent = 'Probar conexión'; btn.disabled = false;
 }
 
+// Vía RPC (no POST directo a la tabla config): valida el permiso correcto
+// según qué llave se está tocando (canManageCatalogSettings/canImportExport/
+// canManageSettings), antes de escribir. Necesario porque config_insert/
+// config_update en RLS solo aceptan superadmin -- alguien con acceso parcial
+// (ej. Areli, canManageCatalogSettings) no pasaría un POST directo a la tabla.
+async function _saveConfigValue(id, value) {
+  return api('rpc/te_save_config_value', {
+    method: 'POST',
+    body: JSON.stringify({ p_id: id, p_value: value })
+  });
+}
+
 /* ── WA FLOAT ── */
 async function toggleCapturaRapida(enabled) {
-  const r = await api('config', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: 'captura_rapida', value: String(enabled) })
-  });
+  const r = await _saveConfigValue('captura_rapida', String(enabled));
   if (r.ok) {
     logActivity('configuracion_editada', `${enabled ? 'Activó' : 'Desactivó'} Captura rápida`, { setting: 'captura_rapida', value: enabled });
     toast(enabled ? '📸 Captura rápida activada' : '📸 Captura rápida desactivada', 'ok');
   } else {
-    toast('Error al guardar', 'err');
+    toast(r.data?.message || 'Error al guardar', 'err');
     document.getElementById('captura-rapida-toggle').checked = !enabled;
   }
 }
 
 async function toggleShowCreator(enabled) {
-  const r = await api('config', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: 'show_creator', value: String(enabled) })
-  });
+  const r = await _saveConfigValue('show_creator', String(enabled));
   if (r.ok) {
     logActivity('configuracion_editada', `${enabled ? 'Activó' : 'Desactivó'} Ver creador`, { setting: 'show_creator', value: enabled });
     toast(enabled ? '👤 Ver creador activado' : '👤 Ver creador desactivado', 'ok');
   } else {
-    toast('Error al guardar', 'err');
+    toast(r.data?.message || 'Error al guardar', 'err');
     document.getElementById('show-creator-toggle').checked = !enabled;
   }
 }
 
 async function toggleShowRecv(enabled) {
-  const r = await api('config', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: 'show_recv', value: String(enabled) })
-  });
+  const r = await _saveConfigValue('show_recv', String(enabled));
   if (r.ok) {
     logActivity('configuracion_editada', `${enabled ? 'Activó' : 'Desactivó'} Recibir mercancía`, { setting: 'show_recv', value: enabled });
     toast(enabled ? '🚚 Recibir mercancía activado en Inventario' : '🚚 Recibir mercancía desactivado', 'ok');
   } else {
-    toast('Error al guardar', 'err');
+    toast(r.data?.message || 'Error al guardar', 'err');
     document.getElementById('show-recv-toggle').checked = !enabled;
   }
 }
 
 async function toggleShowRecvIa(enabled) {
-  const r = await api('config', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: 'show_recv_ia', value: String(enabled) })
-  });
+  const r = await _saveConfigValue('show_recv_ia', String(enabled));
   if (r.ok) {
     logActivity('configuracion_editada', `${enabled ? 'Activó' : 'Desactivó'} Recepción con IA`, { setting: 'show_recv_ia', value: enabled });
     toast(enabled ? '📄 Recepción con IA activada en Inventario' : '📄 Recepción con IA desactivada', 'ok');
   } else {
-    toast('Error al guardar', 'err');
+    toast(r.data?.message || 'Error al guardar', 'err');
     document.getElementById('show-recv-ia-toggle').checked = !enabled;
   }
 }
 
 async function toggleShowRestock(enabled) {
-  const r = await api('config', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: 'show_restock', value: String(enabled) })
-  });
+  const r = await _saveConfigValue('show_restock', String(enabled));
   if (r.ok) {
     logActivity('configuracion_editada', `${enabled ? 'Activó' : 'Desactivó'} Reabastecimiento en Caja`, { setting: 'show_restock', value: enabled });
     toast(enabled ? '📦 Reabastecimiento activado en Caja' : '📦 Reabastecimiento desactivado en Caja', 'ok');
   } else {
-    toast('Error al guardar', 'err');
+    toast(r.data?.message || 'Error al guardar', 'err');
     document.getElementById('show-restock-toggle').checked = !enabled;
   }
 }
 
 async function toggleWaFloat(enabled) {
-  const r = await api('config', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: 'wa_float', value: String(enabled) })
-  });
+  const r = await _saveConfigValue('wa_float', String(enabled));
   if (r.ok) {
     logActivity('configuracion_editada', `${enabled ? 'Activó' : 'Desactivó'} el botón WhatsApp flotante en Tienda`, { setting: 'wa_float', value: enabled });
     toast(enabled ? '💬 Botón WhatsApp activado en Tienda' : '💬 Botón WhatsApp desactivado', 'ok');
   } else {
-    toast('Error al guardar', 'err');
+    toast(r.data?.message || 'Error al guardar', 'err');
     document.getElementById('wa-float-toggle').checked = !enabled;
   }
 }
@@ -371,16 +359,12 @@ function rootCats()    { return categories.filter(c => !c.parent); }
 function subCats(code) { return categories.filter(c => c.parent === code); }
 
 async function _saveCats() {
-  const r = await api('config', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: 'categories', value: JSON.stringify(categories) })
-  });
+  const r = await _saveConfigValue('categories', JSON.stringify(categories));
   // Ninguno de los llamadores revisaba r.ok -- si el guardado fallaba (RLS,
   // red), la UI mutaba el estado local y mostraba un toast verde de éxito
   // igual; el cambio se revertía solo al recargar, sin que nadie se enterara
   // de que nunca se guardó de verdad.
-  if (!r.ok) toast('Error al guardar — el cambio no se guardó, recarga para verificar', 'err');
+  if (!r.ok) toast(r.data?.message || 'Error al guardar — el cambio no se guardó, recarga para verificar', 'err');
   return r;
 }
 
@@ -851,19 +835,11 @@ async function saveRevista() {
     }
   }
 
-  const r = await api('config', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates' },
-    body: JSON.stringify({ id: 'revista_url', value: finalUrl })
-  });
-  if (!r.ok) { toast('Error al guardar el enlace', 'err'); return; }
+  const r = await _saveConfigValue('revista_url', finalUrl);
+  if (!r.ok) { toast(r.data?.message || 'Error al guardar el enlace', 'err'); return; }
 
   const coverVal = document.getElementById('revista-cover-input').value.trim();
-  await api('config', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates' },
-    body: JSON.stringify({ id: 'revista_cover', value: coverVal })
-  });
+  await _saveConfigValue('revista_cover', coverVal);
 
   closeRevista();
   logActivity('configuracion_editada', 'Actualizó la Revista Digital Natura', { setting: 'revista_url' });
@@ -1345,13 +1321,9 @@ async function _upSaveName(inp, email) {
   if (newName === oldName) return;
   nameMap[email] = newName;
   inp.dataset.orig = newName;
-  const r = await api('config', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: 'user_names', value: JSON.stringify(nameMap) })
-  });
+  const r = await _saveConfigValue('user_names', JSON.stringify(nameMap));
   if (r.ok) toast('Nombre actualizado ✓', 'ok');
-  else { toast('Error al guardar el nombre', 'err'); nameMap[email] = oldName; inp.value = oldName; inp.dataset.orig = oldName; }
+  else { toast(r.data?.message || 'Error al guardar el nombre', 'err'); nameMap[email] = oldName; inp.value = oldName; inp.dataset.orig = oldName; }
 }
 
 function _upRemoveUser(email) {
@@ -1362,11 +1334,7 @@ function _upRemoveUser(email) {
   delete nameMap[email];
   renderUsersPerms();
   _upSavePerms();
-  api('config', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: 'user_names', value: JSON.stringify(nameMap) })
-  });
+  _saveConfigValue('user_names', JSON.stringify(nameMap));
 }
 
 function _upResetPerms(email) {
