@@ -985,6 +985,9 @@ CACHE_VERSION v502→v503.
 - Verificado que el resto de `shared.css` (`#ud-pop`, `#notif-pop`, `.notif-item`, `#offline-banner`) ya usaba tokens o son banners de alerta a pantalla completa que correctamente se quedan fijos (mismo criterio que toasts/topbar).
 CACHE_VERSION v503→v504.
 
+**Badge de conteo en "Apartados" (topbar y tab bar mobile) — eliminado (2026-09-12)** — Eduardo, viendo el badge "65" sobre el ícono de Apartados, señaló que casi siempre hay apartados activos, así que un número que rara vez baja no ayuda a decidir nada. Verificado en código (`loadApartados()`, `pos-apartados.js`): el badge mostraba `rows.length` (total de apartados **activos**, no solo vencidos) tanto en el tab mobile (`#tab-apt-badge`) como en el botón de topbar tablet/desktop (`#btn-apt-badge`) — solo cambiaba a rojo cuando había vencidos, pero el número en sí nunca comunicaba una acción. La señal que sí importa (hay vencidos) ya vive por separado y sin este badge: el banner descartable `.apt-venc-banner` en mobile y el chip explícito "`X` vencidos" (`#apt-vencidos-alert`) en tablet/desktop — ambos solo aparecen cuando `vencidos > 0`, a diferencia del badge que aparecía siempre. Eliminados por completo (no solo ocultos): los 2 `<span>` en `pos.html`, la regla `#btn-apt-badge` en `pos.css`, y el bloque que los poblaba en `loadApartados()` (`pos-apartados.js`) — `tab-cart-badge` (conteo del carrito, sí accionable) no se tocó.
+CACHE_VERSION v504→v505.
+
 ---
 
 ## Reportes (`stats.html`)

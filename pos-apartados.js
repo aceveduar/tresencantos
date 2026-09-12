@@ -519,8 +519,6 @@ async function loadApartados() {
   if (loadGeneration !== _apartadosLoadGeneration) return false;
   const ocList    = document.getElementById('apt-offcanvas-list');
   const ocCount   = document.getElementById('apt-oc-count');
-  const tabBadge  = document.getElementById('tab-apt-badge');
-  const btnBadge  = document.getElementById('btn-apt-badge');
   const failed = !result.ok;
   const rows = !failed && Array.isArray(result.data) ? result.data : [];
   if (!failed) await _hydrateApartadoPayments(rows);
@@ -539,24 +537,6 @@ async function loadApartados() {
     if (!s.due_date) return false;
     return s.due_date < todayKey;
   }).length;
-
-  // Badge del tab mobile — rojo si hay vencidos
-  if (tabBadge) {
-    tabBadge.textContent = empty ? '' : rows.length;
-    tabBadge.style.display = empty ? 'none' : 'flex';
-    tabBadge.style.background = vencidos > 0 ? 'var(--red)' : '';
-  }
-
-  // Badge del botón en topbar
-  if (btnBadge) {
-    if (empty) {
-      btnBadge.style.display = 'none';
-    } else {
-      btnBadge.textContent = rows.length;
-      btnBadge.style.display = 'flex';
-      btnBadge.style.background = vencidos > 0 ? 'var(--red)' : 'var(--gold)';
-    }
-  }
 
   // Alerta en topbar — solo si hay vencidos
   const alertBtn = document.getElementById('apt-vencidos-alert');
