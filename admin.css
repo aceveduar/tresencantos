@@ -319,9 +319,17 @@ td,th{overflow:hidden}
 .admin-card:hover{transform:translateY(-4px);box-shadow:var(--shadow);border-color:var(--gold)}
 .admin-card.card-selected{border-color:var(--gold);background:var(--gold-light);box-shadow:0 0 0 3px rgba(201,164,98,.15)}
 .admin-card.card-oos .ac-img{opacity:.45;filter:grayscale(.6)}
-/* Imagen */
-.ac-img-wrap{position:relative;overflow:hidden;aspect-ratio:1}
-.ac-img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s ease}
+/* Imagen — object-fit:contain (no cover): el catálogo mezcla fotos cuadradas
+   y rectangulares sin estandarizar (algunas traen además una franja de texto
+   del proveedor pegada al producto) -- con "cover" cada tarjeta recortaba
+   distinto según la proporción real de su foto, viéndose desordenado en el
+   grid. "contain" muestra la foto completa siempre, centrada, sin recortar
+   nada -- mismo criterio que ya usa el modal de la Tienda y el Quick View.
+   Fondo blanco fijo (no var(--surface), independiente del tema) porque casi
+   todas las fotos de producto ya vienen sobre fondo blanco/gris claro -- un
+   marco oscuro alrededor en modo oscuro se vería peor que uno blanco. */
+.ac-img-wrap{position:relative;overflow:hidden;aspect-ratio:1;background:#fff}
+.ac-img{width:100%;height:100%;object-fit:contain;display:block;transition:transform .35s ease}
 .admin-card:hover .ac-img{transform:scale(1.04)}
 /* Círculo de selección — estilo Snapseed */
 .ac-check{
@@ -1058,7 +1066,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .mpc-top:active{background:rgba(201,164,98,.04)}
   .mpc-top{display:flex;gap:12px;padding:12px 14px 10px;align-items:flex-start}
   .mpc-img-wrap{position:relative;flex-shrink:0}
-  .mpc-img{width:72px;height:72px;object-fit:cover;border-radius:11px;border:1px solid var(--border-light);display:block;background:var(--surface-soft)}
+  .mpc-img{width:72px;height:72px;object-fit:contain;border-radius:11px;border:1px solid var(--border-light);display:block;background:#fff}
   .mpc-check-over{-webkit-appearance:none;appearance:none;position:absolute;top:4px;left:4px;width:22px;height:22px;border:2.5px solid rgba(255,255,255,.9);border-radius:50%;background:rgba(0,0,0,.28) center/60% no-repeat;box-shadow:0 1px 5px rgba(0,0,0,.3);cursor:pointer;opacity:0;transition:opacity .15s,background .12s,transform .1s}
   .selection-active .mpc-check-over{opacity:1}
   .mpc-check-over:checked{background:var(--gold) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 8'%3E%3Cpath d='M1 4l3 3 5-6' stroke='white' stroke-width='2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E") center/58% no-repeat;border-color:var(--gold);transform:scale(1.1)}
@@ -1190,7 +1198,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .mpc-top{display:flex;gap:10px;padding:10px 12px 8px;align-items:flex-start}
   /* Imagen con checkbox overlay */
   .mpc-img-wrap{position:relative;flex-shrink:0;width:76px;height:76px}
-  .mpc-img{width:76px;height:76px;object-fit:cover;border-radius:12px;border:1px solid var(--border-light);display:block;background:var(--surface-soft);}
+  .mpc-img{width:76px;height:76px;object-fit:contain;border-radius:12px;border:1px solid var(--border-light);display:block;background:#fff;}
   .mpc-check-over{
     -webkit-appearance:none;appearance:none;
     position:absolute;top:4px;left:4px;
