@@ -1148,11 +1148,12 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .tb-actions-wrap{display:none}
   /* Filtros: ocultar creador en mobile, liberar espacio */
   .tb-filter-row #creator-filter-wrap{display:none!important}
-  .tb-filter-row #cat-filter-btn{flex:1;max-width:none;font-size:.98rem}
-  .tb-filter-row #sort-filter-btn{flex:1;max-width:none;font-size:.80rem}
+  /* Antes: .98rem en categoría vs .80rem en orden -- misma clase de pill,
+     tamaño de letra inconsistente sin ninguna razón. Unificado. */
+  .tb-filter-row #cat-filter-btn{flex:1;max-width:none;font-size:.88rem}
+  .tb-filter-row #sort-filter-btn{flex:1;max-width:none;font-size:.88rem}
   /* View toggle: alinear al final de la fila de orden */
   .view-toggle{flex-shrink:0}
-  .view-btn{width:34px;height:34px;border-radius:7px}
 
   /* Bulk bar — 2 filas: ✕/contador arriba, acciones abajo en todo el ancho */
   .bulk-bar{top:64px;padding:8px 12px;border-radius:var(--r);flex-wrap:wrap;row-gap:8px}
@@ -1273,7 +1274,10 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   #vbtn-list::after{content:none}
   #vbtn-cards::after{content:none}
   .view-toggle{border-radius:10px}
-  .view-btn{width:36px;height:36px;font-size:1.05rem;padding:0}
+  /* 44px real (no hit-slop) -- los dos botones están a solo 2px de
+     distancia, agrandar solo el área de toque los haría traslaparse. Hay
+     espacio de sobra en esta fila desde que se quitó la fila de píldoras. */
+  .view-btn{width:44px;height:44px;font-size:1.15rem;padding:0}
 
   /* Formulario → bottom sheet */
   .overlay{align-items:flex-end;padding:0}
