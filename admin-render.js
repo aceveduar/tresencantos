@@ -629,10 +629,23 @@ async function editPriceInlineAdmin(e, id) {
 function publishedToggle(p) {
   // El chip de stock ya explica "Agotado" cuando aplica — aquí solo se
   // refleja el campo real is_published (Web/Oculto), sin repetir el estado.
+  //
+  // Sin can.publishProduct (operador): antes esto seguía siendo un <button>
+  // tappable en las 3 vistas (grid/lista/tabla) que solo servía para que
+  // togglePublished() lo rechazara con un toast de error -- un control que
+  // aparenta ser accionable sin serlo para ese rol. _applyRoleUI() ya oculta
+  // el equivalente en la barra bulk y en el checkbox del formulario, pero
+  // nunca tocaba este botón por-tarjeta. Corregido: sin el permiso se
+  // renderiza como <span> de solo lectura (mismo color/ícono para no perder
+  // la información de estado, sin cursor de mano ni respuesta al tap).
   if (p.isPublished === false) {
-    return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-hidden" title="Tap para publicar en sitio web">${AR_ICO_EYEOFF(13)}<span class="pub-toggle-lbl">Oculto</span></button>`;
+    return can.publishProduct
+      ? `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-hidden" title="Tap para publicar en sitio web">${AR_ICO_EYEOFF(13)}<span class="pub-toggle-lbl">Oculto</span></button>`
+      : `<span class="pub-toggle pub-hidden" style="cursor:default;pointer-events:none" title="Oculto del sitio web">${AR_ICO_EYEOFF(13)}<span class="pub-toggle-lbl">Oculto</span></span>`;
   }
-  return `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-visible" title="Tap para ocultar del sitio web">${AR_ICO_GLOBE(13)}<span class="pub-toggle-lbl">Web</span></button>`;
+  return can.publishProduct
+    ? `<button onclick="togglePublished(${p.id})" ontouchstart="event.stopPropagation()" class="pub-toggle pub-visible" title="Tap para ocultar del sitio web">${AR_ICO_GLOBE(13)}<span class="pub-toggle-lbl">Web</span></button>`
+    : `<span class="pub-toggle pub-visible" style="cursor:default;pointer-events:none" title="Visible en el sitio web">${AR_ICO_GLOBE(13)}<span class="pub-toggle-lbl">Web</span></span>`;
 }
 
 async function togglePublished(id) {
