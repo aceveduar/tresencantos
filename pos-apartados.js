@@ -434,7 +434,7 @@ async function loadApartadosLiquidados() {
   const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,cancelled_at,updated_at,version,items,abonos,discount';
   // Vista acotada a los más recientes, igual que antes de la reescritura —
   // no una consulta paginada sin tope de todo el histórico de la tienda.
-  const result = await api(`sales?origin_type=eq.apartado&status=eq.liquidado&select=${fields}&is_test=eq.false&order=liquidated_at.desc.nullslast,created_at.desc,id.desc&limit=200`);
+  const result = await api(`sales?origin_type=eq.apartado&status=eq.liquidado&select=${fields}&order=liquidated_at.desc.nullslast,created_at.desc,id.desc&limit=200`);
   if (loadGeneration !== _apartadosLiquidatedLoadGeneration) return false;
   if (!result.ok) return null;
   const rows = Array.isArray(result.data) ? result.data : [];
@@ -451,7 +451,7 @@ async function loadApartadosLiquidados() {
 async function loadApartadosCancelados() {
   const loadGeneration = ++_apartadosCanceladosLoadGeneration;
   const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,cancelled_at,updated_at,version,items,abonos,discount';
-  const result = await api(`sales?origin_type=eq.apartado&status=eq.cancelado&select=${fields}&is_test=eq.false&order=cancelled_at.desc.nullslast,created_at.desc,id.desc&limit=200`);
+  const result = await api(`sales?origin_type=eq.apartado&status=eq.cancelado&select=${fields}&order=cancelled_at.desc.nullslast,created_at.desc,id.desc&limit=200`);
   if (loadGeneration !== _apartadosCanceladosLoadGeneration) return false;
   if (!result.ok) return null;
   const rows = Array.isArray(result.data) ? result.data : [];
@@ -515,7 +515,7 @@ function _updateAptOcActivosCount(rowsParam) {
 async function loadApartados() {
   const loadGeneration = ++_apartadosLoadGeneration;
   const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,updated_at,version,items,abonos,discount';
-  const result = await api(`sales?origin_type=eq.apartado&status=eq.activo&select=${fields}&is_test=eq.false&order=created_at.desc,id.desc&limit=100`);
+  const result = await api(`sales?origin_type=eq.apartado&status=eq.activo&select=${fields}&order=created_at.desc,id.desc&limit=100`);
   if (loadGeneration !== _apartadosLoadGeneration) return false;
   const ocList    = document.getElementById('apt-offcanvas-list');
   const ocCount   = document.getElementById('apt-oc-count');
@@ -625,22 +625,6 @@ function dismissAptVencBannerToday() {
 // botones. Sí reutiliza el mismo acordeón .apartado-item de Activos/Liquidados
 // (en vez de un modal aparte) para que tocar una tarjeta se comporte igual en
 // las 3 pestañas del panel mobile.
-// Único camino para tocar sales.is_test -- solo se ofrece desde la ficha de
-// un apartado ya cancelado (openAptDetail, pos-ui.js), y solo a quien puede
-// administrar Configuración. Pide confirmación porque oculta una venta/
-// apartado real de Historial/Reportes/Corte -- sin borrarlo, pero no es un
-// toggle trivial.
-async function markSaleAsTest(id, nombre) {
-  if (!confirm(`¿Marcar "${nombre || 'este apartado'}" como prueba?\n\nDejará de aparecer en Historial, Reportes y Corte de caja (el registro no se borra).`)) return;
-  const r = await _sharedRpc('te_set_sale_test_flag', { p_sale_id: id, p_is_test: true });
-  if (!r.ok || !r.data?.ok) {
-    toast(r.data?.message || 'No se pudo marcar como prueba', 'error');
-    return;
-  }
-  toast('Marcado como prueba ✓', 'success');
-  closeAptDetail();
-  await _refreshPosFinancialState();
-}
 
 function _renderApartadoCanceladosCards(data) {
   const ocList  = document.getElementById('apt-offcanvas-list');

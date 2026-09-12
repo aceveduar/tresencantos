@@ -13,7 +13,6 @@ const _uiIcoPhone    = () => _uiIco('<rect x="5" y="2" width="14" height="20" rx
 const _uiIcoReceipt  = () => _uiIco('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>');
 const _uiIcoWarn     = (px = 13) => _uiIco('<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>', px);
 const _uiIcoZap      = () => `<svg style="width:13px;height:13px;vertical-align:-2px;fill:currentColor;stroke:none" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`;
-const _uiIcoFlask    = (px = 13) => _uiIco('<path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/>', px);
 const _uiIcoSend     = (px = 13) => _uiIco('<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>', px);
 const _uiIcoClock    = (px = 13) => _uiIco('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', px);
 const _uiIcoWA       = () => `<svg width="18" height="18" fill="#fff" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.374 0 0 5.373 0 12c0 2.124.553 4.118 1.522 5.85L.057 23.499l5.772-1.513A11.94 11.94 0 0012 24c6.626 0 12-5.373 12-12S18.626 0 12 0z"/></svg>`;
@@ -721,13 +720,8 @@ function openAptDetail(id) {
     const canceladoFecha = s.cancelled_at
       ? ` · ${_posFormatTimestamp(s.cancelled_at, {day:'numeric',month:'short'})}`
       : '';
-    // canMarkTestData es su propio permiso (no depende de canManageSettings)
-    // -- ver markSaleAsTest (pos-apartados.js).
-    const testBtn = canMarkTestData()
-      ? `<button type="button" class="btn-edit-apt" onclick="markSaleAsTest(${id},'${_esc(nombre).replace(/'/g,"\\'")}')" aria-label="Marcar como prueba" title="Marcar como prueba — se oculta de Historial/Reportes/Corte">${_uiIcoFlask(14)}</button>`
-      : '';
     document.getElementById('adm-footer').innerHTML =
-      `<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--muted)">✕ Cancelado${canceladoFecha}</span>${testBtn}`;
+      `<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--muted)">✕ Cancelado${canceladoFecha}</span>`;
     const modal = document.getElementById('apt-detail-modal');
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');
@@ -838,7 +832,7 @@ let _historyLoadGeneration = 0;
 
 async function loadHistory() {
   const loadGeneration = ++_historyLoadGeneration;
-  const saleFields = 'id,total,created_at,items,payment_method,type,origin_type,status,customer,discount,note,paid_amount,abonos,seller_email,cancelled_at,version,is_test,due_date';
+  const saleFields = 'id,total,created_at,items,payment_method,type,origin_type,status,customer,discount,note,paid_amount,abonos,seller_email,cancelled_at,version,due_date';
   // "Movimientos recientes" es una vista acotada, no el ledger completo —
   // limit=50 evita traer toda la vida de la tienda en cada apertura.
   // Un apartado creado con $0 de anticipo no genera fila en sale_payments
@@ -846,7 +840,7 @@ async function loadHistory() {
   // aparte para no desaparecer de Historial hasta el primer abono.
   const [result, createdResult] = await Promise.all([
     api(`sale_payments?select=id,request_id,request_line,amount,kind,method,paid_at,recorded_at,is_estimated,source,collected_by_email,sale:sales(${saleFields})&order=paid_at.desc.nullslast,recorded_at.desc,id.desc&limit=50`),
-    api(`sales?select=${saleFields}&origin_type=eq.apartado&paid_amount=eq.0&cancelled_at=is.null&is_test=eq.false&order=created_at.desc&limit=20`)
+    api(`sales?select=${saleFields}&origin_type=eq.apartado&paid_amount=eq.0&cancelled_at=is.null&order=created_at.desc&limit=20`)
   ]);
   if (loadGeneration !== _historyLoadGeneration) return false;
   const el = document.getElementById('history-list');
@@ -861,7 +855,7 @@ async function loadHistory() {
   const rawMovements = (result.data || []).map(p => ({
     ...p,
     sale: Array.isArray(p.sale) ? p.sale[0] : p.sale
-  })).filter(p => p.sale && !p.sale.is_test);
+  })).filter(p => p.sale);
   const movements = [];
   const refundGroups = new Map();
   rawMovements.forEach(payment => {
@@ -1003,13 +997,6 @@ async function loadHistory() {
       // movimiento más reciente sea justo un 'payment' — una venta con algún
       // reembolso parcial también debe poder cancelarse.
       const canCancelThis = !s.cancelled_at && newestMovementBySale.get(s.id) === payment.id;
-      // Cualquier movimiento (venta directa o apartado, en cualquier estado)
-      // puede marcarse como prueba desde aquí -- a diferencia de Apartados
-      // Cancelados, Historial es el único lugar que cubre ventas directas y
-      // apartados sin importar su estado actual. Ver markSaleAsTest (pos-apartados.js).
-      const testBtn = canMarkTestData()
-        ? `<button class="hi-del" style="color:var(--muted)" onclick="markSaleAsTest(${s.id},'${_esc((s.customer||'').split(' · 📱 ')[0] || `Venta #${s.id}`).replace(/'/g,"\\'")}')" title="Marcar como prueba" aria-label="Marcar como prueba">${_uiIcoFlask(13)}</button>`
-        : '';
       // Reenviar comprobante de este movimiento puntual -- antes solo se
       // podía enviar en el momento justo después de cobrar (datos en
       // memoria); ahora se reconstruye desde lo ya guardado en la BD, así
@@ -1029,7 +1016,6 @@ async function loadHistory() {
     <div class="hi-head-row2">
       ${timelineBtn}
       ${resendBtn}
-      ${testBtn}
       ${canCancelThis ? `<button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar registro completo" aria-label="Cancelar registro completo">✕</button>` : ''}
     </div>
   </div>

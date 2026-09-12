@@ -684,7 +684,6 @@ const UP_PERMS = [
   {key:'canEditApartado',   label:'Editar apartados',    group:'Caja', desc:'Modificar, cancelar o reembolsar un apartado existente'},
   {key:'canOverridePrice',  label:'Modificar precio al cobrar', group:'Caja', desc:'Cambiar el precio de un producto en el carrito antes de cobrar'},
   {key:'canApplyDiscount',  label:'Aplicar descuentos',  group:'Caja', desc:'Usar el campo "Agregar descuento" al cobrar'},
-  {key:'canMarkTestData',   label:'Marcar pruebas',      group:'Caja', desc:'Ocultar una venta/apartado de prueba de Historial, Reportes y Corte de caja sin borrarlo'},
   {key:'canCloseShiftUnsupervised', label:'Cerrar turno con diferencia grande', group:'Caja', desc:'Cerrar un turno de caja sin pedir autorización aunque la diferencia sea de $100 o más'},
   {key:'canViewReports',    label:'Ver Reportes',        group:'Módulos', desc:'Entrar al módulo de Reportes'},
   {key:'canViewActivity',   label:'Ver Actividad',       group:'Módulos', desc:'Entrar al módulo de Actividad (auditoría)'},
@@ -693,9 +692,9 @@ const UP_PERMS = [
   {key:'canImportExport',   label:'Importar/Exportar catálogo', group:'Módulos', desc:'Entra a Configuración pero solo ve Datos (JSON, nombres de usuario, revisión de duplicados) — sin Usuarios y Permisos, Notificaciones ni Integraciones'},
 ];
 const UP_ROLE_DEFAULTS = {
-  superadmin:{canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canCancelSale:true, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canMarkTestData:true, canViewReports:true, canViewActivity:true, canManageSettings:true, canManageCatalogSettings:false, canCloseShiftUnsupervised:true, canUseReceptionIA:true, canReceiveStock:true, canImportExport:true},
-  encargado: {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canCancelSale:true, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canMarkTestData:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false, canCloseShiftUnsupervised:true, canUseReceptionIA:true, canReceiveStock:true, canImportExport:false},
-  operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:false, canPublishProduct:false, canBulkDelete:false, canCancelSale:false, canEditApartado:false, canOverridePrice:false, canApplyDiscount:false, canMarkTestData:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false, canCloseShiftUnsupervised:false, canUseReceptionIA:false, canReceiveStock:true, canImportExport:false},
+  superadmin:{canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canCancelSale:true, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canViewReports:true, canViewActivity:true, canManageSettings:true, canManageCatalogSettings:false, canCloseShiftUnsupervised:true, canUseReceptionIA:true, canReceiveStock:true, canImportExport:true},
+  encargado: {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canCancelSale:true, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false, canCloseShiftUnsupervised:true, canUseReceptionIA:true, canReceiveStock:true, canImportExport:false},
+  operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:false, canPublishProduct:false, canBulkDelete:false, canCancelSale:false, canEditApartado:false, canOverridePrice:false, canApplyDiscount:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false, canCloseShiftUnsupervised:false, canUseReceptionIA:false, canReceiveStock:true, canImportExport:false},
 };
 
 /* ── PIN DE AUTORIZACIÓN (override puntual de un permiso bloqueado) ──

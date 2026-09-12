@@ -246,7 +246,7 @@ let nameMap = {};
 let categories = [];
 let _statsReloadGeneration = 0;
 
-const _SALE_COLS = 'id,total,created_at,items,payment_method,type,origin_type,status,liquidated_at,seller_email,discount,customer,due_date,paid_amount,note,cancelled_at,is_test';
+const _SALE_COLS = 'id,total,created_at,items,payment_method,type,origin_type,status,liquidated_at,seller_email,discount,customer,due_date,paid_amount,note,cancelled_at';
 const _PAYMENT_COLS = 'id,sale_id,request_id,request_line,amount,kind,method,paid_at,collected_by,collected_by_email,is_estimated,source';
 
 function _paymentAmount(payment) {
@@ -257,14 +257,6 @@ function _paymentAmount(payment) {
 function _paymentTotal(list) {
   const total = (list || []).reduce((sum, payment) => sum + _paymentAmount(payment), 0);
   return Math.round((total + Number.EPSILON) * 100) / 100;
-}
-
-// sale_payments no tiene su propia columna is_test -- se resuelve vía la
-// venta a la que pertenece (ya cargada en paymentSalesById por
-// _loadPaymentSales, que a propósito NO filtra is_test para poder resolver
-// esto). Los fetch de `sales` sí filtran is_test=eq.false directo en la URL.
-function _excludeTestPayments(paymentsArr) {
-  return (paymentsArr || []).filter(p => !paymentSalesById.get(String(p.sale_id))?.is_test);
 }
 
 function _refundOperationCount(list) {
@@ -431,15 +423,15 @@ async function loadSales(mode = _statsMode, offset = _statsOffset, generation = 
   const { from, to } = getRange(mode, offset);
   const [directSalesR, apartadoSalesR, paymentsR, apartadoZeroR, aptNewR] = await Promise.all([
     // Una venta directa se completa al crearla; un apartado, al liquidarlo.
-    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.venta&status=eq.liquidado&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&is_test=eq.false&order=created_at.desc,id.desc`),
-    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(from)}&liquidated_at=lte.${encodeURIComponent(to)}&is_test=eq.false&order=liquidated_at.desc,id.desc`),
+    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.venta&status=eq.liquidado&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=created_at.desc,id.desc`),
+    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(from)}&liquidated_at=lte.${encodeURIComponent(to)}&order=liquidated_at.desc,id.desc`),
     // Dinero sigue exclusivamente la fecha real del movimiento; no se filtra por
     // el estado actual de la venta para no borrar cobros históricos al cancelar.
     _fetchAll(`sale_payments?select=${_PAYMENT_COLS}&paid_at=gte.${encodeURIComponent(from)}&paid_at=lte.${encodeURIComponent(to)}&order=paid_at.desc,id.desc`),
     // Un apartado creado con $0 de anticipo no genera fila en sale_payments
     // (record_sale_atomic_v2 solo inserta pago si v_paid>0) — sin esto,
     // "Movimientos de hoy" no reflejaba que se creó un apartado nuevo.
-    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&paid_amount=eq.0&cancelled_at=is.null&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&is_test=eq.false&order=created_at.desc,id.desc`),
+    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&paid_amount=eq.0&cancelled_at=is.null&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=created_at.desc,id.desc`),
     // Apartados nuevos del período (KPI) — se cuentan por fecha de creación,
     // sin importar su estado actual (activo/liquidado/cancelado), igual que
     // "cuántos abrí". Antes filtraba cancelled_at=is.null, contradiciendo su
@@ -447,7 +439,7 @@ async function loadSales(mode = _statsMode, offset = _statsOffset, generation = 
     // este conteo al ver el reporte de aquel día, aunque su anticipo (dinero,
     // que sí sigue la fecha real del movimiento sin importar el estado
     // actual) siguiera apareciendo — dos cifras del mismo día en desacuerdo.
-    _fetchAll(`sales?select=id&origin_type=eq.apartado&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&is_test=eq.false&order=id.asc`)
+    _fetchAll(`sales?select=id&origin_type=eq.apartado&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=id.asc`)
   ]);
   const directSales = (directSalesR.ok && Array.isArray(directSalesR.data)) ? directSalesR.data : [];
   const apartadoSales = (apartadoSalesR.ok && Array.isArray(apartadoSalesR.data)) ? apartadoSalesR.data : [];
@@ -460,7 +452,7 @@ async function loadSales(mode = _statsMode, offset = _statsOffset, generation = 
   aptNewLoaded = aptNewR.ok;
   aptNewCount = aptNewR.ok && Array.isArray(aptNewR.data) ? aptNewR.data.length : 0;
   _rememberSales(apartadoZero);
-  payments = _excludeTestPayments([...nextPayments, ...apartadoZero.map(sale => ({
+  payments = [...nextPayments, ...apartadoZero.map(sale => ({
     id: `apartado-created-${sale.id}`,
     sale_id: sale.id,
     kind: 'apartado_created',
@@ -469,7 +461,7 @@ async function loadSales(mode = _statsMode, offset = _statsOffset, generation = 
     paid_at: sale.created_at,
     is_estimated: false,
     collected_by_email: sale.seller_email || null
-  }))]);
+  }))];
   sales = salesLoaded ? [...directSales, ...apartadoSales] : [];
   _rememberSales(sales);
 }
@@ -478,10 +470,10 @@ async function loadPreviousSales(mode = _statsMode, offset = _statsOffset, gener
   const previous = getRange(mode, offset - 1);
   const { from, to } = previous;
   const [directSalesR, apartadoSalesR, paymentsR, aptNewR] = await Promise.all([
-    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.venta&status=eq.liquidado&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&is_test=eq.false&order=created_at.desc,id.desc`),
-    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(from)}&liquidated_at=lte.${encodeURIComponent(to)}&is_test=eq.false&order=liquidated_at.desc,id.desc`),
+    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.venta&status=eq.liquidado&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=created_at.desc,id.desc`),
+    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(from)}&liquidated_at=lte.${encodeURIComponent(to)}&order=liquidated_at.desc,id.desc`),
     _fetchAll(`sale_payments?select=${_PAYMENT_COLS}&paid_at=gte.${encodeURIComponent(from)}&paid_at=lte.${encodeURIComponent(to)}&order=paid_at.desc,id.desc`),
-    _fetchAll(`sales?select=id&origin_type=eq.apartado&cancelled_at=is.null&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&is_test=eq.false&order=id.asc`)
+    _fetchAll(`sales?select=id&origin_type=eq.apartado&cancelled_at=is.null&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=id.asc`)
   ]);
   const nextSalesLoaded = directSalesR.ok && apartadoSalesR.ok;
   const nextPayments = (paymentsR.ok && Array.isArray(paymentsR.data)) ? paymentsR.data : [];
@@ -497,7 +489,7 @@ async function loadPreviousSales(mode = _statsMode, offset = _statsOffset, gener
   prevAptNewCount = aptNewR.ok && Array.isArray(aptNewR.data) ? aptNewR.data.length : 0;
   prevSalesLoaded = nextSalesLoaded;
   prevPaymentsLoaded = paymentsR.ok;
-  prevPayments = _excludeTestPayments(nextPayments);
+  prevPayments = nextPayments;
   prevSales = nextSales;
 }
 
@@ -512,9 +504,9 @@ async function loadTodaySales(generation = null) {
   todaySummaryLoaded = false;
   const { from, to } = getRange('day', 0);
   const [salesR, paymentsR, liquidatedR] = await Promise.all([
-    _fetchAll(`sales?select=${_SALE_COLS}&cancelled_at=is.null&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&is_test=eq.false&order=created_at.desc,id.desc`),
+    _fetchAll(`sales?select=${_SALE_COLS}&cancelled_at=is.null&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=created_at.desc,id.desc`),
     _fetchAll(`sale_payments?select=${_PAYMENT_COLS}&paid_at=gte.${encodeURIComponent(from)}&paid_at=lte.${encodeURIComponent(to)}&order=paid_at.desc,id.desc`),
-    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(from)}&liquidated_at=lte.${encodeURIComponent(to)}&is_test=eq.false&order=liquidated_at.desc,id.desc`)
+    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(from)}&liquidated_at=lte.${encodeURIComponent(to)}&order=liquidated_at.desc,id.desc`)
   ]);
   const nextSales = (salesR.ok && Array.isArray(salesR.data)) ? salesR.data : [];
   const nextPayments = (paymentsR.ok && Array.isArray(paymentsR.data)) ? paymentsR.data : [];
@@ -524,7 +516,7 @@ async function loadTodaySales(generation = null) {
   todaySummaryLoaded = salesR.ok && paymentsR.ok && liquidatedR.ok && paymentSalesLoaded;
   todaySales = salesR.ok ? nextSales : [];
   todayPaymentsLoaded = paymentsR.ok;
-  todayPayments = _excludeTestPayments(nextPayments);
+  todayPayments = nextPayments;
   todayLiquidatedSales = liquidatedR.ok ? nextLiquidated : [];
   _rememberSales(todaySales);
   _rememberSales(todayLiquidatedSales);
@@ -1607,7 +1599,7 @@ function renderBestSeller() {
 async function loadApartadosPendientes() {
   const body = document.getElementById('apt-pending-body');
   const label = document.getElementById('apt-summary-label');
-  const result = await _fetchAll(`sales?origin_type=eq.apartado&status=eq.activo&select=id,total,paid_amount,customer,created_at,due_date,items&is_test=eq.false&order=due_date.asc.nullslast,created_at.asc,id.asc`);
+  const result = await _fetchAll(`sales?origin_type=eq.apartado&status=eq.activo&select=id,total,paid_amount,customer,created_at,due_date,items&order=due_date.asc.nullslast,created_at.asc,id.asc`);
   apartadosPendientesLoaded = result.ok;
   if (!result.ok) {
     _aptResumen = { count: 0, pendiente: 0, vencidos: 0 };
@@ -1688,23 +1680,9 @@ let _turnos = [];
 // Historial real de apertura/cierre de caja (cash_shifts) -- reemplaza el
 // "turno" que antes solo vivía en localStorage y nunca era visible aquí.
 async function loadTurnos() {
-  const r = await _fetchAll(`cash_shifts?select=id,user_email,opened_at,closed_at,fondo_inicial,conteo_final,gastos_total,esperado,diferencia,status&is_test=eq.false&order=opened_at.desc&limit=60`);
+  const r = await _fetchAll(`cash_shifts?select=id,user_email,opened_at,closed_at,fondo_inicial,conteo_final,gastos_total,esperado,diferencia,status&order=opened_at.desc&limit=60`);
   turnosLoaded = r.ok;
   _turnos = r.ok ? (r.data || []) : [];
-}
-
-// Mismo patrón que markSaleAsTest (pos-apartados.js) -- solo marca (no
-// desmarca) y no borra el registro, solo lo saca de esta vista y de
-// Actividad al recargar. Gateado en el servidor por canMarkTestData.
-async function markShiftAsTest(id) {
-  if (!confirm('¿Marcar este turno como prueba?\n\nDejará de aparecer en Reportes y Actividad (el registro no se borra).')) return;
-  const r = await _sharedRpc('te_set_shift_test_flag', { p_shift_id: id, p_is_test: true });
-  if (!r.ok || !r.data?.ok) {
-    alert(r.data?.message || 'No se pudo marcar como prueba');
-    return;
-  }
-  await loadTurnos();
-  renderTurnos();
 }
 
 // Mismo umbral que usa te_close_cash_shift del lado del servidor (para el
@@ -1765,8 +1743,6 @@ function renderTurnos() {
         </div>`).join('')}
     </div>` : '';
 
-  const canMarkTest = _getMyPermsCached()?.canMarkTestData === true;
-
   const turnosHtml = _turnos.map(t => {
     const nombre = (t.user_email || '').split('@')[0] || 'Sin usuario';
     const enCurso = t.status === 'abierto';
@@ -1789,7 +1765,6 @@ function renderTurnos() {
         <span style="font-size:.84rem;font-weight:600">${_esc(nombre)}</span>
         <span style="display:flex;align-items:center;gap:6px">
           ${estadoChip}
-          ${canMarkTest ? `<button onclick="markShiftAsTest(${t.id})" title="Marcar como prueba" style="background:none;border:none;color:var(--muted);opacity:.55;cursor:pointer;font-size:.8rem;padding:2px">🧪</button>` : ''}
         </span>
       </div>
       <div style="font-size:.74rem;color:var(--muted);margin-bottom:4px">${fmtHora(t.opened_at)} → ${enCurso ? 'ahora' : fmtHora(t.closed_at)}</div>
@@ -1806,7 +1781,7 @@ function renderTurnos() {
 async function loadClientesReport() {
   const [custR, salesR] = await Promise.all([
     _fetchAll(`customers?select=id,name,phone,notes,created_at&order=created_at.desc`),
-    _fetchAll(`sales?customer_id=not.is.null&status=neq.cancelado&is_test=eq.false&select=id,customer_id,total,paid_amount,created_at,origin_type,status&order=created_at.desc`)
+    _fetchAll(`sales?customer_id=not.is.null&status=neq.cancelado&select=id,customer_id,total,paid_amount,created_at,origin_type,status&order=created_at.desc`)
   ]);
   clientesLoaded = custR.ok && salesR.ok;
   _customers = custR.ok ? (custR.data || []) : [];

@@ -354,49 +354,10 @@ async function load() {
     }
   }
 
-  allData = await _filterOutTestData(combined);
+  allData = combined;
   if (loadGeneration !== _activityLoadGeneration) return;
   populateUsers(allData);
   render(allData);
-}
-
-// Las acciones ligadas a una venta/apartado guardan el sale_id en meta.id --
-// para las demás (producto_*, permisos_*, configuracion_editada, etc.) ese
-// mismo campo significa otra cosa (id de producto, por ejemplo), así que
-// nunca se cruzan contra sales.is_test. Las de turno de caja usan
-// meta.shift_id (no meta.id) y se cruzan aparte contra cash_shifts.is_test
-// (2026-09-04 -- mismo hueco que sales tenía antes del fix de is_test).
-const _SALE_LINKED_ACTIONS = new Set([
-  'venta', 'venta_cancelada', 'apartado_nuevo', 'apartado_abono', 'apartado_editado',
-  'apartado_liquidado', 'apartado_reembolso', 'apartado_cancelado',
-  'comprobante_enviado', 'comprobante_omitido'
-]);
-const _SHIFT_LINKED_ACTIONS = new Set(['turno_abierto', 'turno_cerrado', 'turno_cerrado_auto']);
-
-async function _filterOutTestData(logData) {
-  const saleIds = [...new Set(
-    logData.filter(item => _SALE_LINKED_ACTIONS.has(item.action) && Number.isFinite(item.meta?.id)).map(item => item.meta.id)
-  )];
-  const shiftIds = [...new Set(
-    logData.filter(item => _SHIFT_LINKED_ACTIONS.has(item.action) && Number.isFinite(item.meta?.shift_id)).map(item => item.meta.shift_id)
-  )];
-
-  let testSaleIds = new Set();
-  if (saleIds.length) {
-    const r = await _fetchAllActivity(`sales?id=in.(${saleIds.join(',')})&select=id,is_test`);
-    if (r.ok && Array.isArray(r.data)) testSaleIds = new Set(r.data.filter(s => s.is_test).map(s => s.id));
-  }
-  let testShiftIds = new Set();
-  if (shiftIds.length) {
-    const r = await _fetchAllActivity(`cash_shifts?id=in.(${shiftIds.join(',')})&select=id,is_test`);
-    if (r.ok && Array.isArray(r.data)) testShiftIds = new Set(r.data.filter(s => s.is_test).map(s => s.id));
-  }
-  if (!testSaleIds.size && !testShiftIds.size) return logData;
-
-  return logData.filter(item =>
-    !(_SALE_LINKED_ACTIONS.has(item.action) && testSaleIds.has(item.meta?.id)) &&
-    !(_SHIFT_LINKED_ACTIONS.has(item.action) && testShiftIds.has(item.meta?.shift_id))
-  );
 }
 
 function populateUsers(data) {

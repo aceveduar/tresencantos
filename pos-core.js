@@ -92,11 +92,6 @@ function canViewReports() {
   if (up && 'canViewReports' in up) return up.canViewReports;
   return getPosRole() === 'superadmin';
 }
-function canMarkTestData() {
-  const up = _getMyPermsCached();
-  if (up && 'canMarkTestData' in up) return up.canMarkTestData;
-  return getPosRole() === 'superadmin';
-}
 
 let _cancelAptCtx = null;
 

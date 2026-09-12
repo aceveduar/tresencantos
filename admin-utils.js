@@ -140,7 +140,7 @@ async function _productsInActiveApartados(ids) {
   // chico y esto solo corre al intentar borrar, no en un flujo caliente.
   const idSet = new Set(ids);
   const r = await supabaseApi(
-    'sales?origin_type=eq.apartado&status=eq.activo&is_test=eq.false&select=id,customer,items&limit=200'
+    'sales?origin_type=eq.apartado&status=eq.activo&select=id,customer,items&limit=200'
   );
   if (!r.ok || !Array.isArray(r.data)) return {};
   const hits = {};

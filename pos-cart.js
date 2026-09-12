@@ -18,8 +18,8 @@ let _topFromSales = [];
 async function loadTopProductsFromSales() {
   const desde = new Date(Date.now() - 30 * 86400000).toISOString();
   const [directResult, apartadoResult] = await Promise.all([
-    _posFetchAll(`sales?origin_type=eq.venta&status=eq.liquidado&created_at=gte.${encodeURIComponent(desde)}&select=id,items&is_test=eq.false&order=created_at.asc,id.asc`),
-    _posFetchAll(`sales?origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(desde)}&select=id,items&is_test=eq.false&order=liquidated_at.asc,id.asc`)
+    _posFetchAll(`sales?origin_type=eq.venta&status=eq.liquidado&created_at=gte.${encodeURIComponent(desde)}&select=id,items&order=created_at.asc,id.asc`),
+    _posFetchAll(`sales?origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(desde)}&select=id,items&order=liquidated_at.asc,id.asc`)
   ]);
   if (!directResult.ok || !apartadoResult.ok) return;
   const rows = [...(directResult.data || []), ...(apartadoResult.data || [])];
@@ -491,21 +491,15 @@ async function loadCorte() {
     : `Turno de ${actorLabel} desde ${inicioMX}`;
 
   const [paymentsResult, createdResult] = await Promise.all([
-    _posFetchAll(`sale_payments?paid_at=gte.${from}&paid_at=lte.${to}&select=sale_id,amount,kind,method,paid_at,source,collected_by_email,sale:sales(origin_type,status,is_test,customer,items)&order=paid_at.asc,id.asc`),
-    _posFetchAll(`sales?created_at=gte.${from}&created_at=lte.${to}&select=id,origin_type,status,seller_email,is_test&is_test=eq.false&order=created_at.asc,id.asc`)
+    _posFetchAll(`sale_payments?paid_at=gte.${from}&paid_at=lte.${to}&select=sale_id,amount,kind,method,paid_at,source,collected_by_email,sale:sales(origin_type,status,customer,items)&order=paid_at.asc,id.asc`),
+    _posFetchAll(`sales?created_at=gte.${from}&created_at=lte.${to}&select=id,origin_type,status,seller_email&order=created_at.asc,id.asc`)
   ]);
   if (!paymentsResult.ok || !createdResult.ok) {
     content.innerHTML = '<div style="color:var(--red);text-align:center">No se pudo calcular el corte. Verifica la migración de pagos y reintenta.</div>';
     return;
   }
 
-  // sale_payments no tiene columna is_test propia -- se filtra por la venta
-  // relacionada, ya embebida en la consulta (mismo criterio que Historial/
-  // Reportes, para que el Corte tampoco arrastre pruebas).
-  const allPayments = (paymentsResult.data || []).filter(payment => {
-    const sale = Array.isArray(payment.sale) ? payment.sale[0] : payment.sale;
-    return !sale?.is_test;
-  });
+  const allPayments = paymentsResult.data || [];
   const money = value => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
   const payments = isGeneral ? allPayments : allPayments.filter(payment =>
     String(payment.collected_by_email || '').toLowerCase() === actorEmail
