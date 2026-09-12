@@ -993,7 +993,8 @@ async function duplicateProduct(id) {
         barcode: null, stock: copy.stock ?? 0, cost: copy.cost ?? null,
         expiry_date: copy.expiryDate ?? null,
         kit_items: copy.kitItems ?? null,
-        images: copy.images ?? null
+        images: copy.images ?? null,
+        created_by: getCurrentUserEmail()
       })
     });
     if (!result.ok) {
@@ -1009,12 +1010,23 @@ async function duplicateProduct(id) {
   if (!can.deleteProduct) {
     // Operador: undo para deshacer el duplicado accidental (7 segundos)
     toastUndo(`"${truncName(copy.name)}" duplicado`, async () => {
-      const r = await supabaseApi(`products?id=eq.${copy.id}`, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
+      // RPC en vez de DELETE directo -- un operador no tiene canDeleteProduct
+      // desde que se cerró el hueco de RLS de products (2026-09-12), así que
+      // un DELETE aquí quedaba bloqueado en silencio (204, 0 filas) y el
+      // duplicado se quedaba para siempre aunque el toast dijera "deshecho".
+      // Esta RPC no exige ese permiso -- solo deja borrar un producto que la
+      // MISMA persona creó hace menos de 2 minutos.
+      const r = await supabaseApi('rpc/te_undo_duplicate_product', {
+        method: 'POST',
+        body: JSON.stringify({ p_id: copy.id })
+      });
       if (r.ok) {
         products = products.filter(p => p.id !== copy.id);
         renderTable();
         renderStats();
         toast('Duplicado deshecho ✓', 'success');
+      } else {
+        toast(r.data?.message || 'No se pudo deshacer el duplicado', 'error');
       }
     });
   } else {
