@@ -316,3 +316,18 @@ function _qvShowFlagForm(id) {
   if (zone) zone.innerHTML = '';
   document.getElementById('qv-flag-ta')?.focus();
 }
+
+/* ── MENÚ UNIFICADO "AGREGAR" (FAB, mobile/tablet chico ≤768px) ──────────
+   Un solo punto de entrada para las 5 formas de meter/reponer stock
+   (Producto nuevo, Captura rápida, Kit, Recibir, Recepción con IA) --
+   reemplaza el FAB de Kit y la fila Captura/Escanear/Recibir/Importar.
+   Escanear queda fuera a propósito: es una forma de buscar, no de
+   agregar, y vive junto al buscador (#search-scan-btn). */
+function openAddMenu() {
+  document.getElementById('add-menu-overlay')?.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeAddMenu() {
+  document.getElementById('add-menu-overlay')?.classList.remove('open');
+  document.body.style.overflow = '';
+}

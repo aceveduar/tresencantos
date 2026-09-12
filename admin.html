@@ -72,9 +72,23 @@
     </div>
   </div>
 
-  <!-- FAB: + Agregar (mobile) -->
-  <button class="fab-add" onclick="openForm()" aria-label="Agregar producto">+</button>
-  <button class="fab-kit" id="fab-kit" onclick="openKitBuilder()" aria-label="Armar Kit" title="Armar Kit"><svg width="22" height="22" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg></button>
+  <!-- FAB: + Agregar/Recibir (mobile y tablet chico, ≤768px) -- un solo punto
+       de entrada para las 5 formas de meter/reponer stock. Reemplaza el FAB
+       de Kit y la fila Captura/Escanear/Recibir/Importar (2026-09-12,
+       rediseño aprobado con mockup). Escanear se queda fuera de este menú a
+       propósito -- es una forma de BUSCAR (por código en vez de texto), se
+       usa muchísimo, vive junto al buscador como #search-scan-btn. -->
+  <button class="fab-add" onclick="openAddMenu()" aria-label="Agregar o recibir producto">+</button>
+
+  <div id="add-menu-overlay" onclick="if(event.target===this)closeAddMenu()">
+    <div id="add-menu-sheet">
+      <button class="bmo-item" onclick="closeAddMenu();openForm()"><svg width="17" height="17" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Producto nuevo</button>
+      <button class="bmo-item" onclick="closeAddMenu();openCaptureMode()"><svg width="17" height="17" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>Captura rápida</button>
+      <button class="bmo-item" onclick="closeAddMenu();openKitBuilder()"><svg width="17" height="17" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>Kit / Bundle</button>
+      <button class="bmo-item" id="add-menu-recv" onclick="closeAddMenu();openRecvMode()" style="display:none"><svg width="17" height="17" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>Recibir mercancía</button>
+      <button class="bmo-item" id="add-menu-recv-ia" onclick="closeAddMenu();openRecvIaMode()" style="display:none"><svg width="17" height="17" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Recepción con IA</button>
+    </div>
+  </div>
 
   <!-- ADD TO KIT PICKER -->
   <div id="atk-overlay" onclick="if(event.target===this)_closeAddToKit()">
@@ -394,10 +408,17 @@
         <button class="btn btn-gold" onclick="openForm()" style="flex-shrink:0">+ Agregar</button>
         <button class="btn btn-outline" id="btn-add-kit" onclick="openKitBuilder()" style="flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>Kit</button>
         <button class="btn btn-outline btn-sm btn-ia-accent capture-mode-btn" id="btn-capture-mode-desktop" onclick="openCaptureMode()" title="Captura rápida con IA" style="display:none;flex-shrink:0"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg> <span class="tb-btn-label">Captura</span></button>
-        <div class="search-wrap">
-          <span class="s-icon"><svg width="15" height="15" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <input type="text" id="search-input" placeholder="Buscar productos…" autocorrect="off" autocomplete="off" spellcheck="false" onfocus="if(!this.value)this.placeholder='Nombre, categoría, código… (separa con coma)'" onblur="this.placeholder='Buscar productos…'" oninput="_searchDebounce()">
-          <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearchInput()" title="Borrar" style="display:none">✕</button>
+        <div class="search-scan-row">
+          <div class="search-wrap">
+            <span class="s-icon"><svg width="15" height="15" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+            <input type="text" id="search-input" placeholder="Buscar productos…" autocorrect="off" autocomplete="off" spellcheck="false" onfocus="if(!this.value)this.placeholder='Nombre, categoría, código… (separa con coma)'" onblur="this.placeholder='Buscar productos…'" oninput="_searchDebounce()">
+            <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearchInput()" title="Borrar" style="display:none">✕</button>
+          </div>
+          <!-- Escanear busca por código -- se usa muchísimo, se queda siempre a
+               un tap junto al buscador (no vive dentro del menú de Agregar,
+               que es para METER stock, no para encontrarlo). Solo mobile/
+               tablet chico, ver CSS. -->
+          <button class="search-scan-btn" id="search-scan-btn" onclick="openSearchScanner()" title="Escanear código de barras" aria-label="Escanear código de barras"><svg width="15" height="15" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5v14"/><path d="M7 5v14"/><path d="M11 5v14"/><path d="M14 5v14"/><path d="M18 5v14"/><path d="M21 5v14"/></svg></button>
         </div>
         <div class="tb-actions-wrap" id="tb-actions-wrap">
         <div class="tb-actions" id="tb-actions" onscroll="_tbActionsScroll()">

@@ -978,7 +978,6 @@ function _applyRoleUI() {
   if (!can.addProduct) {
     document.querySelectorAll('[onclick="openForm()"]').forEach(b => b.style.setProperty('display', 'none'));
     document.querySelector('.fab-add')?.style.setProperty('display', 'none');
-    document.getElementById('fab-kit')?.style.setProperty('display', 'none');
     document.getElementById('btn-add-kit')?.style.setProperty('display', 'none');
   }
   // Botón "Eliminar ✕" en bulk bar — solo superadmin/encargado
@@ -1013,6 +1012,12 @@ function _applyRoleUI() {
   if (recvBtn) recvBtn.style.display = (_showRecv && can.receiveStock) ? '' : 'none';
   const recvIaBtn = document.getElementById('btn-recv-ia-mode');
   if (recvIaBtn) recvIaBtn.style.display = (_showRecvIa && can.useReceptionIA) ? '' : 'none';
+  // Mismas condiciones, reflejadas en el menú unificado del FAB (mobile/
+  // tablet chico) -- ver #add-menu-overlay.
+  const recvMenuItem = document.getElementById('add-menu-recv');
+  if (recvMenuItem) recvMenuItem.style.display = (_showRecv && can.receiveStock) ? '' : 'none';
+  const recvIaMenuItem = document.getElementById('add-menu-recv-ia');
+  if (recvIaMenuItem) recvIaMenuItem.style.display = (_showRecvIa && can.useReceptionIA) ? '' : 'none';
   _tbActionsScroll();
 }
 
