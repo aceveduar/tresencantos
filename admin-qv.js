@@ -317,6 +317,7 @@ async function _qvHandleImgUpload(input) {
   if (!file || !_qvCurrentId) return;
   const p = products.find(x => x.id === _qvCurrentId);
   if (!p) return;
+  const oldImage = p.image;
 
   const img = document.getElementById('qv-img');
   if (img) { img.style.opacity = '.4'; img.style.transition = 'opacity .2s'; }
@@ -336,6 +337,12 @@ async function _qvHandleImgUpload(input) {
   input.value = '';
   if (result.ok) {
     p.image = finalUrl;
+    // Borrar de Drive la foto anterior -- reemplazarla aquí antes no lo hacía,
+    // dejando huérfana cada foto vieja que se reemplazaba desde el Quick View.
+    if (oldImage !== finalUrl) {
+      const oldId = _driveFileId(oldImage);
+      if (oldId) _deleteDriveFile(oldId);
+    }
     renderTable();
     openQV(_qvCurrentId);
     toast('Imagen actualizada ✓', 'success');

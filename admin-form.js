@@ -21,6 +21,7 @@ function _formIsDirty() {
 function openForm(id) {
   if (id && !can.editProduct) { toast('Vista de solo lectura', ''); return; }
   if (!id && !can.addProduct) { toast('Sin permiso para agregar productos', 'error'); return; }
+  _sessionUploadedUrls = [];
   TE?.track(id ? 'form_open_edit' : 'form_open_add', id ? { id } : {});
   populateBadgeList();
   const overlay = document.getElementById('form-overlay');
@@ -117,6 +118,20 @@ function closeForm() {
   if (_formIsDirty()) {
     if (!confirm('Tienes cambios sin guardar. ¿Salir de todas formas?')) return;
   }
+  if (_formJustSaved) {
+    _formJustSaved = false;
+  } else {
+    // Se cerró sin guardar -- cualquier foto subida durante esta sesión de
+    // edición (uploadToDrive() sube en cuanto se elige el archivo, mucho
+    // antes de "Guardar") nunca llegó a asociarse a un producto real. Sin
+    // esto se quedaban huérfanas en Drive para siempre cada vez que alguien
+    // probaba una foto y cancelaba, o subía varias y solo se quedaba con una.
+    _sessionUploadedUrls.forEach(url => {
+      const fid = _driveFileId(url);
+      if (fid) _deleteDriveFile(fid);
+    });
+  }
+  _sessionUploadedUrls = [];
   _formSnapshot = null;
   document.getElementById('form-overlay').classList.remove('open');
   document.body.style.overflow = '';
@@ -814,6 +829,7 @@ async function saveProduct() {
   // Ir a "Recientes" para que el producto guardado aparezca al inicio
   const _sortSel = document.getElementById('sort-select');
   if (_sortSel) { _sortSel.value = 'recent'; currentSort = 'recent'; }
+  _formJustSaved = true;
   closeForm();
   renderTable();
   renderStats();

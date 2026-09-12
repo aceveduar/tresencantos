@@ -290,6 +290,7 @@ async function _addImageFile(file) {
     const idx = _allImagesEdit.indexOf(b64);
     if (driveUrl && idx > -1) {
       _allImagesEdit[idx] = driveUrl;
+      _sessionUploadedUrls.push(driveUrl);
       renderAdditionalImages();
     }
   }

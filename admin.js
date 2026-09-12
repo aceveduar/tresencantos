@@ -78,6 +78,12 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 let products = [];
 let _kitItemsEdit = [];
 let _allImagesEdit = []; // array unificado: [0]=principal, [1..n]=adicionales
+// Toda URL de Drive subida durante la sesión de edición actual, se haya
+// quedado o no en _allImagesEdit al final (subir a Drive pasa en cuanto se
+// elige la foto, mucho antes de "Guardar" -- si el formulario se cancela sin
+// guardar, closeForm() borra de Drive todo lo que quede aquí).
+let _sessionUploadedUrls = [];
+let _formJustSaved = false;
 let _returnToDupReview = false;
 let _returnToKitId = null;     // ID del kit cuyo formulario se debe reabrir al cerrar un componente
 let _returnToKitQVId = null;   // ID del kit cuyo QV se debe reabrir al cerrar un componente
