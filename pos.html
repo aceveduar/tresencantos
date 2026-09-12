@@ -127,10 +127,6 @@
         <input type="text" id="pos-search" placeholder="Buscar producto..." oninput="_posSearchDebounce(this.value)" autocomplete="off" style="flex:1;min-width:0;padding-right:32px">
         <button id="pos-search-clear" onclick="clearPosSearch()" title="Limpiar" style="display:none;position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted-light);font-size:1rem;padding:4px;line-height:1;touch-action:manipulation">✕</button>
       </div>
-      <div class="pos-sort-toggle" id="pos-sort-toggle">
-        <button class="pos-sort-btn" data-sort="recientes" onclick="setPosSort('recientes')" title="Recientes"><svg style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
-      </div>
-      <span class="pos-sort-sep"></span>
       <div class="pos-view-toggle">
         <button class="pos-vbtn active" id="pos-vbtn-list"  onclick="setPosView('list')"  title="Lista">☰</button>
         <button class="pos-vbtn"        id="pos-vbtn-cards" onclick="setPosView('cards')" title="Tarjetas">⊞</button>
@@ -145,6 +141,10 @@
     <!-- Productos frecuentes -->
     <div class="pos-freq-bar" id="pos-frecuentes">
       <span class="pos-freq-label">Freq.</span>
+    </div>
+    <!-- Recién dados de alta / con precio o stock recién tocado -->
+    <div class="pos-freq-bar" id="pos-recientes">
+      <span class="pos-freq-label">Nuevo</span>
     </div>
     <!-- Resumen de caja diario — solo mobile -->
     <div id="daily-summary-mobile" style="display:none;align-items:center;gap:8px;padding:5px 14px;background:var(--gold-light);border-bottom:1px solid var(--border);font-size:.73rem;color:var(--charcoal);flex-shrink:0"></div>

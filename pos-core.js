@@ -742,6 +742,7 @@ async function loadProducts() {
     } catch {}
   }
   renderFrecuentes();
+  renderRecienPreparados();
 }
 
 /* ── SUPABASE REALTIME ── */
@@ -867,30 +868,9 @@ async function loadSalesStats() {
 
 function applySort(list) {
   switch (posSort) {
-    case 'recientes': {
-      const order = _posRecentOrder.length ? _posRecentOrder : JSON.parse(localStorage.getItem('te_recently_edited') || '[]');
-      if (!order.length) return [...list].sort((a, b) => b.id - a.id);
-      const idx = new Map(order.map((id, i) => [id, i]));
-      return [...list].sort((a, b) => {
-        const ia = idx.has(a.id) ? idx.get(a.id) : order.length;
-        const ib = idx.has(b.id) ? idx.get(b.id) : order.length;
-        if (ia === ib) return b.id - a.id;
-        return ia - ib;
-      });
-    }
     case 'populares': return [...list].sort((a, b) => (salesStats[b.id] || 0) - (salesStats[a.id] || 0));
     default: return list;
   }
-}
-
-function setPosSort(sort) {
-  posSort = sort;
-  localStorage.setItem('te_pos_sort', sort);
-  document.querySelectorAll('.pos-sort-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.sort === sort)
-  );
-  const q = document.getElementById('pos-search')?.value || '';
-  searchProducts(q);
 }
 
 function catMatchesFilter(productCat, filterCat) {
@@ -1031,17 +1011,46 @@ function getFilteredProducts(q = '', includeOos = false) {
   return sorted;
 }
 
+/* ── PAGINACIÓN DEL CATÁLOGO — evita renderizar ~800 tarjetas de un jalón ── */
+let _posPage = 1;
+const POS_PAGE_SIZE = 50;
+let _posLoadObserver = null;
+let _posLastRenderList = [];
+
 function renderPosProducts(list) {
   const el = document.getElementById('pos-results');
   if (!list.length) return;
+  _posLastRenderList = list;
+  const visible = list.slice(0, _posPage * POS_PAGE_SIZE);
+  const hasMore = visible.length < list.length;
+  const sentinelHTML = hasMore
+    ? `<div id="pos-load-sentinel" style="padding:16px;text-align:center;color:var(--muted);font-size:.85rem">Cargando más…</div>`
+    : '';
   if (posView === 'cards') {
-    el.innerHTML = `<div class="pos-grid">${list.map(p => posCard(p)).join('')}</div>`;
-    return;
+    el.innerHTML = `<div class="pos-grid">${visible.map(p => posCard(p)).join('')}</div>` + sentinelHTML;
+  } else {
+    el.innerHTML = visible.map(p => productCard(p)).join('') + sentinelHTML;
   }
-  el.innerHTML = list.map(p => productCard(p)).join('');
+  _setupPosLoadSentinel(hasMore);
+}
+
+function _setupPosLoadSentinel(hasMore) {
+  if (_posLoadObserver) { _posLoadObserver.disconnect(); _posLoadObserver = null; }
+  if (!hasMore) return;
+  const sentinel = document.getElementById('pos-load-sentinel');
+  if (!sentinel) return;
+  _posLoadObserver = new IntersectionObserver(entries => {
+    if (!entries[0].isIntersecting) return;
+    _posLoadObserver.disconnect();
+    _posLoadObserver = null;
+    _posPage++;
+    renderPosProducts(_posLastRenderList);
+  }, { rootMargin: '400px' });
+  _posLoadObserver.observe(sentinel);
 }
 
 function showAllProducts() {
+  _posPage = 1;
   const el = document.getElementById('pos-results');
   if (!products.length) {
     el.innerHTML = '<div class="pos-empty"><div class="em"><svg style="width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>No hay productos cargados</div>';
@@ -1074,7 +1083,9 @@ function _posSearchDebounce(q) {
 }
 
 function searchProducts(q) {
+  _posPage = 1;
   renderFrecuentes(!!q.trim());
+  renderRecienPreparados(!!q.trim());
   const el = document.getElementById('pos-results');
   const matches = getFilteredProducts(q, !!q.trim()).slice(0, 40);
   if (!q.trim() && currentCat === 'all') { showAllProducts(); return; }

@@ -297,6 +297,8 @@ async function _recvDoAdd(id, qty) {
     _renderRecvList();
     _recvUpdateHeader();
     toast('No se pudo guardar en el servidor — recepción no registrada, intenta de nuevo', 'error');
+  } else {
+    _trackEdit(id);
   }
 }
 

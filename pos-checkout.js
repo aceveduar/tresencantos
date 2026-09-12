@@ -578,7 +578,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   await Promise.all([loadProducts(), loadPosCategories(), loadSalesStats(), loadTopProductsFromSales(), loadPosNameMap(), loadPosConfig(), loadPosRecentlyEdited()]);
   renderCategoryChips();
   setPosView(posView);
-  setPosSort(posSort);
   _restoreCart();
   renderCart();
   loadTodayStats();

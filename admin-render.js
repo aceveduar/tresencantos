@@ -489,6 +489,7 @@ async function editStockInline(e, id, chipEl) {
       if (patch.out_of_stock !== undefined) p.outOfStock = patch.out_of_stock;
       if (newStock === 0) p.isPublished = false;
       renderStats();
+      _trackEdit(id);
       logActivity('producto_editado', `Cambió stock de "${p.name}": ${prevStock} → ${newStock}`, { id, name: p.name, prevStock, newStock });
       toast(`Stock → ${newStock}${patch.out_of_stock !== undefined ? (patch.out_of_stock ? ' · Marcado agotado · Oculto del sitio' : ' · Marcado disponible') : ''}`);
     } else {
@@ -596,6 +597,7 @@ async function editPriceInlineAdmin(e, id) {
     if (result.ok) {
       p.price = newPrice;
       renderStats();
+      _trackEdit(id);
       toast(`Precio actualizado → $${newPrice.toLocaleString('es-MX')}`);
     } else {
       toast('Error al actualizar precio', 'error');

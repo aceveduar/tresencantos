@@ -1417,6 +1417,7 @@ async function riaApplyChanges() {
           product.supplierCode = payload.supplier_code;
           results.updated.push({ name: product.name, diff: diffText });
           undoUpdated.push({ productId: product.id, deltaQty: costOnly ? 0 : (it.qty || 0), before: beforeSnapshot });
+          _trackEdit(product.id);
         }
       } else if (costOnly) {
         // Sin vincular en "Actualizar" — nunca crea un producto fantasma
@@ -1447,6 +1448,7 @@ async function riaApplyChanges() {
           await flagProduct(newId, 'Creado por Recepción con IA — falta foto/descripción/revisar categoría');
           results.created.push({ name: cleanName, diff: `stock ${draft.stock} · costo $${draft.cost ?? '—'} · precio $${draft.price} · categoría ${categoryLabel}` });
           undoCreated.push({ productId: newId });
+          _trackEdit(newId);
         }
       }
     } catch (err) {
@@ -1480,6 +1482,7 @@ async function riaApplyChanges() {
           product.cost = payload.cost;
           results.updated.push({ name: product.name, diff: diffText });
           undoUpdated.push({ productId: product.id, deltaQty: costOnly ? 0 : 1, before: beforeSnapshot });
+          _trackEdit(product.id);
         }
       } else if (costOnly) {
         // Igual que un renglón normal sin vincular en "Actualizar": nunca
@@ -1508,6 +1511,7 @@ async function riaApplyChanges() {
           await flagProduct(newId, 'Creado por Recepción con IA (componente de kit) — falta foto/descripción/revisar categoría y precio de venta');
           results.created.push({ name: cleanName, diff: `stock ${draft.stock} · costo $${draft.cost ?? '—'} · precio $${draft.price} · categoría Por revisar${kitTag}` });
           undoCreated.push({ productId: newId });
+          _trackEdit(newId);
         }
       }
     } catch (err) {
