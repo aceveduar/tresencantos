@@ -61,7 +61,7 @@
     </div>
     <div class="up-add-row">
       <input type="email" class="field-input" id="up-new-email" placeholder="correo@ejemplo.com" style="flex:1;min-width:0" onkeydown="if(event.key==='Enter')_upAddUser()">
-      <input type="text" class="field-input" id="up-new-password" placeholder="Contraseña" style="flex:1;min-width:0;display:none" onkeydown="if(event.key==='Enter')_upAddUser()">
+      <input type="password" class="field-input" id="up-new-password" placeholder="Contraseña" autocomplete="new-password" style="flex:1;min-width:0;display:none" onkeydown="if(event.key==='Enter')_upAddUser()">
       <select class="up-role-sel" id="up-new-role" onclick="event.stopPropagation()">
         <option value="operador">Operador</option>
         <option value="encargado">Encargada</option>
