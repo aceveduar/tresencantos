@@ -1288,28 +1288,54 @@ function _upPermChange(cb, key) {
   _renderUpMatrix();
 }
 
+// 'invite' = manda correo de invitación (la persona fija su propia
+// contraseña) · 'password' = quien la crea fija la contraseña aquí mismo y
+// se la comparte por el canal que prefiera. Eduardo quiso las dos opciones,
+// no solo una -- según el caso, a veces es más rápido no depender de que
+// llegue un correo.
+let _upAddMode = 'invite';
+function _upSetAddMode(mode) {
+  _upAddMode = mode;
+  document.getElementById('up-mode-invite')?.classList.toggle('active', mode === 'invite');
+  document.getElementById('up-mode-password')?.classList.toggle('active', mode === 'password');
+  const passInp = document.getElementById('up-new-password');
+  if (passInp) { passInp.style.display = mode === 'password' ? '' : 'none'; passInp.value = ''; }
+  const hint = document.getElementById('up-add-hint');
+  if (hint) hint.textContent = mode === 'password'
+    ? 'Se crea la cuenta ya activa con esa contraseña — no hace falta entrar a Supabase. Compártela con la persona por el canal que prefieras.'
+    : 'Se crea la cuenta y se le envía un correo de invitación para que fije su propia contraseña — no hace falta entrar a Supabase.';
+}
+
 async function _upAddUser() {
   const input   = document.getElementById('up-new-email');
+  const passInp = document.getElementById('up-new-password');
   const roleSel = document.getElementById('up-new-role');
   const btn     = document.getElementById('up-add-btn');
   const email   = (input?.value||'').trim().toLowerCase();
+  const password = _upAddMode === 'password' ? (passInp?.value || '') : '';
   const role    = roleSel?.value || 'operador';
   if (!email || !email.includes('@')) { toast('Ingresa un correo válido', 'err'); return; }
   if (userPermsMap[email]) { toast('Este usuario ya está en la lista', ''); input.value=''; return; }
-  if (!confirm(`¿Crear la cuenta de ${email} como ${_UP_ROLE_LABELS[role]||role}?\n\nSe le enviará un correo de invitación para que fije su propia contraseña.`)) return;
+  if (_upAddMode === 'password' && password.length < 6) { toast('La contraseña debe tener al menos 6 caracteres', 'err'); return; }
+
+  const confirmMsg = _upAddMode === 'password'
+    ? `¿Crear la cuenta de ${email} como ${_UP_ROLE_LABELS[role]||role} con esa contraseña?`
+    : `¿Crear la cuenta de ${email} como ${_UP_ROLE_LABELS[role]||role}?\n\nSe le enviará un correo de invitación para que fije su propia contraseña.`;
+  if (!confirm(confirmMsg)) return;
 
   if (btn) { btn.disabled = true; btn.textContent = 'Creando…'; }
-  const r = await edgeFn('create-user', { email, role });
+  const r = await edgeFn('create-user', { email, role, password });
   if (btn) { btn.disabled = false; btn.textContent = '+ Agregar'; }
 
   if (!r.ok) { toast(r.data?.error || 'No se pudo crear la cuenta', 'err'); return; }
 
   userPermsMap[email] = { ...UP_ROLE_DEFAULTS[role]||UP_ROLE_DEFAULTS.operador, role };
   input.value = '';
+  if (passInp) passInp.value = '';
   if (roleSel) roleSel.value = 'operador';
   renderUsersPerms();
   _upSavePerms();
-  toast(`Cuenta creada — le llegará un correo de invitación a ${email}`, 'ok');
+  toast(_upAddMode === 'password' ? `Cuenta creada — comparte la contraseña con ${email}` : `Cuenta creada — le llegará un correo de invitación a ${email}`, 'ok');
 }
 
 async function _upSaveName(inp, email) {

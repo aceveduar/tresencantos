@@ -230,6 +230,9 @@ button,a,[onclick]{touch-action:manipulation}
 .up-reset-btn:hover:not(:disabled){border-color:var(--gold);color:var(--gold-dark)}
 .up-reset-btn:disabled{cursor:not-allowed;opacity:.4}
 .up-add-row{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center}
+.up-mode-toggle{display:flex;gap:6px;background:var(--surface-soft);border:1.5px solid var(--border);border-radius:10px;padding:3px}
+.up-mode-btn{flex:1;padding:8px 10px;border-radius:8px;border:none;background:none;color:var(--muted);font-weight:600;font-size:.78rem;cursor:pointer;font-family:inherit}
+.up-mode-btn.active{background:var(--surface);color:var(--charcoal);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 
 @media(max-width:640px){
   .up-role-sel{font-size:16px!important;padding:9px 10px;min-height:44px}
@@ -240,7 +243,9 @@ button,a,[onclick]{touch-action:manipulation}
   .up-head{gap:6px;padding:12px 14px}
   .up-add-row{flex-wrap:wrap}
   #up-new-email{width:100%;flex:none}
+  #up-new-password{flex:1}
   #up-new-role{flex:1}
+  #up-add-btn{width:100%}
   .up-mx-dot{width:26px;height:26px}
   .up-mx-cell{padding:5px}
   .up-mx-person,.up-mx-corner{padding:6px 8px;height:58px}

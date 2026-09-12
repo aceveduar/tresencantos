@@ -1,10 +1,17 @@
 // Edge Function: create-user
 //
-// Da de alta una cuenta de Supabase Auth (rol + invitación por correo) sin
-// que nadie tenga que entrar al Dashboard de Supabase. Reemplaza el flujo
-// anterior de _upAddUser() (settings.js), donde Eduardo tenía que crear la
-// cuenta a mano en Authentication → Users antes de poder asignarle rol y
-// permisos aquí.
+// Da de alta una cuenta de Supabase Auth (rol + acceso) sin que nadie tenga
+// que entrar al Dashboard de Supabase. Reemplaza el flujo anterior de
+// _upAddUser() (settings.js), donde Eduardo tenía que crear la cuenta a
+// mano en Authentication → Users antes de poder asignarle rol y permisos
+// aquí.
+//
+// Dos modos (decidido 2026-09-12, Eduardo quiso ambos en vez de uno solo):
+// - Con `password`: crea la cuenta ya activa con esa contraseña
+//   (email_confirm:true, sin paso de verificación) -- quien la crea se la
+//   comparte a la persona por el canal que prefiera (WhatsApp, de palabra).
+// - Sin `password`: manda una invitación por correo (inviteUserByEmail) --
+//   la persona fija su propia contraseña desde el enlace que le llega.
 //
 // La service_role key SOLO vive como secret de esta función (Dashboard →
 // Edge Functions → create-user → Secrets), nunca en el código ni en el
@@ -50,13 +57,15 @@ Deno.serve(async (req) => {
   const jwt = authHeader.replace(/^Bearer\s+/i, "").trim();
   if (!jwt) return json({ error: "Falta el token de sesión" }, 401);
 
-  let body: { email?: string; role?: string };
+  let body: { email?: string; role?: string; password?: string };
   try { body = await req.json(); } catch { return json({ error: "Cuerpo inválido" }, 400); }
 
-  const email = (body?.email || "").trim().toLowerCase();
-  const role  = body?.role || "";
+  const email    = (body?.email || "").trim().toLowerCase();
+  const role     = body?.role || "";
+  const password = body?.password || ""; // vacío = mandar invitación por correo
   if (!email || !email.includes("@")) return json({ error: "Correo inválido" }, 400);
   if (!VALID_ROLES.includes(role)) return json({ error: "Rol inválido" }, 400);
+  if (password && password.length < 6) return json({ error: "La contraseña debe tener al menos 6 caracteres" }, 400);
 
   // Cliente con el JWT de quien llama -- para saber quién es y si de
   // verdad tiene el permiso, nunca confiar en el cliente sobre sí mismo.
@@ -78,23 +87,27 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
 
-  const { error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(email, {
-    data: { role },
-  });
-  if (inviteErr) {
-    const msg = /already.*registered|already.*exists/i.test(inviteErr.message || "")
+  const viaPassword = password.length > 0;
+  const { error: createErr } = viaPassword
+    ? await adminClient.auth.admin.createUser({
+        email, password, email_confirm: true, user_metadata: { role },
+      })
+    : await adminClient.auth.admin.inviteUserByEmail(email, { data: { role } });
+
+  if (createErr) {
+    const msg = /already.*registered|already.*exists/i.test(createErr.message || "")
       ? "Ese correo ya tiene una cuenta"
-      : (inviteErr.message || "No se pudo crear la cuenta");
+      : (createErr.message || "No se pudo crear la cuenta");
     return json({ error: msg }, 400);
   }
 
   // Auditoría -- misma tabla/patrón que el resto del proyecto: toda acción
-  // sensible queda registrada, sin excepción.
+  // sensible queda registrada, sin excepción. Nunca se guarda la contraseña.
   await adminClient.from("activity_log").insert({
     action: "usuario_creado",
     user_email: callerEmail,
-    summary: `Creó la cuenta de ${email} (${role}) y le envió invitación por correo`,
-    meta: { email, role },
+    summary: `Creó la cuenta de ${email} (${role})${viaPassword ? '' : ' y le envió invitación por correo'}`,
+    meta: { email, role, via: viaPassword ? 'password' : 'invite' },
   });
 
   return json({ ok: true });

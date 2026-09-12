@@ -55,8 +55,13 @@
   </div>
   <div class="settings-card" style="padding:0;overflow:hidden" id="up-list-card">
     <div id="up-list"><div class="up-loading">Cargando usuarios…</div></div>
+    <div class="up-mode-toggle" style="margin:12px 16px 0">
+      <button type="button" class="up-mode-btn active" id="up-mode-invite" onclick="_upSetAddMode('invite')">✉️ Invitar por correo</button>
+      <button type="button" class="up-mode-btn" id="up-mode-password" onclick="_upSetAddMode('password')">🔑 Fijar contraseña</button>
+    </div>
     <div class="up-add-row">
       <input type="email" class="field-input" id="up-new-email" placeholder="correo@ejemplo.com" style="flex:1;min-width:0" onkeydown="if(event.key==='Enter')_upAddUser()">
+      <input type="text" class="field-input" id="up-new-password" placeholder="Contraseña" style="flex:1;min-width:0;display:none" onkeydown="if(event.key==='Enter')_upAddUser()">
       <select class="up-role-sel" id="up-new-role" onclick="event.stopPropagation()">
         <option value="operador">Operador</option>
         <option value="encargado">Encargada</option>
@@ -64,7 +69,7 @@
       </select>
       <button class="btn btn-outline btn-sm" id="up-add-btn" onclick="_upAddUser()">+ Agregar</button>
     </div>
-    <p class="field-hint" style="padding:0 16px 12px">Se crea la cuenta y se le envía un correo de invitación para que fije su propia contraseña — no hace falta entrar a Supabase.</p>
+    <p class="field-hint" id="up-add-hint" style="padding:0 16px 12px">Se crea la cuenta y se le envía un correo de invitación para que fije su propia contraseña — no hace falta entrar a Supabase.</p>
   </div>
   <div class="settings-card" style="padding:12px;display:none" id="up-matrix-card">
     <input type="text" class="field-input" id="up-matrix-search" placeholder="🔍 Buscar un permiso…" oninput="_renderUpMatrix()" style="margin-bottom:10px">
