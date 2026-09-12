@@ -2143,9 +2143,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const _name = _meta.full_name || _meta.name || _s?.user?.email?.split('@')[0] || '';
     const _av = document.getElementById('user-avatar');
     if (_av) _av.textContent = _name ? _name[0].toUpperCase() : '?';
-    const ga = document.getElementById('ga4-link-card');
-    if (ga) ga.style.display = _meta.role === 'superadmin'
-      && String(_s?.user?.email || '').toLowerCase() === 'eacevedo@sunname.com.mx' ? '' : 'none';
   } catch {}
   const timeout = new Promise((_, reject) =>
     setTimeout(() => reject(new Error('timeout')), 12000)
