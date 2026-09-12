@@ -535,22 +535,12 @@ function initDivider() {
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', async () => {
   _initCollectedByChecks();
-  // Ocultar nav según rol + permisos individuales
-  const _applyPosNav = (up) => {
-    const canStats    = up?.canViewReports    ?? (_posRole === 'superadmin');
-    const canActivity = up?.canViewActivity   ?? (_posRole === 'superadmin');
-    const canSettings = up?.canManageSettings ?? (_posRole === 'superadmin');
-    document.querySelectorAll('a.tbn-icon[href="stats.html"]').forEach(a => a.style.display = canStats ? '' : 'none');
-    document.querySelectorAll('a.tbn-icon[href="activity.html"]').forEach(a => a.style.display = canActivity ? '' : 'none');
-    document.querySelectorAll('a.tbn-icon[href="settings.html"]').forEach(a => a.style.display = canSettings ? '' : 'none');
-    // "Agregar descuento" se queda siempre visible — toggleDiscountField()
-    // pide autorizacion con PIN en el momento si no se tiene canApplyDiscount,
-    // en vez de esconder el boton del todo.
-  };
-  _applyPosNav(_getMyPermsCached());
+  // Ocultar íconos de nav según permisos: ahora vive en shared.js
+  // (_applyNavPermissions), compartido por los 5 módulos -- antes solo
+  // corría aquí, dejando el ícono visible sin funcionar en Inventario/
+  // Reportes/Actividad/Configuración.
   _loadMyPerms().then(up => {
     if (!up) return;
-    _applyPosNav(up);
     if (typeof filterApartados === 'function' && _apartadosAll?.length) {
       filterApartados(document.getElementById('apt-search')?.value || '', 'offcanvas');
       filterApartados(document.getElementById('apt-page-search')?.value || '', 'page');

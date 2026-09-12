@@ -965,3 +965,25 @@ async function _loadMyPerms(options = {}) {
     return result(cached, cached ? 'cache' : 'unavailable');
   }
 }
+
+// Oculta en la topbar los íconos de Reportes/Actividad/Configuración según
+// los permisos reales -- antes esto solo se aplicaba dentro de Caja
+// (pos-checkout.js _applyPosNav, ahora retirada de ahí), así que en
+// Inventario/Reportes/Actividad/Configuración el ícono se quedaba visible
+// para cualquiera aunque no tuviera el permiso (ej. Areli, encargada sin
+// canViewReports, veía "Reportes" en la topbar de Configuración, aunque
+// entrar ahí la hubiera bloqueado igual). Vive aquí una sola vez porque
+// shared.js ya se carga en los 5 módulos.
+function _applyNavPermissions(up) {
+  const isSuperadmin = up?.role === 'superadmin';
+  const canStats    = up?.canViewReports    ?? isSuperadmin;
+  const canActivity = up?.canViewActivity   ?? isSuperadmin;
+  const canSettings = up?.canManageSettings ?? isSuperadmin;
+  document.querySelectorAll('a.tbn-icon[href="stats.html"]').forEach(a => a.style.display = canStats ? '' : 'none');
+  document.querySelectorAll('a.tbn-icon[href="activity.html"]').forEach(a => a.style.display = canActivity ? '' : 'none');
+  document.querySelectorAll('a.tbn-icon[href="settings.html"]').forEach(a => a.style.display = canSettings ? '' : 'none');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  _applyNavPermissions(_getMyPermsCached());
+  _loadMyPerms().then(up => { if (up) _applyNavPermissions(up); });
+});

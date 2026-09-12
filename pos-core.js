@@ -36,14 +36,6 @@ const _giftIconSvg  = (px = 14) => `<svg style="width:${px}px;height:${px}px;ver
 const _clockIconSvg = (px = 14) => `<svg style="width:${px}px;height:${px}px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
 const _posSession = (() => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; } })();
 const KNOWN_ROLES = ['superadmin', 'encargado', 'operador'];
-const _posRole = (() => {
-  const r = _posSession?.user?.user_metadata?.role;
-  if (r && KNOWN_ROLES.includes(r)) return r;
-  try {
-    const jr = JSON.parse(atob(_posSession?.access_token?.split('.')[1]))?.user_metadata?.role;
-    return (jr && KNOWN_ROLES.includes(jr)) ? jr : 'operador';
-  } catch { return 'operador'; }
-})();
 // Lee la sesión actual en cada llamada para evitar que quede cacheado si cambia la cuenta
 function getPosRole() {
   try {
