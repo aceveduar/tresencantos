@@ -228,7 +228,11 @@ main{max-width:1080px;margin:0 auto;padding:28px 32px}
   border-radius:6px;font-family:inherit;transition:.15s}
 .fac-clear:hover{background:var(--gold-light)}
 .search-scan-row{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
-.search-scan-btn{display:none;flex-shrink:0;width:38px;height:38px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);align-items:center;justify-content:center;touch-action:manipulation}
+/* Se ve compacto (38px) para no competir en tamaño con el buscador, pero
+   el área de toque real es ~44px -- mismo hit-slop que .hi-del en
+   Historial de Caja. */
+.search-scan-btn{display:none;flex-shrink:0;width:38px;height:38px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);align-items:center;justify-content:center;touch-action:manipulation;position:relative}
+.search-scan-btn::after{content:'';position:absolute;inset:-3px}
 .search-scan-btn:active{background:var(--gold-light);border-color:var(--gold);color:var(--gold-dark)}
 .search-wrap{position:relative;flex:1;min-width:0}
 .search-wrap input{
@@ -1085,7 +1089,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
    Breakpoint 640px: sobreescribe tamaños MPC para teléfono, bottom sheet
    ══════════════════════════════════════════════════════════════════════ */
 @media(max-width:640px){
-  /* Espacio extra abajo: la última tarjeta no debe quedar tapada por los FAB flotantes (+ / 🎁) ni por #scroll-top-btn */
+  /* Espacio extra abajo: la última tarjeta no debe quedar tapada por el FAB "+" ni por #scroll-top-btn (el cálculo ya lo dominaba este lado -- quitar el FAB de Kit del lado izquierdo no cambia el valor) */
   main{padding:14px 12px calc(136px + env(safe-area-inset-bottom))}
 
   /* Fix iOS zoom en inputs < 16px */
