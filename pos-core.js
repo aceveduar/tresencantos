@@ -742,7 +742,6 @@ async function loadProducts() {
     } catch {}
   }
   renderFrecuentes();
-  renderRecienPreparados();
 }
 
 /* ── SUPABASE REALTIME ── */
@@ -1085,7 +1084,6 @@ function _posSearchDebounce(q) {
 function searchProducts(q) {
   _posPage = 1;
   renderFrecuentes(!!q.trim());
-  renderRecienPreparados(!!q.trim());
   const el = document.getElementById('pos-results');
   const matches = getFilteredProducts(q, !!q.trim()).slice(0, 40);
   if (!q.trim() && currentCat === 'all') { showAllProducts(); return; }

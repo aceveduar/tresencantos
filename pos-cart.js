@@ -60,39 +60,6 @@ function renderFrecuentes(hide) {
   el.classList.add('visible');
 }
 
-/* ── RECIÉN PREPARADOS ── */
-// Carril hermano de "Frecuentes" — reemplaza al viejo botón "Recientes" que
-// reordenaba todo el catálogo (con el defecto de quedarse "atorado" sin forma
-// de volver al orden manual, y una señal ambigua: cualquier edición contaba,
-// no solo dar de alta o cambiar precio/stock). En vez de reordenar los ~800
-// productos, un carril acotado igual que Frecuentes: recién dado de alta o
-// con precio/stock recién tocado -- justo lo que Eduardo describió como
-// "lo edité, voy a Caja, lo encuentro de inmediato", sin desestabilizar el
-// orden manual de la lista completa. Usa _posRecentOrder, ya cargado por
-// loadPosRecentlyEdited() (misma tabla recently_edited que ya alimentaba el
-// viejo botón) -- sin fetch nuevo.
-function renderRecienPreparados(hide) {
-  const el = document.getElementById('pos-recientes');
-  if (!el) return;
-  if (hide) { el.classList.remove('visible'); return; }
-  const recent = _posRecentOrder
-    .map(id => products.find(p => p.id === id))
-    .filter(p => p && !p.outOfStock && getKitStock(p) > 0)
-    .slice(0, 10);
-  if (recent.length < 3) { el.classList.remove('visible'); return; }
-  el.innerHTML = `<span class="pos-freq-label">Nuevo</span>` +
-    recent.map(p => `
-<div class="pos-freq-card" onclick="addToCart(${p.id})" title="${_esc(p.name)}">
-  <div class="pos-freq-img-wrap">
-    <img class="pos-freq-img" src="${_driveSz(p.image,80)}" alt="${_esc(p.name)}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
-    <div class="pos-freq-add"><span class="pos-freq-add-icon">+</span></div>
-  </div>
-  <span class="pos-freq-name">${_esc(p.name)}</span>
-  <span class="pos-freq-price">$${p.price.toLocaleString('es-MX')}</span>
-</div>`).join('');
-  el.classList.add('visible');
-}
-
 function addToCart(id, btn, e) {
   const p = products.find(x => x.id === id);
   if (!p) return;
