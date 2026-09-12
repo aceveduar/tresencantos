@@ -328,12 +328,29 @@ async function _runDriveAudit() {
   });
 
   // 2) Todos los archivos que de verdad existen en la carpeta de Drive.
+  // Sin timeout esto se queda esperando para siempre si Drive tarda o el
+  // Apps Script se cuelga -- mismo bug que ya se corrigió hoy en Caja/
+  // Reportes (_posFetchTimeout/_statsFetchTimeout), aquí se le había
+  // olvidado a esta función nueva. 100s de margen: Apps Script en sí tiene
+  // un límite duro de 6 min de ejecución -- si la carpeta es tan grande que
+  // ni siquiera Apps Script logra terminar de listarla, este timeout no lo
+  // resuelve, solo evita que la pantalla se quede colgada sin avisar.
   body.innerHTML = _driveAuditSpinner(`Comparando contra ${used.size} imagen(es) en uso… listando Drive, puede tardar si hay muchos archivos.`);
   let listRes;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 100000);
   try {
-    const r = await fetch(driveEp, { method: 'POST', body: JSON.stringify({ secret: driveSecret, action: 'list' }) });
+    const r = await fetch(driveEp, { method: 'POST', body: JSON.stringify({ secret: driveSecret, action: 'list' }), signal: controller.signal });
     listRes = await r.json();
-  } catch { listRes = null; }
+  } catch (err) {
+    listRes = null;
+    if (err.name === 'AbortError') {
+      body.innerHTML = '<p class="field-hint">Drive tardó demasiado en responder (más de 100s) — puede que la carpeta tenga muchos archivos, o que el Apps Script no haya terminado de desplegarse. Intenta de nuevo en un momento.</p>';
+      return;
+    }
+  } finally {
+    clearTimeout(timeoutId);
+  }
   if (!listRes?.ok) {
     body.innerHTML = '<p class="field-hint">No se pudo listar Drive — confirma que ya agregaste y desplegaste el action "list" en tu Apps Script.</p>';
     return;
