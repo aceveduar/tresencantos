@@ -979,6 +979,12 @@ CACHE_VERSION v499→v500.
 - Balance de llaves verificado en los 5 archivos tocados tras los reemplazos, sin poder abrir un navegador real. **Pendiente confirmar en dispositivo real** — y recordar que como esto toca archivos ya cacheados por el Service Worker, hace falta el ciclo de recarga doble de siempre para verlo reflejado.
 CACHE_VERSION v502→v503.
 
+**Modo oscuro — tercera pasada: `shared.js`/`shared.css`, usado por los 5 módulos (2026-09-12)** — Eduardo pidió seguir buscando. `shared.js` (dropdown de cuenta, "Mi PIN de autorización", el sheet "Se requiere autorización" del sistema de PIN) y `shared.css` (menú de usuario, campana de notificaciones) se cargan en los 5 módulos, no solo Caja — como es genérico, nadie lo había revisado en las 2 pasadas anteriores (cada una miró solo los archivos propios de un módulo). Corregido:
+- `_openOverrideSheet()`/`openMyPinModal()` (`shared.js`) — los 2 modales del sistema de PIN (uno se usa constantemente en Caja: precio/descuento/cancelar venta cuando falta el permiso) tenían fondo, texto, bordes y campo de error todos con hex fijo (`#fff`/`#1C1817`/`#8A7564`/`#EAE0D4`/`#E85D5D`) — se hubieran visto como una tarjeta blanca flotando sobre toda la pantalla oscura. Convertidos a los mismos tokens (`var(--surface)`/`var(--charcoal)`/`var(--muted)`/`var(--border)`/`var(--red)`/`var(--gold)`) — ya dark-aware en Caja e Inventario, los únicos 2 módulos con bloque `[data-theme="dark"]` hoy.
+- `.ud-logout:hover` (`shared.css`, hover del botón "Cerrar sesión" en el menú de cuenta) — mismo problema, `background:#FFF5F5` fijo. `shared.css` no tiene su propio bloque de modo oscuro (es genérico), así que el override se agregó reutilizando `--tint-red-bg` (definido hoy solo en Caja/Inventario) bajo `:root[data-theme="dark"]` — en los módulos que aún no tienen modo oscuro esa regla nunca se activa (no existe `data-theme="dark"` ahí), queda inerte sin romper nada.
+- Verificado que el resto de `shared.css` (`#ud-pop`, `#notif-pop`, `.notif-item`, `#offline-banner`) ya usaba tokens o son banners de alerta a pantalla completa que correctamente se quedan fijos (mismo criterio que toasts/topbar).
+CACHE_VERSION v503→v504.
+
 ---
 
 ## Reportes (`stats.html`)

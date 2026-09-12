@@ -63,6 +63,12 @@ a{text-decoration:none}
 .ud-toggle-hint:empty{display:none}
 .ud-logout{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:none;border-radius:8px;background:transparent;color:var(--red);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s}
 .ud-logout:hover{background:#FFF5F5}
+/* Sin bloque [data-theme="dark"] propio (shared.css es genérico a los 5
+   módulos) -- reutiliza --tint-red-bg, hoy solo definido en el bloque
+   oscuro de admin.css/pos.css. Donde ese token no existe (módulos sin modo
+   oscuro todavía) esta regla nunca se activa porque tampoco existe
+   [data-theme="dark"] ahí. */
+:root[data-theme="dark"] .ud-logout:hover{background:var(--tint-red-bg)}
 .ud-logout svg{flex-shrink:0}
 
 /* ── Avatar de usuario ─────────────────────────────────────────────── */

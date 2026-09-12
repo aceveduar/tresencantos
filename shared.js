@@ -761,17 +761,17 @@ function _openOverrideSheet(permission, label, onDone) {
   wrap.id = 'override-sheet';
   wrap.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5)';
   wrap.innerHTML = `
-    <div onclick="event.stopPropagation()" style="background:#fff;border-radius:18px;padding:22px;max-width:320px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,.3)">
-      <div style="font-size:1rem;font-weight:700;color:#1C1817;margin-bottom:4px">🔒 Se requiere autorización</div>
-      <div style="font-size:.82rem;color:#8A7564;margin-bottom:16px">${(label||'').replace(/[<>&]/g,'')} — pide que alguien con permiso teclee aquí su email y su PIN.</div>
+    <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;padding:22px;max-width:320px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,.3)">
+      <div style="font-size:1rem;font-weight:700;color:var(--charcoal);margin-bottom:4px">🔒 Se requiere autorización</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:16px">${(label||'').replace(/[<>&]/g,'')} — pide que alguien con permiso teclee aquí su email y su PIN.</div>
       <input id="ov-email" type="email" placeholder="Email de quien autoriza" autocomplete="off"
-        style="width:100%;padding:11px 12px;border:1.5px solid #EAE0D4;border-radius:10px;font-size:.95rem;margin-bottom:10px;font-family:inherit;box-sizing:border-box">
+        style="width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:.95rem;margin-bottom:10px;font-family:inherit;box-sizing:border-box">
       <input id="ov-pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="PIN (4-6 dígitos)" autocomplete="off"
-        style="width:100%;padding:11px 12px;border:1.5px solid #EAE0D4;border-radius:10px;font-size:.95rem;margin-bottom:6px;font-family:inherit;box-sizing:border-box;letter-spacing:.3em">
-      <div id="ov-error" style="color:#E85D5D;font-size:.78rem;min-height:16px;margin-bottom:8px"></div>
+        style="width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:.95rem;margin-bottom:6px;font-family:inherit;box-sizing:border-box;letter-spacing:.3em">
+      <div id="ov-error" style="color:var(--red);font-size:.78rem;min-height:16px;margin-bottom:8px"></div>
       <div style="display:flex;gap:8px">
-        <button id="ov-cancel" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #EAE0D4;background:#fff;font-weight:600;font-family:inherit;cursor:pointer">Cancelar</button>
-        <button id="ov-submit" style="flex:1;padding:11px;border-radius:10px;border:none;background:#C9A462;color:#fff;font-weight:700;font-family:inherit;cursor:pointer">Autorizar</button>
+        <button id="ov-cancel" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);font-weight:600;font-family:inherit;cursor:pointer">Cancelar</button>
+        <button id="ov-submit" style="flex:1;padding:11px;border-radius:10px;border:none;background:var(--gold);color:#fff;font-weight:700;font-family:inherit;cursor:pointer">Autorizar</button>
       </div>
     </div>`;
   document.body.appendChild(wrap);
@@ -807,15 +807,15 @@ function openMyPinModal() {
   wrap.id = 'mypin-sheet';
   wrap.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5)';
   wrap.innerHTML = `
-    <div onclick="event.stopPropagation()" style="background:#fff;border-radius:18px;padding:22px;max-width:320px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,.3)">
-      <div style="font-size:1rem;font-weight:700;color:#1C1817;margin-bottom:4px">🔑 Mi PIN de autorización</div>
-      <div style="font-size:.82rem;color:#8A7564;margin-bottom:16px">Úsalo cuando alguien sin permiso necesite tu autorización para una acción puntual (precio, descuento, cancelar, etc). Solo tú puedes verlo o cambiarlo.</div>
+    <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;padding:22px;max-width:320px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,.3)">
+      <div style="font-size:1rem;font-weight:700;color:var(--charcoal);margin-bottom:4px">🔑 Mi PIN de autorización</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Úsalo cuando alguien sin permiso necesite tu autorización para una acción puntual (precio, descuento, cancelar, etc). Solo tú puedes verlo o cambiarlo.</div>
       <input id="mypin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Nuevo PIN (4-6 dígitos)" autocomplete="off"
-        style="width:100%;padding:11px 12px;border:1.5px solid #EAE0D4;border-radius:10px;font-size:.95rem;margin-bottom:6px;font-family:inherit;box-sizing:border-box;letter-spacing:.3em">
-      <div id="mypin-error" style="color:#E85D5D;font-size:.78rem;min-height:16px;margin-bottom:8px"></div>
+        style="width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:.95rem;margin-bottom:6px;font-family:inherit;box-sizing:border-box;letter-spacing:.3em">
+      <div id="mypin-error" style="color:var(--red);font-size:.78rem;min-height:16px;margin-bottom:8px"></div>
       <div style="display:flex;gap:8px">
-        <button id="mypin-cancel" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #EAE0D4;background:#fff;font-weight:600;font-family:inherit;cursor:pointer">Cancelar</button>
-        <button id="mypin-submit" style="flex:1;padding:11px;border-radius:10px;border:none;background:#C9A462;color:#fff;font-weight:700;font-family:inherit;cursor:pointer">Guardar</button>
+        <button id="mypin-cancel" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);font-weight:600;font-family:inherit;cursor:pointer">Cancelar</button>
+        <button id="mypin-submit" style="flex:1;padding:11px;border-radius:10px;border:none;background:var(--gold);color:#fff;font-weight:700;font-family:inherit;cursor:pointer">Guardar</button>
       </div>
     </div>`;
   document.body.appendChild(wrap);
