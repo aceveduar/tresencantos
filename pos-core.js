@@ -939,7 +939,7 @@ function posCard(p) {
     ? (isKit && !p.kitItems.length ? 'Sin componentes' : oos ? 'Sin stock' : `${_giftIconSvg(13)} ${effStock} kit${effStock!==1?'s':''}`)
     : (effStock === 0 ? 'Sin stock' : `${effStock} ud${effStock!==1?'s':''}`);
   const kitComps = isKit && p.kitItems.length
-    ? p.kitItems.map(c => `<div style="font-size:.6rem;color:#9B8B78;line-height:1.3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.qty > 1 ? c.qty + '× ' : ''}${_esc(c.name)}</div>`).join('')
+    ? p.kitItems.map(c => `<div style="font-size:.6rem;color:var(--muted);line-height:1.3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.qty > 1 ? c.qty + '× ' : ''}${_esc(c.name)}</div>`).join('')
     : '';
   let expBadge = '';
   if (p.expiryDate) {
@@ -1117,16 +1117,16 @@ function productCard(p) {
   const oos      = isKit ? effStock === 0 : (effStock === 0 || p.outOfStock);
   const disabled = oos ? 'style="opacity:.5;cursor:not-allowed"' : '';
   const kitCompsLine = isKit && p.kitItems.length
-    ? p.kitItems.map(c => `<div style="font-size:.7rem;color:#9B8B78;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.qty > 1 ? c.qty + '× ' : ''}${_esc(c.name)}</div>`).join('')
+    ? p.kitItems.map(c => `<div style="font-size:.7rem;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.qty > 1 ? c.qty + '× ' : ''}${_esc(c.name)}</div>`).join('')
     : '';
   const stockSub = isKit
     ? (isKit && !p.kitItems.length ? ' · <span style="color:var(--red)">Sin componentes</span>' : oos ? ' · <span style="color:var(--red)">Sin stock</span>' : ` · <span style="color:#6B9E78;font-weight:600">${_giftIconSvg(13)} ${effStock} kit${effStock!==1?'s':''}</span>`)
     : effStock === 1
-      ? ' · <span style="color:#C9A462;font-weight:700">Última</span>'
+      ? ' · <span style="color:var(--gold);font-weight:700">Última</span>'
       : effStock >= 2 && effStock <= 5
         ? ` · <span style="color:#6B9E78;font-weight:600">${effStock} uds</span>`
         : effStock > 5
-          ? ` · <span style="color:#9B8B78">${effStock} uds</span>`
+          ? ` · <span style="color:var(--muted)">${effStock} uds</span>`
           : '';
   let expSub = '';
   if (p.expiryDate) {
@@ -1141,7 +1141,7 @@ function productCard(p) {
   <div class="pos-prod-info">
     <div class="pos-prod-name">${isKit ? _giftIconSvg(14) + ' ' : ''}${_esc(p.name)}</div>
     ${kitCompsLine}
-    <div class="pos-prod-sub"${kitCompsLine ? ' style="margin-top:5px;padding-top:4px;border-top:1px solid #EDE0CF"' : ''}>${_esc(p.categoryLabel)}${stockSub}${expSub}</div>
+    <div class="pos-prod-sub"${kitCompsLine ? ' style="margin-top:5px;padding-top:4px;border-top:1px solid var(--border)"' : ''}>${_esc(p.categoryLabel)}${stockSub}${expSub}</div>
   </div>
   <div class="pos-prod-right">
     <div class="pos-prod-price">$${p.price.toLocaleString('es-MX')}</div>

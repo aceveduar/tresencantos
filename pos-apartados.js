@@ -339,13 +339,13 @@ function updateAnticipoInfo() {
     if (hint) {
       if (noCart && needsCust) {
         hint.textContent = 'Agrega productos y el nombre del cliente para continuar';
-        hint.style.color = '#9B8B78'; hint.style.display = '';
+        hint.style.color = 'var(--muted)'; hint.style.display = '';
       } else if (noCart) {
         hint.textContent = 'Agrega productos al carrito para continuar';
-        hint.style.color = '#9B8B78'; hint.style.display = '';
+        hint.style.color = 'var(--muted)'; hint.style.display = '';
       } else if (needsCust) {
         hint.textContent = 'Ingresa el nombre del cliente para continuar';
-        hint.style.color = '#9B8B78'; hint.style.display = '';
+        hint.style.color = 'var(--muted)'; hint.style.display = '';
       } else if (anticipo <= 0) {
         hint.innerHTML = '<svg style="width:13px;height:13px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> Sin anticipo — se cobrará al entregar';
         hint.style.color = 'var(--gold-dark)'; hint.style.display = '';
@@ -544,7 +544,7 @@ async function loadApartados() {
   if (tabBadge) {
     tabBadge.textContent = empty ? '' : rows.length;
     tabBadge.style.display = empty ? 'none' : 'flex';
-    tabBadge.style.background = vencidos > 0 ? '#E85D5D' : '';
+    tabBadge.style.background = vencidos > 0 ? 'var(--red)' : '';
   }
 
   // Badge del botón en topbar
@@ -554,7 +554,7 @@ async function loadApartados() {
     } else {
       btnBadge.textContent = rows.length;
       btnBadge.style.display = 'flex';
-      btnBadge.style.background = vencidos > 0 ? '#E85D5D' : 'var(--gold)';
+      btnBadge.style.background = vencidos > 0 ? 'var(--red)' : 'var(--gold)';
     }
   }
 
@@ -753,7 +753,7 @@ function _renderApartadoCards(data, isLiquidado) {
     let dueColor = '', dueText = '', dueHTML = '';
     if (s.due_date && !isLiquidado) {
       const diff = _posDayKeyDiff(s.due_date);
-      dueColor = diff < 0 ? '#E85D5D' : diff <= 7 ? '#D97706' : '#6B9E78';
+      dueColor = diff < 0 ? 'var(--red)' : diff <= 7 ? '#D97706' : '#6B9E78';
       dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)}d` : diff === 0 ? 'Vence hoy' : `Vence ${_posFormatDayKey(s.due_date,{day:'numeric',month:'short'})}`;
       dueHTML  = `<span class="apt-h-due" style="color:${dueColor}">${_uiIcoCalendar()} ${dueText}</span>`;
     }
@@ -839,7 +839,7 @@ function _renderApartadoCards(data, isLiquidado) {
     <div class="apt-btns">
       <button class="btn-wa-reminder" onclick="event.stopPropagation();sendApartadoReminder(${s.id})" title="${isLiquidado ? 'Enviar confirmación por WhatsApp' : 'Enviar recordatorio por WhatsApp'}" aria-label="${isLiquidado ? 'Enviar confirmación por WhatsApp' : 'Enviar recordatorio por WhatsApp'}">${_uiIcoWA()}</button>
       ${(isLiquidado || pendiente <= _APT_MONEY_EPSILON) ? `<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--green)">✓ Liquidado</span>` : `
-      <button class="btn-wa-reminder" onclick="event.stopPropagation();openEditApartado(${s.id})" title="Editar" style="background:#F7F2EB;color:var(--charcoal);border:1.5px solid var(--border)">${_uiIcoEdit()}</button>
+      <button class="btn-wa-reminder" onclick="event.stopPropagation();openEditApartado(${s.id})" title="Editar" style="background:var(--cream);color:var(--charcoal);border:1.5px solid var(--border)">${_uiIcoEdit()}</button>
       <button class="btn-abonar" onclick="event.stopPropagation();abonarApartado('${s.id}','${total}','${pagado}','${_esc(nombre).replace(/'/g,"\\'")}')">Registrar abono</button>
       <button class="btn-liquidar" onclick="event.stopPropagation();openLiqModal(${s.id})">Cobrar saldo $${pendiente.toLocaleString('es-MX')}</button>
       <button class="btn-cancelar-apt" onclick="event.stopPropagation();cancelApartado(${s.id})" title="Cancelar apartado">✕</button>`}
@@ -1234,7 +1234,7 @@ function renderEditAptItems() {
     return;
   }
   el.innerHTML = _editAptCtx.items.map((item, idx) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #F0E8DC">
+    <div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)">
       <div style="flex:1;min-width:0">
         <div style="font-size:.84rem;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25">${_esc(item.name)}</div>
         <div style="display:flex;align-items:center;gap:4px;margin-top:5px">
@@ -1247,9 +1247,9 @@ function renderEditAptItems() {
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-        <button onclick="_editAptChangeQty(${idx},-1)" aria-label="Quitar una unidad de ${_esc(item.name)}" style="width:44px;height:44px;border:1.5px solid var(--border);border-radius:7px;background:#fff;cursor:pointer;font-size:.95rem;line-height:1;font-family:inherit">−</button>
+        <button onclick="_editAptChangeQty(${idx},-1)" aria-label="Quitar una unidad de ${_esc(item.name)}" style="width:44px;height:44px;border:1.5px solid var(--border);border-radius:7px;background:var(--surface);cursor:pointer;font-size:.95rem;line-height:1;font-family:inherit">−</button>
         <span style="font-size:.9rem;font-weight:700;min-width:22px;text-align:center">${item.qty||1}</span>
-        <button onclick="_editAptChangeQty(${idx},1)" aria-label="Agregar una unidad de ${_esc(item.name)}" style="width:44px;height:44px;border:1.5px solid var(--border);border-radius:7px;background:#fff;cursor:pointer;font-size:.95rem;line-height:1;font-family:inherit">+</button>
+        <button onclick="_editAptChangeQty(${idx},1)" aria-label="Agregar una unidad de ${_esc(item.name)}" style="width:44px;height:44px;border:1.5px solid var(--border);border-radius:7px;background:var(--surface);cursor:pointer;font-size:.95rem;line-height:1;font-family:inherit">+</button>
       </div>
       <button onclick="_editAptRemove(${idx})" aria-label="Quitar ${_esc(item.name)} del apartado" style="width:44px;height:44px;background:none;border:none;cursor:pointer;color:var(--red);font-size:1.1rem;padding:4px;line-height:1;flex-shrink:0">✕</button>
     </div>`).join('');
@@ -1328,7 +1328,7 @@ function searchEditApt(q) {
   res.style.display = 'block';
   res.innerHTML = matches.map(p => {
     const oos = !_editAptCanAdd(p.id);
-    return `<button type="button" ${oos ? 'disabled' : `onclick="_editAptAddProduct(${p.id})"`} aria-disabled="${oos}" style="width:100%;cursor:${oos?'not-allowed':'pointer'};padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:.82rem;border:0;border-bottom:1px solid var(--border);background:#fff;text-align:left;font-family:inherit;${oos?'opacity:.65':''}">
+    return `<button type="button" ${oos ? 'disabled' : `onclick="_editAptAddProduct(${p.id})"`} aria-disabled="${oos}" style="width:100%;cursor:${oos?'not-allowed':'pointer'};padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:.82rem;border:0;border-bottom:1px solid var(--border);background:var(--surface);text-align:left;font-family:inherit;${oos?'opacity:.65':''}">
       <img src="${_driveSz(p.image, 80)}" style="width:28px;height:28px;object-fit:cover;border-radius:5px;flex-shrink:0" onerror="this.style.display='none'">
       <span style="flex:1;font-weight:600">${_esc(p.name)}</span>
       <span style="color:${oos?'var(--red)':'var(--muted)'};font-size:.74rem">${oos?'Sin stock':'$'+p.price.toLocaleString('es-MX')}</span>

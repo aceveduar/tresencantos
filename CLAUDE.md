@@ -969,6 +969,16 @@ agregar el bloque oscuro:
   catálogo, el carrito, Historial, Apartados y Corte con la vista real.
 CACHE_VERSION v499→v500.
 
+**Modo oscuro en Caja — segunda pasada: el HTML generado por JS quedó fuera del primer barrido (2026-09-12)** — Eduardo pidió seguir auditando el modo oscuro de Caja tras probarlo en su celular. El pase original (v499→v500) solo revisó `pos.html`/`pos.css` (archivos estáticos) — pero buena parte de la UI de Caja se arma con `innerHTML`/template strings en `pos-core.js`/`pos-cart.js`/`pos-ui.js`/`pos-apartados.js` (catálogo, Historial, Corte, Apartados), y esos nunca se revisaron. Encontrados y corregidos **75 colores hardcodeados** entre los 4 archivos:
+- **Conversión directa** (mismo criterio que el primer pase): texto secundario `#9B8B78` → `var(--muted)`, fondos `#fff`/`#F7F2EB` → `var(--surface)`/`var(--cream)`, bordes `#F0E8DC` → `var(--border)`, y 3 literales que ya coincidían exacto con un token existente (`#E85D5D`→`var(--red)`, `#C9A462`→`var(--gold)`) limpiados por consistencia aunque no cambiaban nada visualmente.
+- **2 grupos de badges de color por estado, antes con estilo inline, movidos a clase** — un inline `style=""` le gana a cualquier selector externo salvo `!important`, así que no bastaba con agregar un bloque `[data-theme="dark"]`; había que darles una clase primero:
+  - `.corte-tag-*` (Corte → "Ver detalle de mis cobros", `pos-cart.js _renderCorteDetalle()`) — 5 estados (Devolución/Apartado nuevo/Abono/Movimiento/Venta). "Abono" es morado (`#F1EAFB`/`#5B3FA0`, mismo color que ya usa Reportes para el mismo estado) — sin tinte morado en la paleta de este proyecto todavía, se agregó `--tint-violet-bg/border/strong` nuevo (solo en el bloque oscuro, junto a `--tint-red/amber/green/blue` ya existentes).
+  - `.pay-badge-*` (Historial, `pos-ui.js`, el badge "Venta"/"Abono"/"Apartado nuevo"/"Devolución"/"Liquidado" de cada tarjeta) — mismo patrón.
+  - `.corte-warn-box` (aviso "abonos antiguos sin registro de quién los cobró") — un solo caso suelto sin necesidad de varios estados, override con `!important` directo.
+- **Verificado que el bug de `--charcoal`-como-fondo (encontrado y corregido en el primer pase) no se repetía aquí** — sin ninguna coincidencia de `background:var(--charcoal)` en los 4 archivos JS.
+- Balance de llaves verificado en los 5 archivos tocados tras los reemplazos, sin poder abrir un navegador real. **Pendiente confirmar en dispositivo real** — y recordar que como esto toca archivos ya cacheados por el Service Worker, hace falta el ciclo de recarga doble de siempre para verlo reflejado.
+CACHE_VERSION v502→v503.
+
 ---
 
 ## Reportes (`stats.html`)

@@ -334,7 +334,7 @@ function renderCart() {
       ? `<span style="text-decoration:line-through;opacity:.45;font-size:.65rem;margin-right:3px">$${p.price.toLocaleString('es-MX')}</span>$${effPrice.toLocaleString('es-MX')}`
       : `$${effPrice.toLocaleString('es-MX')}`;
     const kitSub = Array.isArray(p.kitItems) && p.kitItems.length
-      ? `<div style="font-size:.7rem;color:#9B8B78;margin-top:1px">${_giftIconSvg(13)} ${_esc(p.kitItems.map(c=>`${c.qty>1?c.qty+'× ':''}${c.name}`).join(', '))}</div>`
+      ? `<div style="font-size:.7rem;color:var(--muted);margin-top:1px">${_giftIconSvg(13)} ${_esc(p.kitItems.map(c=>`${c.qty>1?c.qty+'× ':''}${c.name}`).join(', '))}</div>`
       : '';
     return `
 <div class="cart-item" data-pid="${p.id}">
@@ -549,12 +549,12 @@ async function loadCorte() {
 
   const row = (label, value, sub='') => `
     <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:.8rem;color:var(--muted);font-weight:600">${label}${sub ? `<span style="font-weight:400;margin-left:6px;color:#B5A696">${sub}</span>` : ''}</span>
+      <span style="font-size:.8rem;color:var(--muted);font-weight:600">${label}${sub ? `<span style="font-weight:400;margin-left:6px;color:var(--muted-light)">${sub}</span>` : ''}</span>
       <span style="font-weight:700;font-size:.9rem">${value}</span>
     </div>`;
 
   content.innerHTML = `
-    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">
       ${row(_icoBag() + ' Ventas directas', numVentas)}
       ${numLiquidados ? row(_icoCheck() + ' Apartados liquidados', numLiquidados) : ''}
       ${numApartados  ? row(_icoBookmark() + ' Apartados nuevos', numApartados, anticipos > 0 ? `anticipos activos ${fmt(anticipos)}` : '') : ''}
@@ -568,14 +568,14 @@ async function loadCorte() {
       </div>
       ${Math.abs(otros) >= .005 ? row(_icoReceipt() + ' Ajustes sin método', fmt(otros)) : ''}
       ${devoluciones > 0 ? row(_icoUndo() + ' Devoluciones registradas', `−${fmt(devoluciones)}`) : ''}
-      <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;background:#F7F2EB">
-        <span style="font-size:.88rem;font-weight:700">${isGeneral ? 'Neto del día' : 'Neto del turno'}<span style="font-weight:400;font-size:.7rem;color:#B5A696;display:block;margin-top:1px">${isGeneral ? 'Todas las cajeras, hoy' : 'Solo lo que cobraste tú en este horario'}</span></span>
+      <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;background:var(--cream)">
+        <span style="font-size:.88rem;font-weight:700">${isGeneral ? 'Neto del día' : 'Neto del turno'}<span style="font-weight:400;font-size:.7rem;color:var(--muted-light);display:block;margin-top:1px">${isGeneral ? 'Todas las cajeras, hoy' : 'Solo lo que cobraste tú en este horario'}</span></span>
         <span style="font-size:1.15rem;font-weight:800;color:${total > 0 ? 'var(--green)' : 'var(--muted)'}">${fmt(total)}</span>
       </div>
     </div>
-    ${anticipos > 0 ? `<div style="background:#FFF8EE;border:1px solid var(--gold);border-radius:10px;padding:10px 14px;font-size:.78rem;color:var(--gold-dark)">${_icoBookmark()} <strong>${fmt(anticipos)}</strong> cobrados ${isGeneral ? 'hoy' : 'en este turno'} en apartados que continúan activos</div>` : ''}
-    ${!isGeneral && unassignedPayments.length ? `<div style="background:#FFF3F3;border:1px solid #FCA5A5;border-radius:10px;padding:10px 14px;font-size:.76rem;color:#991B1B">${_icoWarn()} ${fmt(unassignedNet)} en ${unassignedPayments.length} abono${unassignedPayments.length!==1?'s':''} antiguo${unassignedPayments.length!==1?'s':''} sin registro de quién los cobró (datos de antes de esta actualización) — no cuentan en tu corte.</div>` : ''}
-    ${!isGeneral && otherCashiers.length ? `<div style="background:#F7F2EB;border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:.76rem;color:var(--muted)">${_icoUsers()} ${fmt(otherCashiersNet)} los cobró otra cuenta en este mismo horario — no cuentan en tu corte.</div>` : ''}
+    ${anticipos > 0 ? `<div style="background:var(--gold-light);border:1px solid var(--gold);border-radius:10px;padding:10px 14px;font-size:.78rem;color:var(--gold-dark)">${_icoBookmark()} <strong>${fmt(anticipos)}</strong> cobrados ${isGeneral ? 'hoy' : 'en este turno'} en apartados que continúan activos</div>` : ''}
+    ${!isGeneral && unassignedPayments.length ? `<div class="corte-warn-box" style="background:#FFF3F3;border:1px solid #FCA5A5;border-radius:10px;padding:10px 14px;font-size:.76rem;color:#991B1B">${_icoWarn()} ${fmt(unassignedNet)} en ${unassignedPayments.length} abono${unassignedPayments.length!==1?'s':''} antiguo${unassignedPayments.length!==1?'s':''} sin registro de quién los cobró (datos de antes de esta actualización) — no cuentan en tu corte.</div>` : ''}
+    ${!isGeneral && otherCashiers.length ? `<div style="background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:.76rem;color:var(--muted)">${_icoUsers()} ${fmt(otherCashiersNet)} los cobró otra cuenta en este mismo horario — no cuentan en tu corte.</div>` : ''}
     <div style="text-align:center;font-size:.72rem;color:var(--muted);padding:4px 0">Generado ${ahoraMX}</div>
   `;
 
@@ -611,11 +611,14 @@ function _renderCorteDetalle(payments) {
       : payment.source === 'rpc_apartado_payment' ? 'ABONO'
       : payment.source === 'rpc_direct_sale' ? 'VENTA'
       : 'MOVIMIENTO';
-    const tagStyle = isRefund ? 'background:#FEE2E2;color:#991B1B'
-      : tagText === 'APARTADO NUEVO' ? 'background:#FFF8EE;color:#9A742D'
-      : tagText === 'ABONO' ? 'background:#F1EAFB;color:#5B3FA0'
-      : tagText === 'MOVIMIENTO' ? 'background:var(--border);color:var(--muted)'
-      : 'background:#DCFCE7;color:#166534';
+    // Clases en vez de estilo inline -- así el bloque [data-theme="dark"] de
+    // pos.css sí puede invertir estos colores (un inline style le gana a
+    // cualquier selector externo salvo que use !important).
+    const tagClass = isRefund ? 'corte-tag-refund'
+      : tagText === 'APARTADO NUEVO' ? 'corte-tag-aptnew'
+      : tagText === 'ABONO' ? 'corte-tag-abono'
+      : tagText === 'MOVIMIENTO' ? 'corte-tag-mov'
+      : 'corte-tag-venta';
     const origin = sale?.origin_type;
     const nombre = origin === 'apartado'
       ? _esc((sale?.customer || '').split(' · 📱 ')[0] || `Apartado #${payment.sale_id}`)
@@ -627,7 +630,7 @@ function _renderCorteDetalle(payments) {
     return `
       <div style="padding:9px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
         <span style="font-size:.7rem;color:var(--muted-light);flex-shrink:0;width:38px">${time}</span>
-        <span style="font-size:.62rem;${tagStyle};padding:1px 6px;border-radius:50px;font-weight:700;flex-shrink:0">${tagText}</span>
+        <span class="corte-tag ${tagClass}" style="font-size:.62rem;padding:1px 6px;border-radius:50px;font-weight:700;flex-shrink:0">${tagText}</span>
         <span style="font-size:.78rem;color:var(--charcoal);flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${nombre}</span>
         <span style="font-size:.7rem;color:var(--muted-light);flex-shrink:0">${methodIco}</span>
         <span style="font-weight:700;font-size:.84rem;flex-shrink:0;color:${isRefund ? 'var(--red)' : 'var(--charcoal)'}">${amountText}</span>
@@ -635,7 +638,7 @@ function _renderCorteDetalle(payments) {
   }).join('');
   return `
     <button type="button" id="corte-detalle-toggle" onclick="_corteToggleDetalle()" style="width:100%;text-align:left;padding:10px 14px;border:1.5px dashed var(--border);border-radius:10px;background:transparent;color:var(--muted);font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;touch-action:manipulation">▾ Ver detalle de mis cobros (${payments.length})</button>
-    <div id="corte-detalle-list" style="display:none;margin-top:6px;background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">${rows}</div>`;
+    <div id="corte-detalle-list" style="display:none;margin-top:6px;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">${rows}</div>`;
 }
 
 // Quién cobró qué, sumado en efectivo+transferencia (mismo criterio que el
@@ -657,7 +660,7 @@ function _corteBreakdownRows(payments) {
 function _renderCorteBreakdown(rows, fmt) {
   if (!rows.length) return '';
   return `
-    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">
       <div style="padding:10px 16px;border-bottom:1px solid var(--border)"><span style="font-size:.82rem;font-weight:700;color:var(--charcoal)">${_icoUsers()} Por cajero</span></div>
       ${rows.map(r => `
         <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
@@ -691,9 +694,9 @@ function _netGastos(gastos) { return gastos.reduce((s, g) => s + (g.kind === 'in
 
 function _setGastoKind(kind) {
   _gastoKind = kind;
-  document.getElementById('gasto-kind-gasto')?.style.setProperty('background', kind === 'gasto' ? '#fff' : 'none');
+  document.getElementById('gasto-kind-gasto')?.style.setProperty('background', kind === 'gasto' ? 'var(--surface)' : 'none');
   document.getElementById('gasto-kind-gasto')?.style.setProperty('box-shadow', kind === 'gasto' ? '0 1px 3px rgba(0,0,0,.12)' : 'none');
-  document.getElementById('gasto-kind-ingreso')?.style.setProperty('background', kind === 'ingreso' ? '#fff' : 'none');
+  document.getElementById('gasto-kind-ingreso')?.style.setProperty('background', kind === 'ingreso' ? 'var(--surface)' : 'none');
   document.getElementById('gasto-kind-ingreso')?.style.setProperty('box-shadow', kind === 'ingreso' ? '0 1px 3px rgba(0,0,0,.12)' : 'none');
   document.getElementById('gasto-monto')?.setAttribute('placeholder', kind === 'ingreso' ? 'Monto que entró $' : 'Monto $');
 }

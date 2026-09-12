@@ -49,13 +49,13 @@ async function openTransactionTimeline(saleId) {
     const when = d.toLocaleDateString('es-MX', { day:'numeric', month:'short', year:'numeric' }) + ' · ' + d.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
     const who = (ev.user_email || 'desconocido').split('@')[0];
     const reasonHTML = ev.meta?.reason
-      ? `<div style="font-size:.76rem;color:#1C1817;font-style:italic;margin-top:4px;background:#F7F2EB;border-radius:6px;padding:5px 8px">"${_esc(ev.meta.reason)}"</div>`
+      ? `<div style="font-size:.76rem;color:var(--charcoal);font-style:italic;margin-top:4px;background:var(--cream);border-radius:6px;padding:5px 8px">"${_esc(ev.meta.reason)}"</div>`
       : '';
     return `
 <div style="border-left:2px solid var(--gold);padding:2px 0 14px 14px;margin-left:4px;position:relative">
   <span style="position:absolute;left:-5px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--gold)"></span>
   <div style="font-size:.68rem;color:var(--muted);font-weight:600">${_esc(when)} · ${_esc(who)}</div>
-  <div style="font-size:.85rem;color:#1C1817;margin-top:2px">${_esc(ev.summary)}</div>
+  <div style="font-size:.85rem;color:var(--charcoal);margin-top:2px">${_esc(ev.summary)}</div>
   ${reasonHTML}
 </div>`;
   }).join('');
@@ -598,7 +598,7 @@ function _renderAptPageCards(data, isLiquidado) {
     if (s.due_date) {
       const diff = _posDayKeyDiff(s.due_date);
       isOverdue = diff < 0;
-      const dueColor = diff < 0 ? '#E85D5D' : diff <= 7 ? '#D97706' : '#6B9E78';
+      const dueColor = diff < 0 ? 'var(--red)' : diff <= 7 ? '#D97706' : '#6B9E78';
       const dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)}d` : diff === 0 ? 'Vence hoy' : `Vence ${_posFormatDayKey(s.due_date,{day:'numeric',month:'short'})}`;
       dueHTML = `<span class="apc-due" style="color:${dueColor}">${_uiIcoCalendar()} ${dueText}</span>`;
     }
@@ -640,7 +640,7 @@ function openAptDetail(id) {
     const sub      = i.subtotal ?? i.price * qty;
     const kitComps = Object.prototype.hasOwnProperty.call(i, 'kit_items') ? i.kit_items : prod?.kitItems;
     const kitHTML  = Array.isArray(kitComps) && kitComps.length
-      ? kitComps.map(c => `<div style="font-size:.68rem;color:#9B8B78;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${_esc(c.name)}${c.qty > 1 ? ' ×' + c.qty : ''}</div>`).join('')
+      ? kitComps.map(c => `<div style="font-size:.68rem;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${_esc(c.name)}${c.qty > 1 ? ' ×' + c.qty : ''}</div>`).join('')
       : '';
     const origSub = i.original_price != null
       ? `<span style="text-decoration:line-through;opacity:.45;font-size:.68rem;margin-right:3px">$${(i.original_price * qty).toLocaleString('es-MX')}</span>`
@@ -668,7 +668,7 @@ function openAptDetail(id) {
   let dueAlertHTML = '';
   if (s.due_date && !isLiquidado) {
     const diff = _posDayKeyDiff(s.due_date);
-    const dueColor = diff < 0 ? '#E85D5D' : diff <= 7 ? '#D97706' : '#6B9E78';
+    const dueColor = diff < 0 ? 'var(--red)' : diff <= 7 ? '#D97706' : '#6B9E78';
     const dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)} día${Math.abs(diff)!==1?'s':''}` : diff === 0 ? 'Vence hoy' : `Vence el ${_posFormatDayKey(s.due_date,{day:'numeric',month:'long'})}`;
     dueAlertHTML = `<div style="font-size:.76rem;font-weight:700;color:${dueColor};margin-bottom:10px">${_uiIcoCalendar()} ${dueText}</div>`;
   }
@@ -937,28 +937,30 @@ async function loadHistory() {
       const isApt = s.origin_type === 'apartado' || (!s.origin_type && (s.type === 'apartado' || (s.abonos || []).length));
       const methodIcon = payment.method === 'transferencia' ? _uiIcoPhone() : payment.method === 'efectivo' ? _uiIcoCash() : _uiIcoReceipt();
       let badgeText;
-      let badgeStyle = 'background:#F5F1EB;color:#6B625A;border:1px solid #D8CEC3';
+      // Clases en vez de estilo inline -- así el bloque [data-theme="dark"]
+      // de pos.css sí puede invertir estos colores.
+      let badgeClass = 'pay-badge-default';
       if (payment.kind === 'apartado_created') {
         badgeText = _uiIcoBookmark() + ' Apartado nuevo';
-        badgeStyle = 'background:#FFF8EE;color:#9A742D;border:1px solid #C9A462';
+        badgeClass = 'pay-badge-gold';
       } else if (payment.kind === 'refund') {
         badgeText = _uiIco('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>') + ' Devolución';
-        badgeStyle = 'background:#FEE2E2;color:var(--red);border:1px solid #FCA5A5';
+        badgeClass = 'pay-badge-refund';
       } else if (payment.kind === 'adjustment') {
         badgeText = _uiIcoReceipt() + ' Ajuste histórico';
       } else if (isApt && _isApartadoLiquidationPayment(payment, s)) {
         badgeText = _uiIcoCheck('#2D6A4F') + ' Apartado liquidado';
-        badgeStyle = 'background:#ECFDF5;color:#2D6A4F;border:1px solid #2D6A4F';
+        badgeClass = 'pay-badge-green';
       } else if (isApt && payment.source === 'rpc_apartado_initial') {
         badgeText = _uiIcoBookmark() + ' Anticipo';
-        badgeStyle = 'background:#FFF8EE;color:#9A742D;border:1px solid #C9A462';
+        badgeClass = 'pay-badge-gold';
       } else if (isApt) {
         badgeText = _uiIcoBookmark() + ' Abono';
-        badgeStyle = 'background:#FFF8EE;color:#9A742D;border:1px solid #C9A462';
+        badgeClass = 'pay-badge-gold';
       } else {
         badgeText = `${methodIcon} Venta`;
       }
-      const payBadge = `<span class="pay-badge" style="font-size:.62rem;${badgeStyle};padding:2px 6px;border-radius:50px;font-weight:700">${badgeText}</span>`;
+      const payBadge = `<span class="pay-badge ${badgeClass}" style="font-size:.62rem;padding:2px 6px;border-radius:50px;font-weight:700">${badgeText}</span>`;
 
       const THUMB_PH = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2228%22 height=%2228%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23D1C4B8%22 stroke-width=%221.5%22%3E%3Crect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/%3E%3Ccircle cx=%228.5%22 cy=%228.5%22 r=%221.5%22/%3E%3Cpath d=%22m21 15-5-5L5 21%22/%3E%3C/svg%3E';
       const itemsHTML = items.map(i => {
@@ -1019,7 +1021,7 @@ async function loadHistory() {
       ${canCancelThis ? `<button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar registro completo" aria-label="Cancelar registro completo">✕</button>` : ''}
     </div>
   </div>
-  <div class="hi-items">${itemsHTML || '<div style="color:#9B8B78;font-size:.78rem;padding:4px 0">Sin detalle</div>'}</div>
+  <div class="hi-items">${itemsHTML || '<div style="color:var(--muted);font-size:.78rem;padding:4px 0">Sin detalle</div>'}</div>
   ${footerHTML}
 </div>`;
     }).join('');

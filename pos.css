@@ -27,6 +27,7 @@
   --tint-amber-bg:#332A14;--tint-amber-border:rgba(251,191,36,.4);--tint-amber-strong:#FBBF24;
   --tint-green-bg:#1B2E22;--tint-green-border:rgba(110,231,183,.35);--tint-green-strong:#6EE7B7;
   --tint-blue-bg:#18263A;--tint-blue-border:rgba(96,165,250,.35);--tint-blue-strong:#7DB8F5;
+  --tint-violet-bg:#241C38;--tint-violet-border:rgba(196,168,245,.35);--tint-violet-strong:#C4A8F5;
   /* Igual que admin.css: sin esto los controles nativos (checkbox, date
      picker, scrollbars) se siguen dibujando en su tema claro por default. */
   color-scheme:dark;
@@ -59,6 +60,15 @@
 :root[data-theme="dark"] .apc-card.apt-overdue{border-color:var(--tint-red-border)}
 /* "Más opciones"/"Ya lo cobró Ofelia" activos */
 :root[data-theme="dark"] #more-options-toggle-btn.active{background:var(--tint-amber-bg);border-color:var(--tint-amber-border)}
+/* Corte — tags de "Ver detalle de mis cobros" */
+:root[data-theme="dark"] .corte-tag-refund{background:var(--tint-red-bg);color:var(--tint-red-strong)}
+:root[data-theme="dark"] .corte-tag-aptnew{background:var(--tint-amber-bg);color:var(--tint-amber-strong)}
+:root[data-theme="dark"] .corte-tag-abono{background:var(--tint-violet-bg);color:var(--tint-violet-strong)}
+:root[data-theme="dark"] .corte-tag-venta{background:var(--tint-green-bg);color:var(--tint-green-strong)}
+:root[data-theme="dark"] .corte-warn-box{background:var(--tint-red-bg)!important;border-color:var(--tint-red-border)!important;color:var(--tint-red-strong)!important}
+/* Historial — badge de tipo de movimiento */
+:root[data-theme="dark"] .pay-badge-refund{background:var(--tint-red-bg);border-color:var(--tint-red-border)}
+:root[data-theme="dark"] .pay-badge-green{background:var(--tint-green-bg);color:var(--tint-green-strong);border-color:var(--tint-green-border)}
 :root[data-theme="dark"] .collected-by-btn.active{background:var(--tint-amber-bg);border-color:var(--tint-amber-border)}
 /* Elementos con estilo inline en pos.html -- un inline style siempre le gana
    a un selector externo salvo que este use !important, así que estas 6
@@ -397,6 +407,25 @@ button,a{touch-action:manipulation}
 .hi-tag.discount{background:#FEF3C7;color:#92400E}
 .hi-tag.note{background:#EFF6FF;color:#1E40AF;font-weight:500}
 .hi-tag.customer{background:#F0FDF4;color:#166534}
+
+/* Corte — "Ver detalle de mis cobros" (pos-cart.js _renderCorteDetalle()).
+   Antes vivían como estilo inline (tagStyle) -- movidos a clase para que el
+   bloque [data-theme="dark"] de arriba los pueda invertir (un inline style
+   le gana a cualquier selector externo). corte-tag-mov ya usa var(--border)/
+   var(--muted), dark-aware de por sí, no necesita override propio. */
+.corte-tag-refund{background:#FEE2E2;color:#991B1B}
+.corte-tag-aptnew{background:#FFF8EE;color:#9A742D}
+.corte-tag-abono{background:#F1EAFB;color:#5B3FA0}
+.corte-tag-mov{background:var(--border);color:var(--muted)}
+.corte-tag-venta{background:#DCFCE7;color:#166534}
+
+/* Historial — badge de tipo de movimiento (pos-ui.js, .pay-badge). Mismo
+   motivo que corte-tag: antes era estilo inline, movido a clase para poder
+   invertir en modo oscuro. */
+.pay-badge-default{background:#F5F1EB;color:var(--muted);border:1px solid var(--border)}
+.pay-badge-gold{background:var(--gold-light);color:var(--gold-dark);border:1px solid var(--gold)}
+.pay-badge-refund{background:#FEE2E2;color:var(--red);border:1px solid #FCA5A5}
+.pay-badge-green{background:#ECFDF5;color:#2D6A4F;border:1px solid #2D6A4F}
 
 /* Loading */
 @keyframes spin{to{transform:rotate(360deg)}}
