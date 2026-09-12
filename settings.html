@@ -300,6 +300,18 @@
           <button class="btn btn-red-outline btn-sm" onclick="clearDrive()" id="drive-clear-btn" style="display:none">Desconectar</button>
         </div>
         <p class="field-hint" style="margin-top:8px">Pega el secreto en tu Apps Script donde dice <code>const SECRET = '...'</code></p>
+        <details class="scard-help">
+          <summary>Instrucciones para conectar o reconectar Drive</summary>
+          <ol>
+            <li>Abre tu proyecto de Apps Script en <a href="https://script.google.com/home" target="_blank" rel="noopener">script.google.com</a> (el que ya tenías configurado, ligado a la carpeta de Drive de Tres Encantos) — no crees uno nuevo.</li>
+            <li>Ahí, ve a <strong>Implementar → Administrar implementaciones</strong> y copia la URL que termina en <code>/exec</code>.</li>
+            <li>Pega esa URL arriba, en "URL del Apps Script (exec)", y toca <strong>Guardar</strong> — se genera un secreto nuevo solo.</li>
+            <li>Toca el campo gris para copiar ese secreto nuevo.</li>
+            <li>Regresa al código del Apps Script, busca la línea <code>const SECRET = '...'</code> y reemplázala con el secreto que copiaste.</li>
+            <li>En Apps Script: <strong>Implementar → Administrar implementaciones → ✏️ (editar) → Nueva versión → Implementar</strong>. Este paso es obligatorio — si se salta, sigue usando el secreto viejo y da error de "no autorizado".</li>
+            <li>Regresa aquí y toca <strong>"Probar conexión"</strong> para confirmar que ya quedó.</li>
+          </ol>
+        </details>
       </div>
     </div>
   </div>

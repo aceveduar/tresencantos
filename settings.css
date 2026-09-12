@@ -43,6 +43,18 @@ button,a,[onclick]{touch-action:manipulation}
 .status-tag{font-size:.72rem;font-weight:600;color:var(--muted-light)}
 .status-tag.ok{color:var(--green)}
 
+/* Desplegable "Instrucciones" -- pasos para alguien sin conocimiento técnico,
+   plegado por default para no estorbar a quien ya sabe el flujo. */
+.scard-help{margin-top:10px;font-size:.78rem;border-top:1px dashed var(--border);padding-top:10px}
+.scard-help summary{cursor:pointer;font-weight:600;color:var(--gold-dark);list-style:none;user-select:none}
+.scard-help summary::-webkit-details-marker{display:none}
+.scard-help summary::before{content:'▸';display:inline-block;margin-right:5px;transition:transform .15s}
+.scard-help[open] summary::before{transform:rotate(90deg)}
+.scard-help ol{margin:10px 0 0;padding-left:20px;color:var(--muted);line-height:1.7}
+.scard-help ol li{margin-bottom:5px}
+.scard-help code{background:#F0E8E0;padding:1px 5px;border-radius:4px}
+.scard-help a{color:var(--gold-dark)}
+
 /* ── TOGGLE SWITCH ── */
 .te-switch{position:relative;display:inline-block;width:44px;height:28px;flex-shrink:0}
 .te-switch input{opacity:0;width:0;height:0}
