@@ -684,8 +684,25 @@ function _renderCorteBreakdown(rows, fmt) {
 // mande el cliente. "Quitar" un gasto nunca lo borra de verdad (mismo
 // principio de ledger append-only que sales/sale_payments) -- lo cancela,
 // conservando el rastro; ver te_cancel_shift_expense.
+// Un "ingreso" (ej. recargas telefónicas cobradas en efectivo, que no
+// pasan por el catálogo ni tienen margen que valga la pena calcular) es un
+// gasto con signo contrario -- no se modela como venta ni como producto,
+// solo explica un movimiento de efectivo que de otro modo no cuadraría en
+// el cierre. _netGastos() centraliza esa conversión de signo para que
+// render/cierre/WhatsApp usen siempre el mismo número.
 let _gastosCache = [];
+let _gastoKind = 'gasto';
 function _getGastos() { return _gastosCache; }
+function _netGastos(gastos) { return gastos.reduce((s, g) => s + (g.kind === 'ingreso' ? -g.amount : g.amount), 0); }
+
+function _setGastoKind(kind) {
+  _gastoKind = kind;
+  document.getElementById('gasto-kind-gasto')?.style.setProperty('background', kind === 'gasto' ? '#fff' : 'none');
+  document.getElementById('gasto-kind-gasto')?.style.setProperty('box-shadow', kind === 'gasto' ? '0 1px 3px rgba(0,0,0,.12)' : 'none');
+  document.getElementById('gasto-kind-ingreso')?.style.setProperty('background', kind === 'ingreso' ? '#fff' : 'none');
+  document.getElementById('gasto-kind-ingreso')?.style.setProperty('box-shadow', kind === 'ingreso' ? '0 1px 3px rgba(0,0,0,.12)' : 'none');
+  document.getElementById('gasto-monto')?.setAttribute('placeholder', kind === 'ingreso' ? 'Monto que entró $' : 'Monto $');
+}
 
 async function _loadGastos() {
   if (!_currentShift) { _gastosCache = []; return; }
@@ -694,6 +711,7 @@ async function _loadGastos() {
     id: e.id,
     desc: e.description,
     amount: e.amount,
+    kind: e.kind || 'gasto',
     time: new Date(e.created_at).toLocaleTimeString('es-MX', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit' })
   })) : [];
 }
@@ -706,22 +724,25 @@ function hideGastoForm() {
   document.getElementById('gastos-form').style.display = 'none';
   document.getElementById('gasto-desc').value = '';
   document.getElementById('gasto-monto').value = '';
+  _setGastoKind('gasto');
 }
 
 async function agregarGasto() {
   const desc  = document.getElementById('gasto-desc').value.trim();
   const monto = parseFloat(document.getElementById('gasto-monto').value) || 0;
   if (!desc || monto <= 0) return;
+  const kind = _gastoKind;
   hideGastoForm();
   const r = await api('rpc/te_add_shift_expense', {
     method: 'POST',
-    body: JSON.stringify({ p_description: desc, p_amount: monto })
+    body: JSON.stringify({ p_description: desc, p_amount: monto, p_kind: kind })
   });
-  if (!r.ok || !r.data) { toast(r.data?.message || 'No se pudo agregar el gasto', 'error'); return; }
+  if (!r.ok || !r.data) { toast(r.data?.message || 'No se pudo agregar', 'error'); return; }
   _gastosCache.push({
     id: r.data.id,
     desc: r.data.description,
     amount: r.data.amount,
+    kind: r.data.kind || 'gasto',
     time: new Date(r.data.created_at).toLocaleTimeString('es-MX', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit' })
   });
   renderGastos();
@@ -732,7 +753,7 @@ async function eliminarGasto(id) {
     method: 'POST',
     body: JSON.stringify({ p_expense_id: id })
   });
-  if (!r.ok) { toast(r.data?.message || 'No se pudo quitar el gasto', 'error'); return; }
+  if (!r.ok) { toast(r.data?.message || 'No se pudo quitar', 'error'); return; }
   _gastosCache = _gastosCache.filter(g => g.id !== id);
   renderGastos();
 }
@@ -741,32 +762,46 @@ function renderGastos() {
   const gastos = _getGastos();
   const list   = document.getElementById('gastos-list');
   const totRow = document.getElementById('gastos-total-row');
+  const totLbl = document.getElementById('gastos-total-label');
   const totEl  = document.getElementById('gastos-total');
   const utilRow= document.getElementById('utilidad-row');
   const utilEl = document.getElementById('utilidad-val');
   if (!gastos.length) {
-    list.innerHTML = '<div style="padding:10px 0;font-size:.78rem;color:var(--muted);text-align:center">Sin gastos registrados</div>';
+    list.innerHTML = '<div style="padding:10px 0;font-size:.78rem;color:var(--muted);text-align:center">Sin movimientos registrados</div>';
     totRow.style.display = 'none';
     utilRow.style.display = 'none';
     _renderCierre();
     return;
   }
-  const totalGastos = gastos.reduce((s, g) => s + g.amount, 0);
-  list.innerHTML = gastos.map(g => `
+  const netGastos = _netGastos(gastos);
+  list.innerHTML = gastos.map(g => {
+    const isIngreso = g.kind === 'ingreso';
+    const color = isIngreso ? 'var(--green)' : 'var(--red)';
+    const sign  = isIngreso ? '+' : '-';
+    return `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
       <div>
         <span style="font-size:.82rem;font-weight:600">${_esc(g.desc)}</span>
         <span style="font-size:.68rem;color:var(--muted);margin-left:6px">${g.time}</span>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-weight:700;color:var(--red);font-size:.84rem">-$${g.amount.toLocaleString('es-MX')}</span>
+        <span style="font-weight:700;color:${color};font-size:.84rem">${sign}$${g.amount.toLocaleString('es-MX')}</span>
         <button onclick="eliminarGasto(${g.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;width:44px;height:44px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center">✕</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   totRow.style.display = 'flex';
-  totEl.textContent = '-$' + totalGastos.toLocaleString('es-MX');
+  if (netGastos >= 0) {
+    totLbl.textContent = 'Neto (resta al esperado)';
+    totLbl.style.color = totEl.style.color = 'var(--red)';
+    totEl.textContent = '-$' + netGastos.toLocaleString('es-MX');
+  } else {
+    totLbl.textContent = 'Neto (suma al esperado)';
+    totLbl.style.color = totEl.style.color = 'var(--green)';
+    totEl.textContent = '+$' + Math.abs(netGastos).toLocaleString('es-MX');
+  }
   if (_corteData) {
-    const utilidad = Math.round((_corteData.total - totalGastos + Number.EPSILON) * 100) / 100;
+    const utilidad = Math.round((_corteData.total - netGastos + Number.EPSILON) * 100) / 100;
     utilRow.style.display = 'flex';
     utilEl.textContent = '$' + utilidad.toLocaleString('es-MX');
     utilEl.style.color = utilidad >= 0 ? 'var(--gold-dark)' : 'var(--red)';
@@ -851,7 +886,7 @@ function _renderCierre() {
   }
 
   const fondo = _currentShift?.fondo_inicial ?? 0;
-  const totalGastos = _getGastos().reduce((s, g) => s + g.amount, 0);
+  const totalGastos = _netGastos(_getGastos());
   const esperado = Math.round((fondo + _corteData.efectivo - totalGastos + Number.EPSILON) * 100) / 100;
   if (esperadoRow) esperadoRow.style.display = 'flex';
   document.getElementById('corte-esperado').textContent = '$' + esperado.toLocaleString('es-MX');
@@ -883,7 +918,7 @@ function compartirCorteWA() {
     isGeneral, breakdown } = _corteData;
   const fmt = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX')}`;
   const gastos = _getGastos();
-  const totalGastos = gastos.reduce((s, g) => s + g.amount, 0);
+  const totalGastos = _netGastos(gastos);
   let msg = isGeneral
     ? `🧾 *Corte general — Tres Encantos*\nHoy desde las ${inicioMX} · todas las cajeras\n${ahoraMX}\n\n`
     : `🧾 *Corte de caja — Tres Encantos*\n${actorLabel} · desde ${inicioMX}\n${ahoraMX}\n\n`;
@@ -905,8 +940,8 @@ function compartirCorteWA() {
     if (Math.abs(otherCashiersNet || 0) >= .005) msg += `\n👥 ${fmt(otherCashiersNet)} cobrados por otra cuenta — no incluidos`;
   }
   if (gastos.length && !isGeneral) {
-    msg += `\n\n💸 *Gastos del turno:*\n` + gastos.map(g => `• ${g.desc}: ${fmt(g.amount)}`).join('\n');
-    msg += `\nTotal gastos: ${fmt(totalGastos)}`;
+    msg += `\n\n💸 *Movimientos del turno:*\n` + gastos.map(g => `• ${g.desc}: ${g.kind === 'ingreso' ? '+' : '−'}${fmt(g.amount)}`).join('\n');
+    msg += `\nNeto: ${fmt(totalGastos)}`;
     msg += `\n\n🏆 *Utilidad: ${fmt(total - totalGastos)}*`;
   }
 
@@ -948,7 +983,7 @@ async function confirmCloseTurno() {
   if (!confirm('¿Cerrar tu turno? No podrás seguir vendiendo hasta que abras uno nuevo.')) return;
 
   const conteo = parseFloat(conteoRaw) || 0;
-  const totalGastos = _getGastos().reduce((s, g) => s + g.amount, 0);
+  const totalGastos = _netGastos(_getGastos());
 
   // Diferencia grande (mismo umbral que el servidor, $100) -- cerrar sin
   // supervisión ya no basta, igual que precio/descuento/cancelar/editar

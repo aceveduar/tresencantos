@@ -580,11 +580,15 @@
       <!-- GASTOS DEL TURNO -->
       <div style="margin-top:14px;background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
         <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:.82rem;font-weight:700;color:var(--charcoal)"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>Gastos del turno</span>
+          <span style="font-size:.82rem;font-weight:700;color:var(--charcoal)"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>Gastos y otros movimientos</span>
           <button onclick="showGastoForm()" style="font-size:.72rem;font-weight:700;color:var(--gold-dark);background:var(--gold-light);border:1px solid rgba(201,164,98,.3);border-radius:50px;padding:3px 12px;cursor:pointer;font-family:inherit">+ Agregar</button>
         </div>
         <div id="gastos-form" style="display:none;padding:10px 16px;border-bottom:1px solid var(--border);display:none;gap:8px;flex-direction:column">
-          <input id="gasto-desc" type="text" placeholder="Descripción (ej: Refresco, Taxi…)" style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;font-family:inherit;outline:none">
+          <div class="gasto-kind-toggle" style="display:flex;gap:6px;background:var(--surface-soft,#F7F2EB);border:1.5px solid var(--border);border-radius:10px;padding:3px">
+            <button type="button" id="gasto-kind-gasto" onclick="_setGastoKind('gasto')" style="flex:1;padding:7px 10px;border-radius:8px;border:none;background:#fff;color:var(--red);font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit;box-shadow:0 1px 3px rgba(0,0,0,.12)">− Gasto</button>
+            <button type="button" id="gasto-kind-ingreso" onclick="_setGastoKind('ingreso')" style="flex:1;padding:7px 10px;border-radius:8px;border:none;background:none;color:var(--muted);font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">+ Ingreso</button>
+          </div>
+          <input id="gasto-desc" type="text" placeholder="Descripción (ej: Refresco, Taxi, Recarga…)" style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;font-family:inherit;outline:none">
           <div style="display:flex;gap:8px">
             <input id="gasto-monto" type="number" placeholder="Monto $" min="0" style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;font-family:inherit;outline:none">
             <button onclick="agregarGasto()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--charcoal);color:#fff;font-weight:700;font-size:.82rem;cursor:pointer;font-family:inherit">✓</button>
@@ -593,7 +597,7 @@
         </div>
         <div id="gastos-list" style="padding:0 16px"></div>
         <div id="gastos-total-row" style="display:none;padding:10px 16px;border-top:1px solid var(--border);display:none;justify-content:space-between;align-items:center;background:#FEF2F2">
-          <span style="font-size:.82rem;font-weight:600;color:var(--red)">Total gastos</span>
+          <span id="gastos-total-label" style="font-size:.82rem;font-weight:600;color:var(--red)">Neto</span>
           <span id="gastos-total" style="font-weight:800;color:var(--red);font-size:.92rem"></span>
         </div>
       </div>
