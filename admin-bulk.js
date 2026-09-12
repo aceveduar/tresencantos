@@ -60,7 +60,14 @@ async function bulkDelete() {
     }
   }
 
-  toDelete.forEach(p => { const fid = _driveFileId(p.image); if (fid) _deleteDriveFile(fid); });
+  // Borra de Drive la principal y todas las adicionales de cada producto --
+  // ver mismo fix en admin-form.js confirmDelete().
+  toDelete.forEach(p => {
+    [p.image, ...(p.images || [])].filter(Boolean).forEach(url => {
+      const fid = _driveFileId(url);
+      if (fid) _deleteDriveFile(fid);
+    });
+  });
   products = products.filter(p => !selectedIds.has(p.id));
   if (_qvCurrentId && !products.find(p => p.id === _qvCurrentId)) closeQV();
   selectedIds.clear();

@@ -733,9 +733,18 @@ async function saveProduct() {
         toast(`Error al actualizar: ${errMsg}`, 'error');
         return;
       }
-      // Guardado OK → borrar imagen anterior de Drive si fue reemplazada
-      const oldId = _driveFileId(_prevImage);
-      if (oldId && _prevImage !== data.image) _deleteDriveFile(oldId);
+      // Guardado OK → borrar de Drive cualquier imagen (principal o
+      // adicional) que ya no esté en el producto. Antes solo se comparaba
+      // la principal -- una adicional reemplazada o quitada en el
+      // formulario nunca se borraba de Drive, quedando huérfana ahí para
+      // siempre.
+      const oldImgs = [_prevImage, ...(_prev?.images || [])].filter(Boolean);
+      const newImgs = [data.image, ...(data.images || [])].filter(Boolean);
+      oldImgs.forEach(url => {
+        if (newImgs.includes(url)) return;
+        const fid = _driveFileId(url);
+        if (fid) _deleteDriveFile(fid);
+      });
     }
   } else {
     const maxId = products.reduce((m, p) => Math.max(m, p.id), 0);
@@ -1211,8 +1220,13 @@ async function confirmDelete() {
       toast(`"${truncName(deleted.name)}" restaurado ✓`, 'success');
     }
   }, () => {
-    const fileId = _driveFileId(deleted?.image);
-    if (fileId) _deleteDriveFile(fileId);
+    // Borra de Drive la principal y todas las adicionales -- antes solo se
+    // borraba la principal, dejando huérfanas las adicionales de cualquier
+    // producto eliminado que tuviera más de una foto.
+    [deleted?.image, ...(deleted?.images || [])].filter(Boolean).forEach(url => {
+      const fileId = _driveFileId(url);
+      if (fileId) _deleteDriveFile(fileId);
+    });
   });
 }
 

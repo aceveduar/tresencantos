@@ -647,8 +647,12 @@ async function _deleteDupProduct(id, pairKey) {
     renderTable();
     toast(`"${truncName(deleted.name)}" restaurado ✓`, 'success');
   }, () => {
-    const fileId = _driveFileId(deleted?.image);
-    if (fileId) _deleteDriveFile(fileId);
+    // Borra de Drive la principal y todas las adicionales -- ver mismo fix
+    // en admin-form.js confirmDelete().
+    [deleted?.image, ...(deleted?.images || [])].filter(Boolean).forEach(url => {
+      const fileId = _driveFileId(url);
+      if (fileId) _deleteDriveFile(fileId);
+    });
   });
 }
 
