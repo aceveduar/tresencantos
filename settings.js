@@ -269,6 +269,134 @@ async function testDriveEndpoint() {
   btn.textContent = 'Probar conexión'; btn.disabled = false;
 }
 
+/* ── AUDITORÍA DE IMÁGENES DE DRIVE (2026-09-12) ──
+   Compara los archivos que de verdad existen en la carpeta de Drive contra
+   las imágenes que algún producto usa hoy (principal + adicionales,
+   incluidos archivados) -- lo que sobra es candidato a borrar. Nunca borra
+   solo: siempre muestra la lista para que se decida a mano. Requiere que
+   el Apps Script tenga el action "list" (ver
+   assets/apps_script_actualizado.gs) ya desplegado. */
+function _driveFileId(url) {
+  if (!url || !url.includes('drive.google.com')) return null;
+  const m = url.match(/[?&]id=([^&]+)/);
+  return m ? m[1] : null;
+}
+
+let _driveAuditFiles = []; // [{id,name,createdDate,size,selected}]
+
+function openDriveAudit() {
+  document.getElementById('drive-audit-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  _runDriveAudit();
+}
+function closeDriveAudit() {
+  document.getElementById('drive-audit-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+async function _runDriveAudit() {
+  const body = document.getElementById('drive-audit-body');
+  const foot = document.getElementById('drive-audit-foot');
+  foot.style.display = 'none';
+  body.innerHTML = '<p class="field-hint">Buscando archivos sin usar…</p>';
+  if (!driveEp || !driveSecret) {
+    body.innerHTML = '<p class="field-hint">Conecta Google Drive primero (arriba, en Integraciones).</p>';
+    return;
+  }
+
+  // 1) Todas las imágenes que algún producto usa hoy (incluye archivados --
+  // se pueden restaurar, así que su imagen sigue en uso real).
+  const prodR = await _posPaginatedFetch('products?select=image,images&order=id.asc');
+  if (!prodR.ok) { body.innerHTML = '<p class="field-hint">No se pudo leer el catálogo — intenta de nuevo.</p>'; return; }
+  const used = new Set();
+  (prodR.data || []).forEach(p => {
+    [p.image, ...(p.images || [])].filter(Boolean).forEach(url => {
+      const id = _driveFileId(url);
+      if (id) used.add(id);
+    });
+  });
+
+  // 2) Todos los archivos que de verdad existen en la carpeta de Drive.
+  let listRes;
+  try {
+    const r = await fetch(driveEp, { method: 'POST', body: JSON.stringify({ secret: driveSecret, action: 'list' }) });
+    listRes = await r.json();
+  } catch { listRes = null; }
+  if (!listRes?.ok) {
+    body.innerHTML = '<p class="field-hint">No se pudo listar Drive — confirma que ya agregaste y desplegaste el action "list" en tu Apps Script.</p>';
+    return;
+  }
+
+  _driveAuditFiles = (listRes.files || [])
+    .filter(f => !used.has(f.id))
+    .sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate))
+    .map(f => ({ ...f, selected: true }));
+
+  _renderDriveAudit();
+}
+
+function _renderDriveAudit() {
+  const body = document.getElementById('drive-audit-body');
+  const foot = document.getElementById('drive-audit-foot');
+  if (!_driveAuditFiles.length) {
+    body.innerHTML = '<p class="field-hint">No se encontró ningún archivo huérfano — Drive está limpio ✓</p>';
+    foot.style.display = 'none';
+    return;
+  }
+  const n = _driveAuditFiles.filter(f => f.selected).length;
+  const totalMB = (_driveAuditFiles.reduce((s, f) => s + (f.size || 0), 0) / 1024 / 1024).toFixed(1);
+  body.innerHTML = `
+    <p class="field-hint" style="margin-bottom:10px">${_driveAuditFiles.length} archivo(s) sin usar por ningún producto (~${totalMB} MB). Revisa antes de borrar — la papelera de Drive los conserva unos días por si acaso.</p>
+    <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;font-weight:600;margin-bottom:8px;cursor:pointer">
+      <input type="checkbox" ${n === _driveAuditFiles.length ? 'checked' : ''} onchange="_toggleDriveAuditAll(this.checked)"> Seleccionar todos
+    </label>
+    <div style="max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
+      ${_driveAuditFiles.map((f, i) => `
+        <label style="display:flex;align-items:center;gap:10px;padding:6px;border:1px solid var(--border);border-radius:8px;cursor:pointer">
+          <input type="checkbox" ${f.selected ? 'checked' : ''} onchange="_toggleDriveAuditItem(${i}, this.checked)">
+          <img src="https://drive.google.com/thumbnail?id=${f.id}&sz=w80" style="width:40px;height:40px;object-fit:cover;border-radius:6px;background:var(--surface-soft);flex-shrink:0" onerror="this.style.visibility='hidden'">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.8rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(f.name)}</div>
+            <div style="font-size:.68rem;color:var(--muted)">${new Date(f.createdDate).toLocaleDateString('es-MX')} · ${((f.size||0)/1024).toFixed(0)} KB</div>
+          </div>
+        </label>
+      `).join('')}
+    </div>
+  `;
+  foot.style.display = 'flex';
+  document.getElementById('drive-audit-delete-btn').textContent = `Eliminar seleccionadas (${n})`;
+  document.getElementById('drive-audit-delete-btn').disabled = n === 0;
+}
+
+function _toggleDriveAuditItem(i, checked) {
+  _driveAuditFiles[i].selected = checked;
+  _renderDriveAudit();
+}
+function _toggleDriveAuditAll(checked) {
+  _driveAuditFiles.forEach(f => f.selected = checked);
+  _renderDriveAudit();
+}
+
+async function _driveAuditDeleteSelected() {
+  const toDelete = _driveAuditFiles.filter(f => f.selected);
+  if (!toDelete.length) return;
+  if (!confirm(`¿Eliminar ${toDelete.length} archivo(s) de Drive? Van a la papelera, no se borran para siempre de inmediato.`)) return;
+  const btn = document.getElementById('drive-audit-delete-btn');
+  btn.disabled = true; btn.textContent = 'Eliminando…';
+  const deletedIds = new Set();
+  for (const f of toDelete) {
+    try {
+      const r = await fetch(driveEp, { method: 'POST', body: JSON.stringify({ secret: driveSecret, action: 'delete', fileId: f.id }) });
+      const d = await r.json().catch(() => null);
+      if (d?.ok) deletedIds.add(f.id);
+    } catch {}
+  }
+  _driveAuditFiles = _driveAuditFiles.filter(f => !deletedIds.has(f.id));
+  toast(`${deletedIds.size} de ${toDelete.length} archivo(s) eliminados ✓`, deletedIds.size === toDelete.length ? 'ok' : 'err');
+  if (deletedIds.size) logActivity('configuracion_editada', `Eliminó ${deletedIds.size} imagen(es) huérfana(s) de Drive`, { count: deletedIds.size });
+  _renderDriveAudit();
+}
+
 // Vía RPC (no POST directo a la tabla config): valida el permiso correcto
 // según qué llave se está tocando (canManageCatalogSettings/canImportExport/
 // canManageSettings), antes de escribir. Necesario porque config_insert/
