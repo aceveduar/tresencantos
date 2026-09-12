@@ -480,7 +480,18 @@ function importProducts(input) {
         badgeType: p.badgeType || p.badge_type || null,
         featured: Boolean(p.featured),
         outOfStock: Boolean(p.outOfStock ?? p.out_of_stock),
-        position: p.position ?? i
+        position: p.position ?? i,
+        stock: Number(p.stock) || 0,
+        cost: p.cost ?? null,
+        barcode: p.barcode || null,
+        kitItems: p.kitItems || p.kit_items || null,
+        images: p.images || null,
+        expiryDate: p.expiryDate || p.expiry_date || null,
+        supplierCode: p.supplierCode || p.supplier_code || null,
+        // Default seguro si el archivo no trae el campo (export viejo, JSON
+        // editado a mano): nunca publicar de más -- solo true si el archivo
+        // lo dice explícitamente, igual que un producto nuevo creado a mano.
+        isPublished: (p.isPublished ?? p.is_published) === true
       }));
 
       const newCount    = imported.filter(p => !products.find(x => x.id === p.id)).length;
@@ -508,7 +519,15 @@ function importProducts(input) {
         featured: p.featured,
         out_of_stock: p.outOfStock,
         original_price: p.originalPrice,
-        position: p.position
+        position: p.position,
+        stock: p.stock,
+        cost: p.cost,
+        barcode: p.barcode,
+        kit_items: p.kitItems,
+        images: p.images,
+        expiry_date: p.expiryDate,
+        supplier_code: p.supplierCode,
+        is_published: p.isPublished
       }));
 
       const result = await supabaseApi('products', {
