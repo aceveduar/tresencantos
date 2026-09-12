@@ -83,7 +83,6 @@ let _returnToKitId = null;     // ID del kit cuyo formulario se debe reabrir al 
 let _returnToKitQVId = null;   // ID del kit cuyo QV se debe reabrir al cerrar un componente
 let _scrollToKitOnOpen = false; // al regresar al kit, hacer scroll hasta la sección de componentes
 let _returnToRecv = false;     // true si el formulario se abrió desde "Recibir mercancía" (producto no encontrado) -- al cerrar (se guarde o se cancele), regresa ahí en vez de dejar al usuario en el catálogo general
-let _salesCountMap = new Map(); // productId → qty vendida total
 let deleteTargetId = null;
 let selectedIds = new Set();
 let dragSrcId = null;
@@ -1080,7 +1079,6 @@ async function showApp() {
   await loadCategories();
   await Promise.all([loadAppConfig(), loadFlagged(), loadRecentlyEdited(), loadApartadosMap()]);
   await loadProductsFromSupabase();
-  loadSalesCounts(); // no-blocking — actualiza chips cuando termina
   _syncFlagFilter();
   renderStats();
   _refreshCreatorFilter();
@@ -1124,30 +1122,6 @@ function mapProduct(p) {
     expiryDate: p.expiry_date || null,
     supplierCode: p.supplier_code || null
   };
-}
-
-async function loadSalesCounts() {
-  try {
-    const r = await supabaseApi('sales?select=items&type=eq.venta&cancelled_at=is.null&limit=5000');
-    if (!r.ok || !Array.isArray(r.data)) return;
-    const map = new Map();
-    r.data.forEach(sale => {
-      (sale.items || []).forEach(item => {
-        if (item.id) map.set(item.id, (map.get(item.id) || 0) + (item.qty || 1));
-      });
-    });
-    _salesCountMap = map;
-    // Persiste en config para que app.js pueda ordenar en la tienda
-    const obj = {};
-    map.forEach((qty, id) => { obj[id] = qty; });
-    supabaseApi('config', {
-      method: 'POST',
-      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({ id: 'sales_counts', value: JSON.stringify(obj) })
-    });
-    renderStats();
-    renderTable();
-  } catch {}
 }
 
 async function loadProductsFromSupabase() {
