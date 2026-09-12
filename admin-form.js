@@ -1108,7 +1108,10 @@ async function addAdditionalImageUrl() {
 
 /* ── DELETE ── */
 async function askDelete(id) {
-  if (!can.deleteProduct) { toast('Solo el administrador puede eliminar productos', 'error'); return; }
+  if (!can.deleteProduct) {
+    const granted = await requestOverride('canDeleteProduct', 'Eliminar producto');
+    if (!granted) return;
+  }
   const kitsAfectados = products.filter(p => p.kitItems?.some(item => item.id === id));
   if (kitsAfectados.length) {
     const nombres = kitsAfectados.map(k => `"${k.name}"`).join(', ');
@@ -1146,22 +1149,29 @@ async function confirmDelete() {
   const btn = document.getElementById('del-confirm-btn');
   setBtn(btn, true, 'Eliminando...');
 
-  const result = await supabaseApi(`products?id=eq.${id}`, {
-    method: 'DELETE',
-    headers: { 'Prefer': 'return=representation' }
+  // te_delete_products (RPC, no DELETE directo): permite que el permiso
+  // se satisfaga con un ticket de PIN, no solo con el rol -- un DELETE
+  // directo vía RLS no puede "consumir" un ticket una sola vez de forma
+  // segura en un borrado masivo, ver commit de la limpieza de RLS de
+  // products (2026-09-12). También registra en Actividad del lado del
+  // servidor, así que aquí ya no se llama logActivity().
+  const result = await supabaseApi('rpc/te_delete_products', {
+    method: 'POST',
+    body: JSON.stringify({
+      p_ids: [id],
+      p_permission: 'canDeleteProduct',
+      p_override_tickets: _collectOverrideTickets(['canDeleteProduct'])
+    })
   });
-  const blocked = !result.ok || (Array.isArray(result.data) && result.data.length === 0);
-  if (blocked) {
+  if (!result.ok) {
     setBtn(btn, false);
-    const msg = !result.ok ? (result.data?.message || result.data?.hint || `HTTP ${result.status}`) : 'Sin permiso para eliminar este producto';
-    toast('Error al eliminar: ' + msg, 'error');
+    toast('Error al eliminar: ' + (result.data?.message || result.data?.hint || `HTTP ${result.status}`), 'error');
     closeDel();
     return;
   }
 
   const deleted = products.find(p => p.id === id);
   const deletedIdx = products.findIndex(p => p.id === id);
-  if (deleted) logActivity('producto_eliminado', `Eliminó "${deleted.name}"`, { id, name: deleted.name, price: deleted.price });
 
   products = products.filter(p => p.id !== id);
   selectedIds.delete(id);

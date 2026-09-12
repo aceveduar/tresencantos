@@ -593,7 +593,10 @@ function _dismissDupPair(pairKey) {
 }
 
 async function _deleteDupProduct(id, pairKey) {
-  if (!can.deleteProduct) return;
+  if (!can.deleteProduct) {
+    const granted = await requestOverride('canDeleteProduct', 'Eliminar producto');
+    if (!granted) return;
+  }
   // Mismo bloqueo que askDelete() en admin-form.js -- ver ese comentario
   // para el contexto completo (caso real 2026-09-04).
   const hits = await _productsInActiveApartados([id]);
@@ -606,11 +609,15 @@ async function _deleteDupProduct(id, pairKey) {
   if (!confirm('¿Eliminar este producto? Tendrás 7 segundos para deshacer.')) return;
   const deleted = products.find(p => p.id === id);
   const deletedIdx = products.findIndex(p => p.id === id);
-  const result = await supabaseApi(`products?id=eq.${id}`, {
-    method: 'DELETE', headers: { 'Prefer': 'return=minimal' }
+  const result = await supabaseApi('rpc/te_delete_products', {
+    method: 'POST',
+    body: JSON.stringify({
+      p_ids: [id],
+      p_permission: 'canDeleteProduct',
+      p_override_tickets: _collectOverrideTickets(['canDeleteProduct'])
+    })
   });
   if (!result.ok) { toast('Error al eliminar', 'error'); return; }
-  if (deleted) logActivity('producto_eliminado', `Eliminó "${deleted.name}" (duplicado)`, { id, name: deleted.name, price: deleted.price });
   products = products.filter(p => p.id !== id);
   selectedIds.delete(id);
   renderTable();

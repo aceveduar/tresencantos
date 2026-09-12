@@ -37,15 +37,25 @@ async function bulkDelete() {
 
   if (!confirm(`¿Eliminar ${selectedIds.size} producto(s) seleccionado(s)?\nEsta acción no se puede deshacer.`)) return;
 
+  if (!can.bulkDelete) {
+    const granted = await requestOverride('canBulkDelete', 'Borrado masivo');
+    if (!granted) return;
+  }
+
   if (getSupabaseUrl()) {
-    const ids = [...selectedIds].join(',');
-    const result = await supabaseApi(`products?id=in.(${ids})`, {
-      method: 'DELETE',
-      headers: { 'Prefer': 'return=representation' }
+    // te_delete_products (RPC) en vez de DELETE directo -- permite ticket de
+    // PIN y consume uno solo por todo el borrado, no uno por fila. Ver
+    // commit de la limpieza de RLS de products (2026-09-12).
+    const result = await supabaseApi('rpc/te_delete_products', {
+      method: 'POST',
+      body: JSON.stringify({
+        p_ids: [...selectedIds],
+        p_permission: 'canBulkDelete',
+        p_override_tickets: _collectOverrideTickets(['canBulkDelete'])
+      })
     });
-    if (!result.ok || (Array.isArray(result.data) && result.data.length === 0)) {
-      const msg = !result.ok ? (result.data?.message || `HTTP ${result.status}`) : 'Sin permiso para eliminar estos productos';
-      toast('Error al eliminar: ' + msg, 'error');
+    if (!result.ok) {
+      toast('Error al eliminar: ' + (result.data?.message || `HTTP ${result.status}`), 'error');
       return;
     }
   }
