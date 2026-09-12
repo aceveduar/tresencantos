@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme-ready="1">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -10,6 +10,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared.css">
 <link rel="stylesheet" href="pos.css">
+<script>
+/* Aplica el modo oscuro guardado ANTES del primer paint, para que no haya
+   flash claro→oscuro. data-theme-ready marca qué módulos ya tienen su
+   propia paleta oscura — ver shared.js _initThemeToggle(). */
+(function(){try{if(localStorage.getItem('te_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();
+</script>
 </head>
 <body>
 <!-- Input trampa: captura escáner USB en Android sin mostrar teclado virtual -->
@@ -35,11 +41,11 @@
       </div>
       <p style="font-size:.72rem;color:var(--muted);margin-bottom:16px">Cuenta el efectivo que hay en la caja ahora mismo. Puede ser $0.</p>
       <div id="open-shift-error" style="display:none;background:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B;border-radius:8px;padding:8px 12px;font-size:.78rem;margin-bottom:12px"></div>
-      <button id="open-shift-btn" style="width:100%;padding:13px;border-radius:50px;border:none;background:var(--charcoal);color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit">Abrir caja e iniciar turno</button>
+      <button id="open-shift-btn" style="width:100%;padding:13px;border-radius:50px;border:none;background:var(--ink);color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit">Abrir caja e iniciar turno</button>
     </div>
     <div id="open-shift-retry-wrap" style="display:none;text-align:center;padding:12px 0">
       <p style="font-size:.84rem;color:var(--red);margin-bottom:12px">No se pudo verificar tu turno. Revisa tu conexión.</p>
-      <button id="open-shift-retry-btn" style="padding:10px 20px;border-radius:50px;border:1.5px solid var(--border);background:#fff;font-size:.84rem;font-weight:700;cursor:pointer;font-family:inherit">Reintentar</button>
+      <button id="open-shift-retry-btn" style="padding:10px 20px;border-radius:50px;border:1.5px solid var(--border);background:var(--surface);font-size:.84rem;font-weight:700;cursor:pointer;font-family:inherit">Reintentar</button>
     </div>
   </div>
 </div>
@@ -120,7 +126,7 @@
     <div class="pos-search-bar">
       <div style="position:relative;flex:1;min-width:0;display:flex">
         <input type="text" id="pos-search" placeholder="Buscar producto..." oninput="_posSearchDebounce(this.value)" autocomplete="off" style="flex:1;min-width:0;padding-right:32px">
-        <button id="pos-search-clear" onclick="clearPosSearch()" title="Limpiar" style="display:none;position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#B5A696;font-size:1rem;padding:4px;line-height:1;touch-action:manipulation">✕</button>
+        <button id="pos-search-clear" onclick="clearPosSearch()" title="Limpiar" style="display:none;position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted-light);font-size:1rem;padding:4px;line-height:1;touch-action:manipulation">✕</button>
       </div>
       <div class="pos-sort-toggle" id="pos-sort-toggle">
         <button class="pos-sort-btn" data-sort="recientes" onclick="setPosSort('recientes')" title="Recientes"><svg style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
@@ -143,7 +149,7 @@
       <span class="pos-freq-label">Freq.</span>
     </div>
     <!-- Resumen de caja diario — solo mobile -->
-    <div id="daily-summary-mobile" style="display:none;align-items:center;gap:8px;padding:5px 14px;background:#FFFBF4;border-bottom:1px solid var(--border);font-size:.73rem;color:var(--charcoal);flex-shrink:0"></div>
+    <div id="daily-summary-mobile" style="display:none;align-items:center;gap:8px;padding:5px 14px;background:var(--gold-light);border-bottom:1px solid var(--border);font-size:.73rem;color:var(--charcoal);flex-shrink:0"></div>
     <div class="pos-results" id="pos-results">
       <div class="pos-empty"><div class="em"><svg style="width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>Cargando productos…</div>
     </div>
@@ -155,7 +161,7 @@
   <!-- DERECHO: carrito + cobro -->
   <div class="pos-right" id="pos-right">
     <div class="cart-header">
-      <span><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Carrito <span id="cart-count" style="color:#9B8B78;font-weight:400"></span></span>
+      <span><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Carrito <span id="cart-count" style="color:var(--muted);font-weight:400"></span></span>
       <button class="cart-clear" onclick="clearCart()">Vaciar</button>
     </div>
 
@@ -205,7 +211,7 @@
           </div>
           <div class="cash-field">
             <label>Cambio</label>
-            <input type="number" id="pos-change-input" readonly placeholder="—" style="background:#F9F4EE;color:var(--green);font-weight:700">
+            <input type="number" id="pos-change-input" readonly placeholder="—" style="background:var(--surface-soft);color:var(--green);font-weight:700">
           </div>
         </div>
       </div>
@@ -270,7 +276,7 @@
       </div>
 
       <button id="cobrar-btn" class="btn btn-green" onclick="cobrar()" disabled>✓ Cobrar</button>
-      <p id="cobrar-hint" style="display:none;text-align:center;font-size:.74rem;color:#9B8B78;margin-top:5px;line-height:1.4"></p>
+      <p id="cobrar-hint" style="display:none;text-align:center;font-size:.74rem;color:var(--muted);margin-top:5px;line-height:1.4"></p>
     </div>
   </div>
 
@@ -360,7 +366,7 @@
     </div>
     <div class="cash-field" style="margin-bottom:14px">
       <label>Pendiente</label>
-      <input type="number" id="pos-pendiente" readonly style="background:#F9F4EE;color:var(--red);font-weight:700">
+      <input type="number" id="pos-pendiente" readonly style="background:var(--surface-soft);color:var(--red);font-weight:700">
     </div>
     <!-- El método de pago del anticipo no aplica si el anticipo es $0 --
          updateAnticipoInfo() lo oculta en ese caso -->
@@ -374,7 +380,7 @@
     </div>
     <div class="cash-field">
       <label><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Fecha límite de pago</label>
-      <input type="date" id="pos-due-date" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%;background:#fff">
+      <input type="date" id="pos-due-date" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%;background:var(--surface)">
     </div>
     <div class="abonar-footer" style="margin-top:16px">
       <button class="btn-cancel" onclick="_cancelApartadoSheet()">Cancelar apartado</button>
@@ -385,7 +391,7 @@
 
 <!-- RESTOCK PROMPT -->
 <div id="restock-prompt" style="display:none;position:fixed;inset:0;z-index:520;background:rgba(0,0,0,.45);align-items:flex-end;justify-content:center" onclick="if(event.target===this)_closeRestockPrompt()">
-  <div style="background:#fff;border-radius:20px 20px 0 0;padding:22px 20px 32px;width:100%;max-width:480px;box-shadow:0 -8px 32px rgba(0,0,0,.18)">
+  <div style="background:var(--surface);border-radius:20px 20px 0 0;padding:22px 20px 32px;width:100%;max-width:480px;box-shadow:0 -8px 32px rgba(0,0,0,.18)">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
       <span style="font-weight:700;font-size:.95rem;color:var(--charcoal)"><svg style="width:15px;height:15px;vertical-align:-2px;margin-right:5px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>Sin stock — ¿Reabastecer?</span>
       <button onclick="_closeRestockPrompt()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted);touch-action:manipulation">✕</button>
@@ -394,12 +400,12 @@
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
       <span style="font-size:.88rem;font-weight:600;color:var(--charcoal)">Unidades a agregar</span>
       <div style="display:flex;align-items:center;gap:14px">
-        <button onclick="_restockChangeQty(-1)" style="width:38px;height:38px;border-radius:9px;border:1.5px solid var(--border);background:#fff;font-size:1.3rem;font-weight:700;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center">−</button>
+        <button onclick="_restockChangeQty(-1)" style="width:38px;height:38px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface);font-size:1.3rem;font-weight:700;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center">−</button>
         <span id="restock-qty-val" style="font-size:1.3rem;font-weight:700;min-width:28px;text-align:center">1</span>
-        <button onclick="_restockChangeQty(1)" style="width:38px;height:38px;border-radius:9px;border:1.5px solid var(--border);background:#fff;font-size:1.3rem;font-weight:700;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center">+</button>
+        <button onclick="_restockChangeQty(1)" style="width:38px;height:38px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface);font-size:1.3rem;font-weight:700;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center">+</button>
       </div>
     </div>
-    <button id="restock-confirm-btn" onclick="_confirmRestock()" style="width:100%;background:var(--charcoal);color:#fff;border:none;border-radius:12px;padding:15px;font-size:.92rem;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation;margin-bottom:10px">Reabastecer y agregar al carrito →</button>
+    <button id="restock-confirm-btn" onclick="_confirmRestock()" style="width:100%;background:var(--ink);color:#fff;border:none;border-radius:12px;padding:15px;font-size:.92rem;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation;margin-bottom:10px">Reabastecer y agregar al carrito →</button>
     <button onclick="_closeRestockPrompt()" style="width:100%;background:none;border:none;color:var(--muted);font-size:.85rem;cursor:pointer;font-family:inherit;touch-action:manipulation;padding:6px">Cancelar</button>
   </div>
 </div>
@@ -511,7 +517,7 @@
         style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:.85rem;outline:none;font-family:inherit;box-sizing:border-box"
         oninput="searchEditApt(this.value)"
         onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
-      <div id="edit-apt-search-results" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:10;background:#fff;border:1px solid var(--border);border-radius:9px;max-height:180px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.1)"></div>
+      <div id="edit-apt-search-results" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:10;background:var(--surface);border:1px solid var(--border);border-radius:9px;max-height:180px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.1)"></div>
     </div>
     <div id="edit-apt-total" style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--charcoal);text-align:right;margin-bottom:12px"></div>
     <!-- Fecha límite -- visible y editable aquí (antes no aparecía en absoluto
@@ -519,7 +525,7 @@
          solo porque cambiaron los productos. -->
     <div class="cash-field" style="margin-bottom:14px">
       <label><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Fecha límite de pago</label>
-      <input type="date" id="edit-apt-due-date" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%;background:#fff">
+      <input type="date" id="edit-apt-due-date" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%;background:var(--surface)">
     </div>
     <!-- Teléfono -- antes solo se podía capturar al crear el apartado; si se
          omitía no había forma de agregarlo después salvo SQL a mano, y sin
@@ -527,10 +533,10 @@
     <div class="cash-field" style="margin-bottom:14px">
       <label><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Teléfono (opcional)</label>
       <input type="tel" id="edit-apt-phone" placeholder="10 dígitos — para enviar el comprobante por WhatsApp" inputmode="numeric" maxlength="10"
-        style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%;background:#fff;box-sizing:border-box"
+        style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%;background:var(--surface);box-sizing:border-box"
         oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)">
     </div>
-    <div id="edit-apt-pagado-row" style="display:none;background:#FFF8EE;border:1px solid #EAD9B8;border-radius:9px;padding:10px 12px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+    <div id="edit-apt-pagado-row" style="display:none;background:var(--gold-light);border:1px solid #EAD9B8;border-radius:9px;padding:10px 12px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
       <div>
         <div style="font-size:.74rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Anticipo registrado</div>
         <div id="edit-apt-pagado-amt" style="font-size:.95rem;font-weight:700;color:var(--charcoal);margin-top:2px"></div>
@@ -578,21 +584,21 @@
 
     <div id="corte-personal-sections">
       <!-- GASTOS DEL TURNO -->
-      <div style="margin-top:14px;background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div style="margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">
         <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:.82rem;font-weight:700;color:var(--charcoal)"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>Gastos y otros movimientos</span>
           <button onclick="showGastoForm()" style="font-size:.72rem;font-weight:700;color:var(--gold-dark);background:var(--gold-light);border:1px solid rgba(201,164,98,.3);border-radius:50px;padding:3px 12px;cursor:pointer;font-family:inherit">+ Agregar</button>
         </div>
         <div id="gastos-form" style="display:none;padding:10px 16px;border-bottom:1px solid var(--border);display:none;gap:8px;flex-direction:column">
-          <div class="gasto-kind-toggle" style="display:flex;gap:6px;background:var(--surface-soft,#F7F2EB);border:1.5px solid var(--border);border-radius:10px;padding:3px">
-            <button type="button" id="gasto-kind-gasto" onclick="_setGastoKind('gasto')" style="flex:1;padding:7px 10px;border-radius:8px;border:none;background:#fff;color:var(--red);font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit;box-shadow:0 1px 3px rgba(0,0,0,.12)">− Gasto</button>
+          <div class="gasto-kind-toggle" style="display:flex;gap:6px;background:var(--surface-soft);border:1.5px solid var(--border);border-radius:10px;padding:3px">
+            <button type="button" id="gasto-kind-gasto" onclick="_setGastoKind('gasto')" style="flex:1;padding:7px 10px;border-radius:8px;border:none;background:var(--surface);color:var(--red);font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit;box-shadow:0 1px 3px rgba(0,0,0,.12)">− Gasto</button>
             <button type="button" id="gasto-kind-ingreso" onclick="_setGastoKind('ingreso')" style="flex:1;padding:7px 10px;border-radius:8px;border:none;background:none;color:var(--muted);font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">+ Ingreso</button>
           </div>
           <input id="gasto-desc" type="text" placeholder="Descripción (ej: Refresco, Taxi, Recarga…)" style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;font-family:inherit;outline:none">
           <div style="display:flex;gap:8px">
             <input id="gasto-monto" type="number" placeholder="Monto $" min="0" style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;font-family:inherit;outline:none">
-            <button onclick="agregarGasto()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--charcoal);color:#fff;font-weight:700;font-size:.82rem;cursor:pointer;font-family:inherit">✓</button>
-            <button onclick="hideGastoForm()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:#fff;font-size:.82rem;cursor:pointer;font-family:inherit">✕</button>
+            <button onclick="agregarGasto()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--ink);color:#fff;font-weight:700;font-size:.82rem;cursor:pointer;font-family:inherit">✓</button>
+            <button onclick="hideGastoForm()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);font-size:.82rem;cursor:pointer;font-family:inherit">✕</button>
           </div>
         </div>
         <div id="gastos-list" style="padding:0 16px"></div>
@@ -608,20 +614,20 @@
       </div>
 
       <!-- CIERRE DE CAJA (EFECTIVO) -->
-      <div style="margin-top:14px;background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div style="margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">
         <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
           <span style="font-size:.82rem;font-weight:700;color:var(--charcoal)"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>Cierre de caja</span>
           <span id="corte-turno-abierto" style="font-size:.7rem;color:var(--muted);white-space:nowrap"></span>
         </div>
         <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <span style="font-size:.8rem;color:var(--muted);font-weight:600">Fondo inicial<span style="font-weight:400;margin-left:6px;color:#B5A696">declarado al abrir</span></span>
+          <span style="font-size:.8rem;color:var(--muted);font-weight:600">Fondo inicial<span style="font-weight:400;margin-left:6px;color:var(--muted-light)">declarado al abrir</span></span>
           <div style="display:flex;align-items:center;gap:4px">
             <span style="font-size:.84rem;color:var(--muted)">$</span>
             <input id="corte-fondo" type="number" readonly tabindex="-1" style="width:100px;padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;font-weight:700;font-family:inherit;outline:none;text-align:right;background:var(--cream);color:var(--muted)">
           </div>
         </div>
         <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <span style="font-size:.8rem;color:var(--muted);font-weight:600">Conteo físico<span style="font-weight:400;margin-left:6px;color:#B5A696">cuenta el efectivo primero</span></span>
+          <span style="font-size:.8rem;color:var(--muted);font-weight:600">Conteo físico<span style="font-weight:400;margin-left:6px;color:var(--muted-light)">cuenta el efectivo primero</span></span>
           <div style="display:flex;align-items:center;gap:4px">
             <span style="font-size:.84rem;color:var(--muted)">$</span>
             <input id="corte-conteo" type="number" min="0" inputmode="decimal" placeholder="0" oninput="_onConteoInput()" style="width:100px;padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;font-weight:700;font-family:inherit;outline:none;text-align:right">
@@ -632,7 +638,7 @@
              de contar el efectivo de verdad. -->
         <button id="corte-comparar-btn" onclick="compararConteo()" style="display:block;width:calc(100% - 32px);margin:10px 16px;padding:10px;border-radius:8px;border:1.5px dashed var(--gold);background:var(--gold-light);color:var(--gold-dark);font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit">🔍 Comparar conteo</button>
         <div id="corte-esperado-row" style="display:none;padding:10px 16px;border-bottom:1px solid var(--border);border-top:1px solid var(--border);justify-content:space-between;align-items:center">
-          <span style="font-size:.8rem;color:var(--muted);font-weight:600">Efectivo esperado<span style="font-weight:400;margin-left:6px;color:#B5A696">fondo + ventas − gastos</span></span>
+          <span style="font-size:.8rem;color:var(--muted);font-weight:600">Efectivo esperado<span style="font-weight:400;margin-left:6px;color:var(--muted-light)">fondo + ventas − gastos</span></span>
           <span id="corte-esperado" style="font-weight:700;font-size:.9rem">$0</span>
         </div>
         <div id="corte-diff-row" style="display:none;padding:12px 16px;justify-content:space-between;align-items:center">
@@ -641,7 +647,7 @@
         </div>
         <button id="corte-corregir-btn" onclick="corregirConteo()" style="display:none;width:100%;padding:8px;border:none;background:none;color:var(--muted);font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:underline">✏️ Corregir conteo</button>
       </div>
-      <button id="corte-cerrar-btn" onclick="confirmCloseTurno()" style="display:none;margin-top:10px;width:100%;padding:12px;border-radius:50px;border:1.5px solid var(--red);background:#fff;color:var(--red);font-size:.86rem;font-weight:700;cursor:pointer;font-family:inherit;align-items:center;justify-content:center;gap:7px">
+      <button id="corte-cerrar-btn" onclick="confirmCloseTurno()" style="display:none;margin-top:10px;width:100%;padding:12px;border-radius:50px;border:1.5px solid var(--red);background:var(--surface);color:var(--red);font-size:.86rem;font-weight:700;cursor:pointer;font-family:inherit;align-items:center;justify-content:center;gap:7px">
         <svg width="15" height="15" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         <span id="corte-cerrar-label">Cerrar turno</span>
       </button>

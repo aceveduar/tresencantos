@@ -905,6 +905,70 @@ Bottom sheet `#restock-prompt` que aparece en dos situaciones:
 4. Ticket WA incluye método + "⚠️ Pendiente confirmar recibo de transferencia"
 5. Confirmar recibo en app bancaria → entregar producto
 
+### Modo oscuro en Caja (2026-09-12)
+
+Segundo módulo con modo oscuro real, después de Inventario — mismo mecanismo compartido
+(`shared.js _toggleTheme()`/`_themeToggleRowHtml()`, activado por `data-theme-ready="1"` en
+`<html>` + el script inline anti-flash en `<head>` de `pos.html`, copiados tal cual de
+`admin.html`) y la misma paleta oscura que `admin.css` ya usa, para que Caja e Inventario se
+vean consistentes al cambiar de módulo con el tema activo.
+
+A diferencia de `admin.css` (que ya usaba tokens en casi todo su CSS), `pos.css` y buena parte
+de `pos.html` tenían decenas de colores hardcodeados en vez de variables — este cambio fue,
+en el fondo, un pase completo de tokenización más el bloque `:root[data-theme="dark"]`, no solo
+agregar el bloque oscuro:
+
+- **Conversión mecánica y de bajo riesgo** (mismo valor exacto o casi idéntico al de un token ya
+  existente, sin mover el modo claro): `background:#fff` → `var(--surface)` (72 apariciones
+  entre `pos.css`/`pos.html`), la familia de bordes casi-idénticos `#F0E8DC`/`#EDE5DC`/`#EDE0CF`/
+  `#EDE6DC`/`#F0E8E0` → `var(--border)`, fondos de placeholder/miniatura `#F0EBE3`/`#F5EDE4`/
+  `#FDFAF6` → `var(--surface-soft)`, `#F5EFE7` (fondo de `#apt-page`) → `var(--cream)`, y el texto
+  secundario `#9B8B78`/`#6B5C48`/`#786B5B` (variantes ligeramente distintas del mismo rol
+  "muted" que nunca se habían tokenizado) unificado en `var(--muted)` — la única conversión de
+  este grupo que sí mueve el tono del modo claro, de forma deliberada y mínima (misma familia
+  café-grisácea, diferencia de ~15-20 unidades RGB, imperceptible en uso real). Se aprovechó
+  también para limpiar 2 fallbacks de `var()` que ya no servían (`var(--gold-dark,#A67C3A)`,
+  `var(--surface-soft,#F7F2EB)`, `var(--border-light,#F0E8DF)` — este último ni siquiera existe
+  como token en Caja) y simplificarlos a la referencia directa.
+- **Bug real encontrado y corregido de paso — chips "activos" se hubieran vuelto ilegibles en
+  oscuro:** 11 reglas (`.cat-chip.active`, `.pay-btn.active`, `.discount-type-btn.active`,
+  `.apt-due-filter.active`, `.abonar-pay-btn.active`, `.pos-vbtn.active`, `.toast`, `.cart-pill`,
+  `.apt-page-head`, `.pos-mini-cart-bar`, `.topbar` en `≥1025px`) usaban `background:var(--charcoal)`
+  junto con `color:#fff` — pensado como "chip/barra siempre oscura con texto blanco", pero
+  `--charcoal` sí se invierte en modo oscuro (se vuelve claro, `#F1E8DB`), así que estos
+  elementos se habrían visto como una pastilla CLARA con texto blanco encima — invisible.
+  Corregido a `background:var(--ink)` (el token fijo de `shared.css`, "chrome intencionalmente
+  oscuro que no debe invertirse" — el mismo que ya usa el topbar por default) en los 3 archivos
+  (`pos.css` y 2 en `pos.html` inline). Este bug no era exclusivo de un tema — hubiera estado
+  ahí esperando desde el día en que alguien activara el toggle.
+- **Parejas fondo-pastel + texto que sí necesitan invertirse** (chips de stock ok/uno/agotado en
+  lista y grid, total con descuento, tags de Historial —descuento/nota/cliente—, banner de
+  apartados vencidos, apartado activo/vencido, botón cancelar apartado, "Más opciones"/"Ya lo
+  cobró Ofelia" activos): valores claros de siempre intactos, con overrides puntuales
+  `:root[data-theme="dark"] .clase{...}` reutilizando 4 tokens de tinte nuevos en `pos.css`
+  (`--tint-red-*`/`--tint-amber-*`/`--tint-green-*`, mismos valores oscuros que ya usa
+  `admin.css` para consistencia entre módulos, más un `--tint-blue-*` nuevo solo para
+  `.hi-tag.note`, que no tenía equivalente en Inventario). Elementos con `style=""` inline en
+  `pos.html` (`#open-shift-error`, `#cancel-apt-warning`, `#sd-transfer-alert`,
+  `#edit-apt-pagado-row`, `#edit-apt-refund-btn`, `#gastos-total-row`) necesitaron `!important`
+  en su override — un inline style le gana a cualquier selector externo sin importar
+  especificidad, así que no hay otra forma de sobreescribirlo desde CSS.
+- **Deliberadamente sin cambios:** `--gold`/`--gold-dark`/`--red`/`--green`/`--wa` (acentos
+  vívidos, se leen bien en ambos temas, igual que en Inventario); el chrome ya-siempre-oscuro
+  (`.scan-modal` cámara, `.img-lightbox`, `#apt-page-head` vía `--ink`) sin tocar; la animación
+  `pendientePulse` (flash del campo Pendiente al cambiar) se deja con su color de flash literal,
+  mismo criterio que `.ai-filled` en Inventario; intensidad de `box-shadow` (siguen usando `rgba`
+  negro fijo) sin ajustar por tema — bajo impacto visual, alto costo de tocar cada uno.
+- **`#apt-vencidos-alert` no necesitó ningún cambio** — vive dentro de la topbar, que ya es
+  chrome permanentemente oscuro (`var(--ink)`) en ambos temas; su pastilla roja ya era legible
+  ahí desde antes de este cambio.
+- Verificado balance de llaves/paréntesis de `pos.css` tras todos los reemplazos (648/648,
+  625/625) y ausencia de selectores corruptos — sin poder abrir un navegador real desde aquí.
+  **Pendiente confirmar en dispositivo real** (mismo patrón que otros cambios de CSS de esta
+  sesión): activar el toggle "Modo oscuro" desde el menú del avatar en Caja y revisar el
+  catálogo, el carrito, Historial, Apartados y Corte con la vista real.
+CACHE_VERSION v499→v500.
+
 ---
 
 ## Reportes (`stats.html`)
