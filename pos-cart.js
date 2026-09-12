@@ -444,6 +444,7 @@ async function openCorte() {
   if (generalBtn) generalBtn.style.display = canViewReports() ? '' : 'none';
   document.getElementById('corte-personal-sections').style.display = '';
   await loadCorte();
+  await _loadGastos();
   renderGastos();
   _initCierreInputs();
 }
@@ -673,12 +674,29 @@ function _renderCorteBreakdown(rows, fmt) {
 }
 
 /* ── GASTOS DEL TURNO ────────────────────────────────────────────── */
-// Ligados al turno real (_currentShift.id), no al día -- si alguien abre y
-// cierra caja más de una vez el mismo día, cada turno empieza con su propia
-// lista vacía en vez de arrastrar los gastos del turno anterior ya cerrado.
-function _gastosKey() { return _posShiftScopedKey('gastos'); }
-function _getGastos() { try { return JSON.parse(localStorage.getItem(_gastosKey())) || []; } catch { return []; } }
-function _saveGastos(g) { localStorage.setItem(_gastosKey(), JSON.stringify(g)); }
+// Persisten en el servidor (cash_shift_expenses), ligados al turno real
+// (_currentShift.id) -- ya no viven solo en localStorage. Antes, cerrar
+// turno solo mandaba el TOTAL agregado y el servidor confiaba en ese
+// número; alguien con un faltante real podía inventar un gasto para
+// cuadrar el conteo sin dejar ningún rastro verificable. Ahora cada gasto
+// es su propia fila con hora y autor reales del servidor, y
+// te_close_cash_shift() calcula el total sumando esa tabla, no lo que
+// mande el cliente. "Quitar" un gasto nunca lo borra de verdad (mismo
+// principio de ledger append-only que sales/sale_payments) -- lo cancela,
+// conservando el rastro; ver te_cancel_shift_expense.
+let _gastosCache = [];
+function _getGastos() { return _gastosCache; }
+
+async function _loadGastos() {
+  if (!_currentShift) { _gastosCache = []; return; }
+  const r = await api(`cash_shift_expenses?shift_id=eq.${_currentShift.id}&cancelled_at=is.null&order=created_at.asc`);
+  _gastosCache = (r.ok && Array.isArray(r.data)) ? r.data.map(e => ({
+    id: e.id,
+    desc: e.description,
+    amount: e.amount,
+    time: new Date(e.created_at).toLocaleTimeString('es-MX', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit' })
+  })) : [];
+}
 
 function showGastoForm() {
   const f = document.getElementById('gastos-form');
@@ -690,21 +708,32 @@ function hideGastoForm() {
   document.getElementById('gasto-monto').value = '';
 }
 
-function agregarGasto() {
+async function agregarGasto() {
   const desc  = document.getElementById('gasto-desc').value.trim();
   const monto = parseFloat(document.getElementById('gasto-monto').value) || 0;
   if (!desc || monto <= 0) return;
-  const gastos = _getGastos();
-  gastos.push({ desc, amount: monto, time: new Date().toLocaleTimeString('es-MX', { timeZone:'America/Mexico_City', hour:'2-digit', minute:'2-digit' }) });
-  _saveGastos(gastos);
   hideGastoForm();
+  const r = await api('rpc/te_add_shift_expense', {
+    method: 'POST',
+    body: JSON.stringify({ p_description: desc, p_amount: monto })
+  });
+  if (!r.ok || !r.data) { toast(r.data?.message || 'No se pudo agregar el gasto', 'error'); return; }
+  _gastosCache.push({
+    id: r.data.id,
+    desc: r.data.description,
+    amount: r.data.amount,
+    time: new Date(r.data.created_at).toLocaleTimeString('es-MX', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit' })
+  });
   renderGastos();
 }
 
-function eliminarGasto(idx) {
-  const gastos = _getGastos();
-  gastos.splice(idx, 1);
-  _saveGastos(gastos);
+async function eliminarGasto(id) {
+  const r = await api('rpc/te_cancel_shift_expense', {
+    method: 'POST',
+    body: JSON.stringify({ p_expense_id: id })
+  });
+  if (!r.ok) { toast(r.data?.message || 'No se pudo quitar el gasto', 'error'); return; }
+  _gastosCache = _gastosCache.filter(g => g.id !== id);
   renderGastos();
 }
 
@@ -723,7 +752,7 @@ function renderGastos() {
     return;
   }
   const totalGastos = gastos.reduce((s, g) => s + g.amount, 0);
-  list.innerHTML = gastos.map((g, i) => `
+  list.innerHTML = gastos.map(g => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
       <div>
         <span style="font-size:.82rem;font-weight:600">${_esc(g.desc)}</span>
@@ -731,7 +760,7 @@ function renderGastos() {
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-weight:700;color:var(--red);font-size:.84rem">-$${g.amount.toLocaleString('es-MX')}</span>
-        <button onclick="eliminarGasto(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;width:44px;height:44px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center">✕</button>
+        <button onclick="eliminarGasto(${g.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;width:44px;height:44px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center">✕</button>
       </div>
     </div>`).join('');
   totRow.style.display = 'flex';
