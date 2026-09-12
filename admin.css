@@ -1258,7 +1258,11 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .ac-img-wrap{aspect-ratio:4/3}
   .ac-body{padding:7px 9px 9px;gap:3px}
   .ac-name{font-size:.78rem;margin-bottom:3px;-webkit-line-clamp:2}
-  .ac-meta{font-size:.65rem;margin-bottom:4px;gap:3px}
+  /* Categoría: ya es un filtro arriba (chips), no necesita repetirse por
+     tarjeta -- mismo patrón que Shopify Admin/ZARA/Amazon en vista compacta
+     de grid. Se oculta aquí para bajar la altura de la tarjeta; sigue
+     visible y editable desde el Quick View (tap en la imagen). */
+  .ac-meta{display:none}
   .ac-price{font-size:.9rem}
   .ac-footer{margin-top:6px;padding-top:6px}
   .ac-img-wrap{overflow:hidden;border-radius:12px}
