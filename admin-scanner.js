@@ -636,7 +636,9 @@ async function _deleteDupProduct(id, pairKey) {
         featured: deleted.featured, out_of_stock: deleted.outOfStock,
         original_price: deleted.originalPrice, barcode: deleted.barcode,
         stock: deleted.stock, position: deletedIdx, cost: deleted.cost,
-        is_published: deleted.isPublished
+        is_published: deleted.isPublished,
+        kit_items: deleted.kitItems || null, images: deleted.images || null,
+        expiry_date: deleted.expiryDate || null, supplier_code: deleted.supplierCode || null
       })
     });
     if (!r.ok) { toast('No se pudo restaurar', 'error'); return; }

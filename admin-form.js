@@ -1195,7 +1195,10 @@ async function confirmDelete() {
         badge: deleted.badge, badge_type: deleted.badgeType,
         featured: deleted.featured, out_of_stock: deleted.outOfStock,
         original_price: deleted.originalPrice, barcode: deleted.barcode,
-        stock: deleted.stock, position: deletedIdx
+        stock: deleted.stock, position: deletedIdx,
+        cost: deleted.cost ?? null, is_published: deleted.isPublished !== false,
+        kit_items: deleted.kitItems || null, images: deleted.images || null,
+        expiry_date: deleted.expiryDate || null, supplier_code: deleted.supplierCode || null
       })
     });
     if (r.ok) {
