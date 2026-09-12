@@ -14,7 +14,6 @@ const AR_ICO_WARN     = (px=13) => _arIco('<path d="M10.29 3.86 1.82 18a2 2 0 0 
 const AR_ICO_ARCHIVE  = (px=13) => _arIco('<rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8"/><line x1="10" y1="12" x2="14" y2="12"/>', px);
 const AR_ICO_DOLLAR   = (px=13) => _arIco('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', px);
 const AR_ICO_SEARCH   = (px=13) => _arIco('<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>', px);
-const AR_ICO_USER     = (px=13) => _arIco('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', px);
 const AR_ICO_TAG      = (px=13) => _arIco('<path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z"/><line x1="7" y1="7" x2="7.01" y2="7"/>', px);
 // Paleta semántica de los chips de filtro — 4 colores fijos en vez de uno
 // distinto por chip: gris=neutro, verde=ok, ámbar=atención, rojo=crítico.
@@ -329,7 +328,6 @@ function adminCard(p, editable = false) {
         ? `<span class="cat-label-inline${isSinCat?' cat-label-sin-cat':''}" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Clic para cambiar categoría" style="${isSinCat?'':'overflow:hidden;text-overflow:ellipsis;white-space:nowrap'}">${isSinCat ? 'Sin categoría' : _esc(p.categoryLabel)}</span>`
         : `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.72rem;color:var(--muted)">${_esc(p.categoryLabel)}</span>`
       }
-      ${_showCreator && ROLE === 'superadmin' && p.createdBy ? `<span class="creator-chip" title="${p.createdBy}">${AR_ICO_USER()}${_creatorName(p.createdBy)}</span>` : ''}
     </div>
     <div class="ac-price-row">${priceHTML}</div>
     <div class="ac-footer">
@@ -707,7 +705,7 @@ function desktopRow(p) {
         ${flagDataDR?.note ? `<div class="flag-note-line">${AR_ICO_FLAG(13)}"${_esc(flagDataDR.note)}"</div>` : ''}
         <div class="prod-meta">
           ${catDot}
-          <span class="prod-meta-text"><span class="cat-label-inline${isSinCatDR ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${isSinCatDR ? 'Sin categoría' : _esc(p.categoryLabel)}</span> · #${p.id}${_showCreator && ROLE === 'superadmin' && p.createdBy ? ` · <span class="creator-chip" title="${p.createdBy}">${AR_ICO_USER()}${_creatorName(p.createdBy)}</span>` : ''}</span>
+          <span class="prod-meta-text"><span class="cat-label-inline${isSinCatDR ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${isSinCatDR ? 'Sin categoría' : _esc(p.categoryLabel)}</span> · #${p.id}</span>
           ${featStar}${publishedToggle(p)}${flagDotRow}
         </div>
       </div>
@@ -774,7 +772,6 @@ function mobileCard(p) {
           <div class="mpc-cat-tag">
             <span class="cat-dot" style="background:${catColor}"></span>
             <span class="cat-label-inline${isSinCatMC ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría">${isSinCatMC ? 'Sin categoría' : _esc(p.categoryLabel)}</span>
-            ${_showCreator && ROLE === 'superadmin' && p.createdBy ? `<span class="creator-chip" title="${p.createdBy}">${AR_ICO_USER()}${_creatorName(p.createdBy)}</span>` : ''}
           </div>
           <div class="mpc-price-row">
             ${priceHTML}${stockInfo}

@@ -636,7 +636,17 @@ function _renderQV(p) {
 
   // ID + barcode en una línea
   const idEl = document.getElementById('qv-id');
-  idEl.innerHTML = `<span style="font-family:monospace">ID #${p.id}</span>${p.barcode ? `<span style="font-family:monospace;color:var(--muted)">· ${_esc(p.barcode)}</span>` : ''}${p.supplierCode ? `<span style="font-family:monospace;color:var(--muted-light)">· prov. ${_esc(p.supplierCode)}</span>` : ''}` +
+  // "Ver creador" (2026-09-12): antes vivía como chip repetido en cada
+  // fila/tarjeta de las 3 vistas (grid/lista/tabla) -- casi siempre el mismo
+  // nombre en las 869 filas, peso constante por información que rara vez
+  // cambia. Se retiró de ahí y se movió aquí, al Quick View, único lugar
+  // donde ahora se puede ver quién dio de alta el producto. Mismo gateo que
+  // antes (_showCreator + superadmin) -- el toggle de Configuración sigue
+  // siendo el mismo, solo cambia dónde aparece su resultado.
+  const creatorEl = (_showCreator && ROLE === 'superadmin' && p.createdBy)
+    ? `<span style="color:var(--muted-light)">· ${QV_ICO_USER(11)}${_creatorName(p.createdBy)}</span>`
+    : '';
+  idEl.innerHTML = `<span style="font-family:monospace">ID #${p.id}</span>${p.barcode ? `<span style="font-family:monospace;color:var(--muted)">· ${_esc(p.barcode)}</span>` : ''}${p.supplierCode ? `<span style="font-family:monospace;color:var(--muted-light)">· prov. ${_esc(p.supplierCode)}</span>` : ''}${creatorEl}` +
     ` <a href="#" onclick="event.preventDefault();openProductTimeline(${p.id},'${_esc(p.name).replace(/'/g,"\\'")}')" style="color:var(--gold-dark);font-weight:700;text-decoration:underline;font-family:inherit">${QV_ICO_CLOCK(11)} Ver historial</a>`;
 
   // Botones de acción
