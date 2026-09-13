@@ -107,7 +107,11 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .kpi-stat[data-accent="green"] .kpi-stat-dot{background:var(--green)}
 .kpi-stat[data-accent="violet"] .kpi-stat-dot{background:var(--violet)}
 .kpi-stat[data-accent="teal"] .kpi-stat-dot{background:var(--teal)}
-.kpi-stat-value{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:600;line-height:1;color:var(--charcoal);display:flex;flex-wrap:wrap;align-items:baseline;gap:6px}
+/* Sans, no Playfair Display -- Ingresos es el único número que se trata
+   como titular (la serif ornamentada); estos son cifras de apoyo, y
+   tratarlas todas igual de "elegantes" cancela la jerarquía en vez de
+   reforzarla. */
+.kpi-stat-value{font-family:'Inter',sans-serif;font-size:1.15rem;font-weight:700;line-height:1;color:var(--charcoal);display:flex;flex-wrap:wrap;align-items:baseline;gap:6px}
 
 .kpi-best-row{margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
 
@@ -118,7 +122,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .kpi-strip{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:0 2px 8px rgba(28,24,23,.06);margin-bottom:24px}
 .kpi-strip-item{flex:1;min-width:0;padding:16px 20px}
 .kpi-strip-item+.kpi-strip-item{border-left:1px solid var(--border)}
-.kpi-strip-value{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:600;line-height:1;color:var(--charcoal)}
+.kpi-strip-value{font-family:'Inter',sans-serif;font-size:1.15rem;font-weight:700;line-height:1;color:var(--charcoal)}
 .kpi-strip-label{font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:6px;font-weight:600}
 
 /* ── CARDS ── */
@@ -243,11 +247,14 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 :root[data-theme="dark"] .turno-chip-open{background:var(--tint-green-bg)}
 :root[data-theme="dark"] .turno-chip-noclose{background:var(--tint-red-bg)}
 
-.delta-pill{font-size:.66rem;font-weight:700;padding:2px 6px;border-radius:50px}
-.delta-up{background:#D1FAE5;color:#065F46}
-.delta-down{background:#FEE2E2;color:#991B1B}
-:root[data-theme="dark"] .delta-up{background:var(--tint-green-bg);color:var(--tint-green-strong)}
-:root[data-theme="dark"] .delta-down{background:var(--tint-red-bg);color:var(--tint-red-strong)}
+/* Texto de color plano, sin fondo -- 5-6 de estos pueden aparecer a la vez
+   en la misma pantalla (Ingresos + cada stat + Artículos vendidos); una
+   pastilla con relleno sólido por cada uno se acumula en "badge soup". El
+   color (verde/rojo, ya fijo en ambos temas por convención del proyecto)
+   sigue comunicando dirección sin la insignia de fondo. */
+.delta-pill{font-size:.7rem;font-weight:700}
+.delta-up{color:var(--green)}
+.delta-down{color:var(--red)}
 
 .mv-tag{font-size:.62rem;padding:1px 6px;border-radius:50px;font-weight:700;flex-shrink:0}
 .mv-tag-refund{background:#FEE2E2;color:#991B1B}

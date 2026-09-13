@@ -1234,6 +1234,13 @@ CACHE_VERSION v529→v530.
 - Verificado balance de llaves de `stats.css` y `node --check stats.js` tras el rediseño. **Pendiente confirmar en dispositivo real** — el nuevo layout de 3 columnas dentro de la tarjeta se probó solo por cálculo a mano en los 3 breakpoints (1024/480/360px), sin poder verlo renderizado.
 CACHE_VERSION v530→v531.
 
+**Segunda pasada — Eduardo vio el rediseño en vivo y dijo "no me convence pero no sé qué es" (2026-09-12)**: sin poder señalar el problema exacto, se re-examinó la captura real (modo Día, montos chicos: Ingresos $296) con criterio de diseño de dashboards en vez de solo aplicar el pedido anterior. Tres tells concretos de "dashboard genérico" que sobrevivieron al primer pase, los tres corregidos:
+- **La barra de composición con un solo segmento no comunicaba nada** — con Ingresos compuesto 100% por Ventas (Abonos/Apertura en $0, el caso más común de un día normal), la barra salía sólida de un solo color de punta a punta: no hay nada que comparar en una barra de "composición" con un único componente, así que era decoración vacía (el arquetipo de "barra de progreso porque sí" de una plantilla de IA). `renderKPIs()` (`stats.js`) ahora solo la muestra cuando hay **2 o más** segmentos con monto — con 1 o 0, se oculta igual que cuando la suma no cuadra.
+- **Todos los números de la pantalla usaban la misma serif ornamentada (Playfair Display)** a distintos tamaños — el "6" de Ventas, el "0" de Abonos, el "7" de Artículos vendidos y el "$296" de Ingresos se leían con el mismo peso tipográfico, cancelando la jerarquía en vez de reforzarla ("si todo es elegante, nada se siente especial"). Corregido: Ingresos se queda como el único número tratado como titular (Playfair Display grande); Ventas/Abonos/Apartados nuevos (`.kpi-stat-value`) y Artículos vendidos/Por cobrar (`.kpi-strip-value`) pasan a Inter sans-serif bold, más chico — cifras de apoyo, no titulares.
+- **5-6 pastillas de delta (`+50%`/`-78%`/etc.) con fondo sólido a la vez en pantalla** — "badge soup", cada una compitiendo por atención igual que las demás. `.delta-pill` (`stats.css`) pasa de chip con relleno de color a texto plano verde/rojo (mismos tokens `--green`/`--red`, ya fijos en ambos temas por convención del proyecto) — sigue comunicando la dirección del cambio, sin la insignia de fondo repetida.
+- Sin cambios de datos ni de estructura HTML del pase anterior — solo CSS + la condición `segs.length >= 2` en `renderKPIs()`.
+CACHE_VERSION v531→v532.
+
 ---
 
 ## Tienda — Sitio Público (`app.js` + `index.html`)

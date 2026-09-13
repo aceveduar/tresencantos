@@ -902,12 +902,16 @@ function renderKPIs() {
   const heroLegendEl = document.getElementById('kpi-hero-legend');
   const compTotal = salesTotal + abonoTotal + aperturaTotal;
   const compDiff = totalRev - compTotal;
-  if (paymentsLoaded && compTotal > 0 && Math.abs(compDiff) < 1) {
-    const segs = [
-      { label: 'Ventas',   amount: salesTotal,   color: 'var(--green)'  },
-      { label: 'Abonos',   amount: abonoTotal,   color: 'var(--violet)' },
-      { label: 'Apertura', amount: aperturaTotal, color: 'var(--teal)'   }
-    ].filter(s => s.amount > 0);
+  const segs = [
+    { label: 'Ventas',   amount: salesTotal,   color: 'var(--green)'  },
+    { label: 'Abonos',   amount: abonoTotal,   color: 'var(--violet)' },
+    { label: 'Apertura', amount: aperturaTotal, color: 'var(--teal)'   }
+  ].filter(s => s.amount > 0);
+  // Con un solo segmento la barra siempre se ve 100% de un color -- no
+  // compara nada, es decoración vacía (el tell clásico de "barra de progreso
+  // porque sí" de un dashboard genérico). Solo aporta cuando de verdad hay
+  // algo que comparar.
+  if (paymentsLoaded && compTotal > 0 && Math.abs(compDiff) < 1 && segs.length >= 2) {
     heroBarEl.innerHTML = segs.map(s => `<div class="kpi-hero-bar-seg" style="width:${(s.amount / compTotal * 100).toFixed(2)}%;background:${s.color}"></div>`).join('');
     heroLegendEl.innerHTML = segs.map(s => `<span class="kpi-hero-legend-item"><span class="kpi-hero-dot" style="background:${s.color}"></span>${s.label} ${fmt(s.amount)}</span>`).join('');
     heroBarEl.style.display = 'flex';
@@ -1129,7 +1133,7 @@ function _renderWeekComparison(ctx, byDayCurr) {
     if (hasPrev && prevTotal > 0) {
       const pct = Math.round((currTotal - prevTotal) / prevTotal * 100);
       const sign = pct >= 0 ? '+' : '';
-      delta = `<span class="delta-pill ${pct >= 0 ? 'delta-up' : 'delta-down'}" style="font-size:.72rem;padding:3px 8px">${sign}${pct}%</span>`;
+      delta = `<span class="delta-pill ${pct >= 0 ? 'delta-up' : 'delta-down'}" style="font-size:.78rem">${sign}${pct}%</span>`;
     }
     ws.innerHTML = `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
       <div style="flex:1;min-width:100px">
