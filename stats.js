@@ -649,12 +649,14 @@ function renderTodaySales() {
     const amountText = `${amount < 0 ? '−' : ''}$${Math.abs(amount).toLocaleString('es-MX')}`;
     return `<div class="dv-sale" id="dv-${idx}">
   <div class="dv-sale-head" onclick="dvToggle(${idx})">
-    <span class="dv-sale-time">${time}</span>
-    ${payIcon}
-    ${tag}
-    <span class="dv-sale-names">${_esc(nombre)}</span>
-    <span class="dv-sale-total"${amount < 0 ? ' style="color:var(--red)"' : ''}>${amountText}</span>
-    <span class="dv-sale-arrow">›</span>
+    <div class="dv-sale-main">
+      <div class="dv-sale-name-row">${tag}<span class="dv-sale-names">${_esc(nombre)}</span></div>
+      <div class="dv-sale-meta">${payIcon}<span class="dv-sale-time">${time}</span></div>
+    </div>
+    <div class="dv-sale-end">
+      <span class="dv-sale-total"${amount < 0 ? ' style="color:var(--red)"' : ''}>${amountText}</span>
+      <span class="dv-sale-arrow">›</span>
+    </div>
   </div>
   <div class="dv-body">${itemsHtml}${detail ? `<div style="font-size:.7rem;color:var(--muted);padding-top:4px">${detail}</div>` : ''}</div>
 </div>`;
@@ -1586,7 +1588,7 @@ function renderBestSeller() {
   if (!el) return;
   if (!salesLoaded) {
     el.style.display = '';
-    el.innerHTML = '<div style="font-size:.76rem;color:var(--muted);padding:0 2px 10px">Productos vendidos: No disponible</div>';
+    el.innerHTML = '<div style="font-size:.76rem;color:var(--muted)">Productos vendidos: No disponible</div>';
     return;
   }
   // Productos/unidades siguen la fecha real de finalización: created_at en
@@ -1601,7 +1603,7 @@ function renderBestSeller() {
   const best = aggregateProducts()[0];
   if (!best) { el.style.display = 'none'; return; }
   el.style.display = '';
-  el.innerHTML = `<div style="font-size:.76rem;color:var(--muted);padding:0 2px 10px;display:flex;align-items:center;gap:5px;overflow:hidden"><svg style="width:13px;height:13px;flex-shrink:0;fill:var(--gold-dark);stroke:none" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Más vendido: <strong style="color:var(--charcoal)">${_esc(best.name)}</strong> · $${Math.round(best.revenue).toLocaleString('es-MX')} en ventas</span></div>`;
+  el.innerHTML = `<div style="font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:5px;overflow:hidden"><svg style="width:13px;height:13px;flex-shrink:0;fill:var(--gold-dark);stroke:none" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Más vendido: <strong style="color:var(--charcoal)">${_esc(best.name)}</strong> · $${Math.round(best.revenue).toLocaleString('es-MX')} en ventas</span></div>`;
 }
 
 /* ── APARTADOS PENDIENTES ── */
