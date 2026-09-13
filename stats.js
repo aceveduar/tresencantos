@@ -1413,7 +1413,7 @@ function renderCatChart() {
     const barW = Math.round(val/maxVal*100);
     return `<div class="cl-item">
       <span class="cl-dot" style="background:${COLORS[i%COLORS.length]}"></span>
-      <span class="cl-name">${_esc(cat)}</span>
+      <span class="cl-name" title="${_esc(cat)}">${_esc(cat)}</span>
       <span class="cl-bar-wrap"><span class="cl-bar" style="width:${barW}%;background:${COLORS[i%COLORS.length]}"></span></span>
       <span class="cl-val">$${val.toLocaleString('es-MX',{maximumFractionDigits:0})}</span>
       <span class="cl-pct">${pct}%</span>

@@ -1261,6 +1261,8 @@ CACHE_VERSION v533→v534.
 
 **Pulido final — riel de la barra "Por cobrar" casi invisible (mismo día)** — al revisar el resultado ya con el margen corregido, el fondo elegido para el "riel" de la barra vencido/al corriente (`rgba(45,106,79,.16)`, un verde casi transparente) se veía casi invisible sobre el blanco de la tarjeta, dejando solo el segmento rojo flotando sin nada contra qué compararlo como fracción. Cambiado a `var(--surface-soft)` — el mismo riel que ya usan `.tp-bar-wrap`/`.cl-bar-wrap` (Top productos/categorías, en esta misma pantalla) en vez de inventar un tono nuevo. CACHE_VERSION v535→v536.
 
+**"Por categoría" — el nombre de categoría se cortaba a media palabra (mismo día)** — Eduardo pidió revisar la gráfica de "Ingresos por hora"/"Por categoría"; en esa segunda tarjeta (columna angosta de 340px), "Bisutería & Joyería" se veía como "Bisutería & Joye…" — `.cl-name{max-width:110px}` cortaba nombres reales de categoría antes de que hubiera necesidad real de hacerlo (el interior de la tarjeta tiene ~294px, con espacio de sobra para más). Subido a `max-width:145px` (cabe el nombre de categoría más largo del catálogo sin apretar la barra de abajo del mínimo de 30px) y agregado `title="{nombre completo}"` al `<span>` (`renderCatChart()`, `stats.js`) como respaldo si algún nombre aún más largo se sigue cortando — antes no tenía ningún fallback en hover. CACHE_VERSION v536→v537.
+
 ---
 
 ## Tienda — Sitio Público (`app.js` + `index.html`)
