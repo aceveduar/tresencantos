@@ -241,26 +241,26 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 /* ── SEGUNDA FILA ── */
 .bottom-row{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px}
 
-/* ── INVENTARIO ── */
-.inv-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
-.inv-stat{border-radius:10px;padding:14px 16px;text-align:center}
-.inv-stat.red{background:#FEE2E2;border:1px solid #FECACA}
-.inv-stat.amber{background:#FEF3C7;border:1px solid #FDE68A}
-.inv-stat.green{background:#D1FAE5;border:1px solid #A7F3D0}
-.inv-stat .n{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:600}
-.inv-stat.red .n{color:#991B1B}
-.inv-stat.amber .n{color:#92400E}
-.inv-stat.green .n{color:#065F46}
-.inv-stat .l{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-top:3px}
-.inv-stat.red .l{color:#B91C1C}
-.inv-stat.amber .l{color:#78350F}
-.inv-stat.green .l{color:#047857}
-:root[data-theme="dark"] .inv-stat.red{background:var(--tint-red-bg);border-color:var(--tint-red-border)}
-:root[data-theme="dark"] .inv-stat.red .n,:root[data-theme="dark"] .inv-stat.red .l{color:var(--tint-red-strong)}
-:root[data-theme="dark"] .inv-stat.amber{background:var(--tint-amber-bg);border-color:var(--tint-amber-border)}
-:root[data-theme="dark"] .inv-stat.amber .n,:root[data-theme="dark"] .inv-stat.amber .l{color:var(--tint-amber-strong)}
-:root[data-theme="dark"] .inv-stat.green{background:var(--tint-green-bg);border-color:var(--tint-green-border)}
-:root[data-theme="dark"] .inv-stat.green .n,:root[data-theme="dark"] .inv-stat.green .l{color:var(--tint-green-strong)}
+/* ── INVENTARIO / RENTABILIDAD — 3 cifras relacionadas en fila ──
+   Antes: 3 cajas de fondo sólido de color -- el mismo lenguaje "card
+   salad" que ya se dejó atrás en "Dinero de hoy" (arriba de esta
+   pantalla). Unificado al mismo patrón que .kpi-stat: solo un punto de
+   color junto a la etiqueta, número en Inter (no Playfair -- aquí no hay
+   un "héroe" entre los 3, son categorías al mismo nivel, así que ninguno
+   necesita el tratamiento de titular), divisores finos en vez de cajas.
+   Mismo componente para "Estado del inventario" (Agotados/Última unidad/
+   Con existencias) y "Rentabilidad" (Alta/Media/Baja). */
+.inv-summary{display:flex;margin-bottom:16px}
+.inv-stat{flex:1;min-width:0;padding:0 16px;display:flex;flex-direction:column-reverse}
+.inv-stat:first-child{padding-left:0}
+.inv-stat:last-child{padding-right:0}
+.inv-stat+.inv-stat{border-left:1px solid var(--border)}
+.inv-stat .n{font-family:'Inter',sans-serif;font-size:1.3rem;font-weight:700;color:var(--charcoal)}
+.inv-stat .l{display:flex;align-items:center;gap:6px;font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600;margin-bottom:6px}
+.inv-stat .l::before{content:'';width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.inv-stat.red .l::before{background:var(--red)}
+.inv-stat.amber .l::before{background:var(--amber)}
+.inv-stat.green .l::before{background:var(--green)}
 
 .inv-valor-box{background:var(--gold-light);border:1px solid var(--border)}
 .inv-valor-box-green{background:#F0FDF4;border:1px solid #A7F3D0}
@@ -384,11 +384,9 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   .card-head{padding:13px 14px 11px}
   .card-body{padding:12px 14px}
 
-  /* Inventario: 3 col → 1 fila responsive */
-  .inv-summary{grid-template-columns:repeat(3,1fr);gap:8px}
-  .inv-stat{padding:10px 8px}
-  .inv-stat .n{font-size:1.3rem}
-  .inv-stat .l{font-size:.62rem}
+  .inv-stat{padding:0 10px}
+  .inv-stat .n{font-size:1.1rem}
+  .inv-stat .l{font-size:.6rem}
 }
 
 @media(max-width:480px){
@@ -396,10 +394,8 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   .kpi-stat{padding:0 7px}
   .kpi-stat-value{font-size:1rem}
   .kpi-strip-item{padding:10px}
-
-  /* Inventario: 3 col muy pequeño → 2+1 */
-  .inv-summary{grid-template-columns:1fr 1fr;gap:8px}
-  .inv-stat:nth-child(3){grid-column:1/-1}
+  .inv-stat{padding:0 7px}
+  .inv-stat .n{font-size:1rem}
 }
 
 @media(max-width:640px){
@@ -413,6 +409,12 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   .kpi-stat+.kpi-stat{border-left:none;border-top:1px solid var(--border);padding-top:12px!important}
   .kpi-stat-label{white-space:normal;overflow:visible;text-overflow:clip}
   .kpi-sub{white-space:normal;overflow:visible;text-overflow:clip}
+
+  /* Mismo fix, mismo motivo -- "Con existencias"/"Media 10–29%" en 3
+     columnas de ~100px también se hubieran apretado en este ancho. */
+  .inv-summary{flex-direction:column;gap:10px}
+  .inv-stat{padding:0!important;width:100%}
+  .inv-stat+.inv-stat{border-left:none;border-top:1px solid var(--border);padding-top:10px!important}
 
   /* Ventas del día: scroll area más compacto */
   #today-sales-list{max-height:240px!important}
