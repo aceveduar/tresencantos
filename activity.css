@@ -1,14 +1,39 @@
 body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal);min-height:100dvh;display:flex;flex-direction:column}
 
+/* ══ MODO OSCURO ═══════════════════════════════════════════════════════
+   Mismo mecanismo y misma paleta que Inventario/Caja/Reportes (ver
+   admin.css/pos.css/stats.css) — activado por [data-theme="dark"] en
+   <html> (shared.js _toggleTheme() / script anti-flash en <head> de
+   activity.html). Activity.css nunca tuvo su propio :root claro (usa el
+   de shared.css tal cual) — aquí solo se agrega el bloque oscuro. --gold/
+   --gold-dark/--red/--green se quedan fijos (acentos ya legibles en
+   ambos temas, mismo criterio que el resto del proyecto); --ink (shared.
+   css) tampoco se redefine — es el chrome intencionalmente oscuro
+   (topbar) que ya era oscuro en modo claro. */
+:root[data-theme="dark"]{
+  --cream:#15120E;--surface:#221D18;--surface-soft:#2A241D;
+  --charcoal:#F1E8DB;--muted:#B9A890;--muted-light:#6B5D4D;
+  --gold-light:#2C2415;--border:#3D352B;
+  --tint-red-bg:#332020;--tint-red-border:rgba(248,113,113,.35);--tint-red-strong:#F87171;
+  --tint-amber-bg:#332A14;--tint-amber-border:rgba(251,191,36,.4);--tint-amber-strong:#FBBF24;
+  --tint-green-bg:#1B2E22;--tint-green-border:rgba(110,231,183,.35);--tint-green-strong:#6EE7B7;
+  --tint-blue-bg:#18263A;--tint-blue-border:rgba(96,165,250,.35);--tint-blue-strong:#7DB8F5;
+  --tint-violet-bg:#241C38;--tint-violet-border:rgba(196,168,245,.35);--tint-violet-strong:#C4A8F5;
+  color-scheme:dark;
+}
+
 /* TOPBAR */
 .topbar{position:sticky;top:0}
 .topbar-left{display:flex;align-items:center;gap:10px}
 .topbar-title{font-family:'Playfair Display',serif;font-size:1rem;color:#fff}
 .topbar-right{display:flex;gap:8px;align-items:center}
 .user-name-lbl{font-size:.75rem;color:rgba(255,255,255,.6);white-space:nowrap}
-@media(min-width:1025px){.topbar{background:var(--charcoal)}}
+/* var(--ink), no var(--charcoal) -- charcoal se invierte en oscuro (se
+   vuelve claro) y el topbar quedaría claro con texto blanco -- mismo bug
+   ya corregido en Caja/Reportes. */
+@media(min-width:1025px){.topbar{background:var(--ink)}}
 @media(max-width:1024px){
-  .topbar{padding:0 12px;background:var(--charcoal)}
+  .topbar{padding:0 12px;background:var(--ink)}
   .main{padding:14px 16px 40px}
   .act-card{padding:10px 12px;gap:10px}
   .act-avatar{width:34px;height:34px;font-size:.78rem}
@@ -19,7 +44,7 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal
 
 /* SEARCH */
 .act-search-wrap{position:relative;margin-bottom:10px}
-.act-search-input{width:100%;padding:12px 36px 12px 14px;border:1.5px solid var(--border);border-radius:50px;font-size:16px;outline:none;font-family:inherit;background:#fff;color:var(--charcoal)}
+.act-search-input{width:100%;padding:12px 36px 12px 14px;border:1.5px solid var(--border);border-radius:50px;font-size:16px;outline:none;font-family:inherit;background:var(--surface);color:var(--charcoal)}
 .act-search-input:focus{border-color:var(--gold)}
 .act-search-input::-webkit-search-cancel-button{display:none}
 /* Se ve compacto pero el área de toque real es ~44px -- mismo hit-slop que
@@ -32,27 +57,35 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal
 .filters-bar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
 .filter-select{
   padding:7px 28px 7px 12px;border:1.5px solid var(--border);border-radius:50px;
-  font-size:.8rem;font-weight:600;background:#fff;color:var(--charcoal);outline:none;cursor:pointer;
+  font-size:.8rem;font-weight:600;background:var(--surface);color:var(--charcoal);outline:none;cursor:pointer;
   appearance:none;-webkit-appearance:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A7564' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 10px center;
 }
 .filter-select:focus{border-color:var(--gold)}
+/* La flecha del select es un SVG con el color grabado en el string --
+   en oscuro se quedaría con el mismo tono café-oscuro, casi invisible
+   sobre el fondo ya oscuro del select. Mismo patrón que admin.css usa
+   para el resto de <select> nativos del proyecto. */
+:root[data-theme="dark"] .filter-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23B9A890' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")}
 .chip-group-wrap{position:relative;flex-shrink:0}
 .chip-group-wrap::after{content:'›';position:absolute;top:0;bottom:0;right:0;width:24px;display:flex;align-items:center;justify-content:flex-end;padding-right:2px;background:linear-gradient(to right,transparent,var(--cream) 65%);color:var(--muted);font-size:1.2rem;font-weight:800;pointer-events:none;opacity:1;transition:opacity .15s}
 .chip-group-wrap.at-end::after{opacity:0}
 .chip-group{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .chip-group::-webkit-scrollbar{display:none}
-.chip{flex-shrink:0;padding:6px 14px;border-radius:50px;border:1.5px solid var(--border);background:#fff;font-size:.76rem;font-weight:600;cursor:pointer;color:#9B8B78;transition:.15s;white-space:nowrap}
-.chip.active{background:var(--charcoal);color:#fff;border-color:var(--charcoal)}
+.chip{flex-shrink:0;padding:6px 14px;border-radius:50px;border:1.5px solid var(--border);background:var(--surface);font-size:.76rem;font-weight:600;cursor:pointer;color:var(--muted);transition:.15s;white-space:nowrap}
+/* var(--ink), no var(--charcoal) -- charcoal SÍ se invierte en oscuro (se
+   vuelve claro), así que el chip activo se habría visto como una pastilla
+   clara con texto blanco encima -- mismo bug ya corregido en Caja/Reportes. */
+.chip.active{background:var(--ink);color:#fff;border-color:var(--ink)}
 .chip:hover:not(.active){border-color:var(--gold);color:var(--gold-dark)}
 
 
 /* FEED */
 .date-sep{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:16px 2px 6px}
 .date-sep:first-child{padding-top:2px}
-.act-card{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:7px;transition:.15s}
-.act-card:active{background:#FFF8EE;border-color:var(--gold)}
+.act-card{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:7px;transition:.15s}
+.act-card:active{background:var(--gold-light);border-color:var(--gold)}
 .act-card:hover{box-shadow:0 2px 10px rgba(28,24,23,.07)}
 .act-avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:800;color:#fff;margin-top:1px}
 .act-body{flex:1;min-width:0}
@@ -62,11 +95,16 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal
 .badge-inventario{background:#E0E7FF;color:#3730A3}
 .badge-apartado {background:#FEF3C7;color:#92400E}
 .badge-creado   {background:#D1FAE5;color:#065F46}
-.badge-editado  {background:#FFF8EE;color:#A67C3A}
+.badge-editado  {background:var(--gold-light);color:var(--gold-dark)}
 .badge-eliminado{background:#FEE2E2;color:#991B1B}
 .badge-revisado {background:#EDE9FE;color:#5B21B6}
+:root[data-theme="dark"] .badge-venta,:root[data-theme="dark"] .badge-creado{background:var(--tint-green-bg);color:var(--tint-green-strong)}
+:root[data-theme="dark"] .badge-inventario{background:var(--tint-blue-bg);color:var(--tint-blue-strong)}
+:root[data-theme="dark"] .badge-apartado{background:var(--tint-amber-bg);color:var(--tint-amber-strong)}
+:root[data-theme="dark"] .badge-eliminado{background:var(--tint-red-bg);color:var(--tint-red-strong)}
+:root[data-theme="dark"] .badge-revisado{background:var(--tint-violet-bg);color:var(--tint-violet-strong)}
 .act-user{font-size:.73rem;color:var(--muted);font-weight:600;white-space:nowrap}
-.act-time{font-size:.68rem;color:#B5A696;margin-left:auto;white-space:nowrap;flex-shrink:0}
+.act-time{font-size:.68rem;color:var(--muted-light);margin-left:auto;white-space:nowrap;flex-shrink:0}
 .act-summary{font-size:.84rem;font-weight:500;color:var(--charcoal);line-height:1.4}
 .act-detail{font-size:.74rem;color:var(--muted);margin-top:3px}
 

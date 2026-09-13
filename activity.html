@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es"> 
+<html lang="es" data-theme-ready="1">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -10,6 +10,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared.css">
 <link rel="stylesheet" href="activity.css">
+<script>
+/* Aplica el modo oscuro guardado ANTES del primer paint, para que no haya
+   flash claro→oscuro. Mismo script que Inventario/Caja/Reportes, ver
+   shared.js _initThemeToggle(). */
+(function(){try{if(localStorage.getItem('te_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();
+</script>
 </head>
 <body>
 

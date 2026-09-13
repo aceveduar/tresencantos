@@ -498,7 +498,7 @@ function _renderItemsDetail(meta) {
     const priceNote = overridden
       ? `<div style="font-size:.7rem;color:#B45309;margin-top:1px">Precio modificado: $${parseFloat(i.original_price).toLocaleString('es-MX')} → $${parseFloat(i.price).toLocaleString('es-MX')}</div>`
       : '';
-    return `<div style="display:flex;flex-direction:column;gap:0;font-size:.78rem;padding:3px 0;border-bottom:1px solid #F0EBE3">
+    return `<div style="display:flex;flex-direction:column;gap:0;font-size:.78rem;padding:3px 0;border-bottom:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;gap:8px">
         <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(i.name || 'Producto')}${qty>1?` ×${qty}`:''}</span>
         <span style="font-weight:600;flex-shrink:0">$${sub.toLocaleString('es-MX')}</span>
@@ -506,7 +506,7 @@ function _renderItemsDetail(meta) {
       ${priceNote}
     </div>`;
   }).join('');
-  return `<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #EDE5DC">${rows}</div>`;
+  return `<div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--border)">${rows}</div>`;
 }
 
 function _renderEditDiff(meta) {
@@ -525,7 +525,7 @@ function _renderEditDiff(meta) {
   allIds.forEach(id => {
     const b = beforeMap[id], a = afterMap[id];
     const name = _esc(a?.name || b?.name || 'Producto');
-    if (b && !a) itemRows.push(`<div style="font-size:.78rem;color:#E85D5D;padding:2px 0">− Quitó ${name} (×${b.qty})</div>`);
+    if (b && !a) itemRows.push(`<div style="font-size:.78rem;color:var(--red);padding:2px 0">− Quitó ${name} (×${b.qty})</div>`);
     else if (!b && a) itemRows.push(`<div style="font-size:.78rem;color:#059669;padding:2px 0">+ Agregó ${name} (×${a.qty})</div>`);
     else if (b.qty !== a.qty) itemRows.push(`<div style="font-size:.78rem;color:#B45309;padding:2px 0">${name}: ×${b.qty} → ×${a.qty}</div>`);
   });
@@ -533,17 +533,17 @@ function _renderEditDiff(meta) {
   const fieldRows = [];
   const fmt = n => `$${parseFloat(n || 0).toLocaleString('es-MX')}`;
   if (meta.totalPrevio != null && parseFloat(meta.totalPrevio) !== parseFloat(meta.total))
-    fieldRows.push(`<div style="font-size:.78rem;color:#1C1817;padding:2px 0">Total: ${fmt(meta.totalPrevio)} → <b>${fmt(meta.total)}</b></div>`);
+    fieldRows.push(`<div style="font-size:.78rem;color:var(--charcoal);padding:2px 0">Total: ${fmt(meta.totalPrevio)} → <b>${fmt(meta.total)}</b></div>`);
   if (meta.discountPrevio != null && parseFloat(meta.discountPrevio || 0) !== parseFloat(meta.discount || 0))
-    fieldRows.push(`<div style="font-size:.78rem;color:#1C1817;padding:2px 0">Descuento: ${fmt(meta.discountPrevio)} → <b>${fmt(meta.discount)}</b></div>`);
+    fieldRows.push(`<div style="font-size:.78rem;color:var(--charcoal);padding:2px 0">Descuento: ${fmt(meta.discountPrevio)} → <b>${fmt(meta.discount)}</b></div>`);
   if (meta.dueDatePrevio !== undefined && meta.dueDatePrevio !== meta.due_date) {
     const fmtD = d => d ? _activityFormat(d + 'T12:00:00Z', { day: 'numeric', month: 'short' }) : 'sin fecha';
-    fieldRows.push(`<div style="font-size:.78rem;color:#1C1817;padding:2px 0">Fecha límite: ${fmtD(meta.dueDatePrevio)} → <b>${fmtD(meta.due_date)}</b></div>`);
+    fieldRows.push(`<div style="font-size:.78rem;color:var(--charcoal);padding:2px 0">Fecha límite: ${fmtD(meta.dueDatePrevio)} → <b>${fmtD(meta.due_date)}</b></div>`);
   }
 
   if (!itemRows.length && !fieldRows.length) return '';
-  return `<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #EDE5DC">
-    <div style="font-size:.68rem;color:#8A7564;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Cambios</div>
+  return `<div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--border)">
+    <div style="font-size:.68rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Cambios</div>
     ${itemRows.join('')}${fieldRows.join('')}
   </div>`;
 }
@@ -571,9 +571,9 @@ function _actPopup(idx) {
     // cuánto quedó. El dato ya existía, solo faltaba mostrarlo.
     bodyHtml = `<div style="font-size:.82rem;color:var(--muted);margin-bottom:8px;font-weight:600">${meta.items.length} producto${meta.items.length !== 1 ? 's' : ''} recibido${meta.items.length !== 1 ? 's' : ''}</div>` +
       `<div style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">` +
-      meta.items.map(it => `<div style="font-size:.82rem;padding:8px 10px;background:#F7F2EB;border-radius:8px">
-        <div style="font-weight:600;color:#1C1817">${_esc(it.name || '(sin nombre)')}</div>
-        <div style="font-size:.75rem;color:#8A7564;margin-top:2px">${it.prevStock} → <strong style="color:#2D6A4F">+${it.qtyAdded}</strong> = ${it.newStock} uds.</div>
+      meta.items.map(it => `<div style="font-size:.82rem;padding:8px 10px;background:var(--surface-soft);border-radius:8px">
+        <div style="font-weight:600;color:var(--charcoal)">${_esc(it.name || '(sin nombre)')}</div>
+        <div style="font-size:.75rem;color:var(--muted);margin-top:2px">${it.prevStock} → <strong style="color:var(--green)">+${it.qtyAdded}</strong> = ${it.newStock} uds.</div>
       </div>`).join('') +
       `</div>`;
   } else if (meta.bulk && Array.isArray(meta.names) && meta.names.length) {
@@ -585,15 +585,15 @@ function _actPopup(idx) {
     // puntual estuvo entre ellos.
     bodyHtml = `<div style="font-size:.82rem;color:var(--muted);margin-bottom:8px;font-weight:600">${meta.names.length} producto${meta.names.length !== 1 ? 's' : ''} afectado${meta.names.length !== 1 ? 's' : ''}</div>` +
       `<div style="max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">` +
-      meta.names.map(n => `<div style="font-size:.82rem;color:#1C1817;padding:6px 10px;background:#F7F2EB;border-radius:8px">${_esc(n || '(sin nombre)')}</div>`).join('') +
+      meta.names.map(n => `<div style="font-size:.82rem;color:var(--charcoal);padding:6px 10px;background:var(--surface-soft);border-radius:8px">${_esc(n || '(sin nombre)')}</div>`).join('') +
       `</div>`;
   } else if (isProductAction && meta.id) {
     const p = _prodMap[meta.id];
     const img = p?.image || DEFAULT_IMG;
     imgHtml = `<img src="${img}" onerror="this.src='${DEFAULT_IMG}'" style="width:100%;max-height:200px;object-fit:contain;border-radius:10px;background:#F7F2EB;margin-bottom:12px">`;
     bodyHtml = `<div style="font-size:.9rem;font-weight:700;line-height:1.35;margin-bottom:4px">${_esc(meta.name || p?.name || '—')}</div>`;
-    if (meta.price != null) bodyHtml += `<div style="font-size:1rem;font-weight:700;font-family:'Playfair Display',serif;color:#C9A462">$${parseFloat(meta.price).toLocaleString('es-MX')} MXN</div>`;
-    if (p?.price != null && p.price !== meta.price) bodyHtml += `<div style="font-size:.72rem;color:#8A7564;margin-top:2px">Precio actual: $${parseFloat(p.price).toLocaleString('es-MX')}</div>`;
+    if (meta.price != null) bodyHtml += `<div style="font-size:1rem;font-weight:700;font-family:'Playfair Display',serif;color:var(--gold)">$${parseFloat(meta.price).toLocaleString('es-MX')} MXN</div>`;
+    if (p?.price != null && p.price !== meta.price) bodyHtml += `<div style="font-size:.72rem;color:var(--muted);margin-top:2px">Precio actual: $${parseFloat(p.price).toLocaleString('es-MX')}</div>`;
   } else if (isSale) {
     // Thumbnails de productos vendidos (si están disponibles en el meta)
     const ids = Array.isArray(meta.itemIds) ? meta.itemIds : [];
@@ -605,28 +605,28 @@ function _actPopup(idx) {
       }).join('');
       imgHtml = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${thumbs}</div>`;
     }
-    bodyHtml = `<div style="font-size:1.1rem;font-weight:700;font-family:'Playfair Display',serif;color:#C9A462;margin-bottom:6px">$${parseFloat(meta.total||0).toLocaleString('es-MX')} MXN</div>`;
-    bodyHtml += `<div style="font-size:.82rem;color:#1C1817;margin-bottom:4px">${meta.items||0} producto${(meta.items||0)!==1?'s':''}</div>`;
-    bodyHtml += `<div style="font-size:.82rem;color:#8A7564">${meta.method==='transferencia'?_actIcoPhone(12)+' Transferencia':_actIcoCash(12)+' Efectivo'}</div>`;
+    bodyHtml = `<div style="font-size:1.1rem;font-weight:700;font-family:'Playfair Display',serif;color:var(--gold);margin-bottom:6px">$${parseFloat(meta.total||0).toLocaleString('es-MX')} MXN</div>`;
+    bodyHtml += `<div style="font-size:.82rem;color:var(--charcoal);margin-bottom:4px">${meta.items||0} producto${(meta.items||0)!==1?'s':''}</div>`;
+    bodyHtml += `<div style="font-size:.82rem;color:var(--muted)">${meta.method==='transferencia'?_actIcoPhone(12)+' Transferencia':_actIcoCash(12)+' Efectivo'}</div>`;
     if (meta.discount > 0) bodyHtml += `<div style="font-size:.78rem;color:#059669;margin-top:4px">Descuento −$${parseFloat(meta.discount).toLocaleString('es-MX')}</div>`;
-    if (meta.reason) bodyHtml += `<div style="font-size:.8rem;color:#1C1817;margin-top:8px;padding:8px 10px;background:#F7F2EB;border-radius:8px;font-style:italic">"${_esc(meta.reason)}"</div>`;
+    if (meta.reason) bodyHtml += `<div style="font-size:.8rem;color:var(--charcoal);margin-top:8px;padding:8px 10px;background:var(--surface-soft);border-radius:8px;font-style:italic">"${_esc(meta.reason)}"</div>`;
     bodyHtml += _renderItemsDetail(meta);
   } else if (isApt) {
     bodyHtml = `<div style="font-size:.9rem;font-weight:700;margin-bottom:6px">${_esc(meta.customer || item.summary)}</div>`;
-    if (meta.total != null)    bodyHtml += `<div style="font-size:.82rem;color:#8A7564">Total: $${parseFloat(meta.total).toLocaleString('es-MX')}</div>`;
+    if (meta.total != null)    bodyHtml += `<div style="font-size:.82rem;color:var(--muted)">Total: $${parseFloat(meta.total).toLocaleString('es-MX')}</div>`;
     if (meta.anticipo != null) bodyHtml += `<div style="font-size:.82rem;color:#059669;margin-top:2px">Anticipo: $${parseFloat(meta.anticipo).toLocaleString('es-MX')}</div>`;
     if (meta.pendiente != null) bodyHtml += `<div style="font-size:.82rem;color:#B45309;margin-top:2px">Pendiente: $${parseFloat(meta.pendiente).toLocaleString('es-MX')}</div>`;
     if (meta.amount != null)   bodyHtml += `<div style="font-size:.82rem;color:#059669;margin-top:2px">Pago: $${parseFloat(meta.amount).toLocaleString('es-MX')}</div>`;
     if (meta.restante != null) bodyHtml += `<div style="font-size:.82rem;color:#059669;margin-top:2px">Liquidado: $${parseFloat(meta.restante).toLocaleString('es-MX')}</div>`;
-    if (meta.pagado != null)   bodyHtml += `<div style="font-size:.82rem;color:#8A7564;margin-top:2px">Cobrado antes de cancelar: $${parseFloat(meta.pagado).toLocaleString('es-MX')}</div>`;
-    if (meta.refund != null)   bodyHtml += `<div style="font-size:.82rem;color:#E85D5D;margin-top:2px">Devuelto: $${parseFloat(meta.refund).toLocaleString('es-MX')}</div>`;
-    if (meta.method)           bodyHtml += `<div style="font-size:.78rem;color:#8A7564;margin-top:2px">${meta.method==='transferencia'?_actIcoPhone(12)+' Transferencia':_actIcoCash(12)+' Efectivo'}</div>`;
-    if (meta.dueDate)          bodyHtml += `<div style="font-size:.78rem;color:#8A7564;margin-top:2px">${_actIcoCalendar(12)} Vencía: ${_activityFormat(meta.dueDate+'T12:00:00Z',{day:'numeric',month:'short',year:'numeric'})}</div>`;
-    if (meta.reason) bodyHtml += `<div style="font-size:.8rem;color:#1C1817;margin-top:8px;padding:8px 10px;background:#F7F2EB;border-radius:8px;font-style:italic">"${_esc(meta.reason)}"</div>`;
+    if (meta.pagado != null)   bodyHtml += `<div style="font-size:.82rem;color:var(--muted);margin-top:2px">Cobrado antes de cancelar: $${parseFloat(meta.pagado).toLocaleString('es-MX')}</div>`;
+    if (meta.refund != null)   bodyHtml += `<div style="font-size:.82rem;color:var(--red);margin-top:2px">Devuelto: $${parseFloat(meta.refund).toLocaleString('es-MX')}</div>`;
+    if (meta.method)           bodyHtml += `<div style="font-size:.78rem;color:var(--muted);margin-top:2px">${meta.method==='transferencia'?_actIcoPhone(12)+' Transferencia':_actIcoCash(12)+' Efectivo'}</div>`;
+    if (meta.dueDate)          bodyHtml += `<div style="font-size:.78rem;color:var(--muted);margin-top:2px">${_actIcoCalendar(12)} Vencía: ${_activityFormat(meta.dueDate+'T12:00:00Z',{day:'numeric',month:'short',year:'numeric'})}</div>`;
+    if (meta.reason) bodyHtml += `<div style="font-size:.8rem;color:var(--charcoal);margin-top:8px;padding:8px 10px;background:var(--surface-soft);border-radius:8px;font-style:italic">"${_esc(meta.reason)}"</div>`;
     bodyHtml += _renderItemsDetail(meta);
     if (item.action === 'apartado_editado' && meta.itemsDetailPrevio) bodyHtml += _renderEditDiff(meta);
   } else {
-    bodyHtml = `<div style="font-size:.85rem;color:#1C1817">${_esc(item.summary)}</div>`;
+    bodyHtml = `<div style="font-size:.85rem;color:var(--charcoal)">${_esc(item.summary)}</div>`;
   }
 
   const pop = document.createElement('div');
@@ -634,10 +634,10 @@ function _actPopup(idx) {
   pop.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);animation:ap-in .15s ease';
   pop.innerHTML = `
     <style>@keyframes ap-in{from{opacity:0}to{opacity:1}}</style>
-    <div onclick="event.stopPropagation()" style="background:#fff;border-radius:18px;padding:18px;max-width:300px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,.28);position:relative">
-      <button onclick="document.getElementById('act-pop').remove()" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:1.1rem;cursor:pointer;color:#8A7564;line-height:1">✕</button>
+    <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;padding:18px;max-width:300px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,.28);position:relative">
+      <button onclick="document.getElementById('act-pop').remove()" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted);line-height:1">✕</button>
       ${imgHtml}
-      <div style="font-size:.7rem;color:#8A7564;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;font-weight:600">${cfg.icon} ${cfg.label} · ${time}</div>
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;font-weight:600">${cfg.icon} ${cfg.label} · ${time}</div>
       ${bodyHtml}
     </div>`;
   pop.addEventListener('click', () => pop.remove());

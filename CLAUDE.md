@@ -1439,6 +1439,42 @@ Feed de auditoría de todo lo que pasa en el sistema. Accesible para todos los r
 - **Limpiar historial:** disponible en Configuración (solo superadmin) — el propio borrado queda registrado (`configuracion_editada`) después de ejecutarse
 - **Tipo "Sistema" (2026-08-20):** `permisos_editados` (cualquier cambio en Usuarios y Permisos, vía `te_save_user_permissions`) y `configuracion_editada` (toggles de Configuración, Groq key, Drive, Revista, categorías del catálogo). Cubre auditoría que antes no dejaba rastro — junto con acciones masivas de Inventario (`bulkDelete`, `bulkTogglePublish`, etc., una entrada por operación bajo `producto_eliminado`/`producto_editado`) y stock modificado inline (Inventario) o por reabastecimiento rápido (Caja)
 
+### Modo oscuro en Actividad (2026-09-12)
+
+Sexto módulo con modo oscuro real (después de Inventario, Caja, Reportes, y los tokens
+compartidos de `shared.js`/`shared.css`) — mismo mecanismo: `data-theme-ready="1"` en `<html>`
++ script anti-flash en `<head>` de `activity.html` (copiado tal cual de `stats.html`).
+
+- **`activity.css` nunca tuvo su propio `:root` claro** (usaba el de `shared.css` tal cual, a
+  diferencia de admin.css/pos.css/stats.css que redefinen `--cream`/`--charcoal`/etc.) — aquí
+  solo hizo falta agregar el bloque `:root[data-theme="dark"]` (mismos valores que los demás
+  módulos) más los 5 pares `--tint-*` (violeta/azul incluidos, usados por `badge-revisado`/
+  `badge-inventario`).
+- **Bug real encontrado y corregido de paso — mismo patrón `--charcoal`-como-fondo-fijo ya
+  visto en Caja/Reportes:** el topbar (`@media(min-width:1025px){.topbar{background:var(--charcoal)}}`,
+  y su equivalente en `@media(max-width:1024px)`) y `.chip.active` (chip de filtro de tipo
+  activo) usaban `background:var(--charcoal)` con texto blanco — como `--charcoal` sí se
+  invierte en oscuro, se habrían visto como una pastilla/barra clara con texto blanco encima.
+  Corregidos a `var(--ink)` (token fijo de `shared.css`), igual que el fix ya documentado en
+  Caja/Reportes.
+- **Barrido de colores hardcodeados** en `activity.css` (buscador, selects de filtro, chips,
+  tarjetas del feed, badges de tipo — `background:#fff`→`var(--surface)`, `#9B8B78`→
+  `var(--muted)`, la flecha SVG del `<select>` con color grabado en el string ganó una variante
+  oscura) y en el HTML que arma `activity.js` (el popup de detalle `_actPopup()` — la mayor
+  superficie de este módulo: `#1C1817`→`var(--charcoal)`, `#8A7564`→`var(--muted)`, bordes
+  divisorios `#F0EBE3`/`#EDE5DC`→`var(--border)`, el fondo blanco del popup→`var(--surface)`,
+  cajas de texto (no imagen) con fondo `#F7F2EB`→`var(--surface-soft)`, y los acentos exactos
+  `#C9A462`/`#2D6A4F`/`#E85D5D` que ya coincidían con un token→`var(--gold)`/`var(--green)`/
+  `var(--red)`). Los fondos de imagen de producto (`#F7F2EB` en los `<img>` de thumbnails/
+  placeholder) se dejaron fijos a propósito — mismo criterio ya establecido en Inventario
+  ("las fotos vienen sobre fondo blanco/gris claro, un marco oscuro se vería peor"). Colores
+  semánticos distintos a un token exacto (`#B45309` ámbar, `#059669` verde-esmeralda) se
+  dejaron sin tocar — acentos vívidos ya legibles en ambos temas, mismo criterio del resto del
+  proyecto.
+- Verificado balance de llaves de `activity.css` y `node --check activity.js` sin errores.
+  **Pendiente confirmar en dispositivo real.**
+CACHE_VERSION v547→v548.
+
 ---
 
 ## Configuración (`settings.html`)
@@ -1462,6 +1498,37 @@ Panel de ajustes globales. **Solo superadmin** — redirige a `admin.html` para 
 **Integraciones:**
 - **Groq API key** — guardar/actualizar key para IA (guardada en `config.id='groq_key'`)
 - **Google Drive** — configurar/probar/desconectar el Apps Script proxy
+
+### Modo oscuro en Configuración (2026-09-12)
+
+Séptimo y último módulo con modo oscuro real — mismo mecanismo (`data-theme-ready="1"` +
+script anti-flash en `<head>` de `settings.html`), quedando Actividad/Configuración como los
+2 módulos pendientes ya cerrados. Con esto los 5 módulos admin ya son consistentes.
+
+- **Bug real encontrado y corregido de paso, mismo patrón `--charcoal`-fijo:** el topbar
+  (`@media(min-width:1025px){.topbar{background:var(--charcoal)}}`) y `.toast` (aviso
+  "Guardado"/error) usaban `background:var(--charcoal)` con texto blanco — corregidos a
+  `var(--ink)`, mismo fix ya aplicado en Caja/Reportes/Actividad.
+- **`--border-light` estaba indefinida en este módulo** — usada por la matriz de permisos
+  (`.up-mx-person`/`.up-mx-perm-name`, borde izquierdo) pero nunca declarada ni en
+  `settings.css` ni en `shared.css`, solo existía en `admin.css` (que este módulo no carga).
+  Sin el token, esas reglas de borde simplemente no aplicaban nada — un bug preexistente de
+  modo claro, no algo introducido por este cambio. Se agregó `--border-light:#F0E8DF` a un
+  `:root{}` nuevo (más su par oscuro `#352E25` en el bloque `[data-theme="dark"]`).
+- **Barrido completo de `#fff`/colores hardcodeados** en `settings.css` (tarjetas, modal,
+  categorías, toggle `.te-switch`, Usuarios y Permisos — lista y matriz — con sus badges de
+  "≠ rol"/overridden ganando override oscuro vía los tokens `--tint-amber-*`) y en los 2
+  inputs inline de `settings.html` (`#drive-secret-input`, `#revista-preview`). De paso,
+  `.field-input` (clase compartida por casi todos los campos de texto del módulo) y los
+  inputs propios de "Gestionar categorías" (`.add-cat-row input`/`select`, `.cat-sub-new-inp`)
+  ganaron `background:var(--surface);color:var(--charcoal)` explícito — sin esto, `color-
+  scheme:dark` (ya activo vía el bloque oscuro) los habría dejado en el tono dark-nativo del
+  navegador en vez del tono propio de la app, inconsistente con el resto de superficies.
+  Los `<select>` nativos sin `appearance:none` (rol de usuario, rango de fecha, categoría
+  padre) no necesitaron ajuste — `color-scheme:dark` ya los pinta correctamente solos.
+- Verificado balance de llaves de `settings.css` y `node --check settings.js` sin errores.
+  **Pendiente confirmar en dispositivo real.**
+CACHE_VERSION v548→v549.
 
 ---
 
