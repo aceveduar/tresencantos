@@ -1841,13 +1841,13 @@ function renderTurnos() {
       <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px">Acumulado por cajera</div>
       ${aggRows.map(r => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:.8rem">
-          <span>${_esc(r.email.split('@')[0])}<span style="color:var(--muted);font-weight:400;margin-left:6px;font-size:.72rem">${r.count} turno${r.count !== 1 ? 's' : ''}${r.grandes ? ` · ${r.grandes} grande${r.grandes !== 1 ? 's' : ''}` : ''}</span></span>
+          <span>${_esc(nameMap[r.email] || r.email.split('@')[0])}<span style="color:var(--muted);font-weight:400;margin-left:6px;font-size:.72rem">${r.count} turno${r.count !== 1 ? 's' : ''}${r.grandes ? ` · ${r.grandes} grande${r.grandes !== 1 ? 's' : ''}` : ''}</span></span>
           <span style="font-weight:700;color:${Math.abs(r.total) < .005 ? 'var(--green)' : r.total > 0 ? 'var(--gold-dark)' : 'var(--red)'}">${Math.abs(r.total) < .005 ? '✓ Cuadra' : fmtMoney(r.total)}</span>
         </div>`).join('')}
     </div>` : '';
 
   const turnosHtml = _turnos.map(t => {
-    const nombre = (t.user_email || '').split('@')[0] || 'Sin usuario';
+    const nombre = t.user_email ? (nameMap[t.user_email] || t.user_email.split('@')[0]) : 'Sin usuario';
     const enCurso = t.status === 'abierto';
     const sinCierre = t.status === 'cerrado_auto';
     const diff = t.diferencia != null ? Math.round((Number(t.diferencia) + Number.EPSILON) * 100) / 100 : null;

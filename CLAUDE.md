@@ -1279,6 +1279,9 @@ CACHE_VERSION v538→v539.
 - De paso, el textarea de notas subió de `.82rem` (~13px) a `16px` — por debajo de 16px, Safari en iOS hace zoom automático al enfocar el campo; ya era un problema preexistente en este mismo popup, corregido junto con los 2 campos nuevos que comparten el mismo estilo base.
 CACHE_VERSION v539→v540.
 
+**"Turnos de caja" ignoraba los nombres configurados en Configuración → Nombres de usuarios (2026-09-12)** — auditoría pedida por Eduardo sobre esta card. `renderTurnos()` (`stats.js`) mostraba el nombre crudo derivado del email (`t.user_email.split('@')[0]`, ej. "areli", "eacevedo") tanto en "Acumulado por cajera" como en cada turno individual — a diferencia de "Por vendedor" (`renderVendedores()`, la otra card de esta misma pantalla, ~100 líneas arriba en el mismo archivo) y de "Movimientos de hoy" (`collector`), que sí consultan `nameMap[email] || email.split('@')[0]` (el mapeo de `config.id='user_names'`, ya cargado en `loadNameMap()` antes de que `renderTurnos()` corra por primera vez). Corregido replicando el mismo patrón en los 2 puntos de esta card. Verificado con grep que no queda ningún otro punto del archivo con el mismo hueco (los 2 usos restantes de `.split('@')[0]` ya consultaban `nameMap` primero, y el tercero es para el avatar de la propia sesión, un caso distinto que no aplica).
+CACHE_VERSION v540→v541.
+
 ---
 
 ## Tienda — Sitio Público (`app.js` + `index.html`)
