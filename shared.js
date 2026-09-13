@@ -191,19 +191,14 @@ function _themeToggleRowHtml() {
   // una sola línea, en el lenguaje de "qué cambia para ti", no un reporte
   // técnico del bug.
   const SYS_NOTICES = [
-    { id: 'staff-access-2026-08', icon: 'lock', text: 'El acceso a Caja e Inventario se movió arriba, junto al carrito, en la Tienda.', until: '2026-08-31' },
-    { id: 'por-revisar-2026-08',  icon: 'flag', text: 'Revisen los productos marcados "Por revisar" — usen el chip de filtro para verlos.', until: '2026-08-31' },
-    { id: 'edit-apt-due-date-2026-09', icon: 'calendar', text: 'Editar apartado ahora muestra y deja ajustar la fecha límite de pago.', until: '2026-09-22' },
-    { id: 'resend-receipt-2026-09b', icon: 'send', text: 'En Apartados, la flecha junto a cada pago reenvía ese comprobante por WhatsApp.', until: '2026-09-22' },
-    { id: 'edit-apt-phone-2026-09', icon: 'phone', text: 'Ya puedes agregar o corregir el teléfono del cliente al editar un apartado.', until: '2026-09-22' },
-    { id: 'edit-apt-fix-2026-09', icon: 'wrench', text: 'Se arregló que "Editar apartado" no guardaba al agregar un producto.', until: '2026-09-25' },
-    { id: 'turno-caja-2026-09', icon: 'wallet',
-      title: 'Abrir turno de caja ya es obligatorio',
-      text: 'Antes de vender, Caja te va a pedir abrir tu turno: declara cuánto efectivo tienes al empezar (puede ser $0). Al terminar tu día, ciérralo desde "🧾 Corte" contando el efectivo real que tienes en la caja. Si se te olvida cerrarlo, el sistema lo cierra solo la próxima vez que entres, pero sin tu conteo — mejor ciérralo tú misma cada día para que el corte salga exacto.',
-      until: '2026-09-26' },
+    { id: 'inv-add-menu-2026-09', icon: 'plus',
+      title: 'En Inventario, en el celular, busca el botón + de abajo',
+      text: 'Ahí se juntaron: Producto nuevo, Captura rápida, Kit/Bundle, Recibir mercancía y Recepción con IA — antes estaban repartidos en varios botones distintos. Escanear código de barras sigue en su lugar de siempre, junto al buscador.',
+      until: '2026-10-03' },
   ];
 
   const _NOTIF_ICONS = {
+    plus:     '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
     wrench:   '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/>',
     calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
     phone:    '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>',
