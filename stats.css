@@ -449,7 +449,11 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
      tablet/mobile no caben con dignidad junto a un número tan grande. */
   .kpi-spark{display:block}
 
-  .kpi-top-grid{display:grid;grid-template-columns:1.7fr 1fr;gap:24px;align-items:stretch}
+  /* Las tarjetas de adentro pierden su margin-bottom individual (abajo)
+     para poder estirarse parejo con align-items:stretch -- ese espacio
+     antes de "Movimientos de hoy" hay que ponerlo aquí, en el contenedor,
+     o las tarjetas quedan pegadas contra la siguiente sección. */
+  .kpi-top-grid{display:grid;grid-template-columns:1.7fr 1fr;gap:24px;align-items:stretch;margin-bottom:24px}
   .kpi-top-grid>div{display:flex;flex-direction:column}
   .kpi-top-grid .kpi-hero-card{margin-bottom:0;flex:1}
   .kpi-top-grid .kpi-strip{margin-bottom:0;flex:1;flex-direction:column}

@@ -1257,6 +1257,8 @@ CACHE_VERSION v532→v533.
 - Verificado balance de llaves de `stats.css` y `node --check stats.js`. **Pendiente confirmar en dispositivo real** — sin poder abrir un navegador desde aquí, no se pudo verificar visualmente que Chart.js dibuje las 2 mini-gráficas del tamaño y proporción esperados.
 CACHE_VERSION v533→v534.
 
+**Fix — "Movimientos de hoy" quedaba pegado contra las tarjetas de arriba en escritorio ancho (mismo día)** — Eduardo lo vio en vivo con captura real: al quitarle `margin-bottom` a `.kpi-hero-card`/`.kpi-strip` dentro del bloque ≥1300px (necesario para que `align-items:stretch` las estirara parejo), nunca se compensó ese espacio en el contenedor — `.kpi-top-grid` se quedó sin ningún margen inferior propio, así que la siguiente tarjeta quedaba pegada contra el borde. Agregado `margin-bottom:24px` directo en `.kpi-top-grid` (mismo valor que ya usaban las tarjetas individuales antes de quitárselo). CACHE_VERSION v534→v535.
+
 ---
 
 ## Tienda — Sitio Público (`app.js` + `index.html`)
