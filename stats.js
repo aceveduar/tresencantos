@@ -2005,11 +2005,11 @@ function openClienteProfile(id) {
       </div>
       <div style="display:flex;gap:8px;margin:14px 0">
         <div class="inv-valor-box" style="flex:1;padding:10px;border-radius:10px;text-align:center">
-          <div style="font-size:1.1rem;font-weight:700;font-family:'Playfair Display',serif">$${stats.total.toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
+          <div style="font-size:1.1rem;font-weight:700">$${stats.total.toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
           <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Total gastado</div>
         </div>
         <div class="inv-valor-box" style="flex:1;padding:10px;border-radius:10px;text-align:center">
-          <div style="font-size:1.1rem;font-weight:700;font-family:'Playfair Display',serif">${stats.count}</div>
+          <div style="font-size:1.1rem;font-weight:700">${stats.count}</div>
           <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Compras</div>
         </div>
       </div>

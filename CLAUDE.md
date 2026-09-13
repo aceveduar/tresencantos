@@ -1291,6 +1291,14 @@ CACHE_VERSION v541→v542.
 - Sin cambios en `stats.js` — mismos IDs (`inv-out`/`inv-low`/`inv-ok`/`rent-high`/`rent-mid`/`rent-low`), solo CSS. Los badges de riesgo dentro de la lista de "Rentabilidad" (`.badge-red`/`.badge-amber`, por producto) no se tocaron — son una señal de estado real por ítem, distinta del resumen de 3 categorías de arriba.
 CACHE_VERSION v542→v543.
 
+**Unificación tipográfica — Playfair Display retirado de las cifras "sin héroe" que quedaban (2026-09-12)** — Eduardo preguntó si toda la pantalla ya quedaba armónica; auditoría honesta: no del todo. La regla aplicada al KPI de arriba y a Inventario/Rentabilidad (Playfair solo para el número que de verdad es el protagonista de su tarjeta; sans para cifras que son una entre varias del mismo nivel) no se había extendido a otros puntos que llevaban Playfair desde antes de esta sesión, sin relación con ningún "héroe" real:
+- `.tp-revenue` (Top productos) — cada uno de hasta 8 productos, ninguno protagonista sobre los demás.
+- `.dv-sale-total`/`.dv-item-sub` (Movimientos de hoy) — cada transacción entre docenas, misma situación.
+- `inv-valor-venta`/`inv-valor-costo` (las 2 cajas "Valor en venta"/"Capital invertido" en Estado del inventario) y `stats.total`/`stats.count` (perfil de cliente, "Total gastado"/"Compras") — 2 cifras una junto a la otra, ninguna más importante que la otra, mismo caso que ya se corrigió en "Otros indicadores".
+Los 5 puntos pasan a heredar la tipografía normal del body (Inter) — mismo criterio, sin tocar tamaño ni peso.
+**Deliberadamente sin tocar**: el total de la semana en curso dentro del resumen de la gráfica (`_renderWeekComparison()`, "$X" grande junto al delta, con "Anterior $Y" chico y gris al lado) — ese sí es un caso genuino de héroe+comparación, análogo a Ingresos, no una lista de pares.
+CACHE_VERSION v543→v544.
+
 ---
 
 ## Tienda — Sitio Público (`app.js` + `index.html`)
