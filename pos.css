@@ -317,17 +317,17 @@ button,a{touch-action:manipulation}
 }
 .hi-card:hover{box-shadow:0 2px 10px rgba(28,24,23,.08)}
 
-/* Cabecera — dos filas a propósito: info arriba (hora/badge/total), acciones
-   abajo. Antes era una sola fila con hora+badge+total+hasta 4 botones de
-   44px -- no cabían y `flex-wrap` los mandaba a una segunda línea por
-   accidente, viéndose como una cabecera pesada/desordenada. */
+/* Una sola fila -- "Ver historial"/"Reenviar comprobante" (acciones de
+   "a veces", auditar una disputa o reenviar un comprobante perdido) se
+   bajaron al pie (.hi-footer) junto a las demás etiquetas secundarias;
+   aquí solo queda Cancelar, la única acción realmente urgente/frecuente
+   de este encabezado, así que vuelve a caber en una sola línea junto con
+   hora/badge/total sin apretarse. */
 .hi-head{
-  display:flex;flex-direction:column;gap:4px;
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
   padding:8px 12px;background:var(--surface-soft);
   border-bottom:1px solid var(--border);
 }
-.hi-head-row1{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.hi-head-row2{display:flex;align-items:center;justify-content:flex-end;gap:2px;flex-wrap:wrap}
 .hi-time{font-size:.74rem;color:var(--muted);white-space:nowrap}
 .hi-spacer{flex:1}
 .hi-total{font-weight:700;font-family:'Playfair Display',serif;color:var(--charcoal);font-size:.95rem;white-space:nowrap}
@@ -358,12 +358,15 @@ button,a{touch-action:manipulation}
 .hi-item-qty{color:var(--muted);white-space:nowrap;font-size:.72rem}
 .hi-item-sub{font-weight:700;color:var(--charcoal);white-space:nowrap;font-size:.8rem}
 
-/* Pie: descuento · nota · cliente */
+/* Pie: descuento · nota · cliente (izquierda) + historial/reenviar
+   (derecha, empujados por .hi-footer-spacer) -- siempre visible ahora,
+   ya no depende de si hay alguna etiqueta que mostrar. */
 .hi-footer{
-  display:flex;flex-wrap:wrap;gap:5px;
-  padding:6px 12px 8px;border-top:1px solid var(--border);
+  display:flex;align-items:center;flex-wrap:wrap;gap:5px;
+  padding:4px 8px 4px 12px;border-top:1px solid var(--border);
   font-size:.74rem;color:var(--muted);
 }
+.hi-footer-spacer{flex:1;min-width:8px}
 .hi-tag{display:inline-flex;align-items:center;gap:3px;background:var(--surface-soft);padding:3px 9px;border-radius:50px;font-weight:600}
 .hi-tag.discount{background:#FEF3C7;color:#92400E}
 .hi-tag.note{background:#EFF6FF;color:#1E40AF;font-weight:500}

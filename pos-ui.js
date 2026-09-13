@@ -992,7 +992,6 @@ async function loadHistory() {
         tags.push(`<span class="hi-tag note">${breakdown}</span>`);
       }
       if (s.cancelled_at) tags.push('<span class="hi-tag note">Cancelado</span>');
-      const footerHTML = tags.length ? `<div class="hi-footer">${tags.join('')}</div>` : '';
       const displayTotal = `${amount < 0 ? '−' : ''}$${Math.abs(amount).toLocaleString('es-MX')}`;
       // Ancla el botón al movimiento más reciente de la venta (evita un ✕ por
       // cada fila cuando hay varios pagos/reembolsos) sin exigir que ese
@@ -1005,21 +1004,22 @@ async function loadHistory() {
       // que sirve sin importar cuánto tiempo haya pasado.
       const resendBtn = `<button class="hi-del hi-send" onclick="event.stopPropagation();resendReceipt('${payment.id}')" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(13)}</button>`;
       const timelineBtn = `<button class="hi-del" onclick="event.stopPropagation();openTransactionTimeline(${s.id})" title="Ver historial completo de esta transacción" aria-label="Ver historial completo de esta transacción">${_uiIcoClock(13)}</button>`;
+      // Historial/reenviar son acciones de "a veces" (auditar una disputa,
+      // reenviar un comprobante perdido) -- antes vivían en su propia fila
+      // de encabezado junto con Cancelar, haciendo que CADA movimiento se
+      // viera pesado aunque casi nunca se toquen. Bajadas al pie, junto a
+      // las demás etiquetas secundarias (descuento/nota/cliente) -- Cancelar
+      // se queda arriba por ser la única acción realmente urgente/frecuente.
+      const footerHTML = `<div class="hi-footer">${tags.join('')}<span class="hi-footer-spacer"></span>${timelineBtn}${resendBtn}</div>`;
 
       return `
 <div class="hi-card">
   <div class="hi-head">
-    <div class="hi-head-row1">
-      <span class="hi-time">${hora} · ${totalQty} art.</span>
-      ${payBadge}
-      <span class="hi-spacer"></span>
-      <span class="hi-total"${amount < 0 ? ' style="color:var(--red)"' : ''}>${displayTotal}</span>
-    </div>
-    <div class="hi-head-row2">
-      ${timelineBtn}
-      ${resendBtn}
-      ${canCancelThis ? `<button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar registro completo" aria-label="Cancelar registro completo">✕</button>` : ''}
-    </div>
+    <span class="hi-time">${hora} · ${totalQty} art.</span>
+    ${payBadge}
+    <span class="hi-spacer"></span>
+    <span class="hi-total"${amount < 0 ? ' style="color:var(--red)"' : ''}>${displayTotal}</span>
+    ${canCancelThis ? `<button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar registro completo" aria-label="Cancelar registro completo">✕</button>` : ''}
   </div>
   <div class="hi-items">${itemsHTML || '<div style="color:var(--muted);font-size:.78rem;padding:4px 0">Sin detalle</div>'}</div>
   ${footerHTML}
