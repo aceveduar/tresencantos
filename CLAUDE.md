@@ -1271,6 +1271,14 @@ CACHE_VERSION v533→v534.
 - Verificado `node --check stats.js` tras el sweep.
 CACHE_VERSION v538→v539.
 
+**Perfil de cliente — nombre y teléfono ahora editables, no solo las notas (2026-09-12)** — Eduardo preguntó qué pasa si la misma persona/teléfono se captura con nombres distintos en apartados sucesivos (ej. "Lalo" la primera vez, "Eduardo" y "Acevedo" después). Confirmado en el código real (`te_find_or_create_customer`, `supabase/migrations/20260901_01_customers.sql`): la deduplicación es por **teléfono**, así que sí se trata como el mismo cliente (correcto) — pero el `name` del registro se fija la primera vez y nunca se actualiza después, aunque se teclee un nombre distinto en una venta posterior con el mismo teléfono; y no había ninguna forma en la app de corregirlo (el perfil de cliente en Reportes solo dejaba editar las notas).
+- `openClienteProfile()` (`stats.js`) — "Nombre" y "Teléfono" pasan de texto fijo a `<input>` editables (mismo patrón visual que el textarea de notas ya existente), con un link "Abrir WhatsApp con este número" debajo cuando hay teléfono guardado (reemplaza el link directo de antes, que ahora competiría visualmente con el campo editable).
+- **`_saveClienteNotes()` → `_saveClienteProfile()`** — guarda nombre + teléfono + notas juntos en un solo `PATCH` (mismo camino ya permitido por RLS a `authenticated` para editar `customers`, sin RPC nueva). Validación en cliente antes de guardar: nombre no puede quedar vacío; teléfono debe quedar vacío o tener exactamente 10 dígitos.
+- **Conflicto de teléfono duplicado manejado explícitamente** — `customers` tiene un índice único parcial por teléfono (`customers_phone_unique`); si se intenta poner un teléfono que ya usa otro cliente, PostgREST responde 409/`23505` en vez de aplicar el cambio. Mensaje específico ("Ese teléfono ya pertenece a otro cliente") en vez del genérico de antes.
+- Al guardar con éxito, `renderTopClientes()` se vuelve a llamar de inmediato para que el nombre/teléfono nuevo se refleje sin tener que recargar la página. `logActivity('cliente_editado', ...)` ahora describe explícitamente qué cambió (nombre/teléfono/notas), no solo "Notas actualizadas" como antes.
+- De paso, el textarea de notas subió de `.82rem` (~13px) a `16px` — por debajo de 16px, Safari en iOS hace zoom automático al enfocar el campo; ya era un problema preexistente en este mismo popup, corregido junto con los 2 campos nuevos que comparten el mismo estilo base.
+CACHE_VERSION v539→v540.
+
 ---
 
 ## Tienda — Sitio Público (`app.js` + `index.html`)

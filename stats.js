@@ -1968,6 +1968,8 @@ function openClienteProfile(id) {
   const clienteDesde = _mxDateLabel(c.created_at, { day:'numeric', month:'short', year:'numeric' });
   const digits = (c.phone || '').replace(/\D/g, '');
   const waLink = digits ? `https://wa.me/52${digits}` : '';
+  const _fieldLabel = 'font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:4px;display:block;';
+  const _fieldInput = 'width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:16px;outline:none;font-family:inherit;box-sizing:border-box;background:var(--surface);color:var(--charcoal);';
 
   const rowsHtml = historial.map(s => {
     const fecha = _mxDateLabel(s.created_at, { day:'numeric', month:'short', year:'numeric' });
@@ -1986,8 +1988,14 @@ function openClienteProfile(id) {
     <style>@keyframes ap-in{from{opacity:0}to{opacity:1}}</style>
     <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;padding:18px;max-width:340px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 12px 48px rgba(0,0,0,.28);position:relative">
       <button onclick="document.getElementById('cliente-pop').remove()" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted);line-height:1">✕</button>
-      <div style="font-size:1.05rem;font-weight:700;margin-bottom:2px;padding-right:24px">${_esc(c.name)}</div>
-      ${digits ? `<a href="${waLink}" target="_blank" rel="noopener" style="font-size:.8rem;color:var(--gold-dark);text-decoration:none">${_esc(c.phone)}</a>` : '<div style="font-size:.8rem;color:var(--muted)">Sin teléfono</div>'}
+      <div style="padding-right:24px">
+        <label style="${_fieldLabel}">Nombre</label>
+        <input type="text" id="cliente-name-input" value="${_esc(c.name)}" placeholder="Nombre" style="${_fieldInput}font-weight:700">
+        <label style="${_fieldLabel}margin-top:8px">Teléfono</label>
+        <input type="tel" inputmode="numeric" id="cliente-phone-input" value="${_esc(c.phone || '')}" placeholder="10 dígitos (opcional)" style="${_fieldInput}">
+        ${digits ? `<a href="${waLink}" target="_blank" rel="noopener" style="display:inline-block;margin-top:5px;font-size:.72rem;color:var(--gold-dark)">Abrir WhatsApp con este número</a>` : ''}
+        <div id="cliente-profile-error" style="display:none;color:var(--red);font-size:.72rem;margin-top:5px"></div>
+      </div>
       <div style="display:flex;gap:8px;margin:14px 0">
         <div class="inv-valor-box" style="flex:1;padding:10px;border-radius:10px;text-align:center">
           <div style="font-size:1.1rem;font-weight:700;font-family:'Playfair Display',serif">$${stats.total.toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
@@ -2002,30 +2010,60 @@ function openClienteProfile(id) {
       <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:4px">Historial</div>
       <div style="max-height:180px;overflow-y:auto;margin-bottom:14px">${rowsHtml}</div>
       <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:4px">Notas</div>
-      <textarea id="cliente-notes-input" rows="2" placeholder="Preferencias, tallas, alergias…" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;outline:none;font-family:inherit;resize:vertical;box-sizing:border-box;background:var(--surface);color:var(--charcoal)">${_esc(c.notes || '')}</textarea>
-      <button onclick="_saveClienteNotes(${id})" style="width:100%;margin-top:8px;background:var(--ink);color:#fff;padding:9px;border-radius:8px;border:none;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">Guardar nota</button>
+      <textarea id="cliente-notes-input" rows="2" placeholder="Preferencias, tallas, alergias…" style="${_fieldInput}resize:vertical">${_esc(c.notes || '')}</textarea>
+      <button id="cliente-save-btn" onclick="_saveClienteProfile(${id})" style="width:100%;margin-top:8px;background:var(--ink);color:#fff;padding:9px;border-radius:8px;border:none;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">Guardar cambios</button>
     </div>`;
   pop.addEventListener('click', () => pop.remove());
   document.body.appendChild(pop);
 }
 
-async function _saveClienteNotes(id) {
-  const btn = document.querySelector(`#cliente-pop button[onclick="_saveClienteNotes(${id})"]`);
-  const val = document.getElementById('cliente-notes-input')?.value.trim() || '';
+// Antes solo guardaba notas -- el nombre/teléfono se fijaban la primera vez
+// que se usaba ese teléfono (te_find_or_create_customer) y nunca había
+// forma de corregirlos desde la app si alguien tecleó un nombre distinto
+// en una venta posterior con el mismo teléfono. Ahora los 3 campos se
+// guardan juntos en un solo PATCH -- mismo camino ya permitido por RLS
+// para "authenticated" (edición de nombre/teléfono/notas, documentado en
+// CLAUDE.md), sin necesitar ninguna RPC nueva.
+async function _saveClienteProfile(id) {
+  const btn = document.getElementById('cliente-save-btn');
+  const errEl = document.getElementById('cliente-profile-error');
   const c = _customers.find(x => x.id === id);
   if (!c) return;
+
+  const showError = msg => { if (errEl) { errEl.textContent = msg; errEl.style.display = ''; } };
+  if (errEl) errEl.style.display = 'none';
+
+  const name = (document.getElementById('cliente-name-input')?.value || '').trim();
+  const phoneDigits = (document.getElementById('cliente-phone-input')?.value || '').replace(/\D/g, '');
+  const notes = (document.getElementById('cliente-notes-input')?.value || '').trim();
+
+  if (!name) { showError('El nombre no puede quedar vacío.'); return; }
+  if (phoneDigits && phoneDigits.length !== 10) { showError('El teléfono debe tener 10 dígitos, o déjalo vacío.'); return; }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; btn.style.background = 'var(--ink)'; }
+
   const r = await api(`customers?id=eq.${id}`, {
     method: 'PATCH',
     headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify({ notes: val || null, updated_at: new Date().toISOString() })
+    body: JSON.stringify({ name, phone: phoneDigits || null, notes: notes || null, updated_at: new Date().toISOString() })
   });
+
   if (r.ok) {
-    c.notes = val;
-    logActivity('cliente_editado', `Notas actualizadas para ${c.name}`, { id, notes: val });
+    const changes = [];
+    if (c.name !== name) changes.push(`nombre: "${c.name}" → "${name}"`);
+    if ((c.phone || '') !== phoneDigits) changes.push('teléfono actualizado');
+    if ((c.notes || '') !== notes) changes.push('notas actualizadas');
+    c.name = name; c.phone = phoneDigits || null; c.notes = notes;
+    logActivity('cliente_editado', `Editó cliente${changes.length ? ' — ' + changes.join(', ') : ''}`, { id, name, phone: phoneDigits || null });
     document.getElementById('cliente-pop')?.remove();
+    renderTopClientes(); // el nombre/teléfono nuevo debe reflejarse en la lista de inmediato
   } else if (btn) {
-    btn.textContent = 'No se pudo guardar — intenta de nuevo';
-    btn.style.background = 'var(--red)';
+    // El teléfono tiene un índice único (customers_phone_unique) -- si ya
+    // lo usa otro cliente, PostgREST regresa 409/23505 en vez de aplicar el
+    // cambio. Mensaje específico para ese caso, genérico para cualquier otro.
+    const isDupPhone = r.status === 409 || r.data?.code === '23505';
+    showError(isDupPhone ? 'Ese teléfono ya pertenece a otro cliente.' : 'No se pudo guardar — intenta de nuevo.');
+    btn.disabled = false; btn.textContent = 'Guardar cambios'; btn.style.background = 'var(--ink)';
   }
 }
 
