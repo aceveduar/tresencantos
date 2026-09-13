@@ -646,15 +646,15 @@ function renderTodaySales() {
     const collector = collectorEmail ? (nameMap[collectorEmail] || collectorEmail.split('@')[0]) : '';
     const _rbIco = p => `<svg width="11" height="11" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:2px">${p}</svg>`;
     const refundBreakdown = payment.refund_breakdown?.length > 1
-      ? payment.refund_breakdown.map(line => `${line.method === 'transferencia' ? _rbIco('<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>') : line.method === 'efectivo' ? _rbIco('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>') : _rbIco('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>')} ${line.method}: −$${Math.abs(line.amount).toLocaleString('es-MX')}`).join(' · ')
+      ? payment.refund_breakdown.map(line => `${line.method === 'transferencia' ? _rbIco('<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>') : line.method === 'efectivo' ? _rbIco('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>') : _rbIco('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>')} ${line.method}: −$${Math.abs(line.amount).toLocaleString('es-MX',{maximumFractionDigits:0})}`).join(' · ')
       : '';
     const detail = [
       collector ? `Registró ${_esc(collector)}` : '',
       payment.is_estimated ? 'Dato histórico estimado' : '',
       refundBreakdown,
-      origin === 'apartado' && !isRefund && s ? `Pendiente actual $${Math.max(0, (parseFloat(s.total)||0) - (parseFloat(s.paid_amount)||0)).toLocaleString('es-MX')}` : ''
+      origin === 'apartado' && !isRefund && s ? `Pendiente actual $${Math.max(0, (parseFloat(s.total)||0) - (parseFloat(s.paid_amount)||0)).toLocaleString('es-MX',{maximumFractionDigits:0})}` : ''
     ].filter(Boolean).join(' · ');
-    const amountText = `${amount < 0 ? '−' : ''}$${Math.abs(amount).toLocaleString('es-MX')}`;
+    const amountText = `${amount < 0 ? '−' : ''}$${Math.abs(amount).toLocaleString('es-MX',{maximumFractionDigits:0})}`;
     return `<div class="dv-sale" id="dv-${idx}">
   <div class="dv-sale-head" onclick="dvToggle(${idx})">
     <div class="dv-sale-main">
@@ -763,7 +763,7 @@ function renderVendedores() {
 
   body.innerHTML = entries.map(([email, d]) => {
     const pct  = Math.round(Math.abs(d.total) / maxTotal * 100);
-    const fmt  = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX')}`;
+    const fmt  = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX',{maximumFractionDigits:0})}`;
     const isSinSesion = email === '__sin_sesion__';
     const name = isSinSesion ? 'Cobros sin sesión identificada' : (nameMap[email] || email.split('@')[0]);
     const icon = isSinSesion
@@ -1087,9 +1087,9 @@ function renderHourChart() {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: c => `$${c.parsed.y.toLocaleString('es-MX')}` }}},
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: c => `$${c.parsed.y.toLocaleString('es-MX',{maximumFractionDigits:0})}` }}},
       scales: {
-        y: { beginAtZero:true, ticks:{ callback: v=>`$${v.toLocaleString('es-MX')}`, font:{size:10} }, grid:{color:_cssVar('--border','#EAE0D4')} },
+        y: { beginAtZero:true, ticks:{ callback: v=>`$${v.toLocaleString('es-MX',{maximumFractionDigits:0})}`, font:{size:10} }, grid:{color:_cssVar('--border','#EAE0D4')} },
         x: { grid:{display:false}, ticks:{font:{size:9}, maxRotation:0} }
       }
     }
@@ -1181,7 +1181,7 @@ function renderRevenueChart() {
       layout:{padding:{top:18}},
       plugins: {
         legend:{display:false},
-        tooltip:{callbacks:{label:c=>`${c.parsed.y.toLocaleString('es-MX')}`}}
+        tooltip:{callbacks:{label:c=>`${c.parsed.y.toLocaleString('es-MX',{maximumFractionDigits:0})}`}}
       },
       scales: {
         y:{beginAtZero:true, ticks:{callback:v=>`${v>=1000?(v/1000).toFixed(0)+'k':v}`,font:{size:10}}, grid:{color:_cssVar('--border','#EAE0D4')}},
@@ -1211,7 +1211,7 @@ function _renderWeekComparison(ctx, byDayCurr) {
   const currTotal = currByDow.reduce((a,b)=>a+b,0);
   const prevTotal = prevByDow.reduce((a,b)=>a+b,0);
   const _currLabel = PERIOD_LABELS[currentPeriod] || 'Esta semana';
-  const _fmt = n => `${n<0?'−':''}$${Math.abs(Math.round(n)).toLocaleString('es-MX')}`;
+  const _fmt = n => `${n<0?'−':''}$${Math.abs(Math.round(n)).toLocaleString('es-MX',{maximumFractionDigits:0})}`;
 
   // Week summary pills
   const ws = document.getElementById('week-summary');
@@ -1286,7 +1286,7 @@ function _renderWeekComparison(ctx, byDayCurr) {
         legend:{ display:hasPrev, position:'top', align:'end',
           labels:{boxWidth:12,boxHeight:12,font:{size:11,weight:'500'},color:_cssVar('--muted','#8A7564'),padding:10,
             usePointStyle:true,pointStyle:'rectRounded'}},
-        tooltip:{callbacks:{label:c=>`${c.dataset.label}: $${c.parsed.y.toLocaleString('es-MX')}`}}
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: $${c.parsed.y.toLocaleString('es-MX',{maximumFractionDigits:0})}`}}
       },
       scales:{
         y:{beginAtZero:true, ticks:{callback:v=>`$${v>=1000?(v/1000).toFixed(0)+'k':v}`,font:{size:10}}, grid:{color:_cssVar('--border','#EAE0D4')}},
@@ -1325,7 +1325,7 @@ function _renderDayHourly(ctx) {
       layout:{padding:{top:14}},
       plugins:{
         legend:{display:false},
-        tooltip:{callbacks:{label:c=>`$${c.parsed.y.toLocaleString('es-MX')}`}}
+        tooltip:{callbacks:{label:c=>`$${c.parsed.y.toLocaleString('es-MX',{maximumFractionDigits:0})}`}}
       },
       scales:{
         y:{beginAtZero:true, ticks:{callback:v=>v>=1000?'$'+(v/1000).toFixed(0)+'k':'$'+v, font:{size:10}}, grid:{color:_cssVar('--border','#EAE0D4')}},
@@ -1481,12 +1481,12 @@ function renderInventory() {
   document.getElementById('inv-total-label').textContent = `${products.length} productos`;
 
   const valorVenta = products.reduce((s, p) => s + (p.stock > 0 ? p.price * p.stock : 0), 0);
-  document.getElementById('inv-valor-venta').textContent = '$' + Math.round(valorVenta).toLocaleString('es-MX');
+  document.getElementById('inv-valor-venta').textContent = '$' + Math.round(valorVenta).toLocaleString('es-MX',{maximumFractionDigits:0});
   const valorCosto = products.reduce((s, p) => s + (p.cost > 0 && p.stock > 0 ? p.cost * p.stock : 0), 0);
   const costoWrap = document.getElementById('inv-valor-costo-wrap');
   const costoNote = document.getElementById('inv-valor-costo-note');
   if (valorCosto > 0) {
-    document.getElementById('inv-valor-costo').textContent = '$' + Math.round(valorCosto).toLocaleString('es-MX');
+    document.getElementById('inv-valor-costo').textContent = '$' + Math.round(valorCosto).toLocaleString('es-MX',{maximumFractionDigits:0});
     costoWrap.style.display = '';
     const withCostCount = products.filter(p => p.cost > 0).length;
     if (costoNote) {
@@ -1555,7 +1555,7 @@ function renderCapitalCategoria() {
   const maxTotal   = entries[0].total;
 
   card.style.display = '';
-  totalEl.textContent = `$${Math.round(grandTotal).toLocaleString('es-MX')} en total`;
+  totalEl.textContent = `$${Math.round(grandTotal).toLocaleString('es-MX',{maximumFractionDigits:0})} en total`;
 
   body.innerHTML = entries.map(e => {
     const pct   = Math.round(e.total / maxTotal * 100);
@@ -1563,7 +1563,7 @@ function renderCapitalCategoria() {
     return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <span style="font-size:.84rem;font-weight:600">${_esc(e.label)}</span>
-        <span style="font-weight:700;font-size:.88rem">$${Math.round(e.total).toLocaleString('es-MX')}</span>
+        <span style="font-weight:700;font-size:.88rem">$${Math.round(e.total).toLocaleString('es-MX',{maximumFractionDigits:0})}</span>
       </div>
       <div style="background:var(--border);border-radius:50px;height:5px;overflow:hidden;margin-bottom:4px">
         <div style="width:${pct}%;height:100%;background:var(--gold);border-radius:50px"></div>
@@ -1599,7 +1599,7 @@ function renderExpiringProducts() {
 
   const vencidos    = withExpiry.filter(p => p._days < 0).length;
   const valorRiesgo = withExpiry.reduce((s, p) => s + (p.price || 0) * (p.stock || 0), 0);
-  label.textContent = `${withExpiry.length} producto${withExpiry.length !== 1 ? 's' : ''}${vencidos ? ` · ${vencidos} caducado${vencidos > 1 ? 's' : ''}` : ''} · $${Math.round(valorRiesgo).toLocaleString('es-MX')} en riesgo`;
+  label.textContent = `${withExpiry.length} producto${withExpiry.length !== 1 ? 's' : ''}${vencidos ? ` · ${vencidos} caducado${vencidos > 1 ? 's' : ''}` : ''} · $${Math.round(valorRiesgo).toLocaleString('es-MX',{maximumFractionDigits:0})} en riesgo`;
 
   body.innerHTML = withExpiry.map(p => {
     const color = p._days < 0 ? '#E85D5D' : p._days <= 7 ? '#D97706' : '#B45309';
@@ -1613,7 +1613,7 @@ function renderExpiringProducts() {
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div style="font-weight:700;font-size:.78rem;color:${color}">${text}</div>
-        <div style="font-size:.68rem;color:var(--muted)">${fecha}${valor ? ` · $${Math.round(valor).toLocaleString('es-MX')}` : ''}</div>
+        <div style="font-size:.68rem;color:var(--muted)">${fecha}${valor ? ` · $${Math.round(valor).toLocaleString('es-MX',{maximumFractionDigits:0})}` : ''}</div>
       </div>
     </div>`;
   }).join('');
@@ -1665,7 +1665,7 @@ function renderRentabilidad() {
 <div class="inv-list-item">
   <span class="inv-name">${_esc(p.name)}</span>
   <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-    <span style="font-size:.74rem;color:var(--muted)">$${p.price.toLocaleString('es-MX')}</span>
+    <span style="font-size:.74rem;color:var(--muted)">$${p.price.toLocaleString('es-MX',{maximumFractionDigits:0})}</span>
     <span class="badge-sm ${p.pct < 10 ? 'badge-red' : 'badge-amber'}">${p.pct}%</span>
   </div>
 </div>`).join('');
@@ -1695,7 +1695,7 @@ function renderBestSeller() {
   const best = aggregateProducts()[0];
   if (!best) { el.style.display = 'none'; return; }
   el.style.display = '';
-  el.innerHTML = `<div style="font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:5px;overflow:hidden"><svg style="width:13px;height:13px;flex-shrink:0;fill:var(--gold-dark);stroke:none" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Más vendido: <strong style="color:var(--charcoal)">${_esc(best.name)}</strong> · $${Math.round(best.revenue).toLocaleString('es-MX')} en ventas</span></div>`;
+  el.innerHTML = `<div style="font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:5px;overflow:hidden"><svg style="width:13px;height:13px;flex-shrink:0;fill:var(--gold-dark);stroke:none" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Más vendido: <strong style="color:var(--charcoal)">${_esc(best.name)}</strong> · $${Math.round(best.revenue).toLocaleString('es-MX',{maximumFractionDigits:0})} en ventas</span></div>`;
 }
 
 /* ── APARTADOS PENDIENTES ── */
@@ -1726,7 +1726,7 @@ async function loadApartadosPendientes() {
   }).length;
   _aptResumen = { count: data.length, pendiente: totalPendiente, vencidos };
 
-  label.textContent = `${data.length} activos · $${totalPendiente.toLocaleString('es-MX')} por cobrar${vencidos ? ` · ${vencidos} vencido${vencidos>1?'s':''}` : ''}`;
+  label.textContent = `${data.length} activos · $${totalPendiente.toLocaleString('es-MX',{maximumFractionDigits:0})} por cobrar${vencidos ? ` · ${vencidos} vencido${vencidos>1?'s':''}` : ''}`;
 
   body.innerHTML = data.map(s => {
     const total     = parseFloat(s.total) || 0;
@@ -1758,8 +1758,8 @@ async function loadApartadosPendientes() {
           <div style="font-size:.72rem;color:var(--muted);margin-top:2px">${_esc(fecha + ' · ' + summary.substring(0,50) + (summary.length>50?'…':''))}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
-          <div style="font-weight:700;font-size:.88rem;color:var(--red)">$${pendiente.toLocaleString('es-MX')}</div>
-          <div style="font-size:.68rem;color:var(--muted)">de $${total.toLocaleString('es-MX')}</div>
+          <div style="font-weight:700;font-size:.88rem;color:var(--red)">$${pendiente.toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
+          <div style="font-size:.68rem;color:var(--muted)">de $${total.toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
         </div>
       </div>
       <div style="background:var(--border);border-radius:50px;height:5px;overflow:hidden">
@@ -1944,7 +1944,7 @@ function renderTopClientes() {
     return `<div style="padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openClienteProfile(${c.id})">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <span style="font-size:.84rem;font-weight:600">${_esc(c.name)}</span>
-        <span style="font-weight:700;font-size:.88rem">$${c.total.toLocaleString('es-MX')}</span>
+        <span style="font-weight:700;font-size:.88rem">$${c.total.toLocaleString('es-MX',{maximumFractionDigits:0})}</span>
       </div>
       <div style="background:var(--border);border-radius:50px;height:5px;overflow:hidden;margin-bottom:4px">
         <div style="width:${pct}%;height:100%;background:var(--gold);border-radius:50px"></div>
@@ -1975,7 +1975,7 @@ function openClienteProfile(id) {
     const estadoTxt = s.status === 'activo' ? ' · activo' : '';
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:.8rem">
       <span style="color:var(--muted)">${_esc(fecha)} · ${tipo}${estadoTxt}</span>
-      <span style="font-weight:700">$${(parseFloat(s.total)||0).toLocaleString('es-MX')}</span>
+      <span style="font-weight:700">$${(parseFloat(s.total)||0).toLocaleString('es-MX',{maximumFractionDigits:0})}</span>
     </div>`;
   }).join('') || '<p class="no-data" style="padding:8px 0">Sin compras registradas</p>';
 
@@ -1990,7 +1990,7 @@ function openClienteProfile(id) {
       ${digits ? `<a href="${waLink}" target="_blank" rel="noopener" style="font-size:.8rem;color:var(--gold-dark);text-decoration:none">${_esc(c.phone)}</a>` : '<div style="font-size:.8rem;color:var(--muted)">Sin teléfono</div>'}
       <div style="display:flex;gap:8px;margin:14px 0">
         <div class="inv-valor-box" style="flex:1;padding:10px;border-radius:10px;text-align:center">
-          <div style="font-size:1.1rem;font-weight:700;font-family:'Playfair Display',serif">$${stats.total.toLocaleString('es-MX')}</div>
+          <div style="font-size:1.1rem;font-weight:700;font-family:'Playfair Display',serif">$${stats.total.toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
           <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Total gastado</div>
         </div>
         <div class="inv-valor-box" style="flex:1;padding:10px;border-radius:10px;text-align:center">
@@ -2135,7 +2135,7 @@ function renderCalendar() {
     const absRev   = Math.abs(rev);
     const fmtRev   = `${rev<0?'−':''}$${absRev>=1000?(absRev/1000).toFixed(1)+'k':Math.round(absRev)}`;
     const amtStr   = rev!==0?`<span class="cal-cell-amt"${rev<0?' style="color:var(--red)"':''}>${fmtRev}</span>`:'';
-    const tooltip  = rev!==0?`<span class="cal-tooltip">${d} ${_MN[month]} · ${rev<0?'−':''}$${Math.round(absRev).toLocaleString('es-MX')}</span>`
+    const tooltip  = rev!==0?`<span class="cal-tooltip">${d} ${_MN[month]} · ${rev<0?'−':''}$${Math.round(absRev).toLocaleString('es-MX',{maximumFractionDigits:0})}</span>`
       : (!isFuture?`<span class="cal-tooltip">${d} ${_MN[month]} · Sin movimientos</span>`:'');
     const tapAttr = !isFuture ? ' onclick="_calTap(this)"' : '';
     html += `<div class="cal-cell ${cls}${todayCls}"${tapAttr}>${tooltip}<span class="cal-cell-n">${d}</span>${amtStr}</div>`;
@@ -2197,7 +2197,7 @@ function renderWeekdayChart() {
       responsive:true, maintainAspectRatio:false,
       plugins:{
         legend:{display:false},
-        tooltip:{callbacks:{label:c=>`$${c.parsed.y.toLocaleString('es-MX')}`}}
+        tooltip:{callbacks:{label:c=>`$${c.parsed.y.toLocaleString('es-MX',{maximumFractionDigits:0})}`}}
       },
       scales:{
         y:{beginAtZero:true,ticks:{callback:v=>v>=1000?'$'+(v/1000).toFixed(0)+'k':'$'+v,font:{size:10}},grid:{color:_cssVar('--border','#EAE0D4')}},
