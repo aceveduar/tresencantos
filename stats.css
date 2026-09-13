@@ -162,13 +162,16 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .card-body{padding:20px 22px}
 
 /* ── CHARTS ROW ── */
-.charts-row{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:16px;align-items:start}
-/* Refuerzo directo sobre el item, no solo el contenedor -- en Día, la
-   gráfica "Ingresos por hora" (barra fija de 240px) es mucho más corta que
-   "Por categoría" (dona + hasta 8 renglones de leyenda); sin esto la
-   tarjeta corta se estira a la altura de su vecina en vez de quedarse con
-   su propio alto. */
-.charts-row>.card{align-self:start;height:fit-content}
+/* align-items:stretch (no "start") -- se había intentado antes que cada
+   tarjeta se quedara con su propio alto natural y llenar el hueco de
+   "Ingresos por hora" con day-hour-summary, pero ese balance depende de
+   cuántas categorías haya ese día (4 categorías = lista corta = "Por
+   categoría" queda visiblemente más baja que su vecina) -- frágil,
+   confirmado en vivo por Eduardo. Con stretch las 2 tarjetas SIEMPRE
+   miden lo mismo (la más corta se rellena con su propio fondo/borde en
+   vez de quedar despareja) -- no depende de cuánto contenido traiga cada
+   una ese día en particular. */
+.charts-row{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:16px;align-items:stretch}
 .day-hour-summary{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
 .dhs-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;font-size:.82rem}
 .dhs-row+.dhs-row{border-top:1px solid var(--surface-soft)}
