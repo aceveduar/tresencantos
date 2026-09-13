@@ -1010,7 +1010,7 @@ async function loadHistory() {
       // viera pesado aunque casi nunca se toquen. Bajadas al pie, junto a
       // las demás etiquetas secundarias (descuento/nota/cliente) -- Cancelar
       // se queda arriba por ser la única acción realmente urgente/frecuente.
-      const footerHTML = `<div class="hi-footer">${tags.join('')}<span class="hi-footer-spacer"></span>${timelineBtn}${resendBtn}</div>`;
+      const footerHTML = `<div class="hi-footer${tags.length ? '' : ' hi-footer-slim'}">${tags.join('')}<span class="hi-footer-spacer"></span>${timelineBtn}${resendBtn}</div>`;
 
       return `
 <div class="hi-card">

@@ -367,6 +367,10 @@ button,a{touch-action:manipulation}
   font-size:.74rem;color:var(--muted);
 }
 .hi-footer-spacer{flex:1;min-width:8px}
+/* Sin ninguna etiqueta (venta simple, sin descuento/nota/cliente) el pie
+   quedaba como una franja casi vacía con solo 2 íconos a la derecha --
+   se achica para no sumar peso visual/scroll por cada venta directa. */
+.hi-footer-slim{padding-top:2px;padding-bottom:2px}
 .hi-tag{display:inline-flex;align-items:center;gap:3px;background:var(--surface-soft);padding:3px 9px;border-radius:50px;font-weight:600}
 .hi-tag.discount{background:#FEF3C7;color:#92400E}
 .hi-tag.note{background:#EFF6FF;color:#1E40AF;font-weight:500}
