@@ -1501,11 +1501,18 @@ function renderInventory() {
     costoWrap.style.display = 'none';
   }
 
+  // Intercalados, no "agotados primero" -- con out.length ya por encima de
+  // 12 (caso normal), un solo .slice(0,12) sobre [...out, ...low] nunca
+  // dejaba aparecer ni un solo producto de "Última unidad" aquí, sin
+  // importar cuántos hubiera (era la categoría más grande y la que nunca
+  // se veía). Alternando 1 de cada lista, ambas quedan representadas
+  // mientras las dos tengan al menos un producto.
   const el = document.getElementById('inv-list');
-  const items = [
-    ...out.map(p => ({name:p.name, badge:'Agotado', cls:'badge-red'})),
-    ...low.map(p => ({name:p.name, badge:'1 ud.', cls:'badge-amber'}))
-  ].slice(0,12);
+  const items = [];
+  for (let i = 0, j = 0; items.length < 12 && (i < out.length || j < low.length);) {
+    if (i < out.length) { items.push({name:out[i].name, badge:'Agotado', cls:'badge-red'}); i++; }
+    if (items.length < 12 && j < low.length) { items.push({name:low[j].name, badge:'1 ud.', cls:'badge-amber'}); j++; }
+  }
 
   el.innerHTML = items.length
     ? items.map(i => `
