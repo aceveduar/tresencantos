@@ -1299,6 +1299,9 @@ Los 5 puntos pasan a heredar la tipografía normal del body (Inter) — mismo cr
 **Deliberadamente sin tocar**: el total de la semana en curso dentro del resumen de la gráfica (`_renderWeekComparison()`, "$X" grande junto al delta, con "Anterior $Y" chico y gris al lado) — ese sí es un caso genuino de héroe+comparación, análogo a Ingresos, no una lista de pares.
 CACHE_VERSION v543→v544.
 
+**"Mapa del mes" — el tap en una celda no hacía nada en mobile (2026-09-12)** — Eduardo confirmó en dispositivo real que tocar un día del calendario no mostraba ningún dato. `_calTap()`/`.cal-tap` (`stats.js`/`stats.css`) sí funcionaban — el tooltip se activaba correctamente al tap — pero `.cal-tooltip` es más ancho que una sola celda (7 columnas apretadas en el ancho de la tarjeta; un texto como "12 sep · $1,234" no cabe en ~48px de celda), y `.card` tiene `overflow:hidden` por default (necesario para las esquinas redondeadas del resto de tarjetas de la página) — el tooltip quedaba recortado en cuanto se salía del borde de la tarjeta, es decir, para casi cualquier columna que no fuera la del centro exacto. Corregido con `#calendar-card{overflow:visible}` — esta tarjeta en particular no tiene nada más que dependa del recorte (el grid y la leyenda ya tienen su propio padding).
+CACHE_VERSION v544→v545.
+
 ---
 
 ## Tienda — Sitio Público (`app.js` + `index.html`)

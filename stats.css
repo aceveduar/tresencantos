@@ -205,6 +205,17 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .cal-cell.cal-tap{transform:scale(1.12);z-index:3}
 .cal-grid .cal-cell:nth-child(-n+14) .cal-tooltip{bottom:auto;top:calc(100% + 6px)}
 .cal-grid .cal-cell:nth-child(-n+14) .cal-tooltip::after{top:auto;bottom:100%;border-top-color:transparent;border-bottom-color:var(--ink)}
+/* El tooltip de cada celda es más ancho que la celda misma (7 columnas
+   apretadas en el ancho de la tarjeta) -- .card tiene overflow:hidden por
+   default (necesario para las esquinas redondeadas en el resto de
+   tarjetas), así que el tooltip se recortaba/desaparecía en cuanto se
+   salía del borde de la tarjeta -- en la práctica, para casi cualquier
+   columna que no fuera la del centro. Por eso el tap "no hacía nada" en
+   mobile: si visualmente se veía, pero recortado a casi nada. Esta
+   tarjeta en particular no tiene nada más que dependa del recorte
+   (el grid y la leyenda ya tienen su propio padding), así que es seguro
+   dejarla desbordar. */
+#calendar-card{overflow:visible}
 .cal-legend{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:12px;font-size:.65rem;color:var(--muted);font-weight:500}
 .cal-legend-cell{width:14px;height:14px;border-radius:3px}
 
