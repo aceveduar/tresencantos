@@ -258,6 +258,8 @@ let revenueChart = null;
 let catChart = null;
 let hourChart = null;
 let weekdayChart = null;
+let _revSparkChart = null;
+let _unitsSparkChart = null;
 let nameMap = {};
 let categories = [];
 let _statsReloadGeneration = 0;
@@ -315,6 +317,12 @@ function _saleOrigin(sale) {
 function _isCompletedSale(sale) {
   if (sale?.status) return sale.status === 'liquidado';
   return sale?.type !== 'apartado';
+}
+
+// Misma fecha que ya usa "Artículos vendidos" para contar unidades: la venta
+// se completa en created_at, un apartado en liquidated_at.
+function _completionDate(sale) {
+  return _saleOrigin(sale) === 'apartado' ? (sale.liquidated_at || sale.created_at) : sale.created_at;
 }
 
 function _rememberSales(rows) {
@@ -971,6 +979,86 @@ function renderKPIs() {
     : _aptResumen.count > 0
     ? `${_aptResumen.count} apartado${_aptResumen.count!==1?'s':''}${_aptResumen.vencidos ? ` · ${_aptResumen.vencidos} venc.` : ''}`
     : 'Sin apartados activos';
+
+  // "Por cobrar" no es dinero de hoy (es un saldo vivo de TODOS los
+  // apartados activos, sin filtrar por período) -- una gráfica de tendencia
+  // no aplicaría aquí. En su lugar, la fracción vencida/al corriente ya
+  // calculada (_aptResumen) se convierte en una barra de dos colores: qué
+  // parte de ese saldo es riesgo real (vencido) de un vistazo, sin tener
+  // que leer el número chico del subtítulo.
+  const aptRatioEl = document.getElementById('kpi-apt-ratio');
+  const aptRatioFillEl = document.getElementById('kpi-apt-ratio-fill');
+  if (aptRatioEl && aptRatioFillEl) {
+    if (apartadosPendientesLoaded && _aptResumen.count > 0) {
+      aptRatioFillEl.style.width = `${Math.round(_aptResumen.vencidos / _aptResumen.count * 100)}%`;
+      aptRatioEl.style.display = '';
+    } else {
+      aptRatioEl.style.display = 'none';
+    }
+  }
+
+  // Mini-gráficas junto a Ingresos y Artículos vendidos -- misma agrupación
+  // que la gráfica principal (por hora en Día, por día en Semana/Mes), pero
+  // calculadas aparte para no acoplar el sparkline al ciclo de vida de la
+  // gráfica grande de Chart.js.
+  _revSparkChart = _drawSparkline('kpi-revenue-spark', _revSparkChart, paymentsLoaded ? _sparklineBuckets(payments, _paymentAmount) : [], _cssVar('--green', '#2D6A4F'));
+  _unitsSparkChart = _drawSparkline('kpi-avg-spark', _unitsSparkChart, salesLoaded ? _sparklineBuckets(sales, s => (s.items||[]).reduce((a,i)=>a+(i.qty||1),0), _completionDate) : [], _cssVar('--gold-dark', '#A67C3A'));
+}
+
+// Agrupa una lista (pagos o ventas) en cubetas por hora (modo Día) o por día
+// (Semana/Mes) del período activo, sumando `valueFn(item)` en cada una --
+// mismo criterio de agrupación que la gráfica principal de Ingresos, solo
+// que aquí siempre trabaja sobre el período actual (nunca el anterior).
+// `dateFn` decide qué fecha usar por renglón (paid_at para pagos por
+// default; para ventas hay que pasar _completionDate explícito).
+function _sparklineBuckets(list, valueFn, dateFn = p => p.paid_at) {
+  if (_statsMode === 'day') {
+    const byHour = Array(24).fill(0);
+    (list || []).forEach(item => {
+      const h = _mxHour(dateFn(item));
+      if (h >= 0) byHour[h] += valueFn(item);
+    });
+    return byHour;
+  }
+  const range = getRange(_statsMode, _statsOffset);
+  const byDay = {};
+  let cursor = _parseDayKey(range.fromDay);
+  const endDayNumber = _civilDayNumber(_parseDayKey(range.toDay));
+  while (cursor && _civilDayNumber(cursor) <= endDayNumber) {
+    byDay[_dayKey(cursor)] = 0;
+    cursor = _addCivilDays(cursor, 1);
+  }
+  (list || []).forEach(item => {
+    const day = _localDay(dateFn(item));
+    if (day in byDay) byDay[day] += valueFn(item);
+  });
+  return Object.keys(byDay).sort().map(k => byDay[k]);
+}
+
+// Mini-gráfica de línea sin ejes/leyenda/tooltip -- solo la forma de la
+// tendencia. `canvas` con tamaño fijo (width/height como atributo HTML,
+// responsive:false) para no depender de un ResizeObserver en un elemento
+// que puede estar oculto por CSS en mobile/tablet (ver stats.css, el
+// sparkline solo se muestra ≥1300px). Regresa la instancia de Chart nueva
+// (o null) para que el caller la guarde y la destruya la próxima vez.
+function _drawSparkline(canvasId, prevChart, dataArr, color) {
+  if (prevChart) { prevChart.destroy(); }
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return null;
+  if (!dataArr.length || !dataArr.some(v => v !== 0)) { canvas.style.visibility = 'hidden'; return null; }
+  canvas.style.visibility = '';
+  return new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: { labels: dataArr.map((_, i) => i), datasets: [{
+      data: dataArr, borderColor: color, backgroundColor: 'transparent',
+      borderWidth: 2, pointRadius: 0, tension: .35, fill: false
+    }] },
+    options: {
+      responsive: false, animation: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: { x: { display: false }, y: { display: false } }
+    }
+  });
 }
 
 /* Hora pico */

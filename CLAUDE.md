@@ -1248,6 +1248,15 @@ CACHE_VERSION v531→v532.
 - Verificado balance de llaves de `stats.css` y `node --check stats.js`. **Pendiente confirmar en dispositivo real** (mobile apilado en 1 columna, y el layout de 2 columnas en un monitor ≥1300px de ancho).
 CACHE_VERSION v532→v533.
 
+**Cuarta pasada — mini-gráficas de tendencia junto a Ingresos y Artículos vendidos, barra de riesgo en "Por cobrar" (2026-09-12)** — Eduardo, viendo la vista de escritorio ancho ya resuelta (mobile bien, layout de 2 columnas en desktop), notó que el espacio libre a la derecha de "$296" y de cada indicador de "Otros indicadores" seguía vacío — el contenedor se hizo más ancho, pero lo de adentro nunca creció para usarlo. Se le presentaron 2 opciones (mini-gráfica real vs. solo reacomodar texto) y eligió la mini-gráfica.
+- **Sparkline junto a Ingresos** (`#kpi-revenue-spark`) — línea sin ejes/leyenda/tooltip, misma agrupación que la gráfica grande de abajo (por hora en modo Día, por día en Semana/Mes), calculada aparte con `_sparklineBuckets()` (nuevo, `stats.js`) para no acoplarla al ciclo de vida de Chart.js de esa otra gráfica. Reutiliza `payments` (ya cargado, sin fetch nuevo).
+- **Sparkline junto a "Artículos vendidos"** (`#kpi-avg-spark`) — misma función, pero sumando `qty` de cada venta en vez de `$` de cada pago, con la fecha de finalización real (`_completionDate()`, nuevo — created_at en venta directa, liquidated_at en apartado, mismo criterio que ya usa el propio KPI de unidades).
+- **"Por cobrar" NO recibió sparkline a propósito** — es un saldo vivo de todos los apartados activos, no está acotado al período (Día/Semana/Mes), así que una "tendencia" ahí no tendría un eje de tiempo real que graficar. En su lugar, la fracción vencida/al corriente que `_aptResumen` ya calculaba (usada hoy solo en el subtítulo chico "65 apartados · 25 venc.") se convierte en una barra de dos colores debajo del número — qué parte de ese saldo es riesgo real de un vistazo, sin tener que leer el número pequeño.
+- Ambas gráficas usan `<canvas>` de tamaño fijo (`responsive:false`, ancho/alto como atributo HTML) — dibujan igual estén visibles o no, sin depender de un `ResizeObserver`; se ocultan por CSS (`.kpi-spark{display:none}`) por debajo de 1300px, donde no hay espacio real para mostrarlas con dignidad junto a números de esta tarjeta. Colores resueltos con `_cssVar()` (ya existente de la pasada de modo oscuro) para que se repinten bien si alguien cambia de tema sin recargar.
+- Sin cambios de lógica de negocio en los KPIs existentes — todo nuevo es aditivo (2 sparklines + 1 barra), reutilizando datos ya cargados (`payments`/`sales`/`_aptResumen`), sin ninguna consulta nueva a Supabase.
+- Verificado balance de llaves de `stats.css` y `node --check stats.js`. **Pendiente confirmar en dispositivo real** — sin poder abrir un navegador desde aquí, no se pudo verificar visualmente que Chart.js dibuje las 2 mini-gráficas del tamaño y proporción esperados.
+CACHE_VERSION v533→v534.
+
 ---
 
 ## Tienda — Sitio Público (`app.js` + `index.html`)

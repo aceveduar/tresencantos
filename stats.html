@@ -75,11 +75,16 @@
     <div>
       <div class="kpi-section-label">Dinero de hoy</div>
       <div class="kpi-hero-card">
-        <div class="kpi-hero-value" id="kpi-revenue">—</div>
-        <div class="kpi-label">Ingresos</div>
+        <div class="kpi-hero-top-row">
+          <div class="kpi-hero-headline">
+            <div class="kpi-hero-value" id="kpi-revenue">—</div>
+            <div class="kpi-label">Ingresos</div>
+            <div class="kpi-sub" id="kpi-revenue-sub"></div>
+          </div>
+          <canvas id="kpi-revenue-spark" class="kpi-spark" width="170" height="52"></canvas>
+        </div>
         <div class="kpi-hero-bar" id="kpi-hero-bar"></div>
         <div class="kpi-hero-legend" id="kpi-hero-legend"></div>
-        <div class="kpi-sub" id="kpi-revenue-sub"></div>
 
         <div class="kpi-stat-row">
           <div class="kpi-stat" data-accent="green">
@@ -107,14 +112,22 @@
       <div class="kpi-section-label">Otros indicadores</div>
       <div class="kpi-strip">
         <div class="kpi-strip-item">
-          <div class="kpi-strip-value" id="kpi-avg">—</div>
-          <div class="kpi-strip-label">Artículos vendidos</div>
-          <div class="kpi-sub" id="kpi-avg-sub"></div>
+          <div class="kpi-strip-item-row">
+            <div>
+              <div class="kpi-strip-value" id="kpi-avg">—</div>
+              <div class="kpi-strip-label">Artículos vendidos</div>
+              <div class="kpi-sub" id="kpi-avg-sub"></div>
+            </div>
+            <canvas id="kpi-avg-spark" class="kpi-spark" width="70" height="34"></canvas>
+          </div>
         </div>
         <div class="kpi-strip-item">
           <div class="kpi-strip-value" id="kpi-apt">—</div>
           <div class="kpi-strip-label">Por cobrar</div>
           <div class="kpi-sub" id="kpi-apt-sub"></div>
+          <div class="kpi-apt-ratio" id="kpi-apt-ratio" style="display:none">
+            <div class="kpi-apt-ratio-bar"><div class="kpi-apt-ratio-fill" id="kpi-apt-ratio-fill"></div></div>
+          </div>
         </div>
       </div>
     </div>

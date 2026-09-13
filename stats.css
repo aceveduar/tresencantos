@@ -90,11 +90,18 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   border:1px solid var(--border);box-shadow:0 2px 8px rgba(28,24,23,.06);
   margin-bottom:24px;
 }
+.kpi-hero-top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
 .kpi-hero-value{font-family:'Playfair Display',serif;font-size:2.6rem;font-weight:600;line-height:1;color:var(--charcoal)}
 .kpi-label{font-size:.68rem;color:var(--muted);margin-top:6px;letter-spacing:.07em;text-transform:uppercase;font-weight:600}
 .kpi-value-money{font-family:'Inter',sans-serif;font-size:.7rem;font-weight:600;color:var(--muted);vertical-align:middle}
 .kpi-sub{font-size:.72rem;color:var(--muted-light);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kpi-hero-card>.kpi-sub{margin-top:8px}
+.kpi-hero-headline .kpi-sub{margin-top:8px}
+/* Mini-gráfica de tendencia -- solo tiene sentido cuando la tarjeta es lo
+   bastante ancha para no verse apretada junto al número; oculta por
+   default, aparece en el bloque ≥1300px de más abajo. Chart.js dibuja con
+   el tamaño fijo del atributo width/height del <canvas> (responsive:false)
+   -- por diseño, no depende de un observer aunque el elemento esté oculto. */
+.kpi-spark{display:none;flex-shrink:0}
 
 .kpi-hero-bar{display:flex;height:8px;border-radius:50px;overflow:hidden;background:var(--cream);gap:2px;margin-top:18px}
 .kpi-hero-bar-seg{height:100%;min-width:3px;transition:width .3s}
@@ -127,8 +134,17 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .kpi-strip{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:0 2px 8px rgba(28,24,23,.06);margin-bottom:24px}
 .kpi-strip-item{flex:1;min-width:0;padding:16px 20px}
 .kpi-strip-item+.kpi-strip-item{border-left:1px solid var(--border)}
+.kpi-strip-item-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .kpi-strip-value{font-family:'Inter',sans-serif;font-size:1.15rem;font-weight:700;line-height:1;color:var(--charcoal)}
 .kpi-strip-label{font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:6px;font-weight:600}
+
+/* "Por cobrar" no tiene tendencia (es un saldo vivo, no dinero del período) --
+   en su lugar, qué fracción de ese saldo ya está vencida se ve de un
+   vistazo en una barra de dos colores, en vez de solo en el subtítulo
+   chico "65 apartados · 25 venc.". */
+.kpi-apt-ratio{margin-top:9px}
+.kpi-apt-ratio-bar{height:5px;border-radius:50px;background:rgba(45,106,79,.16);overflow:hidden}
+.kpi-apt-ratio-fill{height:100%;background:var(--red);border-radius:50px;transition:width .3s}
 
 /* Apilado por default (mobile/tablet/desktop normal) -- ver el bloque
    ≥1300px más abajo para el layout de escritorio ancho lado a lado. */
@@ -428,6 +444,10 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   .kpi-hero-value{font-size:3.1rem}
   .kpi-hero-card{padding:30px 32px 26px}
   .kpi-stat-value{font-size:1.3rem}
+  /* El ancho real ya no se queda vacío junto al número -- las 2 mini-
+     gráficas (Ingresos, Artículos vendidos) solo se muestran aquí; en
+     tablet/mobile no caben con dignidad junto a un número tan grande. */
+  .kpi-spark{display:block}
 
   .kpi-top-grid{display:grid;grid-template-columns:1.7fr 1fr;gap:24px;align-items:stretch}
   .kpi-top-grid>div{display:flex;flex-direction:column}
@@ -436,6 +456,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   .kpi-top-grid .kpi-strip-item{flex:1;display:flex;flex-direction:column;justify-content:center;padding:20px 26px}
   .kpi-top-grid .kpi-strip-item+.kpi-strip-item{border-left:none;border-top:1px solid var(--border)}
   .kpi-top-grid .kpi-strip-value{font-size:1.7rem}
+  .kpi-top-grid .kpi-strip-item-row{align-items:center}
 }
 
 /* lightbox */
