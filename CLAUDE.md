@@ -1241,6 +1241,13 @@ CACHE_VERSION v530→v531.
 - Sin cambios de datos ni de estructura HTML del pase anterior — solo CSS + la condición `segs.length >= 2` en `renderKPIs()`.
 CACHE_VERSION v531→v532.
 
+**Tercera pasada — responsive real por breakpoint, no el mismo diseño escalado (2026-09-12)** — Eduardo pidió, viendo capturas de desktop y mobile lado a lado, "en desktop más vistoso, aprovechar el tamaño" pero "una versión para mobiles donde se vea bien", preguntando antes si esto rompe algo de UX/UI. Respuesta corta: no, siempre que primero se corrija un bug real que la propia captura de mobile mostraba (la fila de 3 columnas truncaba "APARTADOS NUEVOS" y escondía el número real del subtítulo "Período ant.: 4 · $7…") — diseñar distinto por breakpoint es exactamente para qué existe el responsive, no una desviación de ningún principio.
+- **Fix real de mobile — `.kpi-stat-row` pasa a apilarse en una sola columna en ≤640px** en vez de 3 columnas de ~100px de ancho — cada stat recibe el ancho completo, nada se trunca, no hace falta ni achicar más la letra. El divisor cambia de vertical a horizontal entre stats apilados.
+- **Escritorio ancho (≥1300px) — nuevo bloque, no toca mobile/tablet**: `main` crece de 1080px a 1320px; "Dinero de hoy" y "Otros indicadores" (antes siempre apilados) pasan a un grid de 2 columnas (`kpi-top-grid`, nuevo wrapper en `stats.html`) — la tarjeta hero a la izquierda, la franja de otros indicadores como columna angosta a la derecha con sus 2 cifras apiladas verticalmente en vez de en fila, misma altura que la tarjeta hero. Números un poco más grandes (`kpi-hero-value` 2.6rem→3.1rem, `kpi-stat-value` 1.15→1.3rem, `kpi-strip-value` en esa columna 1.15→1.7rem) — usa el espacio horizontal real en vez de solo estirar el mismo layout apilado.
+- **Bug de CSS encontrado y corregido de paso al envolver ambas secciones en divs para el grid**: `.kpi-section-label:first-child{margin-top:0}` nunca se había activado en la práctica (el rótulo real nunca era `:first-child` de `<main>`, quedaba detrás de `.stats-nav`) — pero al meter cada rótulo en su propio div envoltorio, los dos ("Dinero de hoy" y "Otros indicadores") sí pasaron a ser `:first-child` de su nuevo padre, y la regla habría empezado a quitarles el margen superior a los dos por igual, pegándolos contra la barra de período de arriba. Eliminada la regla (`:first-child` sin ningún caso de uso real) en vez de parcharla.
+- Verificado balance de llaves de `stats.css` y `node --check stats.js`. **Pendiente confirmar en dispositivo real** (mobile apilado en 1 columna, y el layout de 2 columnas en un monitor ≥1300px de ancho).
+CACHE_VERSION v532→v533.
+
 ---
 
 ## Tienda — Sitio Público (`app.js` + `index.html`)

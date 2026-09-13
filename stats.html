@@ -67,47 +67,56 @@
     </div>
   </div>
 
-  <!-- KPIs — Dinero de hoy (Ingresos + su desglose) · Otros indicadores -->
-  <div class="kpi-section-label">Dinero de hoy</div>
-  <div class="kpi-hero-card">
-    <div class="kpi-hero-value" id="kpi-revenue">—</div>
-    <div class="kpi-label">Ingresos</div>
-    <div class="kpi-hero-bar" id="kpi-hero-bar"></div>
-    <div class="kpi-hero-legend" id="kpi-hero-legend"></div>
-    <div class="kpi-sub" id="kpi-revenue-sub"></div>
+  <!-- KPIs — Dinero de hoy (Ingresos + su desglose) · Otros indicadores.
+       kpi-top-grid: en pantallas anchas (≥1300px) coloca ambas secciones
+       lado a lado en vez de apiladas -- aprovecha el ancho de escritorio
+       sin duplicar el diseño para mobile, que se queda apilado como hoy. -->
+  <div class="kpi-top-grid">
+    <div>
+      <div class="kpi-section-label">Dinero de hoy</div>
+      <div class="kpi-hero-card">
+        <div class="kpi-hero-value" id="kpi-revenue">—</div>
+        <div class="kpi-label">Ingresos</div>
+        <div class="kpi-hero-bar" id="kpi-hero-bar"></div>
+        <div class="kpi-hero-legend" id="kpi-hero-legend"></div>
+        <div class="kpi-sub" id="kpi-revenue-sub"></div>
 
-    <div class="kpi-stat-row">
-      <div class="kpi-stat" data-accent="green">
-        <div class="kpi-stat-label"><span class="kpi-stat-dot"></span>Ventas</div>
-        <div class="kpi-stat-value"><span id="kpi-sales">—</span> <span class="kpi-value-money" id="kpi-sales-money"></span></div>
-        <div class="kpi-sub" id="kpi-sales-sub"></div>
-      </div>
-      <div class="kpi-stat" data-accent="violet">
-        <div class="kpi-stat-label"><span class="kpi-stat-dot"></span>Abonos</div>
-        <div class="kpi-stat-value"><span id="kpi-abonos">—</span> <span class="kpi-value-money" id="kpi-abonos-money"></span></div>
-        <div class="kpi-sub" id="kpi-abonos-sub"></div>
-      </div>
-      <div class="kpi-stat" data-accent="teal">
-        <div class="kpi-stat-label"><span class="kpi-stat-dot"></span>Apartados nuevos</div>
-        <div class="kpi-stat-value"><span id="kpi-aptnew">—</span> <span class="kpi-value-money" id="kpi-aptnew-money"></span></div>
-        <div class="kpi-sub" id="kpi-aptnew-sub"></div>
+        <div class="kpi-stat-row">
+          <div class="kpi-stat" data-accent="green">
+            <div class="kpi-stat-label"><span class="kpi-stat-dot"></span>Ventas</div>
+            <div class="kpi-stat-value"><span id="kpi-sales">—</span> <span class="kpi-value-money" id="kpi-sales-money"></span></div>
+            <div class="kpi-sub" id="kpi-sales-sub"></div>
+          </div>
+          <div class="kpi-stat" data-accent="violet">
+            <div class="kpi-stat-label"><span class="kpi-stat-dot"></span>Abonos</div>
+            <div class="kpi-stat-value"><span id="kpi-abonos">—</span> <span class="kpi-value-money" id="kpi-abonos-money"></span></div>
+            <div class="kpi-sub" id="kpi-abonos-sub"></div>
+          </div>
+          <div class="kpi-stat" data-accent="teal">
+            <div class="kpi-stat-label"><span class="kpi-stat-dot"></span>Apartados nuevos</div>
+            <div class="kpi-stat-value"><span id="kpi-aptnew">—</span> <span class="kpi-value-money" id="kpi-aptnew-money"></span></div>
+            <div class="kpi-sub" id="kpi-aptnew-sub"></div>
+          </div>
+        </div>
+
+        <div id="ds-best-row" class="kpi-best-row" style="display:none"></div>
       </div>
     </div>
 
-    <div id="ds-best-row" class="kpi-best-row" style="display:none"></div>
-  </div>
-
-  <div class="kpi-section-label">Otros indicadores</div>
-  <div class="kpi-strip">
-    <div class="kpi-strip-item">
-      <div class="kpi-strip-value" id="kpi-avg">—</div>
-      <div class="kpi-strip-label">Artículos vendidos</div>
-      <div class="kpi-sub" id="kpi-avg-sub"></div>
-    </div>
-    <div class="kpi-strip-item">
-      <div class="kpi-strip-value" id="kpi-apt">—</div>
-      <div class="kpi-strip-label">Por cobrar</div>
-      <div class="kpi-sub" id="kpi-apt-sub"></div>
+    <div>
+      <div class="kpi-section-label">Otros indicadores</div>
+      <div class="kpi-strip">
+        <div class="kpi-strip-item">
+          <div class="kpi-strip-value" id="kpi-avg">—</div>
+          <div class="kpi-strip-label">Artículos vendidos</div>
+          <div class="kpi-sub" id="kpi-avg-sub"></div>
+        </div>
+        <div class="kpi-strip-item">
+          <div class="kpi-strip-value" id="kpi-apt">—</div>
+          <div class="kpi-strip-label">Por cobrar</div>
+          <div class="kpi-sub" id="kpi-apt-sub"></div>
+        </div>
+      </div>
     </div>
   </div>
 

@@ -77,8 +77,13 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
    identificado por un punto de color -- el mismo color que su segmento en
    la barra de composición de arriba, así el ojo conecta ambos sin leer
    etiquetas. El color no decora: liga cada cifra a su parte de Ingresos. */
+/* :first-child eliminado a propósito -- desde que "Dinero de hoy" y "Otros
+   indicadores" viven cada uno en su propio div (.kpi-top-grid, para el
+   layout lado a lado en escritorio ancho), los dos rótulos son first-child
+   de su envoltorio y esta regla les habría quitado el margen superior a
+   los dos por igual (nunca se activaba antes -- el rótulo real nunca era
+   first-child de <main>, quedaba detrás de .stats-nav). */
 .kpi-section-label{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:22px 0 10px}
-.kpi-section-label:first-child{margin-top:0}
 
 .kpi-hero-card{
   background:var(--surface);border-radius:var(--r);padding:24px 26px 20px;
@@ -124,6 +129,10 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .kpi-strip-item+.kpi-strip-item{border-left:1px solid var(--border)}
 .kpi-strip-value{font-family:'Inter',sans-serif;font-size:1.15rem;font-weight:700;line-height:1;color:var(--charcoal)}
 .kpi-strip-label{font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:6px;font-weight:600}
+
+/* Apilado por default (mobile/tablet/desktop normal) -- ver el bloque
+   ≥1300px más abajo para el layout de escritorio ancho lado a lado. */
+.kpi-top-grid{display:block}
 
 /* ── CARDS ── */
 .card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);box-shadow:0 2px 8px rgba(28,24,23,.06);overflow:hidden}
@@ -369,6 +378,17 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 }
 
 @media(max-width:640px){
+  /* Fix real: en 3 columnas, "APARTADOS NUEVOS" y el subtítulo "Período
+     ant.: N · $X" se truncaban a media palabra en ~390px (cada columna
+     quedaba en ~100px de ancho). Apiladas en una sola columna, cada stat
+     recibe el ancho completo -- nada se corta, no hace falta achicar más
+     la letra. */
+  .kpi-stat-row{flex-direction:column;gap:12px}
+  .kpi-stat{padding:0!important;width:100%}
+  .kpi-stat+.kpi-stat{border-left:none;border-top:1px solid var(--border);padding-top:12px!important}
+  .kpi-stat-label{white-space:normal;overflow:visible;text-overflow:clip}
+  .kpi-sub{white-space:normal;overflow:visible;text-overflow:clip}
+
   /* Ventas del día: scroll area más compacto */
   #today-sales-list{max-height:240px!important}
   /* Apartados pendientes: mismo trato, evita alargar toda la página con 40+ activos */
@@ -395,6 +415,28 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 
 /* stats-specific topbar overrides */
 @media(min-width:1025px){.topbar{background:var(--ink)}}
+
+/* ── ESCRITORIO ANCHO (≥1300px) ──────────────────────────────────────
+   Hasta aquí el contenido se quedaba centrado en 1080px sin importar
+   cuánto monitor sobrara -- a partir de este ancho el contenedor crece y
+   "Dinero de hoy"/"Otros indicadores" pasan de apilados a lado a lado
+   (columna angosta a la derecha, misma altura que la tarjeta hero), con
+   números un poco más grandes. Mobile/tablet no cambian -- este bloque
+   solo agrega reglas, nunca las de abajo. */
+@media(min-width:1300px){
+  main{max-width:1320px}
+  .kpi-hero-value{font-size:3.1rem}
+  .kpi-hero-card{padding:30px 32px 26px}
+  .kpi-stat-value{font-size:1.3rem}
+
+  .kpi-top-grid{display:grid;grid-template-columns:1.7fr 1fr;gap:24px;align-items:stretch}
+  .kpi-top-grid>div{display:flex;flex-direction:column}
+  .kpi-top-grid .kpi-hero-card{margin-bottom:0;flex:1}
+  .kpi-top-grid .kpi-strip{margin-bottom:0;flex:1;flex-direction:column}
+  .kpi-top-grid .kpi-strip-item{flex:1;display:flex;flex-direction:column;justify-content:center;padding:20px 26px}
+  .kpi-top-grid .kpi-strip-item+.kpi-strip-item{border-left:none;border-top:1px solid var(--border)}
+  .kpi-top-grid .kpi-strip-value{font-size:1.7rem}
+}
 
 /* lightbox */
 .img-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:900;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s;padding:20px 16px;overscroll-behavior:none;touch-action:none}
