@@ -84,6 +84,13 @@ async function _fetchAll(path, pageSize = 1000) {
 }
 
 const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+// Los gráficos (Chart.js) pintan en <canvas>, que no responde a CSS ni a
+// [data-theme="dark"] -- sin esto, los textos/líneas de los ejes se
+// quedarían con su color de modo claro fijo, ilegibles sobre las tarjetas
+// oscuras. Se lee el valor YA resuelto por el tema activo en el momento de
+// dibujar cada gráfica (ver _reColorCharts() más abajo, que las vuelve a
+// crear si el tema cambia mientras la página sigue abierta).
+const _cssVar = (name, fallback) => (getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback);
 const _driveSz = (url, w) => (url && url.includes('drive.google.com')) ? url.replace(/sz=w\d+/, `sz=w${w}`) : (url || '');
 
 const _myEmail = (() => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)||'{}')?.user?.email||''; } catch { return ''; } })();
@@ -617,16 +624,12 @@ function renderTodaySales() {
     // Mismo color por categoría que las tarjetas KPI de arriba (Ventas verde,
     // Abonos morado, Apertura dorado) -- antes ABONO y VENTA compartían el
     // mismo verde aquí, mientras arriba Abonos ya se veía morado.
-    const tagStyle = isRefund
-      ? 'background:#FEE2E2;color:#991B1B'
-      : isAdjustment
-        ? 'background:#FEF3C7;color:#92400E'
-        : (isCreated || isSameDayOpening)
-          ? 'background:#FFF8EE;color:#9A742D'
-          : (!isLiquidation && origin === 'apartado')
-            ? 'background:#F1EAFB;color:#5B3FA0'
-            : 'background:#DCFCE7;color:#166534';
-    const tag = `<span style="font-size:.62rem;${tagStyle};padding:1px 6px;border-radius:50px;font-weight:700;flex-shrink:0">${tagText}</span>`;
+    const tagClass = isRefund ? 'mv-tag-refund'
+      : isAdjustment ? 'mv-tag-adjust'
+      : (isCreated || isSameDayOpening) ? 'mv-tag-aptnew'
+      : (!isLiquidation && origin === 'apartado') ? 'mv-tag-abono'
+      : 'mv-tag-venta';
+    const tag = `<span class="mv-tag ${tagClass}">${tagText}</span>`;
     const nombre = origin === 'apartado'
       ? ((s?.customer || '').split(' · 📱 ')[0] || `Apartado #${payment.sale_id}`)
       : (items.length <= 2 ? items.map(i => i.name).join(', ') : `${items[0]?.name || ''} +${items.length - 1} más`) || `Venta #${payment.sale_id}`;
@@ -854,9 +857,7 @@ function kpiDelta(curr, prev) {
   if (prev === 0) return '';
   const pct = (curr - prev) / prev * 100;
   const sign = pct >= 0 ? '+' : '';
-  const color = pct >= 0 ? '#065F46' : '#991B1B';
-  const bg    = pct >= 0 ? '#D1FAE5' : '#FEE2E2';
-  return ` <span style="font-size:.66rem;font-weight:700;padding:2px 6px;border-radius:50px;background:${bg};color:${color}">${sign}${pct.toFixed(0)}%</span>`;
+  return ` <span class="delta-pill ${pct >= 0 ? 'delta-up' : 'delta-down'}">${sign}${pct.toFixed(0)}%</span>`;
 }
 
 function renderKPIs() {
@@ -962,7 +963,7 @@ function renderKPIs() {
   document.getElementById('kpi-apt-sub').textContent = !apartadosPendientesLoaded
     ? 'No disponible'
     : _aptResumen.count > 0
-    ? `${_aptResumen.count} apartado${_aptResumen.count!==1?'s':''}${_aptResumen.vencidos ? ` · ⚠️ ${_aptResumen.vencidos} venc.` : ''}`
+    ? `${_aptResumen.count} apartado${_aptResumen.count!==1?'s':''}${_aptResumen.vencidos ? ` · ${_aptResumen.vencidos} venc.` : ''}`
     : 'Sin apartados activos';
 }
 
@@ -994,7 +995,7 @@ function renderHourChart() {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: c => `$${c.parsed.y.toLocaleString('es-MX')}` }}},
       scales: {
-        y: { beginAtZero:true, ticks:{ callback: v=>`$${v.toLocaleString('es-MX')}`, font:{size:10} }, grid:{color:'#F0E8E0'} },
+        y: { beginAtZero:true, ticks:{ callback: v=>`$${v.toLocaleString('es-MX')}`, font:{size:10} }, grid:{color:_cssVar('--border','#EAE0D4')} },
         x: { grid:{display:false}, ticks:{font:{size:9}, maxRotation:0} }
       }
     }
@@ -1050,7 +1051,7 @@ function renderRevenueChart() {
     id:'barLabels',
     afterDatasetsDraw(chart) {
       const {ctx} = chart;
-      ctx.save(); ctx.font='600 9px Inter,sans-serif'; ctx.fillStyle='#6B5C48';
+      ctx.save(); ctx.font='600 9px Inter,sans-serif'; ctx.fillStyle=_cssVar('--muted','#8A7564');
       ctx.textAlign='center'; ctx.textBaseline='bottom';
       chart.getDatasetMeta(0).data.forEach((bar,i) => {
         const val = chart.data.datasets[0].data[i];
@@ -1089,7 +1090,7 @@ function renderRevenueChart() {
         tooltip:{callbacks:{label:c=>`${c.parsed.y.toLocaleString('es-MX')}`}}
       },
       scales: {
-        y:{beginAtZero:true, ticks:{callback:v=>`${v>=1000?(v/1000).toFixed(0)+'k':v}`,font:{size:10}}, grid:{color:'#F0E8E0'}},
+        y:{beginAtZero:true, ticks:{callback:v=>`${v>=1000?(v/1000).toFixed(0)+'k':v}`,font:{size:10}}, grid:{color:_cssVar('--border','#EAE0D4')}},
         x:{grid:{display:false}, ticks:{font:{size:9}, maxRotation:0}}
       }
     },
@@ -1126,9 +1127,7 @@ function _renderWeekComparison(ctx, byDayCurr) {
     if (hasPrev && prevTotal > 0) {
       const pct = Math.round((currTotal - prevTotal) / prevTotal * 100);
       const sign = pct >= 0 ? '+' : '';
-      const bg = pct >= 0 ? '#D1FAE5' : '#FEE2E2';
-      const col = pct >= 0 ? '#065F46' : '#991B1B';
-      delta = `<span style="font-size:.72rem;font-weight:700;padding:3px 8px;border-radius:50px;background:${bg};color:${col}">${sign}${pct}%</span>`;
+      delta = `<span class="delta-pill ${pct >= 0 ? 'delta-up' : 'delta-down'}" style="font-size:.72rem;padding:3px 8px">${sign}${pct}%</span>`;
     }
     ws.innerHTML = `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
       <div style="flex:1;min-width:100px">
@@ -1170,7 +1169,7 @@ function _renderWeekComparison(ctx, byDayCurr) {
       const {ctx} = chart;
       ctx.save();
       ctx.font = '600 9.5px Inter,sans-serif';
-      ctx.fillStyle = '#5C4B38';
+      ctx.fillStyle = _cssVar('--muted', '#8A7564');
       ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       chart.getDatasetMeta(0).data.forEach((bar, i) => {
         const val = chart.data.datasets[0].data[i];
@@ -1191,13 +1190,13 @@ function _renderWeekComparison(ctx, byDayCurr) {
       layout:{padding:{top:22}},
       plugins:{
         legend:{ display:hasPrev, position:'top', align:'end',
-          labels:{boxWidth:12,boxHeight:12,font:{size:11,weight:'500'},color:'#8A7564',padding:10,
+          labels:{boxWidth:12,boxHeight:12,font:{size:11,weight:'500'},color:_cssVar('--muted','#8A7564'),padding:10,
             usePointStyle:true,pointStyle:'rectRounded'}},
         tooltip:{callbacks:{label:c=>`${c.dataset.label}: $${c.parsed.y.toLocaleString('es-MX')}`}}
       },
       scales:{
-        y:{beginAtZero:true, ticks:{callback:v=>`$${v>=1000?(v/1000).toFixed(0)+'k':v}`,font:{size:10}}, grid:{color:'#F0E8E0'}},
-        x:{grid:{display:false}, ticks:{font:{size:12,weight:'600'},color:'#6B5C48'}}
+        y:{beginAtZero:true, ticks:{callback:v=>`$${v>=1000?(v/1000).toFixed(0)+'k':v}`,font:{size:10}}, grid:{color:_cssVar('--border','#EAE0D4')}},
+        x:{grid:{display:false}, ticks:{font:{size:12,weight:'600'},color:_cssVar('--muted','#8A7564')}}
       }
     },
     plugins:[labelPlugin]
@@ -1235,7 +1234,7 @@ function _renderDayHourly(ctx) {
         tooltip:{callbacks:{label:c=>`$${c.parsed.y.toLocaleString('es-MX')}`}}
       },
       scales:{
-        y:{beginAtZero:true, ticks:{callback:v=>v>=1000?'$'+(v/1000).toFixed(0)+'k':'$'+v, font:{size:10}}, grid:{color:'#F0E8E0'}},
+        y:{beginAtZero:true, ticks:{callback:v=>v>=1000?'$'+(v/1000).toFixed(0)+'k':'$'+v, font:{size:10}}, grid:{color:_cssVar('--border','#EAE0D4')}},
         x:{grid:{display:false}, ticks:{font:{size:11}}}
       }
     }
@@ -1254,9 +1253,9 @@ function _renderDayHourly(ctx) {
       const avgActive = dayTotal / active.length;
       const fmtMoney = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX', {maximumFractionDigits:0})}`;
       daySumEl.innerHTML = `
-        <div class="dhs-row"><span class="dhs-label">⚡ Hora pico</span><span class="dhs-value">${peakHour}h · ${fmtMoney(byHour[peakHour])}${pct ? ` (${pct}%)` : ''}</span></div>
-        <div class="dhs-row"><span class="dhs-label">🕐 Horas con actividad</span><span class="dhs-value">${active.length}</span></div>
-        <div class="dhs-row"><span class="dhs-label">📊 Promedio por hora activa</span><span class="dhs-value">${fmtMoney(avgActive)}</span></div>
+        <div class="dhs-row"><span class="dhs-label">Hora pico</span><span class="dhs-value">${peakHour}h · ${fmtMoney(byHour[peakHour])}${pct ? ` (${pct}%)` : ''}</span></div>
+        <div class="dhs-row"><span class="dhs-label">Horas con actividad</span><span class="dhs-value">${active.length}</span></div>
+        <div class="dhs-row"><span class="dhs-label">Promedio por hora activa</span><span class="dhs-value">${fmtMoney(avgActive)}</span></div>
       `;
       daySumEl.style.display = '';
     }
@@ -1506,7 +1505,7 @@ function renderExpiringProducts() {
 
   const vencidos    = withExpiry.filter(p => p._days < 0).length;
   const valorRiesgo = withExpiry.reduce((s, p) => s + (p.price || 0) * (p.stock || 0), 0);
-  label.textContent = `${withExpiry.length} producto${withExpiry.length !== 1 ? 's' : ''}${vencidos ? ` · ⚠️ ${vencidos} caducado${vencidos > 1 ? 's' : ''}` : ''} · $${Math.round(valorRiesgo).toLocaleString('es-MX')} en riesgo`;
+  label.textContent = `${withExpiry.length} producto${withExpiry.length !== 1 ? 's' : ''}${vencidos ? ` · ${vencidos} caducado${vencidos > 1 ? 's' : ''}` : ''} · $${Math.round(valorRiesgo).toLocaleString('es-MX')} en riesgo`;
 
   body.innerHTML = withExpiry.map(p => {
     const color = p._days < 0 ? '#E85D5D' : p._days <= 7 ? '#D97706' : '#B45309';
@@ -1633,7 +1632,7 @@ async function loadApartadosPendientes() {
   }).length;
   _aptResumen = { count: data.length, pendiente: totalPendiente, vencidos };
 
-  label.textContent = `${data.length} activos · $${totalPendiente.toLocaleString('es-MX')} por cobrar${vencidos ? ` · ⚠️ ${vencidos} vencido${vencidos>1?'s':''}` : ''}`;
+  label.textContent = `${data.length} activos · $${totalPendiente.toLocaleString('es-MX')} por cobrar${vencidos ? ` · ${vencidos} vencido${vencidos>1?'s':''}` : ''}`;
 
   body.innerHTML = data.map(s => {
     const total     = parseFloat(s.total) || 0;
@@ -1719,7 +1718,7 @@ function renderTurnos() {
   const grandes = _turnos.filter(t => t.diferencia != null && Math.abs(Number(t.diferencia)) >= _DIFF_ALERTA_MONTO).length;
   label.textContent = [
     abiertos ? `${abiertos} en curso` : `Últimos ${_turnos.length}`,
-    grandes ? `⚠️ ${grandes} con diferencia grande` : ''
+    grandes ? `${grandes} con diferencia grande` : ''
   ].filter(Boolean).join(' · ');
 
   const fmtHora = v => v ? new Intl.DateTimeFormat('es-MX', {
@@ -1745,10 +1744,10 @@ function renderTurnos() {
 
   const aggHtml = aggRows.length ? `
     <div style="padding:8px 0 12px;border-bottom:1px solid var(--border);margin-bottom:8px">
-      <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px">👥 Acumulado por cajera</div>
+      <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px">Acumulado por cajera</div>
       ${aggRows.map(r => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:.8rem">
-          <span>${_esc(r.email.split('@')[0])}<span style="color:var(--muted);font-weight:400;margin-left:6px;font-size:.72rem">${r.count} turno${r.count !== 1 ? 's' : ''}${r.grandes ? ` · ⚠️ ${r.grandes} grande${r.grandes !== 1 ? 's' : ''}` : ''}</span></span>
+          <span>${_esc(r.email.split('@')[0])}<span style="color:var(--muted);font-weight:400;margin-left:6px;font-size:.72rem">${r.count} turno${r.count !== 1 ? 's' : ''}${r.grandes ? ` · ${r.grandes} grande${r.grandes !== 1 ? 's' : ''}` : ''}</span></span>
           <span style="font-weight:700;color:${Math.abs(r.total) < .005 ? 'var(--green)' : r.total > 0 ? 'var(--gold-dark)' : 'var(--red)'}">${Math.abs(r.total) < .005 ? '✓ Cuadra' : fmtMoney(r.total)}</span>
         </div>`).join('')}
     </div>` : '';
@@ -1761,14 +1760,14 @@ function renderTurnos() {
     const esGrande = diff != null && Math.abs(diff) >= _DIFF_ALERTA_MONTO;
     const diffTxt = diff == null ? '—'
       : Math.abs(diff) < .005 ? '✓ Cuadra'
-      : `${esGrande ? '⚠️ ' : ''}${diff > 0 ? '+' : '-'}$${Math.abs(diff).toLocaleString('es-MX')}`;
+      : `${diff > 0 ? '+' : '-'}$${Math.abs(diff).toLocaleString('es-MX')}`;
     const diffColor = diff == null ? 'var(--muted)'
       : Math.abs(diff) < .005 ? 'var(--green)'
       : diff > 0 ? 'var(--gold-dark)' : 'var(--red)';
     const estadoChip = enCurso
-      ? '<span style="font-size:.68rem;font-weight:700;color:var(--green);background:#EAF7EF;border-radius:50px;padding:2px 9px;white-space:nowrap">● En curso</span>'
+      ? '<span class="turno-chip turno-chip-open">● En curso</span>'
       : sinCierre
-        ? '<span style="font-size:.68rem;font-weight:700;color:var(--red);background:#FEF2F2;border-radius:50px;padding:2px 9px;white-space:nowrap">Sin cerrar</span>'
+        ? '<span class="turno-chip turno-chip-noclose">Sin cerrar</span>'
         : '';
     return `<div style="padding:10px 0;border-bottom:1px solid var(--border)${esGrande ? ';border-left:3px solid var(--red);padding-left:8px' : ''}">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px">
@@ -1878,7 +1877,7 @@ function openClienteProfile(id) {
 
   const rowsHtml = historial.map(s => {
     const fecha = _mxDateLabel(s.created_at, { day:'numeric', month:'short', year:'numeric' });
-    const tipo  = s.origin_type === 'apartado' ? '📌 Apartado' : '🛍️ Venta';
+    const tipo  = s.origin_type === 'apartado' ? 'Apartado' : 'Venta';
     const estadoTxt = s.status === 'activo' ? ' · activo' : '';
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:.8rem">
       <span style="color:var(--muted)">${_esc(fecha)} · ${tipo}${estadoTxt}</span>
@@ -1891,16 +1890,16 @@ function openClienteProfile(id) {
   pop.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);animation:ap-in .15s ease';
   pop.innerHTML = `
     <style>@keyframes ap-in{from{opacity:0}to{opacity:1}}</style>
-    <div onclick="event.stopPropagation()" style="background:#fff;border-radius:18px;padding:18px;max-width:340px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 12px 48px rgba(0,0,0,.28);position:relative">
-      <button onclick="document.getElementById('cliente-pop').remove()" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:1.1rem;cursor:pointer;color:#8A7564;line-height:1">✕</button>
+    <div onclick="event.stopPropagation()" style="background:var(--surface);border-radius:18px;padding:18px;max-width:340px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 12px 48px rgba(0,0,0,.28);position:relative">
+      <button onclick="document.getElementById('cliente-pop').remove()" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted);line-height:1">✕</button>
       <div style="font-size:1.05rem;font-weight:700;margin-bottom:2px;padding-right:24px">${_esc(c.name)}</div>
-      ${digits ? `<a href="${waLink}" target="_blank" rel="noopener" style="font-size:.8rem;color:var(--gold-dark);text-decoration:none">📱 ${_esc(c.phone)}</a>` : '<div style="font-size:.8rem;color:var(--muted)">Sin teléfono</div>'}
+      ${digits ? `<a href="${waLink}" target="_blank" rel="noopener" style="font-size:.8rem;color:var(--gold-dark);text-decoration:none">${_esc(c.phone)}</a>` : '<div style="font-size:.8rem;color:var(--muted)">Sin teléfono</div>'}
       <div style="display:flex;gap:8px;margin:14px 0">
-        <div style="flex:1;padding:10px;background:#FFF8EE;border:1px solid #EAE0D4;border-radius:10px;text-align:center">
+        <div class="inv-valor-box" style="flex:1;padding:10px;border-radius:10px;text-align:center">
           <div style="font-size:1.1rem;font-weight:700;font-family:'Playfair Display',serif">$${stats.total.toLocaleString('es-MX')}</div>
           <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Total gastado</div>
         </div>
-        <div style="flex:1;padding:10px;background:#FFF8EE;border:1px solid #EAE0D4;border-radius:10px;text-align:center">
+        <div class="inv-valor-box" style="flex:1;padding:10px;border-radius:10px;text-align:center">
           <div style="font-size:1.1rem;font-weight:700;font-family:'Playfair Display',serif">${stats.count}</div>
           <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Compras</div>
         </div>
@@ -1909,8 +1908,8 @@ function openClienteProfile(id) {
       <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:4px">Historial</div>
       <div style="max-height:180px;overflow-y:auto;margin-bottom:14px">${rowsHtml}</div>
       <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:4px">Notas</div>
-      <textarea id="cliente-notes-input" rows="2" placeholder="Preferencias, tallas, alergias…" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;outline:none;font-family:inherit;resize:vertical;box-sizing:border-box">${_esc(c.notes || '')}</textarea>
-      <button onclick="_saveClienteNotes(${id})" style="width:100%;margin-top:8px;background:var(--charcoal);color:#fff;padding:9px;border-radius:8px;border:none;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">Guardar nota</button>
+      <textarea id="cliente-notes-input" rows="2" placeholder="Preferencias, tallas, alergias…" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;outline:none;font-family:inherit;resize:vertical;box-sizing:border-box;background:var(--surface);color:var(--charcoal)">${_esc(c.notes || '')}</textarea>
+      <button onclick="_saveClienteNotes(${id})" style="width:100%;margin-top:8px;background:var(--ink);color:#fff;padding:9px;border-radius:8px;border:none;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">Guardar nota</button>
     </div>`;
   pop.addEventListener('click', () => pop.remove());
   document.body.appendChild(pop);
@@ -2048,7 +2047,7 @@ function renderCalendar() {
     html += `<div class="cal-cell ${cls}${todayCls}"${tapAttr}>${tooltip}<span class="cal-cell-n">${d}</span>${amtStr}</div>`;
   }
   html += '</div>';
-  html += `<div class="cal-legend"><span>Menos</span><div class="cal-legend-cell" style="background:var(--cream);border:1px dashed var(--border)"></div><div class="cal-legend-cell" style="background:#FEF3CD"></div><div class="cal-legend-cell" style="background:#FBBF24"></div><div class="cal-legend-cell" style="background:#C9A462"></div><div class="cal-legend-cell" style="background:#A67C3A"></div><div class="cal-legend-cell" style="background:#7C5A2E"></div><span>Más</span></div>`;
+  html += `<div class="cal-legend"><span>Menos</span><div class="cal-legend-cell" style="background:var(--cream);border:1px dashed var(--border)"></div><div class="cal-legend-cell cal-l1"></div><div class="cal-legend-cell cal-l2"></div><div class="cal-legend-cell cal-l3"></div><div class="cal-legend-cell cal-l4"></div><div class="cal-legend-cell cal-l5"></div><span>Más</span></div>`;
   el.innerHTML = html;
 }
 
@@ -2107,7 +2106,7 @@ function renderWeekdayChart() {
         tooltip:{callbacks:{label:c=>`$${c.parsed.y.toLocaleString('es-MX')}`}}
       },
       scales:{
-        y:{beginAtZero:true,ticks:{callback:v=>v>=1000?'$'+(v/1000).toFixed(0)+'k':'$'+v,font:{size:10}},grid:{color:'#F0E8E0'}},
+        y:{beginAtZero:true,ticks:{callback:v=>v>=1000?'$'+(v/1000).toFixed(0)+'k':'$'+v,font:{size:10}},grid:{color:_cssVar('--border','#EAE0D4')}},
         x:{grid:{display:false},ticks:{font:{size:11,weight:'500'}}}
       }
     }
@@ -2187,6 +2186,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (aptLabel) aptLabel.textContent = 'No disponible';
     if (aptBody) aptBody.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:.84rem">No disponible</div>';
   }
+
+  // Los gráficos de Chart.js quedan pintados con los colores del tema que
+  // estaba activo al crearlos -- si alguien cambia "Modo oscuro" desde el
+  // menú de usuario sin recargar la página, las líneas/texto de los ejes se
+  // quedarían con el color viejo. _toggleTheme() (shared.js) no avisa a
+  // ningún módulo del cambio, así que se observa el atributo directamente.
+  new MutationObserver(() => renderAll())
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 });
 
 
