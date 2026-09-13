@@ -143,7 +143,10 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
    vistazo en una barra de dos colores, en vez de solo en el subtítulo
    chico "65 apartados · 25 venc.". */
 .kpi-apt-ratio{margin-top:9px}
-.kpi-apt-ratio-bar{height:5px;border-radius:50px;background:rgba(45,106,79,.16);overflow:hidden}
+/* Mismo riel que .tp-bar-wrap/.cl-bar-wrap (Top productos/categorías) --
+   un verde casi transparente sobre blanco se veía casi invisible, dejando
+   el segmento rojo flotando sin nada contra qué compararlo. */
+.kpi-apt-ratio-bar{height:5px;border-radius:50px;background:var(--surface-soft);overflow:hidden}
 .kpi-apt-ratio-fill{height:100%;background:var(--red);border-radius:50px;transition:width .3s}
 
 /* Apilado por default (mobile/tablet/desktop normal) -- ver el bloque

@@ -1259,6 +1259,8 @@ CACHE_VERSION v533→v534.
 
 **Fix — "Movimientos de hoy" quedaba pegado contra las tarjetas de arriba en escritorio ancho (mismo día)** — Eduardo lo vio en vivo con captura real: al quitarle `margin-bottom` a `.kpi-hero-card`/`.kpi-strip` dentro del bloque ≥1300px (necesario para que `align-items:stretch` las estirara parejo), nunca se compensó ese espacio en el contenedor — `.kpi-top-grid` se quedó sin ningún margen inferior propio, así que la siguiente tarjeta quedaba pegada contra el borde. Agregado `margin-bottom:24px` directo en `.kpi-top-grid` (mismo valor que ya usaban las tarjetas individuales antes de quitárselo). CACHE_VERSION v534→v535.
 
+**Pulido final — riel de la barra "Por cobrar" casi invisible (mismo día)** — al revisar el resultado ya con el margen corregido, el fondo elegido para el "riel" de la barra vencido/al corriente (`rgba(45,106,79,.16)`, un verde casi transparente) se veía casi invisible sobre el blanco de la tarjeta, dejando solo el segmento rojo flotando sin nada contra qué compararlo como fracción. Cambiado a `var(--surface-soft)` — el mismo riel que ya usan `.tp-bar-wrap`/`.cl-bar-wrap` (Top productos/categorías, en esta misma pantalla) en vez de inventar un tono nuevo. CACHE_VERSION v535→v536.
+
 ---
 
 ## Tienda — Sitio Público (`app.js` + `index.html`)
