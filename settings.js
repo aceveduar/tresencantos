@@ -1045,6 +1045,127 @@ async function exportFullBackup() {
   if (btn) { btn.disabled = false; btn.textContent = 'Exportar todo'; }
 }
 
+/* ── EXPORT CSV: apartados y pagos (2026-09-18) ──
+   Para llevarlos a Google Sheets / Excel. CSV y no JSON porque el JSON trae
+   listas anidadas (productos, abonos) que no se leen en una hoja.
+   - UTF-8 con BOM: sin él Excel rompe acentos y ñ.
+   - Fechas en hora de Ciudad de México ("2026-09-18 13:10").
+   - Una celda de texto que empiece con = + - @ se le antepone ' para que
+     Sheets/Excel no la interprete como fórmula (nombres y productos vienen
+     de texto libre). Los números salen como número, sin ese guard.
+   - Contiene nombres, teléfonos y saldos de clientas: solo con
+     canViewReports, y cada descarga queda en Actividad. */
+const _CSV_TZ = 'America/Mexico_City';
+
+function _csvCell(value) {
+  if (value === null || value === undefined) return '';
+  let s = String(value);
+  if (typeof value === 'string' && /^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function _csvDownload(filename, header, rows) {
+  const lines = [header, ...rows].map(cells => cells.map(_csvCell).join(','));
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+const _csvDateTime = iso => iso
+  ? new Intl.DateTimeFormat('sv-SE', { timeZone: _CSV_TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso))
+  : '';
+
+function _csvExportAllowed() {
+  if (_getMyPermsCached?.()?.canViewReports === false) {
+    toast('Sin permiso para exportar apartados', 'err');
+    return false;
+  }
+  return true;
+}
+
+function _csvSetBusy(ids, busy) {
+  ids.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = busy; });
+}
+
+async function exportApartadosCsv() {
+  if (!_csvExportAllowed()) return;
+  const scope = document.getElementById('csv-apt-scope')?.value === 'todos' ? 'todos' : 'activos';
+  _csvSetBusy(['csv-apt-btn', 'csv-pay-btn'], true);
+  const r = await _posPaginatedFetch(
+    `sales?select=id,customer,created_at,due_date,status,total,paid_amount,discount,items,note&origin_type=eq.apartado${scope === 'activos' ? '&status=eq.activo' : ''}&order=id.asc`
+  );
+  _csvSetBusy(['csv-apt-btn', 'csv-pay-btn'], false);
+  if (!r.ok) { toast('No se pudieron leer los apartados — no se descargó nada', 'err'); return; }
+  if (!r.data.length) { toast('No hay apartados para exportar', ''); return; }
+
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: _CSV_TZ }).format(new Date());
+  const STATUS = { activo: 'Activo', liquidado: 'Liquidado', cancelado: 'Cancelado' };
+  const rows = r.data.map(s => {
+    const [nombre, tel] = (s.customer || '').split(' · 📱 ');
+    const total  = parseFloat(s.total) || 0;
+    const pagado = parseFloat(s.paid_amount) || 0;
+    const activo = s.status === 'activo';
+    const diasVencido = activo && s.due_date
+      ? Math.max(0, Math.round((Date.parse(today + 'T00:00:00Z') - Date.parse(s.due_date + 'T00:00:00Z')) / 86400000))
+      : '';
+    const productos = (Array.isArray(s.items) ? s.items : [])
+      .map(i => `${i.qty || 1}× ${i.name}`).join('; ');
+    return [
+      s.id, nombre || '', tel || '', _csvDateTime(s.created_at), s.due_date || '',
+      STATUS[s.status] || s.status || '', diasVencido,
+      total, parseFloat(s.discount) || 0, pagado,
+      activo ? Math.max(Math.round((total - pagado) * 100) / 100, 0) : 0,
+      productos, s.note || ''
+    ];
+  });
+  _csvDownload(
+    `tres-encantos-apartados-${scope}-${today}.csv`,
+    ['Folio', 'Cliente', 'Teléfono', 'Creado', 'Fecha límite', 'Estado', 'Días vencido', 'Total', 'Descuento', 'Pagado', 'Pendiente', 'Productos', 'Nota'],
+    rows
+  );
+  toast(`${rows.length.toLocaleString('es-MX')} apartados exportados ✓`, 'ok');
+  logActivity('respaldo_generado', `Exportó ${rows.length.toLocaleString('es-MX')} apartados a CSV (${scope})`, { tipo: 'csv_apartados', scope, filas: rows.length });
+}
+
+function _csvPaymentType(p) {
+  if (p.kind === 'refund') return 'Devolución';
+  if (p.kind === 'adjustment') return p.source === 'rpc_apartado_reactivation' ? 'Reactivación' : 'Ajuste';
+  return ({ rpc_apartado_initial: 'Anticipo', rpc_apartado_payment: 'Abono', rpc_apartado_liquidation: 'Liquidación' })[p.source] || 'Pago';
+}
+
+async function exportPagosCsv() {
+  if (!_csvExportAllowed()) return;
+  const scope = document.getElementById('csv-apt-scope')?.value === 'todos' ? 'todos' : 'activos';
+  _csvSetBusy(['csv-apt-btn', 'csv-pay-btn'], true);
+  const r = await _posPaginatedFetch(
+    `sale_payments?select=id,sale_id,amount,kind,method,paid_at,collected_by_email,source,sales!inner(customer,status,origin_type)&sales.origin_type=eq.apartado${scope === 'activos' ? '&sales.status=eq.activo' : ''}&order=paid_at.asc,id.asc`
+  );
+  _csvSetBusy(['csv-apt-btn', 'csv-pay-btn'], false);
+  if (!r.ok) { toast('No se pudieron leer los pagos — no se descargó nada', 'err'); return; }
+  if (!r.data.length) { toast('No hay pagos para exportar', ''); return; }
+
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: _CSV_TZ }).format(new Date());
+  const STATUS = { activo: 'Activo', liquidado: 'Liquidado', cancelado: 'Cancelado' };
+  const rows = r.data.map(p => {
+    const s = Array.isArray(p.sales) ? p.sales[0] : p.sales;
+    return [
+      p.sale_id, _csvDateTime(p.paid_at), (s?.customer || '').split(' · 📱 ')[0],
+      STATUS[s?.status] || s?.status || '', _csvPaymentType(p),
+      p.method === 'transferencia' ? 'Transferencia' : p.method === 'efectivo' ? 'Efectivo' : 'Sin método',
+      parseFloat(p.amount) || 0, p.collected_by_email || ''
+    ];
+  });
+  _csvDownload(
+    `tres-encantos-pagos-apartados-${scope}-${today}.csv`,
+    ['Folio', 'Fecha', 'Cliente', 'Estado del apartado', 'Tipo', 'Método', 'Monto', 'Cobró (correo)'],
+    rows
+  );
+  toast(`${rows.length.toLocaleString('es-MX')} pagos exportados ✓`, 'ok');
+  logActivity('respaldo_generado', `Exportó ${rows.length.toLocaleString('es-MX')} pagos de apartados a CSV (${scope})`, { tipo: 'csv_pagos', scope, filas: rows.length });
+}
+
 /* ── EXPORT / IMPORT ── */
 async function exportProducts() {
   const r = await api('products?select=*&order=position.asc');
@@ -1599,6 +1720,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const backupFull = document.getElementById('scard-backup-full');
     if (backupFull) backupFull.style.display = 'none';
   }
+  // Apartados/pagos en CSV llevan nombres, teléfonos y saldos de clientas:
+  // se muestran solo con canViewReports (mismo criterio que Reportes).
+  const csvCard = document.getElementById('scard-export-apartados');
+  if (csvCard && permissions?.canViewReports === true) csvCard.style.display = '';
   if (permissions.role) ROLE = permissions.role;
   try {
     const _s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
