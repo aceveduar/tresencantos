@@ -253,6 +253,7 @@ const ACTION_CFG = {
   apartado_liquidado: { type:'apartado',   badge:'apartado',  icon:_actIcoCheck(),    label:'Liquidado' },
   apartado_reembolso: { type:'apartado',   badge:'eliminado', icon:_actIcoUndo(),     label:'Reembolso' },
   apartado_cancelado: { type:'apartado',   badge:'eliminado', icon:_actIcoX(),        label:'Apartado cancelado' },
+  apartado_reactivado: { type:'apartado',  badge:'apartado',  icon:_actIcoUndo(),     label:'Apartado reactivado' },
   comprobante_enviado: { type:'apartado',  badge:'apartado',  icon:_actIco('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'), label:'Comprobante enviado' },
   comprobante_omitido: { type:'apartado',  badge:'eliminado', icon:_actIcoWarn(),     label:'Sin comprobante' },
   producto_creado:       { type:'inventario', badge:'creado',    icon:_actIcoPlus(),  label:'Creado'    },
@@ -456,6 +457,8 @@ function render(data) {
         detail = `Devuelto $${parseFloat(meta.refund).toLocaleString('es-MX')}`;
       else if (item.action === 'apartado_cancelado' && meta.refund > 0)
         detail = `Devuelto $${parseFloat(meta.refund).toLocaleString('es-MX')} · stock restaurado`;
+      else if (item.action === 'apartado_reactivado')
+        detail = `Pagado $${parseFloat(meta.pagado || 0).toLocaleString('es-MX')}${meta.restored > 0 ? ` · devolución de $${parseFloat(meta.restored).toLocaleString('es-MX')} revertida` : ''}`;
 
       const comprobantePair = comprobantePorPadre.get(i);
       const comprobanteHTML = comprobantePair

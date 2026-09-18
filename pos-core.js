@@ -59,6 +59,13 @@ function canEditApartado() {
 function canCancelApartado() {
   return canEditApartado() || canCancelSale();
 }
+// Reactivar un apartado cancelado es solo de superadmin, sin PIN de gerente:
+// cambia dinero y stock de un registro ya cerrado. El servidor lo vuelve a
+// exigir (reactivate_apartado_atomic), esto solo decide si se muestra el botón.
+function canReactivateApartado() {
+  const up = _getMyPermsCached();
+  return (up?.role || getPosRole()) === 'superadmin';
+}
 function canOverridePrice() {
   const up = _getMyPermsCached();
   if (up && 'canOverridePrice' in up) return up.canOverridePrice;
@@ -148,6 +155,64 @@ async function _confirmCancelApartado() {
   await _refreshPosFinancialState();
   const refundAmount = parseFloat(delResult.data?.sale?.refund_amount) || 0;
   toast(`Apartado de ${nombre} cancelado — stock restaurado${refundAmount > 0 ? ` y devolución de $${refundAmount.toLocaleString('es-MX')} registrada` : ''} ✓`, 'success');
+}
+
+// Deshace una cancelación hecha por error (solo superadmin — el servidor lo
+// exige de nuevo). No borra nada: agrega al libro la reversa de la devolución,
+// vuelve a descontar el stock y reabre el apartado. Si algún producto ya se
+// vendió o apartó a otra persona el servidor rechaza todo y dice cuáles faltan.
+let _reactivatingApt = false;
+async function reactivateApartado(id) {
+  if (_reactivatingApt) return;
+  if (!canReactivateApartado()) { toast('Solo el administrador puede reactivar un apartado', 'error'); return; }
+  const sale = (_apartadosData || {})[id];
+  if (!sale) { toast('Apartado no encontrado', 'error'); return; }
+
+  const nombre  = (sale.customer || '').split(' · 📱 ')[0] || 'Sin nombre';
+  const nItems  = Array.isArray(sale.items) ? sale.items.length : 0;
+  // Devoluciones de la cancelación: mismo instante que cancelled_at.
+  const cancelTs = sale.cancelled_at ? new Date(sale.cancelled_at).getTime() : 0;
+  const restored = (Array.isArray(sale.payment_history) ? sale.payment_history : [])
+    .filter(p => p.kind === 'refund' && cancelTs && Math.abs(new Date(p.paid_at).getTime() - cancelTs) < 5000)
+    .reduce((n, p) => n + Math.abs(parseFloat(p.amount) || 0), 0);
+
+  const ok = confirm(
+    `¿Reactivar el apartado de ${nombre}?\n\n` +
+    `• Se vuelven a apartar ${nItems} producto${nItems !== 1 ? 's' : ''} (se descuentan del stock).\n` +
+    (restored > 0 ? `• Se revierte la devolución de $${restored.toLocaleString('es-MX')} — vuelve a contar como pagado.\n` : '') +
+    `• La reversa queda a nombre de quien registró la devolución, así su turno de caja cuadra.\n\n` +
+    `Si algún producto ya se vendió, no se reactiva y te diremos cuál.`
+  );
+  if (!ok) return;
+
+  _reactivatingApt = true;
+  const btn = document.getElementById('adm-reactivate-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Reactivando…'; }
+  const result = await posRpc('reactivate_apartado_atomic', {
+    operation: 'reactivate_apartado',
+    context: id,
+    fingerprint: `${id}:${sale.version ?? 0}`,
+    body: {
+      p_sale_id: id,
+      p_expected_version: sale.version ?? 0,
+      p_reason: null
+    }
+  });
+  _reactivatingApt = false;
+
+  if (!result.ok) {
+    toast(_posRpcError(result, 'No se pudo reactivar el apartado'), 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Reactivar'; }
+    if (!result.ambiguous && !result.pendingConflict) {
+      await _refreshPosFinancialState();
+      if (result.resolvedPrior || result.staleConflict) closeAptDetail();
+    }
+    return;
+  }
+
+  closeAptDetail();
+  await _refreshPosFinancialState();
+  toast(`Apartado de ${nombre} reactivado ✓`, 'success');
 }
 
 /* ── AUTH CHECK ── */

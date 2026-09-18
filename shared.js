@@ -637,7 +637,8 @@ function _themeToggleRowHtml() {
         const actor = personName(payment.collected_by_email || sale.seller_email);
         let title = '💳 Cobro registrado';
         if (payment.kind === 'refund') title = '↩️ Devolución registrada';
-        else if (payment.kind === 'adjustment') title = '🧾 Ajuste registrado';
+        else if (payment.kind === 'adjustment') title = payment.source === 'rpc_apartado_reactivation'
+          ? '↩️ Apartado reactivado' : '🧾 Ajuste registrado';
         else if (sale.origin_type === 'apartado') {
           title = _isApartadoLiquidationPayment(payment, sale)
             ? '✅ Apartado liquidado' : '💳 Abono recibido';

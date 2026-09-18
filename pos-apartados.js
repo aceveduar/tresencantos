@@ -381,15 +381,20 @@ function _apartadoPaymentMeta(payment) {
   const dateLabel = date && !Number.isNaN(new Date(date).getTime())
     ? new Date(date).toLocaleDateString('es-MX', { timeZone:'America/Mexico_City', day:'numeric', month:'short' })
     : 'Histórico';
-  const method = payment?.method === 'transferencia' ? 'transferencia'
+  // reactivate_apartado_atomic compensa la devolución de una cancelación con un
+  // 'adjustment' positivo. Sin rotularlo, en el historial del apartado se leería
+  // como un pago extra de la clienta en vez de la reversa de la devolución.
+  const isReactivation = payment?.source === 'rpc_apartado_reactivation';
+  const method = isReactivation ? 'reactivación'
+    : payment?.method === 'transferencia' ? 'transferencia'
     : payment?.method === 'efectivo' ? 'efectivo' : 'método sin registrar';
   const _ip = p => `<svg style="width:13px;height:13px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24">${p}</svg>`;
-  const icon = amount < 0
+  const icon = (amount < 0 || isReactivation)
     ? _ip('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>')
     : method === 'transferencia' ? _ip('<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>')
     : method === 'efectivo' ? _ip('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>')
     : _ip('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>');
-  return { amount, dateLabel, method, icon };
+  return { amount, dateLabel, method, icon, isReactivation };
 }
 
 async function _hydrateApartadoPayments(rows) {
@@ -645,7 +650,7 @@ function _renderApartadoCanceladosCards(data) {
   ${abonos.map((a, idx) => {
     const meta = _apartadoPaymentMeta(a);
     const amountLabel = `${meta.amount < 0 ? '−' : ''}$${Math.abs(meta.amount).toLocaleString('es-MX')}`;
-    const resendBtn = a.id != null
+    const resendBtn = meta.isReactivation ? '' : a.id != null
       ? `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendReceipt('${a.id}')" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`
       : `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendLegacyAbono(${s.id},${idx})" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`;
     return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span style="display:flex;align-items:center;gap:2px"><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${amountLabel}</span>${resendBtn}</span></div>`;
@@ -757,7 +762,7 @@ function _renderApartadoCards(data, isLiquidado) {
   ${abonos.map((a, idx) => {
     const meta = _apartadoPaymentMeta(a);
     const amountLabel = `${meta.amount < 0 ? '−' : ''}$${Math.abs(meta.amount).toLocaleString('es-MX')}`;
-    const resendBtn = a.id != null
+    const resendBtn = meta.isReactivation ? '' : a.id != null
       ? `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendReceipt('${a.id}')" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`
       : `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendLegacyAbono(${s.id},${idx})" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`;
     return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span style="display:flex;align-items:center;gap:2px"><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${amountLabel}</span>${resendBtn}</span></div>`;

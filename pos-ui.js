@@ -23,7 +23,7 @@ const _uiIcoWA       = () => `<svg width="18" height="18" fill="#fff" viewBox="0
    tener que buscar a mano entre todo el feed general de Actividad. Reutiliza
    la misma convención meta.id = id de la venta que ya usan las acciones
    ligadas a ventas en activity_log (_SALE_LINKED_ACTIONS en activity.js). */
-const _TXN_TIMELINE_ACTIONS = 'venta,venta_cancelada,apartado_nuevo,apartado_abono,apartado_editado,apartado_liquidado,apartado_reembolso,apartado_cancelado,comprobante_enviado,comprobante_omitido';
+const _TXN_TIMELINE_ACTIONS = 'venta,venta_cancelada,apartado_nuevo,apartado_abono,apartado_editado,apartado_liquidado,apartado_reembolso,apartado_cancelado,apartado_reactivado,comprobante_enviado,comprobante_omitido';
 
 async function openTransactionTimeline(saleId) {
   const overlay = document.getElementById('txn-timeline-overlay');
@@ -692,7 +692,7 @@ function openAptDetail(id) {
     // (paymentsCache); si es formato legado (sale.abonos, sin id) usa
     // resendLegacyAbono, que arma el comprobante directo desde este renglón
     // en vez de depender de un id que nunca existió.
-    const resendBtn = a.id != null
+    const resendBtn = meta.isReactivation ? '' : a.id != null
       ? `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendReceipt('${a.id}')" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`
       : `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendLegacyAbono(${id},${idx})" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`;
     return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span style="display:flex;align-items:center;gap:2px"><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${amountLabel}</span>${resendBtn}</span></div>`;
@@ -714,14 +714,18 @@ function openAptDetail(id) {
     </div>`}
     ${abonosVisible || paymentHistoryWarning ? `<div class="apt-abonos-section"><div class="adm-section-title">Historial de pagos</div>${paymentHistoryWarning}${abonosVisible}</div>` : ''}`;
 
-  // Un apartado cancelado no admite ninguna acción — ni siquiera reabrir
-  // (no hay RPC para eso; cancelar es terminal, a diferencia de liquidar).
+  // Un apartado cancelado solo admite una acción: "Reactivar", exclusiva de
+  // superadmin (deshace una cancelación por error — reactivate_apartado_atomic).
+  // Para el resto de roles la ficha es de solo lectura, como siempre.
   if (isCancelado) {
     const canceladoFecha = s.cancelled_at
       ? ` · ${_posFormatTimestamp(s.cancelled_at, {day:'numeric',month:'short'})}`
       : '';
+    const reactivateBtn = canReactivateApartado()
+      ? `<button type="button" class="btn-abonar" id="adm-reactivate-btn" onclick="reactivateApartado(${id})">${_uiIco('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>')} Reactivar</button>`
+      : '';
     document.getElementById('adm-footer').innerHTML =
-      `<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--muted)">✕ Cancelado${canceladoFecha}</span>`;
+      `<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--muted)">✕ Cancelado${canceladoFecha}</span>${reactivateBtn}`;
     const modal = document.getElementById('apt-detail-modal');
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');
@@ -946,6 +950,8 @@ async function loadHistory() {
       } else if (payment.kind === 'refund') {
         badgeText = _uiIco('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>') + ' Devolución';
         badgeClass = 'pay-badge-refund';
+      } else if (payment.kind === 'adjustment' && payment.source === 'rpc_apartado_reactivation') {
+        badgeText = _uiIco('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>') + ' Reactivado';
       } else if (payment.kind === 'adjustment') {
         badgeText = _uiIcoReceipt() + ' Ajuste histórico';
       } else if (isApt && _isApartadoLiquidationPayment(payment, s)) {
@@ -1002,7 +1008,7 @@ async function loadHistory() {
       // podía enviar en el momento justo después de cobrar (datos en
       // memoria); ahora se reconstruye desde lo ya guardado en la BD, así
       // que sirve sin importar cuánto tiempo haya pasado.
-      const resendBtn = `<button class="hi-del hi-send" onclick="event.stopPropagation();resendReceipt('${payment.id}')" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(13)}</button>`;
+      const resendBtn = payment.source === 'rpc_apartado_reactivation' ? '' : `<button class="hi-del hi-send" onclick="event.stopPropagation();resendReceipt('${payment.id}')" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(13)}</button>`;
       const timelineBtn = `<button class="hi-del" onclick="event.stopPropagation();openTransactionTimeline(${s.id})" title="Ver historial completo de esta transacción" aria-label="Ver historial completo de esta transacción">${_uiIcoClock(13)}</button>`;
       // Historial/reenviar son acciones de "a veces" (auditar una disputa,
       // reenviar un comprobante perdido) -- antes vivían en su propia fila

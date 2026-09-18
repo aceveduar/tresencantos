@@ -626,7 +626,8 @@ function renderTodaySales() {
     // pago venga del backfill de datos viejos (source legacy_*) no cambia esa
     // respuesta, solo si el dato es confiable (eso ya lo indica por separado
     // "Dato histórico estimado" en el detalle, cuando is_estimated es true).
-    const tagText = isRefund ? 'DEVOLUCIÓN' : isAdjustment ? 'AJUSTE'
+    const tagText = isRefund ? 'DEVOLUCIÓN'
+      : isAdjustment ? (payment.source === 'rpc_apartado_reactivation' ? 'REACTIVADO' : 'AJUSTE')
       : (isCreated || isSameDayOpening) ? 'APARTADO NUEVO'
       : isLiquidation ? 'LIQUIDADO' : origin === 'apartado' ? 'ABONO' : 'VENTA';
     // Mismo color por categoría que las tarjetas KPI de arriba (Ventas verde,
@@ -793,11 +794,19 @@ function renderVendedores() {
 // No toca periodos distintos: si el cobro fue la semana pasada y se cancela
 // hoy, la semana pasada conserva su cifra tal cual se vio en su momento.
 function _refundedSaleIdsInPeriod(paymentsArr) {
-  return new Set(
+  const refunded = new Set(
     (paymentsArr || [])
       .filter(p => p.kind === 'refund')
       .map(p => String(p.sale_id))
   );
+  // Una cancelación por error revertida (reactivate_apartado_atomic agrega un
+  // 'adjustment' que compensa la devolución) deja la venta viva: sus cobros
+  // vuelven a contar en Ventas/Abonos, no se siguen tratando como devueltos.
+  // Ingresos ya cuadraba solo porque suma con signo.
+  (paymentsArr || [])
+    .filter(p => p.kind === 'adjustment' && p.source === 'rpc_apartado_reactivation')
+    .forEach(p => refunded.delete(String(p.sale_id)));
+  return refunded;
 }
 
 // Un apartado que se abre HOY con anticipo se etiqueta "APARTADO NUEVO" en

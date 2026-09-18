@@ -610,6 +610,7 @@ function _renderCorteDetalle(payments) {
       : payment.source === 'rpc_apartado_liquidation' ? 'LIQUIDADO'
       : payment.source === 'rpc_apartado_payment' ? 'ABONO'
       : payment.source === 'rpc_direct_sale' ? 'VENTA'
+      : payment.source === 'rpc_apartado_reactivation' ? 'REACTIVADO'
       : 'MOVIMIENTO';
     // Clases en vez de estilo inline -- así el bloque [data-theme="dark"] de
     // pos.css sí puede invertir estos colores (un inline style le gana a
@@ -617,7 +618,7 @@ function _renderCorteDetalle(payments) {
     const tagClass = isRefund ? 'corte-tag-refund'
       : tagText === 'APARTADO NUEVO' ? 'corte-tag-aptnew'
       : tagText === 'ABONO' ? 'corte-tag-abono'
-      : tagText === 'MOVIMIENTO' ? 'corte-tag-mov'
+      : (tagText === 'MOVIMIENTO' || tagText === 'REACTIVADO') ? 'corte-tag-mov'
       : 'corte-tag-venta';
     const origin = sale?.origin_type;
     const nombre = origin === 'apartado'
