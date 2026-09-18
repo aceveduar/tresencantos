@@ -225,15 +225,16 @@
       <div class="scard-icon"><svg style="width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg></div>
       <div class="scard-body">
         <div class="scard-title">Apartados y pagos (CSV)</div>
-        <div class="scard-desc">Descarga los apartados o sus pagos para abrirlos en Google Sheets o Excel. Incluye nombres y teléfonos de clientas — guárdalo con cuidado. Es una copia del momento, no se actualiza sola.</div>
+        <div class="scard-desc">Para abrir en Google Sheets o Excel. Incluye nombres y teléfonos de clientas: guárdalo con cuidado. Es una copia del momento.</div>
         <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <select class="field-input" id="csv-apt-scope" style="flex:1;min-width:150px" aria-label="Qué apartados incluir">
+          <select class="field-input" id="csv-apt-scope" style="flex:0 1 260px;min-width:150px;width:auto" aria-label="Qué apartados incluir">
             <option value="activos" selected>Solo apartados activos</option>
             <option value="todos">Todos (activos, liquidados y cancelados)</option>
           </select>
-          <button class="btn btn-outline btn-sm" id="csv-apt-btn" onclick="exportApartadosCsv()">Apartados</button>
-          <button class="btn btn-outline btn-sm" id="csv-pay-btn" onclick="exportPagosCsv()">Pagos</button>
+          <button class="btn btn-outline btn-sm" id="csv-apt-btn" onclick="exportApartadosCsv()">Descargar apartados</button>
+          <button class="btn btn-outline btn-sm" id="csv-pay-btn" onclick="exportPagosCsv()">Descargar pagos</button>
         </div>
+        <div class="scard-desc" style="margin-top:8px"><strong>Apartados:</strong> una fila por apartado, con lo que debe. <strong>Pagos:</strong> una fila por cada abono.</div>
       </div>
     </div>
     <div class="scard-row" id="scard-backup-full">
