@@ -775,6 +775,36 @@ button,a{touch-action:manipulation}
 .abonar-footer .btn-cancel{flex:1;padding:13px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);font-size:.88rem;font-weight:600;cursor:pointer;font-family:inherit;color:var(--muted)}
 .abonar-footer .btn-confirm{flex:2;padding:13px;border-radius:10px;border:none;background:var(--gold);color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
 .abonar-footer .btn-confirm:hover{background:var(--gold-dark)}
+/* Tablet/desktop: estos modales son bottom-sheets de celular -- estirados a todo
+   el ancho de un monitor dejaban campos de 1800px y el nombre de un producto a
+   un lado con su stepper al otro. A partir de 641px pasan a un diálogo centrado
+   de ancho contenido (Abonar, Liquidar, Cancelar, Editar apartado, Historial de
+   transacción...). Los que traen max-width/max-height propios inline los conservan. */
+@media(min-width:641px){
+  .abonar-overlay{align-items:center;justify-content:center;padding:24px}
+  .abonar-modal{max-width:560px;border-radius:20px}
+}
+/* Editar apartado */
+.edit-apt-fields{display:grid;grid-template-columns:1fr}
+.edit-apt-fields .cash-field{margin-bottom:14px;min-width:0}
+@media(min-width:641px){
+  .edit-apt-fields{grid-template-columns:1fr 1fr;column-gap:14px}
+  .edit-apt-fields .edit-apt-field-wide{grid-column:1 / -1}
+}
+/* Estructura: encabezado fijo / cuerpo con scroll / pie fijo. El modal deja de
+   desplazarse completo (con 5+ productos el título y el total se perdían). El
+   pie incluye el área segura de iOS. */
+.edit-apt-modal{display:flex;flex-direction:column;padding:0;overflow:hidden}
+.eam-head{flex-shrink:0;padding:22px 20px 12px}
+.eam-head .apt-info-lbl{margin-bottom:0}
+.eam-body{flex:1;min-height:0;overflow-y:auto;padding:4px 20px 8px;border-top:1px solid var(--border)}
+.edit-apt-foot{flex-shrink:0;padding:12px 20px calc(14px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--border)}
+.edit-apt-summary{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:10px}
+.edit-apt-summary .eas-sub{font-size:.72rem;font-weight:500;color:var(--muted);margin-bottom:2px}
+.edit-apt-summary .eas-total{font-family:'Playfair Display',serif;font-size:1.25rem;font-weight:700;color:var(--charcoal);line-height:1.15}
+.edit-apt-summary .eas-before{font-family:'Inter',sans-serif;font-size:.72rem;font-weight:500;color:var(--muted);margin-left:6px}
+.edit-apt-summary .eas-pending{font-size:.8rem;font-weight:700;color:var(--charcoal);text-align:right;white-space:nowrap}
+.edit-apt-summary .eas-pending.ok{color:var(--green)}
 
 /* SALE DONE WA BUTTON */
 .btn-wa-ticket{width:100%;margin-top:8px;padding:11px;border-radius:12px;border:none;background:#25D366;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s}

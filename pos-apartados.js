@@ -1140,6 +1140,8 @@ async function openEditApartado(id) {
   document.getElementById('edit-apt-info').textContent = `${nombre} · Total $${parseFloat(sale.total||0).toLocaleString('es-MX')} MXN`;
   document.getElementById('edit-apt-search').value = '';
   document.getElementById('edit-apt-search-results').style.display = 'none';
+  const nameEl = document.getElementById('edit-apt-name');
+  if (nameEl) nameEl.value = custParts[0] || '';
   const dueEl = document.getElementById('edit-apt-due-date');
   if (dueEl) dueEl.value = sale.due_date || '';
   const phoneEl = document.getElementById('edit-apt-phone');
@@ -1233,6 +1235,7 @@ function renderEditAptItems() {
             oninput="_editAptChangePrice(${idx},this.value)"
             onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
           <span style="font-size:.74rem;color:var(--muted);margin-left:2px">c/u</span>
+          ${(item.qty || 1) > 1 ? `<span id="edit-apt-line-${idx}" style="font-size:.74rem;color:var(--muted);margin-left:4px">· $${_aptMoney(item.price * item.qty).toLocaleString('es-MX')} en total</span>` : ''}
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
@@ -1240,7 +1243,7 @@ function renderEditAptItems() {
         <span style="font-size:.9rem;font-weight:700;min-width:22px;text-align:center">${item.qty||1}</span>
         <button onclick="_editAptChangeQty(${idx},1)" aria-label="Agregar una unidad de ${_esc(item.name)}" style="width:44px;height:44px;border:1.5px solid var(--border);border-radius:7px;background:var(--surface);cursor:pointer;font-size:.95rem;line-height:1;font-family:inherit">+</button>
       </div>
-      <button onclick="_editAptRemove(${idx})" aria-label="Quitar ${_esc(item.name)} del apartado" style="width:44px;height:44px;background:none;border:none;cursor:pointer;color:var(--red);font-size:1.1rem;padding:4px;line-height:1;flex-shrink:0">✕</button>
+      <button onclick="_editAptRemove(${idx})" aria-label="Quitar ${_esc(item.name)} del apartado" style="width:44px;height:44px;background:none;border:none;cursor:pointer;color:var(--red);padding:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center"><svg aria-hidden="true" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>`).join('');
   _updateEditAptTotal();
 }
@@ -1249,6 +1252,10 @@ function _editAptChangePrice(idx, val) {
   const item = _editAptCtx.items[idx];
   item.price = parseFloat(val) || 0;
   item.subtotal = item.price * (item.qty || 1);
+  // El total del renglón (solo existe con más de 1 unidad) se actualiza en el
+  // lugar: re-renderizar la lista le quitaría el foco al input de precio.
+  const line = document.getElementById(`edit-apt-line-${idx}`);
+  if (line) line.textContent = `· $${_aptMoney(item.subtotal).toLocaleString('es-MX')} en total`;
   _updateEditAptTotal();
 }
 
@@ -1274,9 +1281,21 @@ function _updateEditAptTotal() {
   const total = _aptMoney(subtotal - discount);
   const el = document.getElementById('edit-apt-total');
   if (!el) return;
-  el.innerHTML = discount > 0
-    ? `<div style="font-family:inherit;font-size:.74rem;font-weight:500;color:var(--muted)">Subtotal $${subtotal.toLocaleString('es-MX')} · Descuento −$${discount.toLocaleString('es-MX')}</div><div>Total $${total.toLocaleString('es-MX')} MXN</div>`
-    : `Total $${total.toLocaleString('es-MX')} MXN`;
+  const money = n => `$${n.toLocaleString('es-MX')}`;
+  const original = _aptMoney(_editAptCtx.sale.total);
+  const paid = _aptMoney(_editAptCtx.sale.paid_amount);
+  const pending = _aptMoney(total - paid);
+  // "antes $X" solo cuando de verdad cambió: es lo que se está por confirmar.
+  const before = Math.abs(total - original) >= 0.005
+    ? `<span class="eas-before">antes ${money(original)}</span>` : '';
+  // Pendiente solo si ya hay algo pagado (sin pago sería igual al total y
+  // repetiría el número); el monto pagado ya se ve en "Anticipo registrado".
+  const pendingHtml = paid > 0
+    ? (pending <= 0
+        ? '<div class="eas-pending ok">Queda liquidado</div>'
+        : `<div class="eas-pending">Pendiente ${money(pending)}</div>`)
+    : '';
+  el.innerHTML = `<div>${discount > 0 ? `<div class="eas-sub">Subtotal ${money(subtotal)} · Descuento −${money(discount)}</div>` : ''}<div class="eas-total">Total ${money(total)} MXN${before}</div></div>${pendingHtml}`;
 }
 
 function _editAptCanAdd(productId) {
@@ -1381,21 +1400,35 @@ async function saveEditApt() {
     else if (phoneInput.length === 10) phoneParam = phoneInput;
     else { toast('El teléfono debe tener 10 dígitos, o déjalo vacío', 'error'); return; }
   }
+  // Nombre: NULL = no tocar. Solo se manda si de verdad cambió respecto al que
+  // ya tenía el apartado (no toca el registro de la clienta, solo este apartado).
+  const nameInput = (document.getElementById('edit-apt-name')?.value || '').trim();
+  const originalName = (sale.customer || '').split(' · 📱 ')[0] || '';
+  let nameParam = null;
+  if (nameInput !== originalName) {
+    if (nameInput === '') { toast('El nombre no puede quedar vacío', 'error'); return; }
+    nameParam = nameInput;
+  }
   const btn = document.getElementById('edit-apt-save-btn');
   btn.disabled = true; btn.textContent = 'Guardando…';
+  const body = {
+    p_sale_id: id,
+    p_expected_version: sale.version ?? 0,
+    p_items: items,
+    p_discount: null,
+    p_due_date: dueDate,
+    p_phone: phoneParam,
+    p_override_tickets: _collectOverrideTickets(['canEditApartado', 'canOverridePrice'])
+  };
+  // p_name solo viaja cuando el nombre cambió: así editar productos, teléfono
+  // o fecha sigue funcionando aunque la migración 20260918_03 aún no se haya
+  // ejecutado (sin ella PostgREST no encuentra una firma que acepte p_name).
+  if (nameParam !== null) body.p_name = nameParam;
   const r = await posRpc('edit_apartado_atomic', {
     operation: 'apartado_edit',
     context: id,
-    fingerprint: `${id}:${sale.version ?? 0}:${JSON.stringify(items)}:${discount}:${dueDate}:${phoneParam}`,
-    body: {
-      p_sale_id: id,
-      p_expected_version: sale.version ?? 0,
-      p_items: items,
-      p_discount: null,
-      p_due_date: dueDate,
-      p_phone: phoneParam,
-      p_override_tickets: _collectOverrideTickets(['canEditApartado', 'canOverridePrice'])
-    }
+    fingerprint: `${id}:${sale.version ?? 0}:${JSON.stringify(items)}:${discount}:${dueDate}:${phoneParam}:${nameParam}`,
+    body
   });
   btn.disabled = false; btn.textContent = 'Guardar cambios';
   if (!r.ok) {
