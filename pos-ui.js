@@ -692,7 +692,9 @@ function openAptDetail(id) {
     // (paymentsCache); si es formato legado (sale.abonos, sin id) usa
     // resendLegacyAbono, que arma el comprobante directo desde este renglón
     // en vez de depender de un id que nunca existió.
-    const resendBtn = meta.isReactivation ? '' : a.id != null
+    // La reversa de una reactivación no se reenvía, pero conserva el hueco del
+    // botón (invisible) para que su monto quede alineado con los demás renglones.
+    const resendBtn = meta.isReactivation ? `<button class="hi-del hi-send" style="padding:2px 4px;visibility:hidden" tabindex="-1" aria-hidden="true" disabled>${_uiIcoSend(12)}</button>` : a.id != null
       ? `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendReceipt('${a.id}')" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`
       : `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendLegacyAbono(${id},${idx})" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`;
     return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span style="display:flex;align-items:center;gap:2px"><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${amountLabel}</span>${resendBtn}</span></div>`;
