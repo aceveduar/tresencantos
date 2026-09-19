@@ -1176,7 +1176,12 @@ async function refundApartado(id, source = 'detail') {
   const consequence = wasLiquidated
     ? 'El apartado volverá a Activos y el inventario seguirá reservado.'
     : 'El apartado seguirá activo y el inventario continuará reservado.';
-  if (!confirm(`¿Registrar la devolución de $${pagado.toLocaleString('es-MX')} MXN?\n\n${consequence}\nSe conservará el historial y la devolución se descontará de la caja de hoy por los mismos métodos usados al cobrar. Esta acción no se puede deshacer.`)) return;
+  // Desde "Editar apartado" el reembolso cierra el formulario al terminar: lo
+  // editado sin guardar (productos, nombre, fecha…) se pierde, y antes no se avisaba.
+  const unsavedNote = source === 'edit'
+    ? '\n\nLos cambios sin guardar de este formulario se descartarán.'
+    : '';
+  if (!confirm(`¿Registrar la devolución de $${pagado.toLocaleString('es-MX')} MXN?\n\n${consequence}\nSe conservará el historial y la devolución se descontará de la caja de hoy por los mismos métodos usados al cobrar. Esta acción no se puede deshacer.${unsavedNote}`)) return;
   if (!canEditApartado()) {
     const granted = await requestOverride('canEditApartado', 'Reembolsar apartado');
     if (!granted) return;

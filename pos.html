@@ -406,14 +406,29 @@
 <!-- CANCELAR APARTADO — modal propio (antes era confirm() nativo, muy fácil de aceptar sin querer) -->
 <div class="abonar-overlay" id="cancel-apt-overlay" style="display:none" onclick="if(event.target===this)_closeCancelAptModal()">
   <div class="abonar-modal">
-    <h3>¿Cancelar este apartado?</h3>
+    <h3 id="cancel-apt-title">¿Cancelar este apartado?</h3>
     <p class="apt-info-lbl" id="cancel-apt-info"></p>
     <div id="cancel-apt-warning" style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:10px 14px;font-size:.82rem;color:#B91C1C;margin-bottom:16px;line-height:1.5"></div>
-    <label for="cancel-apt-reason" style="display:block;font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:6px">Motivo (opcional, queda en Actividad)</label>
-    <input type="text" id="cancel-apt-reason" placeholder="Ej. cliente se arrepintió, error de captura…" maxlength="140" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;font-family:inherit;margin-bottom:16px;box-sizing:border-box">
+    <!-- Motivo OBLIGATORIO (antes opcional y en texto libre): cancelar era dos toques
+         seguidos y se podía pasar de largo en piloto automático. Elegir un motivo
+         obliga a detenerse un segundo y deja un dato útil en Actividad. -->
+    <div class="adm-section-title">Motivo de la cancelación</div>
+    <div class="cancel-reasons" id="cancel-apt-reasons" role="radiogroup" aria-label="Motivo de la cancelación">
+      <button type="button" class="cancel-reason-btn" role="radio" aria-checked="false" data-reason="El cliente desistió" onclick="_selectCancelReason(this)">El cliente desistió</button>
+      <button type="button" class="cancel-reason-btn" role="radio" aria-checked="false" data-reason="No pagó (vencido)" onclick="_selectCancelReason(this)">No pagó (vencido)</button>
+      <button type="button" class="cancel-reason-btn" role="radio" aria-checked="false" data-reason="Error de captura" onclick="_selectCancelReason(this)">Error de captura</button>
+      <button type="button" class="cancel-reason-btn" role="radio" aria-checked="false" data-reason="Otro" onclick="_selectCancelReason(this)">Otro</button>
+    </div>
+    <input type="text" id="cancel-apt-reason" placeholder="Cuéntanos qué pasó…" maxlength="140" aria-label="Otro motivo" oninput="_updateCancelAptConfirm()" style="display:none;width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;font-family:inherit;margin-bottom:12px;box-sizing:border-box;background:var(--surface);color:var(--charcoal)">
+    <!-- Solo si ya hay pagos: cancelar registra una salida de dinero de la caja
+         (devolución), que la cajera tiene que confirmar que va a entregar. -->
+    <label class="cancel-refund-check" id="cancel-apt-refund-wrap" style="display:none">
+      <input type="checkbox" id="cancel-apt-refund-ok" onchange="_updateCancelAptConfirm()">
+      <span id="cancel-apt-refund-txt"></span>
+    </label>
     <div class="abonar-footer">
       <button class="btn-cancel" onclick="_closeCancelAptModal()">No, mantenerlo</button>
-      <button class="btn-confirm" id="cancel-apt-confirm-btn" style="background:var(--red)" onclick="_confirmCancelApartado()">Sí, cancelar apartado</button>
+      <button class="btn-confirm" id="cancel-apt-confirm-btn" style="background:var(--red)" onclick="_confirmCancelApartado()" disabled>Sí, cancelar apartado</button>
     </div>
   </div>
 </div>
@@ -421,7 +436,7 @@
 <!-- HISTORIAL DE TRANSACCIÓN — timeline de Actividad para una venta/apartado puntual -->
 <div class="abonar-overlay" id="txn-timeline-overlay" style="display:none" onclick="if(event.target===this)closeTransactionTimeline()">
   <div class="abonar-modal" style="max-height:78vh;display:flex;flex-direction:column">
-    <h3>🕐 Historial de esta transacción</h3>
+    <h3><svg aria-hidden="true" style="width:16px;height:16px;vertical-align:-2px;margin-right:6px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Historial de esta transacción</h3>
     <p class="apt-info-lbl" id="txn-timeline-sub"></p>
     <div id="txn-timeline-list" style="overflow-y:auto;flex:1;margin:12px 0;min-height:60px"></div>
     <div class="abonar-footer">
@@ -655,7 +670,7 @@
         <!-- Conteo a ciegas: "Efectivo esperado" no se muestra hasta después
              de comparar -- verlo antes invitaría a copiar el número en vez
              de contar el efectivo de verdad. -->
-        <button id="corte-comparar-btn" onclick="compararConteo()" style="display:block;width:calc(100% - 32px);margin:10px 16px;padding:10px;border-radius:8px;border:1.5px dashed var(--gold);background:var(--gold-light);color:var(--gold-dark);font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit">🔍 Comparar conteo</button>
+        <button id="corte-comparar-btn" onclick="compararConteo()" style="display:block;width:calc(100% - 32px);margin:10px 16px;padding:10px;border-radius:8px;border:1.5px dashed var(--gold);background:var(--gold-light);color:var(--gold-dark);font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit"><svg aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:6px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Comparar conteo</button>
         <div id="corte-esperado-row" style="display:none;padding:10px 16px;border-bottom:1px solid var(--border);border-top:1px solid var(--border);justify-content:space-between;align-items:center">
           <span style="font-size:.8rem;color:var(--muted);font-weight:600">Efectivo esperado<span style="font-weight:400;margin-left:6px;color:var(--muted-light)">fondo + ventas − gastos</span></span>
           <span id="corte-esperado" style="font-weight:700;font-size:.9rem">$0</span>
@@ -664,7 +679,7 @@
           <span style="font-weight:700;font-size:.88rem">Diferencia</span>
           <span id="corte-diff-val" style="font-size:1.1rem;font-weight:800"></span>
         </div>
-        <button id="corte-corregir-btn" onclick="corregirConteo()" style="display:none;width:100%;padding:8px;border:none;background:none;color:var(--muted);font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:underline">✏️ Corregir conteo</button>
+        <button id="corte-corregir-btn" onclick="corregirConteo()" style="display:none;width:100%;padding:8px;border:none;background:none;color:var(--muted);font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:underline"><svg aria-hidden="true" style="width:13px;height:13px;vertical-align:-2px;margin-right:5px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Corregir conteo</button>
       </div>
       <button id="corte-cerrar-btn" onclick="confirmCloseTurno()" style="display:none;margin-top:10px;width:100%;padding:12px;border-radius:50px;border:1.5px solid var(--red);background:var(--surface);color:var(--red);font-size:.86rem;font-weight:700;cursor:pointer;font-family:inherit;align-items:center;justify-content:center;gap:7px">
         <svg width="15" height="15" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -704,9 +719,10 @@
       </div>
     </div>
     <div style="position:relative">
-      <input type="text" id="apt-search" placeholder="🔍 Buscar cliente..." autocomplete="off"
+      <svg aria-hidden="true" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--muted);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;pointer-events:none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="apt-search" placeholder="Buscar cliente…" autocomplete="off"
         aria-label="Buscar apartado por cliente"
-        style="width:100%;padding:8px 32px 8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;outline:none;font-family:inherit;box-sizing:border-box"
+        style="width:100%;padding:8px 32px 8px 34px;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;outline:none;font-family:inherit;box-sizing:border-box"
         oninput="filterApartadosWithDue(this.value,'offcanvas')"
         onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
       <button type="button" id="apt-search-clear" onclick="clearAptSearchWithDue('offcanvas')" aria-label="Limpiar búsqueda" style="display:none;position:absolute;right:2px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:1rem;line-height:1;padding:2px">✕</button>
@@ -729,7 +745,8 @@
       <button type="button" role="tab" aria-selected="false" aria-controls="apt-page-list" tabindex="-1" data-mode="cancelados" onclick="selectAptView('cancelados','page')">Cancelados</button>
     </div>
     <div class="apt-page-search-wrap">
-      <input type="text" id="apt-page-search" placeholder="🔍 Buscar cliente..." autocomplete="off"
+      <svg class="aps-ico" aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="apt-page-search" placeholder="Buscar cliente…" autocomplete="off"
         aria-label="Buscar apartado por cliente"
         oninput="filterApartadosWithDue(this.value,'page')"
         onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor=''">

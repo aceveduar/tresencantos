@@ -707,7 +707,8 @@ button,a{touch-action:manipulation}
 .apt-page-title{font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;white-space:nowrap}
 .apt-page-count{font-size:.72rem;color:rgba(255,255,255,.55);margin-left:2px}
 .apt-page-search-wrap{flex:1;max-width:340px;margin-left:auto;position:relative}
-.apt-page-search-wrap input{width:100%;height:44px;padding:7px 44px 7px 12px;border:1.5px solid rgba(255,255,255,.2);border-radius:8px;background:rgba(255,255,255,.1);color:#fff;font-size:.83rem;font-family:inherit;outline:none;transition:.15s}
+.apt-page-search-wrap .aps-ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:rgba(255,255,255,.55);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.apt-page-search-wrap input{width:100%;height:44px;padding:7px 44px 7px 36px;border:1.5px solid rgba(255,255,255,.2);border-radius:8px;background:rgba(255,255,255,.1);color:#fff;font-size:.83rem;font-family:inherit;outline:none;transition:.15s}
 .apt-page-search-wrap input::placeholder{color:rgba(255,255,255,.45)}
 .apt-page-search-wrap input:focus{border-color:var(--gold);background:rgba(255,255,255,.15)}
 .apt-page-search-clear{position:absolute;right:0;top:50%;transform:translateY(-50%);width:44px;height:44px;background:none;border:none;cursor:pointer;color:rgba(255,255,255,.5);font-size:.95rem;line-height:1;padding:2px;display:none}
@@ -784,6 +785,14 @@ button,a{touch-action:manipulation}
   .abonar-overlay{align-items:center;justify-content:center;padding:24px}
   .abonar-modal{max-width:560px;border-radius:20px}
 }
+/* Cancelar apartado: motivo obligatorio + confirmación de la devolución */
+.cancel-reasons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.cancel-reason-btn{padding:11px 10px;min-height:44px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s;text-align:center}
+.cancel-reason-btn.active{border-color:var(--ink);background:var(--ink);color:#fff}
+.abonar-modal .cancel-refund-check{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;margin:2px 0 14px;border:1.5px solid #FECACA;background:#FEF2F2;border-radius:10px;font-size:.82rem;font-weight:600;color:#B91C1C;line-height:1.4;letter-spacing:0;cursor:pointer}
+.cancel-refund-check input{margin-top:1px;width:18px;height:18px;accent-color:var(--red);flex-shrink:0}
+#cancel-apt-confirm-btn:disabled{opacity:.4;cursor:not-allowed}
+:root[data-theme="dark"] .abonar-modal .cancel-refund-check{background:var(--tint-red-bg);border-color:var(--tint-red-border);color:var(--tint-red-strong)}
 /* Editar apartado */
 .edit-apt-fields{display:grid;grid-template-columns:1fr}
 .edit-apt-fields .cash-field{margin-bottom:14px;min-width:0}

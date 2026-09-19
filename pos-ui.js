@@ -1192,29 +1192,10 @@ async function deleteSale(id) {
     );
     if (!granted) return;
   }
-  const totalNum   = parseFloat(sale.total) || 0;
-  const total      = totalNum.toLocaleString('es-MX');
-  const itemCount  = Array.isArray(sale.items) ? sale.items.length : 0;
-  const label      = isApartadoOrigin ? 'apartado' : 'venta';
-  const pagado     = isApartadoOrigin ? (parseFloat(sale.paid_amount) || 0) : totalNum;
-  const refundText = pagado > 0
-    ? `\n\nSe registrará una devolución de $${pagado.toLocaleString('es-MX')} por los mismos métodos de pago.`
-    : '';
-  if (!confirm(`¿Cancelar el ${label} de $${total} (${itemCount} artículo${itemCount !== 1 ? 's' : ''})?\n\nSe restaurará el stock.${refundText}\n\nEsta acción no se puede deshacer.`)) return;
-
-  // Antes mandaba el texto fijo 'Cancelado desde Historial de Caja' -- no
-  // es un motivo real, solo repite desde dónde se tocó el botón (dato que
-  // la propia acción ya deja claro). null es más honesto que un texto que
-  // aparenta ser información real sin serlo. Capturar el motivo real aquí
-  // (como ya se hace en el cancelar de apartados de Caja) queda pendiente.
-  const delResult = await _posCancelSaleAtomic(id, sale, null);
-  if (!delResult.ok) {
-    toast(_posRpcError(delResult, `Error al cancelar el ${label}`), 'error');
-    return;
-  }
-
-  delete salesCache[id];
-  await _refreshPosFinancialState();
-  const refundAmount = parseFloat(delResult.data?.sale?.refund_amount) || 0;
-  toast(`${isApartadoOrigin ? 'Apartado cancelado' : 'Venta cancelada'} — stock restaurado${refundAmount > 0 ? ` y devolución de $${refundAmount.toLocaleString('es-MX')} registrada` : ''} ✓`, 'success');
+  // Antes esta ✕ cancelaba apartados y ventas con un solo confirm() nativo, sin
+  // motivo (mandaba null) y saltándose el modal de Apartados -- un toque en la ✕
+  // de la tarjeta de un abono cancelaba el apartado completo. Ahora termina en
+  // el MISMO modal que Apartados (motivo obligatorio + casilla de devolución);
+  // ese modal hace la cancelación, la caché y el toast.
+  _openCancelModal(id, sale, isApartadoOrigin ? 'apartado' : 'venta');
 }

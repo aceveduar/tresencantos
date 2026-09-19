@@ -94,6 +94,10 @@ function canViewReports() {
 
 let _cancelAptCtx = null;
 
+// Desde la ficha/tarjeta de un apartado (Apartados). Historial usa deleteSale()
+// (pos-ui.js), que termina en el MISMO modal vía _openCancelModal(): antes ese
+// camino cancelaba apartados Y ventas con un solo confirm() nativo, sin motivo,
+// saltándose por completo las protecciones de este modal.
 async function cancelApartado(id) {
   if (!canCancelApartado()) {
     const granted = await requestOverride('canEditApartado', 'Cancelar apartado');
@@ -101,23 +105,99 @@ async function cancelApartado(id) {
   }
   const sale = (_apartadosData || {})[id];
   if (!sale) { toast('Apartado no encontrado', 'error'); return; }
+  _openCancelModal(id, sale, 'apartado');
+}
 
+// Modal único para cancelar un apartado ('apartado') o una venta directa
+// ('venta'): motivo obligatorio y, si hubo cobro, casilla de devolución.
+function _openCancelModal(id, sale, kind) {
+  const isVenta   = kind === 'venta';
   const custParts = (sale.customer || '').split(' · 📱 ');
-  const nombre    = custParts[0] || 'Sin nombre';
+  const nombre    = custParts[0] || (isVenta ? 'Venta directa' : 'Sin nombre');
   const total     = parseFloat(sale.total || 0);
-  const pagado    = parseFloat(sale.paid_amount || 0);
+  // Venta directa: paid_amount guarda el efectivo recibido (puede ser mayor al
+  // total), lo que se devuelve es el total. Apartado: lo abonado.
+  const pagado    = isVenta ? total : parseFloat(sale.paid_amount || 0);
   const nItems    = Array.isArray(sale.items) ? sale.items.length : 0;
+  const isActiveApt = !isVenta && sale.status === 'activo' && !sale.cancelled_at;
+  const fmt = n => n.toLocaleString('es-MX');
 
-  _cancelAptCtx = { id, sale, nombre, total, pagado, nItems };
+  _cancelAptCtx = { id, sale, kind, nombre, total, pagado, nItems };
 
-  document.getElementById('cancel-apt-info').textContent = `${nombre} · $${total.toLocaleString('es-MX')} MXN · ${nItems} producto${nItems !== 1 ? 's' : ''}`;
+  document.getElementById('cancel-apt-title').textContent = isVenta ? '¿Cancelar esta venta?' : '¿Cancelar este apartado?';
+  document.getElementById('cancel-apt-info').textContent = `${nombre} · $${fmt(total)} MXN · ${nItems} producto${nItems !== 1 ? 's' : ''}`;
+  // Estado limpio en cada apertura: sin motivo elegido, casilla sin marcar.
+  _cancelAptReason = '';
+  // "No pagó (vencido)" solo tiene sentido en un apartado activo; en una venta
+  // o un apartado ya liquidado la 2ª opción es "Producto con defecto".
+  const labels = ['El cliente desistió', isActiveApt ? 'No pagó (vencido)' : 'Producto con defecto', 'Error de captura', 'Otro'];
+  document.querySelectorAll('#cancel-apt-reasons .cancel-reason-btn').forEach((b, i) => {
+    b.textContent = labels[i]; b.dataset.reason = labels[i];
+    b.classList.remove('active'); b.setAttribute('aria-checked', 'false');
+  });
   const reasonEl = document.getElementById('cancel-apt-reason');
-  if (reasonEl) reasonEl.value = '';
-  const warnEl = document.getElementById('cancel-apt-warning');
-  warnEl.innerHTML = pagado > 0
-    ? `<svg style="width:13px;height:13px;vertical-align:-2px;margin-right:3px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Ya se pagaron <strong>$${pagado.toLocaleString('es-MX')}</strong>. Al cancelar se registrará la devolución por los mismos métodos de pago y se restaurará el stock.<br>Esta acción no se puede deshacer.`
-    : `Se restaurará el stock. Esta acción no se puede deshacer.`;
+  if (reasonEl) { reasonEl.value = ''; reasonEl.style.display = 'none'; }
+  const refundWrap = document.getElementById('cancel-apt-refund-wrap');
+  const refundOk   = document.getElementById('cancel-apt-refund-ok');
+  if (refundOk) refundOk.checked = false;
+  if (refundWrap) {
+    refundWrap.style.display = pagado > 0 ? 'flex' : 'none';
+    document.getElementById('cancel-apt-refund-txt').textContent =
+      `Confirmo que le voy a devolver $${fmt(pagado)} a la clienta por el mismo método con que pagó`;
+  }
+  // Un apartado cancelado se puede reactivar (solo administrador,
+  // reactivate_apartado_atomic); una venta directa cancelada no tiene camino de vuelta.
+  const undoNote = isVenta ? 'Esta acción no se puede deshacer.' : 'Solo el administrador puede deshacerlo después.';
+  const warnIco = '<svg style="width:13px;height:13px;vertical-align:-2px;margin-right:3px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+  document.getElementById('cancel-apt-warning').innerHTML = pagado > 0
+    ? `${warnIco}${isVenta ? 'Esta venta se cobró por' : 'Ya se pagaron'} <strong>$${fmt(pagado)}</strong>. Al cancelar se registrará la devolución por los mismos métodos de pago y se restaurará el stock.<br>${undoNote}`
+    : `Se restaurará el stock. ${undoNote}`;
+  const confirmBtn = document.getElementById('cancel-apt-confirm-btn');
+  if (confirmBtn) confirmBtn.textContent = _cancelConfirmLabel();
+  _updateCancelAptConfirm();
   document.getElementById('cancel-apt-overlay').style.display = 'flex';
+}
+
+function _cancelConfirmLabel() {
+  return _cancelAptCtx?.kind === 'venta' ? 'Sí, cancelar venta' : 'Sí, cancelar apartado';
+}
+
+// Motivo elegido en el modal de cancelar ('' = ninguno todavía).
+let _cancelAptReason = '';
+
+function _selectCancelReason(btn) {
+  document.querySelectorAll('#cancel-apt-reasons .cancel-reason-btn').forEach(b => {
+    const on = b === btn;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-checked', on ? 'true' : 'false');
+  });
+  _cancelAptReason = btn.dataset.reason || '';
+  const other = _cancelAptReason === 'Otro';
+  const inp = document.getElementById('cancel-apt-reason');
+  if (inp) {
+    inp.style.display = other ? '' : 'none';
+    if (other) inp.focus(); else inp.value = '';
+  }
+  _updateCancelAptConfirm();
+}
+
+// Lo que se manda como p_reason: la opción elegida, o el texto libre si eligió "Otro".
+function _cancelAptReasonValue() {
+  if (_cancelAptReason === 'Otro') return (document.getElementById('cancel-apt-reason')?.value || '').trim();
+  return _cancelAptReason;
+}
+
+// "Sí, cancelar" solo se habilita con motivo elegido y, si ya hay pagos, con la
+// casilla de la devolución marcada.
+function _updateCancelAptConfirm() {
+  const btn = document.getElementById('cancel-apt-confirm-btn');
+  if (!btn || !_cancelAptCtx) return;
+  const needsRefund = _cancelAptCtx.pagado > 0;
+  const refundOk = !needsRefund || !!document.getElementById('cancel-apt-refund-ok')?.checked;
+  btn.disabled = !(_cancelAptReasonValue() && refundOk);
+  btn.title = btn.disabled
+    ? `Elige un motivo${needsRefund ? ' y confirma la devolución' : ''} para continuar`
+    : '';
 }
 
 function _closeCancelAptModal() {
@@ -127,34 +207,45 @@ function _closeCancelAptModal() {
 
 async function _confirmCancelApartado() {
   if (!_cancelAptCtx) return;
-  const { id, sale, nombre, total, pagado, nItems } = _cancelAptCtx;
+  const { id, sale, kind, nombre, total, pagado, nItems } = _cancelAptCtx;
+  const isVenta = kind === 'venta';
+  const btnLabel = _cancelConfirmLabel();
+  // Defensa en profundidad: el botón ya está deshabilitado sin motivo, pero un
+  // Enter o un click programático no debe saltarse el requisito.
+  const reasonVal = _cancelAptReasonValue();
+  if (!reasonVal) { toast('Elige un motivo para cancelar', 'error'); return; }
   const btn = document.getElementById('cancel-apt-confirm-btn');
   btn.disabled = true; btn.textContent = 'Cancelando…';
 
-  // p_reason ya existía en el RPC y viajaba hasta activity_log.meta.reason,
-  // pero el cliente siempre mandaba el texto fijo "Cancelado desde Caja" --
-  // no explica NADA de lo que de verdad pasó, solo desde qué pantalla se
-  // tocó el botón (algo que la propia acción ya deja claro). Ahora manda lo
-  // que la cajera escribió, o null si lo dejó vacío (mejor sin dato que con
-  // uno falso que aparenta ser información real).
-  const reasonVal = (document.getElementById('cancel-apt-reason')?.value || '').trim();
-  const delResult = await _posCancelSaleAtomic(id, sale, reasonVal || null);
+  // El modal puede abrirse desde la ficha de un apartado (que queda abierta
+  // detrás) o desde Historial (donde no hay ficha): solo se cierra si está abierta.
+  const closeDetailIfOpen = () => {
+    const detail = document.getElementById('apt-detail-modal');
+    if (detail && detail.style.display === 'flex') closeAptDetail();
+  };
+
+  // p_reason viaja hasta activity_log.meta.reason. Antes era texto libre
+  // opcional (casi siempre vacío); ahora es obligatorio: una de 4 opciones o,
+  // con "Otro", lo que escribió la cajera.
+  const delResult = await _posCancelSaleAtomic(id, sale, reasonVal);
   if (!delResult.ok) {
-    toast(_posRpcError(delResult, 'Error al cancelar apartado'), 'error');
-    btn.disabled = false; btn.textContent = 'Sí, cancelar apartado';
+    toast(_posRpcError(delResult, `Error al cancelar ${isVenta ? 'la venta' : 'el apartado'}`), 'error');
+    btn.textContent = btnLabel;
+    _updateCancelAptConfirm();
     if (delResult.resolvedPrior || delResult.staleConflict) {
       _closeCancelAptModal();
-      closeAptDetail();
+      closeDetailIfOpen();
     }
     return;
   }
 
-  btn.disabled = false; btn.textContent = 'Sí, cancelar apartado';
+  btn.disabled = false; btn.textContent = btnLabel;
   _closeCancelAptModal();
-  closeAptDetail();
+  closeDetailIfOpen();
+  delete salesCache[id]; // Historial: quita el registro cancelado de la caché local
   await _refreshPosFinancialState();
   const refundAmount = parseFloat(delResult.data?.sale?.refund_amount) || 0;
-  toast(`Apartado de ${nombre} cancelado — stock restaurado${refundAmount > 0 ? ` y devolución de $${refundAmount.toLocaleString('es-MX')} registrada` : ''} ✓`, 'success');
+  toast(`${isVenta ? 'Venta cancelada' : `Apartado de ${nombre} cancelado`} — stock restaurado${refundAmount > 0 ? ` y devolución de $${refundAmount.toLocaleString('es-MX')} registrada` : ''} ✓`, 'success');
 }
 
 // Deshace una cancelación hecha por error (solo superadmin — el servidor lo
