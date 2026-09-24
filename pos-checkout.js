@@ -344,6 +344,11 @@ function closeSaleDone() {
 /* ── SCANNER ── */
 let _posScanner = null;
 let _posScanCooldown = false;
+// Contexto de a dónde va el código detectado -- 'cart' (default, catálogo
+// normal de Caja) o 'editApt' (buscador de "Editar apartado"). Mismo patrón
+// que _scanCtx en Inventario (admin-scanner.js), pero solo 2 destinos porque
+// este escáner solo se invoca desde 2 lugares.
+let _posScanCtx = 'cart';
 
 function _loadHtml5QrcodePos() {
   return new Promise((resolve, reject) => {
@@ -358,17 +363,20 @@ function _loadHtml5QrcodePos() {
 function _posHandleCode(code) {
   if (_posScanCooldown) return;
   const p = products.find(x => x.barcode === code);
-  if (p) {
+  if (!p) { _posBarcodeNotFound(code); return; }
+  if (_posScanCtx === 'editApt') {
+    closePosScanner();
+    _editAptAddProduct(p.id);
+  } else {
     closePosScanner();
     addToCart(p.id);
     document.getElementById('pos-search').value = '';
     searchProducts('');
-  } else {
-    _posBarcodeNotFound(code);
   }
 }
 
-async function openPosScanner() {
+async function openPosScanner(ctx = 'cart') {
+  _posScanCtx = ctx;
   const statusEl = document.getElementById('pos-scan-status');
   statusEl.textContent = 'Iniciando cámara...';
   statusEl.style.color = '';

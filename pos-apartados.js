@@ -1327,6 +1327,10 @@ function _editAptCanAdd(productId) {
   return currentQty < originalQty + available;
 }
 
+function openEditAptScanner() {
+  openPosScanner('editApt');
+}
+
 function searchEditApt(q) {
   const res = document.getElementById('edit-apt-search-results');
   if (!q.trim()) { res.style.display = 'none'; return; }

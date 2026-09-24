@@ -529,9 +529,13 @@
     <div style="position:relative;margin-bottom:10px">
       <svg aria-hidden="true" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;pointer-events:none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" id="edit-apt-search" placeholder="Agregar producto…" autocomplete="off"
-        style="width:100%;padding:9px 12px 9px 36px;border:1.5px solid var(--border);border-radius:9px;font-size:.85rem;outline:none;font-family:inherit;box-sizing:border-box;background:var(--surface);color:var(--charcoal)"
+        style="width:100%;padding:9px 40px 9px 36px;border:1.5px solid var(--border);border-radius:9px;font-size:.85rem;outline:none;font-family:inherit;box-sizing:border-box;background:var(--surface);color:var(--charcoal)"
         oninput="searchEditApt(this.value)"
         onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+      <button type="button" onclick="openEditAptScanner()" title="Escanear código de barras" aria-label="Escanear código de barras"
+        style="position:absolute;right:4px;top:50%;transform:translateY(-50%);width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:none;border:0;border-radius:7px;cursor:pointer;color:var(--muted)">
+        <svg aria-hidden="true" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M3 5v14"/><path d="M7 5v14"/><path d="M11 5v14"/><path d="M14 5v14"/><path d="M18 5v14"/><path d="M21 5v14"/></svg>
+      </button>
       <div id="edit-apt-search-results" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:10;background:var(--surface);border:1px solid var(--border);border-radius:9px;max-height:180px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.1)"></div>
     </div>
     <div class="adm-section-title" style="margin-top:14px">Datos del apartado</div>
