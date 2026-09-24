@@ -71,7 +71,7 @@ function openKitBuilder() {
     kbo.style.display = 'flex';
     kbo.classList.add('kb-open');
     document.body.style.overflow = 'hidden';
-    setTimeout(() => byId('kb-name').focus(), 250);
+    byId('kb-name').focus();
   } catch(e) { toast('Error al abrir Kit Builder: ' + e.message, 'error'); }
 }
 

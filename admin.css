@@ -441,6 +441,13 @@ td,th{overflow:hidden}
 .drag-handle{cursor:grab;color:#D5C9BC;padding:0 6px;font-size:1rem;user-select:none;transition:opacity .15s,color .15s;opacity:0}
 tr:hover .drag-handle{opacity:1}
 .drag-handle:hover{color:var(--gold)}
+/* Sin mouse (tablet touch), :hover nunca dispara -- la manija quedaría
+   invisible para siempre en la vista de tabla de escritorio (>1024px).
+   Se queda con opacity:0 en la banda ≤1024px (ahí la fila es una tarjeta,
+   no la tabla real, y el reordenar se hace con "📌 Al inicio"). */
+@media(hover:none){
+  tr:not(.mpc-row) .drag-handle{opacity:1}
+}
 
 .prod-meta{font-size:.72rem;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:5px;min-width:0}
 .prod-meta-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:1;min-width:0}
@@ -587,6 +594,10 @@ tr:hover .drag-handle{opacity:1}
 .qv-img-nav-next{right:0;border-radius:6px 0 0 6px}
 .qv-img-zone:hover .qv-img-nav{opacity:1}
 .qv-img-nav:hover{background:rgba(255,255,255,.95)}
+/* Sin mouse (tablet touch), :hover nunca dispara -- la galería ya tiene
+   swipe + puntos como navegación principal, pero estas flechas quedaban
+   invisibles y sin ninguna forma de encontrarlas al tacto. */
+@media(hover:none){.qv-img-nav{opacity:1}}
 .qv-counter{font-size:.68rem;color:var(--muted-light);font-weight:500;flex-shrink:0;padding-left:8px;white-space:nowrap}
 @keyframes qv-from-right{from{opacity:0;transform:translateX(36px)}to{opacity:1;transform:translateX(0)}}
 @keyframes qv-from-left {from{opacity:0;transform:translateX(-36px)}to{opacity:1;transform:translateX(0)}}

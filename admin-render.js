@@ -516,10 +516,12 @@ async function editStockInline(e, id, chipEl) {
   // scroll cerraría el popover de inmediato, apenas abierto.
   setTimeout(() => window.addEventListener('scroll', onScroll, true), 400);
 
-  setTimeout(() => {
-    input.focus();
-    if (!mobile) input.select();
-  }, 50);
+  // Foco síncrono, sin setTimeout — con teclado físico conectado (tablet
+  // Samsung en tienda), un focus() diferido rompe la cadena de "gesto real
+  // del usuario" y Android a veces muestra el teclado en pantalla igual.
+  // El popover ya está posicionado (position() arriba); no hace falta esperar.
+  input.focus();
+  if (!mobile) input.select();
 }
 
 let _inlineEditActive = false;
@@ -618,10 +620,9 @@ async function editPriceInlineAdmin(e, id) {
   window.addEventListener('resize', position);
   setTimeout(() => window.addEventListener('scroll', onScroll, true), 400);
 
-  setTimeout(() => {
-    input.focus();
-    if (!mobile) input.select();
-  }, 50);
+  // Foco síncrono — ver comentario en editStockInline() sobre por qué.
+  input.focus();
+  if (!mobile) input.select();
 }
 
 // getCatColor() reemplaza CAT_COLORS — usa el array dinámico de categorías

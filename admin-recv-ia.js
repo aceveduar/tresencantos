@@ -872,7 +872,7 @@ function riaOpenMatchPicker(idx) {
   if (newBtn) newBtn.style.display = _riaMode !== 'stock' ? 'none' : '';
   document.getElementById('ria-match-overlay').style.display = 'flex';
   document.body.style.overflow = 'hidden';
-  setTimeout(() => input.focus(), 200);
+  input.focus();
 }
 
 // Mismo picker que arriba, pero para un componente de kit (_riaKits[kitIdx]
@@ -894,7 +894,7 @@ function riaOpenKitCompPicker(kitIdx, compIdx) {
   if (newBtn) newBtn.style.display = _riaMode !== 'stock' ? 'none' : '';
   document.getElementById('ria-match-overlay').style.display = 'flex';
   document.body.style.overflow = 'hidden';
-  setTimeout(() => input.focus(), 200);
+  input.focus();
 }
 
 function closeRiaMatchPicker() {

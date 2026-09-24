@@ -647,7 +647,7 @@ function _catAddSubInline(parentCode) {
     <button onclick="_catSubConfirm('${parentCode}')" class="btn btn-gold btn-sm" style="flex-shrink:0;padding:6px 12px">✓</button>
     <button onclick="document.getElementById('cat-sub-form-${parentCode}').remove()" class="cat-del">✕</button>`;
   section.querySelector('.cat-sec-body').appendChild(form);
-  setTimeout(() => document.getElementById(`cat-sub-inp-${parentCode}`)?.focus(), 50);
+  document.getElementById(`cat-sub-inp-${parentCode}`)?.focus();
 }
 
 async function _catSubConfirm(parentCode) {

@@ -34,7 +34,10 @@ async function toggleDiscountField() {
   }
   document.getElementById('discount-toggle-btn').style.display = 'none';
   document.getElementById('discount-row-wrap').style.display = '';
-  setTimeout(() => document.getElementById('pos-discount')?.focus(), 50);
+  // Foco síncrono (sin setTimeout) — con teclado físico conectado en la
+  // tablet de tienda, un focus() diferido hace que Android a veces muestre
+  // el teclado en pantalla igual. Sin animación que esperar aquí.
+  document.getElementById('pos-discount')?.focus();
 }
 function clearDiscountField() {
   document.getElementById('pos-discount').value = '';
@@ -74,7 +77,7 @@ function setPayMethod(method) {
 function toggleNoteField() {
   document.getElementById('note-toggle-btn').style.display = 'none';
   document.getElementById('note-input-wrap').style.display = '';
-  setTimeout(() => document.getElementById('pos-note').focus(), 50);
+  document.getElementById('pos-note').focus();
 }
 function clearNoteField() {
   document.getElementById('pos-note').value = '';
@@ -92,7 +95,7 @@ function toggleCustomerField() {
   document.getElementById('customer-toggle-btn').style.display = 'none';
   document.getElementById('customer-input-wrap').style.display = '';
   document.getElementById('customer-phone-wrap').style.display = '';
-  setTimeout(() => document.getElementById('pos-customer').focus(), 50);
+  document.getElementById('pos-customer').focus();
 }
 function clearCustomerField() {
   document.getElementById('pos-customer').value = '';
@@ -231,7 +234,7 @@ function toggleApartadoMode() {
 function openApartadoSheet() {
   const overlay = document.getElementById('apartado-sheet-overlay');
   if (overlay) overlay.style.display = 'flex';
-  setTimeout(() => document.getElementById('pos-apt-customer')?.focus(), 80);
+  document.getElementById('pos-apt-customer')?.focus();
 }
 function closeApartadoSheet() {
   const overlay = document.getElementById('apartado-sheet-overlay');
@@ -1028,7 +1031,7 @@ function abonarApartado(id, total, pagado, nombre) {
   document.getElementById('abpay-transferencia').classList.remove('active');
   document.getElementById('abonar-confirm-btn').disabled = true;
   document.getElementById('abonar-overlay').style.display = 'flex';
-  setTimeout(() => document.getElementById('abonar-amount').focus(), 100);
+  document.getElementById('abonar-amount').focus();
 }
 
 function _fillAbonarMax() {
