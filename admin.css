@@ -781,7 +781,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .stock-one{background:#FFFBEB;color:#92400E;border-color:#FCD34D}
 .stock-sold{background:#FEF2F2;color:#991B1B;border-color:#FECACA}
 .stock-apt{background:#FEF3C7;color:#92400E;border-color:#FDE68A}
-.stock-chip.stock-chip-editing,.qv-chip.stock-chip-editing{box-shadow:0 0 0 3px rgba(201,164,98,.35)}
+.stock-chip.stock-chip-editing,.qv-chip.stock-chip-editing,.recv-badge.stock-chip-editing{box-shadow:0 0 0 3px rgba(201,164,98,.35);border-radius:50px}
 .ac-price.field-value-editing,.mpc-price.field-value-editing,.price-cell.field-value-editing{box-shadow:0 0 0 3px rgba(201,164,98,.35);border-radius:6px}
 
 /* ══ CAMPO EDIT POPOVER — cápsula flotante anclada a un valor editable en

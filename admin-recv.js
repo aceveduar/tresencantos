@@ -25,7 +25,7 @@ function openRecvMode() {
   document.getElementById('recv-overlay').style.display = 'flex';
   document.getElementById('recv-fb').style.display = 'none';
   document.body.style.overflow = 'hidden';
-  setTimeout(() => document.getElementById('recv-search')?.focus(), 300);
+  document.getElementById('recv-search')?.focus();
 }
 
 function recvSetMode(mode) {
@@ -221,7 +221,7 @@ function _recvResumeOverlay() {
   document.getElementById('recv-overlay').style.display = 'flex';
   document.getElementById('recv-fb').style.display = 'none';
   document.body.style.overflow = 'hidden';
-  setTimeout(() => document.getElementById('recv-search')?.focus(), 300);
+  document.getElementById('recv-search')?.focus();
 }
 
 function recvSearchKey(e) {
@@ -300,6 +300,97 @@ async function _recvDoAdd(id, qty) {
   } else {
     _trackEdit(id);
   }
+}
+
+// Corregir la cantidad recibida de un producto ya en la sesión, sin tener
+// que escanear/tocar + repetidas veces (ej. llegó una caja de 24 piezas) ni
+// deshacer y volver a empezar. Mismo popover flotante que ya usa Inventario
+// para stock/precio (`.field-pop`, editStockInline en admin-render.js) --
+// reutiliza su CSS tal cual, solo cambia la etiqueta y qué guarda. El ajuste
+// en sí se apoya en _recvDoAdd(id, delta) -- la misma función que ya usa
+// recvFbAdjust() para los botones −/+ de la tarjeta de feedback transitoria
+// -- así el PATCH a Supabase, la sincronización del producto y el
+// re-render de la lista quedan exactamente igual de probados que ahí.
+function _recvEditQty(e, id, chipEl) {
+  e.stopPropagation();
+  const item = _recvSession.find(x => x.product.id === id);
+  if (!item) return;
+  if (chipEl.querySelector('input')) return; // ya se está editando
+
+  chipEl.classList.add('stock-chip-editing');
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'field-pop-backdrop';
+
+  const pop = document.createElement('div');
+  pop.className = 'field-pop';
+  pop.innerHTML = `
+    <div class="field-pop-label">Cantidad recibida</div>
+    <div class="field-pop-stepper">
+      <button type="button" class="sp-minus">−</button>
+      <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="${item.qtyAdded}">
+      <button type="button" class="sp-plus">+</button>
+    </div>
+    <div class="field-pop-actions">
+      <button type="button" class="field-pop-cancel">Cancelar</button>
+      <button type="button" class="field-pop-save">Guardar</button>
+    </div>`;
+  document.body.append(backdrop, pop);
+
+  const input     = pop.querySelector('input');
+  const btnMinus  = pop.querySelector('.sp-minus');
+  const btnPlus   = pop.querySelector('.sp-plus');
+  const btnSave   = pop.querySelector('.field-pop-save');
+  const btnCancel = pop.querySelector('.field-pop-cancel');
+
+  const position = () => {
+    const r = chipEl.getBoundingClientRect();
+    const pw = pop.offsetWidth, ph = pop.offsetHeight;
+    let left = r.left + r.width / 2 - pw / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+    let top = r.bottom + 8;
+    if (top + ph > window.innerHeight - 8) top = r.top - ph - 8;
+    pop.style.left = `${left}px`;
+    pop.style.top = `${Math.max(8, top)}px`;
+  };
+  position();
+
+  let saved = false;
+  const teardown = () => {
+    chipEl.classList.remove('stock-chip-editing');
+    backdrop.remove(); pop.remove();
+    document.removeEventListener('keydown', onKey);
+    window.removeEventListener('scroll', onScroll, true);
+    window.removeEventListener('resize', position);
+  };
+  const cancel = () => { if (saved) return; saved = true; teardown(); };
+
+  const save = async () => {
+    if (saved) return;
+    saved = true;
+    const newQty = Math.max(1, parseInt(input.value) || item.qtyAdded);
+    teardown();
+    if (newQty === item.qtyAdded) return;
+    await _recvDoAdd(id, newQty - item.qtyAdded);
+  };
+
+  btnMinus.onclick  = () => { input.value = Math.max(1, (parseInt(input.value)||1) - 1); };
+  btnPlus.onclick   = () => { input.value = (parseInt(input.value)||0) + 1; };
+  btnSave.onclick   = () => save();
+  btnCancel.onclick = () => cancel();
+  backdrop.onclick  = () => cancel();
+
+  const onKey = ev => {
+    if (ev.key === 'Enter')  { ev.preventDefault(); save(); }
+    if (ev.key === 'Escape') { ev.preventDefault(); cancel(); }
+  };
+  const onScroll = () => cancel();
+  document.addEventListener('keydown', onKey);
+  window.addEventListener('resize', position);
+  setTimeout(() => window.addEventListener('scroll', onScroll, true), 400);
+
+  input.focus();
+  if (!isMobile()) input.select();
 }
 
 // Modo "Con factura": edita costo/precio/código de proveedor directo en la
@@ -501,7 +592,7 @@ function _renderRecvList() {
       <div class="recv-item-name">${_esc(p.name)}${isNewlyCreated ? '<span class="recv-new-badge">✨ Nuevo</span>' : ''}</div>
       <div class="recv-item-arrow">${prevStock} → <strong>+${qtyAdded} = ${p.stock}</strong> uds.</div>
     </div>
-    <span class="recv-badge">+${qtyAdded}</span>
+    <span class="recv-badge" onclick="_recvEditQty(event,${p.id},this)" title="Toca para corregir la cantidad recibida" style="cursor:pointer">+${qtyAdded}</span>
     ${isNewlyCreated
       ? `<button class="recv-undo-btn recv-archive-btn" onclick="recvUndo(${p.id})" title="Se creó en esta sesión -- archivarlo es la forma de deshacerlo"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>Archivar</button>`
       : `<button class="recv-undo-btn" onclick="recvUndo(${p.id})" title="Deshacer este producto"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Deshacer</button>`}

@@ -1,6 +1,12 @@
 /* ── FORM ── */
 let _formSnapshot = null;
 let _savingProduct = false;
+// Recuerda la categoría del último producto dado de alta (en memoria, se
+// resetea solo al recargar la página) -- al recibir una remesa de varios
+// productos seguidos casi siempre es la misma categoría, así el siguiente
+// "Agregar producto" no arranca en "Por revisar" a fuerza. Sigue siendo
+// 100% editable, solo cambia el punto de partida.
+let _lastNewProductCategory = null;
 
 function _takeFormSnapshot() {
   const ids = ['f-name','f-price','f-original-price','f-description','f-image','f-category','f-badge','f-badge-type','f-barcode','f-stock','f-cost','f-expiry-date','f-supplier-code'];
@@ -16,6 +22,42 @@ function _formIsDirty() {
   if (!_formSnapshot) return false;
   const cur = _takeFormSnapshot();
   return Object.keys(_formSnapshot).some(k => _formSnapshot[k] !== cur[k]);
+}
+
+// Deja el formulario listo para capturar un producto nuevo -- usada al abrir
+// "Agregar producto" y también por "Guardar y agregar otro" (saveProduct),
+// que reutiliza el mismo overlay en vez de cerrar y volver a abrir.
+function _resetFormForNewProduct() {
+  document.getElementById('f-id').value = '';
+  document.getElementById('f-name').value = '';
+  const cat = _lastNewProductCategory || 'por_revisar';
+  document.getElementById('f-category').value = cat;
+  document.getElementById('f-category-label').value = getCatLabel(cat) || 'Por revisar';
+  _updateFormCatBtn(cat);
+  document.getElementById('f-price').value = '';
+  document.getElementById('f-original-price').value = '';
+  toggleOfertaField(false);
+  document.getElementById('f-badge').value = '';
+  document.getElementById('f-badge-type').value = '';
+  document.getElementById('f-description').value = '';
+  document.getElementById('img-upload-zone')?.classList.remove('has-image');
+  document.getElementById('f-featured').checked = false;
+  document.getElementById('f-out-of-stock').checked = false;
+  document.getElementById('f-published').checked = false;
+  document.getElementById('f-barcode').value = '';
+  document.getElementById('f-stock').value = 1;
+  document.getElementById('f-cost').value = '';
+  document.getElementById('f-expiry-date').value = '';
+  document.getElementById('f-supplier-code').value = '';
+  document.getElementById('f-margin-display').textContent = 'Margen: —';
+  document.getElementById('f-img-file').value = '';
+  document.getElementById('f-img-camera').value = '';
+  hideAiFormBtn();
+  document.getElementById('f-is-kit').checked = false;
+  _kitItemsEdit = [];
+  document.getElementById('kit-editor').style.display = 'none';
+  _allImagesEdit = [];
+  renderAdditionalImages();
 }
 
 function openForm(id) {
@@ -59,36 +101,11 @@ function openForm(id) {
     _allImagesEdit = [p.image, ...(p.images || [])].filter(url => url && url.trim());
     renderAdditionalImages();
   } else {
-    document.getElementById('f-id').value = '';
-    document.getElementById('f-name').value = '';
-    document.getElementById('f-category').value = 'por_revisar';
-    document.getElementById('f-category-label').value = getCatLabel('por_revisar') || 'Por revisar';
-    _updateFormCatBtn('por_revisar');
-    document.getElementById('f-price').value = '';
-    document.getElementById('f-original-price').value = '';
-    toggleOfertaField(false);
-    document.getElementById('f-badge').value = '';
-    document.getElementById('f-badge-type').value = '';
-    document.getElementById('f-description').value = '';
-    document.getElementById('img-upload-zone')?.classList.remove('has-image');
-    document.getElementById('f-featured').checked = false;
-    document.getElementById('f-out-of-stock').checked = false;
-    document.getElementById('f-published').checked = false;
-    document.getElementById('f-barcode').value = '';
-    document.getElementById('f-stock').value = 1;
-    document.getElementById('f-cost').value = '';
-    document.getElementById('f-expiry-date').value = '';
-    document.getElementById('f-supplier-code').value = '';
-    document.getElementById('f-margin-display').textContent = 'Margen: —';
-    document.getElementById('f-img-file').value = '';
-    document.getElementById('f-img-camera').value = '';
-    hideAiFormBtn();
-    document.getElementById('f-is-kit').checked = false;
-    _kitItemsEdit = [];
-    document.getElementById('kit-editor').style.display = 'none';
-    _allImagesEdit = [];
-    renderAdditionalImages();
+    _resetFormForNewProduct();
   }
+
+  const saveAgainBtn = document.getElementById('save-again-btn');
+  if (saveAgainBtn) saveAgainBtn.style.display = id ? 'none' : '';
 
   _clearDupWarnings();
   overlay.classList.add('open');
@@ -611,7 +628,7 @@ function _syncMainFromStrip() {
 }
 
 /* ── SAVE PRODUCT — targeted PATCH or single POST ── */
-async function saveProduct() {
+async function saveProduct(addAnother = false) {
   applyTitleCase('f-name');
   applyDescriptionFormat('f-description');
   if (!validateForm()) return;
@@ -726,7 +743,9 @@ async function saveProduct() {
   if (_savingProduct) return;
   _savingProduct = true;
   const saveBtn = document.getElementById('save-btn');
+  const saveAgainBtn = document.getElementById('save-again-btn');
   setBtn(saveBtn, true, idVal ? 'Actualizando...' : 'Guardando...');
+  if (saveAgainBtn) saveAgainBtn.disabled = true;
 
   // Capturar estado anterior ANTES de actualizar el array local
   const _prev = idVal ? { ...products.find(p => p.id === parseInt(idVal)) } : null;
@@ -744,6 +763,7 @@ async function saveProduct() {
       if (!result.ok) {
         _savingProduct = false;
         setBtn(saveBtn, false);
+        if (saveAgainBtn) saveAgainBtn.disabled = false;
         const errMsg = result.data?.message || result.data?.hint || `HTTP ${result.status}`;
         toast(`Error al actualizar: ${errMsg}`, 'error');
         return;
@@ -777,6 +797,7 @@ async function saveProduct() {
       products.pop();
       _savingProduct = false;
       setBtn(saveBtn, false);
+      if (saveAgainBtn) saveAgainBtn.disabled = false;
       toast(`Error de red al guardar: sin conexión o tiempo de espera agotado`, 'error');
       return;
     }
@@ -784,6 +805,7 @@ async function saveProduct() {
       products.pop();
       _savingProduct = false;
       setBtn(saveBtn, false);
+      if (saveAgainBtn) saveAgainBtn.disabled = false;
       const errMsg = result.data?.message || result.data?.hint || `HTTP ${result.status}`;
       toast(`Error al guardar: ${errMsg}`, 'error');
       return;
@@ -822,17 +844,37 @@ async function saveProduct() {
     logActivity('producto_creado', `Creó "${name}" — $${price.toLocaleString('es-MX')}`, { id: newId, name, price });
     TE?.track('product_saved', { action: 'add', name });
   }
-  _formSnapshot = null;
   _savingProduct = false;
   // Sync: si editamos un producto que es componente de algún kit, actualizar nombre/imagen en esos kits
   if (idVal) _syncKitRefs(parseInt(idVal), name, data.image);
   // Ir a "Recientes" para que el producto guardado aparezca al inicio
   const _sortSel = document.getElementById('sort-select');
   if (_sortSel) { _sortSel.value = 'recent'; currentSort = 'recent'; }
-  _formJustSaved = true;
-  closeForm();
   renderTable();
   renderStats();
+
+  if (!idVal) _lastNewProductCategory = data.category;
+
+  if (addAnother && !idVal) {
+    // "Guardar y agregar otro" -- se queda en el mismo overlay en vez de
+    // cerrar+reabrir, para dar de alta varios productos seguidos (ej. una
+    // remesa completa) sin repetir ese viaje. Cualquier foto ya subida a
+    // Drive en esta sesión ya quedó asociada al producto recién guardado --
+    // limpiar el rastreo para que closeForm() no la borre por error si el
+    // SIGUIENTE producto se cancela sin guardar.
+    _sessionUploadedUrls = [];
+    _resetFormForNewProduct();
+    _clearDupWarnings();
+    if (saveAgainBtn) saveAgainBtn.disabled = false;
+    document.getElementById('f-name').focus();
+    setTimeout(() => { _formSnapshot = _takeFormSnapshot(); }, 0);
+    toast(sinPrecio ? `"${name}" guardado sin precio — sigue agregando` : `"${name}" guardado ✓ — sigue agregando`);
+    return;
+  }
+
+  _formSnapshot = null;
+  _formJustSaved = true;
+  closeForm();
   if (sinPrecio && !idVal) {
     toast('Producto guardado sin precio — asígnalo antes de publicar en la tienda', 'warn');
   } else {

@@ -524,6 +524,27 @@ async function _posFetchOpenShift() {
   return { ok: r.ok, shift: r.ok ? (r.data?.[0] || null) : null };
 }
 
+// Sugerencia de fondo inicial: el conteo físico con el que cerró la persona
+// su último turno real es, casi siempre, el mismo monto con el que abre hoy
+// -- evita teclearlo de nuevo cada vez que abrir caja se volvió obligatorio.
+// A diferencia del "conteo a ciegas" al cerrar turno (que sí se oculta a
+// propósito para no invitar a copiar en vez de contar), este es el monto de
+// APERTURA, antes de que exista ninguna venta que reconciliar -- precargarlo
+// no compromete ningún control, y el campo sigue siendo 100% editable.
+async function _posFetchLastShiftFondo() {
+  const email = _posCurrentUserEmail();
+  if (!email) return null;
+  const r = await api(`cash_shifts?user_email=eq.${encodeURIComponent(email)}&status=in.(cerrado,cerrado_auto)&is_test=eq.false&order=opened_at.desc&limit=1&select=conteo_final,fondo_inicial`);
+  if (!r.ok || !r.data?.[0]) return null;
+  const last = r.data[0];
+  // conteo_final es lo que quedó físicamente en la caja al cerrar -- el punto
+  // de partida más honesto para hoy. Si el turno se cerró solo sin conteo
+  // (cerrado_auto), no hay conteo_final; caemos al fondo con el que ese turno
+  // había abierto, mejor que dejar el campo vacío.
+  const val = last.conteo_final ?? last.fondo_inicial;
+  return (val === null || val === undefined) ? null : val;
+}
+
 async function _posShiftGateAttempt() {
   const overlay   = document.getElementById('open-shift-overlay');
   const checking  = document.getElementById('open-shift-checking');
@@ -556,6 +577,17 @@ async function _posShiftGateAttempt() {
   if (checking) checking.style.display = 'none';
   if (form) form.style.display = '';
   fondoIn?.focus();
+
+  // Sugerir el fondo en cuanto se resuelva -- no bloquea mostrar el
+  // formulario (ya visible arriba). Si el campo ya tiene algo escrito
+  // (usuario más rápido que la red) no se pisa.
+  if (fondoIn && !fondoIn.value && !fondoIn.dataset.touched) {
+    const lastFondo = await _posFetchLastShiftFondo();
+    if (lastFondo !== null && !fondoIn.value && !fondoIn.dataset.touched) {
+      fondoIn.value = lastFondo;
+      fondoIn.select?.();
+    }
+  }
 }
 
 function _posWireShiftGateButtons() {
@@ -566,6 +598,7 @@ function _posWireShiftGateButtons() {
   const openBtn  = document.getElementById('open-shift-btn');
   const retryBtn = document.getElementById('open-shift-retry-btn');
 
+  fondoIn?.addEventListener('input', () => { fondoIn.dataset.touched = '1'; });
   retryBtn?.addEventListener('click', _posShiftGateAttempt);
   openBtn?.addEventListener('click', async () => {
     const raw = fondoIn?.value;
