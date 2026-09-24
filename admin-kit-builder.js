@@ -45,7 +45,11 @@ function openKitBuilder() {
     if (!can.addProduct) { toast('Sin permiso para agregar productos', 'error'); return; }
     _kbComponents = [];
     _kbImageDataUrl = null;
-    _kbSelectedCatCode = '';
+    // Recuerda la última categoría usada al crear (compartida con el
+    // formulario normal, `_lastNewProductCategory` en admin-form.js) --
+    // armar varios kits seguidos de la misma remesa ya no obliga a
+    // re-elegir categoría cada vez. Sigue siendo editable con el picker.
+    _kbSelectedCatCode = _lastNewProductCategory || '';
     const byId = id => document.getElementById(id);
     byId('kb-name').value = '';
     byId('kb-price').value = '';
@@ -61,10 +65,7 @@ function openKitBuilder() {
     byId('kb-img-remove').style.display = 'none';
     byId('kb-img-input').value = '';
     byId('kb-price-hint').style.display = 'none';
-    const kbDot = byId('kb-cat-dot');
-    const kbLbl = byId('kb-cat-label-display');
-    if (kbDot) kbDot.style.background = '#9B8B78';
-    if (kbLbl) kbLbl.textContent = 'Seleccionar categoría';
+    _updateKitCatBtn(_kbSelectedCatCode);
     _kbRenderComponents();
     _kbUpdateStock();
     const kbo = byId('kit-builder-overlay');
@@ -383,6 +384,7 @@ async function _saveKit() {
     badge: '🎁 Kit', badgeType: 'new', featured: false, outOfStock: false,
     barcode: null, stock: 0, cost: null, isPublished, kitItems, images: null, position
   });
+  _lastNewProductCategory = catCode;
   _trackEdit(newId);
   logActivity('producto_creado', `Creó kit "${name}" — $${price.toLocaleString('es-MX')}`, { id: newId, name, price });
   closeKitBuilder();
