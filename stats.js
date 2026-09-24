@@ -228,7 +228,14 @@ function _chartReady(canvasId) {
 }
 
 /* ── STATE ── */
-let _statsMode = 'day';
+// Reportes siempre arrancaba en "Día" sin importar qué se revisó la última
+// vez -- si Eduardo/Ofelia consultan seguido "Semana" o "Mes", tenían que
+// volver a tocarlo cada vez que abrían el módulo. Se recuerda solo el modo
+// (Día/Semana/Mes), nunca el offset -- reabrir siempre vuelve al período
+// actual dentro de ese modo, nunca a "la semana pasada" desde hace días.
+const _STATS_MODE_KEY = 'te_stats_mode';
+const _savedStatsMode = localStorage.getItem(_STATS_MODE_KEY);
+let _statsMode = ['day','week','month'].includes(_savedStatsMode) ? _savedStatsMode : 'day';
 let _statsOffset = 0;
 let currentPeriod = 'today'; // derived — updated by _updateNavUI()
 let sales = [];
@@ -412,7 +419,11 @@ function navigate(delta) {
   _updateNavUI();
   _reloadStats();
 }
-function setMode(mode) { _statsMode=mode; _statsOffset=0; _updateNavUI(); _reloadStats(); }
+function setMode(mode) {
+  _statsMode=mode; _statsOffset=0;
+  try { localStorage.setItem(_STATS_MODE_KEY, mode); } catch {}
+  _updateNavUI(); _reloadStats();
+}
 function resetToNow()  { _statsOffset=0; _updateNavUI(); _reloadStats(); }
 async function _reloadStats() {
   const generation = ++_statsReloadGeneration;
