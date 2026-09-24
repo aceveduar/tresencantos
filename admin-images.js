@@ -9,7 +9,7 @@ let _userNames   = {};  // { "email@x.com": "Nombre visible" }
 
 // Fuente única para las tres entradas de IA del Inventario: formulario,
 // Captura rápida y Carga masiva.
-const GROQ_VISION_MODEL = 'qwen/qwen3.6-27b';
+const GROQ_VISION_MODEL = 'qwen/qwen3.8-27b';
 const GROQ_VISION_URL   = 'https://api.groq.com/openai/v1/chat/completions';
 
 function _groqErrorMessage(status, apiMessage) {
@@ -26,13 +26,16 @@ function _groqErrorMessage(status, apiMessage) {
 // reasoningEffort: 'none' en todos los usos actuales del proyecto -- se
 // probó subirlo a 'default' en Recepción con IA (2026-09-11, buscando que la
 // IA fuera más consistente extrayendo kits) y se revirtió el mismo día:
-// rompe el modo JSON estricto de este modelo -- con reasoning activado el
-// razonamiento se mezcla con la respuesta y Groq la rechaza directo
-// ("Failed to validate JSON... See 'failed_generation'"), confirmado en
-// producción. El parámetro se deja parametrizable por si algún día cambia el
-// modelo/proveedor, pero NO reintentar 'default' (ni ningún valor que no sea
-// 'none') con qwen/qwen3.6-27b en modo response_format:json_object sin poder
-// probarlo primero.
+// rompe el modo JSON estricto de qwen/qwen3.6-27b (el modelo vigente en ese
+// momento) -- con reasoning activado el razonamiento se mezcla con la
+// respuesta y Groq la rechaza directo ("Failed to validate JSON... See
+// 'failed_generation'"), confirmado en producción. El parámetro se deja
+// parametrizable por si algún día cambia el modelo/proveedor, pero NO
+// reintentar 'default' (ni ningún valor que no sea 'none') con el modelo
+// vigente (ver GROQ_VISION_MODEL) en modo response_format:json_object sin
+// poder probarlo primero -- el modelo actual (qwen/qwen3.8-27b, desde
+// 2026-09-24) es el sucesor directo del que causó el bug original y
+// probablemente comparte el mismo comportamiento, sin confirmar todavía.
 async function _groqChatJson(content, { maxCompletionTokens = 700, reasoningEffort = 'none' } = {}) {
   if (!groqApiKey) throw new Error('Configura la IA en Configuración');
   const controller = new AbortController();
