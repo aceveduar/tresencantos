@@ -360,19 +360,57 @@ function _loadHtml5QrcodePos() {
   });
 }
 
+// ¿Escanear este producto ahora mismo se resuelve agregándolo sin más
+// (incrementa el carrito y ya), o dispara algo que necesita otro overlay
+// (reabastecer) o un toast de error ("sin existencias")? Un toast
+// (z-index:500) o el sheet de reabastecer (z-index:520) quedarían ocultos
+// detrás de la cámara (z-index:1600) si se dejara abierta en esos casos --
+// mismo tipo de problema de capas ya resuelto antes para otros overlays de
+// Caja. Solo el camino limpio se queda con la cámara abierta.
+function _posCanScanAddCleanly(p) {
+  const effStock = getKitStock(p);
+  const isKitP = Array.isArray(p.kitItems);
+  if (effStock === 0 || (!isKitP && p.outOfStock)) return false;
+  const existing = cart.find(x => x.product.id === p.id);
+  return !(existing && existing.qty >= effStock);
+}
+
 function _posHandleCode(code) {
   if (_posScanCooldown) return;
   const p = products.find(x => x.barcode === code);
   if (!p) { _posBarcodeNotFound(code); return; }
+
+  // Igual que un código no encontrado, un acierto limpio ya NO cierra la
+  // cámara -- mismo patrón que Square POS/Clip: para agregar varios
+  // artículos distintos en una venta antes solo se podía escanear uno y
+  // había que volver a tocar "Escanear" por cada uno. "✕" en el
+  // encabezado sigue siendo la forma de cerrar cuando ya se terminó.
+  const willSucceedCleanly = _posScanCtx === 'editApt' ? _editAptCanAdd(p.id) : _posCanScanAddCleanly(p);
+  if (!willSucceedCleanly) closePosScanner();
+
   if (_posScanCtx === 'editApt') {
-    closePosScanner();
     _editAptAddProduct(p.id);
   } else {
-    closePosScanner();
     addToCart(p.id);
     document.getElementById('pos-search').value = '';
     searchProducts('');
   }
+
+  if (willSucceedCleanly) _posScanSuccessFeedback(p.name);
+}
+
+function _posScanSuccessFeedback(name) {
+  _posScanCooldown = true;
+  const statusEl = document.getElementById('pos-scan-status');
+  statusEl.textContent = `✓ ${name} agregado`;
+  statusEl.style.color = 'var(--green)';
+  if (navigator.vibrate) navigator.vibrate(40);
+  setTimeout(() => {
+    _posScanCooldown = false;
+    if (!document.getElementById('pos-scanner-overlay').classList.contains('open')) return;
+    statusEl.textContent = 'Apunta al código de barras del producto';
+    statusEl.style.color = '';
+  }, 900);
 }
 
 async function openPosScanner(ctx = 'cart') {
