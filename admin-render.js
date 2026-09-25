@@ -508,13 +508,21 @@ async function editStockInline(e, id, chipEl) {
     if (ev.key === 'Enter')  { ev.preventDefault(); save(); }
     if (ev.key === 'Escape') { ev.preventDefault(); cancel(); }
   };
-  const onScroll = () => cancel();
+  // Reposicionar en vez de cancelar al hacer scroll (2026-09-24, reportado
+  // en dispositivo real) -- antes cancelaba con un retraso de 400ms para
+  // ignorar el scroll automático que iOS/Android hacen al enfocar el input
+  // (esquivar el teclado), pero esa espera era una apuesta: si el teclado
+  // tarda más en abrir (dispositivo cargado, Android más lento), el scroll
+  // llegaba después del retraso y sacaba del modo editar sin que el usuario
+  // hubiera hecho nada raro -- "tedioso, a veces me saca". Reposicionar
+  // (igual que ya hace `resize`) elimina el problema de raíz: el popover
+  // sigue al chip sin importar cuánto tarde el teclado, nunca desaparece
+  // solo. Tocar fuera (el fondo oscuro) sigue siendo la forma real de
+  // cancelar -- eso no cambió.
+  const onScroll = () => position();
   document.addEventListener('keydown', onKey);
   window.addEventListener('resize', position);
-  // Scroll listener con retraso: al enfocar el input, iOS/Android suelen
-  // hacer scroll automático para esquivar el teclado — sin este retraso ese
-  // scroll cerraría el popover de inmediato, apenas abierto.
-  setTimeout(() => window.addEventListener('scroll', onScroll, true), 400);
+  window.addEventListener('scroll', onScroll, true);
 
   // Foco síncrono, sin setTimeout — con teclado físico conectado (tablet
   // Samsung en tienda), un focus() diferido rompe la cadena de "gesto real
@@ -615,10 +623,13 @@ async function editPriceInlineAdmin(e, id) {
     if (ev.key === 'Enter')  { ev.preventDefault(); save(); }
     if (ev.key === 'Escape') { ev.preventDefault(); cancel(); }
   };
-  const onScroll = () => cancel();
+  // Reposicionar en vez de cancelar al hacer scroll -- ver comentario
+  // completo en editStockInline() sobre por qué (scroll automático del
+  // teclado en Android/iOS, 2026-09-24).
+  const onScroll = () => position();
   document.addEventListener('keydown', onKey);
   window.addEventListener('resize', position);
-  setTimeout(() => window.addEventListener('scroll', onScroll, true), 400);
+  window.addEventListener('scroll', onScroll, true);
 
   // Foco síncrono — ver comentario en editStockInline() sobre por qué.
   input.focus();

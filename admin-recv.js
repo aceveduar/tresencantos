@@ -384,10 +384,13 @@ function _recvEditQty(e, id, chipEl) {
     if (ev.key === 'Enter')  { ev.preventDefault(); save(); }
     if (ev.key === 'Escape') { ev.preventDefault(); cancel(); }
   };
-  const onScroll = () => cancel();
+  // Reposicionar en vez de cancelar al hacer scroll -- ver comentario
+  // completo en editStockInline() (admin-render.js) sobre por qué (scroll
+  // automático del teclado en Android/iOS, 2026-09-24).
+  const onScroll = () => position();
   document.addEventListener('keydown', onKey);
   window.addEventListener('resize', position);
-  setTimeout(() => window.addEventListener('scroll', onScroll, true), 400);
+  window.addEventListener('scroll', onScroll, true);
 
   input.focus();
   if (!isMobile()) input.select();
