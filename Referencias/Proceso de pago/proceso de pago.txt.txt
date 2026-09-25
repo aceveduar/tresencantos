@@ -1,0 +1,12 @@
+Rediseño de la interfaz de usuario y la experiencia de usuario (UI/UX) del proceso de pago
+
+Las pequeñas mejoras en la experiencia de usuario pueden marcar una gran diferencia en el proceso de pago.
+
+Me he centrado en:
+Una jerarquía visual clara
+Una mejor presentación de los productos
+El progreso del envío gratuito
+Una opción de regalo más visible
+Opciones de pago simplificadas
+Una llamada a la acción (CTA) más contundente
+Un espaciado y una maquetación más limpios
