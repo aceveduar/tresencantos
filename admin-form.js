@@ -782,27 +782,25 @@ async function saveProduct(addAnother = false) {
       });
     }
   } else {
-    const maxId = products.reduce((m, p) => Math.max(m, p.id), 0);
-    const newProduct = { id: maxId + 1, ...data, position: products.length };
-    products.push(newProduct);
-
+    // El id lo asigna la BD (products_id_seq). Antes se calculaba aquí con
+    // max(id)+1 y un upsert: dos dispositivos creando a la vez se pisaban.
+    const position = products.length;
     let result;
     try {
       result = await supabaseApi('products', {
         method: 'POST',
-        headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-        body: JSON.stringify({ id: newProduct.id, ...dbPayload, position: newProduct.position })
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify({ ...dbPayload, position })
       });
     } catch (err) {
-      products.pop();
       _savingProduct = false;
       setBtn(saveBtn, false);
       if (saveAgainBtn) saveAgainBtn.disabled = false;
       toast(`Error de red al guardar: sin conexión o tiempo de espera agotado`, 'error');
       return;
     }
-    if (!result.ok) {
-      products.pop();
+    const createdId = result.ok ? result.data?.[0]?.id : null;
+    if (!createdId) {
       _savingProduct = false;
       setBtn(saveBtn, false);
       if (saveAgainBtn) saveAgainBtn.disabled = false;
@@ -810,6 +808,7 @@ async function saveProduct(addAnother = false) {
       toast(`Error al guardar: ${errMsg}`, 'error');
       return;
     }
+    products.push({ id: createdId, ...data, position });
   }
 
   if (idVal) {
@@ -1005,18 +1004,18 @@ function searchKitProducts(query) {
 }
 
 async function _kitFormCreateDraft(name) {
-  const newId = products.reduce((m, p) => Math.max(m, p.id), 0) + 1;
   const draft = {
-    id: newId, name, category: 'por_revisar', category_label: 'Por revisar',
+    name, category: 'por_revisar', category_label: 'Por revisar',
     price: 0, description: '', stock: 0, out_of_stock: true, is_published: false,
     featured: false, image: DEFAULT_IMG, position: products.length
   };
   const result = await supabaseApi('products', {
     method: 'POST',
-    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    headers: { 'Prefer': 'return=representation' },
     body: JSON.stringify(draft)
   });
-  if (!result.ok) { toast('Error al crear borrador', 'error'); return; }
+  const newId = result.ok ? result.data?.[0]?.id : null;
+  if (!newId) { toast('Error al crear borrador', 'error'); return; }
   products.push({
     id: newId, name, category: 'por_revisar', categoryLabel: 'Por revisar',
     price: 0, description: '', stock: 0, outOfStock: true, isPublished: false,

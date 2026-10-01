@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación vigente del proyecto. Última reconciliación: 2026-09-30 · `sw.js` `CACHE_VERSION = 'v567'`.
+Documentación vigente del proyecto. Última reconciliación: 2026-09-30 · `sw.js` `CACHE_VERSION = 'v568'`.
 
 > **Fuente de verdad:** para comportamiento ejecutable manda el código; para reglas de negocio y decisiones UX manda este documento.
 > **Historial completo** (bitácora fecha por fecha, razonamiento detrás de cada decisión, bugs resueltos): [assets/HISTORIAL.md](assets/HISTORIAL.md). No se carga solo — consultarlo con grep cuando haga falta el "por qué" de algo. Este archivo solo describe el estado actual.
@@ -72,7 +72,7 @@ Otros: `supabase/migrations/` (SQL versionado) · `supabase/functions/create-use
 ## Supabase
 
 ### Tablas
-- **`products`** — `id` (secuencia `products_id_seq`), `name`, `category`/`category_label`, `price`, `original_price`, `cost` (interno), `description`, `image` (principal), `images` jsonb (adicionales, máx 5), `badge`/`badge_type` (`best|new|promo|natura`), `featured`, `out_of_stock`, `is_apartado`, `stock`, `barcode`, `supplier_code` (código del proveedor, enseña a Recepción con IA), `position`, `is_published`, `is_archived`, `kit_items` jsonb `[{id,name,qty}]`, `expiry_date`, `created_by`.
+- **`products`** — `id` (lo asigna la BD con `products_id_seq`; **nunca calcularlo en el cliente** — crear con `Prefer: return=representation` y leer el id de la respuesta. Un trigger adelanta la secuencia si se inserta con id explícito, como Importar JSON o Deshacer eliminar), `name`, `category`/`category_label`, `price`, `original_price`, `cost` (interno), `description`, `image` (principal), `images` jsonb (adicionales, máx 5), `badge`/`badge_type` (`best|new|promo|natura`), `featured`, `out_of_stock`, `is_apartado`, `stock`, `barcode`, `supplier_code` (código del proveedor, enseña a Recepción con IA), `position`, `is_published`, `is_archived`, `kit_items` jsonb `[{id,name,qty}]`, `expiry_date`, `created_by`.
 - **`sales`** — `id`, `items` jsonb (snapshot; `kit_items` histórico por item), `total`, `discount`, `payment_method`, `note`, `customer` (texto `"Nombre · 📱 Tel"` — ese separador es formato de dato, no tocar), `customer_id` → `customers`, `due_date`, `seller_email`, **`origin_type`** (`venta|apartado`, inmutable), **`status`** (`activo|liquidado|cancelado`), `paid_amount`, `created_at` (inmutable), `liquidated_at`, `last_payment_at`, `cancelled_at`, `updated_at`, `version` (optimista). `type` solo por compatibilidad — la lógica usa `origin_type`+`status`.
 - **`sale_payments`** — libro monetario **append-only**: `sale_id`, `request_id`, `kind` (`payment|refund|adjustment`), `amount` (con signo), `method`, `paid_at`, `collected_by_email`, `source` (`rpc_direct_sale|rpc_apartado_initial|rpc_apartado_payment|rpc_apartado_liquidation|rpc_apartado_reactivation|…`), `meta`. **Todo el dinero se calcula desde aquí por `paid_at`.**
 - **`customers`** — `name`, `phone` (único parcial, 10 dígitos), `notes`. Alta solo vía `te_find_or_create_customer`.
@@ -113,7 +113,7 @@ Permisos (`UP_PERMS`/`UP_ROLE_DEFAULTS`, `shared.js`): `canAddProduct canEditPro
 ### RPC de Caja v2 (únicas que mutan dinero/stock de ventas)
 `record_sale_atomic_v2`, `record_apartado_payment_atomic`, `edit_apartado_atomic`, `cancel_sale_atomic`, `refund_apartado_atomic`, `reactivate_apartado_atomic`, `te_open_cash_shift`, `te_close_cash_shift`, `te_add_shift_expense`, `te_cancel_shift_expense`. Todas idempotentes por `p_request_id` (el cliente reintenta con el mismo UUID vía `posRpc()`), con lock de inventario, versión optimista, snapshots de kits y registro en Actividad dentro de la misma transacción. Escriben con `SET LOCAL tresencantos.rpc_v2='on'`.
 - **Nunca** modificar `created_at`; nunca borrar ni editar filas de `sale_payments` (las correcciones son filas nuevas).
-- Cambiar la firma de una RPC: `DROP FUNCTION` de la firma vieja antes de crear la nueva — si no, quedan overloads y PostgREST/SQL dan "is not unique" (deuda actual, ver Pendientes).
+- Cambiar la firma de una RPC: `DROP FUNCTION` de la firma vieja antes de crear la nueva — si no, quedan overloads y PostgREST/SQL dan "is not unique". Hoy no hay ninguna función duplicada (limpiado 2026-09-30).
 
 ### Migraciones
 - Se ejecutan con `supabase db query --linked -f supabase/migrations/<archivo>.sql` (el CLI está enlazado) o pegándolas en el SQL Editor. El historial de migraciones de Supabase está vacío porque siempre se corrieron a mano; para saber si algo se aplicó, **consultar el estado real** (`pg_proc`, `pg_policies`, `information_schema`), no el historial.
@@ -223,8 +223,7 @@ Permisos (`UP_PERMS`/`UP_ROLE_DEFAULTS`, `shared.js`): `canAddProduct canEditPro
 
 **Seguridad / datos**
 - Rotar `groq_key` y `drive_secret`: estuvieron legibles públicamente hasta el 2026-09-30.
-- Eliminar overloads viejos de RPC (`edit_apartado_atomic` ×4, `record_sale_atomic_v2` ×3, `cancel/refund` ×2, `te_snapshot_sale_items` ×2) y `record_sale_atomic` v1.
-- IDs de producto calculados en el cliente (`max+1` en 7 lugares) aunque existe `products_id_seq`: choque si dos personas crean a la vez. Dejar que la BD asigne el id.
+- Inventario escribe `config` directo en 3 lugares (`_saveCategories` en admin.js, `_saveDismissedDups` en admin-scanner.js, `saveInlineAiKey` en admin-images.js); las políticas solo dejan escribir a superadmin, así que a Areli le falla en silencio crear una categoría desde la hoja de categorías o descartar un duplicado. Pasarlos por `te_save_config_value` (y agregar `dismissed_dups` a sus ids permitidos).
 - Activar "Leaked password protection" (Dashboard → Auth).
 - Limpiar políticas RLS duplicadas en `products`/`config` y envolver `auth.*()` en `(select …)` (avisos de rendimiento de `db advisors`).
 - `groq_key` legible por cualquier autenticado: mover las llamadas a Groq a una Edge Function.

@@ -1381,7 +1381,6 @@ async function riaApplyChanges() {
   const results = { updated: [], created: [], failed: [], skipped: [] };
   const undoUpdated = []; // reversión por diferencia — ver riaUndoLastApply()
   const undoCreated = [];
-  let nextNewId = (products || []).reduce((m, p) => Math.max(m, p.id), 0) + 1;
   const costOnly = _riaMode === 'costOnly';
 
   for (const it of _riaItems) {
@@ -1427,13 +1426,12 @@ async function riaApplyChanges() {
         // solo para tener dónde poner el dato, se omite.
         results.skipped.push({ name: toTitleCase(it.rawName) });
       } else {
-        const newId = nextNewId++;
         const catMatch = it.categoryGuess ? (categories || []).find(c => c.code === it.categoryGuess) : null;
         const category = catMatch ? catMatch.code : 'por_revisar';
         const categoryLabel = catMatch ? catMatch.label : 'Por revisar';
         const cleanName = toTitleCase(it.rawName);
         const draft = {
-          id: newId, name: cleanName, category, category_label: categoryLabel,
+          name: cleanName, category, category_label: categoryLabel,
           price: it.priceToApply || 0, cost: it.cost ?? null, description: '', stock: it.qty || 0,
           out_of_stock: false, is_published: false, featured: false, image: DEFAULT_IMG,
           position: (products || []).length, supplier_code: it.supplierCode || null
@@ -1441,8 +1439,10 @@ async function riaApplyChanges() {
         if (_RIA_DRY_RUN) {
           results.created.push({ name: cleanName, diff: `stock ${draft.stock} · costo $${draft.cost ?? '—'} · precio $${draft.price} · categoría ${categoryLabel}` });
         } else {
-          const r = await supabaseApi('products', { method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(draft) });
-          if (!r.ok) throw new Error('Error al crear en Supabase');
+          // El id lo asigna la BD (products_id_seq).
+          const r = await supabaseApi('products', { method: 'POST', headers: { 'Prefer': 'return=representation' }, body: JSON.stringify(draft) });
+          const newId = r.ok ? r.data?.[0]?.id : null;
+          if (!newId) throw new Error('Error al crear en Supabase');
           products.push({
             id: newId, name: cleanName, category, categoryLabel, price: draft.price, cost: draft.cost,
             description: '', stock: draft.stock, outOfStock: false, isPublished: false, featured: false,
@@ -1492,10 +1492,9 @@ async function riaApplyChanges() {
         // crea un producto fantasma, se omite.
         results.skipped.push({ name: toTitleCase(comp.name) });
       } else {
-        const newId = nextNewId++;
         const cleanName = toTitleCase(comp.name);
         const draft = {
-          id: newId, name: cleanName, category: 'por_revisar', category_label: 'Por revisar',
+          name: cleanName, category: 'por_revisar', category_label: 'Por revisar',
           price: 0, cost: comp.cost ?? null, description: '', stock: 1,
           out_of_stock: false, is_published: false, featured: false, image: DEFAULT_IMG,
           position: (products || []).length, supplier_code: null
@@ -1504,8 +1503,10 @@ async function riaApplyChanges() {
         if (_RIA_DRY_RUN) {
           results.created.push({ name: cleanName, diff: `stock ${draft.stock} · costo $${draft.cost ?? '—'} · precio $${draft.price} · categoría Por revisar${kitTag}` });
         } else {
-          const r = await supabaseApi('products', { method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(draft) });
-          if (!r.ok) throw new Error('Error al crear en Supabase');
+          // El id lo asigna la BD (products_id_seq).
+          const r = await supabaseApi('products', { method: 'POST', headers: { 'Prefer': 'return=representation' }, body: JSON.stringify(draft) });
+          const newId = r.ok ? r.data?.[0]?.id : null;
+          if (!newId) throw new Error('Error al crear en Supabase');
           products.push({
             id: newId, name: cleanName, category: 'por_revisar', categoryLabel: 'Por revisar', price: draft.price, cost: draft.cost,
             description: '', stock: draft.stock, outOfStock: false, isPublished: false, featured: false,

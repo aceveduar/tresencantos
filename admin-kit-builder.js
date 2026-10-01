@@ -168,18 +168,19 @@ function _kbSearch(q) {
 }
 
 async function _kbCreateDraft(name) {
-  const newId = products.reduce((m, p) => Math.max(m, p.id), 0) + 1;
   const draft = {
-    id: newId, name, category: 'por_revisar', category_label: 'Por revisar',
+    name, category: 'por_revisar', category_label: 'Por revisar',
     price: 0, description: '', stock: 0, out_of_stock: true, is_published: false,
     featured: false, image: DEFAULT_IMG, position: products.length
   };
+  // El id lo asigna la BD (products_id_seq).
   const result = await supabaseApi('products', {
     method: 'POST',
-    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    headers: { 'Prefer': 'return=representation' },
     body: JSON.stringify(draft)
   });
-  if (!result.ok) { toast('Error al crear borrador', 'error'); return; }
+  const newId = result.ok ? result.data?.[0]?.id : null;
+  if (!newId) { toast('Error al crear borrador', 'error'); return; }
   // Agregar al array local con el shape normalizado
   products.push({
     id: newId, name, category: 'por_revisar', categoryLabel: 'Por revisar',
@@ -344,7 +345,6 @@ async function _saveKit() {
   if (!catCode) { toast('Selecciona una categoría', 'error'); return; }
   const catObj   = categories.find(c => c.code === catCode);
   const catLabel = catObj?.label || catCode;
-  const newId    = products.reduce((m, p) => Math.max(m, p.id), 0) + 1;
   const position = products.length;
   const isPublished = can.publishProduct ? true : false;
   const kitItems = _kbComponents.map(c => ({ id: c.id, name: c.name, qty: c.qty, image: c.image || null }));
@@ -360,9 +360,9 @@ async function _saveKit() {
 
   const result = await supabaseApi('products', {
     method: 'POST',
-    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    headers: { 'Prefer': 'return=representation' },
     body: JSON.stringify({
-      id: newId, name, category: catCode, category_label: catLabel,
+      name, category: catCode, category_label: catLabel,
       price, description: '', image: kitImage,
       badge: '🎁 Kit', badge_type: 'new', featured: false,
       out_of_stock: false, original_price: null,
@@ -371,7 +371,9 @@ async function _saveKit() {
     })
   });
 
-  if (!result.ok) {
+  // El id lo asigna la BD (products_id_seq).
+  const newId = result.ok ? result.data?.[0]?.id : null;
+  if (!newId) {
     const errMsg = result.data?.message || result.data?.hint || result.data?.details || `HTTP ${result.status}`;
     toast(`Error al guardar kit: ${errMsg}`, 'error');
     btn.disabled = false; btn.textContent = 'Guardar Kit →';

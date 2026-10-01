@@ -987,16 +987,15 @@ async function toggleFeatured(id) {
 async function duplicateProduct(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
-  const maxId = products.reduce((m, x) => Math.max(m, x.id), 0);
-  const copy = { ...p, id: maxId + 1, name: 'Copia de ' + p.name, outOfStock: false, isPublished: false, position: products.length };
-  products.push(copy);
+  const copy = { ...p, name: 'Copia de ' + p.name, outOfStock: false, isPublished: false, position: products.length };
 
   if (getSupabaseUrl()) {
+    // El id lo asigna la BD (products_id_seq).
     const result = await supabaseApi('products', {
       method: 'POST',
-      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      headers: { 'Prefer': 'return=representation' },
       body: JSON.stringify({
-        id: copy.id, name: copy.name, category: copy.category,
+        name: copy.name, category: copy.category,
         category_label: copy.categoryLabel, price: copy.price,
         description: copy.description, image: copy.image,
         badge: copy.badge, badge_type: copy.badgeType,
@@ -1009,11 +1008,12 @@ async function duplicateProduct(id) {
         created_by: getCurrentUserEmail()
       })
     });
-    if (!result.ok) {
-      products.pop();
+    copy.id = result.ok ? result.data?.[0]?.id : null;
+    if (!copy.id) {
       toast('Error al duplicar en Supabase', 'error');
       return;
     }
+    products.push(copy);
     _trackEdit(copy.id);
   }
 

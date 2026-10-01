@@ -189,10 +189,6 @@ async function saveCaptureProduct() {
   btn.disabled = true; btn.textContent = 'Guardando...';
   try {
     const barcode = document.getElementById('cap-barcode')?.value.trim() || null;
-    // Consultar el ID máximo real en Supabase para evitar conflictos de primary key
-    const maxResult = await supabaseApi('products?select=id&order=id.desc&limit=1');
-    const maxId = (maxResult.ok && maxResult.data?.length) ? maxResult.data[0].id : 0;
-    const newId = maxId + 1;
     const capCatCode  = document.getElementById('cap-category')?.value || 'por_revisar';
     const capCatMatch = categories.find(c => c.code === capCatCode);
     // Subir imagen a Drive antes de guardar
@@ -202,26 +198,28 @@ async function saveCaptureProduct() {
       if (driveUrl) captureImgFinal = driveUrl;
     }
     const payload = {
-      id: newId, name, price,
+      name, price,
       description: captureDescription,
       category: capCatMatch ? capCatMatch.code : 'por_revisar',
       category_label: capCatMatch ? capCatMatch.label : 'Por revisar',
       image: captureImgFinal,
       is_published: false, out_of_stock: false,
-      stock, featured: false, position: newId,
+      stock, featured: false, position: products.length,
       barcode, created_by: getCurrentUserEmail()
     };
+    // El id lo asigna la BD (products_id_seq); calcularlo aquí chocaba entre dispositivos.
     const { ok, data: saveData } = await supabaseApi('products', {
       method: 'POST',
-      headers: { Prefer: 'return=minimal' },
+      headers: { Prefer: 'return=representation' },
       body: JSON.stringify(payload)
     });
-    if (!ok) {
+    const newId = ok ? saveData?.[0]?.id : null;
+    if (!ok || !newId) {
       const msg = saveData?.message || saveData?.error || JSON.stringify(saveData);
       console.error('Supabase error captura rápida:', msg);
       throw new Error(msg);
     }
-    products.unshift({ ...payload, originalPrice: null, badge: null, badgeType: null, barcode, cost: null, createdBy: payload.created_by });
+    products.unshift({ ...payload, id: newId, originalPrice: null, badge: null, badgeType: null, barcode, cost: null, createdBy: payload.created_by });
     _trackEdit(newId);
     logActivity('producto_creado', `Creó "${name}" — $${(price||0).toLocaleString('es-MX')}`, { id: newId, name, price });
     captureCount++;
