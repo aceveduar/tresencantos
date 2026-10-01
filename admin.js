@@ -207,12 +207,21 @@ async function loadCategories() {
   renderCategorySelects();
 }
 
-async function _saveCategories() {
-  return supabaseApi('config', {
+// Única vía para escribir `config` desde Inventario: la RPC valida el permiso
+// según la llave (categories → Catálogo; flagged_products/dismissed_dups →
+// canEditProduct; groq_key → Configuración completa). Un POST directo a la
+// tabla solo funciona para superadmin y falla en silencio para los demás.
+async function _saveConfigValue(id, value) {
+  const r = await supabaseApi('rpc/te_save_config_value', {
     method: 'POST',
-    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: 'categories', value: JSON.stringify(categories) })
+    body: JSON.stringify({ p_id: id, p_value: typeof value === 'string' ? value : JSON.stringify(value) })
   });
+  if (!r.ok) console.error(`No se pudo guardar config "${id}":`, r.data?.message || r.status);
+  return r;
+}
+
+async function _saveCategories() {
+  return _saveConfigValue('categories', JSON.stringify(categories));
 }
 
 /* Helpers para subcategorías */

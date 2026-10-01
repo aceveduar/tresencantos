@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación vigente del proyecto. Última reconciliación: 2026-09-30 · `sw.js` `CACHE_VERSION = 'v568'`.
+Documentación vigente del proyecto. Última reconciliación: 2026-09-30 · `sw.js` `CACHE_VERSION = 'v569'`.
 
 > **Fuente de verdad:** para comportamiento ejecutable manda el código; para reglas de negocio y decisiones UX manda este documento.
 > **Historial completo** (bitácora fecha por fecha, razonamiento detrás de cada decisión, bugs resueltos): [assets/HISTORIAL.md](assets/HISTORIAL.md). No se carga solo — consultarlo con grep cuando haga falta el "por qué" de algo. Este archivo solo describe el estado actual.
@@ -95,7 +95,7 @@ Otros: `supabase/migrations/` (SQL versionado) · `supabase/functions/create-use
 - **operador** — punto de partida para gente nueva; casi nada por default.
 
 Permisos (`UP_PERMS`/`UP_ROLE_DEFAULTS`, `shared.js`): `canAddProduct canEditProduct canUseReceptionIA canReceiveStock canDeleteProduct canPublishProduct canBulkDelete canCancelSale canEditApartado canOverridePrice canApplyDiscount canCloseShiftUnsupervised canViewReports canViewActivity canManageSettings canManageCatalogSettings canImportExport`.
-- Overrides por persona en `config.user_permissions`, editables en Configuración → Usuarios y Permisos (lista o matriz). Solo se escriben vía `te_save_user_permissions` (exige `canManageSettings`, registra el diff en Actividad). El resto de `config` vía `te_save_config_value` (valida el permiso según el `id`).
+- Overrides por persona en `config.user_permissions`, editables en Configuración → Usuarios y Permisos (lista o matriz). Solo se escriben vía `te_save_user_permissions` (exige `canManageSettings`, registra el diff en Actividad). El resto de `config` vía `te_save_config_value` (valida el permiso según el `id`: Catálogo → `canManageCatalogSettings`, `user_names` → `canImportExport`, `flagged_products`/`dismissed_dups` → `canEditProduct`, lo demás → `canManageSettings`). **Nunca escribir `config` con POST directo**: solo funciona para superadmin y falla en silencio para los demás. En Inventario usar `_saveConfigValue()` (`admin.js`); en Configuración, su homónima en `settings.js`.
 - **Fuente autoritativa:** RPC `get_my_permissions()`. `sessionStorage.te_user_can` es solo caché offline; los módulos restringidos siempre consultan al servidor.
 - **Todo permiso nuevo debe agregarse en los dos lados**: `shared.js` y `_te_permission_for_email()`/`get_my_permissions()` en Postgres (ya pasó que solo existía en la UI y no tenía efecto real).
 - **PIN de gerente:** quien no tiene un permiso puede hacer la acción si alguien que sí lo tiene teclea su propio PIN en ese dispositivo (`requestOverride()` en `shared.js` → ticket de un solo uso, 5 min). Botones siempre visibles; es la acción la que pide autorización. 5 intentos fallidos/10 min bloquean. Cubre precio, descuento, cancelar, editar/reembolsar apartado, cerrar turno con diferencia grande. No cubre Inventario.
@@ -223,7 +223,6 @@ Permisos (`UP_PERMS`/`UP_ROLE_DEFAULTS`, `shared.js`): `canAddProduct canEditPro
 
 **Seguridad / datos**
 - Rotar `groq_key` y `drive_secret`: estuvieron legibles públicamente hasta el 2026-09-30.
-- Inventario escribe `config` directo en 3 lugares (`_saveCategories` en admin.js, `_saveDismissedDups` en admin-scanner.js, `saveInlineAiKey` en admin-images.js); las políticas solo dejan escribir a superadmin, así que a Areli le falla en silencio crear una categoría desde la hoja de categorías o descartar un duplicado. Pasarlos por `te_save_config_value` (y agregar `dismissed_dups` a sus ids permitidos).
 - Activar "Leaked password protection" (Dashboard → Auth).
 - Limpiar políticas RLS duplicadas en `products`/`config` y envolver `auth.*()` en `(select …)` (avisos de rendimiento de `db advisors`).
 - `groq_key` legible por cualquier autenticado: mover las llamadas a Groq a una Edge Function.

@@ -230,11 +230,9 @@ async function loadFlagged() {
 }
 
 async function _saveFlagged() {
-  await supabaseApi('config', {
-    method: 'POST',
-    headers: { 'Prefer': 'resolution=merge-duplicates' },
-    body: JSON.stringify({ id: 'flagged_products', value: JSON.stringify(_flagged) })
-  });
+  const r = await _saveConfigValue('flagged_products', JSON.stringify(_flagged));
+  if (!r.ok) toast(r.data?.message || 'No se pudo guardar la marca de revisión', 'error');
+  return r;
 }
 
 function _flagItem(id) { return _flagged.find(x => x.id === id); }

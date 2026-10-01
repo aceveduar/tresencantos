@@ -254,11 +254,7 @@ function _saveDismissedDups(set) {
   _dismissedDupsCache = set;
   localStorage.setItem(_DUP_DISMISS_KEY, JSON.stringify([...set]));
   // Persiste en Supabase para sincronizar entre dispositivos
-  supabaseApi('config', {
-    method: 'POST',
-    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: 'dismissed_dups', value: JSON.stringify([...set]) })
-  });
+  _saveConfigValue('dismissed_dups', JSON.stringify([...set]));
 }
 
 function _findDuplicatePairs() {

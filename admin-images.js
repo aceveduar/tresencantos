@@ -156,7 +156,7 @@ async function loadAppConfig() {
       try {
         _dismissedDupsCache = new Set(JSON.parse(localDups));
         migrations.push(
-          supabaseApi('config', { method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id: 'dismissed_dups', value: localDups }) })
+          _saveConfigValue('dismissed_dups', localDups)
         );
       } catch { _dismissedDupsCache = new Set(); }
     } else {
@@ -520,15 +520,11 @@ Formato: {"name":"...","description":"...","category":"","price":null}`;
 async function saveInlineAiKey() {
   const val = document.getElementById('ai-key-prompt-input')?.value.trim();
   if (!val || !val.startsWith('gsk_')) { toast('Ingresa una key válida de Groq (empieza con gsk_)', 'error'); return; }
-  const r = await supabaseApi('config', {
-    method: 'POST',
-    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: 'groq_key', value: val })
-  });
+  const r = await _saveConfigValue('groq_key', val);
   if (r.ok) {
     groqApiKey = val;
     document.getElementById('ai-key-prompt').style.display = 'none';
     toast('Key guardada para todos los dispositivos ✓', 'success');
     analyzeFormImage();
-  } else { toast('Error al guardar la key', 'error'); }
+  } else { toast(r.data?.message || 'Error al guardar la key', 'error'); }
 }

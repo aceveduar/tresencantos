@@ -256,7 +256,12 @@ async function _bcpCreateAndSelect(parentCode = null) {
   const newCat = { code, label, color };
   if (parentCode) newCat.parent = parentCode;
   categories.push(newCat);
-  await _saveCategories();
+  const r = await _saveCategories();
+  if (!r.ok) {
+    categories.pop();
+    toast(r.data?.message || 'No se pudo crear la categoría', 'error');
+    return;
+  }
   renderCategorySelects();
   const suffix = parent ? ` en ${parent.label}` : '';
   toast(`Categoría "${label}"${suffix} creada ✓`, 'success');
