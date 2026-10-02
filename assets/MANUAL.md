@@ -60,8 +60,13 @@ En **Ver detalle de mis cobros** está cada movimiento de tu turno, para encontr
 
 Si se te olvidó cerrar, al día siguiente verás un aviso: cuenta el cajón y cierra el turno anterior antes de vender.
 
-### Gastos e ingresos del turno
-En Corte → **Gastos y otros movimientos**, registra cualquier salida de efectivo (por ejemplo, la compra de garrafones) o entrada que no sea venta (por ejemplo, recargas). Así el cajón cuadra.
+### Gastos, ingresos y retiros del turno
+En Corte → **Gastos y otros movimientos**, toca **+ Agregar** y elige:
+- **Gasto:** salida de efectivo para un pago (garrafones, taxi).
+- **Ingreso:** entrada que no es venta (recargas).
+- **Retiro:** dinero que alguien se lleva del cajón sin ser gasto, por ejemplo cuando Ofelia se lleva la venta del día o se hace un depósito. Escribe quién se lo lleva.
+
+**Cada vez que salga dinero del cajón, regístralo en ese momento.** Si no, al cerrar el turno va a faltar exactamente esa cantidad. Los retiros quedan en Actividad y no cuentan como gasto en la utilidad.
 
 ### Historial
 Muestra los cobros recientes agrupados por fecha. Desde cada tarjeta puedes ver el historial de la operación, reenviar el comprobante o cancelar.
@@ -127,7 +132,7 @@ Revisa en Inventario que esté en **Web**, que no esté agotado y que su categor
 **El corte no cuadra, ¿qué reviso?**
 1. Que no haya ventas cobradas por error (por ejemplo, algo que era apartado) sin cancelar.
 2. Si alguien más cobró en efectivo y metió el dinero al mismo cajón.
-3. Gastos o ingresos que no se registraron en "Gastos y otros movimientos".
+3. Dinero que alguien sacó del cajón (retiros) o gastos/ingresos que no se registraron en "Gastos y otros movimientos".
 4. "Ver detalle de mis cobros" en Corte, y Actividad para el detalle completo.
 
 **¿Cómo sé si una transferencia llegó?**

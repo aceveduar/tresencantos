@@ -703,15 +703,25 @@ function _renderCorteBreakdown(rows, fmt) {
 let _gastosCache = [];
 let _gastoKind = 'gasto';
 function _getGastos() { return _gastosCache; }
-function _netGastos(gastos) { return gastos.reduce((s, g) => s + (g.kind === 'ingreso' ? -g.amount : g.amount), 0); }
+// Retiro (2026-10-02): dinero de la tienda que sale del cajón (la dueña se
+// lleva la venta, un depósito). Resta del esperado, pero no es gasto: queda
+// fuera de _netGastos() para no bajar la utilidad. Ver _netRetiros().
+function _netGastos(gastos) { return gastos.reduce((s, g) => s + (g.kind === 'ingreso' ? -g.amount : g.kind === 'retiro' ? 0 : g.amount), 0); }
+function _netRetiros(gastos) { return gastos.reduce((s, g) => s + (g.kind === 'retiro' ? g.amount : 0), 0); }
 
 function _setGastoKind(kind) {
   _gastoKind = kind;
-  document.getElementById('gasto-kind-gasto')?.style.setProperty('background', kind === 'gasto' ? 'var(--surface)' : 'none');
-  document.getElementById('gasto-kind-gasto')?.style.setProperty('box-shadow', kind === 'gasto' ? '0 1px 3px rgba(0,0,0,.12)' : 'none');
-  document.getElementById('gasto-kind-ingreso')?.style.setProperty('background', kind === 'ingreso' ? 'var(--surface)' : 'none');
-  document.getElementById('gasto-kind-ingreso')?.style.setProperty('box-shadow', kind === 'ingreso' ? '0 1px 3px rgba(0,0,0,.12)' : 'none');
-  document.getElementById('gasto-monto')?.setAttribute('placeholder', kind === 'ingreso' ? 'Monto que entró $' : 'Monto $');
+  ['gasto', 'ingreso', 'retiro'].forEach(k => {
+    const btn = document.getElementById(`gasto-kind-${k}`);
+    btn?.style.setProperty('background', kind === k ? 'var(--surface)' : 'none');
+    btn?.style.setProperty('box-shadow', kind === k ? '0 1px 3px rgba(0,0,0,.12)' : 'none');
+  });
+  const hint = document.getElementById('gasto-kind-hint');
+  if (hint) hint.style.display = kind === 'retiro' ? '' : 'none';
+  document.getElementById('gasto-desc')?.setAttribute('placeholder',
+    kind === 'retiro' ? '¿Quién se lo lleva o para qué? (ej: Ofelia, depósito)' : 'Descripción (ej: Refresco, Taxi, Recarga…)');
+  document.getElementById('gasto-monto')?.setAttribute('placeholder',
+    kind === 'ingreso' ? 'Monto que entró $' : kind === 'retiro' ? 'Monto que sale $' : 'Monto $');
 }
 
 async function _loadGastos() {
@@ -784,14 +794,17 @@ function renderGastos() {
     return;
   }
   const netGastos = _netGastos(gastos);
+  // Efecto total en el cajón: gastos netos + retiros (ambos restan del esperado).
+  const netCajon = netGastos + _netRetiros(gastos);
   list.innerHTML = gastos.map(g => {
     const isIngreso = g.kind === 'ingreso';
-    const color = isIngreso ? 'var(--green)' : 'var(--red)';
+    const isRetiro  = g.kind === 'retiro';
+    const color = isIngreso ? 'var(--green)' : isRetiro ? 'var(--charcoal)' : 'var(--red)';
     const sign  = isIngreso ? '+' : '-';
     return `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
       <div>
-        <span style="font-size:.82rem;font-weight:600">${_esc(g.desc)}</span>
+        ${isRetiro ? '<span style="font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-right:6px">Retiro</span>' : ''}<span style="font-size:.82rem;font-weight:600">${_esc(g.desc)}</span>
         <span style="font-size:.68rem;color:var(--muted);margin-left:6px">${g.time}</span>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
@@ -801,14 +814,14 @@ function renderGastos() {
     </div>`;
   }).join('');
   totRow.style.display = 'flex';
-  if (netGastos >= 0) {
+  if (netCajon >= 0) {
     totLbl.textContent = 'Neto (resta al esperado)';
     totLbl.style.color = totEl.style.color = 'var(--red)';
-    totEl.textContent = '-$' + netGastos.toLocaleString('es-MX');
+    totEl.textContent = '-$' + netCajon.toLocaleString('es-MX');
   } else {
     totLbl.textContent = 'Neto (suma al esperado)';
     totLbl.style.color = totEl.style.color = 'var(--green)';
-    totEl.textContent = '+$' + Math.abs(netGastos).toLocaleString('es-MX');
+    totEl.textContent = '+$' + Math.abs(netCajon).toLocaleString('es-MX');
   }
   if (_corteData) {
     const utilidad = Math.round((_corteData.total - netGastos + Number.EPSILON) * 100) / 100;
@@ -857,7 +870,8 @@ function _otrosCajonTotal() {
 // Misma fórmula que te_close_cash_shift (el servidor la recalcula).
 function _esperadoCierre() {
   const fondo = _currentShift?.fondo_inicial ?? 0;
-  return Math.round((fondo + (_corteData?.efectivo ?? 0) + _otrosCajonTotal() - _netGastos(_getGastos()) + Number.EPSILON) * 100) / 100;
+  const gastos = _getGastos();
+  return Math.round((fondo + (_corteData?.efectivo ?? 0) + _otrosCajonTotal() - _netGastos(gastos) - _netRetiros(gastos) + Number.EPSILON) * 100) / 100;
 }
 
 function _setOtroCajon(email, inDrawer) {
@@ -1019,8 +1033,8 @@ function compartirCorteWA() {
     if (Math.abs(otherCashiersNet || 0) >= .005) msg += `\n👥 ${fmt(otherCashiersNet)} cobrados por otra cuenta — no incluidos`;
   }
   if (gastos.length && !isGeneral) {
-    msg += `\n\n💸 *Movimientos del turno:*\n` + gastos.map(g => `• ${g.desc}: ${g.kind === 'ingreso' ? '+' : '−'}${fmt(g.amount)}`).join('\n');
-    msg += `\nNeto: ${fmt(totalGastos)}`;
+    msg += `\n\n💸 *Movimientos del turno:*\n` + gastos.map(g => `• ${g.kind === 'retiro' ? 'Retiro — ' : ''}${g.desc}: ${g.kind === 'ingreso' ? '+' : '−'}${fmt(g.amount)}`).join('\n');
+    msg += `\nNeto en caja: ${fmt(totalGastos + _netRetiros(gastos))}`;
     msg += `\n\n🏆 *Utilidad: ${fmt(total - totalGastos)}*`;
   }
 

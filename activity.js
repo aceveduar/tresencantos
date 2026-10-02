@@ -282,6 +282,7 @@ const ACTION_CFG = {
   turno_abierto:         { type:'sistema', badge:'creado',    icon:_actIcoClock(), label:'Turno abierto' },
   turno_cerrado:         { type:'sistema', badge:'editado',   icon:_actIcoClock(), label:'Turno cerrado' },
   turno_cerrado_auto:    { type:'sistema', badge:'eliminado', icon:_actIcoWarn(),  label:'Turno sin cerrar' },
+  retiro_efectivo:       { type:'sistema', badge:'editado',   icon:_actIcoClock(), label:'Retiro de efectivo' },
 };
 
 /* ── LOAD ── */

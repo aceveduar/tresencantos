@@ -632,7 +632,9 @@
           <div class="gasto-kind-toggle" style="display:flex;gap:6px;background:var(--surface-soft);border:1.5px solid var(--border);border-radius:10px;padding:3px">
             <button type="button" id="gasto-kind-gasto" onclick="_setGastoKind('gasto')" style="flex:1;padding:7px 10px;border-radius:8px;border:none;background:var(--surface);color:var(--red);font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit;box-shadow:0 1px 3px rgba(0,0,0,.12)">− Gasto</button>
             <button type="button" id="gasto-kind-ingreso" onclick="_setGastoKind('ingreso')" style="flex:1;padding:7px 10px;border-radius:8px;border:none;background:none;color:var(--muted);font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">+ Ingreso</button>
+            <button type="button" id="gasto-kind-retiro" onclick="_setGastoKind('retiro')" style="flex:1;padding:7px 10px;border-radius:8px;border:none;background:none;color:var(--muted);font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">Retiro</button>
           </div>
+          <div id="gasto-kind-hint" style="display:none;font-size:.74rem;color:var(--muted);line-height:1.4">Dinero que sale del cajón sin ser gasto (ej. Ofelia se lleva la venta). Resta de lo que debe haber en caja, pero no de la utilidad.</div>
           <input id="gasto-desc" type="text" placeholder="Descripción (ej: Refresco, Taxi, Recarga…)" style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;font-family:inherit;outline:none">
           <div style="display:flex;gap:8px">
             <input id="gasto-monto" type="number" placeholder="Monto $" min="0" style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;font-family:inherit;outline:none">
