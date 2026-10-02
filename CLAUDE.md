@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación vigente del proyecto. Última reconciliación: 2026-09-30 · `sw.js` `CACHE_VERSION = 'v569'`.
+Documentación vigente del proyecto. Última reconciliación: 2026-10-02 · `sw.js` `CACHE_VERSION = 'v570'`.
 
 > **Fuente de verdad:** para comportamiento ejecutable manda el código; para reglas de negocio y decisiones UX manda este documento.
 > **Historial completo** (bitácora fecha por fecha, razonamiento detrás de cada decisión, bugs resueltos): [assets/HISTORIAL.md](assets/HISTORIAL.md). No se carga solo — consultarlo con grep cuando haga falta el "por qué" de algo. Este archivo solo describe el estado actual.
@@ -143,8 +143,8 @@ Permisos (`UP_PERMS`/`UP_ROLE_DEFAULTS`, `shared.js`): `canAddProduct canEditPro
 
 ## Caja
 
-- **Turno obligatorio:** no se vende sin abrir turno (`#open-shift-overlay`, fondo inicial sugerido del último cierre). Abrir con uno ya abierto lo cierra como `cerrado_auto`. Recordatorio no bloqueante a las ≥10 h o ≥21:00 CDMX. Cerrar sesión con turno abierto pide confirmación (no obliga a cerrarlo).
-- **Corte:** consulta en vivo desde `opened_at`. **Conteo a ciegas:** el "esperado" y la diferencia solo se revelan tras capturar el conteo y tocar "Comparar"; editar el conteo vuelve a ocultarlos. "🔒 Cerrar turno" calcula `esperado` en servidor; diferencia ≥ $100 exige `canCloseShiftUnsupervised` o PIN y se marca ⚠️ en Actividad. "Ver detalle de mis cobros" lista cada pago del turno. "General — hoy" solo con `canViewReports`. Ubicación GPS opcional (no bloquea) anotada en Actividad si está a >150 m del local.
+- **Turno obligatorio:** no se vende sin abrir turno (`#open-shift-overlay`, fondo inicial sugerido del último cierre). Abrir con uno ya abierto lo cierra como `cerrado_auto`. Recordatorio no bloqueante a las ≥10 h o ≥21:00 CDMX; si el turno abrió en un día anterior, el aviso no se puede descartar. Cerrar sesión con turno abierto pide confirmación (no obliga a cerrarlo).
+- **Corte:** consulta en vivo desde `opened_at`. **Conteo a ciegas:** el "esperado" y la diferencia solo se revelan tras capturar el conteo y tocar "Comparar"; editar el conteo vuelve a ocultarlos. "🔒 Cerrar turno" calcula `esperado` en servidor; diferencia ≥ $100 exige `canCloseShiftUnsupervised` o PIN y se marca ⚠️ en Actividad. **Cajón compartido:** el turno es por persona pero el cajón es uno; si otra cuenta cobró efectivo durante el turno, antes de comparar se pregunta por persona "¿ese dinero está en tu cajón?" y lo confirmado se suma al esperado (`p_include_cash_from`, recalculado en servidor, guardado en `cash_shifts.efectivo_otras_cuentas`). "Ver detalle de mis cobros" lista cada pago del turno. "General — hoy" solo con `canViewReports`. Ubicación GPS opcional (no bloquea) anotada en Actividad si está a >150 m del local.
 - **Catálogo:** orden por recién creado o con precio/stock tocado (`recently_edited`), paginado de 50; búsqueda con texto limitada a 40; OOS ocultos; Frecuentes compacto en mobile; Realtime sincroniza stock entre cajas. Tocar un producto agotado o exceder stock abre "Reabastecer" (suma stock y agrega al carrito).
 - **Cobro:** formulario oculto con carrito vacío. Siempre visibles: método (Efectivo/Transferencia), efectivo rápido dinámico (3 siguientes peldaños de `_CASH_LADDER`), "Es apartado". En "Más opciones" (con contador): descuento, nota, cliente (nombre+teléfono; reconoce clientes conocidos), "Ya lo cobró Ofelia". Precio editable tocando el precio del carrito.
 - **"Ya lo cobró Ofelia":** atribuye el cobro (`p_collected_by_email`) a Ofelia para que no cuente en el efectivo del turno de quien captura. El servidor solo acepta atribuir a un superadmin. Activity conserva quién tecleó.
@@ -152,7 +152,7 @@ Permisos (`UP_PERMS`/`UP_ROLE_DEFAULTS`, `shared.js`): `canAddProduct canEditPro
 - **Apartados:** nombre obligatorio, anticipo puede ser 0, fecha límite (default 30 días). Activos/Liquidados/Cancelados con filtros Vencidos/Próximos 7 días/Sin fecha. Abonar, liquidar, editar (productos, nombre, teléfono, fecha límite — nunca recalculada sola; total no puede quedar menor a lo pagado), cancelar, reembolsar. **Cancelar** (apartado o venta, desde la ficha o desde Historial) usa un solo modal: motivo obligatorio y, si hay dinero, casilla de "confirmo que devuelvo $X". **Reactivar** un apartado cancelado: solo superadmin, revierte la devolución con un `adjustment` en la misma fecha y a la misma cajera, rechaza si el stock ya no alcanza. Banner de vencidos descartable "por hoy" (mobile); chip en topbar (tablet/desktop).
 - **Comprobantes por WhatsApp:** tras abono, liquidación o apartado nuevo se ofrece enviar recibo (cerrar sin enviar pide confirmación; ambos se registran en Actividad). "Reenviar comprobante" en Historial y en el detalle del apartado reconstruye el recibo desde la BD con el saldo pendiente **de esa fecha**; si no hay teléfono, lo pide solo para ese envío.
 - **Historial:** movimientos de `sale_payments` agrupados por fecha real; devoluciones multimétodo como una operación; ver historial de la transacción y reenviar en el pie de la tarjeta.
-- **Ticket WA post-venta:** el modal no se cierra tocando fuera ni con Escape.
+- **Ticket WA post-venta:** el modal no se cierra tocando fuera ni con Escape. En una venta ofrece **"Era apartado"**: cancela la venta (motivo "Era apartado", mismo permiso/PIN) y regresa los productos al carrito con "Es apartado" activo.
 - Transferencia: oculta efectivo/cambio y avisa "pendiente confirmar recibo".
 
 ---

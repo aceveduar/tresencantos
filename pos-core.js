@@ -534,7 +534,7 @@ async function _posFetchOpenShift() {
 async function _posFetchLastShiftFondo() {
   const email = _posCurrentUserEmail();
   if (!email) return null;
-  const r = await api(`cash_shifts?user_email=eq.${encodeURIComponent(email)}&status=in.(cerrado,cerrado_auto)&is_test=eq.false&order=opened_at.desc&limit=1&select=conteo_final,fondo_inicial`);
+  const r = await api(`cash_shifts?user_email=eq.${encodeURIComponent(email)}&status=in.(cerrado,cerrado_auto)&order=opened_at.desc&limit=1&select=conteo_final,fondo_inicial`);
   if (!r.ok || !r.data?.[0]) return null;
   const last = r.data[0];
   // conteo_final es lo que quedó físicamente en la caja al cerrar -- el punto
@@ -653,6 +653,20 @@ function _posCheckShiftReminder() {
   const banner = document.getElementById('shift-reminder-banner');
   const txt = document.getElementById('shift-reminder-txt');
   if (!banner || !txt || !_currentShift?.opened_at) return;
+  // Turno de un día anterior (2026-10-02): quien trabaja medio día se va
+  // antes de las 10 h / 21:00 y nunca ve el aviso; al volver al día siguiente
+  // el turno sigue sumando dos días en un solo corte. No se puede descartar:
+  // contar el cajón ahora sigue siendo un conteo real (nadie lo tocó de noche).
+  const openedDay = _posMexicoDayKey(new Date(_currentShift.opened_at));
+  if (openedDay < _posMexicoDayKey()) {
+    const opened = new Intl.DateTimeFormat('es-MX', {
+      timeZone: 'America/Mexico_City', weekday: 'long', hour: '2-digit', minute: '2-digit'
+    }).format(new Date(_currentShift.opened_at));
+    txt.textContent = `Tu turno sigue abierto desde el ${opened}. Cuenta el cajón y ciérralo en Corte antes de vender hoy.`;
+    banner.classList.add('show', 'no-dismiss');
+    return;
+  }
+  banner.classList.remove('no-dismiss');
   if (localStorage.getItem(_posShiftReminderDismissKey())) {
     banner.classList.remove('show');
     return;

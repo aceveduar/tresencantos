@@ -262,6 +262,8 @@ function showSaleDone() {
   if (waBtn) waBtn.childNodes[waBtn.childNodes.length - 1].textContent = isAptFlow ? ' Enviar confirmación por WhatsApp' : ' Enviar ticket por WhatsApp';
   const newSaleBtn = document.querySelector('#sale-done-overlay .btn-green');
   if (newSaleBtn) newSaleBtn.textContent = isApt ? '+ Nueva venta' : '+ Nueva venta';
+  const eraAptBtn = document.getElementById('sd-era-apartado-btn');
+  if (eraAptBtn) eraAptBtn.style.display = (!isAptFlow && s.id) ? '' : 'none';
   document.getElementById('sale-done-overlay').classList.add('open');
 }
 
@@ -318,6 +320,76 @@ function sendWhatsAppTicket() {
   }
   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   setTimeout(() => closeSaleDone(), 400);
+}
+
+// "Era apartado" (2026-10-02): Renata cobró 4 veces como venta algo que era
+// apartado y lo corrigió a mano (cancelar en Historial + rehacer); una vez
+// tardó casi 3 horas y el corte esperó $188 que nunca entraron. Desde el
+// mismo modal post-venta: cancela la venta (mismo RPC, motivo fijo, mismo
+// permiso/PIN) y regresa los productos al carrito con "Es apartado" activo.
+let _convertingToApartado = false;
+async function convertLastSaleToApartado() {
+  const s = _lastSale;
+  if (!s?.id || s.isApartado || s.apartadoLiquidado || _convertingToApartado) return;
+  if (!canCancelSale()) {
+    const granted = await requestOverride('canCancelSale', 'Cambiar venta a apartado');
+    if (!granted) return;
+  }
+  const totalTxt = `$${(s.total || 0).toLocaleString('es-MX')}`;
+  const cashNote = s.payMethod === 'efectivo'
+    ? `\n\nLos ${totalTxt} salen de tu corte. Si la clienta deja anticipo, captúralo en el apartado; si no, devuélvele su dinero.`
+    : '';
+  if (!confirm(`¿Era apartado?\n\nSe cancela esta venta de ${totalTxt} y los productos vuelven al carrito como apartado.${cashNote}`)) return;
+
+  _convertingToApartado = true;
+  const btn = document.getElementById('sd-era-apartado-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Cambiando…'; }
+  const restoreBtn = () => {
+    _convertingToApartado = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'Era apartado'; }
+  };
+
+  // La venta recién creada: hace falta su version para el bloqueo optimista.
+  const fresh = await api(`sales?id=eq.${s.id}&select=id,version,total,paid_amount,status`);
+  const sale = fresh.ok ? fresh.data?.[0] : null;
+  if (!sale || sale.status === 'cancelado') {
+    toast(sale ? 'Esta venta ya estaba cancelada' : 'No se pudo leer la venta — revisa tu conexión', 'error');
+    restoreBtn();
+    return;
+  }
+  const result = await _posCancelSaleAtomic(s.id, sale, 'Era apartado');
+  if (!result.ok) {
+    toast(_posRpcError(result, 'No se pudo cancelar la venta'), 'error');
+    restoreBtn();
+    return;
+  }
+  delete salesCache[s.id];
+  await _refreshPosFinancialState();
+
+  // Mismos productos y precios de vuelta al carrito (el stock ya se restauró).
+  (s.items || []).forEach(i => {
+    const p = products.find(x => x.id === i.id);
+    if (!p) return;
+    const existing = cart.find(x => x.product.id === p.id);
+    const customPrice = i.original_price != null ? i.price : undefined;
+    if (existing) existing.qty += i.qty || 1;
+    else cart.push({ product: p, qty: i.qty || 1, ...(customPrice != null ? { customPrice } : {}) });
+  });
+  renderCart(); updateChange();
+
+  _lastSale = null;
+  restoreBtn();
+  // Cerrar el modal antes de activar apartado: closeSaleDone enfoca el
+  // buscador y le quitaría el foco al nombre en el panel del apartado.
+  closeSaleDone();
+  const [custName, custPhone] = (s.customer || '').split(' · 📱 ');
+  const aptCustEl = document.getElementById('pos-apt-customer');
+  const aptCheck = document.getElementById('pos-is-apartado');
+  if (aptCheck) { aptCheck.checked = true; toggleApartadoMode(); }
+  if (aptCustEl && custName && !aptCustEl.value) aptCustEl.value = custName;
+  const phoneEl = document.getElementById('pos-phone');
+  if (phoneEl && custPhone && !phoneEl.value) phoneEl.value = custPhone.replace(/\D/g, '');
+  toast(`Venta cancelada — los productos están en el carrito como apartado${s.disc ? '. Vuelve a aplicar el descuento' : ''}`, 'success');
 }
 
 function closeSaleDone() {

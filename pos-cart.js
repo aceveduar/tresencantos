@@ -539,13 +539,25 @@ async function loadCorte() {
     .map(payment => payment.sale_id)).size;
   const unassignedNet = money(unassignedPayments.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0));
   const otherCashiersNet = money(otherCashiers.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0));
+  // Efectivo de otras cuentas por persona -- el cajón es uno solo aunque el
+  // turno sea de cada quien; al cerrar se pregunta si ese dinero está aquí.
+  const otherCashByEmail = new Map();
+  otherCashiers.filter(p => p.method === 'efectivo').forEach(p => {
+    const key = String(p.collected_by_email).toLowerCase();
+    otherCashByEmail.set(key, (otherCashByEmail.get(key) || 0) + (parseFloat(p.amount) || 0));
+  });
+  const otherCash = [...otherCashByEmail.entries()]
+    .map(([email, efectivo]) => ({ email, efectivo: money(efectivo) }))
+    .filter(r => Math.abs(r.efectivo) >= .005);
 
   const total = money(efectivo + transferencia + otros);
   const fmt = n => `$${n.toLocaleString('es-MX')}`;
   const breakdown = isGeneral ? _corteBreakdownRows(allPayments) : [];
   _corteData = { efectivo, transferencia, otros, devoluciones, total, numVentas, numApartados,
-    numLiquidados, anticipos, ahoraMX, inicioMX, actorLabel, unassignedNet, otherCashiersNet, isGeneral, breakdown };
+    numLiquidados, anticipos, ahoraMX, inicioMX, actorLabel, unassignedNet, otherCashiersNet, isGeneral, breakdown,
+    otherCash: isGeneral ? [] : otherCash };
   if (shareButton) shareButton.disabled = false;
+  if (!isGeneral) _renderOtrosCajon();
 
   const row = (label, value, sub='') => `
     <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
@@ -822,6 +834,66 @@ function renderGastos() {
 function _conteoKey() { return _posShiftScopedKey('conteo'); }
 let _conteoRevealed = false;
 
+/* Cajón compartido (2026-10-02): el 1 oct Ofelia cobró $1,015 desde su
+ * sesión con el turno de Renata abierto; el corte de Renata los excluía y la
+ * caja "no cuadró" aunque el dinero estaba. Antes de comparar, quien cierra
+ * contesta por cada cuenta si ese efectivo está en su cajón. Las respuestas
+ * viven por turno (localStorage) para no perderse si se cierra el panel. */
+function _otrosCajonKey() { return _posShiftScopedKey('otros_cajon'); }
+function _otrosCajonAnswers() {
+  try { return JSON.parse(localStorage.getItem(_otrosCajonKey()) || '{}') || {}; } catch { return {}; }
+}
+function _otrosCajonPending() {
+  const answers = _otrosCajonAnswers();
+  return (_corteData?.otherCash || []).filter(r => typeof answers[r.email] !== 'boolean');
+}
+function _otrosCajonIncluded() {
+  const answers = _otrosCajonAnswers();
+  return (_corteData?.otherCash || []).filter(r => answers[r.email] === true);
+}
+function _otrosCajonTotal() {
+  return _otrosCajonIncluded().reduce((s, r) => s + r.efectivo, 0);
+}
+// Misma fórmula que te_close_cash_shift (el servidor la recalcula).
+function _esperadoCierre() {
+  const fondo = _currentShift?.fondo_inicial ?? 0;
+  return Math.round((fondo + (_corteData?.efectivo ?? 0) + _otrosCajonTotal() - _netGastos(_getGastos()) + Number.EPSILON) * 100) / 100;
+}
+
+function _setOtroCajon(email, inDrawer) {
+  const answers = _otrosCajonAnswers();
+  answers[email] = inDrawer;
+  try { localStorage.setItem(_otrosCajonKey(), JSON.stringify(answers)); } catch {}
+  // Igual que editar el conteo: cambiar la respuesta invalida la comparación.
+  _conteoRevealed = false;
+  _renderOtrosCajon();
+  _renderCierre();
+}
+
+function _renderOtrosCajon() {
+  const el = document.getElementById('corte-otros-cajon');
+  if (!el) return;
+  const rows = _corteData?.otherCash || [];
+  if (!rows.length) { el.innerHTML = ''; el.style.display = 'none'; return; }
+  const answers = _otrosCajonAnswers();
+  const fmt = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX')}`;
+  el.style.display = '';
+  el.innerHTML = `
+    <div class="corte-otros-q">Mientras tu turno estaba abierto, otra cuenta cobró en efectivo. ¿Ese dinero está en tu cajón?</div>
+    ${rows.map(r => {
+      const em = _esc(r.email).replace(/'/g, "\\'");
+      const ans = answers[r.email];
+      return `
+      <div class="corte-otros-row">
+        <div class="corte-otros-who"><strong>${_esc(_sellerLabel(r.email) || r.email)}</strong> cobró ${fmt(r.efectivo)}</div>
+        <div class="corte-otros-btns" role="radiogroup">
+          <button type="button" class="cancel-reason-btn${ans === true ? ' active' : ''}" role="radio" aria-checked="${ans === true}" onclick="_setOtroCajon('${em}', true)">Sí, está aquí</button>
+          <button type="button" class="cancel-reason-btn${ans === false ? ' active' : ''}" role="radio" aria-checked="${ans === false}" onclick="_setOtroCajon('${em}', false)">No</button>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
 function _initCierreInputs() {
   const fondoEl = document.getElementById('corte-fondo');
   if (fondoEl) fondoEl.value = _currentShift?.fondo_inicial ?? 0;
@@ -834,6 +906,7 @@ function _initCierreInputs() {
   const conteo = localStorage.getItem(_conteoKey());
   document.getElementById('corte-conteo').value = conteo != null ? conteo : '';
   _conteoRevealed = false;
+  _renderOtrosCajon();
   _renderCierre();
 }
 
@@ -855,6 +928,11 @@ function compararConteo() {
   if (conteoRaw === '') {
     alert('Captura tu conteo físico antes de comparar.');
     document.getElementById('corte-conteo')?.focus();
+    return;
+  }
+  if (_otrosCajonPending().length) {
+    alert('Antes de comparar, indica si el efectivo que cobró otra cuenta está en tu cajón.');
+    document.getElementById('corte-otros-cajon')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
     return;
   }
   _conteoRevealed = true;
@@ -883,10 +961,13 @@ function _renderCierre() {
     return;
   }
 
-  const fondo = _currentShift?.fondo_inicial ?? 0;
-  const totalGastos = _netGastos(_getGastos());
-  const esperado = Math.round((fondo + _corteData.efectivo - totalGastos + Number.EPSILON) * 100) / 100;
+  const esperado = _esperadoCierre();
+  const otrosTotal = _otrosCajonTotal();
   if (esperadoRow) esperadoRow.style.display = 'flex';
+  const formulaEl = document.getElementById('corte-esperado-formula');
+  if (formulaEl) formulaEl.textContent = otrosTotal !== 0
+    ? `fondo + tus cobros + $${otrosTotal.toLocaleString('es-MX')} de otras cuentas − gastos`
+    : 'fondo + ventas − gastos';
   document.getElementById('corte-esperado').textContent = '$' + esperado.toLocaleString('es-MX');
 
   const conteoRaw = localStorage.getItem(_conteoKey());
@@ -947,11 +1028,12 @@ function compartirCorteWA() {
   // abierta en este dispositivo, no tiene sentido combinado en "General".
   if (!isGeneral) {
     const fondo = _currentShift?.fondo_inicial ?? 0;
-    const esperado = fondo + efectivo - totalGastos;
+    const esperado = _esperadoCierre();
     const conteoRaw = localStorage.getItem(_conteoKey());
     if (fondo > 0 || conteoRaw != null) {
       msg += `\n\n💵 *Cierre de caja:*`;
       msg += `\nFondo inicial: ${fmt(fondo)}`;
+      _otrosCajonIncluded().forEach(r => { msg += `\nEfectivo de ${_sellerLabel(r.email) || r.email} en el cajón: ${fmt(r.efectivo)}`; });
       msg += `\nEfectivo esperado: ${fmt(esperado)}`;
       if (conteoRaw != null) {
         const conteo = parseFloat(conteoRaw) || 0;
@@ -987,7 +1069,8 @@ async function confirmCloseTurno() {
   // supervisión ya no basta, igual que precio/descuento/cancelar/editar
   // apartado; el servidor vuelve a validarlo, esto solo evita un viaje
   // redondo con error si ya sabemos que hace falta autorización.
-  const esperadoPreview = Math.round(((_currentShift?.fondo_inicial ?? 0) + (_corteData?.efectivo ?? 0) - totalGastos + Number.EPSILON) * 100) / 100;
+  const esperadoPreview = _esperadoCierre();
+  const includeCashFrom = _otrosCajonIncluded().map(r => r.email);
   const diffPreview = Math.round((conteo - esperadoPreview + Number.EPSILON) * 100) / 100;
   if (Math.abs(diffPreview) >= 100 && !canCloseShiftUnsupervised()) {
     const granted = await requestOverride('canCloseShiftUnsupervised', 'Cerrar turno con diferencia grande');
@@ -1005,7 +1088,8 @@ async function confirmCloseTurno() {
     method: 'POST',
     body: JSON.stringify({
       p_conteo_final: conteo, p_gastos_total: totalGastos, p_lat: geo?.lat ?? null, p_lng: geo?.lng ?? null,
-      p_override_tickets: _collectOverrideTickets(['canCloseShiftUnsupervised'])
+      p_override_tickets: _collectOverrideTickets(['canCloseShiftUnsupervised']),
+      p_include_cash_from: includeCashFrom.length ? includeCashFrom : null
     })
   });
 

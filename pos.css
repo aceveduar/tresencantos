@@ -1061,3 +1061,14 @@ button,a{touch-action:manipulation}
   #btn-corte-pos .btn-label,#btn-history-pos .btn-label,#btn-apt-pos .btn-label{display:inline;font-size:.52rem}
   #btn-corte-pos,#btn-history-pos,#btn-apt-pos{padding:5px 12px!important;gap:3px!important;}
 }
+/* Cierre: efectivo de otras cuentas en el mismo cajón */
+.corte-otros{padding:12px 16px;border-bottom:1px solid var(--border)}
+.corte-otros-q{font-size:.84rem;font-weight:600;color:var(--charcoal);line-height:1.4;margin-bottom:10px}
+.corte-otros-row + .corte-otros-row{margin-top:12px}
+.corte-otros-who{font-size:.84rem;color:var(--charcoal);margin-bottom:6px}
+.corte-otros-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+/* Modal post-venta: corregir una venta que era apartado */
+.sd-era-apartado{display:block;width:100%;min-height:44px;margin-top:6px;padding:10px;border:none;background:none;color:var(--muted);font-size:.84rem;font-weight:600;text-decoration:underline;cursor:pointer;font-family:inherit}
+.sd-era-apartado:disabled{opacity:.5;cursor:default}
+/* Turno abierto desde otro día: el aviso no se puede descartar */
+.shift-reminder-banner.no-dismiss .shift-reminder-banner-close{display:none}
