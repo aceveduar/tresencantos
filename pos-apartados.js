@@ -523,7 +523,9 @@ function _updateAptOcActivosCount(rowsParam) {
 async function loadApartados() {
   const loadGeneration = ++_apartadosLoadGeneration;
   const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,updated_at,version,items,abonos,discount';
-  const result = await api(`sales?origin_type=eq.apartado&status=eq.activo&select=${fields}&order=created_at.desc,id.desc&limit=100`);
+  // Paginado completo: antes limit=100 -- con más de 100 activos los más
+  // antiguos (justo los vencidos) dejaban de aparecer sin aviso.
+  const result = await _posFetchAll(`sales?origin_type=eq.apartado&status=eq.activo&select=${fields}&order=created_at.desc,id.desc`);
   if (loadGeneration !== _apartadosLoadGeneration) return false;
   const ocList    = document.getElementById('apt-offcanvas-list');
   const ocCount   = document.getElementById('apt-oc-count');
@@ -545,6 +547,13 @@ async function loadApartados() {
     if (!s.due_date) return false;
     return s.due_date < todayKey;
   }).length;
+
+  ['apt-cobranza-btn-oc', 'apt-cobranza-btn-page'].forEach(btnId => {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.style.display = vencidos > 0 ? '' : 'none';
+    btn.textContent = `Recordar a vencidas (${vencidos})`;
+  });
 
   // Alerta en topbar — solo si hay vencidos
   const alertBtn = document.getElementById('apt-vencidos-alert');
@@ -868,8 +877,8 @@ function _aptItemPopup(productId, triggerEl) {
 }
 
 /* ── RECORDATORIO WA APARTADO ───────────────────────────────────────── */
-function sendApartadoReminder(id) {
-  const s = _apartadosData[id];
+function sendApartadoReminder(id, sale = null) {
+  const s = sale || _apartadosData[id];
   if (!s) return;
   const custParts = (s.customer || '').split(' · 📱 ');
   const nombre    = custParts[0] || 'clienta';
@@ -897,6 +906,102 @@ function sendApartadoReminder(id) {
     ? `https://wa.me/52${telLimpio}?text=${encodeURIComponent(msg)}`
     : `https://wa.me/?text=${encodeURIComponent(msg)}`;
   window.open(url, '_blank');
+  // Rastro compartido (ronda de cobranza y Actividad): a quién se le recordó,
+  // cuándo y quién -- antes no quedaba nada y se podía escribir dos veces.
+  if (!liquidado) {
+    logActivity('recordatorio_enviado',
+      `Recordatorio de apartado a ${nombre} — pendiente $${pendiente.toLocaleString('es-MX')}`,
+      { id: s.id, nombre, pendiente, due_date: s.due_date || null, sin_telefono: !telLimpio });
+  }
+}
+
+/* ── RONDA DE COBRANZA (2026-10-02) ─────────────────────────────────────
+   Lista de apartados vencidos para mandar recordatorios uno tras otro.
+   WhatsApp no permite envío masivo: cada "Enviar" abre el chat con el
+   mensaje listo y la cajera solo toca enviar. Muestra la última vez que se
+   le recordó a cada clienta (te_apartado_reminders, compartido entre
+   dispositivos) y deja al final a las que ya se les escribió hoy. */
+let _cobranzaRows = [];
+
+async function openCobranza() {
+  const overlay = document.getElementById('cobranza-overlay');
+  const list = document.getElementById('cobranza-list');
+  const sub = document.getElementById('cobranza-sub');
+  if (!overlay || !list) return;
+  overlay.style.display = 'flex';
+  list.innerHTML = '<div class="history-empty">Cargando…</div>';
+  sub.textContent = '';
+
+  const today = _posMexicoDayKey();
+  const fields = 'id,origin_type,status,total,paid_amount,customer,due_date,items';
+  const [aptR, remR] = await Promise.all([
+    _posFetchAll(`sales?origin_type=eq.apartado&status=eq.activo&due_date=lt.${today}&select=${fields}&order=due_date.asc,id.asc`),
+    api('rpc/te_apartado_reminders', { method: 'POST', body: '{}' })
+  ]);
+  if (!aptR.ok) {
+    list.innerHTML = `<div class="history-empty">No se pudieron cargar los apartados vencidos.<br><button type="button" class="btn btn-outline" style="margin-top:12px" onclick="openCobranza()">Reintentar</button></div>`;
+    return;
+  }
+  const reminders = new Map((remR.ok && Array.isArray(remR.data) ? remR.data : []).map(r => [Number(r.sale_id), r]));
+  _cobranzaRows = (aptR.data || []).map(s => {
+    const rem = reminders.get(Number(s.id));
+    const remDay = rem?.last_at ? _posMexicoDayKey(new Date(rem.last_at)) : null;
+    return { sale: s, rem, remindedToday: remDay === today, sentNow: false };
+  });
+  // Primero a quien no se le ha escrito hoy, y entre ellas la más atrasada.
+  _cobranzaRows.sort((a, b) => (a.remindedToday - b.remindedToday) || String(a.sale.due_date).localeCompare(String(b.sale.due_date)));
+  _renderCobranza();
+}
+
+function closeCobranza() {
+  const overlay = document.getElementById('cobranza-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function _renderCobranza() {
+  const list = document.getElementById('cobranza-list');
+  const sub = document.getElementById('cobranza-sub');
+  if (!list) return;
+  const pendientes = _cobranzaRows.filter(r => !r.remindedToday && !r.sentNow).length;
+  const deuda = _cobranzaRows.reduce((t, r) => t + Math.max(0, (parseFloat(r.sale.total) || 0) - (parseFloat(r.sale.paid_amount) || 0)), 0);
+  if (sub) sub.textContent = _cobranzaRows.length
+    ? `${_cobranzaRows.length} vencidos · $${Math.round(deuda).toLocaleString('es-MX')} por cobrar · faltan ${pendientes} por recordar hoy`
+    : '';
+  if (!_cobranzaRows.length) {
+    list.innerHTML = '<div class="history-empty">No hay apartados vencidos.</div>';
+    return;
+  }
+  const fmtRem = rem => {
+    if (!rem?.last_at) return 'Sin recordatorios';
+    const dias = -_posDayKeyDiff(_posMexicoDayKey(new Date(rem.last_at)));
+    const cuando = dias === 0 ? 'hoy' : dias === 1 ? 'ayer' : `hace ${dias} días`;
+    const quien = _sellerLabel(rem.last_by) || '';
+    return `Último recordatorio ${cuando}${quien ? ` (${_esc(quien)})` : ''}${rem.veces > 1 ? ` · ${rem.veces} en total` : ''}`;
+  };
+  list.innerHTML = _cobranzaRows.map((r, i) => {
+    const s = r.sale;
+    const [nombre, tel] = (s.customer || '').split(' · 📱 ');
+    const dias = -_posDayKeyDiff(s.due_date);
+    const pendiente = Math.max(0, (parseFloat(s.total) || 0) - (parseFloat(s.paid_amount) || 0));
+    const done = r.sentNow || r.remindedToday;
+    return `
+      <div class="cobranza-row${done ? ' done' : ''}">
+        <div class="cobranza-info">
+          <div class="cobranza-name">${_esc(nombre || 'Sin nombre')}</div>
+          <div class="cobranza-meta">Venció hace ${dias} día${dias !== 1 ? 's' : ''} · debe <strong>$${pendiente.toLocaleString('es-MX')}</strong>${(tel || '').replace(/\D/g, '') ? '' : ' · <span class="cobranza-warn">sin teléfono</span>'}</div>
+          <div class="cobranza-meta">${r.sentNow ? 'Enviado ahora' : fmtRem(r.rem)}</div>
+        </div>
+        <button type="button" class="cobranza-send" onclick="_cobranzaSend(${i})">${done ? 'Reenviar' : 'Enviar'}</button>
+      </div>`;
+  }).join('');
+}
+
+function _cobranzaSend(i) {
+  const r = _cobranzaRows[i];
+  if (!r) return;
+  sendApartadoReminder(r.sale.id, r.sale);
+  r.sentNow = true;
+  _renderCobranza();
 }
 
 /* ── COMPROBANTE DE PAGO (abono / liquidacion de saldo) ──────────────────

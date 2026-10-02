@@ -42,6 +42,9 @@ Justo después de cobrar, en la ventana de confirmación, toca **Era apartado**.
 ### Abonos, liquidar, editar y cancelar apartados
 En **Apartados** busca a la clienta y abre su ficha para abonar, liquidar, editar productos/datos o cancelar. Después de cada pago el sistema ofrece enviarle el comprobante por WhatsApp; mándalo siempre, es su respaldo y el tuyo.
 
+### Recordar a las clientas con apartado vencido
+En **Apartados**, toca **Recordar a vencidas**. Sale la lista de apartados vencidos con cuánto deben y cuándo se les recordó por última vez (por cualquier persona). Toca **Enviar** en cada una: se abre WhatsApp con el mensaje listo; solo envíalo y regresa a la lista para la siguiente. Primero aparecen las que no tienen recordatorio hoy.
+
 **Cancelar** (una venta o un apartado) pide un motivo y, si hubo dinero, que confirmes que lo devolviste.
 
 ### Si un producto aparece agotado

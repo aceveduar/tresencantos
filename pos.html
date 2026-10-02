@@ -433,6 +433,18 @@
   </div>
 </div>
 
+<!-- RONDA DE COBRANZA — recordatorios a apartados vencidos, uno tras otro -->
+<div class="abonar-overlay" id="cobranza-overlay" style="display:none" onclick="if(event.target===this)closeCobranza()">
+  <div class="abonar-modal" style="max-height:85vh;display:flex;flex-direction:column">
+    <h3>Recordar a vencidas</h3>
+    <p class="apt-info-lbl" id="cobranza-sub"></p>
+    <div id="cobranza-list" style="overflow-y:auto;flex:1;margin:12px 0;min-height:60px"></div>
+    <div class="abonar-footer">
+      <button class="btn-cancel" onclick="closeCobranza()" style="width:100%">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- HISTORIAL DE TRANSACCIÓN — timeline de Actividad para una venta/apartado puntual -->
 <div class="abonar-overlay" id="txn-timeline-overlay" style="display:none" onclick="if(event.target===this)closeTransactionTimeline()">
   <div class="abonar-modal" style="max-height:78vh;display:flex;flex-direction:column">
@@ -728,6 +740,7 @@
         <button type="button" class="apt-due-filter" data-due-filter="sin-fecha" aria-pressed="false" onclick="setAptDueFilter('sin-fecha','offcanvas')">Sin fecha</button>
       </div>
     </div>
+    <button type="button" class="apt-cobranza-btn" id="apt-cobranza-btn-oc" onclick="openCobranza()" style="display:none">Recordar a vencidas</button>
     <div style="position:relative">
       <svg aria-hidden="true" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--muted);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;pointer-events:none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" id="apt-search" placeholder="Buscar cliente…" autocomplete="off"
@@ -772,6 +785,7 @@
         <button type="button" class="apt-due-filter" data-due-filter="sin-fecha" aria-pressed="false" onclick="setAptDueFilter('sin-fecha','page')">Sin fecha</button>
       </div>
     </div>
+    <button type="button" class="apt-cobranza-btn" id="apt-cobranza-btn-page" onclick="openCobranza()" style="display:none">Recordar a vencidas</button>
     <div class="apt-page-grid" id="apt-page-list" role="tabpanel" aria-live="polite">
       <div class="history-empty" style="grid-column:1/-1">Cargando…</div>
     </div>

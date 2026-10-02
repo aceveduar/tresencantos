@@ -23,7 +23,7 @@ const _uiIcoWA       = () => `<svg width="18" height="18" fill="#fff" viewBox="0
    tener que buscar a mano entre todo el feed general de Actividad. Reutiliza
    la misma convención meta.id = id de la venta que ya usan las acciones
    ligadas a ventas en activity_log (_SALE_LINKED_ACTIONS en activity.js). */
-const _TXN_TIMELINE_ACTIONS = 'venta,venta_cancelada,apartado_nuevo,apartado_abono,apartado_editado,apartado_liquidado,apartado_reembolso,apartado_cancelado,apartado_reactivado,comprobante_enviado,comprobante_omitido';
+const _TXN_TIMELINE_ACTIONS = 'venta,venta_cancelada,apartado_nuevo,apartado_abono,apartado_editado,apartado_liquidado,apartado_reembolso,apartado_cancelado,apartado_reactivado,comprobante_enviado,comprobante_omitido,recordatorio_enviado';
 
 async function openTransactionTimeline(saleId) {
   const overlay = document.getElementById('txn-timeline-overlay');

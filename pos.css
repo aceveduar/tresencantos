@@ -1072,3 +1072,15 @@ button,a{touch-action:manipulation}
 .sd-era-apartado:disabled{opacity:.5;cursor:default}
 /* Turno abierto desde otro día: el aviso no se puede descartar */
 .shift-reminder-banner.no-dismiss .shift-reminder-banner-close{display:none}
+/* Ronda de cobranza de apartados vencidos */
+.apt-cobranza-btn{display:block;width:100%;min-height:44px;margin:8px 0 2px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);color:var(--charcoal);font-size:.84rem;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation}
+.apt-page-body .apt-cobranza-btn{max-width:320px;margin:0 0 12px}
+.cobranza-row{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--border)}
+.cobranza-row.done{opacity:.55}
+.cobranza-info{flex:1;min-width:0}
+.cobranza-name{font-size:.9rem;font-weight:700;color:var(--charcoal);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cobranza-meta{font-size:.78rem;color:var(--muted);margin-top:2px;line-height:1.35}
+.cobranza-meta strong{color:var(--charcoal)}
+.cobranza-warn{color:var(--red);font-weight:600}
+.cobranza-send{flex-shrink:0;min-width:86px;min-height:44px;padding:0 14px;border-radius:50px;border:none;background:#25D366;color:#fff;font-size:.84rem;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation}
+.cobranza-row.done .cobranza-send{background:var(--surface);color:var(--charcoal);border:1.5px solid var(--border)}

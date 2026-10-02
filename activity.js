@@ -283,6 +283,7 @@ const ACTION_CFG = {
   turno_cerrado:         { type:'sistema', badge:'editado',   icon:_actIcoClock(), label:'Turno cerrado' },
   turno_cerrado_auto:    { type:'sistema', badge:'eliminado', icon:_actIcoWarn(),  label:'Turno sin cerrar' },
   retiro_efectivo:       { type:'sistema', badge:'editado',   icon:_actIcoClock(), label:'Retiro de efectivo' },
+  recordatorio_enviado:  { type:'apartado', badge:'apartado', icon:_actIco('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'), label:'Recordatorio enviado' },
 };
 
 /* ── LOAD ── */
