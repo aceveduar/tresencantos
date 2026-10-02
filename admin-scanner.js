@@ -613,7 +613,7 @@ async function _deleteDupProduct(id, pairKey) {
       p_override_tickets: _collectOverrideTickets(['canDeleteProduct'])
     })
   });
-  if (!result.ok) { toast('Error al eliminar', 'error'); return; }
+  if (!result.ok) { toast('Error al eliminar: ' + (result.data?.message || `HTTP ${result.status}`), 'error'); return; }
   products = products.filter(p => p.id !== id);
   selectedIds.delete(id);
   renderTable();
