@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación vigente del proyecto. Última reconciliación: 2026-10-02 · `sw.js` `CACHE_VERSION = 'v570'`.
+Documentación vigente del proyecto. Última reconciliación: 2026-10-02 · `sw.js` `CACHE_VERSION = 'v572'`.
 
 > **Fuente de verdad:** para comportamiento ejecutable manda el código; para reglas de negocio y decisiones UX manda este documento.
 > **Historial completo** (bitácora fecha por fecha, razonamiento detrás de cada decisión, bugs resueltos): [assets/HISTORIAL.md](assets/HISTORIAL.md). No se carga solo — consultarlo con grep cuando haga falta el "por qué" de algo. Este archivo solo describe el estado actual.
@@ -41,7 +41,7 @@ Panel de administración + POS + reportes + sitio e-commerce para **Tres Encanto
 - **Frontend:** HTML + CSS + Vanilla JS, sin framework ni bundler.
 - **Backend:** Supabase (PostgREST + RPC SECURITY DEFINER + RLS). Project URL `https://qxvrggmpaqhslgdmbhqw.supabase.co`.
 - **Auth:** Supabase Auth JWT en `localStorage.te_admin_session` (`{access_token, refresh_token, expires_at}`; válida si `expires_at > now+60s`).
-- **Hosting:** archivos estáticos. PWA (`manifest.json` + `sw.js`).
+- **Hosting:** archivos estáticos en GitHub Pages (`https://aceveduar.github.io/tresencantos/`, se publica con cada push a `main`). Netlify caducó (404): no usar ese dominio. Rutas siempre relativas (el sitio vive en `/tresencantos/`, no en la raíz). PWA (`manifest.json` + `sw.js`).
 - **Fuentes:** Inter (UI) + Playfair Display (solo el número protagonista de una tarjeta y títulos) + Dancing Script.
 - **IA:** Groq, modelo `qwen/qwen3.8-27b` (constante `GROQ_VISION_MODEL`, `admin-images.js`). Imágenes en Google Drive vía Apps Script proxy.
 
@@ -85,13 +85,13 @@ Otros: `supabase/migrations/` (SQL versionado) · `supabase/functions/create-use
 - **Kits:** `stock=0` y `out_of_stock=false` siempre en BD; disponibilidad = `min(floor(comp.stock/comp.qty))`. Vender/cancelar descuenta/restaura componentes.
 - **Tienda muestra** `is_published=true AND category≠por_revisar AND (out_of_stock=false OR is_apartado=true)`.
 - **Archivar** (`is_archived=true` + oculto + agotado) es el borrado reversible preferido; nunca borrado real masivo (un producto puede ser componente vivo de un kit).
-- **No borrar un producto que esté en un apartado activo** (ni como componente de kit): `_productsInActiveApartados()` lo bloquea — las RPC de editar/cancelar exigen que todos los productos existan.
+- **No borrar un producto que esté en un apartado activo** (ni como componente de kit): lo exige `te_delete_products` en servidor (y `_productsInActiveApartados()` lo avisa antes en el cliente) — las RPC de editar/cancelar exigen que todos los productos existan.
 - **Categorías** en `config.categories` (`{code,label,color,parent?}`, 7 raíces). Riesgo: renombrar/eliminar un código deja productos huérfanos invisibles en filtros. Si un producto "desaparece" del filtro pero aparece en búsqueda, comparar su `category` contra los códigos vigentes.
 
 ### Roles y permisos
-3 roles en `user_metadata.role` (sin rol → `operador`; `duena` se trata como alias de `superadmin`):
-- **superadmin** — Eduardo, Ofelia, `ma.dolores.mtz.mtz@gmail.com`. Todo.
-- **encargado** — Areli. Confianza operativa total en Caja/Inventario, sin Reportes/Actividad/Configuración.
+3 roles. **El servidor toma el rol de `config.user_permissions[email].role`** (lo que se edita en Configuración → Usuarios y Permisos); si el mapa existe y la persona no está, es `operador`. `user_metadata.role` solo lo usa el cliente como respaldo visual mientras carga `get_my_permissions()` — y cada usuario puede editar su propio `user_metadata`, así que **nunca** usarlo para autorizar en servidor. `duena` = alias de `superadmin`.
+- **superadmin** — Eduardo, Ofelia. Todo.
+- **encargado** — Areli y Renata (2026-10-02). Confianza operativa total en Caja/Inventario, sin Reportes/Actividad/Configuración.
 - **operador** — punto de partida para gente nueva; casi nada por default.
 
 Permisos (`UP_PERMS`/`UP_ROLE_DEFAULTS`, `shared.js`): `canAddProduct canEditProduct canUseReceptionIA canReceiveStock canDeleteProduct canPublishProduct canBulkDelete canCancelSale canEditApartado canOverridePrice canApplyDiscount canCloseShiftUnsupervised canViewReports canViewActivity canManageSettings canManageCatalogSettings canImportExport`.
@@ -99,13 +99,17 @@ Permisos (`UP_PERMS`/`UP_ROLE_DEFAULTS`, `shared.js`): `canAddProduct canEditPro
 - **Fuente autoritativa:** RPC `get_my_permissions()`. `sessionStorage.te_user_can` es solo caché offline; los módulos restringidos siempre consultan al servidor.
 - **Todo permiso nuevo debe agregarse en los dos lados**: `shared.js` y `_te_permission_for_email()`/`get_my_permissions()` en Postgres (ya pasó que solo existía en la UI y no tenía efecto real).
 - **PIN de gerente:** quien no tiene un permiso puede hacer la acción si alguien que sí lo tiene teclea su propio PIN en ese dispositivo (`requestOverride()` en `shared.js` → ticket de un solo uso, 5 min). Botones siempre visibles; es la acción la que pide autorización. 5 intentos fallidos/10 min bloquean. Cubre precio, descuento, cancelar, editar/reembolsar apartado, cerrar turno con diferencia grande. No cubre Inventario.
-- Operador que crea producto → `is_published=false` forzado.
-- Cambiar rol: `UPDATE auth.users SET raw_user_meta_data = raw_user_meta_data || '{"role":"…"}' WHERE email=…` (aplica en el próximo login). Crear usuarios: desde Configuración (Edge Function `create-user`).
+- Sin `canPublishProduct`: crear producto → se guarda oculto, y pasar de oculto a publicado se rechaza (trigger `te_products_publish_guard` en servidor; ocultar sí se permite).
+- Cambiar rol: Configuración → Usuarios y Permisos. Crear usuarios: desde Configuración (Edge Function `create-user`).
 
-### Seguridad (estado verificado 2026-09-30)
+### Seguridad (estado verificado 2026-10-02)
 - **Nunca** `service_role key` en el cliente. Cliente usa `SUPABASE_ANON_KEY` como `apikey` + JWT del usuario como Bearer.
 - **anon** (Tienda) solo lee: `products` publicados y solo las columnas que usa `app.js` (sin `cost`/`barcode`/`supplier_code`) + `config` `categories,wa_float,revista_url,revista_cover,sales_counts`. Solo puede ejecutar la RPC `te_log_failed_login`.
 - **`sales` no acepta INSERT/UPDATE/DELETE directo** de nadie: solo las RPC v2. Lectura abierta a autenticados.
+- **`products` no acepta DELETE directo**: solo `te_delete_products` (permiso + registro + apartados activos) y `te_undo_duplicate_product`.
+- **`activity_log`**: un trigger fija `user_email` y `created_at` desde el JWT en inserts directos (no se puede escribir a nombre de otra persona ni con fecha falsa).
+- Auxiliares internas sin EXECUTE para `authenticated`: `te_refund_sale_balance`, `te_rpc_store`, `te_rpc_replay`, `te_snapshot_sale_items`, `te_consume_override`, `te_log_activity` (antes una cajera podía registrar devoluciones falsas llamando la primera directo).
+- Políticas RLS escritas `TO anon`/`TO authenticated` (no `auth.role() = …` en `TO public`) y `get_user_role()` dentro de `(select …)`.
 - Toda función nueva nace sin EXECUTE para anon/PUBLIC (default privileges); dar `GRANT EXECUTE … TO authenticated` explícito. Helpers internos (llamados solo por otras SECURITY DEFINER) no se dan a `authenticated`.
 - RLS combina políticas permisivas con **OR**: una política vieja `USING (true)` anula todas las demás. Al auditar, revisar `pg_policies` completo, no solo las políticas nuevas.
 - Para auditar: `supabase db advisors --linked` y consultas con la anon key de `app.js`.
@@ -224,17 +228,14 @@ Permisos (`UP_PERMS`/`UP_ROLE_DEFAULTS`, `shared.js`): `canAddProduct canEditPro
 **Seguridad / datos**
 - Rotar `groq_key` y `drive_secret`: estuvieron legibles públicamente hasta el 2026-09-30.
 - Activar "Leaked password protection" (Dashboard → Auth).
-- Limpiar políticas RLS duplicadas en `products`/`config` y envolver `auth.*()` en `(select …)` (avisos de rendimiento de `db advisors`).
 - `groq_key` legible por cualquier autenticado: mover las llamadas a Groq a una Edge Function.
 - Confirmar backups/point-in-time recovery en Supabase.
+- Supabase Auth → URL Configuration: el Site URL/Redirect probablemente sigue en Netlify (invitaciones por correo llevarían a un 404).
+- Los permisos de producto en RLS siguen siendo por rol (cualquier rol puede UPDATE de precio/stock por API); solo publicar y borrar se exigen por permiso fino.
 
 **Calidad / UX**
-- "Asignar etiqueta" masiva usa `prompt()`; duplicar producto no copia `supplier_code`.
-- `_pollNewSalesLegacy()` en `shared.js` es código muerto.
-- `assets/MANUAL.md` sección "Staging" describe la Carga masiva (eliminada).
-- Tienda: modal sin 2 columnas en desktop. Reportes: orden de secciones.
+- Reportes: orden de secciones.
 - Sin pruebas automáticas ni monitoreo de errores.
-
-**Higiene:** `tiket.txt` vacío y legado; `_update-operador-perms.sql` es puntual (verificar estado antes de reejecutar); `Microsoft/` es caché de PowerShell.
+- Duplicar producto **no** copia `supplier_code` a propósito: el código enseña a Recepción con IA a qué producto vincular, duplicarlo lo volvería ambiguo.
 
 **Visión:** Tres Encantos es el piloto de un producto multi-negocio. Decisiones simples "porque es una sola tienda" deben señalarse si limitan ese escalado.
