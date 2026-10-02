@@ -938,7 +938,7 @@ function renderKitEditor() {
     return `
 <div class="kit-comp-row">
   ${p?.image ? `<img src="${_driveSz(p.image, 80)}" class="kit-comp-img" onerror="this.style.display='none'" onclick="_kitCompPopover(${item.id},event)" style="cursor:zoom-in" title="Ver producto">` : '<div class="kit-comp-img"></div>'}
-  <span class="kit-comp-name" onclick="_kitCompPopover(${item.id},event)" style="cursor:pointer" title="Ver producto">${p?.name || item.name}</span>
+  <span class="kit-comp-name" onclick="_kitCompPopover(${item.id},event)" style="cursor:pointer" title="Ver producto">${_esc(p?.name || item.name)}</span>
   <span class="kit-comp-stock">${stock}</span>
   <div class="kit-comp-qty">
     <button type="button" onclick="changeKitQty(${item.id},-1)">−</button>
@@ -1378,8 +1378,8 @@ function _openAddToKit(ids) {
       return `<div class="atk-kit-row" onclick="_confirmAddToKit(${kit.id})">
         <img class="atk-kit-img" src="${kit.image || DEFAULT_IMG}" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
         <div class="atk-kit-info">
-          <div class="atk-kit-name">${kit.name}</div>
-          <div class="atk-kit-comps">${kit.kitItems?.length || 0} componentes · ${compNames.slice(0,60)}${compNames.length>60?'…':''}</div>
+          <div class="atk-kit-name">${_esc(kit.name)}</div>
+          <div class="atk-kit-comps">${kit.kitItems?.length || 0} componentes · ${_esc(compNames.slice(0,60))}${compNames.length>60?'…':''}</div>
         </div>
         <button class="atk-kit-add" onclick="event.stopPropagation();_confirmAddToKit(${kit.id})">Agregar</button>
       </div>`;

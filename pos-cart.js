@@ -587,7 +587,7 @@ async function loadCorte() {
     </div>
     ${anticipos > 0 ? `<div style="background:var(--gold-light);border:1px solid var(--gold);border-radius:10px;padding:10px 14px;font-size:.78rem;color:var(--gold-dark)">${_icoBookmark()} <strong>${fmt(anticipos)}</strong> cobrados ${isGeneral ? 'hoy' : 'en este turno'} en apartados que continúan activos</div>` : ''}
     ${!isGeneral && unassignedPayments.length ? `<div class="corte-warn-box" style="background:#FFF3F3;border:1px solid #FCA5A5;border-radius:10px;padding:10px 14px;font-size:.76rem;color:#991B1B">${_icoWarn()} ${fmt(unassignedNet)} en ${unassignedPayments.length} abono${unassignedPayments.length!==1?'s':''} antiguo${unassignedPayments.length!==1?'s':''} sin registro de quién los cobró (datos de antes de esta actualización) — no cuentan en tu corte.</div>` : ''}
-    ${!isGeneral && otherCashiers.length ? `<div style="background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:.76rem;color:var(--muted)">${_icoUsers()} ${fmt(otherCashiersNet)} los cobró otra cuenta en este mismo horario — no cuentan en tu corte.</div>` : ''}
+    ${!isGeneral && otherCashiers.length ? `<div style="background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:.76rem;color:var(--muted)">${_icoUsers()} ${fmt(otherCashiersNet)} los cobró otra cuenta en este mismo horario — no cuentan en tus cobros${otherCash.length ? '; al cerrar te preguntamos si el efectivo está en tu cajón' : ''}.</div>` : ''}
     <div style="text-align:center;font-size:.72rem;color:var(--muted);padding:4px 0">Generado ${ahoraMX}</div>
   `;
 

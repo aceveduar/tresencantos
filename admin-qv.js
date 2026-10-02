@@ -554,7 +554,7 @@ function _renderQV(p) {
           const baseBg = compOos ? 'var(--tint-red-bg)' : '';
           const rowStyle = `display:flex;align-items:center;gap:8px;padding:5px 6px;margin:0 -6px;border-radius:6px;background:${baseBg};${compOos ? '' : 'border-bottom:1px solid var(--border-light);'}`;
           const clickable = comp ? `onclick="_kitCompPopup(${comp.id},this)" style="${rowStyle}cursor:pointer;transition:background .15s" onmouseenter="this.style.background='var(--gold-light)'" onmouseleave="this.style.background='${baseBg}'"` : `style="${rowStyle}"`;
-          const oosTag = compOos ? `<span style="font-size:.66rem;font-weight:700;color:#991B1B;background:#FEE2E2;padding:1px 7px;border-radius:50px;flex-shrink:0">Sin stock</span>` : '';
+          const oosTag = compOos ? `<span style="font-size:.66rem;font-weight:700;color:var(--tint-red-strong);background:var(--tint-red-bg);padding:1px 7px;border-radius:50px;flex-shrink:0">Sin stock</span>` : '';
           return `<div ${clickable}>
             <img src="${_driveSz(comp?.image || DEFAULT_IMG, 80)}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0;background:var(--surface-soft)" onerror="this.onerror=null;this.src='${DEFAULT_IMG}'">
             <span style="flex:1;font-size:.82rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${_esc(comp?.name || item.name)}</span>

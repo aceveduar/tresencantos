@@ -1,225 +1,143 @@
 # Manual de Usuario — Tres Encantos
 
-Guía de uso del sistema de administración: Inventario, Caja, Reportes y Staging.
+Guía para el equipo de la tienda: Caja, Inventario, Reportes, Actividad y Configuración.
+Última revisión: 2 de octubre de 2026.
 
 ---
 
-## Usuarios y permisos
+## Antes de empezar
 
-| Acción | Eduardo | Dolores | Areli | Ofelia |
-|---|:---:|:---:|:---:|:---:|
-| Ver productos | ✓ | ✓ | ✓ | ✓ |
-| Editar producto / precio | ✓ | ✓ | ✓ | ✗ |
-| Agregar producto | ✓ | ✓ | ✓ | ✗ |
-| Publicar en sitio web | ✓ | ✓ | ✗ | ✗ |
-| Eliminar producto | ✓ | ✓ | ✗ | ✗ |
-| Importar / Exportar JSON | ✓ | ✓ | ✗ | ✗ |
-| Registrar venta (Caja) | ✓ | ✓ | ✓ | ✗ |
-| Cancelar venta | ✓ | ✓ | ✗ | ✗ |
-| Subir productos (Staging) | ✓ | ✓ | ✓ | ✗ |
-| Ver Reportes | ✓ | ✓ | ✓ | ✓ |
-
-> **Nota para Areli:** cuando agregas un producto queda en "Oculto" automáticamente. Eduardo o Dolores deben revisarlo y publicarlo en el sitio web.
-
----
-
-## Módulos
-
-El sistema tiene 4 módulos accesibles desde el menú superior:
-
-| Módulo | Archivo | Descripción |
-|---|---|---|
-| **Inventario** | `admin.html` | Catálogo de productos, precios y stock |
-| **Caja** | `pos.html` | Registrar ventas y apartados |
-| **Reportes** | `stats.html` | Estadísticas e ingresos |
-| **Staging** | `staging.html` | Subir productos nuevos en lote |
-
----
-
-## Inventario
-
-El Inventario es el módulo principal. Desde aquí se administran todos los productos.
-
-### Acceder
-Abrir `admin.html` e iniciar sesión con tu correo y contraseña.
-
-### Ver productos
-- La tabla muestra todos los productos con nombre, categoría, precio y stock.
-- Usa la **barra de búsqueda** para filtrar por nombre.
-- Usa el **selector de categoría** para filtrar por tipo de producto.
-- Cambia entre vista **lista** (☰) y **tarjetas** (⊞) con el botón en la barra superior.
-
-### Editar un producto
-1. Haz doble clic (o doble tap en móvil) sobre cualquier fila del producto.
-2. Se abre el formulario de edición.
-3. Modifica los campos necesarios.
-4. Pulsa **Guardar**.
-
-### Agregar un producto
-1. Pulsa el botón **+ Agregar** en la barra superior.
-2. Llena el formulario: nombre, categoría, precio y una imagen.
-3. Pulsa **Guardar**.
-4. El producto queda en **"Oculto"** — no aparece en el sitio web hasta que un administrador lo publique.
-
-### Cambiar stock
-Toca el número de stock en cualquier fila — se convierte en un campo editable. Escribe la cantidad y confirma con ✓.
-
-- Stock **0** = producto agotado (se oculta del sitio web automáticamente).
-- Stock **1** = "Última pieza" (se muestra en el sitio con aviso de urgencia).
-- Al marcar un producto como disponible con stock 0 → el sistema lo sube a 1 automáticamente.
-
-### Recibir mercancía
-Para cuando llega un pedido y quieres sumar stock rápido, sin abrir el formulario de cada producto uno por uno. Botón **📦 Recibir** en la barra superior del Inventario.
-
-Al entrar, elige el modo — cambia el resultado, así que vale la pena pensarlo:
-
-- **⚡ Rápido** — solo suma stock. Úsalo cuando el precio y el costo del producto ya están bien y solo estás reabasteciendo (el caso más común).
-- **🧾 Con factura** — además de stock, cada producto de la lista trae campos para capturar/corregir **costo, precio y código de proveedor**. Úsalo cuando tienes la factura del proveedor en la mano y quieres dejar esos datos al día de una vez.
-
-Puedes cambiar de modo a media sesión sin perder nada de lo ya recibido.
-
-**Para recibir un producto:** escanea su código de barras o búscalo por nombre — cada vez suma 1 a su stock (ajustable con los botones +/− que aparecen). Si no lo encuentra, antes de crear uno nuevo prueba buscarlo por nombre en el mismo cuadro que aparece — el código puede no coincidir aunque el producto ya exista.
-
-Pulsa **✓ Finalizar recepción** al terminar. Si te equivocas, cada producto de la lista tiene un botón para deshacerlo.
-
-### Publicar / ocultar del sitio web
-El badge **🌐 Web** / **🙈 Oculto** en cada producto es un botón. Tócalo para alternar.
-
-> Solo Eduardo y Dolores pueden hacer esto. Areli verá un mensaje de error si lo intenta.
-
-### Precio de costo y margen
-Si se llena el campo **Precio de costo** en el formulario, el sistema calcula el margen automáticamente:
-- Verde = margen ≥ 30%
-- Ámbar = margen ≥ 10%
-- Rojo = margen < 10%
-
-Este dato es interno — no se muestra en el sitio web ni en el ticket de venta.
-
-### Duplicar un producto
-En las acciones de cada fila hay un botón de duplicar. Crea una copia con los mismos datos. Útil para productos similares con variantes de precio o color.
-
-> **Areli:** tendrás 7 segundos para deshacer la duplicación con el botón "Deshacer" que aparece. Es la única forma de borrar ese producto duplicado.
+- Entra con tu correo y contraseña. Los íconos de arriba llevan a **Caja**, **Inventario**, **Reportes** y **Tienda**. Lo demás (Actividad, Configuración, Mi PIN, Modo oscuro, Cerrar sesión) está en el menú de tu foto o iniciales.
+- **Permisos:** cada persona tiene los suyos (los define la dueña en Configuración → Usuarios y Permisos). Si algo te pide autorización, una persona que sí tenga ese permiso escribe **su PIN** en tu dispositivo y la acción sigue. Esa autorización sirve para una sola acción y dura 5 minutos.
+- **Mi PIN:** si autorizas acciones de otras personas, configura tu PIN de 4 a 6 dígitos en el menú de tu foto → Mi PIN.
 
 ---
 
 ## Caja
 
-La Caja es el punto de venta. Se usa para registrar cada venta o apartado.
+### Abrir turno
+Caja no deja vender sin turno abierto. Al entrar, escribe el **fondo inicial**: el efectivo que hay en el cajón antes de vender. El sistema sugiere el monto con el que cerraste la última vez.
 
 ### Registrar una venta
-1. Busca los productos por nombre o escanea el código de barras.
-2. Toca el producto para agregarlo al carrito (panel derecho).
-3. Ajusta la cantidad con los botones + / − en el carrito.
-4. Si aplica, ingresa un **descuento** (en % o en $).
-5. Selecciona el método de pago: 💵 Efectivo o 📱 Transferencia.
-6. Si es efectivo, ingresa el monto recibido — el sistema calcula el cambio.
-7. Pulsa **Cobrar**.
-8. Aparece el modal de confirmación con opción de enviar **ticket por WhatsApp**.
+1. Busca el producto por nombre o escanea su código de barras.
+2. Tócalo para agregarlo al carrito. Ajusta cantidades con + / −.
+3. Elige el método: **Efectivo** o **Transferencia**.
+4. En efectivo, toca el monto que te dieron (o escríbelo) y el sistema calcula el cambio.
+5. Pulsa **Cobrar**.
+
+En **Más opciones** están el descuento, la nota, el cliente y "Ya lo cobró Ofelia" (cuando el dinero lo recibió ella y no entra a tu cajón).
+
+**Transferencia:** confirma en la app del banco que llegó el dinero antes de entregar el producto.
+
+### ¿Te equivocaste y era apartado?
+Justo después de cobrar, en la ventana de confirmación, toca **Era apartado**. La venta se cancela y los productos regresan al carrito como apartado, con el nombre de la clienta. Captura el anticipo si dejó dinero; si no, devuélvele lo que pagó.
 
 ### Registrar un apartado
-1. Agrega productos al carrito normalmente.
-2. Activa la casilla **"Es apartado"**.
-3. Ingresa el **nombre del cliente** (obligatorio).
-4. Ingresa el **anticipo** recibido.
-5. Selecciona una **fecha límite de pago** (por defecto 30 días).
-6. Pulsa **Cobrar**.
+1. Agrega los productos al carrito.
+2. Activa **Es apartado**.
+3. Escribe el **nombre** de la clienta (obligatorio) y su teléfono.
+4. Escribe el **anticipo** (puede ser $0) y revisa la fecha límite (30 días por defecto).
+5. Pulsa **Registrar apartado** y envía la confirmación por WhatsApp.
 
-Para ver los apartados pendientes, pulsa el botón **📌 Apartados** en la barra superior. Desde ahí puedes completar el pago cuando el cliente regrese.
+### Abonos, liquidar, editar y cancelar apartados
+En **Apartados** busca a la clienta y abre su ficha para abonar, liquidar, editar productos/datos o cancelar. Después de cada pago el sistema ofrece enviarle el comprobante por WhatsApp; mándalo siempre, es su respaldo y el tuyo.
 
-### Corte de caja
-Pulsa el botón **🧾 Corte** en la barra superior para ver el resumen del turno:
-- Total en efectivo
-- Total en transferencias
-- Número de ventas y apartados
+**Cancelar** (una venta o un apartado) pide un motivo y, si hubo dinero, que confirmes que lo devolviste.
 
-Puedes compartir el corte por WhatsApp.
+### Si un producto aparece agotado
+Si lo tienes físicamente, tócalo: Caja ofrece **Reabastecer** (sumar stock) y lo agrega al carrito.
 
-### Historial de ventas
-El botón **Historial** en la barra superior abre un panel con las últimas 50 ventas.
+### Cerrar turno (corte)
+Hazlo **al terminar tu jornada, todos los días**, aunque te vayas temprano.
 
-> **Cancelar una venta:** solo Eduardo y Dolores pueden hacerlo. Al cancelar, el stock de los productos se restaura automáticamente.
+1. Abre **Corte**.
+2. **Cuenta el efectivo del cajón** y escríbelo en "Conteo físico". El sistema no te muestra cuánto debería haber hasta que comparas; así el conteo es real.
+3. Si alguien más cobró en efectivo mientras tu turno estaba abierto (por ejemplo, Ofelia desde su celular), Caja te pregunta si **ese dinero está en tu cajón**. Contesta Sí o No por cada persona.
+4. Toca **Comparar conteo**. Si escribiste mal, toca "Corregir conteo".
+5. Toca **Cerrar turno**. Una diferencia de $100 o más necesita autorización.
+
+En **Ver detalle de mis cobros** está cada movimiento de tu turno, para encontrar dónde está una diferencia.
+
+Si se te olvidó cerrar, al día siguiente verás un aviso: cuenta el cajón y cierra el turno anterior antes de vender.
+
+### Gastos e ingresos del turno
+En Corte → **Gastos y otros movimientos**, registra cualquier salida de efectivo (por ejemplo, la compra de garrafones) o entrada que no sea venta (por ejemplo, recargas). Así el cajón cuadra.
+
+### Historial
+Muestra los cobros recientes agrupados por fecha. Desde cada tarjeta puedes ver el historial de la operación, reenviar el comprobante o cancelar.
+
+---
+
+## Inventario
+
+### Buscar
+Un solo buscador encuentra por nombre, categoría, código de barras, precio o código de proveedor. Los chips de arriba filtran lo que necesita atención: Sin stock, Última pieza, Sin publicar, Por revisar, Sin código, Sin precio, Por caducar, etc.
+
+### Ver y editar
+- Toca un producto para abrir su vista rápida (desliza para ver el siguiente; hacia arriba para editarlo).
+- El stock y el precio se editan tocándolos directamente en la lista.
+- **Web / Oculto** indica si el producto se ve en la Tienda. Solo quien tiene permiso de publicar puede cambiarlo; si alguien sin ese permiso crea un producto, este queda oculto hasta que lo revisen.
+
+### Agregar un producto
+Pulsa **+ Agregar**, llena nombre, categoría, precio y fotos (cámara, galería o pegar). **Completar con IA** sugiere nombre, descripción y categoría a partir de la foto. **+ Otro** guarda y deja el formulario listo para el siguiente.
+
+### Recibir mercancía
+Botón **Recibir**. Modo **Con factura** (también corrige costo, precio y código de proveedor) o **Rápido** (solo suma stock). Escanea o busca cada producto; si no existe, primero búscalo por nombre antes de crearlo. Al terminar pulsa **Finalizar recepción**.
+
+### Recepción con IA
+Sube el PDF o las fotos de la factura. La IA extrae los renglones, tú revisas y vinculas cada uno con su producto (el sistema aprende el código del proveedor para la próxima vez) y aplicas. Revisa siempre las alertas de precio menor al costo antes de confirmar.
+
+### Archivar en vez de borrar
+Para sacar un producto de circulación usa **Archivar** (desde la vista rápida). Se puede restaurar desde el chip "Archivados". Un producto que está en un apartado activo no se puede eliminar.
+
+### Kits
+El botón de regalo arma un kit con 2 o más productos. Su disponibilidad depende del stock de sus componentes.
 
 ---
 
 ## Reportes
 
-Los Reportes muestran estadísticas de ventas. Solo lectura — nadie puede modificar nada desde aquí.
+Por **Día, Semana o Mes**, con flechas para ir a periodos anteriores. Todo en horario de Ciudad de México.
 
-### Períodos disponibles
-- **Hoy**
-- **7 días**
-- **30 días**
-- **Todo el tiempo**
+- **Dinero:** ingresos reales del periodo, separados en Ventas, Abonos y Apertura de apartados. Las devoluciones restan.
+- **Turnos de caja:** cada cierre con su esperado, contado y diferencia.
+- También: movimientos del día, gráficas por hora y categoría, productos más vendidos, apartados pendientes, productos por caducar, clientes frecuentes, estado del inventario, rentabilidad y ventas por vendedora.
 
-### Qué incluye
-- **KPIs principales:** ingresos totales, número de ventas, ticket promedio — con comparación vs el período anterior.
-- **Gráfica de ingresos** por día.
-- **Ventas por categoría** (donut).
-- **Hora pico** — a qué hora se vende más.
-- **Top productos** por ingresos.
-- **Apartados pendientes** — siempre visible sin importar el período.
-- **Por vendedor** — aparece cuando hay más de un vendedor en el período.
-- **Rentabilidad** — productos con margen alto, medio o bajo (requiere que tengan precio de costo).
+Si una cifra dice "No disponible", falló la conexión; recarga la página (no significa $0).
 
 ---
 
-## Staging
+## Actividad
 
-El Staging es la zona de preparación para subir productos nuevos en lote, especialmente útil cuando llega mercancía nueva.
-
-### Flujo completo
-1. Pulsa **Staging** en el menú del Inventario.
-2. Arrastra o selecciona **varias imágenes** a la vez.
-3. Opcional: pulsa **🤖 IA** en cada producto o **"Analizar todas"** para que la inteligencia artificial rellene nombre, descripción y categoría automáticamente.
-4. Revisa y ajusta los datos de cada producto.
-5. Pulsa **"Publicar listas"** para crear los productos en el Inventario.
-6. Los productos se crean con precio **$0** y estado **Oculto**.
-7. Ve al Inventario para agregar el precio correcto a cada uno y publicarlos en el sitio web.
-
-> La IA usa las imágenes para sugerir nombre y categoría. Siempre revisa antes de publicar — puede equivocarse.
+Registro de todo lo que pasa en el sistema: ventas, cancelaciones, cambios de precio y stock, turnos, autorizaciones con PIN. Se filtra por periodo, persona y tipo, y permite buscar (incluso productos dentro de las ventas). Es la herramienta para investigar un corte que no cuadró.
 
 ---
 
-## Sitio web (Tienda)
+## Tienda (sitio web)
 
-El sitio público `index.html` muestra el catálogo a los clientes. No requiere login.
-
-Los clientes pueden:
-- Explorar productos por categoría.
-- Buscar por nombre.
-- Ver detalle de cada producto.
-- Pedir por WhatsApp (no hay checkout — el pedido se cierra por mensaje).
-
-**Un producto aparece en la tienda solo si:**
-- Tiene `is_published = true` (está publicado).
-- Tiene `out_of_stock = false` (no está agotado).
-
-Si un administrador está conectado, verá una barra fija en la parte superior con accesos rápidos a Inventario, Caja y Reportes.
+Las clientas ven el catálogo, arman su pedido en **Mi pedido** y lo envían por WhatsApp (no hay pago en línea). Un producto aparece en la Tienda si está **publicado**, no está en "Por revisar" y tiene stock (o está apartado).
 
 ---
 
 ## Preguntas frecuentes
 
-**¿Por qué no aparece un producto en el sitio web?**
-Dos razones posibles: está en estado "Oculto" (`🙈 Oculto` en el Inventario) o su stock llegó a 0 y se marcó como agotado. Revisa ambas cosas en el Inventario.
+**¿Por qué no aparece un producto en la Tienda?**
+Revisa en Inventario que esté en **Web**, que no esté agotado y que su categoría no sea "Por revisar".
 
-**¿Puedo editar el precio de un producto agotado?**
-Sí. El estado de stock no bloquea la edición. Entra al formulario con doble clic y edita normalmente.
+**El corte no cuadra, ¿qué reviso?**
+1. Que no haya ventas cobradas por error (por ejemplo, algo que era apartado) sin cancelar.
+2. Si alguien más cobró en efectivo y metió el dinero al mismo cajón.
+3. Gastos o ingresos que no se registraron en "Gastos y otros movimientos".
+4. "Ver detalle de mis cobros" en Corte, y Actividad para el detalle completo.
 
-**Se cerró la sesión ¿qué hago?**
-Vuelve a abrir el archivo (o recarga la página) e inicia sesión de nuevo con tu correo y contraseña.
+**¿Cómo sé si una transferencia llegó?**
+El sistema no lo confirma: revisa la app del banco antes de entregar el producto.
 
-**Areli agregó un producto pero no aparece en el sitio ¿es normal?**
-Sí. Los productos creados por Areli quedan en "Oculto" automáticamente para que Eduardo o Dolores los revisen antes de publicarlos.
-
-**¿Cómo sé si una transferencia fue recibida?**
-El sistema no confirma transferencias automáticamente. El flujo es: cobrar → verificar en tu app bancaria → entregar el producto. El ticket de WhatsApp incluye un aviso al cliente de que la transferencia está pendiente de confirmar.
-
-**¿Qué pasa si cancelo una venta?**
-El registro se elimina de Reportes y el stock de los productos se devuelve. Solo superadmins pueden cancelar ventas.
+**Se cerró la sesión, ¿qué hago?**
+Recarga la página y vuelve a entrar. Si Caja se ve rara después de una actualización, recarga dos veces.
 
 ---
 
 ## Contacto técnico
 
-Para problemas con el sistema: **Eduardo** — eacevedo@sunname.com.mx
+Eduardo — eacevedo@sunname.com.mx

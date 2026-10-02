@@ -1161,5 +1161,5 @@ function populateBadgeList() {
   const defaults = ['Más vendido', 'Nuevo', 'Oferta', 'Natura', 'Favorito', 'Temporada', 'Exclusivo', 'Limitado'];
   const fromProducts = products.filter(p => p.badge).map(p => p.badge);
   const all = [...new Set([...defaults, ...fromProducts])];
-  datalist.innerHTML = all.map(b => `<option value="${b}">`).join('');
+  datalist.innerHTML = all.map(b => `<option value="${_esc(b)}">`).join('');
 }

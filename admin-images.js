@@ -222,7 +222,7 @@ async function migrateBase64ToDrive() {
       <div style="background:#444;border-radius:6px;height:6px;margin-bottom:8px">
         <div style="background:var(--gold);height:6px;border-radius:6px;width:${Math.round(cur/total*100)}%;transition:width .3s"></div>
       </div>
-      <div style="color:var(--muted-light);font-size:.78rem">${cur}/${total} — ${name}</div>`;
+      <div style="color:var(--muted-light);font-size:.78rem">${cur}/${total} — ${_esc(name)}</div>`;
   };
 
   let ok = 0, fail = 0;

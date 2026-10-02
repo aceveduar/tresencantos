@@ -309,7 +309,7 @@ function _kbRenderComponents() {
         <button class="kb-qty-btn" onclick="_kbChangeQty(${c.id},-1)">−</button>
         <span style="font-size:.9rem;font-weight:700;min-width:22px;text-align:center">${c.qty}</span>
         <button class="kb-qty-btn" onclick="_kbChangeQty(${c.id},1)">+</button>
-        <button class="kb-qty-btn" onclick="_kbRemoveComponent(${c.id})" style="border-color:#FECACA;background:#FEF2F2;color:var(--red)">✕</button>
+        <button class="kb-qty-btn" onclick="_kbRemoveComponent(${c.id})" aria-label="Quitar componente" style="margin-left:8px;border-color:var(--tint-red-border);background:var(--tint-red-bg);color:var(--red)">✕</button>
       </div>
     </div>`; }).join('');
   _staggerImgLoad(el);

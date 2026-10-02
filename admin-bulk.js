@@ -390,42 +390,69 @@ async function bulkToggleOOS() {
     : `${selectedIds.size} producto(s) marcados como disponibles`, 'success');
 }
 
-async function bulkSetBadge() {
+// Insignia masiva: bottom sheet (antes eran dos prompt() nativos, el segundo
+// pidiendo teclear "best/new/promo/natura" a mano).
+let _bbpType = null;
+function bulkSetBadge() {
   if (!selectedIds.size) return;
-  const badge = prompt(`Insignia para ${selectedIds.size} producto(s) (vacío para quitar):`);
-  if (badge === null) return;
-  const finalBadge = badge.trim() || null;
+  _bbpType = null;
+  document.getElementById('bbp-sub').textContent = `${selectedIds.size} producto${selectedIds.size !== 1 ? 's' : ''} seleccionado${selectedIds.size !== 1 ? 's' : ''}`;
+  document.getElementById('bbp-text').value = '';
+  document.querySelectorAll('#bbp-types .bcp-chip').forEach(b => { b.classList.remove('selected'); b.setAttribute('aria-checked', 'false'); });
+  _bbpUpdate();
+  document.getElementById('bulk-badge-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeBulkBadgePicker() {
+  document.getElementById('bulk-badge-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function _bbpPickType(btn) {
+  _bbpType = btn.dataset.type;
+  document.querySelectorAll('#bbp-types .bcp-chip').forEach(b => {
+    const on = b === btn;
+    b.classList.toggle('selected', on);
+    b.setAttribute('aria-checked', on ? 'true' : 'false');
+  });
+  _bbpUpdate();
+}
+function _bbpUpdate() {
+  const btn = document.getElementById('bbp-apply');
+  if (btn) btn.disabled = !(document.getElementById('bbp-text').value.trim() && _bbpType);
+}
 
-  let finalType = null;
-  if (finalBadge) {
-    const typeInput = prompt('Tipo de color:\n  best  → Dorada\n  new   → Negra\n  promo → Roja\n  natura→ Verde\n\nEscribe el tipo:');
-    if (typeInput === null) return;
-    finalType = ['best','new','promo','natura'].includes(typeInput.trim()) ? typeInput.trim() : null;
-  }
+async function bulkApplyBadge(remove) {
+  if (!selectedIds.size) return;
+  const finalBadge = remove ? null : document.getElementById('bbp-text').value.trim() || null;
+  const finalType  = remove ? null : _bbpType;
+  if (!remove && !(finalBadge && finalType)) return;
+  closeBulkBadgePicker();
 
+  const _badgeIds = [...selectedIds];
   if (getSupabaseUrl()) {
-    const ids = [...selectedIds].join(',');
-    const result = await supabaseApi(`products?id=in.(${ids})`, {
-      method: 'PATCH',
-      body: JSON.stringify({ badge: finalBadge, badge_type: finalType })
-    });
-    if (!result.ok) {
-      toast('Error al actualizar insignia', 'error');
-      return;
+    // PostgREST: máx. 10 ids por in.(…) (convención del proyecto).
+    for (let i = 0; i < _badgeIds.length; i += 10) {
+      const result = await supabaseApi(`products?id=in.(${_badgeIds.slice(i, i + 10).join(',')})`, {
+        method: 'PATCH',
+        body: JSON.stringify({ badge: finalBadge, badge_type: finalType })
+      });
+      if (!result.ok) {
+        toast('Error al actualizar insignia', 'error');
+        return;
+      }
     }
   }
 
-  const _badgeIds = [...selectedIds];
   products.forEach(p => {
-    if (selectedIds.has(p.id)) { p.badge = finalBadge; p.badgeType = finalType; }
+    if (_badgeIds.includes(p.id)) { p.badge = finalBadge; p.badgeType = finalType; }
   });
   renderTable();
   logActivity('producto_editado', finalBadge
     ? `Aplicó insignia "${finalBadge}" a ${_badgeIds.length} producto(s) (masivo)`
     : `Quitó insignia de ${_badgeIds.length} producto(s) (masivo)`, { ids: _badgeIds, names: products.filter(p => _badgeIds.includes(p.id)).map(p => p.name), count: _badgeIds.length, badge: finalBadge, bulk: true });
   toast(finalBadge
-    ? `Insignia "${finalBadge}" aplicada a ${selectedIds.size} producto(s)`
-    : `Insignias eliminadas de ${selectedIds.size} producto(s)`, 'success');
+    ? `Insignia "${finalBadge}" aplicada a ${_badgeIds.length} producto(s)`
+    : `Insignias eliminadas de ${_badgeIds.length} producto(s)`, 'success');
 }
 
 async function bulkTogglePublish() {

@@ -5,6 +5,11 @@ const SUPABASE_URL = 'https://qxvrggmpaqhslgdmbhqw.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4dnJnZ21wYXFoc2xnZG1iaHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjYyMjYsImV4cCI6MjA5NDEwMjIyNn0.irCFwOR5HL_ZOVjFGVw9LqmzYicDZTNEmxcknu_j6cI';
 
 const _esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+// Las URLs de imagen se interpolan en atributos src/onclick: una URL con
+// comillas o <> (capturada a mano en Inventario) rompería el atributo e
+// inyectaría HTML en la Tienda pública. Solo se aceptan http(s)/data:image
+// sin esos caracteres; lo demás cae al placeholder.
+const _safeImg = url => (typeof url === 'string' && /^(https?:\/\/|data:image\/)/i.test(url) && !/["'<>\s]/.test(url)) ? url : '';
 const _driveSz = (url, w) => (url && url.includes('drive.google.com')) ? url.replace(/sz=w\d+/, `sz=w${w}`) : url;
 const PROD_PLACEHOLDER = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22400%22%20viewBox%3D%220%200%20400%20400%22%3E%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22%23F7F2EB%22%2F%3E%3Crect%20x%3D%22130%22%20y%3D%22100%22%20width%3D%22140%22%20height%3D%22140%22%20rx%3D%2210%22%20fill%3D%22none%22%20stroke%3D%22%23D4BC94%22%20stroke-width%3D%223%22%2F%3E%3Ccircle%20cx%3D%22158%22%20cy%3D%22127%22%20r%3D%2214%22%20fill%3D%22%23D4BC94%22%2F%3E%3Cpath%20d%3D%22M130%20210%20L175%20165%20L210%20195%20L255%20150%20L280%20180%20L280%20240%20L130%20240Z%22%20fill%3D%22%23D4BC94%22%20fill-opacity%3D%22.4%22%2F%3E%3C%2Fsvg%3E';
 
@@ -300,7 +305,7 @@ async function _fetchProductsList() {
       categoryLabel: p.category_label,
       price: p.price,
       description: p.description,
-      image: p.image,
+      image: _safeImg(p.image),
       badge: p.badge,
       badgeType: p.badge_type,
       featured: p.featured,
@@ -308,7 +313,7 @@ async function _fetchProductsList() {
       isApartado: p.is_apartado || false,
       originalPrice: p.original_price,
       stock: p.stock,
-      images: p.images || null,
+      images: Array.isArray(p.images) ? p.images.map(_safeImg).filter(Boolean) : null,
       kitItems: p.kit_items || null
     }));
   }
@@ -784,7 +789,7 @@ function filterTo(cat) {
 /* ── SHARE ── */
 const _isLocal = ['localhost','127.0.0.1'].includes(window.location.hostname);
 const SITE_URL = _isLocal
-  ? 'https://tresencantos.netlify.app/index.html'
+  ? 'https://aceveduar.github.io/tresencantos/index.html'
   : window.location.origin + window.location.pathname;
 
 function _productUrl(id) {
