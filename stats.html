@@ -242,32 +242,10 @@
        selector de período (Apartados/Clientes/Turnos ya eran así desde
        antes; Estado del inventario/Valor en venta/Rentabilidad son salud
        de catálogo, tampoco atada al período). Responde a "¿qué necesito
-       vigilar o atender ahora?", no a "¿cómo fue este período?". ══ -->
-
-  <!-- APARTADOS PENDIENTES -->
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-head">
-      <h2><svg class="card-h-icon" viewBox="0 0 24 24"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>Apartados pendientes</h2>
-      <span id="apt-summary-label" style="font-size:.75rem;color:var(--muted)"></span>
-    </div>
-    <div class="card-body" id="apt-pending-body" style="max-height:400px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain">
-      <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
-    </div>
-  </div>
-
-  <!-- CLIENTES FRECUENTES — ranking histórico, no filtrado por período -->
-  <div class="card" id="clientes-card" style="margin-bottom:16px">
-    <div class="card-head">
-      <h2><svg class="card-h-icon" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Clientes frecuentes</h2>
-      <span id="clientes-label" style="font-size:.75rem;color:var(--muted)"></span>
-    </div>
-    <div class="card-body" style="padding-top:8px;padding-bottom:8px">
-      <input type="text" id="clientes-search" placeholder="Buscar por nombre o teléfono…" oninput="renderTopClientes()" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:16px;outline:none;font-family:inherit;margin-bottom:10px;box-sizing:border-box">
-      <div id="clientes-body" style="max-height:400px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain">
-        <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
-      </div>
-    </div>
-  </div>
+       vigilar o atender ahora?", no a "¿cómo fue este período?".
+       Orden (2026-10-02): lo que pide atención hoy primero -- Turnos de
+       caja (cortes que no cuadran), Apartados, Por caducar, Inventario --
+       y después lo de consulta (Valor, Clientes, Rentabilidad). ══ -->
 
   <!-- TURNOS DE CAJA — historial de apertura/cierre por empleado, no
        filtrado por período (igual que Apartados pendientes/Clientes frecuentes) -->
@@ -277,6 +255,17 @@
       <span id="turnos-label" style="font-size:.75rem;color:var(--muted)"></span>
     </div>
     <div class="card-body" id="turnos-body" style="max-height:400px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain">
+      <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
+    </div>
+  </div>
+
+  <!-- APARTADOS PENDIENTES -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <h2><svg class="card-h-icon" viewBox="0 0 24 24"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>Apartados pendientes</h2>
+      <span id="apt-summary-label" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body" id="apt-pending-body" style="max-height:400px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain">
       <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
     </div>
   </div>
@@ -339,6 +328,20 @@
     </div>
   </div>
 
+  <!-- CLIENTES FRECUENTES — ranking histórico, no filtrado por período -->
+  <div class="card" id="clientes-card" style="margin-bottom:16px">
+    <div class="card-head">
+      <h2><svg class="card-h-icon" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Clientes frecuentes</h2>
+      <span id="clientes-label" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="card-body" style="padding-top:8px;padding-bottom:8px">
+      <input type="text" id="clientes-search" placeholder="Buscar por nombre o teléfono…" oninput="renderTopClientes()" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:16px;outline:none;font-family:inherit;margin-bottom:10px;box-sizing:border-box">
+      <div id="clientes-body" style="max-height:400px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain">
+        <div class="loading-state"><div class="loading-spinner"></div>Cargando…</div>
+      </div>
+    </div>
+  </div>
+
   <!-- RENTABILIDAD — solo desktop/tablet -->
   <div class="card" id="rentabilidad-card" style="margin-bottom:16px">
     <div class="card-head">
@@ -366,7 +369,6 @@
       <div id="rent-list"></div>
     </div>
   </div>
-
 
 </main>
 

@@ -1810,7 +1810,7 @@ let _turnos = [];
 // Historial real de apertura/cierre de caja (cash_shifts) -- reemplaza el
 // "turno" que antes solo vivía en localStorage y nunca era visible aquí.
 async function loadTurnos() {
-  const r = await _fetchAll(`cash_shifts?select=id,user_email,opened_at,closed_at,fondo_inicial,conteo_final,gastos_total,esperado,diferencia,status&order=opened_at.desc&limit=60`);
+  const r = await _fetchAll(`cash_shifts?select=id,user_email,opened_at,closed_at,fondo_inicial,conteo_final,gastos_total,retiros_total,efectivo_otras_cuentas,esperado,diferencia,status&order=opened_at.desc&limit=60`);
   turnosLoaded = r.ok;
   _turnos = r.ok ? (r.data || []) : [];
 }
@@ -1885,6 +1885,15 @@ function renderTurnos() {
     const diffColor = diff == null ? 'var(--muted)'
       : Math.abs(diff) < .005 ? 'var(--green)'
       : diff > 0 ? 'var(--gold-dark)' : 'var(--red)';
+    // Lo que explica una diferencia sin abrir Actividad: qué esperaba el
+    // sistema, cuánto se retiró del cajón y cuánto efectivo de otras cuentas
+    // declaró la cajera como suyo (2026-10-02).
+    const money = n => `$${Number(n).toLocaleString('es-MX')}`;
+    const detalleCierre = [
+      t.esperado != null && t.conteo_final != null ? `Esperado ${money(t.esperado)}` : '',
+      Number(t.retiros_total) ? `Retiros ${money(t.retiros_total)}` : '',
+      Number(t.efectivo_otras_cuentas) ? `Incluye ${money(t.efectivo_otras_cuentas)} de otras cuentas` : ''
+    ].filter(Boolean).join(' · ');
     const estadoChip = enCurso
       ? '<span class="turno-chip turno-chip-open">● En curso</span>'
       : sinCierre
@@ -1902,6 +1911,7 @@ function renderTurnos() {
         <span style="color:var(--muted)">Fondo $${Number(t.fondo_inicial || 0).toLocaleString('es-MX')}${t.conteo_final != null ? ` · Contado $${Number(t.conteo_final).toLocaleString('es-MX')}` : ''}</span>
         <span style="font-weight:700;color:${diffColor}">${diffTxt}</span>
       </div>
+      ${detalleCierre ? `<div style="font-size:.74rem;color:var(--muted);margin-top:3px">${detalleCierre}</div>` : ''}
     </div>`;
   }).join('');
 
