@@ -41,7 +41,7 @@ Panel de administración + POS + reportes + sitio e-commerce para **Tres Encanto
 - **Frontend:** HTML + CSS + Vanilla JS, sin framework ni bundler.
 - **Backend:** Supabase (PostgREST + RPC SECURITY DEFINER + RLS). Project URL `https://qxvrggmpaqhslgdmbhqw.supabase.co`.
 - **Auth:** Supabase Auth JWT en `localStorage.te_admin_session` (`{access_token, refresh_token, expires_at}`; válida si `expires_at > now+60s`).
-- **Hosting:** archivos estáticos en GitHub Pages (`https://aceveduar.github.io/tresencantos/`, se publica con cada push a `main`). Netlify caducó (404): no usar ese dominio. Rutas siempre relativas (el sitio vive en `/tresencantos/`, no en la raíz). PWA (`manifest.json` + `sw.js`).
+- **Hosting:** archivos estáticos. Eduardo prueba en GitHub Pages (`https://aceveduar.github.io/tresencantos/`) y producción es Netlify (`tresencantos.netlify.app`, con error/404 desde 2026-10-02: Eduardo decide si lo paga o lo arregla). Los enlaces generados (`SITE_URL`) son relativos al sitio donde se abre, así que funcionan en ambos; solo `og:*`/`canonical` de `index.html` y el fallback local de `app.js` fijan un dominio (hoy GitHub Pages: cambiarlos si Netlify vuelve). Rutas siempre relativas (en Pages el sitio vive en `/tresencantos/`). PWA (`manifest.json` + `sw.js`).
 - **Fuentes:** Inter (UI) + Playfair Display (solo el número protagonista de una tarjeta y títulos) + Dancing Script.
 - **IA:** Groq, modelo `qwen/qwen3.8-27b` (constante `GROQ_VISION_MODEL`, `admin-images.js`). Imágenes en Google Drive vía Apps Script proxy.
 
@@ -109,6 +109,7 @@ Permisos (`UP_PERMS`/`UP_ROLE_DEFAULTS`, `shared.js`): `canAddProduct canEditPro
 - **`products` no acepta DELETE directo**: solo `te_delete_products` (permiso + registro + apartados activos) y `te_undo_duplicate_product`.
 - **`activity_log`**: un trigger fija `user_email` y `created_at` desde el JWT en inserts directos (no se puede escribir a nombre de otra persona ni con fecha falsa).
 - Auxiliares internas sin EXECUTE para `authenticated`: `te_refund_sale_balance`, `te_rpc_store`, `te_rpc_replay`, `te_snapshot_sale_items`, `te_consume_override`, `te_log_activity` (antes una cajera podía registrar devoluciones falsas llamando la primera directo).
+- **`product_changes`** (caja negra): trigger que registra todo cambio manual de precio/costo/stock/agotado/publicado/archivado/nombre (quién, cuándo, antes→después). Excluye las RPC de venta (`rpc_v2`). Solo lectura superadmin. Se decidió esto en vez de bloquear precio/stock por permiso fino (los operadores tienen `canEditProduct` por defecto y precio/costo cambian desde 3 permisos distintos).
 - Políticas RLS escritas `TO anon`/`TO authenticated` (no `auth.role() = …` en `TO public`) y `get_user_role()` dentro de `(select …)`.
 - Toda función nueva nace sin EXECUTE para anon/PUBLIC (default privileges); dar `GRANT EXECUTE … TO authenticated` explícito. Helpers internos (llamados solo por otras SECURITY DEFINER) no se dan a `authenticated`.
 - RLS combina políticas permisivas con **OR**: una política vieja `USING (true)` anula todas las demás. Al auditar, revisar `pg_policies` completo, no solo las políticas nuevas.
@@ -118,6 +119,9 @@ Permisos (`UP_PERMS`/`UP_ROLE_DEFAULTS`, `shared.js`): `canAddProduct canEditPro
 `record_sale_atomic_v2`, `record_apartado_payment_atomic`, `edit_apartado_atomic`, `cancel_sale_atomic`, `refund_apartado_atomic`, `reactivate_apartado_atomic`, `te_open_cash_shift`, `te_close_cash_shift`, `te_add_shift_expense`, `te_cancel_shift_expense`. Todas idempotentes por `p_request_id` (el cliente reintenta con el mismo UUID vía `posRpc()`), con lock de inventario, versión optimista, snapshots de kits y registro en Actividad dentro de la misma transacción. Escriben con `SET LOCAL tresencantos.rpc_v2='on'`.
 - **Nunca** modificar `created_at`; nunca borrar ni editar filas de `sale_payments` (las correcciones son filas nuevas).
 - Cambiar la firma de una RPC: `DROP FUNCTION` de la firma vieja antes de crear la nueva — si no, quedan overloads y PostgREST/SQL dan "is not unique". Hoy no hay ninguna función duplicada (limpiado 2026-09-30).
+
+### Respaldos
+Supabase no tiene backups en este plan (sin PITR, lista vacía). `scripts/respaldo-supabase.ps1` exporta todas las tablas de `public` (JSON), el esquema (funciones, políticas, triggers, columnas, permisos) y `auth.users` sin contraseñas, a `Documents\TresEncantos-Respaldos\TresEncantos_<fecha>.zip` (conserva 30; bitácora en `respaldo.log`). Tarea programada de Windows "TresEncantos - Respaldo Supabase", diaria 21:30 (corre al encender si estaba apagada). Usa la sesión del CLI: si falla con error de sesión, `supabase login`. Cómo restaurar: `LEEME.txt` dentro de cada zip.
 
 ### Migraciones
 - Se ejecutan con `supabase db query --linked -f supabase/migrations/<archivo>.sql` (el CLI está enlazado) o pegándolas en el SQL Editor. El historial de migraciones de Supabase está vacío porque siempre se corrieron a mano; para saber si algo se aplicó, **consultar el estado real** (`pg_proc`, `pg_policies`, `information_schema`), no el historial.
@@ -229,9 +233,7 @@ Permisos (`UP_PERMS`/`UP_ROLE_DEFAULTS`, `shared.js`): `canAddProduct canEditPro
 - Rotar `groq_key` y `drive_secret`: estuvieron legibles públicamente hasta el 2026-09-30.
 - Activar "Leaked password protection" (Dashboard → Auth).
 - `groq_key` legible por cualquier autenticado: mover las llamadas a Groq a una Edge Function.
-- Confirmar backups/point-in-time recovery en Supabase.
 - Supabase Auth → URL Configuration: el Site URL/Redirect probablemente sigue en Netlify (invitaciones por correo llevarían a un 404).
-- Los permisos de producto en RLS siguen siendo por rol (cualquier rol puede UPDATE de precio/stock por API); solo publicar y borrar se exigen por permiso fino.
 
 **Calidad / UX**
 - Reportes: orden de secciones.
