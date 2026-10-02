@@ -638,12 +638,19 @@ async function _sharedRpc(name, body) {
   const session = JSON.parse(localStorage.getItem('te_admin_session') || '{}');
   const token = session?.access_token || '';
   if (!url || !key || !token) return { ok: false, data: { message: 'Sesión no disponible' } };
-  const request = async currentToken => fetch(`${url}/rest/v1/rpc/${name}`, {
-    method: 'POST',
-    headers: { apikey: key, Authorization: `Bearer ${currentToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  let r = await request(token);
+  const request = async currentToken => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    return fetch(`${url}/rest/v1/rpc/${name}`, {
+      method: 'POST',
+      headers: { apikey: key, Authorization: `Bearer ${currentToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    }).finally(() => clearTimeout(timeoutId));
+  };
+  let r;
+  try { r = await request(token); }
+  catch { return { ok: false, status: 0, data: { message: 'Sin conexión o el servidor no respondió. Intenta de nuevo.' } }; }
   const refreshToken =
     (typeof _refreshPosToken === 'function' && _refreshPosToken) ||
     (typeof _refreshStatsToken === 'function' && _refreshStatsToken) ||
@@ -653,7 +660,8 @@ async function _sharedRpc(name, body) {
     null;
   if (r.status === 401 && refreshToken && await refreshToken()) {
     const refreshed = JSON.parse(localStorage.getItem('te_admin_session') || '{}');
-    r = await request(refreshed?.access_token || '');
+    try { r = await request(refreshed?.access_token || ''); }
+    catch { return { ok: false, status: 0, data: { message: 'Sin conexión o el servidor no respondió. Intenta de nuevo.' } }; }
   }
   const text = await r.text();
   let data; try { data = JSON.parse(text); } catch { data = text || null; }

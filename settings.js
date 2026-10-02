@@ -47,8 +47,18 @@ async function _refreshSettingsToken() {
     return true;
   } catch { return false; }
 }
+// Timeout en todo fetch a Supabase (convención del proyecto): sin esto una
+// conexión colgada dejaba los botones en "Guardando…" para siempre, y un
+// error de red lanzaba excepción en vez de devolver { ok:false }.
+function _settingsFetchTimeout(url, opts = {}, ms = 20000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+}
+const _SETTINGS_NET_FAIL = { ok: false, status: 0, data: { message: 'Sin conexión o el servidor no respondió. Intenta de nuevo.' } };
+
 async function api(path, opts = {}) {
-  const _call = (tk) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+  const _call = (tk) => _settingsFetchTimeout(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...opts,
     headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json', ...opts.headers }
   }).then(async r => {
@@ -56,16 +66,18 @@ async function api(path, opts = {}) {
     let data; try { data = JSON.parse(text); } catch { data = text || null; }
     return { ok: r.ok, status: r.status, data };
   });
-  const r = await _call(_getSettingsToken());
-  if (r.status === 401 && await _refreshSettingsToken()) return _call(_getSettingsToken());
-  return r;
+  try {
+    const r = await _call(_getSettingsToken());
+    if (r.status === 401 && await _refreshSettingsToken()) return await _call(_getSettingsToken());
+    return r;
+  } catch { return _SETTINGS_NET_FAIL; }
 }
 
 // Invoca una Supabase Edge Function con el JWT de la sesión activa -- mismo
 // patrón que api() (refresca el token una vez si viene expirado), pero
 // contra /functions/v1/ en vez de /rest/v1/.
 async function edgeFn(name, payload = {}) {
-  const _call = (tk) => fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+  const _call = (tk) => _settingsFetchTimeout(`${SUPABASE_URL}/functions/v1/${name}`, {
     method: 'POST',
     headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -74,9 +86,11 @@ async function edgeFn(name, payload = {}) {
     let data; try { data = JSON.parse(text); } catch { data = text || null; }
     return { ok: r.ok, status: r.status, data };
   });
-  const r = await _call(_getSettingsToken());
-  if (r.status === 401 && await _refreshSettingsToken()) return _call(_getSettingsToken());
-  return r;
+  try {
+    const r = await _call(_getSettingsToken());
+    if (r.status === 401 && await _refreshSettingsToken()) return await _call(_getSettingsToken());
+    return r;
+  } catch { return _SETTINGS_NET_FAIL; }
 }
 
 /* ── STATE ── */

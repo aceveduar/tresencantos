@@ -77,8 +77,13 @@ async function _refreshActivityToken() {
     return true;
   } catch { return false; }
 }
+function _activityFetchTimeout(url, opts = {}, ms = 20000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+}
 async function api(path, opts = {}) {
-  const _call = (tk) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+  const _call = (tk) => _activityFetchTimeout(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...opts,
     headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json', ...opts.headers }
   }).then(async r => ({ ok: r.ok, status: r.status, data: r.status !== 204 ? await r.json().catch(()=>null) : null }));

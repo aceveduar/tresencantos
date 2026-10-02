@@ -667,8 +667,17 @@ function _openKitLightbox(p, editFn) {
   });
 }
 
+// Timeout en todo fetch a Supabase (convención del proyecto): sin esto una
+// conexión colgada dejaba Inventario en "Guardando…" para siempre, y un
+// error de red lanzaba excepción en vez de devolver { ok:false }.
+function _adminFetchTimeout(url, opts = {}, ms = 20000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+}
+
 async function supabaseApi(path, opts = {}) {
-  const _call = (token) => fetch(getSupabaseUrl() + '/rest/v1/' + path, {
+  const _call = (token) => _adminFetchTimeout(getSupabaseUrl() + '/rest/v1/' + path, {
     ...opts,
     headers: {
       apikey: SUPABASE_ANON_KEY,
@@ -682,16 +691,20 @@ async function supabaseApi(path, opts = {}) {
     try { data = JSON.parse(text); } catch { data = text || null; }
     return { ok: r.ok, status: r.status, data };
   });
-  const r = await _call(_getAdminToken());
-  if (r.status === 401 && await refreshSessionIfNeeded()) return _call(_getAdminToken());
-  return r;
+  try {
+    const r = await _call(_getAdminToken());
+    if (r.status === 401 && await refreshSessionIfNeeded()) return await _call(_getAdminToken());
+    return r;
+  } catch {
+    return { ok: false, status: 0, data: { message: 'Sin conexión o el servidor no respondió. Intenta de nuevo.' } };
+  }
 }
 
 /* ── AUTH HELPERS ── */
 
 // Helper para endpoints de Supabase Auth (usa anon key, no service role)
 function supabaseAuth(path, opts = {}) {
-  return fetch(`${SUPABASE_URL}/auth/v1${path}`, {
+  return _adminFetchTimeout(`${SUPABASE_URL}/auth/v1${path}`, {
     ...opts,
     headers: {
       'apikey': SUPABASE_ANON_KEY,
