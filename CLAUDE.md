@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación vigente del proyecto. Última reconciliación: 2026-10-02 · `sw.js` `CACHE_VERSION = 'v573'`.
+Documentación vigente del proyecto. Última reconciliación: 2026-10-02 · `sw.js` `CACHE_VERSION = 'v574'`.
 
 > **Fuente de verdad:** para comportamiento ejecutable manda el código; para reglas de negocio y decisiones UX manda este documento.
 > **Historial completo** (bitácora fecha por fecha, razonamiento detrás de cada decisión, bugs resueltos): [assets/HISTORIAL.md](assets/HISTORIAL.md). No se carga solo — consultarlo con grep cuando haga falta el "por qué" de algo. Este archivo solo describe el estado actual.
@@ -43,7 +43,7 @@ Panel de administración + POS + reportes + sitio e-commerce para **Tres Encanto
 - **Auth:** Supabase Auth JWT en `localStorage.te_admin_session` (`{access_token, refresh_token, expires_at}`; válida si `expires_at > now+60s`).
 - **Hosting:** archivos estáticos. Eduardo prueba en GitHub Pages (`https://aceveduar.github.io/tresencantos/`) y producción es Netlify (`tresencantos.netlify.app`, con error/404 desde 2026-10-02: Eduardo decide si lo paga o lo arregla). Los enlaces generados (`SITE_URL`) son relativos al sitio donde se abre, así que funcionan en ambos; solo `og:*`/`canonical` de `index.html` y el fallback local de `app.js` fijan un dominio (hoy GitHub Pages: cambiarlos si Netlify vuelve). Rutas siempre relativas (en Pages el sitio vive en `/tresencantos/`). PWA (`manifest.json` + `sw.js`).
 - **Fuentes:** Inter (UI) + Playfair Display (solo el número protagonista de una tarjeta y títulos) + Dancing Script.
-- **IA:** Groq, modelo `qwen/qwen3.8-27b` (constante `GROQ_VISION_MODEL`, `admin-images.js`). Imágenes en Google Drive vía Apps Script proxy.
+- **IA:** Groq, modelo `qwen/qwen3.8-27b` (constante `GROQ_VISION_MODEL`, `admin-images.js`). Toda llamada pasa por la Edge Function `groq-proxy` (valida permisos de Inventario con el JWT y pone la clave en el servidor); `groq_key` no es legible desde el navegador (política de `config`), el cliente solo consulta `te_ai_configured()`. Desplegar con `supabase functions deploy groq-proxy --use-api`. Imágenes en Google Drive vía Apps Script proxy.
 
 ---
 
@@ -232,7 +232,6 @@ Supabase no tiene backups en este plan (sin PITR, lista vacía). `scripts/respal
 **Seguridad / datos**
 - Rotar `groq_key` y `drive_secret`: estuvieron legibles públicamente hasta el 2026-09-30.
 - Activar "Leaked password protection" (Dashboard → Auth).
-- `groq_key` legible por cualquier autenticado: mover las llamadas a Groq a una Edge Function.
 - Supabase Auth → URL Configuration: el Site URL/Redirect probablemente sigue en Netlify (invitaciones por correo llevarían a un 404).
 
 **Calidad / UX**

@@ -95,7 +95,9 @@ async function edgeFn(name, payload = {}) {
 
 /* ── STATE ── */
 let categories = [];
-let groqApiKey = null;
+// La clave de Groq ya no es legible desde el navegador: solo se sabe si hay
+// una configurada (te_ai_configured). Las llamadas pasan por groq-proxy.
+let _aiConfigured = false;
 let _openSections = new Set();
 let _dragCode = null, _dragType = null;
 let _catCounts = {};
@@ -113,15 +115,16 @@ function logActivity(action, summary, meta = null) {
 
 /* ── INIT ── */
 async function init() {
-  const [cfgR, catR, namesR] = await Promise.all([
-    api('config?id=in.(groq_key,drive_ep,drive_secret,wa_float,captura_rapida,show_creator,show_restock,show_recv,show_recv_ia,user_permissions)&select=id,value'),
+  const [cfgR, catR, namesR, aiR] = await Promise.all([
+    api('config?id=in.(drive_ep,drive_secret,wa_float,captura_rapida,show_creator,show_restock,show_recv,show_recv_ia,user_permissions)&select=id,value'),
     api('config?id=eq.categories&select=value'),
-    api('config?id=eq.user_names&select=value')
+    api('config?id=eq.user_names&select=value'),
+    api('rpc/te_ai_configured', { method: 'POST', body: '{}' })
   ]);
+  _aiConfigured = aiR.ok && aiR.data === true;
 
   if (cfgR.ok && cfgR.data) {
     cfgR.data.forEach(row => {
-      if (row.id === 'groq_key')          groqApiKey   = row.value || null;
       if (row.id === 'drive_ep')          driveEp      = row.value || null;
       if (row.id === 'drive_secret')      driveSecret  = row.value || null;
       if (row.id === 'user_permissions')  {
@@ -194,7 +197,7 @@ async function init() {
 function loadGroqKeyStatus() {
   const el = document.getElementById('groq-key-status');
   if (!el) return;
-  if (groqApiKey) {
+  if (_aiConfigured) {
     el.textContent = '✓ Configurado'; el.classList.add('ok');
   }
 }
@@ -202,13 +205,11 @@ function loadGroqKeyStatus() {
 async function saveGroqKey() {
   const val = document.getElementById('groq-key-input').value.trim();
   if (!val || !val.startsWith('gsk_')) { toast('Ingresa una key válida (empieza con gsk_)', 'err'); return; }
-  const r = await api('config', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: 'groq_key', value: val })
-  });
+  // Vía te_save_config_value (exige canManageSettings): un POST directo a
+  // config solo funciona para superadmin y falla en silencio para los demás.
+  const r = await _saveConfigValue('groq_key', val);
   if (r.ok) {
-    groqApiKey = val;
+    _aiConfigured = true;
     document.getElementById('groq-key-input').value = '';
     loadGroqKeyStatus();
     logActivity('configuracion_editada', 'Actualizó la Groq API key', { setting: 'groq_key' });
@@ -1728,7 +1729,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (el) el.style.display = 'none';
     });
     // "Exportar todo" es más sensible que el resto de Datos -- descarga
-    // groq_key/drive_secret en texto plano -- y se queda encerrado en
+    // drive_secret en texto plano (groq_key ya no es legible desde el
+    // navegador desde 2026-10-02) -- y se queda encerrado en
     // canManageSettings a propósito, sin volverse más delegable (ver
     // CLAUDE.md). canImportExport solo da acceso al resto de la sección.
     const backupFull = document.getElementById('scard-backup-full');

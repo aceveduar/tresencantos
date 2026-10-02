@@ -1,5 +1,7 @@
 /* ── CONFIG GLOBAL (Supabase — disponible en todos los dispositivos) ── */
-let groqApiKey   = null;
+// La clave de Groq ya no llega al navegador (Edge Function groq-proxy);
+// aquí solo se sabe si hay una configurada (RPC te_ai_configured).
+let _aiConfigured = false;
 let driveEp      = null;
 let driveSecret  = null;
 let _showCreator = false;
@@ -10,7 +12,6 @@ let _userNames   = {};  // { "email@x.com": "Nombre visible" }
 // Fuente única para las tres entradas de IA del Inventario: formulario,
 // Captura rápida y Carga masiva.
 const GROQ_VISION_MODEL = 'qwen/qwen3.8-27b';
-const GROQ_VISION_URL   = 'https://api.groq.com/openai/v1/chat/completions';
 
 function _groqErrorMessage(status, apiMessage) {
   if (status === 401) return 'La clave de Groq no es válida o fue revocada';
@@ -36,36 +37,40 @@ function _groqErrorMessage(status, apiMessage) {
 // poder probarlo primero -- el modelo actual (qwen/qwen3.8-27b, desde
 // 2026-09-24) es el sucesor directo del que causó el bug original y
 // probablemente comparte el mismo comportamiento, sin confirmar todavía.
+// Pasa por la Edge Function groq-proxy (2026-10-02): valida permisos con la
+// sesión y le pone la clave en el servidor. Reenvía tal cual el status y el
+// cuerpo de Groq, así que _groqErrorMessage() sigue sirviendo igual.
 async function _groqChatJson(content, { maxCompletionTokens = 700, reasoningEffort = 'none' } = {}) {
-  if (!groqApiKey) throw new Error('Configura la IA en Configuración');
+  if (!_aiConfigured) throw new Error('Configura la IA en Configuración');
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 45000);
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
+  const call = token => fetch(`${SUPABASE_URL}/functions/v1/groq-proxy`, {
+    method: 'POST',
+    signal: controller.signal,
+    headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      model: GROQ_VISION_MODEL,
+      content,
+      reasoning_effort: reasoningEffort,
+      max_completion_tokens: maxCompletionTokens
+    })
+  });
 
   let response;
   try {
-    response = await fetch(GROQ_VISION_URL, {
-      method: 'POST',
-      signal: controller.signal,
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqApiKey}` },
-      body: JSON.stringify({
-        model: GROQ_VISION_MODEL,
-        messages: [{ role: 'user', content }],
-        response_format: { type: 'json_object' },
-        reasoning_effort: reasoningEffort,
-        temperature: 0.3,
-        max_completion_tokens: maxCompletionTokens,
-        stream: false
-      })
-    });
+    response = await call(_getAdminToken());
+    if (response.status === 401 && await refreshSessionIfNeeded()) response = await call(_getAdminToken());
   } catch (err) {
     if (err?.name === 'AbortError') throw new Error('La IA tardó demasiado; intenta de nuevo');
-    throw new Error('No se pudo conectar con Groq; revisa tu conexión');
+    throw new Error('No se pudo conectar con la IA; revisa tu conexión');
   } finally {
     clearTimeout(timeoutId);
   }
 
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(_groqErrorMessage(response.status, data?.error?.message));
+  if (response.status === 412) { _aiConfigured = false; throw new Error(data?.error || 'Configura la IA en Configuración'); }
+  if (response.status === 403 && data?.error) throw new Error(data.error);
+  if (!response.ok) throw new Error(_groqErrorMessage(response.status, data?.error?.message || (typeof data?.error === 'string' ? data.error : '')));
 
   const resultText = data.choices?.[0]?.message?.content;
   if (!resultText) throw new Error('La IA devolvió una respuesta vacía');
@@ -113,10 +118,10 @@ function _creatorName(email) {
 }
 
 async function loadAppConfig() {
-  const r = await supabaseApi('config?id=in.(groq_key,drive_ep,drive_secret,captura_rapida,dismissed_dups,show_creator,show_recv,show_recv_ia,user_names,user_permissions)&select=id,value');
+  const aiP = supabaseApi('rpc/te_ai_configured', { method: 'POST', body: '{}' });
+  const r = await supabaseApi('config?id=in.(drive_ep,drive_secret,captura_rapida,dismissed_dups,show_creator,show_recv,show_recv_ia,user_names,user_permissions)&select=id,value');
   if (r.ok && r.data) {
     r.data.forEach(row => {
-      if (row.id === 'groq_key')     groqApiKey  = row.value || null;
       if (row.id === 'drive_ep')     driveEp     = row.value || null;
       if (row.id === 'drive_secret') driveSecret = row.value || null;
       if (row.id === 'dismissed_dups') {
@@ -164,6 +169,8 @@ async function loadAppConfig() {
     }
   }
   if (migrations.length) await Promise.all(migrations);
+  const ai = await aiP;
+  _aiConfigured = ai.ok && ai.data === true;
 }
 
 /* Extrae el file ID de una URL de Drive thumbnail */
@@ -352,7 +359,7 @@ function hideAiFormBtn() {
 
 async function analyzeFormImage() {
   if (!currentFormImageDataUrl) { toast('Primero sube una imagen', 'error'); return; }
-  if (!groqApiKey) {
+  if (!_aiConfigured) {
     const kp = document.getElementById('ai-key-prompt');
     if (kp) { kp.style.display = ''; document.getElementById('ai-key-prompt-input')?.focus(); }
     return;
@@ -522,7 +529,7 @@ async function saveInlineAiKey() {
   if (!val || !val.startsWith('gsk_')) { toast('Ingresa una key válida de Groq (empieza con gsk_)', 'error'); return; }
   const r = await _saveConfigValue('groq_key', val);
   if (r.ok) {
-    groqApiKey = val;
+    _aiConfigured = true;
     document.getElementById('ai-key-prompt').style.display = 'none';
     toast('Key guardada para todos los dispositivos ✓', 'success');
     analyzeFormImage();

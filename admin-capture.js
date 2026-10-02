@@ -131,8 +131,8 @@ function _capMatchCategory(code) {
 }
 
 async function runCaptureAI() {
-  if (!captureImageDataUrl || !groqApiKey) {
-    if (!groqApiKey) toast('Configura la IA en Configuración', 'error');
+  if (!captureImageDataUrl || !_aiConfigured) {
+    if (!_aiConfigured) toast('Configura la IA en Configuración', 'error');
     return;
   }
   document.getElementById('cap-ai-status').style.display = 'flex';
