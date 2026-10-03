@@ -299,6 +299,38 @@ function _driveFileId(url) {
 
 let _driveAuditFiles = []; // [{id,name,createdDate,size,selected}]
 
+/* ── ERRORES DE LA APP (client_errors, solo superadmin) ── */
+async function _loadClientErrors() {
+  const since = new Date(Date.now() - 30 * 86400000).toISOString();
+  return api(`client_errors?select=*&last_at=gte.${encodeURIComponent(since)}&order=last_at.desc&limit=100`);
+}
+async function _refreshClientErrorsTag() {
+  const r = await _loadClientErrors();
+  const tag = document.getElementById('client-errors-tag');
+  if (!tag || !r.ok || !Array.isArray(r.data)) return;
+  const n = r.data.length;
+  tag.innerHTML = n ? ` — <strong>${n} distinto${n !== 1 ? 's' : ''}</strong>` : ' — sin errores';
+}
+async function openClientErrors() {
+  document.getElementById('client-errors-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  const body = document.getElementById('client-errors-body');
+  body.innerHTML = '<p class="field-hint">Cargando…</p>';
+  const r = await _loadClientErrors();
+  if (!r.ok) { body.innerHTML = '<p class="field-hint">No se pudo cargar — intenta de nuevo.</p>'; return; }
+  if (!r.data.length) { body.innerHTML = '<p class="field-hint">No hay errores en los últimos 30 días.</p>'; return; }
+  const fmt = v => new Intl.DateTimeFormat('es-MX', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(v));
+  body.innerHTML = r.data.map(e => `
+    <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:.84rem;font-weight:600;color:var(--charcoal);word-break:break-word">${escH(e.message)}</div>
+      <div style="font-size:.76rem;color:var(--muted);margin-top:3px">${escH(e.module || '')}${e.source ? ' · ' + escH(e.source) : ''} · ${escH((nameMap[e.user_email] || (e.user_email || '').split('@')[0]))} · ${fmt(e.last_at)}${e.veces > 1 ? ` · ${e.veces} veces` : ''}</div>
+    </div>`).join('');
+}
+function closeClientErrors() {
+  document.getElementById('client-errors-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
 function openDriveAudit() {
   document.getElementById('drive-audit-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -1754,6 +1786,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (ROLE === 'superadmin') {
     const row = document.getElementById('clear-log-row');
     if (row) row.style.display = '';
+    const errRow = document.getElementById('scard-client-errors');
+    if (errRow) { errRow.style.display = ''; _refreshClientErrorsTag(); }
   }
   // Mostrar conteo de duplicados desde última revisión en Inventario
   const dupCount = parseInt(localStorage.getItem('te_dup_last_count') || '0');

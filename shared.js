@@ -632,6 +632,41 @@ function _collectOverrideTickets(permissions) {
     .filter(Boolean);
 }
 
+/* ── REGISTRO DE ERRORES DE LA APP (2026-10-02) ──────────────────────
+ * Errores de JavaScript no atrapados en cualquier módulo interno se mandan
+ * a te_log_client_error (deduplica y frena en servidor) y se ven en
+ * Configuración → Datos. Se ignoran los de red/cancelación (ya tienen su
+ * propio mensaje en pantalla) y los de scripts de otros dominios o
+ * extensiones del navegador, que no son nuestros. Máx. 10 por página. */
+(function _initClientErrorLog() {
+  const seen = new Set();
+  let sent = 0;
+  const IGNORE = /Failed to fetch|NetworkError|Load failed|AbortError|The user aborted|ResizeObserver loop|^Script error\.?$/i;
+  const moduleName = (location.pathname.split('/').pop() || 'index.html').replace('.html', '') || 'index';
+  function report(message, source, stack) {
+    message = String(message || '').trim();
+    if (!message || IGNORE.test(message) || sent >= 10) return;
+    const key = message + '|' + (source || '');
+    if (seen.has(key)) return;
+    seen.add(key);
+    sent++;
+    _sharedRpc('te_log_client_error', {
+      p_module: moduleName, p_message: message, p_source: source || null,
+      p_stack: stack ? String(stack).slice(0, 2000) : null,
+      p_url: location.pathname + location.search, p_user_agent: navigator.userAgent
+    }).catch(() => {});
+  }
+  window.addEventListener('error', e => {
+    if (e.filename && !e.filename.startsWith(location.origin)) return;
+    const src = e.filename ? `${e.filename.split('/').pop()}:${e.lineno || 0}:${e.colno || 0}` : '';
+    report(e.message, src, e.error?.stack);
+  });
+  window.addEventListener('unhandledrejection', e => {
+    const r = e.reason;
+    report(r?.message || (typeof r === 'string' ? r : ''), 'promesa', r?.stack);
+  });
+})();
+
 async function _sharedRpc(name, body) {
   const url = typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : '';
   const key = typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : '';

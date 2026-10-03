@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación vigente del proyecto. Última reconciliación: 2026-10-02 · `sw.js` `CACHE_VERSION = 'v576'`.
+Documentación vigente del proyecto. Última reconciliación: 2026-10-02 · `sw.js` `CACHE_VERSION = 'v577'`.
 
 > **Fuente de verdad:** para comportamiento ejecutable manda el código; para reglas de negocio y decisiones UX manda este documento.
 > **Historial completo** (bitácora fecha por fecha, razonamiento detrás de cada decisión, bugs resueltos): [assets/HISTORIAL.md](assets/HISTORIAL.md). No se carga solo — consultarlo con grep cuando haga falta el "por qué" de algo. Este archivo solo describe el estado actual.
@@ -123,6 +123,10 @@ Permisos (`UP_PERMS`/`UP_ROLE_DEFAULTS`, `shared.js`): `canAddProduct canEditPro
 ### Respaldos
 Supabase no tiene backups en este plan (sin PITR, lista vacía). `scripts/respaldo-supabase.ps1` exporta todas las tablas de `public` (JSON), el esquema (funciones, políticas, triggers, columnas, permisos) y `auth.users` sin contraseñas, a `Documents\TresEncantos-Respaldos\TresEncantos_<fecha>.zip` (conserva 30; bitácora en `respaldo.log`). Tarea programada de Windows "TresEncantos - Respaldo Supabase", diaria 21:30 (corre al encender si estaba apagada). Usa la sesión del CLI: si falla con error de sesión, `supabase login`. Cómo restaurar: `LEEME.txt` dentro de cada zip.
 
+### Pruebas y errores
+- **Pruebas automáticas:** `powershell -ExecutionPolicy Bypass -File scripts\pruebas.ps1` corre `scripts/pruebas/caja.sql` contra la base real dentro de `BEGIN … ROLLBACK` (venta, apartado + abono, cancelación, gastos/ingresos/retiros, cierre de turno, y los candados de seguridad). Correrlo antes de publicar cualquier cambio que toque dinero, stock, turnos o permisos; al agregar una regla de negocio nueva, agregarle su verificación ahí. Usa las cuentas `test@` (cajera) y `ofe@` (cancela).
+- **Errores de la app:** `shared.js` manda los errores de JS no atrapados a `te_log_client_error` (tabla `client_errors`, deduplica 24 h, máx. 30/h por persona; ignora errores de red y de scripts ajenos). Se ven en Configuración → Datos → "Errores de la app" (solo superadmin). Revisarlo cuando alguien diga "no sirve".
+
 ### Migraciones
 - Se ejecutan con `supabase db query --linked -f supabase/migrations/<archivo>.sql` (el CLI está enlazado) o pegándolas en el SQL Editor. El historial de migraciones de Supabase está vacío porque siempre se corrieron a mano; para saber si algo se aplicó, **consultar el estado real** (`pg_proc`, `pg_policies`, `information_schema`), no el historial.
 - Probar cambios a RPC dentro de `BEGIN … ROLLBACK` simulando el JWT (`set_config('request.jwt.claims', …)` + `set_config('role','authenticated')`), llamando con argumentos nombrados.
@@ -235,7 +239,6 @@ Supabase no tiene backups en este plan (sin PITR, lista vacía). `scripts/respal
 - Supabase Auth → URL Configuration: el Site URL/Redirect probablemente sigue en Netlify (invitaciones por correo llevarían a un 404).
 
 **Calidad / UX**
-- Sin pruebas automáticas ni monitoreo de errores.
 - Duplicar producto **no** copia `supplier_code` a propósito: el código enseña a Recepción con IA a qué producto vincular, duplicarlo lo volvería ambiguo.
 
 **Visión:** Tres Encantos es el piloto de un producto multi-negocio. Decisiones simples "porque es una sola tienda" deben señalarse si limitan ese escalado.
