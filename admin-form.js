@@ -181,7 +181,7 @@ function updateMarginDisplay() {
   const cost  = parseFloat(document.getElementById('f-cost')?.value)  || 0;
   const el    = document.getElementById('f-margin-display');
   if (!el) return;
-  if (!cost || !price) { el.textContent = 'Margen: —'; el.style.color = ''; return; }
+  if (!cost || !price) { el.textContent = 'Opcional. Con el costo ves tu margen.'; el.style.color = ''; return; }
   const pct = ((price - cost) / price * 100).toFixed(1);
   const amt = (price - cost).toLocaleString('es-MX');
   el.textContent = `Margen: $${amt} (${pct}%)`;
@@ -1088,11 +1088,8 @@ function renderAdditionalImages() {
   const total = _allImagesEdit.length;
   strip.innerHTML = _allImagesEdit.map((url, i) => {
     const isMain   = i === 0;
-    const isDrive  = url.includes('drive.google.com');
     const isBase64 = url.startsWith('data:');
-    const storageBadge = isDrive
-      ? `<span style="position:absolute;bottom:22px;left:50%;transform:translateX(-50%);background:#34a853;color:#fff;font-size:.42rem;font-weight:700;padding:1px 4px;border-radius:3px;white-space:nowrap;pointer-events:none">Drive</span>`
-      : isBase64
+    const storageBadge = isBase64
       ? `<span style="position:absolute;bottom:22px;left:50%;transform:translateX(-50%);background:#e67e22;color:#fff;font-size:.42rem;font-weight:700;padding:1px 4px;border-radius:3px;white-space:nowrap;pointer-events:none">B64</span>`
       : '';
     const mainBadge = isMain

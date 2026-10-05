@@ -177,8 +177,11 @@ function _updateFormCatBtn(code) {
   const dot = document.getElementById('f-cat-dot');
   const lbl = document.getElementById('f-cat-label-display');
   if (!dot || !lbl) return;
-  dot.style.background = cat?.color || '#9B8B78';
-  lbl.textContent = cat?.label || code || 'Seleccionar categoría';
+  // Sin categoría elegida ("por_revisar") se veía el código interno tal cual.
+  const none = !cat || code === 'por_revisar';
+  dot.style.background = none ? 'var(--border)' : (cat.color || '#9B8B78');
+  lbl.textContent = none ? 'Elige una categoría' : _catDisplayLabel({ category: code, categoryLabel: cat.label });
+  lbl.classList.toggle('is-placeholder', none);
 }
 
 function bulkSetCategory() {
