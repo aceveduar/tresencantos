@@ -703,6 +703,69 @@ async function _sharedRpc(name, body) {
   return { ok: r.ok, status: r.status, data };
 }
 
+// Diálogo propio en lugar de alert()/confirm() nativos: esos salen como un
+// cuadro gris del navegador ("aceveduar.github.io dice…"), no respetan el
+// modo oscuro ni el tamaño de letra, y en un sistema que se vende se ven
+// improvisados. Devuelve una Promise: teConfirm() → true/false, teAlert()
+// → se resuelve al cerrar. Todo el texto entra por textContent (sin XSS) y
+// los saltos de línea del mensaje se respetan (white-space:pre-line).
+// Escape cancela y se captura antes que otros atajos de la página.
+function teDialog({ title = '', message = '', confirmText = 'Aceptar', cancelText = 'Cancelar', danger = false, alertOnly = false } = {}) {
+  return new Promise(resolve => {
+    document.getElementById('te-dialog')?._teClose?.(false);
+    const prevFocus = document.activeElement;
+    const wrap = document.createElement('div');
+    wrap.id = 'te-dialog';
+    wrap.className = 'te-dialog-backdrop';
+    wrap.innerHTML = `
+      <div class="te-dialog" role="${alertOnly ? 'alertdialog' : 'dialog'}" aria-modal="true" aria-labelledby="te-dialog-title">
+        <div class="te-dialog-title" id="te-dialog-title"></div>
+        <div class="te-dialog-msg"></div>
+        <div class="te-dialog-actions">
+          ${alertOnly ? '' : '<button type="button" class="te-dialog-btn te-dialog-cancel"></button>'}
+          <button type="button" class="te-dialog-btn te-dialog-ok${danger ? ' is-danger' : ''}"></button>
+        </div>
+      </div>`;
+    wrap.querySelector('.te-dialog-title').textContent = title;
+    const msgEl = wrap.querySelector('.te-dialog-msg');
+    if (message) msgEl.textContent = message; else msgEl.remove();
+    const okBtn = wrap.querySelector('.te-dialog-ok');
+    const cancelBtn = wrap.querySelector('.te-dialog-cancel');
+    okBtn.textContent = confirmText;
+    if (cancelBtn) cancelBtn.textContent = cancelText;
+
+    const dismissValue = alertOnly;
+    const onKey = e => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(dismissValue); }
+      else if (e.key === 'Tab') {
+        const btns = [cancelBtn, okBtn].filter(Boolean);
+        const i = btns.indexOf(document.activeElement);
+        e.preventDefault();
+        btns[(i + (e.shiftKey ? -1 : 1) + btns.length) % btns.length].focus();
+      }
+    };
+    const close = value => {
+      window.removeEventListener('keydown', onKey, true);
+      wrap.remove();
+      try { prevFocus?.focus?.({ preventScroll: true }); } catch {}
+      resolve(value);
+    };
+    wrap._teClose = close;
+    wrap.addEventListener('click', e => { if (e.target === wrap) close(dismissValue); });
+    okBtn.onclick = () => close(true);
+    if (cancelBtn) cancelBtn.onclick = () => close(false);
+    window.addEventListener('keydown', onKey, true);
+    document.body.appendChild(wrap);
+    // En acciones destructivas el foco inicial va a "Cancelar": un Enter
+    // de más no debe vaciar un carrito ni registrar una devolución.
+    (danger && cancelBtn ? cancelBtn : okBtn).focus({ focusVisible: false });
+  });
+}
+function teConfirm(opts) { return teDialog(opts); }
+function teAlert(message, title = '') {
+  return teDialog({ title: title || message, message: title ? message : '', confirmText: 'Entendido', alertOnly: true });
+}
+
 // Punto de entrada: si ya hay un ticket vigente para `permission`, resuelve
 // de inmediato (true). Si no, abre el sheet de autorización y resuelve
 // según lo que pase ahí (true = autorizado, false = cancelado/fallido).

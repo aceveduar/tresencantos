@@ -231,9 +231,10 @@ function changeQty(id, delta) {
   renderCart();
 }
 
-function clearCart() {
+async function clearCart() {
   if (!cart.length) return;
-  if (!confirm('¿Vaciar el carrito?')) return;
+  const n = cart.reduce((sum, i) => sum + (i.qty || 1), 0);
+  if (!(await teConfirm({ title: '¿Vaciar el carrito?', message: `Se quitan ${n} producto${n !== 1 ? 's' : ''}.`, confirmText: 'Vaciar', danger: true }))) return;
   cart = [];
   renderCart();
 }
@@ -743,7 +744,7 @@ async function agregarGasto() {
 
 async function eliminarGasto(id) {
   const g = _gastosCache.find(x => x.id === id);
-  if (!confirm(`¿Quitar "${g?.desc || 'este movimiento'}"? Queda registrado en Actividad.`)) return;
+  if (!(await teConfirm({ title: `¿Quitar "${g?.desc || 'este movimiento'}"?`, message: 'Queda registrado en Actividad.', confirmText: 'Quitar', danger: true }))) return;
   const r = await api('rpc/te_cancel_shift_expense', {
     method: 'POST',
     body: JSON.stringify({ p_expense_id: id })
@@ -835,11 +836,11 @@ function _onConteoInput() {
 
 function compararConteo() {
   if (!_corteData) {
-    alert('Aún no se termina de calcular tu corte -- espera un momento e intenta de nuevo.');
+    toast('Aún se está calculando tu corte, intenta en un momento', 'error');
     return;
   }
   if (_conteoValue() == null) {
-    alert('Escribe cuánto efectivo contaste antes de comparar.');
+    toast('Escribe cuánto efectivo contaste', 'error');
     document.getElementById('corte-conteo')?.focus();
     return;
   }
@@ -959,11 +960,11 @@ async function confirmCloseTurno() {
   if (!_currentShift) return;
   const conteoVal = _conteoValue();
   if (conteoVal == null || !_conteoRevealed) {
-    alert('Primero compara tu conteo físico contra el esperado.');
+    toast('Primero compara tu conteo', 'error');
     document.getElementById('corte-conteo')?.focus();
     return;
   }
-  if (!confirm('¿Cerrar tu turno? No podrás seguir vendiendo hasta que abras uno nuevo.')) return;
+  if (!(await teConfirm({ title: '¿Cerrar tu turno?', message: 'No podrás seguir vendiendo hasta que abras uno nuevo.', confirmText: 'Cerrar turno' }))) return;
 
   const conteo = conteoVal;
   const totalGastos = _netGastos(_getGastos());
@@ -998,7 +999,7 @@ async function confirmCloseTurno() {
   if (!r.ok || !r.data) {
     if (btn) btn.disabled = false;
     if (label) label.textContent = prevLabel;
-    alert(r.data?.message || 'No se pudo cerrar tu turno. Revisa tu conexión e intenta de nuevo.');
+    await teAlert(r.data?.message || 'Revisa tu conexión e intenta de nuevo.', 'No se pudo cerrar tu turno');
     return;
   }
 

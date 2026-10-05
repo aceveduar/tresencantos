@@ -1035,14 +1035,14 @@ function showPaymentDone({ id, nombre, monto, metodo, pendiente, esLiquidacion }
   document.getElementById('abono-done-overlay').classList.add('open');
 }
 
-function closeAbonoDone(fromExplicitClose) {
+async function closeAbonoDone(fromExplicitClose) {
   const c = _paymentDoneCtx;
   // Solo se pregunta si de verdad se va a cerrar sin haber enviado nada --
   // recordatorio suave, no un bloqueo. sendPaymentReceipt() ya cierra el
   // modal por su cuenta tras enviar, así que llegar aquí con sent:false
   // significa que se está saliendo sin avisar a la clienta.
   if (fromExplicitClose && c && !c.sent) {
-    if (!confirm(`¿Cerrar sin enviarle el comprobante a ${c.nombre || 'la clienta'}?`)) return;
+    if (!(await teConfirm({ title: '¿Cerrar sin enviar el comprobante?', message: `${c.nombre || 'La clienta'} no recibirá el comprobante de este pago.`, confirmText: 'Cerrar sin enviar', cancelText: 'Volver' }))) return;
     // Rastro auditable de que este pago se cerro sin comprobante -- para que
     // Ofelia/Eduardo puedan ver el patron si pasa seguido, sin bloquear a la
     // cajera en el momento.
@@ -1289,7 +1289,11 @@ async function refundApartado(id, source = 'detail') {
   const unsavedNote = source === 'edit'
     ? '\n\nLos cambios sin guardar de este formulario se descartarán.'
     : '';
-  if (!confirm(`¿Registrar la devolución de $${pagado.toLocaleString('es-MX')} MXN?\n\n${consequence}\nSe conservará el historial y la devolución se descontará de la caja de hoy por los mismos métodos usados al cobrar. Esta acción no se puede deshacer.${unsavedNote}`)) return;
+  if (!(await teConfirm({
+    title: `¿Registrar la devolución de $${pagado.toLocaleString('es-MX')}?`,
+    message: `${consequence}\nSe descuenta de la caja de hoy por los mismos métodos con que se cobró. No se puede deshacer.${unsavedNote}`,
+    confirmText: 'Registrar devolución', danger: true
+  }))) return;
   if (!canEditApartado()) {
     const granted = await requestOverride('canEditApartado', 'Reembolsar apartado');
     if (!granted) return;

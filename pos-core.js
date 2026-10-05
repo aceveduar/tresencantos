@@ -267,13 +267,12 @@ async function reactivateApartado(id) {
     .filter(p => p.kind === 'refund' && cancelTs && Math.abs(new Date(p.paid_at).getTime() - cancelTs) < 5000)
     .reduce((n, p) => n + Math.abs(parseFloat(p.amount) || 0), 0);
 
-  const ok = confirm(
-    `¿Reactivar el apartado de ${nombre}?\n\n` +
+  const ok = await teConfirm({ title: `¿Reactivar el apartado de ${nombre}?`, confirmText: 'Reactivar', message:
     `• Se vuelven a apartar ${nItems} producto${nItems !== 1 ? 's' : ''} (se descuentan del stock).\n` +
     (restored > 0 ? `• Se revierte la devolución de $${restored.toLocaleString('es-MX')} — vuelve a contar como pagado.\n` : '') +
     `• La reversa queda a nombre de quien registró la devolución, así su turno de caja cuadra.\n\n` +
     `Si algún producto ya se vendió, no se reactiva y te diremos cuál.`
-  );
+  });
   if (!ok) return;
 
   _reactivatingApt = true;
@@ -327,7 +326,7 @@ async function doLogout() {
   // el turno antes de poder salir.
   if (_currentShift?.opened_at) {
     const hoursOpen = Math.floor((Date.now() - new Date(_currentShift.opened_at).getTime()) / 3600000);
-    const ok = confirm(`Tu turno de caja sigue abierto (lleva ${hoursOpen}h) — ¿seguro que quieres cerrar sesión sin cerrarlo en Corte primero?`);
+    const ok = await teConfirm({ title: 'Tu turno de caja sigue abierto', message: `Lleva ${hoursOpen} h abierto. Puedes salir y cerrarlo después en Corte.`, confirmText: 'Salir sin cerrar', cancelText: 'Volver' });
     if (!ok) return;
   }
   await logActivity('sesion_cerrada', 'Cerró sesión');

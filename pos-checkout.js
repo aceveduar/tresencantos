@@ -339,7 +339,7 @@ async function convertLastSaleToApartado() {
   const cashNote = s.payMethod === 'efectivo'
     ? `\n\nLos ${totalTxt} salen de tu corte. Si la clienta deja anticipo, captúralo en el apartado; si no, devuélvele su dinero.`
     : '';
-  if (!confirm(`¿Era apartado?\n\nSe cancela esta venta de ${totalTxt} y los productos vuelven al carrito como apartado.${cashNote}`)) return;
+  if (!(await teConfirm({ title: '¿Era apartado?', message: `Se cancela esta venta de ${totalTxt} y los productos vuelven al carrito como apartado.${cashNote}`, confirmText: 'Pasar a apartado' }))) return;
 
   _convertingToApartado = true;
   const btn = document.getElementById('sd-era-apartado-btn');
@@ -392,14 +392,14 @@ async function convertLastSaleToApartado() {
   toast(`Venta cancelada — los productos están en el carrito como apartado${s.disc ? '. Vuelve a aplicar el descuento' : ''}`, 'success');
 }
 
-function closeSaleDone() {
+async function closeSaleDone() {
   const s = _lastSale;
   // Mismo riesgo que abonar/liquidar (74b6394): un apartado nuevo deja saldo
   // pendiente -- si nadie le manda confirmación a la clienta, no hay rastro
   // de qué se acordó. Una venta completa no aplica: ya se cobró todo en
   // persona, no hay saldo que alguien pueda disputar después.
   if (s && (s.isApartado || s.apartadoLiquidado) && !_saleTicketSent) {
-    if (!confirm('¿Cerrar sin enviarle la confirmación por WhatsApp al cliente?')) return;
+    if (!(await teConfirm({ title: '¿Cerrar sin enviar la confirmación?', message: 'La clienta no recibirá por WhatsApp lo que se acordó del apartado.', confirmText: 'Cerrar sin enviar', cancelText: 'Volver' }))) return;
     logActivity('comprobante_omitido',
       `Cerró sin enviar confirmación de apartado a ${(s.customer||'').split(' · 📱 ')[0] || 'cliente'} — $${(s.total||0).toLocaleString('es-MX')}`,
       { id: s.id, total: s.total, isApartado: s.isApartado, apartadoLiquidado: s.apartadoLiquidado });
