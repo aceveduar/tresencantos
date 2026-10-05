@@ -489,7 +489,7 @@ Aparece el botón **"✨ Completar con IA"** al subir una imagen (galería, cám
 **Apps Script actual (`scrip_imagenes`):**
 ```javascript
 const FOLDER_ID = '1KRy8Aj5bd7bz4f0TpkIKMURthWBCS7om';
-const SECRET    = 'te_ifth9j1y0gbmp67g8i6'; // debe coincidir con drive_secret en Supabase
+const SECRET    = 'PEGA_AQUI_EL_SECRETO'; // debe coincidir con drive_secret en Supabase
 ```
 
 **⚠️ Regla crítica — despliegue:** Cada vez que cambia el `SECRET` en el código del Apps Script, se debe crear una **nueva versión del despliegue**:

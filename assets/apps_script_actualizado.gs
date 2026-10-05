@@ -1,5 +1,5 @@
 const FOLDER_ID = '1KRy8Aj5bd7bz4f0TpkIKMURthWBCS7om';
-const SECRET    = 'te_cuu7g5lu1ycmtyxwfaj';
+const SECRET    = 'PEGA_AQUI_EL_SECRETO'; // el mismo que drive_secret en Configuración → Integraciones. Nunca subirlo al repo (es público).
 
 function doPost(e) {
   const out = ContentService.createTextOutput().setMimeType(ContentService.MimeType.JSON);

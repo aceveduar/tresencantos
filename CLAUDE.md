@@ -235,7 +235,7 @@ Supabase no tiene backups en este plan (sin PITR, lista vacía). `scripts/respal
 ## Pendientes
 
 **Seguridad / datos**
-- Rotar `groq_key` y `drive_secret`: estuvieron legibles públicamente hasta el 2026-09-30.
+- Rotar `groq_key` y `drive_secret`: estuvieron legibles públicamente hasta el 2026-09-30 (y un secreto de Drive viejo sigue en el historial de git, repo público). **El repo es público y GitHub Pages sirve todo `assets/`: nunca escribir secretos en archivos versionados** (la copia del Apps Script usa `PEGA_AQUI_EL_SECRETO`).
 - Activar "Leaked password protection" (Dashboard → Auth).
 - Supabase Auth → URL Configuration: el Site URL/Redirect probablemente sigue en Netlify (invitaciones por correo llevarían a un 404).
 
