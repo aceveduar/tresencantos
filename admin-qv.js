@@ -12,6 +12,7 @@ const QV_ICO_USER     = (px=13) => _qvIco('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 
 const QV_ICO_BOOKMARK = (px=13) => _qvIco('<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>', px);
 const QV_ICO_FLAG     = (px=13) => _qvIco('<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>', px);
 const QV_ICO_SHARE    = (px=13) => _qvIco('<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>', px);
+const QV_ICO_MORE = () => `<svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>`;
 const QV_ICO_UNDO     = (px=13) => _qvIco('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>', px);
 const QV_ICO_ARCHIVE  = (px=13) => _qvIco('<rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8"/><line x1="10" y1="12" x2="14" y2="12"/>', px);
 
@@ -452,7 +453,7 @@ function _renderQV(p) {
   // Categoría — editable inline
   document.getElementById('qv-cat-row').innerHTML =
     `<span class="cat-dot" style="background:${catColor}"></span>
-     <span class="qv-cat-label cat-label-inline qv-editable" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría">${_esc(p.categoryLabel || '—')}</span>`;
+     <span class="qv-cat-label cat-label-inline qv-editable" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría">${_esc(_catDisplayLabel(p) || '—')}</span>`;
 
   // Nombre
   const nameEl = document.getElementById('qv-name');
@@ -651,7 +652,7 @@ function _renderQV(p) {
   // antes (_showCreator + superadmin) -- el toggle de Configuración sigue
   // siendo el mismo, solo cambia dónde aparece su resultado.
   const creatorEl = (_showCreator && ROLE === 'superadmin' && p.createdBy)
-    ? `<span style="color:var(--muted-light)">· ${QV_ICO_USER(11)}${_creatorName(p.createdBy)}</span>`
+    ? `<span style="color:var(--muted-light)">· Creado por ${_esc(_creatorFullName(p.createdBy))}</span>`
     : '';
   idEl.innerHTML = `<span style="font-family:monospace">ID #${p.id}</span>${p.barcode ? `<span style="font-family:monospace;color:var(--muted)">· ${_esc(p.barcode)}</span>` : ''}${p.supplierCode ? `<span style="font-family:monospace;color:var(--muted-light)">· prov. ${_esc(p.supplierCode)}</span>` : ''}${creatorEl}` +
     ` <a href="#" onclick="event.preventDefault();openProductTimeline(${p.id},'${_esc(p.name).replace(/'/g,"\\'")}')" style="color:var(--gold-dark);font-weight:700;text-decoration:underline;font-family:inherit">${QV_ICO_CLOCK(11)} Ver historial</a>`;
@@ -684,8 +685,25 @@ function _renderQV(p) {
     : '';
   const actionsEl = document.getElementById('qv-actions');
   actionsEl.removeAttribute('style');
-  // Orden: Editar · Duplicar · Ocultar/Publicar / Al inicio · A un kit · Revisar · Archivar / Eliminar
-  actionsEl.innerHTML = btnShare + btnEdit + btnDup + btnPub + btnTop + btnAddKit + btnFlag + btnArchive + btnDel;
+  // Antes: 9 botones del mismo tamaño. Ahora lo de todos los días a la vista
+  // (Editar, Compartir, Ocultar/Publicar) y el resto en "Más acciones",
+  // con Eliminar al final y separado -- patrón de Shopify Admin.
+  const moreItems = btnDup + btnTop + btnAddKit + btnFlag + btnArchive + btnDel;
+  const btnMore = moreItems
+    ? `<button class="qv-btn qv-btn-dup qv-btn-more" onclick="_qvToggleMore(this)" aria-expanded="false">${QV_ICO_MORE()}Más</button>`
+    : '';
+  actionsEl.innerHTML = btnEdit + btnShare + btnPub + btnMore +
+    (moreItems ? `<div class="qv-more" id="qv-more" hidden>${moreItems}</div>` : '');
+  actionsEl.classList.toggle('qv-actions-no-edit', !btnEdit);
+}
+
+function _qvToggleMore(btn) {
+  const more = document.getElementById('qv-more');
+  if (!more) return;
+  more.hidden = !more.hidden;
+  btn.setAttribute('aria-expanded', String(!more.hidden));
+  btn.classList.toggle('active', !more.hidden);
+  if (!more.hidden) more.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
 async function _qvTogglePublished(id) {

@@ -321,11 +321,29 @@ function _qvShowFlagForm(id) {
    reemplaza el FAB de Kit y la fila Captura/Escanear/Recibir/Importar.
    Escanear queda fuera a propósito: es una forma de buscar, no de
    agregar, y vive junto al buscador (#search-scan-btn). */
-function openAddMenu() {
-  document.getElementById('add-menu-overlay')?.classList.add('open');
-  document.body.style.overflow = 'hidden';
+// En el celular es una hoja desde abajo (FAB); en escritorio, con `anchor`,
+// el mismo menú se abre como lista desplegable debajo del botón "Agregar".
+function openAddMenu(anchor) {
+  const overlay = document.getElementById('add-menu-overlay');
+  const sheet = document.getElementById('add-menu-sheet');
+  if (!overlay || !sheet) return;
+  const asPopover = !!anchor && window.innerWidth > 768;
+  overlay.classList.toggle('as-popover', asPopover);
+  if (asPopover) {
+    const r = anchor.getBoundingClientRect();
+    sheet.style.top = `${Math.round(r.bottom + 6)}px`;
+    sheet.style.left = `${Math.round(r.left)}px`;
+  } else {
+    sheet.style.top = sheet.style.left = '';
+  }
+  overlay.classList.add('open');
+  if (!asPopover) document.body.style.overflow = 'hidden';
+  sheet.querySelector('.bmo-item:not([style*="display: none"]):not([style*="display:none"])')?.focus({ preventScroll: true });
 }
 function closeAddMenu() {
   document.getElementById('add-menu-overlay')?.classList.remove('open');
   document.body.style.overflow = '';
 }
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('add-menu-overlay')?.classList.contains('open')) closeAddMenu();
+});

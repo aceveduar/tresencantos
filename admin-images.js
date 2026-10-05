@@ -111,6 +111,12 @@ async function _groqTextJson(text, { systemPrompt = '', userPrompt = '', maxComp
   return _groqChatJson(`${prompt}\n\n${text}`, { maxCompletionTokens, reasoningEffort });
 }
 
+function _creatorFullName(email) {
+  if (!email) return '';
+  const name = _userNames[email] || email.split('@')[0];
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
 function _creatorName(email) {
   if (!email) return '';
   const name = _userNames[email] || email.split('@')[0];
@@ -131,7 +137,7 @@ async function loadAppConfig() {
       if (row.id === 'captura_rapida') {
         // false solo si está explícitamente desactivado; por defecto activo
         if (row.value === 'false') {
-          document.querySelectorAll('.capture-mode-btn').forEach(b => b.style.setProperty('display', 'none'));
+          document.querySelectorAll('.capture-mode-btn, #add-menu-capture').forEach(b => b.style.setProperty('display', 'none'));
         }
       }
       if (row.id === 'show_creator') {

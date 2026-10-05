@@ -198,6 +198,17 @@ const CAT_PALETTE = ['#C9A462','#60a5fa','#f472b6','#34d399','#a78bfa','#fb923c'
 
 function getCatLabel(code) { return categories.find(c => c.code === code)?.label || code; }
 function getCatColor(code) { return categories.find(c => c.code === code)?.color || '#9B8B78'; }
+// "Natura · Perfumería" solo cuando el nombre se repite en otra rama (Natura y
+// Avon tienen Perfumería/Cuerpo/Facial/Maquillaje): sin la rama no se sabe
+// de cuál es. Los nombres únicos se quedan solos ("Bolsos Dama").
+function _catDisplayLabel(p) {
+  const c = categories.find(x => x.code === p.category);
+  const label = c?.label || p.categoryLabel || '';
+  if (!c?.parent) return label;
+  const dup = categories.some(x => x.code !== c.code && String(x.label || '').toLowerCase() === label.toLowerCase());
+  const parent = dup && categories.find(x => x.code === c.parent);
+  return parent ? `${parent.label} · ${label}` : label;
+}
 
 async function loadCategories() {
   const r = await supabaseApi('config?id=eq.categories&select=value');
@@ -1008,7 +1019,7 @@ function _applyRoleUI() {
   if (!can.addProduct) {
     document.querySelectorAll('[onclick="openForm()"]').forEach(b => b.style.setProperty('display', 'none'));
     document.querySelector('.fab-add')?.style.setProperty('display', 'none');
-    document.getElementById('btn-add-kit')?.style.setProperty('display', 'none');
+    document.getElementById('btn-add-main')?.style.setProperty('display', 'none');
   }
   // Botón "Eliminar ✕" en bulk bar — solo superadmin/encargado
   if (!can.bulkDelete) {
@@ -1031,7 +1042,7 @@ function _applyRoleUI() {
   // una para desktop junto a Agregar/Kit y otra para mobile junto a
   // Escanear/Recibir/Importar — el CSS decide cuál se ve según el ancho)
   if (can.addProduct) {
-    document.querySelectorAll('.capture-mode-btn').forEach(b => b.style.removeProperty('display'));
+    document.querySelectorAll('.capture-mode-btn, #add-menu-capture').forEach(b => b.style.removeProperty('display'));
   }
   // "Recibir" / "Importar" (Recepción con IA) -- visibles solo si el toggle
   // global del negocio está activo (_showRecv/_showRecvIa, Configuración →
@@ -1040,8 +1051,6 @@ function _applyRoleUI() {
   // cargar permisos, sin importar cuál de los dos termine primero.
   const recvBtn = document.getElementById('btn-recv-mode');
   if (recvBtn) recvBtn.style.display = (_showRecv && can.receiveStock) ? '' : 'none';
-  const recvIaBtn = document.getElementById('btn-recv-ia-mode');
-  if (recvIaBtn) recvIaBtn.style.display = (_showRecvIa && can.useReceptionIA) ? '' : 'none';
   // Mismas condiciones, reflejadas en el menú unificado del FAB (mobile/
   // tablet chico) -- ver #add-menu-overlay.
   const recvMenuItem = document.getElementById('add-menu-recv');

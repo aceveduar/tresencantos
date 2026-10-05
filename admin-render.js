@@ -41,9 +41,10 @@ function renderStats() {
   }
 
   const visible     = p => !p.isArchived && !Array.isArray(p.kitItems); // no archivado, no kit
-  const total       = products.filter(visible).length;
+  // "Todos" cuenta lo mismo que el contador de la lista (incluye kits):
+  // antes decía 948 arriba y "979 productos" abajo.
+  const total       = products.filter(p => !p.isArchived).length;
   const sinStock    = products.filter(p => visible(p) && (p.stock === 0 || p.outOfStock)).length;
-  const ultimaPieza = products.filter(p => visible(p) && p.stock === 1 && !p.outOfStock).length;
   const sinPublicar = products.filter(p => visible(p) && p.isPublished === false).length;
   const nKits       = products.filter(p => Array.isArray(p.kitItems)).length;
   const sinCodigo   = products.filter(p => visible(p) && !p.barcode).length;
@@ -81,7 +82,6 @@ function renderStats() {
      </button>` +
     (nKits > 0 ? chip('kits', AR_ICO_GIFT(), nKits, 'Kits', AR_C_NEUTRAL) : '') +
     (sinStock > 0 ? chip('sin-stock', AR_ICO_XCIRCLE(), sinStock, 'Sin stock', AR_C_RED) : '') +
-    (ultimaPieza > 0 ? chip('ultima-pieza', AR_ICO_ZAP(), ultimaPieza, 'Última pieza', AR_C_AMBER) : '') +
     (nApartado > 0 ? chip('apartado', AR_ICO_BOOKMARK(), nApartado, 'Apartado', AR_C_AMBER) : '') +
     (sinPublicar  > 0 ? chip('sin-publicar', AR_ICO_EYEOFF(), sinPublicar, 'Sin publicar', AR_C_AMBER) : '') +
     (porCaducar   > 0 ? chip('por-caducar', AR_ICO_CLOCK(),  porCaducar,  'Por caducar', AR_C_RED) : '') +
@@ -325,8 +325,8 @@ function adminCard(p, editable = false) {
     <div class="ac-meta">
       <span class="cat-dot" style="background:${catColor}"></span>
       ${editable
-        ? `<span class="cat-label-inline${isSinCat?' cat-label-sin-cat':''}" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Clic para cambiar categoría" style="${isSinCat?'':'overflow:hidden;text-overflow:ellipsis;white-space:nowrap'}">${isSinCat ? 'Sin categoría' : _esc(p.categoryLabel)}</span>`
-        : `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.72rem;color:var(--muted)">${_esc(p.categoryLabel)}</span>`
+        ? `<span class="cat-label-inline${isSinCat?' cat-label-sin-cat':''}" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Clic para cambiar categoría" style="${isSinCat?'':'overflow:hidden;text-overflow:ellipsis;white-space:nowrap'}">${isSinCat ? 'Sin categoría' : _esc(_catDisplayLabel(p))}</span>`
+        : `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.72rem;color:var(--muted)">${_esc(_catDisplayLabel(p))}</span>`
       }
     </div>
     <div class="ac-price-row">${priceHTML}</div>
@@ -719,7 +719,7 @@ function desktopRow(p) {
         ${flagDataDR?.note ? `<div class="flag-note-line">${AR_ICO_FLAG(13)}"${_esc(flagDataDR.note)}"</div>` : ''}
         <div class="prod-meta">
           ${catDot}
-          <span class="prod-meta-text"><span class="cat-label-inline${isSinCatDR ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${isSinCatDR ? 'Sin categoría' : _esc(p.categoryLabel)}</span> · #${p.id}</span>
+          <span class="prod-meta-text"><span class="cat-label-inline${isSinCatDR ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" title="Clic para cambiar categoría">${isSinCatDR ? 'Sin categoría' : _esc(_catDisplayLabel(p))}</span> · #${p.id}</span>
           ${featStar}${publishedToggle(p)}${flagDotRow}
         </div>
       </div>
@@ -785,7 +785,7 @@ function mobileCard(p) {
           ${flagDataMC?.note ? `<div class="flag-note-line">${AR_ICO_FLAG(13)}"${_esc(flagDataMC.note)}"</div>` : ''}
           <div class="mpc-cat-tag">
             <span class="cat-dot" style="background:${catColor}"></span>
-            <span class="cat-label-inline${isSinCatMC ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría">${isSinCatMC ? 'Sin categoría' : _esc(p.categoryLabel)}</span>
+            <span class="cat-label-inline${isSinCatMC ? ' cat-label-sin-cat' : ''}" onclick="editCategoryInline(event,${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar categoría">${isSinCatMC ? 'Sin categoría' : _esc(_catDisplayLabel(p))}</span>
           </div>
           <div class="mpc-price-row">
             ${priceHTML}${stockInfo}
