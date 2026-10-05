@@ -641,6 +641,54 @@
           <input type="text" id="f-category-label" placeholder="Ej: Bolsos & Carteras">
         </div>
       </div>
+      <p class="form-section"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Precios</p>
+      <div class="form-row">
+        <div class="field">
+          <label>Precio de venta (MXN)</label>
+          <input type="number" id="f-price" min="0" step="1" inputmode="decimal" placeholder="$0" oninput="updateMarginDisplay()">
+          <p id="price-lock-hint" class="hint" style="display:none;color:#b45309"><svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Precio bloqueado — cambia la categoría para editarlo</p>
+        </div>
+        <div class="field">
+          <label>Precio de costo (MXN) <span class="tag-internal">Solo interno</span></label>
+          <input type="number" id="f-cost" min="0" step="1" inputmode="decimal" placeholder="¿Cuánto te costó?" oninput="updateMarginDisplay()">
+          <p class="hint" id="f-margin-display">Opcional. Con el costo ves tu margen.</p>
+        </div>
+      </div>
+      <!-- f-out-of-stock: oculto — el estado lo maneja el POS automáticamente -->
+      <input type="checkbox" id="f-out-of-stock" style="display:none">
+      <p class="form-section"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>Inventario</p>
+      <div class="form-row">
+        <div class="field" id="f-stock-wrap">
+          <label>Stock (unidades)</label>
+          <input type="number" id="f-stock" min="0" step="1" placeholder="0">
+          <p class="hint" id="f-stock-hint" style="display:none"></p>
+        </div>
+        <div class="field">
+          <label>Código de barras <span style="font-weight:400;color:var(--muted-light)">(opcional)</span></label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="f-barcode" placeholder="Escanea o escribe el código..." style="flex:1" onblur="checkBarcodeConflict()">
+            <button type="button" class="btn btn-outline btn-sm" onclick="openFormScanner()" title="Escanear código de barras"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5v14"/><path d="M7 5v14"/><path d="M11 5v14"/><path d="M14 5v14"/><path d="M18 5v14"/><path d="M21 5v14"/></svg></button>
+          </div>
+          <div id="f-barcode-warn" class="dup-warn" style="display:none"></div>
+        </div>
+      </div>
+      <p class="form-section"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Visibilidad</p>
+      <div class="form-row">
+        <div class="field">
+          <label class="checkbox-row">
+            <input type="checkbox" id="f-published" checked>
+            Publicar en sitio web
+          </label>
+          <p class="hint">Apagado: solo existe en Inventario y Caja.</p>
+        </div>
+      </div>
+      <!-- MÁS DETALLES: lo que casi nunca se llena, plegado para que dar de
+           alta un producto sea Foto · Nombre · Categoría · Precio · Stock ·
+           Código. Se abre solo si el producto ya tiene alguno de estos datos
+           (_syncFormMore) para que nada quede escondido al editar. -->
+      <details class="form-more" id="f-more" ontoggle="_syncFormMore()">
+        <summary class="form-more-summary"><span>Más detalles</span><span class="form-more-hint" id="f-more-hint">Descripción, oferta, caducidad, kit…</span></summary>
+        <div class="form-more-body">
       <div class="field">
         <label>Descripción <span style="font-weight:400;color:var(--muted-light)">(opcional)</span></label>
         <div class="desc-editor-wrap">
@@ -663,19 +711,6 @@
           <textarea id="f-description" class="desc-editor-ta" placeholder="Describe el producto: materiales, uso, características…" onblur="applyDescriptionFormat('f-description')" onpaste="handleDescPaste(event)" spellcheck="true" lang="es"></textarea>
         </div>
       </div>
-      <p class="form-section"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Precios</p>
-      <div class="form-row">
-        <div class="field">
-          <label>Precio de venta (MXN)</label>
-          <input type="number" id="f-price" min="0" step="1" inputmode="decimal" placeholder="$0" oninput="updateMarginDisplay()">
-          <p id="price-lock-hint" class="hint" style="display:none;color:#b45309"><svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Precio bloqueado — cambia la categoría para editarlo</p>
-        </div>
-        <div class="field">
-          <label>Precio de costo (MXN) <span class="tag-internal">Solo interno</span></label>
-          <input type="number" id="f-cost" min="0" step="1" inputmode="decimal" placeholder="¿Cuánto te costó?" oninput="updateMarginDisplay()">
-          <p class="hint" id="f-margin-display">Opcional. Con el costo ves tu margen.</p>
-        </div>
-      </div>
       <div class="form-row">
         <div class="field">
           <button type="button" id="toggle-oferta-btn" class="btn-oferta-toggle" onclick="toggleOfertaField()">+ Agregar precio de oferta</button>
@@ -684,24 +719,6 @@
             <input type="number" id="f-original-price" min="0" step="1" placeholder="500">
             <p class="hint">Se muestra tachado cuando hay descuento</p>
           </div>
-        </div>
-      </div>
-      <!-- f-out-of-stock: oculto — el estado lo maneja el POS automáticamente -->
-      <input type="checkbox" id="f-out-of-stock" style="display:none">
-      <p class="form-section"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>Inventario</p>
-      <div class="form-row">
-        <div class="field" id="f-stock-wrap">
-          <label>Stock (unidades)</label>
-          <input type="number" id="f-stock" min="0" step="1" placeholder="0">
-          <p class="hint" id="f-stock-hint" style="display:none"></p>
-        </div>
-        <div class="field">
-          <label>Código de barras <span style="font-weight:400;color:var(--muted-light)">(opcional)</span></label>
-          <div style="display:flex;gap:8px">
-            <input type="text" id="f-barcode" placeholder="Escanea o escribe el código..." style="flex:1" onblur="checkBarcodeConflict()">
-            <button type="button" class="btn btn-outline btn-sm" onclick="openFormScanner()" title="Escanear código de barras"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5v14"/><path d="M7 5v14"/><path d="M11 5v14"/><path d="M14 5v14"/><path d="M18 5v14"/><path d="M21 5v14"/></svg></button>
-          </div>
-          <div id="f-barcode-warn" class="dup-warn" style="display:none"></div>
         </div>
       </div>
       <div class="form-row">
@@ -760,15 +777,7 @@
           </select>
         </div>
       </div>
-      <p class="form-section"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Visibilidad</p>
       <div class="form-row">
-        <div class="field">
-          <label class="checkbox-row">
-            <input type="checkbox" id="f-published" checked>
-            Publicar en sitio web
-          </label>
-          <p class="hint">Si está desactivado, el producto solo existe en Inventario y Caja, no se muestra al público.</p>
-        </div>
         <div class="field">
           <label class="checkbox-row">
             <input type="checkbox" id="f-featured">
@@ -776,6 +785,8 @@
           </label>
         </div>
       </div>
+        </div>
+      </details>
     </div>
     <div class="modal-foot">
       <button class="btn btn-outline" onclick="closeForm()">Cancelar</button>

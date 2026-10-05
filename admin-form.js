@@ -49,7 +49,7 @@ function _resetFormForNewProduct() {
   document.getElementById('f-cost').value = '';
   document.getElementById('f-expiry-date').value = '';
   document.getElementById('f-supplier-code').value = '';
-  document.getElementById('f-margin-display').textContent = 'Margen: —';
+  updateMarginDisplay();
   document.getElementById('f-img-file').value = '';
   document.getElementById('f-img-camera').value = '';
   hideAiFormBtn();
@@ -107,6 +107,9 @@ function openForm(id) {
   const saveAgainBtn = document.getElementById('save-again-btn');
   if (saveAgainBtn) saveAgainBtn.style.display = id ? 'none' : '';
 
+  const moreEl = document.getElementById('f-more');
+  if (moreEl) moreEl.open = false;
+  _syncFormMore(true);
   _clearDupWarnings();
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -118,6 +121,8 @@ function openForm(id) {
       _scrollToKitOnOpen = false;
       const kitEl = document.getElementById('kit-editor');
       const body  = document.querySelector('#form-overlay .modal-body');
+      const moreEl = document.getElementById('f-more');
+      if (moreEl) moreEl.open = true;
       if (kitEl && body) body.scrollTop = kitEl.offsetTop - 12;
     } else if (id) {
       document.getElementById('f-name').focus();
@@ -129,6 +134,26 @@ function openForm(id) {
     if (id) { applyTitleCase('f-name'); suggestCategoryFromName(); }
     _formSnapshot = _takeFormSnapshot();
   }, 150);
+}
+
+// "Más detalles": dice qué tiene adentro y se abre solo cuando hay datos
+// (al editar, al marcar kit, cuando la IA llena la descripción).
+function _syncFormMore(openIfFilled) {
+  const det = document.getElementById('f-more');
+  const hint = document.getElementById('f-more-hint');
+  if (!det || !hint) return;
+  const val = id => (document.getElementById(id)?.value || '').trim();
+  const filled = [
+    val('f-description') && 'descripción',
+    val('f-original-price') && 'oferta',
+    val('f-expiry-date') && 'caducidad',
+    val('f-supplier-code') && 'cód. proveedor',
+    document.getElementById('f-is-kit')?.checked && 'kit',
+    (val('f-badge') || val('f-badge-type')) && 'insignia',
+    document.getElementById('f-featured')?.checked && 'destacado'
+  ].filter(Boolean);
+  if (openIfFilled && filled.length) det.open = true;
+  hint.textContent = filled.length ? `Con: ${filled.join(', ')}` : 'Descripción, oferta, caducidad, kit…';
 }
 
 function closeForm() {

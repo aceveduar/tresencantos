@@ -487,7 +487,7 @@ Formato: {"name":"...","description":"...","category":"","price":null}`;
     });
     const flash = el => { el.classList.add('ai-filled'); setTimeout(() => el.classList.remove('ai-filled'), 1600); };
     if (parsed.name)        { const el = document.getElementById('f-name');        el.value = toTitleCase(_cleanAiName(parsed.name));  flash(el); }
-    if (parsed.description) { const el = document.getElementById('f-description'); el.value = formatDescription(parsed.description); flash(el); }
+    if (parsed.description) { const el = document.getElementById('f-description'); el.value = formatDescription(parsed.description); _syncFormMore(true); flash(el); }
     {
       const match = parsed.category
         ? categories.find(c =>

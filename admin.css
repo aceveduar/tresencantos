@@ -1765,3 +1765,16 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 @media (hover:hover){.bmo-item:hover{background:var(--surface-soft)}}
 .bmo-item.bmo-item-danger,.bmo-item.bmo-item-danger svg{color:var(--red)}
 #f-cat-label-display.is-placeholder{color:var(--muted-light)}
+/* Formulario: "Más detalles" plegado */
+.form-more{margin-top:14px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface)}
+.form-more-summary{list-style:none;display:flex;flex-direction:column;gap:2px;padding:14px 44px 14px 16px;min-height:52px;cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent}
+.form-more-summary::-webkit-details-marker{display:none}
+.form-more-summary::after{content:'';position:absolute;right:18px;top:50%;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg);transition:transform .15s}
+.form-more[open] > .form-more-summary::after{transform:translateY(-30%) rotate(-135deg)}
+.form-more-summary > span:first-child{font-size:.9rem;font-weight:700;color:var(--charcoal)}
+.form-more-hint{font-size:.8rem;color:var(--muted)}
+.form-more-body{padding:4px 16px 16px;border-top:1px solid var(--border)}
+.form-more-summary:focus-visible{outline:3px solid rgba(201,164,98,.55);outline-offset:2px;border-radius:var(--r)}
+/* "Este producto es un kit": una regla general de inputs la dejaba en 0px (invisible) */
+#f-is-kit{-webkit-appearance:checkbox;appearance:auto;width:20px;height:20px;min-width:20px;margin:0;flex-shrink:0;accent-color:var(--gold)}
+label:has(> #f-is-kit){min-height:44px}
