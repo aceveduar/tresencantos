@@ -363,17 +363,32 @@ const _CASH_LADDER = (() => {
   return arr;
 })();
 
-// Montos "rápidos" de efectivo -- antes fijos en $100/$200/$500 sin importar
-// el total, así que en una venta de $3,304 ninguno servía (todos por debajo
-// de lo que hay que cobrar) y en una de $10 sobraban ($500/$1000 no tienen
-// nada que ver con un producto de diez pesos). Ahora se toman los siguientes
-// 3 peldaños de la escalera que sean ≥ el total, para que representen lo que
-// un cliente de verdad entregaría sea cual sea el tamaño de la venta.
+// Montos "rápidos" de efectivo: "el siguiente billete" (como Square). Se
+// redondea el total hacia arriba con cada billete que la clienta
+// probablemente use y se muestran los 3 más cercanos. Antes eran los 3
+// peldaños de _CASH_LADDER ≥ total, y arriba de $1,000 la escalera solo
+// sube de $500 en $500: con $1,040 ofrecía $1,500/$2,000/$2,500 y nunca
+// $1,100 (mil + cien), que es lo que de verdad entregan.
+//   < $20        → a $20, $50, $100        ($10   → 20 · 50 · 100)
+//   $20–$99      → a $50, $100             ($45   → 50 · 100 · 200)
+//   $100–$999    → a $50, $100, $500, $1k  ($143  → 150 · 200 · 500)
+//   ≥ $1,000     → a $100, $500, $1k       ($1,040 → 1,100 · 1,500 · 2,000)
+// Un redondeo igual al total no se ofrece: eso es "Exacto" (su propio
+// botón). Si quedan menos de 3 montos, se completa con los billetes /
+// escalones de _CASH_LADDER mayores al total ($200 → 500 · 1,000 · 1,500;
+// $754 → 800 · 1,000 · 1,500).
 function _posQuickCashAmounts(total) {
   const t = Math.max(total, 0);
-  let idx = _CASH_LADDER.findIndex(v => v >= t);
-  if (idx === -1) idx = Math.max(0, _CASH_LADDER.length - 3);
-  return _CASH_LADDER.slice(idx, idx + 3);
+  if (t <= 0) return [];
+  const steps = t < 20 ? [20, 50, 100] : t < 100 ? [50, 100] : t < 1000 ? [50, 100, 500, 1000] : [100, 500, 1000];
+  const amounts = new Set(steps.map(d => Math.ceil(t / d) * d).filter(v => v > t));
+  for (const v of _CASH_LADDER) {
+    if (amounts.size >= 3) break;
+    if (v > t) amounts.add(v);
+  }
+  // Más allá de la escalera ($100,000): seguir de $500 en $500.
+  for (let v = Math.ceil(t / 500) * 500 + 500; amounts.size < 3; v += 500) amounts.add(v);
+  return [...amounts].sort((a, b) => a - b).slice(0, 3);
 }
 
 function _updateQuickCashButtons() {
