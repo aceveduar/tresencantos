@@ -42,7 +42,6 @@
 /* Carrito: "−" cuando qty=1 actúa como eliminar */
 :root[data-theme="dark"] .ci-qty button.ci-qty-del{border-color:var(--tint-red-border);color:var(--tint-red-strong)}
 /* Total con descuento aplicado */
-:root[data-theme="dark"] .total-row-discounted{background:var(--tint-green-bg);border-color:var(--tint-green-border)}
 /* Historial — hover del botón "cancelar"/"marcar prueba" y tags del pie */
 :root[data-theme="dark"] .hi-del:hover{background:var(--tint-red-bg)}
 :root[data-theme="dark"] .hi-tag.discount{background:var(--tint-amber-bg);color:var(--tint-amber-strong)}
@@ -206,9 +205,7 @@ button,a{touch-action:manipulation}
 .total-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
 .total-label{font-size:.8rem;color:var(--muted);font-weight:600}
 .total-amount{font-family:'Playfair Display',serif;font-size:1.35rem;font-weight:700}
-.total-row-discounted{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:6px 10px;margin-bottom:8px}
-.total-row-discounted .total-label{color:var(--green)}
-.total-row-discounted .total-amount{color:var(--green);font-size:1.4rem}
+.total-was{display:block;text-align:right;font-family:Inter,sans-serif;font-size:.8rem;font-weight:500;color:var(--muted);text-decoration:line-through;line-height:1.1}
 .cash-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
 .cash-field label{font-size:.68rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;display:block;margin-bottom:3px}
 .cash-field input{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none}
@@ -1131,3 +1128,12 @@ button,a{touch-action:manipulation}
 :root[data-theme="dark"] .corte-result-val.is-ok{color:var(--tint-green-strong)}
 :root[data-theme="dark"] .corte-result-val.is-short,:root[data-theme="dark"] .corte-error{color:var(--tint-red-strong)}
 :root[data-theme="dark"] .corte-result-val.is-over{color:var(--tint-amber-strong)}
+/* Cobro: cambio como texto protagonista (no campo), precio editable a la derecha */
+.cash-change{display:flex;align-items:center;min-height:38px;padding:0 2px;font-size:1.25rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+.cash-change.is-empty{color:var(--muted);font-weight:600}
+.cash-change.is-ok{color:var(--green)}
+.cash-change.is-short{color:var(--red);font-size:1rem}
+:root[data-theme="dark"] .cash-change.is-ok{color:var(--tint-green-strong)}
+:root[data-theme="dark"] .cash-change.is-short{color:var(--tint-red-strong)}
+.ci-subtotal{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.ci-subtotal:active{opacity:.6}

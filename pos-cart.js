@@ -193,7 +193,10 @@ async function editPriceInline(pid) {
   }
   const item = cart.find(x => x.product.id === pid);
   if (!item) return;
-  const priceEl = document.querySelector(`.cart-item[data-pid="${pid}"] .ci-price`);
+  // Con 1 pieza no se muestra "c/u" (repetía el mismo número): se edita
+  // tocando el precio de la derecha.
+  const priceEl = document.querySelector(`.cart-item[data-pid="${pid}"] .ci-price`)
+    || document.querySelector(`.cart-item[data-pid="${pid}"] .ci-subtotal`);
   if (!priceEl) return;
 
   const current = item.customPrice ?? item.product.price;
@@ -291,13 +294,11 @@ function syncCartTopbar() {
 function renderCart() {
   const el = document.getElementById('cart-items');
   const countEl = document.getElementById('cart-count');
-  const totalEl = document.getElementById('pos-total');
   const cobrarBtn = document.getElementById('cobrar-btn');
   const total = getTotal();
   const totalItems = cart.reduce((s, x) => s + x.qty, 0);
 
   countEl.textContent = totalItems > 0 ? `(${totalItems})` : '';
-  totalEl.textContent = `$${total.toLocaleString('es-MX')}`;
   cobrarBtn.disabled = cart.length === 0;
   // Descuento/pago/efectivo/nota/apartado/cliente no sirven de nada sin
   // productos en el carrito -- se ocultan en vez de mostrar un formulario
@@ -330,7 +331,7 @@ function renderCart() {
   <div class="ci-info">
     <div class="ci-name">${_esc(p.name)}</div>
     ${kitSub}
-    <span class="ci-price${isCustom?' ci-price-custom':''}" onclick="editPriceInline(${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar precio" style="cursor:pointer">${priceLabel} c/u</span>
+    ${qty > 1 || isCustom ? `<span class="ci-price${isCustom?' ci-price-custom':''}" onclick="editPriceInline(${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar precio">${priceLabel}${qty > 1 ? ' c/u' : ''}</span>` : ''}
     <div class="ci-row2">
       <div class="ci-qty">
         <button class="${qty === 1 ? 'ci-qty-del' : ''}" onclick="${qty === 1 ? `removeFromCart(${p.id})` : `changeQty(${p.id}, -1)`}" title="${qty === 1 ? 'Quitar' : 'Reducir'}">
@@ -342,7 +343,7 @@ function renderCart() {
     </div>
   </div>
   <div class="ci-right">
-    <div class="ci-subtotal">$${(effPrice * qty).toLocaleString('es-MX')}</div>
+    <div class="ci-subtotal" onclick="editPriceInline(${p.id})" ontouchstart="event.stopPropagation()" title="Toca para cambiar precio">$${(effPrice * qty).toLocaleString('es-MX')}</div>
   </div>
 </div>`;
   }).join('');
@@ -392,7 +393,7 @@ function _updateQuickCashButtons() {
 function setCash(amount) {
   const total = getTotal();
   const val = amount === total ? total : amount;
-  document.getElementById('pos-cash').value = val;
+  document.getElementById('pos-cash').value = _fmtMoneyInput(String(val));
   updateChange();
   // Highlight el botón seleccionado
   document.querySelectorAll('.cash-quick button').forEach(b => b.classList.remove('active-cash'));
@@ -802,7 +803,7 @@ function _esperadoCierre() {
 // El campo es de texto (no number) para poder mostrar "4,300" mientras se
 // escribe -- con montos grandes los dígitos sueltos se leen mal. El valor
 // numérico vive en localStorage; _conteoValue() lo lee de ahí.
-function _fmtConteo(raw) {
+function _fmtMoneyInput(raw) {
   const clean = String(raw).replace(/[^\d.]/g, '');
   const [ent, ...dec] = clean.split('.');
   const entFmt = ent ? Number(ent).toLocaleString('es-MX') : (dec.length ? '0' : '');
@@ -817,14 +818,14 @@ function _initCierreInputs() {
   const fondoEl = document.getElementById('corte-fondo');
   if (fondoEl) fondoEl.textContent = '$' + (_currentShift?.fondo_inicial ?? 0).toLocaleString('es-MX');
   const conteo = _conteoValue();
-  document.getElementById('corte-conteo').value = conteo != null ? _fmtConteo(String(conteo)) : '';
+  document.getElementById('corte-conteo').value = conteo != null ? _fmtMoneyInput(String(conteo)) : '';
   _conteoRevealed = false;
   _renderCierre();
 }
 
 function _onConteoInput() {
   const input = document.getElementById('corte-conteo');
-  const formatted = _fmtConteo(input.value);
+  const formatted = _fmtMoneyInput(input.value);
   if (input.value !== formatted) input.value = formatted;
   const num = formatted.replace(/,/g, '');
   if (num === '') localStorage.removeItem(_conteoKey());

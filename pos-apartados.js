@@ -184,7 +184,6 @@ function _updateMoreOptionsLabel() {
 /* ── APARTADO ── */
 function toggleApartadoMode() {
   const isApt = document.getElementById('pos-is-apartado').checked;
-  document.getElementById('cobrar-btn').textContent = isApt ? '📌 Registrar apartado' : '✓ Cobrar';
   // Ocultar efectivo/cambio en apartado — esos campos se ignoran en cobrar()
   const cashSection = document.getElementById('cash-section');
   if (cashSection) cashSection.style.display = isApt ? 'none' : (payMethod === 'efectivo' ? '' : 'none');
@@ -198,7 +197,7 @@ function toggleApartadoMode() {
     const cashEl = document.getElementById('pos-cash');
     if (cashEl) cashEl.value = '';
     const changeEl = document.getElementById('pos-change-input');
-    if (changeEl) changeEl.value = '';
+    if (changeEl) { changeEl.textContent = '—'; changeEl.className = 'cash-change is-empty'; }
     // Fecha límite por defecto: 30 días
     const dueEl = document.getElementById('pos-due-date');
     if (dueEl && !dueEl.value) {
@@ -228,6 +227,7 @@ function toggleApartadoMode() {
   }
   _renderApartadoSummary();
   updateChange(); // recalcula label de "Total del pedido"/"Total a cobrar" y todo lo demás (incluye updateAnticipoInfo)
+  _updateCobrarLabel();
 }
 
 /* ── APARTADO SHEET — cliente, teléfono, anticipo y fecha límite en un panel aparte ── */

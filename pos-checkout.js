@@ -1,36 +1,63 @@
 /* ── CHANGE & COBRAR ── */
+// El botón dice cuánto se va a cobrar ("Cobrar $1,040"), como Square/Shopify:
+// la cajera confirma el monto en el mismo toque.
+function _updateCobrarLabel() {
+  const btn = document.getElementById('cobrar-btn');
+  if (!btn || btn.hasAttribute('data-loading')) return;
+  if (document.getElementById('pos-is-apartado')?.checked) { btn.textContent = 'Registrar apartado'; return; }
+  const total = getDiscountedTotal();
+  btn.textContent = cart.length
+    ? `Cobrar $${total.toLocaleString('es-MX', { minimumFractionDigits: total % 1 ? 2 : 0, maximumFractionDigits: 2 })}`
+    : 'Cobrar';
+}
+
+// Efectivo recibido con separador de miles mientras se escribe ("1,500").
+function _posCashValue() {
+  return parseFloat(String(document.getElementById('pos-cash')?.value || '').replace(/,/g, '')) || 0;
+}
+function _onCashInput() {
+  const el = document.getElementById('pos-cash');
+  const formatted = _fmtMoneyInput(el.value);
+  if (el.value !== formatted) el.value = formatted;
+  document.querySelectorAll('.cash-quick button').forEach(b => b.classList.remove('active-cash'));
+  updateChange();
+}
+
 function updateChange() {
   const isApt = document.getElementById('pos-is-apartado')?.checked;
   const disc  = getDiscount();
 
+  const fmtMx = n => `$${n.toLocaleString('es-MX', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
   if (!isApt) {
     const total  = getDiscountedTotal();
-    const cash   = parseFloat(document.getElementById('pos-cash')?.value) || 0;
-    const change = cash - total;
-    const showChange = cash > 0 && change >= 0;
+    const cash   = _posCashValue();
+    const change = Math.round((cash - total + Number.EPSILON) * 100) / 100;
     const cashEl = document.getElementById('pos-cash');
-    if (cashEl) cashEl.placeholder = total > 0 ? `Mín. $${total.toLocaleString('es-MX')}` : '';
-    document.getElementById('pos-change-input').value = showChange ? change.toFixed(2) : '';
-    document.getElementById('pos-change-input').style.color = change >= 0 ? 'var(--green)' : 'var(--red)';
+    if (cashEl) cashEl.placeholder = total > 0 ? `Mín. ${fmtMx(total)}` : '';
+    const changeEl = document.getElementById('pos-change-input');
+    if (changeEl) {
+      const state = cash <= 0 ? 'empty' : change >= 0 ? 'ok' : 'short';
+      changeEl.className = `cash-change is-${state}`;
+      changeEl.textContent = state === 'empty' ? '—' : state === 'ok' ? fmtMx(change) : `Faltan ${fmtMx(-change)}`;
+    }
   }
 
   const discEl = document.getElementById('pos-discount-amount');
   if (discEl) discEl.textContent = disc > 0 ? `−$${disc.toLocaleString('es-MX', {maximumFractionDigits:0})}` : '';
 
-  // Total con descuento — evita que el cajero tenga que restar Total − Descuento mentalmente
-  // Label consciente del modo: en apartado no se cobra ahora, es el total del pedido
-  const totalDiscRow   = document.getElementById('total-discounted-row');
-  const totalDiscEl    = document.getElementById('pos-total-discounted');
-  const totalDiscLabel = document.getElementById('total-discounted-label');
-  if (totalDiscRow && totalDiscEl) {
-    if (disc > 0) {
-      totalDiscEl.textContent = `$${getDiscountedTotal().toLocaleString('es-MX')}`;
-      if (totalDiscLabel) totalDiscLabel.textContent = isApt ? 'Total del pedido' : 'Total a cobrar';
-      totalDiscRow.style.display = '';
-    } else {
-      totalDiscRow.style.display = 'none';
-    }
+  // Un solo total: con descuento, el original tachado y chico encima del que
+  // se cobra (antes eran dos renglones del mismo tamaño y no quedaba claro
+  // cuál cobrar).
+  const totalEl = document.getElementById('pos-total');
+  if (totalEl) {
+    totalEl.innerHTML = disc > 0
+      ? `<span class="total-was">${fmtMx(getTotal())}</span>${fmtMx(getDiscountedTotal())}`
+      : fmtMx(getTotal());
   }
+  _updateCobrarLabel();
+  // La barra inferior del celular también muestra el total: sin esto se
+  // quedaba con el monto sin descuento hasta el siguiente cambio del carrito.
+  if (typeof _updateMiniCartBar === 'function') _updateMiniCartBar();
 
   if (typeof _updateQuickCashButtons === 'function') _updateQuickCashButtons();
   updateAnticipoInfo();
@@ -63,7 +90,7 @@ async function cobrar() {
     if (paidAmount >= total - _APT_MONEY_EPSILON) paidAmount = total;
     change = 0;
   } else if (payMethod === 'efectivo') {
-    const cash = parseFloat(document.getElementById('pos-cash').value) || 0;
+    const cash = _posCashValue();
     if (cash > 0 && cash < total) {
       toast(`El efectivo ($${cash.toLocaleString('es-MX')}) no cubre el total ($${total.toLocaleString('es-MX')})`, 'error');
       document.getElementById('pos-cash').focus(); document.getElementById('pos-cash').select();
