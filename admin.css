@@ -1763,3 +1763,4 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 #add-menu-overlay.as-popover #add-menu-sheet{position:fixed;width:260px;max-width:calc(100vw - 32px);border-radius:14px;padding:6px;box-shadow:0 12px 40px rgba(0,0,0,.18);border:1px solid var(--border)}
 .bmo-item:focus-visible{outline:3px solid rgba(201,164,98,.55);outline-offset:-2px}
 @media (hover:hover){.bmo-item:hover{background:var(--surface-soft)}}
+.bmo-item.bmo-item-danger,.bmo-item.bmo-item-danger svg{color:var(--red)}

@@ -295,13 +295,13 @@ function _updateCatFilterBtn() {
    encima del mismo estado. ── */
 const SORT_OPTIONS = [
   { value: 'position',    label: 'Mi orden' },
-  { value: 'recent',      label: 'Recientes' },
+  { value: 'recent',      label: 'Editados hace poco' },
   { value: 'name-az',     label: 'A → Z' },
   { value: 'name-za',     label: 'Z → A' },
   { value: 'price-desc',  label: '$ Mayor' },
   { value: 'price-asc',   label: '$ Menor' },
-  { value: 'created-new', label: 'Nuevos' },
-  { value: 'created-old', label: 'Viejos' }
+  { value: 'created-new', label: 'Agregados hace poco' },
+  { value: 'created-old', label: 'Más antiguos' }
 ];
 
 function openSortSheet() {
@@ -1023,8 +1023,9 @@ function _applyRoleUI() {
   }
   // Botón "Eliminar ✕" en bulk bar — solo superadmin/encargado
   if (!can.bulkDelete) {
-    document.querySelector('.bulk-bar .btn-red')?.style.setProperty('display', 'none');
+    ['bulk-delete-btn', 'bulk-delete-group'].forEach(id => document.getElementById(id)?.style.setProperty('display', 'none'));
   }
+  if (!can.deleteProduct) document.getElementById('bulk-archive-btn')?.style.setProperty('display', 'none');
   // Botón "Publicar / Ocultar" en bulk bar — según can.publishProduct
   if (!can.publishProduct) {
     document.getElementById('bulk-publish-btn')?.style.setProperty('display', 'none');

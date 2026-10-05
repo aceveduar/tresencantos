@@ -31,11 +31,25 @@ async function bulkDelete() {
   const affected = toDelete.filter(p => hits[p.id]?.length);
   if (affected.length) {
     const lines = affected.map(p => `"${p.name}" — ${hits[p.id].map(a => a.customer).join(', ')}`).join('\n');
-    alert(`No se puede eliminar -- ${affected.length} de los productos seleccionados ${affected.length === 1 ? 'sigue' : 'siguen'} en apartados activos (como producto o como componente de un kit):\n\n${lines}\n\nDeselecciona esos productos para eliminar el resto, o espera a que esos apartados se liquiden (se paguen completo).`);
+    await teAlert(`${lines}\n\nDeselecciona esos productos para eliminar el resto, o espera a que esos apartados se liquiden.`,
+      `${affected.length} ${affected.length === 1 ? 'producto sigue' : 'productos siguen'} en apartados activos`);
     return;
   }
 
-  if (!confirm(`¿Eliminar ${selectedIds.size} producto(s) seleccionado(s)?\nEsta acción no se puede deshacer.`)) return;
+  // Borrado real = no se puede deshacer (Archivar sí). Doble confirmación y
+  // la segunda solo si son muchos, para que "seleccionar todo + Eliminar" ya
+  // no se lleve el catálogo con un solo "Aceptar".
+  const n = selectedIds.size;
+  if (!(await teConfirm({
+    title: `¿Eliminar ${n} producto${n !== 1 ? 's' : ''} para siempre?`,
+    message: 'No se puede deshacer. Si solo quieres quitarlos de la vista, usa Archivar: se pueden restaurar.',
+    confirmText: 'Eliminar', danger: true
+  }))) return;
+  if (n > 10 && !(await teConfirm({
+    title: `Confirma otra vez: ${n} productos`,
+    message: `Vas a borrar ${n} productos del catálogo, sus fotos y su información.`,
+    confirmText: `Sí, eliminar ${n}`, danger: true
+  }))) return;
 
   if (!can.bulkDelete) {
     const granted = await requestOverride('canBulkDelete', 'Borrado masivo');
@@ -83,6 +97,49 @@ async function bulkDelete() {
   // la interfaz si un producto puntual estaba entre los N eliminados.
   logActivity('producto_eliminado', `Eliminó ${toDelete.length} producto(s) (masivo): ${_delNames}${toDelete.length > 3 ? '…' : ''}`, { ids: toDelete.map(p => p.id), names: toDelete.map(p => p.name), count: toDelete.length, bulk: true });
   toast('Productos eliminados', 'success');
+}
+
+// Archivar en bloque: lo normal para "quitar" productos (reversible, ver
+// regla en CLAUDE.md -- nunca borrado real masivo). Mismo efecto que
+// archiveProduct() uno por uno; PATCH en tandas de 10 ids (límite de in.()).
+async function bulkArchive() {
+  if (!selectedIds.size || !can.deleteProduct) return;
+  const ids = [...selectedIds];
+  const n = ids.length;
+  if (!(await teConfirm({
+    title: `¿Archivar ${n} producto${n !== 1 ? 's' : ''}?`,
+    message: 'Desaparecen del inventario, la caja y la tienda. Puedes restaurarlos desde "Archivados".',
+    confirmText: 'Archivar'
+  }))) return;
+  const patchAll = async body => {
+    for (let i = 0; i < ids.length; i += 10) {
+      const r = await supabaseApi(`products?id=in.(${ids.slice(i, i + 10).join(',')})`, { method: 'PATCH', body: JSON.stringify(body) });
+      if (!r.ok) return false;
+    }
+    return true;
+  };
+  if (!(await patchAll({ is_archived: true, is_published: false, out_of_stock: true }))) {
+    toast('No se pudieron archivar todos — revisa tu conexión', 'error');
+    await loadProductsFromSupabase(); renderTable(); renderStats();
+    return;
+  }
+  const idSet = new Set(ids);
+  const before = new Map(products.filter(p => idSet.has(p.id)).map(p => [p.id, { isPublished: p.isPublished, outOfStock: p.outOfStock }]));
+  products = products.map(p => idSet.has(p.id) ? { ...p, isArchived: true, isPublished: false, outOfStock: true } : p);
+  const names = ids.map(id => products.find(p => p.id === id)?.name).filter(Boolean);
+  clearBulkSelection();
+  renderStats();
+  logActivity('producto_editado', `Archivó ${n} producto(s): ${names.slice(0, 3).join(', ')}${n > 3 ? '…' : ''}`, { ids, names, count: n, bulk: true });
+  toastUndo(`${n} producto${n !== 1 ? 's' : ''} archivado${n !== 1 ? 's' : ''}`, async () => {
+    // Deshacer: regresa también publicado/agotado a como estaban.
+    for (const [id, prev] of before) {
+      const r = await supabaseApi(`products?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ is_archived: false, is_published: prev.isPublished !== false, out_of_stock: !!prev.outOfStock }) });
+      if (!r.ok) { toast('No se pudieron restaurar todos', 'error'); break; }
+      products = products.map(p => p.id === id ? { ...p, isArchived: false, isPublished: prev.isPublished !== false, outOfStock: !!prev.outOfStock } : p);
+    }
+    renderTable(); renderStats();
+    toast('Productos restaurados ✓', 'success');
+  });
 }
 
 let _bcpFormMode = false;
