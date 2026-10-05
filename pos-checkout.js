@@ -69,7 +69,7 @@ async function cobrar() {
   if (!navigator.onLine) { toast('Sin conexión — no se puede registrar la venta', 'error'); return; }
   _cobrandoAhora = true;
   const isApartado = document.getElementById('pos-is-apartado')?.checked;
-  const customerName = document.getElementById(isApartado ? 'pos-apt-customer' : 'pos-customer')?.value.trim() || '';
+  const customerName = _titleCaseName(document.getElementById(isApartado ? 'pos-apt-customer' : 'pos-customer')?.value || '');
   const phone        = document.getElementById(isApartado ? 'pos-phone' : 'pos-customer-phone')?.value.trim() || '';
   const customer     = customerName + (phone ? ` · 📱 ${phone}` : '');
   const note       = document.getElementById('pos-note')?.value.trim() || '';

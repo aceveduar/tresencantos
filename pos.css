@@ -51,11 +51,9 @@
 :root[data-theme="dark"] #apt-venc-banner{background:var(--tint-red-bg);border-bottom-color:var(--tint-red-border);color:var(--tint-red-strong)}
 :root[data-theme="dark"] #apt-venc-banner .apt-venc-banner-close{color:var(--tint-red-strong)}
 :root[data-theme="dark"] .apartado-group.active{background:var(--tint-amber-bg);border-color:var(--tint-amber-border)}
-:root[data-theme="dark"] .apt-overdue{border-color:var(--tint-red-border)!important;background:var(--tint-red-bg)}
 :root[data-theme="dark"] .apt-overdue-badge{background:var(--tint-red-bg);color:var(--tint-red-strong)}
 :root[data-theme="dark"] .btn-cancelar-apt{border-color:var(--tint-red-border);background:var(--tint-red-bg);color:var(--tint-red-strong)}
 :root[data-theme="dark"] .btn-cancelar-apt:hover{background:var(--tint-red-border);border-color:var(--tint-red-strong)}
-:root[data-theme="dark"] .apc-card.apt-overdue{border-color:var(--tint-red-border)}
 /* "Más opciones"/"Ya lo cobró Ofelia" activos */
 :root[data-theme="dark"] #more-options-toggle-btn.active{background:var(--tint-amber-bg);border-color:var(--tint-amber-border)}
 /* Corte — tags de "Ver detalle de mis cobros" */
@@ -623,7 +621,6 @@ button,a{touch-action:manipulation}
 .apartado-item{border-radius:12px;margin:8px;background:var(--surface);border:1px solid var(--border);box-shadow:0 1px 4px rgba(28,24,23,.06);cursor:pointer;overflow:hidden;transition:box-shadow .15s,border-color .15s}
 .apartado-item:hover{box-shadow:0 3px 14px rgba(28,24,23,.12)}
 .apartado-item.open{border-color:var(--gold)}
-.apt-overdue{border-color:#FECACA!important;background:#FFF5F5}
 .apt-cancelado{opacity:.82}
 /* Header */
 .apt-header{padding:12px 14px}
@@ -631,8 +628,9 @@ button,a{touch-action:manipulation}
 .apt-header-r2{display:flex;align-items:center;justify-content:space-between;margin-top:5px}
 .apt-h-name{font-size:.9rem;font-weight:700;color:var(--charcoal);flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25}
 .apt-h-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.apt-h-pending{font-size:.88rem;font-weight:700;color:var(--red)}
+.apt-h-pending{font-size:.88rem;font-weight:700;color:var(--charcoal)}
 .apt-h-pending.zero{color:var(--green)}
+.apt-h-pending.is-overdue{color:var(--red)}
 .apt-h-pending.cancelado{color:var(--muted)}
 .apc-card-cancelado{opacity:.82}
 .apt-h-meta{font-size:.72rem;color:var(--muted)}
@@ -704,13 +702,15 @@ button,a{touch-action:manipulation}
 .apc-card{display:block;width:100%;background:var(--surface);border-radius:12px;border:1.5px solid var(--border);box-shadow:0 1px 4px rgba(28,24,23,.06);padding:12px 14px;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .1s}
 .apc-card:hover{border-color:var(--gold);box-shadow:0 3px 10px rgba(201,164,98,.18);transform:translateY(-1px)}
 .apc-card:focus-visible,.apt-page-back:focus-visible,.apt-page-search-clear:focus-visible,.adm-close:focus-visible,.adm-footer button:focus-visible,.apt-item-row[role="button"]:focus-visible{outline:3px solid rgba(201,164,98,.55);outline-offset:2px}
-.apc-card.apt-overdue{border-color:#FECACA;border-width:2.5px}
 .apc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px}
 .apc-name{font-size:.88rem;font-weight:700;color:var(--charcoal);line-height:1.2}
-.apc-pending{font-size:.92rem;font-weight:800;color:var(--red);white-space:nowrap;flex-shrink:0}
-.apc-pending.zero{color:#6B9E78}
+.apc-pending{font-size:.92rem;font-weight:800;color:var(--charcoal);white-space:nowrap;flex-shrink:0}
+.apc-pending.zero{color:var(--green)}
+.apc-pending.is-overdue{color:var(--red)}
+.apc-amount{font-size:.92rem;font-weight:700;color:var(--charcoal);white-space:nowrap;flex-shrink:0;font-variant-numeric:tabular-nums}
+.apc-amount.is-muted{color:var(--muted)}
 .apc-meta{display:block;font-size:.72rem;color:var(--muted);margin-bottom:4px}
-.apc-due{display:block;font-size:.7rem;font-weight:700;margin-bottom:6px}
+.apc-due{display:block;font-size:.7rem;font-weight:700;margin-bottom:6px;color:var(--muted)}
 .apc-bar{display:block;height:4px;background:var(--border);border-radius:50px;overflow:hidden}
 .apc-fill{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-dark));border-radius:50px}
 /* Detail modal */
@@ -1137,3 +1137,11 @@ button,a{touch-action:manipulation}
 :root[data-theme="dark"] .cash-change.is-short{color:var(--tint-red-strong)}
 .ci-subtotal{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .ci-subtotal:active{opacity:.6}
+/* Apartados: color solo cuando importa (vencido rojo, ≤7 días ámbar) */
+.apc-due.is-soon,.apt-h-due.is-soon{color:#B45309}
+.apc-due.is-overdue,.apt-h-due.is-overdue{color:var(--red)}
+.apt-h-due{color:var(--muted)}
+:root[data-theme="dark"] .apc-due.is-soon,:root[data-theme="dark"] .apt-h-due.is-soon{color:var(--tint-amber-strong)}
+:root[data-theme="dark"] .apc-due.is-overdue,:root[data-theme="dark"] .apt-h-due.is-overdue,:root[data-theme="dark"] .apc-pending.is-overdue,:root[data-theme="dark"] .apt-h-pending.is-overdue{color:var(--tint-red-strong)}
+.apt-due-count{margin-left:6px;font-weight:600;opacity:.7;font-variant-numeric:tabular-nums}
+:root[data-theme="dark"] .apt-due-filter.active{background:var(--charcoal);border-color:var(--charcoal);color:var(--ink)}

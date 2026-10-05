@@ -468,6 +468,27 @@ function _posDayKeyDiff(dayKey, baseKey = _posMexicoDayKey()) {
   return Math.round((_posDayKeyValue(dayKey) - _posDayKeyValue(baseKey)) / 86400000);
 }
 
+// Dinero para mostrar: "$40,749.80" (antes "$40,749.8" — toLocaleString
+// solo pone los decimales que hay). Sin centavos: "$1,040".
+function _fmtMx(n) {
+  const v = Number(n) || 0;
+  const abs = Math.abs(v);
+  return `${v < 0 ? '−' : ''}$${abs.toLocaleString('es-MX', { minimumFractionDigits: Math.round(abs * 100) % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
+}
+
+// Nombre de clienta con mayúscula inicial ("lucia cristal san juan" →
+// "Lucia Cristal San Juan"). Solo toca palabras escritas todo en minúscula
+// (respeta "TEST", "McDonald", "DIF"); conectores en minúscula salvo al
+// inicio ("Mama de Marisol").
+function _titleCaseName(name) {
+  const small = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'e', 'el']);
+  return String(name || '').trim().replace(/\s+/g, ' ').split(' ').map((w, i) => {
+    if (w !== w.toLowerCase()) return w;
+    if (i > 0 && small.has(w)) return w;
+    return w.charAt(0).toUpperCase() + w.slice(1);
+  }).join(' ');
+}
+
 function _posFormatDayKey(dayKey, options = {}) {
   const date = new Date(`${dayKey}T12:00:00Z`);
   return new Intl.DateTimeFormat('es-MX', {

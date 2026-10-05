@@ -379,7 +379,11 @@ let _aptDetailLastFocus = null;
 
 function _aptDueFiltered(data, filter = _aptDueFilter) {
   const rows = Array.isArray(data) ? data : [];
-  if (filter === 'todos') return rows;
+  // "Todos" por urgencia: vencidos primero (el más viejo arriba), luego los
+  // que vencen pronto; sin fecha al final. Antes iba por fecha de creación y
+  // los vencidos quedaban hasta abajo.
+  if (filter === 'todos') return [...rows].sort((a, b) =>
+    String(a.due_date || '9999-12-31').localeCompare(String(b.due_date || '9999-12-31')) || (b.id - a.id));
 
   const todayKey = _posMexicoDayKey();
 
@@ -397,11 +401,36 @@ function _aptDueFiltered(data, filter = _aptDueFilter) {
   }).sort((a, b) => String(a.due_date || '').localeCompare(String(b.due_date || '')));
 }
 
+const _APT_DUE_LABELS = { todos: 'Todos', vencidos: 'Vencidos', proximos: 'Próximos 7 días', 'sin-fecha': 'Sin fecha' };
 function _syncAptDueFilterUI() {
+  // Cada filtro dice cuántos tiene (antes había que tocarlo para saberlo).
+  // "Sin fecha" solo aparece si hay alguno: todo apartado nuevo lleva fecha.
+  const rows = _apartadosAll || [];
+  const counts = {};
+  Object.keys(_APT_DUE_LABELS).forEach(f => { counts[f] = f === 'todos' ? rows.length : _aptDueFiltered(rows, f).length; });
+  if (_aptDueFilter === 'sin-fecha' && !counts['sin-fecha']) _aptDueFilter = 'todos';
   document.querySelectorAll('.apt-due-filter').forEach(button => {
-    const selected = button.dataset.dueFilter === _aptDueFilter;
+    const f = button.dataset.dueFilter;
+    const selected = f === _aptDueFilter;
     button.classList.toggle('active', selected);
     button.setAttribute('aria-pressed', String(selected));
+    button.hidden = f === 'sin-fecha' && !counts[f];
+    button.innerHTML = `${_APT_DUE_LABELS[f]}${rows.length ? `<span class="apt-due-count">${counts[f]}</span>` : ''}`;
+  });
+  // El ancho de los filtros cambió (conteos, "Sin fecha"): recalcular si
+  // queda algo a la derecha para la flecha de desplazamiento.
+  ['oc', 'page'].forEach(_aptDueFiltersScroll);
+}
+
+// "Recordar a vencidas" solo tiene sentido en Activos.
+function _syncAptCobranzaBtns() {
+  const todayKey = _posMexicoDayKey();
+  const vencidos = (_apartadosAll || []).filter(s => s.due_date && s.due_date < todayKey).length;
+  ['apt-cobranza-btn-oc', 'apt-cobranza-btn-page'].forEach(btnId => {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.style.display = vencidos > 0 && _aptViewMode === 'activos' ? '' : 'none';
+    btn.textContent = `Recordar a vencidas (${vencidos})`;
   });
 }
 
@@ -420,6 +449,8 @@ function filterApartadosWithDue(query, target = 'offcanvas') {
       ? (_apartadosLiquidadosAll || [])
       : _aptDueFiltered(_apartadosAll || []);
   const filtered = _aptFilterByCustomer(source, query);
+  _syncAptDueFilterUI();
+  _syncAptCobranzaBtns();
   const clearButton = document.getElementById(target === 'page' ? 'apt-page-search-clear' : 'apt-search-clear');
   if (clearButton) clearButton.style.display = query.trim() ? '' : 'none';
   if (isCancelado) {
@@ -550,9 +581,9 @@ function _renderAptPageCanceladosCards(data) {
     return `<button type="button" class="apc-card apc-card-cancelado" onclick="openAptDetail(${s.id})" aria-label="Ver apartado cancelado de ${_esc(nombre)}, total $${total.toLocaleString('es-MX')}">
   <span class="apc-top">
     <span class="apc-name">${_uiIcoUser()} ${_esc(nombre)}</span>
-    <span class="apt-h-pending cancelado">✕ Cancelado</span>
+    <span class="apc-amount is-muted">${_fmtMx(total)}</span>
   </span>
-  <span class="apc-meta">${t} · ${nItems} prod.${telNum ? ' · 📱 ' + telNum : ''} · $${total.toLocaleString('es-MX')}</span>
+  <span class="apc-meta">Cancelado el ${t} · ${nItems} prod.</span>
 </button>`;
   }).join('');
 }
@@ -564,7 +595,7 @@ function _renderAptPageCards(data, isLiquidado) {
   if (count) {
     const totalFalta = isLiquidado ? 0 : data.reduce((sum, s) => sum + Math.max(0, (parseFloat(s.total) || 0) - parseFloat(s.paid_amount || 0)), 0);
     count.textContent = data.length
-      ? `${data.length} ${isLiquidado ? 'liquidado' : 'activo'}${data.length !== 1 ? 's' : ''}${!isLiquidado ? ` · $${totalFalta.toLocaleString('es-MX')} por cobrar` : ''}`
+      ? `${data.length} ${isLiquidado ? 'liquidado' : 'activo'}${data.length !== 1 ? 's' : ''}${!isLiquidado ? ` · ${_fmtMx(totalFalta)} por cobrar` : ''}`
       : '';
   }
   if (!data.length) {
@@ -587,9 +618,9 @@ function _renderAptPageCards(data, isLiquidado) {
       return `<button type="button" class="apc-card" onclick="openAptDetail(${s.id})" aria-label="Ver apartado liquidado de ${_esc(nombre)}, total $${total.toLocaleString('es-MX')}">
   <span class="apc-top">
     <span class="apc-name">${_uiIcoUser()} ${_esc(nombre)}</span>
-    <span class="apc-pending zero">✓ Liquidado</span>
+    <span class="apc-amount">${_fmtMx(total)}</span>
   </span>
-  <span class="apc-meta">${t} · ${nItems} prod.${telNum ? ' · 📱 ' + telNum : ''} · $${total.toLocaleString('es-MX')}</span>
+  <span class="apc-meta">Liquidado el ${t} · ${nItems} prod.</span>
 </button>`;
     }
 
@@ -598,16 +629,16 @@ function _renderAptPageCards(data, isLiquidado) {
     if (s.due_date) {
       const diff = _posDayKeyDiff(s.due_date);
       isOverdue = diff < 0;
-      const dueColor = diff < 0 ? 'var(--red)' : diff <= 7 ? '#D97706' : '#6B9E78';
       const dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)}d` : diff === 0 ? 'Vence hoy' : `Vence ${_posFormatDayKey(s.due_date,{day:'numeric',month:'short'})}`;
-      dueHTML = `<span class="apc-due" style="color:${dueColor}">${_uiIcoCalendar()} ${dueText}</span>`;
+      // Color solo cuando importa: rojo vencido, ámbar ≤7 días; lo demás gris.
+      dueHTML = `<span class="apc-due${diff < 0 ? ' is-overdue' : diff <= 7 ? ' is-soon' : ''}">${_uiIcoCalendar()} ${dueText}</span>`;
     }
     return `<button type="button" class="apc-card${isOverdue ? ' apt-overdue' : ''}" onclick="openAptDetail(${s.id})" aria-label="Ver apartado de ${_esc(nombre)}, falta $${pendiente.toLocaleString('es-MX')}${isOverdue ? ', vencido' : ''}">
   <span class="apc-top">
     <span class="apc-name">${_uiIcoUser()} ${_esc(nombre)}</span>
-    <span class="apc-pending${pendiente === 0 ? ' zero' : ''}">${pendiente === 0 ? '✓ Listo' : 'Falta $' + pendiente.toLocaleString('es-MX')}</span>
+    <span class="apc-pending${pendiente === 0 ? ' zero' : ''}${isOverdue ? ' is-overdue' : ''}">${pendiente === 0 ? 'Pagado' : 'Falta ' + _fmtMx(pendiente)}</span>
   </span>
-  <span class="apc-meta">${t} · ${nItems} prod.${telNum ? ' · 📱 ' + telNum : ''}</span>
+  <span class="apc-meta">${t} · ${nItems} prod.</span>
   ${dueHTML}
   <span class="apc-bar" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span class="apc-fill" style="width:${pct}%"></span></span>
 </button>`;

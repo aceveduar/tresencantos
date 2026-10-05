@@ -516,7 +516,7 @@ function _updateAptOcActivosCount(rowsParam) {
   const vencidos = rows.filter(s => s.due_date && s.due_date < todayKey).length;
   const totalFalta = rows.reduce((sum, s) => sum + Math.max(0, (parseFloat(s.total) || 0) - parseFloat(s.paid_amount || 0)), 0);
   ocCount.textContent = rows.length
-    ? `${rows.length} apartado${rows.length !== 1 ? 's' : ''} activo${rows.length !== 1 ? 's' : ''}${vencidos > 0 ? ` · ${vencidos} vencido${vencidos > 1 ? 's' : ''}` : ''} · $${totalFalta.toLocaleString('es-MX')} por cobrar`
+    ? `${rows.length} apartado${rows.length !== 1 ? 's' : ''} activo${rows.length !== 1 ? 's' : ''}${vencidos > 0 ? ` · ${vencidos} vencido${vencidos > 1 ? 's' : ''}` : ''} · ${_fmtMx(totalFalta)} por cobrar`
     : '';
 }
 
@@ -548,12 +548,7 @@ async function loadApartados() {
     return s.due_date < todayKey;
   }).length;
 
-  ['apt-cobranza-btn-oc', 'apt-cobranza-btn-page'].forEach(btnId => {
-    const btn = document.getElementById(btnId);
-    if (!btn) return;
-    btn.style.display = vencidos > 0 ? '' : 'none';
-    btn.textContent = `Recordar a vencidas (${vencidos})`;
-  });
+  if (typeof _syncAptCobranzaBtns === 'function') _syncAptCobranzaBtns();
 
   // Alerta en topbar — solo si hay vencidos
   const alertBtn = document.getElementById('apt-vencidos-alert');
@@ -694,12 +689,12 @@ function _renderApartadoCanceladosCards(data) {
     <div class="apt-header-r1">
       <span class="apt-h-name">${_uiIcoUser()} ${_esc(nombre)}</span>
       <div class="apt-h-right">
-        <span class="apt-h-pending cancelado">✕ Cancelado</span>
+        <span class="apt-h-pending cancelado">${_fmtMx(total)}</span>
         <span class="apt-chevron">›</span>
       </div>
     </div>
     <div class="apt-header-r2">
-      <span class="apt-h-meta">${t} · ${nItems} prod.${telNum ? ' · '+telNum : ''}</span>
+      <span class="apt-h-meta">Cancelado el ${t} · ${nItems} prod.</span>
     </div>
   </div>
   <div class="apt-body">
@@ -752,9 +747,9 @@ function _renderApartadoCards(data, isLiquidado) {
     let dueColor = '', dueText = '', dueHTML = '';
     if (s.due_date && !isLiquidado) {
       const diff = _posDayKeyDiff(s.due_date);
-      dueColor = diff < 0 ? 'var(--red)' : diff <= 7 ? '#D97706' : '#6B9E78';
       dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)}d` : diff === 0 ? 'Vence hoy' : `Vence ${_posFormatDayKey(s.due_date,{day:'numeric',month:'short'})}`;
-      dueHTML  = `<span class="apt-h-due" style="color:${dueColor}">${_uiIcoCalendar()} ${dueText}</span>`;
+      // Color solo cuando importa: rojo vencido, ámbar ≤7 días; lo demás gris.
+      dueHTML  = `<span class="apt-h-due${diff < 0 ? ' is-overdue' : diff <= 7 ? ' is-soon' : ''}">${_uiIcoCalendar()} ${dueText}</span>`;
     }
     const isOverdue = !isLiquidado && s.due_date && _posDayKeyDiff(s.due_date) < 0;
 
@@ -812,12 +807,12 @@ function _renderApartadoCards(data, isLiquidado) {
     <div class="apt-header-r1">
       <span class="apt-h-name">${_uiIcoUser()} ${_esc(nombre)}</span>
       <div class="apt-h-right">
-        <span class="apt-h-pending${pendiente===0?' zero':''}">${pendiente===0?(isLiquidado?'✓ Liquidado':'✓ Pagado'):'Falta $'+pendiente.toLocaleString('es-MX')}</span>
+        <span class="apt-h-pending${pendiente===0?' zero':''}${isOverdue?' is-overdue':''}${isLiquidado?' cancelado':''}">${isLiquidado ? _fmtMx(total) : pendiente===0 ? 'Pagado' : 'Falta ' + _fmtMx(pendiente)}</span>
         <span class="apt-chevron">›</span>
       </div>
     </div>
     <div class="apt-header-r2">
-      <span class="apt-h-meta">${t} · ${nItems} prod.${telNum ? ' · '+telNum : ''}</span>
+      <span class="apt-h-meta">${isLiquidado ? 'Liquidado el ' : ''}${t} · ${nItems} prod.</span>
       ${dueHTML}
     </div>
     <div class="apt-mini-bar" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="apt-mini-fill" style="width:${pct}%"></div></div>
@@ -988,7 +983,7 @@ function _renderCobranza() {
       <div class="cobranza-row${done ? ' done' : ''}">
         <div class="cobranza-info">
           <div class="cobranza-name">${_esc(nombre || 'Sin nombre')}</div>
-          <div class="cobranza-meta">Venció hace ${dias} día${dias !== 1 ? 's' : ''} · debe <strong>$${pendiente.toLocaleString('es-MX')}</strong>${(tel || '').replace(/\D/g, '') ? '' : ' · <span class="cobranza-warn">sin teléfono</span>'}</div>
+          <div class="cobranza-meta">Venció hace ${dias} día${dias !== 1 ? 's' : ''} · debe <strong>${_fmtMx(pendiente)}</strong>${(tel || '').replace(/\D/g, '') ? '' : ' · <span class="cobranza-warn">sin teléfono</span>'}</div>
           <div class="cobranza-meta">${r.sentNow ? 'Enviado ahora' : fmtRem(r.rem)}</div>
         </div>
         <button type="button" class="cobranza-send" onclick="_cobranzaSend(${i})">${done ? 'Reenviar' : 'Enviar'}</button>
@@ -1528,7 +1523,7 @@ async function saveEditApt() {
   let nameParam = null;
   if (nameInput !== originalName) {
     if (nameInput === '') { toast('El nombre no puede quedar vacío', 'error'); return; }
-    nameParam = nameInput;
+    nameParam = _titleCaseName(nameInput);
   }
   const btn = document.getElementById('edit-apt-save-btn');
   btn.disabled = true; btn.textContent = 'Guardando…';
