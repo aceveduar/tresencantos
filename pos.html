@@ -623,94 +623,87 @@
     <span class="history-oc-title"><svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Corte de caja</span>
     <button class="history-oc-close" onclick="closeCorte()">✕</button>
   </div>
-  <div style="padding:16px;overflow-y:auto;flex:1">
-    <div class="apt-view-toggle" id="corte-mode-toggle" style="margin-bottom:12px">
+  <div class="corte-body">
+    <div class="apt-view-toggle corte-toggle" id="corte-mode-toggle">
       <button type="button" class="active" id="corte-mode-mio" onclick="setCorteMode('mio')">Mi turno</button>
       <button type="button" id="corte-mode-general" onclick="setCorteMode('general')">General — hoy</button>
     </div>
-    <div id="corte-periodo" style="font-size:.72rem;color:var(--muted);margin-bottom:14px;font-weight:600;text-transform:uppercase;letter-spacing:.04em"></div>
-    <div id="corte-content" style="display:flex;flex-direction:column;gap:10px"></div>
-    <div id="corte-detalle-section" style="margin-top:10px"></div>
-    <div id="corte-breakdown" style="margin-top:10px"></div>
+    <div id="corte-periodo" class="corte-periodo"></div>
 
+    <!-- MI TURNO, paso 1: contar. Conteo a ciegas real: aquí no aparece
+         ningún monto cobrado del turno (ni efectivo, ni total, ni detalle).
+         Con fondo + efectivo a la vista el esperado se saca de cabeza y el
+         conteo deja de ser conteo; todo eso se revela al comparar. -->
     <div id="corte-personal-sections">
-      <!-- GASTOS DEL TURNO -->
-      <div style="margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-        <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:.82rem;font-weight:700;color:var(--charcoal)"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>Gastos y otros movimientos</span>
-          <button onclick="showGastoForm()" style="font-size:.72rem;font-weight:700;color:var(--gold-dark);background:var(--gold-light);border:1px solid rgba(201,164,98,.3);border-radius:50px;padding:3px 12px;cursor:pointer;font-family:inherit">+ Agregar</button>
+      <section class="corte-card">
+        <div class="corte-row">
+          <span class="corte-row-lbl">Fondo inicial</span>
+          <span class="corte-row-val" id="corte-fondo">$0</span>
         </div>
-        <div id="gastos-form" style="display:none;padding:10px 16px;border-bottom:1px solid var(--border);display:none;gap:8px;flex-direction:column">
-          <div class="gasto-kind-toggle" style="display:flex;gap:6px;background:var(--surface-soft);border:1.5px solid var(--border);border-radius:10px;padding:3px">
-            <button type="button" id="gasto-kind-gasto" onclick="_setGastoKind('gasto')" style="flex:1;padding:7px 10px;border-radius:8px;border:none;background:var(--surface);color:var(--red);font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit;box-shadow:0 1px 3px rgba(0,0,0,.12)">− Gasto</button>
-            <button type="button" id="gasto-kind-ingreso" onclick="_setGastoKind('ingreso')" style="flex:1;padding:7px 10px;border-radius:8px;border:none;background:none;color:var(--muted);font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">+ Ingreso</button>
-            <button type="button" id="gasto-kind-retiro" onclick="_setGastoKind('retiro')" style="flex:1;padding:7px 10px;border-radius:8px;border:none;background:none;color:var(--muted);font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">Retiro</button>
+        <label class="corte-count" for="corte-conteo">
+          <span class="corte-count-lbl">Efectivo en el cajón</span>
+          <span class="corte-count-hint">Cuenta billetes y monedas, con el fondo incluido</span>
+          <span class="corte-count-field">
+            <span aria-hidden="true">$</span>
+            <input id="corte-conteo" type="text" inputmode="decimal" placeholder="0" autocomplete="off" oninput="_onConteoInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();compararConteo()}">
+          </span>
+        </label>
+        <div class="corte-mov">
+          <div class="corte-mov-head">
+            <span class="corte-row-lbl">Gastos, ingresos y retiros</span>
+            <button type="button" class="corte-link-btn" onclick="showGastoForm()">+ Agregar</button>
           </div>
-          <div id="gasto-kind-hint" style="display:none;font-size:.74rem;color:var(--muted);line-height:1.4">Dinero que sale del cajón sin ser gasto (ej. Ofelia se lleva la venta). Resta de lo que debe haber en caja, pero no de la utilidad.</div>
-          <input id="gasto-desc" type="text" placeholder="Descripción (ej: Refresco, Taxi, Recarga…)" style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;font-family:inherit;outline:none">
-          <div style="display:flex;gap:8px">
-            <input id="gasto-monto" type="number" placeholder="Monto $" min="0" style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.84rem;font-family:inherit;outline:none">
-            <button onclick="agregarGasto()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--ink);color:#fff;font-weight:700;font-size:.82rem;cursor:pointer;font-family:inherit">✓</button>
-            <button onclick="hideGastoForm()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);font-size:.82rem;cursor:pointer;font-family:inherit">✕</button>
+          <div id="gastos-form" class="corte-mov-form" style="display:none">
+            <div class="gasto-kind-toggle" style="display:flex;gap:6px;background:var(--surface-soft);border:1.5px solid var(--border);border-radius:10px;padding:3px">
+              <button type="button" id="gasto-kind-gasto" onclick="_setGastoKind('gasto')" style="flex:1;min-height:40px;padding:7px 10px;border-radius:8px;border:none;background:var(--surface);color:var(--charcoal);font-weight:700;font-size:.82rem;cursor:pointer;font-family:inherit;box-shadow:0 1px 3px rgba(0,0,0,.12)">− Gasto</button>
+              <button type="button" id="gasto-kind-ingreso" onclick="_setGastoKind('ingreso')" style="flex:1;min-height:40px;padding:7px 10px;border-radius:8px;border:none;background:none;color:var(--charcoal);font-weight:700;font-size:.82rem;cursor:pointer;font-family:inherit">+ Ingreso</button>
+              <button type="button" id="gasto-kind-retiro" onclick="_setGastoKind('retiro')" style="flex:1;min-height:40px;padding:7px 10px;border-radius:8px;border:none;background:none;color:var(--charcoal);font-weight:700;font-size:.82rem;cursor:pointer;font-family:inherit">Retiro</button>
+            </div>
+            <div id="gasto-kind-hint" class="corte-count-hint" style="display:none">Dinero que sale del cajón sin ser gasto (ej. Ofelia se lleva la venta).</div>
+            <input id="gasto-desc" class="corte-input" type="text" placeholder="Descripción (ej: Refresco, Taxi, Recarga…)">
+            <div style="display:flex;gap:8px">
+              <input id="gasto-monto" class="corte-input" type="number" inputmode="decimal" placeholder="Monto $" min="0" style="flex:1;min-width:0">
+              <button type="button" class="corte-mov-ok" onclick="agregarGasto()" aria-label="Agregar movimiento">✓</button>
+              <button type="button" class="corte-mov-x" onclick="hideGastoForm()" aria-label="Cancelar">✕</button>
+            </div>
           </div>
+          <div id="gastos-list"></div>
         </div>
-        <div id="gastos-list" style="padding:0 16px"></div>
-        <div id="gastos-total-row" style="display:none;padding:10px 16px;border-top:1px solid var(--border);display:none;justify-content:space-between;align-items:center;background:#FEF2F2">
-          <span id="gastos-total-label" style="font-size:.82rem;font-weight:600;color:var(--red)">Neto</span>
-          <span id="gastos-total" style="font-weight:800;color:var(--red);font-size:.92rem"></span>
-        </div>
-      </div>
-      <!-- UTILIDAD -->
-      <div id="utilidad-row" style="display:none;background:var(--gold-light);border:1px solid rgba(201,164,98,.4);border-radius:12px;padding:12px 16px;display:none;justify-content:space-between;align-items:center;margin-top:4px">
-        <span style="font-weight:700;font-size:.88rem"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>Utilidad del turno</span>
-        <span id="utilidad-val" style="font-size:1.1rem;font-weight:800;color:var(--gold-dark)"></span>
-      </div>
+      </section>
+      <button type="button" id="corte-comparar-btn" class="corte-primary" onclick="compararConteo()">Comparar conteo</button>
 
-      <!-- CIERRE DE CAJA (EFECTIVO) -->
-      <div style="margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-        <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px">
-          <span style="font-size:.82rem;font-weight:700;color:var(--charcoal)"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>Cierre de caja</span>
-          <span id="corte-turno-abierto" style="font-size:.7rem;color:var(--muted);white-space:nowrap"></span>
+      <!-- MI TURNO, paso 2: resultado (solo después de comparar) -->
+      <section id="corte-result" class="corte-card" style="display:none">
+        <div class="corte-result-head">
+          <span class="corte-result-lbl">Diferencia</span>
+          <span id="corte-diff-val" class="corte-result-val"></span>
+          <span id="corte-diff-tag" class="corte-result-tag"></span>
         </div>
-        <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <span style="font-size:.8rem;color:var(--muted);font-weight:600">Fondo inicial<span style="font-weight:400;margin-left:6px;color:var(--muted-light)">declarado al abrir</span></span>
-          <div style="display:flex;align-items:center;gap:4px">
-            <span style="font-size:.84rem;color:var(--muted)">$</span>
-            <input id="corte-fondo" type="number" readonly tabindex="-1" style="width:100px;padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;font-weight:700;font-family:inherit;outline:none;text-align:right;background:var(--cream);color:var(--muted)">
-          </div>
+        <div class="corte-row">
+          <span class="corte-row-lbl">Contaste</span>
+          <span class="corte-row-val" id="corte-contado"></span>
         </div>
-        <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <span style="font-size:.8rem;color:var(--muted);font-weight:600">Conteo físico<span style="font-weight:400;margin-left:6px;color:var(--muted-light)">cuenta el efectivo primero</span></span>
-          <div style="display:flex;align-items:center;gap:4px">
-            <span style="font-size:.84rem;color:var(--muted)">$</span>
-            <input id="corte-conteo" type="number" min="0" inputmode="decimal" placeholder="0" oninput="_onConteoInput()" style="width:100px;padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;font-weight:700;font-family:inherit;outline:none;text-align:right">
-          </div>
+        <div class="corte-row">
+          <span class="corte-row-lbl">Debía haber<span id="corte-esperado-formula" class="corte-row-sub"></span></span>
+          <span class="corte-row-val" id="corte-esperado"></span>
         </div>
-        <!-- Cajón compartido: por cada cuenta que cobró efectivo durante este
-             turno, ¿ese dinero está en este cajón? (lo llena _renderOtrosCajon) -->
-        <div id="corte-otros-cajon" class="corte-otros" style="display:none"></div>
-        <!-- Conteo a ciegas: "Efectivo esperado" no se muestra hasta después
-             de comparar -- verlo antes invitaría a copiar el número en vez
-             de contar el efectivo de verdad. -->
-        <button id="corte-comparar-btn" onclick="compararConteo()" style="display:block;width:calc(100% - 32px);margin:10px 16px;padding:10px;border-radius:8px;border:1.5px dashed var(--gold);background:var(--gold-light);color:var(--gold-dark);font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit"><svg aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:6px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Comparar conteo</button>
-        <div id="corte-esperado-row" style="display:none;padding:10px 16px;border-bottom:1px solid var(--border);border-top:1px solid var(--border);justify-content:space-between;align-items:center">
-          <span style="font-size:.8rem;color:var(--muted);font-weight:600">Efectivo esperado<span id="corte-esperado-formula" style="font-weight:400;margin-left:6px;color:var(--muted-light)">fondo + ventas − gastos</span></span>
-          <span id="corte-esperado" style="font-weight:700;font-size:.9rem">$0</span>
-        </div>
-        <div id="corte-diff-row" style="display:none;padding:12px 16px;justify-content:space-between;align-items:center">
-          <span style="font-weight:700;font-size:.88rem">Diferencia</span>
-          <span id="corte-diff-val" style="font-size:1.1rem;font-weight:800"></span>
-        </div>
-        <button id="corte-corregir-btn" onclick="corregirConteo()" style="display:none;width:100%;padding:8px;border:none;background:none;color:var(--muted);font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:underline"><svg aria-hidden="true" style="width:13px;height:13px;vertical-align:-2px;margin-right:5px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Corregir conteo</button>
-      </div>
-      <button id="corte-cerrar-btn" onclick="confirmCloseTurno()" style="display:none;margin-top:10px;width:100%;padding:12px;border-radius:50px;border:1.5px solid var(--red);background:var(--surface);color:var(--red);font-size:.86rem;font-weight:700;cursor:pointer;font-family:inherit;align-items:center;justify-content:center;gap:7px">
-        <svg width="15" height="15" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <span id="corte-cerrar-label">Cerrar turno</span>
-      </button>
+        <button type="button" id="corte-corregir-btn" class="corte-link-btn corte-corregir" onclick="corregirConteo()">Corregir conteo</button>
+      </section>
     </div>
 
-    <button id="corte-wa-btn" onclick="compartirCorteWA()" style="margin-top:14px;width:100%;padding:12px;border-radius:50px;border:none;background:#25D366;color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:7px">
-      <svg width="15" height="15" fill="#fff" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.374 0 0 5.373 0 12c0 2.124.553 4.118 1.522 5.85L.057 23.499l5.772-1.513A11.94 11.94 0 0012 24c6.626 0 12-5.373 12-12S18.626 0 12 0z"/></svg>
+    <!-- Resumen de cobros: en "General" siempre; en "Mi turno" después de comparar -->
+    <div id="corte-summary">
+      <div id="corte-content"></div>
+      <div id="corte-detalle-section"></div>
+      <div id="corte-breakdown"></div>
+    </div>
+
+    <button type="button" id="corte-cerrar-btn" class="corte-primary" onclick="confirmCloseTurno()" style="display:none">
+      <svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <span id="corte-cerrar-label">Cerrar turno</span>
+    </button>
+    <button type="button" id="corte-wa-btn" class="corte-secondary" onclick="compartirCorteWA()">
+      <svg width="16" height="16" fill="#25D366" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.374 0 0 5.373 0 12c0 2.124.553 4.118 1.522 5.85L.057 23.499l5.772-1.513A11.94 11.94 0 0012 24c6.626 0 12-5.373 12-12S18.626 0 12 0z"/></svg>
       Compartir por WhatsApp
     </button>
   </div>

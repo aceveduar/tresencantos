@@ -1,17 +1,4 @@
 /* ── CART ── */
-/* ── ÍCONOS INLINE PARA EL CORTE DE CAJA ── */
-const _ico = (p, px = 13, sw = 1.75) => `<svg style="width:${px}px;height:${px}px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:${sw};stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24">${p}</svg>`;
-const _icoBag      = () => _ico('<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>');
-const _icoCheck    = () => _ico('<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>');
-const _icoBookmark = () => _ico('<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>');
-const _icoCash     = () => _ico('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>');
-const _icoPhone    = () => _ico('<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>');
-const _icoReceipt  = () => _ico('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>');
-const _icoUndo     = () => _ico('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>');
-const _icoWarn     = () => _ico('<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>');
-const _icoUsers    = () => _ico('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>');
-const _icoUser     = () => _ico('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>');
-const _icoHelp     = () => _ico('<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>');
 /* ── FRECUENTES ── */
 let _topFromSales = [];
 
@@ -413,6 +400,7 @@ function setCash(amount) {
 
 /* ── CORTE DE CAJA ── */
 let _corteData = null;
+let _corteLoadError = false;
 
 let _corteMode = 'mio'; // 'mio' | 'general'
 
@@ -426,8 +414,7 @@ function setCorteMode(mode) {
   _corteMode = mode;
   document.getElementById('corte-mode-mio')?.classList.toggle('active', mode === 'mio');
   document.getElementById('corte-mode-general')?.classList.toggle('active', mode === 'general');
-  const personal = document.getElementById('corte-personal-sections');
-  if (personal) personal.style.display = mode === 'general' ? 'none' : '';
+  _corteSyncVisibility();
   loadCorte();
 }
 
@@ -440,9 +427,12 @@ async function openCorte() {
   _corteMode = 'mio';
   document.getElementById('corte-mode-mio')?.classList.add('active');
   document.getElementById('corte-mode-general')?.classList.remove('active');
-  const generalBtn = document.getElementById('corte-mode-general');
-  if (generalBtn) generalBtn.style.display = canViewReports() ? '' : 'none';
-  document.getElementById('corte-personal-sections').style.display = '';
+  // Sin permiso de Reportes solo existe "Mi turno": un selector de una sola
+  // opción es ruido, se oculta completo.
+  const toggle = document.getElementById('corte-mode-toggle');
+  if (toggle) toggle.style.display = canViewReports() ? '' : 'none';
+  _conteoRevealed = false;
+  _corteSyncVisibility();
   await loadCorte();
   await _loadGastos();
   renderGastos();
@@ -461,14 +451,17 @@ async function loadCorte() {
   const shareButton = document.getElementById('corte-wa-btn');
   _corteData = null;
   if (shareButton) shareButton.disabled = true;
-  content.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Calculando...</div>';
+  _corteLoadError = false;
+  content.innerHTML = '<div class="corte-loading">Calculando…</div>';
 
   const TZ = 'America/Mexico_City';
   const now = new Date();
   const ahoraMX = new Intl.DateTimeFormat('es-MX', { timeZone:TZ, dateStyle:'full', timeStyle:'short' }).format(now);
   const actorEmail = _posCurrentUserEmail();
   if (!actorEmail || !_currentShift) {
-    content.innerHTML = '<div style="color:var(--red);text-align:center">No se pudo identificar tu turno. Cierra y vuelve a abrir Caja.</div>';
+    _corteLoadError = true;
+    content.innerHTML = '<div class="corte-error">No se pudo identificar tu turno. Cierra y vuelve a abrir Caja.</div>';
+    _corteSyncVisibility();
     return;
   }
   const isGeneral = _corteMode === 'general';
@@ -485,26 +478,28 @@ async function loadCorte() {
   const from = encodeURIComponent(rangeStart.toISOString());
   const to   = encodeURIComponent(now.toISOString());
   const inicioMX = new Intl.DateTimeFormat('es-MX', { timeZone:TZ, hour:'2-digit', minute:'2-digit' }).format(rangeStart);
-  const actorLabel = actorEmail.split('@')[0];
+  const actorLabel = _sellerLabel(actorEmail) || actorEmail.split('@')[0];
   periodoEl.textContent = isGeneral
-    ? `General — hoy desde las ${inicioMX}, todas las cajeras`
-    : `Turno de ${actorLabel} desde ${inicioMX}`;
+    ? 'Todo el día de hoy · todas las cajeras'
+    : `${actorLabel} · turno desde las ${inicioMX}`;
 
   const [paymentsResult, createdResult] = await Promise.all([
     _posFetchAll(`sale_payments?paid_at=gte.${from}&paid_at=lte.${to}&select=sale_id,amount,kind,method,paid_at,source,collected_by_email,sale:sales(origin_type,status,customer,items)&order=paid_at.asc,id.asc`),
     _posFetchAll(`sales?created_at=gte.${from}&created_at=lte.${to}&select=id,origin_type,status,seller_email&order=created_at.asc,id.asc`)
   ]);
   if (!paymentsResult.ok || !createdResult.ok) {
-    content.innerHTML = '<div style="color:var(--red);text-align:center">No se pudo calcular el corte. Verifica la migración de pagos y reintenta.</div>';
+    _corteLoadError = true;
+    content.innerHTML = '<div class="corte-error">No se pudo calcular el corte. Revisa tu conexión y vuelve a abrirlo.</div>';
+    _corteSyncVisibility();
     return;
   }
+  _corteLoadError = false;
 
   const allPayments = paymentsResult.data || [];
   const money = value => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
   const payments = isGeneral ? allPayments : allPayments.filter(payment =>
     String(payment.collected_by_email || '').toLowerCase() === actorEmail
   );
-  const unassignedPayments = allPayments.filter(payment => !payment.collected_by_email);
   const otherCashiers = allPayments.filter(payment =>
     payment.collected_by_email && String(payment.collected_by_email).toLowerCase() !== actorEmail
   );
@@ -537,65 +532,47 @@ async function loadCorte() {
       return _isApartadoLiquidationPayment(payment, sale);
     })
     .map(payment => payment.sale_id)).size;
-  const unassignedNet = money(unassignedPayments.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0));
   const otherCashiersNet = money(otherCashiers.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0));
-  // Efectivo de otras cuentas por persona -- el cajón es uno solo aunque el
-  // turno sea de cada quien; al cerrar se pregunta si ese dinero está aquí.
-  const otherCashByEmail = new Map();
-  otherCashiers.filter(p => p.method === 'efectivo').forEach(p => {
-    const key = String(p.collected_by_email).toLowerCase();
-    otherCashByEmail.set(key, (otherCashByEmail.get(key) || 0) + (parseFloat(p.amount) || 0));
-  });
-  const otherCash = [...otherCashByEmail.entries()]
-    .map(([email, efectivo]) => ({ email, efectivo: money(efectivo) }))
-    .filter(r => Math.abs(r.efectivo) >= .005);
-
   const total = money(efectivo + transferencia + otros);
   const fmt = n => `$${n.toLocaleString('es-MX')}`;
   const breakdown = isGeneral ? _corteBreakdownRows(allPayments) : [];
   _corteData = { efectivo, transferencia, otros, devoluciones, total, numVentas, numApartados,
-    numLiquidados, anticipos, ahoraMX, inicioMX, actorLabel, unassignedNet, otherCashiersNet, isGeneral, breakdown,
-    otherCash: isGeneral ? [] : otherCash };
+    numLiquidados, anticipos, ahoraMX, inicioMX, actorLabel, otherCashiersNet, isGeneral, breakdown };
   if (shareButton) shareButton.disabled = false;
-  if (!isGeneral) _renderOtrosCajon();
 
-  const row = (label, value, sub='') => `
-    <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:.8rem;color:var(--muted);font-weight:600">${label}${sub ? `<span style="font-weight:400;margin-left:6px;color:var(--muted-light)">${sub}</span>` : ''}</span>
-      <span style="font-weight:700;font-size:.9rem">${value}</span>
-    </div>`;
+  // Solo lo que sirve para cuadrar: cuánto entró por método y el total.
+  // Lo que se cuenta en piezas (ventas/apartados) va en una línea de
+  // contexto, no como renglón de monto. Los avisos que antes vivían aquí
+  // (otras cuentas, anticipos, "generado…") se quitaron: la pregunta del
+  // cajón ya cubre lo de otras cuentas y el mensaje de WhatsApp lleva el resto.
+  const row = (label, value) => `
+    <div class="corte-row"><span class="corte-row-lbl">${label}</span><span class="corte-row-val">${value}</span></div>`;
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  const meta = [
+    numVentas     ? plural(numVentas, 'venta', 'ventas') : '',
+    numApartados  ? plural(numApartados, 'apartado nuevo', 'apartados nuevos') : '',
+    numLiquidados ? plural(numLiquidados, 'liquidado', 'liquidados') : ''
+  ].filter(Boolean).join(' · ') || 'Sin cobros todavía';
 
   content.innerHTML = `
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-      ${row(_icoBag() + ' Ventas directas', numVentas)}
-      ${numLiquidados ? row(_icoCheck() + ' Apartados liquidados', numLiquidados) : ''}
-      ${numApartados  ? row(_icoBookmark() + ' Apartados nuevos', numApartados, anticipos > 0 ? `anticipos activos ${fmt(anticipos)}` : '') : ''}
-      <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:.8rem;color:var(--muted);font-weight:600">${_icoCash()} Efectivo neto</span>
-        <span style="font-weight:700;font-size:.9rem;color:var(--charcoal)">${fmt(efectivo)}</span>
+    <section class="corte-card">
+      <div class="corte-card-title">${isGeneral ? 'Cobros de hoy' : 'Tus cobros del turno'}</div>
+      ${row('Efectivo', fmt(efectivo))}
+      ${row('Transferencia', fmt(transferencia))}
+      ${Math.abs(otros) >= .005 ? row('Ajustes sin método', fmt(otros)) : ''}
+      ${devoluciones > 0 ? row('Devoluciones (ya restadas)', `−${fmt(devoluciones)}`) : ''}
+      <div class="corte-total">
+        <span class="corte-total-lbl">Total cobrado<span class="corte-row-sub">${meta}</span></span>
+        <span class="corte-total-val">${fmt(total)}</span>
       </div>
-      <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:.8rem;color:var(--muted);font-weight:600">${_icoPhone()} Transferencia neta</span>
-        <span style="font-weight:700;font-size:.9rem;color:var(--charcoal)">${fmt(transferencia)}</span>
-      </div>
-      ${Math.abs(otros) >= .005 ? row(_icoReceipt() + ' Ajustes sin método', fmt(otros)) : ''}
-      ${devoluciones > 0 ? row(_icoUndo() + ' Devoluciones registradas', `−${fmt(devoluciones)}`) : ''}
-      <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;background:var(--cream)">
-        <span style="font-size:.88rem;font-weight:700">${isGeneral ? 'Neto del día' : 'Neto del turno'}<span style="font-weight:400;font-size:.7rem;color:var(--muted-light);display:block;margin-top:1px">${isGeneral ? 'Todas las cajeras, hoy' : 'Solo lo que cobraste tú en este horario'}</span></span>
-        <span style="font-size:1.15rem;font-weight:800;color:${total > 0 ? 'var(--green)' : 'var(--muted)'}">${fmt(total)}</span>
-      </div>
-    </div>
-    ${anticipos > 0 ? `<div style="background:var(--gold-light);border:1px solid var(--gold);border-radius:10px;padding:10px 14px;font-size:.78rem;color:var(--gold-dark)">${_icoBookmark()} <strong>${fmt(anticipos)}</strong> cobrados ${isGeneral ? 'hoy' : 'en este turno'} en apartados que continúan activos</div>` : ''}
-    ${!isGeneral && unassignedPayments.length ? `<div class="corte-warn-box" style="background:#FFF3F3;border:1px solid #FCA5A5;border-radius:10px;padding:10px 14px;font-size:.76rem;color:#991B1B">${_icoWarn()} ${fmt(unassignedNet)} en ${unassignedPayments.length} abono${unassignedPayments.length!==1?'s':''} antiguo${unassignedPayments.length!==1?'s':''} sin registro de quién los cobró (datos de antes de esta actualización) — no cuentan en tu corte.</div>` : ''}
-    ${!isGeneral && otherCashiers.length ? `<div style="background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:.76rem;color:var(--muted)">${_icoUsers()} ${fmt(otherCashiersNet)} los cobró otra cuenta en este mismo horario — no cuentan en tus cobros${otherCash.length ? '; al cerrar te preguntamos si el efectivo está en tu cajón' : ''}.</div>` : ''}
-    <div style="text-align:center;font-size:.72rem;color:var(--muted);padding:4px 0">Generado ${ahoraMX}</div>
-  `;
+    </section>`;
 
   const breakdownEl = document.getElementById('corte-breakdown');
   if (breakdownEl) breakdownEl.innerHTML = isGeneral ? _renderCorteBreakdown(breakdown, fmt) : '';
 
   const detalleEl = document.getElementById('corte-detalle-section');
   if (detalleEl) detalleEl.innerHTML = isGeneral ? '' : _renderCorteDetalle(payments);
+  _renderCierre();
 }
 
 // Desglose renglón por renglón de "Mi turno" — colapsado por default, para
@@ -617,21 +594,15 @@ function _renderCorteDetalle(payments) {
     const sale = Array.isArray(payment.sale) ? payment.sale[0] : payment.sale;
     const items = Array.isArray(sale?.items) ? sale.items : [];
     const isRefund = payment.kind === 'refund';
-    const tagText = isRefund ? 'DEVOLUCIÓN'
-      : payment.source === 'rpc_apartado_initial' ? 'APARTADO NUEVO'
-      : payment.source === 'rpc_apartado_liquidation' ? 'LIQUIDADO'
-      : payment.source === 'rpc_apartado_payment' ? 'ABONO'
-      : payment.source === 'rpc_direct_sale' ? 'VENTA'
-      : payment.source === 'rpc_apartado_reactivation' ? 'REACTIVADO'
-      : 'MOVIMIENTO';
-    // Clases en vez de estilo inline -- así el bloque [data-theme="dark"] de
-    // pos.css sí puede invertir estos colores (un inline style le gana a
-    // cualquier selector externo salvo que use !important).
-    const tagClass = isRefund ? 'corte-tag-refund'
-      : tagText === 'APARTADO NUEVO' ? 'corte-tag-aptnew'
-      : tagText === 'ABONO' ? 'corte-tag-abono'
-      : (tagText === 'MOVIMIENTO' || tagText === 'REACTIVADO') ? 'corte-tag-mov'
-      : 'corte-tag-venta';
+    // Tipo en texto plano (sin chips de color): mismo minimalismo que el
+    // resto del corte; el signo del monto ya distingue una devolución.
+    const tipo = isRefund ? 'Devolución'
+      : payment.source === 'rpc_apartado_initial' ? 'Apartado nuevo'
+      : payment.source === 'rpc_apartado_liquidation' ? 'Liquidación'
+      : payment.source === 'rpc_apartado_payment' ? 'Abono'
+      : payment.source === 'rpc_direct_sale' ? 'Venta'
+      : payment.source === 'rpc_apartado_reactivation' ? 'Reactivación'
+      : 'Movimiento';
     const origin = sale?.origin_type;
     const nombre = origin === 'apartado'
       ? _esc((sale?.customer || '').split(' · 📱 ')[0] || `Apartado #${payment.sale_id}`)
@@ -639,19 +610,19 @@ function _renderCorteDetalle(payments) {
     const time = new Intl.DateTimeFormat('es-MX', { timeZone:'America/Mexico_City', hour:'2-digit', minute:'2-digit' }).format(new Date(payment.paid_at));
     const amount = parseFloat(payment.amount) || 0;
     const amountText = `${isRefund ? '−' : ''}$${Math.abs(amount).toLocaleString('es-MX')}`;
-    const methodIco = payment.method === 'transferencia' ? _icoPhone() : _icoCash();
+    const metodo = payment.method === 'transferencia' ? 'Transferencia' : payment.method === 'efectivo' ? 'Efectivo' : 'Sin método';
     return `
-      <div style="padding:9px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
-        <span style="font-size:.7rem;color:var(--muted-light);flex-shrink:0;width:38px">${time}</span>
-        <span class="corte-tag ${tagClass}" style="font-size:.62rem;padding:1px 6px;border-radius:50px;font-weight:700;flex-shrink:0">${tagText}</span>
-        <span style="font-size:.78rem;color:var(--charcoal);flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${nombre}</span>
-        <span style="font-size:.7rem;color:var(--muted-light);flex-shrink:0">${methodIco}</span>
-        <span style="font-weight:700;font-size:.84rem;flex-shrink:0;color:${isRefund ? 'var(--red)' : 'var(--charcoal)'}">${amountText}</span>
+      <div class="corte-cobro">
+        <div class="corte-cobro-main">
+          <span class="corte-cobro-name">${nombre}</span>
+          <span class="corte-cobro-meta">${time} · ${tipo} · ${metodo}</span>
+        </div>
+        <span class="corte-cobro-amt">${amountText}</span>
       </div>`;
   }).join('');
   return `
-    <button type="button" id="corte-detalle-toggle" onclick="_corteToggleDetalle()" style="width:100%;text-align:left;padding:10px 14px;border:1.5px dashed var(--border);border-radius:10px;background:transparent;color:var(--muted);font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;touch-action:manipulation">▾ Ver detalle de mis cobros (${payments.length})</button>
-    <div id="corte-detalle-list" style="display:none;margin-top:6px;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">${rows}</div>`;
+    <button type="button" id="corte-detalle-toggle" class="corte-link-btn corte-detalle-toggle" onclick="_corteToggleDetalle()">▾ Ver cada cobro (${payments.length})</button>
+    <div id="corte-detalle-list" class="corte-card" style="display:none">${rows}</div>`;
 }
 
 // Quién cobró qué, sumado en efectivo+transferencia (mismo criterio que el
@@ -673,14 +644,14 @@ function _corteBreakdownRows(payments) {
 function _renderCorteBreakdown(rows, fmt) {
   if (!rows.length) return '';
   return `
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-      <div style="padding:10px 16px;border-bottom:1px solid var(--border)"><span style="font-size:.82rem;font-weight:700;color:var(--charcoal)">${_icoUsers()} Por cajero</span></div>
+    <section class="corte-card">
+      <div class="corte-card-title">Por cajera</div>
       ${rows.map(r => `
-        <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:.8rem;color:var(--muted);font-weight:600">${r.email ? _icoUser() + ' ' + _esc(r.email.split('@')[0]) : _icoHelp() + ' Sin cajero registrado'}</span>
-          <span style="font-weight:700;font-size:.9rem">${fmt(r.net)}</span>
+        <div class="corte-row">
+          <span class="corte-row-lbl">${r.email ? _esc(_sellerLabel(r.email)) : 'Sin cajera registrada'}</span>
+          <span class="corte-row-val">${fmt(r.net)}</span>
         </div>`).join('')}
-    </div>`;
+    </section>`;
 }
 
 /* ── GASTOS DEL TURNO ────────────────────────────────────────────── */
@@ -753,6 +724,8 @@ async function agregarGasto() {
   if (!desc || monto <= 0) return;
   const kind = _gastoKind;
   hideGastoForm();
+  // Un movimiento nuevo cambia el esperado: la comparación ya no vale.
+  _conteoRevealed = false;
   const r = await api('rpc/te_add_shift_expense', {
     method: 'POST',
     body: JSON.stringify({ p_description: desc, p_amount: monto, p_kind: kind })
@@ -769,68 +742,33 @@ async function agregarGasto() {
 }
 
 async function eliminarGasto(id) {
+  const g = _gastosCache.find(x => x.id === id);
+  if (!confirm(`¿Quitar "${g?.desc || 'este movimiento'}"? Queda registrado en Actividad.`)) return;
   const r = await api('rpc/te_cancel_shift_expense', {
     method: 'POST',
     body: JSON.stringify({ p_expense_id: id })
   });
   if (!r.ok) { toast(r.data?.message || 'No se pudo quitar', 'error'); return; }
-  _gastosCache = _gastosCache.filter(g => g.id !== id);
+  _gastosCache = _gastosCache.filter(x => x.id !== id);
+  _conteoRevealed = false;
   renderGastos();
 }
 
+// Sin tarjeta propia ni renglón de "Utilidad": vive dentro de la tarjeta
+// de conteo (es parte de lo que debe haber en el cajón) y su efecto se ve
+// en "Debía haber" al comparar. La "utilidad" anterior era cobros − gastos
+// (no restaba costo de mercancía): se quitó por engañosa; la rentabilidad
+// real está en Reportes.
 function renderGastos() {
   const gastos = _getGastos();
-  const list   = document.getElementById('gastos-list');
-  const totRow = document.getElementById('gastos-total-row');
-  const totLbl = document.getElementById('gastos-total-label');
-  const totEl  = document.getElementById('gastos-total');
-  const utilRow= document.getElementById('utilidad-row');
-  const utilEl = document.getElementById('utilidad-val');
-  if (!gastos.length) {
-    list.innerHTML = '<div style="padding:10px 0;font-size:.78rem;color:var(--muted);text-align:center">Sin movimientos registrados</div>';
-    totRow.style.display = 'none';
-    utilRow.style.display = 'none';
-    _renderCierre();
-    return;
-  }
-  const netGastos = _netGastos(gastos);
-  // Efecto total en el cajón: gastos netos + retiros (ambos restan del esperado).
-  const netCajon = netGastos + _netRetiros(gastos);
-  list.innerHTML = gastos.map(g => {
-    const isIngreso = g.kind === 'ingreso';
-    const isRetiro  = g.kind === 'retiro';
-    const color = isIngreso ? 'var(--green)' : isRetiro ? 'var(--charcoal)' : 'var(--red)';
-    const sign  = isIngreso ? '+' : '-';
-    return `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-      <div>
-        ${isRetiro ? '<span style="font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-right:6px">Retiro</span>' : ''}<span style="font-size:.82rem;font-weight:600">${_esc(g.desc)}</span>
-        <span style="font-size:.68rem;color:var(--muted);margin-left:6px">${g.time}</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-weight:700;color:${color};font-size:.84rem">${sign}$${g.amount.toLocaleString('es-MX')}</span>
-        <button onclick="eliminarGasto(${g.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;width:44px;height:44px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center">✕</button>
-      </div>
-    </div>`;
-  }).join('');
-  totRow.style.display = 'flex';
-  if (netCajon >= 0) {
-    totLbl.textContent = 'Neto (resta al esperado)';
-    totLbl.style.color = totEl.style.color = 'var(--red)';
-    totEl.textContent = '-$' + netCajon.toLocaleString('es-MX');
-  } else {
-    totLbl.textContent = 'Neto (suma al esperado)';
-    totLbl.style.color = totEl.style.color = 'var(--green)';
-    totEl.textContent = '+$' + Math.abs(netCajon).toLocaleString('es-MX');
-  }
-  if (_corteData) {
-    const utilidad = Math.round((_corteData.total - netGastos + Number.EPSILON) * 100) / 100;
-    utilRow.style.display = 'flex';
-    utilEl.textContent = '$' + utilidad.toLocaleString('es-MX');
-    utilEl.style.color = utilidad >= 0 ? 'var(--gold-dark)' : 'var(--red)';
-  } else {
-    utilRow.style.display = 'none';
-  }
+  const list = document.getElementById('gastos-list');
+  const fmt = n => `$${n.toLocaleString('es-MX')}`;
+  list.innerHTML = gastos.map(g => `
+    <div class="corte-mov-row">
+      <span class="corte-mov-desc">${g.kind === 'retiro' ? '<span class="corte-mov-kind">Retiro</span>' : ''}${_esc(g.desc)}<span class="corte-mov-time">${g.time}</span></span>
+      <span class="corte-mov-amt">${g.kind === 'ingreso' ? '+' : '−'}${fmt(g.amount)}</span>
+      <button type="button" class="corte-mov-del" onclick="eliminarGasto(${g.id})" aria-label="Quitar movimiento">✕</button>
+    </div>`).join('');
   _renderCierre();
 }
 
@@ -847,87 +785,49 @@ function renderGastos() {
 function _conteoKey() { return _posShiftScopedKey('conteo'); }
 let _conteoRevealed = false;
 
-/* Cajón compartido (2026-10-02): el 1 oct Ofelia cobró $1,015 desde su
- * sesión con el turno de Renata abierto; el corte de Renata los excluía y la
- * caja "no cuadró" aunque el dinero estaba. Antes de comparar, quien cierra
- * contesta por cada cuenta si ese efectivo está en su cajón. Las respuestas
- * viven por turno (localStorage) para no perderse si se cierra el panel. */
-function _otrosCajonKey() { return _posShiftScopedKey('otros_cajon'); }
-function _otrosCajonAnswers() {
-  try { return JSON.parse(localStorage.getItem(_otrosCajonKey()) || '{}') || {}; } catch { return {}; }
-}
-function _otrosCajonPending() {
-  const answers = _otrosCajonAnswers();
-  return (_corteData?.otherCash || []).filter(r => typeof answers[r.email] !== 'boolean');
-}
-function _otrosCajonIncluded() {
-  const answers = _otrosCajonAnswers();
-  return (_corteData?.otherCash || []).filter(r => answers[r.email] === true);
-}
-function _otrosCajonTotal() {
-  return _otrosCajonIncluded().reduce((s, r) => s + r.efectivo, 0);
-}
-// Misma fórmula que te_close_cash_shift (el servidor la recalcula).
+/* El cajón es de quien tiene el turno: lo que cobra otra cuenta (Ofelia en
+ * campo, con su propio dinero) no se espera aquí. Hasta 2026-10-05 se
+ * preguntaba por cada cuenta "¿ese efectivo está en tu cajón?" -- se quitó:
+ * en la tienda hay una persona a la vez, y el caso raro (Ofelia cobra en
+ * tienda y deja el efectivo) se registra como "+ Ingreso". Para atribuirle
+ * a Ofelia una venta que ella cobró está "Ya lo cobró Ofelia" en el cobro.
+ * Misma fórmula que te_close_cash_shift (el servidor la recalcula). */
 function _esperadoCierre() {
   const fondo = _currentShift?.fondo_inicial ?? 0;
   const gastos = _getGastos();
-  return Math.round((fondo + (_corteData?.efectivo ?? 0) + _otrosCajonTotal() - _netGastos(gastos) - _netRetiros(gastos) + Number.EPSILON) * 100) / 100;
+  return Math.round((fondo + (_corteData?.efectivo ?? 0) - _netGastos(gastos) - _netRetiros(gastos) + Number.EPSILON) * 100) / 100;
 }
 
-function _setOtroCajon(email, inDrawer) {
-  const answers = _otrosCajonAnswers();
-  answers[email] = inDrawer;
-  try { localStorage.setItem(_otrosCajonKey(), JSON.stringify(answers)); } catch {}
-  // Igual que editar el conteo: cambiar la respuesta invalida la comparación.
-  _conteoRevealed = false;
-  _renderOtrosCajon();
-  _renderCierre();
+// El campo es de texto (no number) para poder mostrar "4,300" mientras se
+// escribe -- con montos grandes los dígitos sueltos se leen mal. El valor
+// numérico vive en localStorage; _conteoValue() lo lee de ahí.
+function _fmtConteo(raw) {
+  const clean = String(raw).replace(/[^\d.]/g, '');
+  const [ent, ...dec] = clean.split('.');
+  const entFmt = ent ? Number(ent).toLocaleString('es-MX') : (dec.length ? '0' : '');
+  return dec.length ? `${entFmt}.${dec.join('').slice(0, 2)}` : entFmt;
 }
-
-function _renderOtrosCajon() {
-  const el = document.getElementById('corte-otros-cajon');
-  if (!el) return;
-  const rows = _corteData?.otherCash || [];
-  if (!rows.length) { el.innerHTML = ''; el.style.display = 'none'; return; }
-  const answers = _otrosCajonAnswers();
-  const fmt = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX')}`;
-  el.style.display = '';
-  el.innerHTML = `
-    <div class="corte-otros-q">Mientras tu turno estaba abierto, otra cuenta cobró en efectivo. ¿Ese dinero está en tu cajón?</div>
-    ${rows.map(r => {
-      const em = _esc(r.email).replace(/'/g, "\\'");
-      const ans = answers[r.email];
-      return `
-      <div class="corte-otros-row">
-        <div class="corte-otros-who"><strong>${_esc(_sellerLabel(r.email) || r.email)}</strong> cobró ${fmt(r.efectivo)}</div>
-        <div class="corte-otros-btns" role="radiogroup">
-          <button type="button" class="cancel-reason-btn${ans === true ? ' active' : ''}" role="radio" aria-checked="${ans === true}" onclick="_setOtroCajon('${em}', true)">Sí, está aquí</button>
-          <button type="button" class="cancel-reason-btn${ans === false ? ' active' : ''}" role="radio" aria-checked="${ans === false}" onclick="_setOtroCajon('${em}', false)">No</button>
-        </div>
-      </div>`;
-    }).join('')}`;
+function _conteoValue() {
+  const v = localStorage.getItem(_conteoKey());
+  return v == null ? null : (parseFloat(v) || 0);
 }
 
 function _initCierreInputs() {
   const fondoEl = document.getElementById('corte-fondo');
-  if (fondoEl) fondoEl.value = _currentShift?.fondo_inicial ?? 0;
-  const abiertoEl = document.getElementById('corte-turno-abierto');
-  if (abiertoEl && _currentShift?.opened_at) {
-    abiertoEl.textContent = 'Abierto ' + new Intl.DateTimeFormat('es-MX', {
-      timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit'
-    }).format(new Date(_currentShift.opened_at));
-  }
-  const conteo = localStorage.getItem(_conteoKey());
-  document.getElementById('corte-conteo').value = conteo != null ? conteo : '';
+  if (fondoEl) fondoEl.textContent = '$' + (_currentShift?.fondo_inicial ?? 0).toLocaleString('es-MX');
+  const conteo = _conteoValue();
+  document.getElementById('corte-conteo').value = conteo != null ? _fmtConteo(String(conteo)) : '';
   _conteoRevealed = false;
-  _renderOtrosCajon();
   _renderCierre();
 }
 
 function _onConteoInput() {
-  const val = document.getElementById('corte-conteo').value;
-  if (val === '') localStorage.removeItem(_conteoKey());
-  else localStorage.setItem(_conteoKey(), parseFloat(val) || 0);
+  const input = document.getElementById('corte-conteo');
+  const formatted = _fmtConteo(input.value);
+  if (input.value !== formatted) input.value = formatted;
+  const num = formatted.replace(/,/g, '');
+  if (num === '') localStorage.removeItem(_conteoKey());
+  else localStorage.setItem(_conteoKey(), parseFloat(num) || 0);
   // Cambiar el conteo después de haber comparado invalida la comparación --
   // vuelve a ocultarse hasta tocar "Comparar conteo" otra vez.
   if (_conteoRevealed) { _conteoRevealed = false; _renderCierre(); }
@@ -938,19 +838,14 @@ function compararConteo() {
     alert('Aún no se termina de calcular tu corte -- espera un momento e intenta de nuevo.');
     return;
   }
-  const conteoRaw = document.getElementById('corte-conteo').value;
-  if (conteoRaw === '') {
-    alert('Captura tu conteo físico antes de comparar.');
+  if (_conteoValue() == null) {
+    alert('Escribe cuánto efectivo contaste antes de comparar.');
     document.getElementById('corte-conteo')?.focus();
-    return;
-  }
-  if (_otrosCajonPending().length) {
-    alert('Antes de comparar, indica si el efectivo que cobró otra cuenta está en tu cajón.');
-    document.getElementById('corte-otros-cajon')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
     return;
   }
   _conteoRevealed = true;
   _renderCierre();
+  document.getElementById('corte-result')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
 
 function corregirConteo() {
@@ -959,55 +854,52 @@ function corregirConteo() {
   document.getElementById('corte-conteo')?.focus();
 }
 
+// Qué se ve en cada momento. "Mi turno" tiene dos pasos: contar (ningún
+// monto cobrado a la vista) y, al comparar, resultado + resumen + cerrar.
+// Compartir también espera a la comparación: el mensaje lleva el esperado,
+// y mandárselo a una misma sería otra forma de verlo antes de contar.
+function _corteSyncVisibility() {
+  const general  = _corteMode === 'general';
+  const revealed = !general && _conteoRevealed && !!_corteData;
+  const show = (id, on, display = '') => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = on ? display : 'none';
+  };
+  show('corte-personal-sections', !general);
+  show('corte-comparar-btn', !general && !revealed);
+  show('corte-result', revealed);
+  show('corte-summary', general || revealed || _corteLoadError);
+  show('corte-cerrar-btn', revealed, 'flex');
+  show('corte-wa-btn', general || revealed, 'flex');
+}
+
 function _renderCierre() {
-  const esperadoRow = document.getElementById('corte-esperado-row');
-  const diffRow      = document.getElementById('corte-diff-row');
-  const compararBtn  = document.getElementById('corte-comparar-btn');
-  const corregirBtn  = document.getElementById('corte-corregir-btn');
-  const cerrarBtn    = document.getElementById('corte-cerrar-btn');
+  if (_corteData && _conteoRevealed && _corteMode !== 'general') {
+    // Con centavos, siempre dos decimales ($24.50, no $24.5).
+    const fmt = n => { const v = Math.abs(n); return '$' + v.toLocaleString('es-MX', { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }); };
+    const esperado = _esperadoCierre();
+    const conteo = _conteoValue() || 0;
+    document.getElementById('corte-contado').textContent = fmt(conteo);
+    document.getElementById('corte-esperado').textContent = (esperado < 0 ? '−' : '') + fmt(esperado);
+    document.getElementById('corte-esperado-formula').textContent =
+      'fondo + tu efectivo' + (_getGastos().length ? ' ± gastos' : '');
 
-  if (!_corteData || !_conteoRevealed) {
-    if (esperadoRow) esperadoRow.style.display = 'none';
-    if (diffRow) diffRow.style.display = 'none';
-    if (compararBtn) compararBtn.style.display = 'block';
-    if (corregirBtn) corregirBtn.style.display = 'none';
-    if (cerrarBtn) cerrarBtn.style.display = 'none';
-    return;
+    const diff = Math.round((conteo - esperado + Number.EPSILON) * 100) / 100;
+    const valEl = document.getElementById('corte-diff-val');
+    const tagEl = document.getElementById('corte-diff-tag');
+    const state = Math.abs(diff) < .005 ? 'ok' : diff > 0 ? 'over' : 'short';
+    valEl.className = `corte-result-val is-${state}`;
+    valEl.textContent = state === 'ok' ? 'Cuadra' : `${diff > 0 ? '+' : '−'}${fmt(diff)}`;
+    tagEl.textContent = state === 'ok' ? 'El cajón coincide con lo registrado'
+      : state === 'over' ? 'Sobra dinero en el cajón' : 'Falta dinero en el cajón';
   }
-
-  const esperado = _esperadoCierre();
-  const otrosTotal = _otrosCajonTotal();
-  if (esperadoRow) esperadoRow.style.display = 'flex';
-  const formulaEl = document.getElementById('corte-esperado-formula');
-  if (formulaEl) formulaEl.textContent = otrosTotal !== 0
-    ? `fondo + tus cobros + $${otrosTotal.toLocaleString('es-MX')} de otras cuentas − gastos`
-    : 'fondo + ventas − gastos';
-  document.getElementById('corte-esperado').textContent = '$' + esperado.toLocaleString('es-MX');
-
-  const conteoRaw = localStorage.getItem(_conteoKey());
-  const diffVal = document.getElementById('corte-diff-val');
-  const diff = Math.round(((parseFloat(conteoRaw) || 0) - esperado + Number.EPSILON) * 100) / 100;
-  diffRow.style.display = 'flex';
-  if (Math.abs(diff) < .005) {
-    diffVal.textContent = '✓ Cuadra';
-    diffVal.style.color = 'var(--green)';
-  } else if (diff > 0) {
-    diffVal.textContent = `+$${diff.toLocaleString('es-MX')} sobrante`;
-    diffVal.style.color = 'var(--gold-dark)';
-  } else {
-    diffVal.textContent = `-$${Math.abs(diff).toLocaleString('es-MX')} faltante`;
-    diffVal.style.color = 'var(--red)';
-  }
-
-  if (compararBtn) compararBtn.style.display = 'none';
-  if (corregirBtn) corregirBtn.style.display = 'block';
-  if (cerrarBtn) cerrarBtn.style.display = 'inline-flex';
+  _corteSyncVisibility();
 }
 
 function compartirCorteWA() {
   if (!_corteData) return;
   const { efectivo, transferencia, otros, devoluciones, total, numVentas, numApartados,
-    numLiquidados, anticipos, ahoraMX, inicioMX, actorLabel, unassignedNet, otherCashiersNet,
+    numLiquidados, anticipos, ahoraMX, inicioMX, actorLabel, otherCashiersNet,
     isGeneral, breakdown } = _corteData;
   const fmt = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX')}`;
   const gastos = _getGastos();
@@ -1018,24 +910,22 @@ function compartirCorteWA() {
   if (numVentas > 0)      msg += `🛍 Ventas directas: ${numVentas}\n`;
   if (numLiquidados)      msg += `✅ Apartados liquidados: ${numLiquidados}\n`;
   if (numApartados)       msg += `📌 Apartados nuevos: ${numApartados}${anticipos > 0 ? ` (anticipos activos ${fmt(anticipos)})` : ''}\n`;
-  msg += `\n💵 Efectivo neto: ${fmt(efectivo)}\n📱 Transferencia neta: ${fmt(transferencia)}\n*${isGeneral ? 'Neto del día' : 'Neto del turno'}: ${fmt(total)}*`;
+  msg += `\n💵 Efectivo: ${fmt(efectivo)}\n📱 Transferencia: ${fmt(transferencia)}\n*Total cobrado: ${fmt(total)}*`;
   if (Math.abs(otros || 0) >= .005) msg += `\n🧾 Ajustes sin método: ${fmt(otros)}`;
   if (devoluciones > 0) msg += `\n↩️ Devoluciones registradas: −${fmt(devoluciones)}`;
   if (anticipos > 0) msg += `\n📌 Incluye ${fmt(anticipos)} cobrados en apartados aún activos`;
   if (isGeneral) {
     if (breakdown?.length) {
-      msg += `\n\n👥 *Por cajero:*\n` + breakdown.map(r =>
-        `• ${r.email ? r.email.split('@')[0] : 'Sin cajero registrado'}: ${fmt(r.net)}`
+      msg += `\n\n👥 *Por cajera:*\n` + breakdown.map(r =>
+        `• ${r.email ? _sellerLabel(r.email) : 'Sin cajera registrada'}: ${fmt(r.net)}`
       ).join('\n');
     }
   } else {
-    if (Math.abs(unassignedNet || 0) >= .005) msg += `\n⚠ ${fmt(unassignedNet)} en abonos antiguos sin registro de quién los cobró — no incluidos`;
     if (Math.abs(otherCashiersNet || 0) >= .005) msg += `\n👥 ${fmt(otherCashiersNet)} cobrados por otra cuenta — no incluidos`;
   }
   if (gastos.length && !isGeneral) {
     msg += `\n\n💸 *Movimientos del turno:*\n` + gastos.map(g => `• ${g.kind === 'retiro' ? 'Retiro — ' : ''}${g.desc}: ${g.kind === 'ingreso' ? '+' : '−'}${fmt(g.amount)}`).join('\n');
     msg += `\nNeto en caja: ${fmt(totalGastos + _netRetiros(gastos))}`;
-    msg += `\n\n🏆 *Utilidad: ${fmt(total - totalGastos)}*`;
   }
 
   // Cierre de caja (fondo + conteo) — es del cajón de quien tiene la sesión
@@ -1043,14 +933,13 @@ function compartirCorteWA() {
   if (!isGeneral) {
     const fondo = _currentShift?.fondo_inicial ?? 0;
     const esperado = _esperadoCierre();
-    const conteoRaw = localStorage.getItem(_conteoKey());
-    if (fondo > 0 || conteoRaw != null) {
+    const conteoVal = _conteoValue();
+    if (fondo > 0 || conteoVal != null) {
       msg += `\n\n💵 *Cierre de caja:*`;
       msg += `\nFondo inicial: ${fmt(fondo)}`;
-      _otrosCajonIncluded().forEach(r => { msg += `\nEfectivo de ${_sellerLabel(r.email) || r.email} en el cajón: ${fmt(r.efectivo)}`; });
       msg += `\nEfectivo esperado: ${fmt(esperado)}`;
-      if (conteoRaw != null) {
-        const conteo = parseFloat(conteoRaw) || 0;
+      if (conteoVal != null) {
+        const conteo = conteoVal;
         const diff = conteo - esperado;
         msg += `\nConteo físico: ${fmt(conteo)}`;
         msg += diff === 0 ? `\n✓ Cuadra` : diff > 0 ? `\n+${fmt(diff)} sobrante` : `\n-${fmt(Math.abs(diff))} faltante`;
@@ -1068,15 +957,15 @@ function compartirCorteWA() {
 // queda guardado con hora real y visible para Ofelia en Actividad/Reportes.
 async function confirmCloseTurno() {
   if (!_currentShift) return;
-  const conteoRaw = document.getElementById('corte-conteo').value;
-  if (conteoRaw === '' || !_conteoRevealed) {
+  const conteoVal = _conteoValue();
+  if (conteoVal == null || !_conteoRevealed) {
     alert('Primero compara tu conteo físico contra el esperado.');
     document.getElementById('corte-conteo')?.focus();
     return;
   }
   if (!confirm('¿Cerrar tu turno? No podrás seguir vendiendo hasta que abras uno nuevo.')) return;
 
-  const conteo = parseFloat(conteoRaw) || 0;
+  const conteo = conteoVal;
   const totalGastos = _netGastos(_getGastos());
 
   // Diferencia grande (mismo umbral que el servidor, $100) -- cerrar sin
@@ -1084,7 +973,6 @@ async function confirmCloseTurno() {
   // apartado; el servidor vuelve a validarlo, esto solo evita un viaje
   // redondo con error si ya sabemos que hace falta autorización.
   const esperadoPreview = _esperadoCierre();
-  const includeCashFrom = _otrosCajonIncluded().map(r => r.email);
   const diffPreview = Math.round((conteo - esperadoPreview + Number.EPSILON) * 100) / 100;
   if (Math.abs(diffPreview) >= 100 && !canCloseShiftUnsupervised()) {
     const granted = await requestOverride('canCloseShiftUnsupervised', 'Cerrar turno con diferencia grande');
@@ -1103,7 +991,7 @@ async function confirmCloseTurno() {
     body: JSON.stringify({
       p_conteo_final: conteo, p_gastos_total: totalGastos, p_lat: geo?.lat ?? null, p_lng: geo?.lng ?? null,
       p_override_tickets: _collectOverrideTickets(['canCloseShiftUnsupervised']),
-      p_include_cash_from: includeCashFrom.length ? includeCashFrom : null
+      p_include_cash_from: null
     })
   });
 

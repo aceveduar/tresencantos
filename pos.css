@@ -60,11 +60,6 @@
 /* "Más opciones"/"Ya lo cobró Ofelia" activos */
 :root[data-theme="dark"] #more-options-toggle-btn.active{background:var(--tint-amber-bg);border-color:var(--tint-amber-border)}
 /* Corte — tags de "Ver detalle de mis cobros" */
-:root[data-theme="dark"] .corte-tag-refund{background:var(--tint-red-bg);color:var(--tint-red-strong)}
-:root[data-theme="dark"] .corte-tag-aptnew{background:var(--tint-amber-bg);color:var(--tint-amber-strong)}
-:root[data-theme="dark"] .corte-tag-abono{background:var(--tint-violet-bg);color:var(--tint-violet-strong)}
-:root[data-theme="dark"] .corte-tag-venta{background:var(--tint-green-bg);color:var(--tint-green-strong)}
-:root[data-theme="dark"] .corte-warn-box{background:var(--tint-red-bg)!important;border-color:var(--tint-red-border)!important;color:var(--tint-red-strong)!important}
 /* Historial — badge de tipo de movimiento */
 :root[data-theme="dark"] .pay-badge-refund{background:var(--tint-red-bg);border-color:var(--tint-red-border)}
 :root[data-theme="dark"] .pay-badge-green{background:var(--tint-green-bg);color:var(--tint-green-strong);border-color:var(--tint-green-border)}
@@ -77,7 +72,6 @@
 :root[data-theme="dark"] #sd-transfer-alert{background:var(--tint-amber-bg)!important;color:var(--tint-amber-strong)!important}
 :root[data-theme="dark"] #edit-apt-pagado-row{border-color:var(--tint-amber-border)!important}
 :root[data-theme="dark"] #edit-apt-refund-btn{background:var(--tint-red-bg)!important}
-:root[data-theme="dark"] #gastos-total-row{background:var(--tint-red-bg)!important}
 
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal);height:100dvh;display:flex;flex-direction:column}
@@ -380,19 +374,8 @@ button,a{touch-action:manipulation}
 .hi-tag.note{background:#EFF6FF;color:#1E40AF;font-weight:500}
 .hi-tag.customer{background:#F0FDF4;color:#166534}
 
-/* Corte — "Ver detalle de mis cobros" (pos-cart.js _renderCorteDetalle()).
-   Antes vivían como estilo inline (tagStyle) -- movidos a clase para que el
-   bloque [data-theme="dark"] de arriba los pueda invertir (un inline style
-   le gana a cualquier selector externo). corte-tag-mov ya usa var(--border)/
-   var(--muted), dark-aware de por sí, no necesita override propio. */
-.corte-tag-refund{background:#FEE2E2;color:#991B1B}
-.corte-tag-aptnew{background:#FFF8EE;color:#9A742D}
-.corte-tag-abono{background:#F1EAFB;color:#5B3FA0}
-.corte-tag-mov{background:var(--border);color:var(--muted)}
-.corte-tag-venta{background:#DCFCE7;color:#166534}
-
-/* Historial — badge de tipo de movimiento (pos-ui.js, .pay-badge). Mismo
-   motivo que corte-tag: antes era estilo inline, movido a clase para poder
+/* Historial — badge de tipo de movimiento (pos-ui.js, .pay-badge). Antes era
+   estilo inline, movido a clase para poder
    invertir en modo oscuro. */
 .pay-badge-default{background:#F5F1EB;color:var(--muted);border:1px solid var(--border)}
 .pay-badge-gold{background:var(--gold-light);color:var(--gold-dark);border:1px solid var(--gold)}
@@ -1061,12 +1044,6 @@ button,a{touch-action:manipulation}
   #btn-corte-pos .btn-label,#btn-history-pos .btn-label,#btn-apt-pos .btn-label{display:inline;font-size:.52rem}
   #btn-corte-pos,#btn-history-pos,#btn-apt-pos{padding:5px 12px!important;gap:3px!important;}
 }
-/* Cierre: efectivo de otras cuentas en el mismo cajón */
-.corte-otros{padding:12px 16px;border-bottom:1px solid var(--border)}
-.corte-otros-q{font-size:.84rem;font-weight:600;color:var(--charcoal);line-height:1.4;margin-bottom:10px}
-.corte-otros-row + .corte-otros-row{margin-top:12px}
-.corte-otros-who{font-size:.84rem;color:var(--charcoal);margin-bottom:6px}
-.corte-otros-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 /* Modal post-venta: corregir una venta que era apartado */
 .sd-era-apartado{display:block;width:100%;min-height:44px;margin-top:6px;padding:10px;border:none;background:none;color:var(--muted);font-size:.84rem;font-weight:600;text-decoration:underline;cursor:pointer;font-family:inherit}
 .sd-era-apartado:disabled{opacity:.5;cursor:default}
@@ -1084,3 +1061,73 @@ button,a{touch-action:manipulation}
 .cobranza-warn{color:var(--red);font-weight:600}
 .cobranza-send{flex-shrink:0;min-width:86px;min-height:44px;padding:0 14px;border-radius:50px;border:none;background:#25D366;color:#fff;font-size:.84rem;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation}
 .cobranza-row.done .cobranza-send{background:var(--surface);color:var(--charcoal);border:1.5px solid var(--border)}
+/* ══ CORTE DE CAJA ══════════════════════════════════════════════════
+   Dos pasos en "Mi turno": contar (sin montos cobrados a la vista) y
+   resultado. Tarjetas planas, un solo número protagonista por tarjeta
+   (Playfair): la diferencia en el resultado, el total en el resumen. */
+.corte-body{padding:16px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:12px}
+.corte-toggle button{flex:1}
+.corte-periodo{font-size:.86rem;color:var(--muted);padding:0 2px}
+#corte-personal-sections,#corte-summary{display:flex;flex-direction:column;gap:12px}
+#corte-detalle-section:empty,#corte-breakdown:empty{display:none}
+.corte-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.corte-card-title{padding:14px 16px 6px;font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.corte-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.corte-card > .corte-row:last-child{border-bottom:none}
+.corte-row-lbl{font-size:.9rem;color:var(--charcoal);font-weight:500}
+.corte-row-sub{display:block;font-size:.8rem;color:var(--muted);font-weight:400;margin-top:2px}
+.corte-row-val{font-size:.95rem;font-weight:700;color:var(--charcoal);font-variant-numeric:tabular-nums;white-space:nowrap}
+.corte-count{display:block;padding:14px 16px 16px;border-bottom:1px solid var(--border);cursor:text}
+.corte-count-lbl{display:block;font-size:.92rem;font-weight:700;color:var(--charcoal)}
+.corte-count-hint{display:block;font-size:.8rem;color:var(--muted);margin-top:2px;line-height:1.4}
+.corte-count-field{display:flex;align-items:center;gap:6px;margin-top:10px;padding:0 14px;height:58px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface);transition:border-color .15s}
+.corte-count-field:focus-within{border-color:var(--charcoal)}
+.corte-count-field > span{font-size:1.3rem;font-weight:600;color:var(--muted)}
+.corte-count-field input{flex:1;min-width:0;height:100%;border:none;outline:none;background:transparent;font-family:inherit;font-size:1.55rem;font-weight:700;color:var(--charcoal);font-variant-numeric:tabular-nums;-moz-appearance:textfield;appearance:textfield}
+.corte-count-field input::-webkit-outer-spin-button,.corte-count-field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.corte-mov{padding:2px 16px 4px}
+.corte-mov-head{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:48px}
+.corte-link-btn{background:none;border:none;padding:0 4px;min-height:44px;font-family:inherit;font-size:.88rem;font-weight:700;color:var(--charcoal);cursor:pointer;touch-action:manipulation}
+.corte-mov-form{display:flex;flex-direction:column;gap:8px;padding:2px 0 12px}
+.corte-input{width:100%;height:44px;padding:0 12px;border:1.5px solid var(--border);border-radius:10px;font-size:1rem;font-family:inherit;outline:none;background:var(--surface);color:var(--charcoal)}
+.corte-input:focus{border-color:var(--charcoal)}
+.corte-mov-ok{flex-shrink:0;width:48px;height:44px;border-radius:10px;border:none;background:var(--ink);color:#fff;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit}
+.corte-mov-x{flex-shrink:0;width:44px;height:44px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);font-size:.9rem;cursor:pointer;font-family:inherit}
+.corte-mov-row{display:flex;align-items:center;gap:8px;min-height:48px;border-top:1px solid var(--border)}
+.corte-mov-desc{flex:1;min-width:0;font-size:.9rem;color:var(--charcoal);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.corte-mov-kind{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-right:6px}
+.corte-mov-time{font-size:.8rem;color:var(--muted);margin-left:6px}
+.corte-mov-amt{flex-shrink:0;font-size:.92rem;font-weight:700;color:var(--charcoal);font-variant-numeric:tabular-nums}
+.corte-mov-del{flex-shrink:0;width:44px;height:44px;margin-right:-12px;border:none;background:none;color:var(--muted);font-size:.9rem;cursor:pointer}
+.corte-primary,.corte-secondary{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border-radius:14px;font-family:inherit;font-weight:700;cursor:pointer;touch-action:manipulation;transition:transform .1s}
+.corte-primary{min-height:52px;border:none;background:var(--ink);color:#fff;font-size:.95rem}
+.corte-secondary{min-height:48px;border:1.5px solid var(--border);background:var(--surface);color:var(--charcoal);font-size:.9rem}
+.corte-primary:active,.corte-secondary:active{transform:scale(.98)}
+.corte-primary:disabled,.corte-secondary:disabled{opacity:.55;cursor:default;transform:none}
+.corte-result-head{display:flex;flex-direction:column;align-items:center;text-align:center;padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+.corte-result-lbl{font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.corte-result-val{font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:700;line-height:1.15;margin-top:6px;font-variant-numeric:tabular-nums}
+.corte-result-val.is-ok{color:var(--green)}
+.corte-result-val.is-short{color:var(--red)}
+.corte-result-val.is-over{color:var(--gold-dark)}
+.corte-result-tag{font-size:.88rem;color:var(--muted);margin-top:4px}
+.corte-corregir{display:block;width:100%;color:var(--muted);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.corte-total{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;background:var(--surface-soft)}
+.corte-total-lbl{font-size:.95rem;font-weight:700;color:var(--charcoal)}
+.corte-total-val{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--charcoal);white-space:nowrap;font-variant-numeric:tabular-nums}
+.corte-detalle-toggle{align-self:flex-start;color:var(--muted);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+#corte-detalle-section{display:flex;flex-direction:column;gap:6px}
+.corte-cobro{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border)}
+.corte-cobro:last-child{border-bottom:none}
+.corte-cobro-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.corte-cobro-name{font-size:.9rem;color:var(--charcoal);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.corte-cobro-meta{font-size:.8rem;color:var(--muted)}
+.corte-cobro-amt{flex-shrink:0;font-size:.92rem;font-weight:700;color:var(--charcoal);font-variant-numeric:tabular-nums}
+.corte-loading{text-align:center;padding:20px;color:var(--muted);font-size:.88rem}
+.corte-error{padding:14px 16px;border:1px solid var(--border);border-radius:14px;background:var(--surface);color:var(--red);font-size:.9rem;text-align:center;line-height:1.4}
+/* --ink no se invierte en oscuro: los botones sólidos pasan a claro sobre oscuro */
+:root[data-theme="dark"] .corte-primary,:root[data-theme="dark"] .corte-mov-ok{background:var(--charcoal);color:var(--ink)}
+:root[data-theme="dark"] .cancel-reason-btn.active{background:var(--charcoal);border-color:var(--charcoal);color:var(--ink)}
+:root[data-theme="dark"] .corte-result-val.is-ok{color:var(--tint-green-strong)}
+:root[data-theme="dark"] .corte-result-val.is-short,:root[data-theme="dark"] .corte-error{color:var(--tint-red-strong)}
+:root[data-theme="dark"] .corte-result-val.is-over{color:var(--tint-amber-strong)}
