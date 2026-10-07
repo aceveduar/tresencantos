@@ -286,6 +286,17 @@ function toggleFlagFilter() {
   renderTable();
 }
 
+// Pestañas de Inventario (Todos · Kits · Apartados · Archivados).
+function _setInvView(view) {
+  TE?.track('filter_chip', { chip: 'view-' + view });
+  _showingArchived = view === 'archivados';
+  _statFilter = (view === 'kits' || view === 'apartado') ? view : null;
+  if (_showOnlyFlagged) { _showOnlyFlagged = false; localStorage.setItem('te_flag_filter','0'); }
+  _adminPage = 1;
+  renderStats();
+  renderTable();
+}
+
 function toggleStatFilter(key) {
   if (key !== 'todos') TE?.track('filter_chip', { chip: key });
   if (key === 'todos') {
@@ -299,6 +310,8 @@ function toggleStatFilter(key) {
     if (_showOnlyFlagged) { _showOnlyFlagged = false; localStorage.setItem('te_flag_filter','0'); }
     _statFilter = _statFilter === key ? null : key;
   }
+  // Un pendiente se busca en el inventario activo, no en Archivados.
+  if (key !== 'todos') _showingArchived = false;
   _adminPage = 1;
   renderStats();
   renderTable();
@@ -354,6 +367,51 @@ function openAddMenu(anchor) {
   if (!asPopover) document.body.style.overflow = 'hidden';
   sheet.querySelector('.bmo-item:not([style*="display: none"]):not([style*="display:none"])')?.focus({ preventScroll: true });
 }
+// "Pendientes" vive junto a las pestañas en pantallas anchas y en la fila de
+// filtros en celular (ahí las pestañas necesitan todo el ancho para caber).
+(function _placePendWrap() {
+  const mq = window.matchMedia('(max-width:640px)');
+  const place = () => {
+    const wrap = document.getElementById('pend-wrap');
+    const tabsRow = document.querySelector('.inv-tabs-row');
+    const catBtn = document.getElementById('cat-filter-btn');
+    if (!wrap || !tabsRow || !catBtn) return;
+    if (mq.matches) catBtn.after(wrap);
+    else tabsRow.appendChild(wrap);
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', place);
+  else place();
+  mq.addEventListener?.('change', place);
+})();
+
+// Menú "Pendientes" -- mismo comportamiento que openAddMenu: popover bajo el
+// botón en pantallas anchas, hoja inferior en celular.
+function openPendMenu(anchor) {
+  const overlay = document.getElementById('pend-menu-overlay');
+  const sheet = document.getElementById('pend-menu-sheet');
+  if (!overlay || !sheet) return;
+  const asPopover = !!anchor && window.innerWidth > 768;
+  overlay.classList.toggle('as-popover', asPopover);
+  if (asPopover) {
+    const r = anchor.getBoundingClientRect();
+    const w = 300;
+    sheet.style.top = `${Math.round(r.bottom + 6)}px`;
+    sheet.style.left = `${Math.round(Math.max(16, Math.min(r.left, window.innerWidth - w - 16)))}px`;
+  } else {
+    sheet.style.top = sheet.style.left = '';
+  }
+  overlay.classList.add('open');
+  if (!asPopover) document.body.style.overflow = 'hidden';
+  sheet.querySelector('.bmo-item')?.focus({ preventScroll: true });
+}
+function closePendMenu() {
+  document.getElementById('pend-menu-overlay')?.classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('pend-menu-overlay')?.classList.contains('open')) closePendMenu();
+});
+
 function closeAddMenu() {
   document.getElementById('add-menu-overlay')?.classList.remove('open');
   document.body.style.overflow = '';

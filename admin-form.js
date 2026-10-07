@@ -228,7 +228,6 @@ function _updateActiveFiltersBar() {
   const ICO_SEARCH = _facIco('<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>');
   const ICO_FOLDER = _facIco('<path d="M4 4h6l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/>');
   const ICO_SORT   = _facIco('<path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/>');
-  const ICO_FLAG   = _facIco('<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>');
   const ICO_USER   = _facIco('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>');
   const ICO_ROCKET = '<svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>';
 
@@ -242,12 +241,8 @@ function _updateActiveFiltersBar() {
   const sortLabels = { 'name-az':'A→Z','name-za':'Z→A','price-desc':'$ Mayor','price-asc':'$ Menor','stock-asc':'Agotados primero','stock-desc':'En stock primero' };
   if (sortLabels[sortVal]) chips.push({ icon: ICO_SORT, label: sortLabels[sortVal], type: 'sort' });
 
-  if (_statFilter) {
-    const statLabels = { 'sin-stock':'Sin stock','ultima-pieza':'Última pieza','sin-publicar':'Sin publicar','sin-codigo':'Sin código','sin-cod-proveedor':'Sin cód. proveedor','sin-categ':'Sin categoría','sin-precio':'Sin precio','imagen-base64':'Imagen base64' };
-    chips.push({ label: statLabels[_statFilter] || _statFilter, type: 'stat' });
-  }
-
-  if (_showOnlyFlagged) chips.push({ icon: ICO_FLAG, label: 'Por revisar', type: 'flag' });
+  // Vistas (Kits/Apartados) y pendientes (Sin stock, Sin precio…) ya se ven
+  // en las pestañas y en el botón "Pendientes" con su ✕ -- no se repiten aquí.
 
   const creatorVal = document.getElementById('creator-filter')?.value || 'all';
   if (creatorVal !== 'all') {
@@ -255,11 +250,12 @@ function _updateActiveFiltersBar() {
     chips.push({ icon: ICO_USER, label, type: 'creator' });
   }
 
-  if (chips.length > 0) {
+  const migrateAction = _statFilter === 'imagen-base64' && ROLE === 'superadmin';
+  if (chips.length > 0 || migrateAction) {
     chipsEl.innerHTML = chips.map(c =>
       `<span class="fac-chip">${c.icon || ''}${_esc(c.label)}<button class="fac-chip-x" onclick="event.stopPropagation();_clearFilter('${c.type}')" title="Quitar filtro">×</button></span>`
     ).join('') +
-    (_statFilter === 'imagen-base64' && ROLE === 'superadmin'
+    (migrateAction
       ? `<button class="fac-chip fac-chip-action" onclick="migrateBase64ToDrive()">${ICO_ROCKET}Migrar todas a Drive</button>`
       : '');
     bar.classList.add('visible');

@@ -278,7 +278,7 @@ function _updateCatFilterBtn() {
   if (!btn || !lbl) return;
   const val = document.getElementById('cat-filter')?.value || 'all';
   if (val === 'all') {
-    lbl.textContent = 'Todas';
+    lbl.innerHTML = '<span class="lbl-long">Todas las categorías</span><span class="lbl-short">Categoría</span>'; // corto en celular, completo en pantallas anchas
     btn.classList.remove('has-filter');
   } else {
     const cat = categories.find(c => c.code === val);
@@ -339,9 +339,19 @@ function closeSortSheet() {
 function _renderSortSheetOptions() {
   const list = document.getElementById('sort-sheet-list');
   if (!list) return;
+  // En celular el selector Lista/Cuadrícula vive aquí ("Ordenar y ver",
+  // patrón Shopify móvil) para que la fila de filtros quede con 3 controles.
+  const viewSection = window.innerWidth <= 640
+    ? `<div class="bcp-group-label" style="padding:14px 16px 6px">Ver como</div><div style="padding:0 16px 16px"><div class="bcp-chips">${
+        [['list', 'Lista'], ['cards', 'Cuadrícula']].map(([v, l]) =>
+          `<button class="bcp-chip${currentAdminView === v ? ' selected' : ''}" onclick="setAdminView('${v}');closeSortSheet()">${l}</button>`).join('')
+      }</div></div>`
+    : '';
   list.innerHTML = `<div style="padding:10px 16px 16px"><div class="bcp-chips">${SORT_OPTIONS.map(o =>
     `<button class="bcp-chip${currentSort === o.value ? ' selected' : ''}" onclick="selectSortSheet('${o.value}')">${_esc(o.label)}</button>`
-  ).join('')}</div></div>`;
+  ).join('')}</div></div>` + viewSection;
+  const title = document.querySelector('#sort-sheet .cat-sheet-title');
+  if (title) title.textContent = viewSection ? 'Ordenar y ver' : 'Ordenar por';
 }
 
 function selectSortSheet(value) {
@@ -1070,8 +1080,8 @@ function _refreshCreatorFilter() {
   // Poblar con creadores únicos presentes en el catálogo actual
   const emails = [...new Set(products.map(p => p.createdBy).filter(Boolean))].sort();
   const cur = sel.value;
-  sel.innerHTML = `<option value="all">Todos</option>` +
-    emails.map(e => `<option value="${e}">${_userNames[e] || e.split('@')[0]}</option>`).join('') +
+  sel.innerHTML = `<option value="all">Creado por: todos</option>` +
+    emails.map(e => `<option value="${_esc(e)}">${_esc(_userNames[e] || e.split('@')[0])}</option>`).join('') +
     (products.some(p => !p.createdBy) ? `<option value="__none__">Sin registro</option>` : '');
   wrap.style.display = '';
   if ([...sel.options].some(o => o.value === cur)) sel.value = cur;

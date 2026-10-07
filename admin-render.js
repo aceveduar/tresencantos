@@ -15,96 +15,106 @@ const AR_ICO_ARCHIVE  = (px=13) => _arIco('<rect x="2" y="3" width="20" height="
 const AR_ICO_DOLLAR   = (px=13) => _arIco('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', px);
 const AR_ICO_SEARCH   = (px=13) => _arIco('<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>', px);
 const AR_ICO_TAG      = (px=13) => _arIco('<path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z"/><line x1="7" y1="7" x2="7.01" y2="7"/>', px);
-// Paleta semántica de los chips de filtro — 4 colores fijos en vez de uno
-// distinto por chip: gris=neutro, verde=ok, ámbar=atención, rojo=crítico.
-const AR_C_NEUTRAL = '#6B7280';
-const AR_C_AMBER   = '#92400E';
-const AR_C_RED     = '#dc2626';
 const _arStar = (filled, px=13) => filled
   ? `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
   : `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
 
-/* ── STATS ── */
+/* ── VISTAS + PENDIENTES ──
+   Rediseño 2026-10-07: antes 12 chips al mismo nivel mezclaban VISTAS (qué
+   estoy mirando: Todos/Kits/Apartados/Archivados) con PENDIENTES (qué falta
+   corregir: sin stock, sin precio…). Ahora las vistas son pestañas y los
+   pendientes viven en un solo menú "Pendientes ▾" (patrón Shopify Admin).
+   Los filtros siguen siendo los mismos (_statFilter / _showOnlyFlagged /
+   _showingArchived); solo cambia cómo se presentan. */
+const _PEND_ITEMS = [
+  // [clave, etiqueta, ícono] -- orden = urgencia operativa
+  ['sin-stock',         'Sin stock',               () => AR_ICO_XCIRCLE(16)],
+  ['por-caducar',       'Por caducar',             () => AR_ICO_CLOCK(16)],
+  ['revisar',           'Marcados para revisar',   () => AR_ICO_FLAG(16)],
+  ['sin-publicar',      'Sin publicar',            () => AR_ICO_EYEOFF(16)],
+  ['sin-precio',        'Sin precio',              () => AR_ICO_DOLLAR(16)],
+  ['sin-categ',         'Sin categoría',           () => AR_ICO_WARN(16)],
+  ['sin-codigo',        'Sin código de barras',    () => AR_ICO_BARCODE(16)],
+  ['sin-cod-proveedor', 'Sin código de proveedor', () => AR_ICO_TAG(16)],
+  ['imagen-base64',     'Foto fuera de Drive',     () => AR_ICO_ARCHIVE(16)],
+];
+
+function _pendCounts() {
+  const visible = p => !p.isArchived && !Array.isArray(p.kitItems); // no archivado, no kit
+  const n = f => products.filter(p => visible(p) && f(p)).length;
+  return {
+    'sin-stock':         n(p => p.stock === 0 || p.outOfStock),
+    'por-caducar':       n(p => ['soon','expired'].includes(_expiryStatus(p)?.state)),
+    'revisar':           _flagged.filter(f => products.find(x => x.id === f.id)).length,
+    'sin-publicar':      n(p => p.isPublished === false),
+    'sin-precio':        can.publishProduct ? n(p => !p.price || p.price === 0) : 0,
+    'sin-categ':         n(p => p.category === 'por_revisar'),
+    'sin-codigo':        n(p => !p.barcode),
+    'sin-cod-proveedor': n(p => !p.supplierCode),
+    'imagen-base64':     ROLE === 'superadmin' ? n(p => _isRealBase64Image(p.image)) : 0,
+  };
+}
+
+// Filtro de pendiente activo (o null) -- 'kits'/'apartado' son vistas, no pendientes.
+function _activePendKey() {
+  if (_showOnlyFlagged) return 'revisar';
+  return _PEND_ITEMS.some(([k]) => k === _statFilter) ? _statFilter : null;
+}
+
 function renderStats() {
   const nArchivados = products.filter(p => p.isArchived).length;
-
-  if (_showingArchived) {
-    document.getElementById('stats').innerHTML =
-      `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <button class="stat-chip stat-chip-filter sc-active" onclick="toggleArchivedView()" style="background:var(--ink);border-color:var(--ink);color:#fff;gap:6px">
-          <span class="sc-icon">${_arIco('<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>')}</span><span class="sc-lbl">Volver al inventario</span>
-        </button>
-        <span style="font-size:.82rem;color:var(--muted)">${nArchivados} producto${nArchivados !== 1 ? 's' : ''} archivado${nArchivados !== 1 ? 's' : ''}</span>
-      </div>`;
-    _statsScroll();
-    return;
-  }
-
-  const visible     = p => !p.isArchived && !Array.isArray(p.kitItems); // no archivado, no kit
-  // "Todos" cuenta lo mismo que el contador de la lista (incluye kits):
-  // antes decía 948 arriba y "979 productos" abajo.
   const total       = products.filter(p => !p.isArchived).length;
-  const sinStock    = products.filter(p => visible(p) && (p.stock === 0 || p.outOfStock)).length;
-  const sinPublicar = products.filter(p => visible(p) && p.isPublished === false).length;
-  const nKits       = products.filter(p => Array.isArray(p.kitItems)).length;
-  const sinCodigo   = products.filter(p => visible(p) && !p.barcode).length;
-  const sinCodProv  = products.filter(p => visible(p) && !p.supplierCode).length;
-  const sinCateg    = products.filter(p => visible(p) && p.category === 'por_revisar').length;
-  const porCaducar  = products.filter(p => visible(p) && ['soon','expired'].includes(_expiryStatus(p)?.state)).length;
-  const sinPrecio   = products.filter(p => visible(p) && (!p.price || p.price === 0)).length;
+  const nKits       = products.filter(p => !p.isArchived && Array.isArray(p.kitItems)).length;
   const nApartado   = products.filter(p => !p.isArchived && (p.isApartado || _apartadosMap[p.id])).length;
-  const nFlag = _flagged.filter(f => products.find(x => x.id === f.id)).length;
-  const anyFilter   = _statFilter || _showOnlyFlagged;
 
-  const chip = (key, icon, count, label, activeColor) => {
-    const isActive = key === 'revisar' ? _showOnlyFlagged : _statFilter === key;
-    const isTodos  = key === 'todos';
-    const isFilter = key !== 'todos-info';
-    // Tono claro + borde/texto del color, no relleno solido — mismo tratamiento minimalista en los 4 estados.
-    const activeStyle = isActive ? `background:${activeColor}1a;border-color:${activeColor};color:${activeColor}` : '';
-    return `<button class="stat-chip${isFilter ? ' stat-chip-filter' : ''}${isActive ? ' sc-active' : ''}"
-      ${isFilter ? `onclick="toggleStatFilter('${key}')"` : ''}
-      style="${activeStyle}" title="${label}">
-      <span class="sc-icon">${icon}</span>
-      <span class="sc-num">${count}</span>
-      <span class="sc-lbl">${label}</span>
-    </button>`;
-  };
-
-  const todosActive = !anyFilter;
-  const todosStyle  = todosActive ? 'background:var(--gold-light);border-color:var(--gold);color:var(--gold-dark)' : '';
+  const view = _showingArchived ? 'archivados'
+    : _statFilter === 'kits' ? 'kits'
+    : _statFilter === 'apartado' ? 'apartado'
+    : 'todos';
+  const tab = (key, label, count) =>
+    `<button type="button" class="inv-tab${view === key ? ' active' : ''}" role="tab" aria-selected="${view === key}" onclick="_setInvView('${key}')">${label}<span class="inv-tab-n">${count}</span></button>`;
 
   document.getElementById('stats').innerHTML =
-    `<button class="stat-chip stat-chip-filter${todosActive ? ' sc-active' : ''}" onclick="toggleStatFilter('todos')" style="${todosStyle}">
-       <span class="sc-icon">${AR_ICO_PACKAGE()}</span>
-       <span class="sc-num">${total}</span>
-       <span class="sc-lbl">Todos</span>
-     </button>` +
-    (nKits > 0 ? chip('kits', AR_ICO_GIFT(), nKits, 'Kits', AR_C_NEUTRAL) : '') +
-    (sinStock > 0 ? chip('sin-stock', AR_ICO_XCIRCLE(), sinStock, 'Sin stock', AR_C_RED) : '') +
-    (nApartado > 0 ? chip('apartado', AR_ICO_BOOKMARK(), nApartado, 'Apartado', AR_C_AMBER) : '') +
-    (sinPublicar  > 0 ? chip('sin-publicar', AR_ICO_EYEOFF(), sinPublicar, 'Sin publicar', AR_C_AMBER) : '') +
-    (porCaducar   > 0 ? chip('por-caducar', AR_ICO_CLOCK(),  porCaducar,  'Por caducar', AR_C_RED) : '') +
-    (nFlag        > 0 ? chip('revisar',     AR_ICO_FLAG(),     nFlag,       'Por revisar',  AR_C_RED) : '') +
-    (sinCodigo    > 0 ? chip('sin-codigo',  AR_ICO_BARCODE(),   sinCodigo,   'Sin código',   AR_C_NEUTRAL) : '') +
-    (sinCodProv   > 0 ? chip('sin-cod-proveedor', AR_ICO_TAG(), sinCodProv, 'Sin cód. proveedor', AR_C_NEUTRAL) : '') +
-    (sinCateg     > 0 ? chip('sin-categ',   AR_ICO_WARN(), sinCateg,    'Sin categoría', AR_C_AMBER) : '') +
-    (sinPrecio > 0 && can.publishProduct ? chip('sin-precio', AR_ICO_DOLLAR(), sinPrecio, 'Sin precio', AR_C_AMBER) : '') +
-    (() => {
-      if (ROLE !== 'superadmin') return '';
-      const nBase64 = products.filter(p => !p.isArchived && !Array.isArray(p.kitItems) && _isRealBase64Image(p.image)).length;
-      return nBase64 > 0 ? chip('imagen-base64', AR_ICO_ARCHIVE(), nBase64, 'Imagen base64', AR_C_NEUTRAL) : '';
-    })() +
-    (nArchivados > 0 && can.deleteProduct ? `<button class="stat-chip" onclick="toggleArchivedView()" title="Ver productos archivados" style="border-color:var(--muted-light);color:var(--muted)">
-      <span class="sc-icon">${AR_ICO_ARCHIVE()}</span>
-      <span class="sc-num">${nArchivados}</span>
-      <span class="sc-lbl">Archivados</span>
-    </button>` : '');
+    tab('todos', 'Todos', total) +
+    (nKits > 0 || view === 'kits' ? tab('kits', 'Kits', nKits) : '') +
+    (nApartado > 0 || view === 'apartado' ? tab('apartado', 'Apartados', nApartado) : '') +
+    ((nArchivados > 0 && can.deleteProduct) || view === 'archivados' ? tab('archivados', 'Archivados', nArchivados) : '');
+
+  // Pendientes: un solo botón. Si hay uno activo, el botón lo dice (y ✕ lo quita).
+  const counts  = _pendCounts();
+  const active  = _activePendKey();
+  const items   = _PEND_ITEMS.filter(([k]) => counts[k] > 0 || active === k);
+  const wrap    = document.getElementById('pend-wrap');
+  const btn     = document.getElementById('pend-btn');
+  const clear   = document.getElementById('pend-clear');
+  const chevron = '<svg class="pend-chev" width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
+  if (wrap && btn && clear) {
+    const show = !_showingArchived && items.length > 0;
+    wrap.style.display = show ? '' : 'none';
+    wrap.classList.toggle('active', !!active);
+    if (active) {
+      const [, label] = _PEND_ITEMS.find(([k]) => k === active);
+      btn.innerHTML = `${_esc(label)} <span class="pend-n">${counts[active]}</span>${chevron}`;
+    } else {
+      btn.innerHTML = `Pendientes${chevron}`;
+    }
+    clear.style.display = active ? '' : 'none';
+  }
+  const sheet = document.getElementById('pend-menu-sheet');
+  if (sheet) {
+    const clearItem = active
+      ? `<button type="button" class="bmo-item" onclick="closePendMenu();toggleStatFilter('todos')"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span class="pend-item-lbl">Quitar filtro</span></button>`
+      : '';
+    sheet.innerHTML = `<div class="pend-menu-title">Pendientes por corregir</div>` + clearItem +
+      items.map(([k, label, ico]) =>
+        `<button type="button" class="bmo-item${active === k ? ' is-active' : ''}" role="menuitemradio" aria-checked="${active === k}" onclick="closePendMenu();toggleStatFilter('${active === k ? 'todos' : k}')">${ico()}<span class="pend-item-lbl">${label}</span><span class="pend-item-n">${counts[k]}</span></button>`
+      ).join('');
+  }
 
   _statsScroll();
 }
 
-/* Oculta el indicador "›" de .stats-wrap cuando ya no hay más chips a la derecha */
+/* Oculta el degradado de la derecha de las pestañas cuando ya no hay más a la derecha */
 function _statsScroll() {
   const el = document.getElementById('stats');
   const wrap = el?.parentElement;
@@ -944,6 +954,15 @@ function updateBulkBar() {
   if (selectedIds.size > 0) {
     bar.style.display = 'flex';
     countEl.textContent = `${selectedIds.size} seleccionado${selectedIds.size !== 1 ? 's' : ''}`;
+    // "Seleccionar los N" (patrón Gmail/Shopify): antes vivía escondido al
+    // tocar el contador "984 productos", que no parecía botón.
+    const allBtn = document.getElementById('bulk-select-all');
+    if (allBtn) {
+      const nVisible = getFilteredProducts().length;
+      const show = nVisible > selectedIds.size;
+      allBtn.style.display = show ? '' : 'none';
+      if (show) allBtn.textContent = `Seleccionar los ${nVisible}`;
+    }
     _bulkBarScroll();
   } else {
     bar.style.display = 'none';

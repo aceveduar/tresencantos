@@ -90,6 +90,13 @@
     </div>
   </div>
 
+  <!-- PENDIENTES: filtros de "qué falta corregir" (sin stock, sin precio…).
+       Popover en escritorio, hoja inferior en celular -- mismo patrón que
+       el menú de + Agregar. Lo llena renderStats(). -->
+  <div id="pend-menu-overlay" onclick="if(event.target===this)closePendMenu()">
+    <div id="pend-menu-sheet" role="menu"></div>
+  </div>
+
   <!-- ADD TO KIT PICKER -->
   <div id="atk-overlay" onclick="if(event.target===this)_closeAddToKit()">
     <div id="atk-sheet">
@@ -424,13 +431,20 @@
   </div>
 
   <main>
-    <!-- STATS -->
-    <div class="stats-wrap">
-      <div class="stats" id="stats" onscroll="_statsScroll()"></div>
-    </div>
-
-    <!-- TOOLBAR -->
+    <!-- TOOLBAR -- una sola tarjeta con todo lo que decide qué se ve:
+         pestañas (vistas) · búsqueda · filtros. Antes 12 chips sueltos arriba
+         mezclaban vistas con pendientes por corregir (2026-10-07). -->
     <div class="toolbar">
+      <!-- Fila 0: vistas + Pendientes -->
+      <div class="inv-tabs-row">
+        <div class="inv-tabs-wrap">
+          <div class="inv-tabs" id="stats" role="tablist" onscroll="_statsScroll()"></div>
+        </div>
+        <div class="pend-wrap" id="pend-wrap" style="display:none">
+          <button type="button" class="pend-btn" id="pend-btn" onclick="openPendMenu(this)" aria-haspopup="menu"></button>
+          <button type="button" class="pend-clear" id="pend-clear" onclick="toggleStatFilter('todos')" title="Quitar filtro" aria-label="Quitar filtro" style="display:none">✕</button>
+        </div>
+      </div>
       <!-- Fila 1: búsqueda + acciones -->
       <div class="tb-search-row">
         <!-- Escritorio: un solo "Agregar" que abre el mismo menú del FAB
@@ -462,7 +476,7 @@
           <option value="all">Todas las categorías</option>
         </select>
         <button id="cat-filter-btn" onclick="openCatSheet()">
-          <span id="cat-filter-btn-label">Todas</span>
+          <span id="cat-filter-btn-label"><span class="lbl-long">Todas las categorías</span><span class="lbl-short">Categoría</span></span>
           <span id="cat-filter-btn-arrow">▾</span>
         </button>
         <select class="filter-select" id="sort-select" style="display:none" onchange="currentSort=this.value;localStorage.setItem('te_admin_sort',this.value);_adminPage=1;renderTable();TE?.track('filter_sort',{sort:this.value})">
@@ -475,17 +489,18 @@
           <option value="created-new">Agregados hace poco</option>
           <option value="created-old">Más antiguos</option>
         </select>
-        <button id="sort-filter-btn" onclick="openSortSheet()">
+        <button id="sort-filter-btn" onclick="openSortSheet()" title="Ordenar">
+          <svg class="fb-ico" width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg>
           <span id="sort-filter-btn-label">Editados hace poco</span>
           <span id="sort-filter-btn-arrow">▾</span>
         </button>
         <span id="creator-filter-wrap" style="display:none;position:relative">
           <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--muted);display:flex;line-height:0;z-index:1"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
           <select class="filter-select" id="creator-filter" style="padding-left:36px" onchange="_adminPage=1;renderTable();renderStats()">
-            <option value="all">Todos</option>
+            <option value="all">Creado por: todos</option>
           </select>
         </span>
-        <span id="prod-count" class="prod-count" style="display:none" onclick="selectAllVisible()" title="Clic para seleccionar todos" style="cursor:pointer"></span>
+        <span id="prod-count" class="prod-count" style="display:none"></span>
         <div class="view-toggle">
           <button class="view-btn active" id="vbtn-list"  onclick="setAdminView('list')"  title="Vista lista">☰</button>
           <button class="view-btn"        id="vbtn-cards" onclick="setAdminView('cards')" title="Vista tarjetas">⊞</button>
@@ -502,6 +517,7 @@
     <div class="bulk-bar" id="bulk-bar" style="display:none">
       <button class="btn btn-sm" onclick="clearBulkSelection()" style="border-color:rgba(255,255,255,.4);opacity:.8" title="Deseleccionar todo">✕</button>
       <span id="bulk-count">0 seleccionados</span>
+      <button class="btn btn-sm bulk-select-all" id="bulk-select-all" onclick="selectAllVisible()" style="display:none"></button>
       <div class="bulk-bar-scroll-wrap" id="bulk-bar-scroll-wrap">
         <div class="bulk-bar-scroll" id="bulk-bar-scroll" onscroll="_bulkBarScroll()">
           <button class="btn btn-sm" onclick="bulkSetCategory()"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M4 4h6l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg>Cambiar categoría</button>
