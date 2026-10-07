@@ -619,6 +619,11 @@ function _posWireShiftGateButtons() {
   const retryBtn = document.getElementById('open-shift-retry-btn');
 
   fondoIn?.addEventListener('input', () => { fondoIn.dataset.touched = '1'; });
+  // El monto sugerido se reemplaza al escribir: tocar el campo en celular
+  // quitaba la selección y dejaba el cursor al final ("0" + "500" = "0500").
+  fondoIn?.addEventListener('focus', () => {
+    if (!fondoIn.dataset.touched) setTimeout(() => fondoIn.select?.(), 0);
+  });
   retryBtn?.addEventListener('click', _posShiftGateAttempt);
   openBtn?.addEventListener('click', async () => {
     const raw = fondoIn?.value;
