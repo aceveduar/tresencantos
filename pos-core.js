@@ -603,9 +603,11 @@ async function _posShiftGateAttempt() {
   // (usuario más rápido que la red) no se pisa.
   if (fondoIn && !fondoIn.value && !fondoIn.dataset.touched) {
     const lastFondo = await _posFetchLastShiftFondo();
-    if (lastFondo !== null && !fondoIn.value && !fondoIn.dataset.touched) {
+    // Un fondo sugerido de $0 no se escribe: el "0" gris del placeholder ya lo
+    // dice, y como valor quedaba el cursor tras él ("0" + "500" = "0500").
+    if (lastFondo && Number(lastFondo) > 0 && !fondoIn.value && !fondoIn.dataset.touched) {
       fondoIn.value = lastFondo;
-      fondoIn.select?.();
+      requestAnimationFrame(() => { if (!fondoIn.dataset.touched) fondoIn.select?.(); });
     }
   }
 }
