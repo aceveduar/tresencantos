@@ -132,10 +132,19 @@ async function _lookupCustomerByPhone(phoneId, nameId, hintId) {
 
 function _showCustomerHint(hintEl, nameId, customer) {
   const nameEl = document.getElementById(nameId);
-  const showUseBtn = nameEl && !nameEl.value.trim();
+  const typed = (nameEl?.value || '').trim();
+  const sameName = typed && typed.toLowerCase() === String(customer.name || '').trim().toLowerCase();
+  // Si escribió OTRO nombre con un teléfono ya registrado, el apartado se
+  // liga a la ficha de esa clienta (el servidor busca por teléfono): se
+  // ofrece corregir en vez de solo avisar.
+  const showUseBtn = nameEl && !sameName;
   const safeName = _esc(customer.name).replace(/'/g, "\\'");
-  hintEl.innerHTML = `👤 Cliente conocida: ${_esc(customer.name)}` +
-    (showUseBtn ? ` <button type="button" onclick="document.getElementById('${nameId}').value='${safeName}';document.getElementById('${hintEl.id}').style.display='none'">Usar nombre</button>` : '');
+  const ico = '<svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+  const lead = typed && !sameName
+    ? `Este teléfono es de ${_esc(customer.name)}`
+    : `Cliente conocida: ${_esc(customer.name)}`;
+  hintEl.innerHTML = `${ico}<span>${lead}</span>` +
+    (showUseBtn ? ` <button type="button" onclick="document.getElementById('${nameId}').value='${safeName}';document.getElementById('${hintEl.id}').style.display='none'">${typed ? 'Usar ese nombre' : 'Usar nombre'}</button>` : '');
   hintEl.style.display = '';
 }
 
@@ -318,7 +327,7 @@ function updateAnticipoInfo() {
   const pendiente = Math.max(0, total - anticipo);
   if (el) {
     if (anticipo > 0 && pendiente > 0) {
-      el.value = pendiente.toFixed(2); el.placeholder = ''; el.style.color = 'var(--red)';
+      el.value = _fmtMx(pendiente); el.placeholder = ''; el.style.color = ''; // saldo normal, no error
     } else if (anticipo > 0 && pendiente === 0) {
       el.value = ''; el.placeholder = 'Cubierto ✓'; el.style.color = 'var(--green)';
     } else if (total > 0) {

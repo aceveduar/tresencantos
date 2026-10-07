@@ -1173,4 +1173,19 @@ button,a{touch-action:manipulation}
   #restock-prompt .restock-sheet{border-radius:20px!important;padding-bottom:22px!important;box-shadow:0 12px 48px rgba(0,0,0,.22)!important}
 }
 .pos-vbtn svg{display:block}
+/* Datos del apartado: campos de un mismo alto; anticipo como campo de dinero */
+.apt-input{display:block;width:100%;min-height:44px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:.95rem;font-family:inherit;color:var(--charcoal);background:var(--surface);outline:none;margin-bottom:14px;transition:border-color .15s,box-shadow .15s}
+.apt-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,164,98,.15)}
+#pos-phone.apt-input{margin-bottom:6px}
+.money-field-sm{padding:6px 14px}
+.money-field-sm .money-field-sign{font-size:1.2rem}
+.abonar-modal .money-field input[type=number]{border:none;padding:0;margin:0;box-shadow:none;background:none;font-size:1.35rem;font-weight:700}
+.money-field.money-field-sm > input:not([type="checkbox"]){font-size:1.35rem!important}
+.cash-field input.apt-pending{min-height:44px;padding:10px 14px;border:none;border-radius:10px;background:var(--surface-soft);font-size:1.05rem;font-weight:700;color:var(--charcoal);font-variant-numeric:tabular-nums;cursor:default}
+.cust-hint span{min-width:0}
+/* Botones del pie de los modales: el secundario nunca se parte en dos renglones */
+.abonar-footer .btn-cancel{flex:0 1 auto;white-space:nowrap;padding:13px 18px}
+.abonar-footer .btn-confirm{flex:1 1 auto}
+#pos-apt-customer-hint{font-size:.8rem}
+#pos-apt-customer-hint button{font-size:.8rem}
 
