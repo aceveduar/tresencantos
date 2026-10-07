@@ -403,8 +403,15 @@ async function _runDriveAudit() {
   const allFiles = [];
   let pageToken = null;
   for (let page = 0; page < 100; page++) {
-    const r = await edgeFn('drive-proxy', { action: 'list', ...(pageToken ? { pageToken } : {}) }, 65000);
-    const res = r.data && typeof r.data === 'object' ? r.data : null;
+    // Google a veces responde 404 al azar (también fuera de Supabase); pedir la
+    // misma página otra vez es seguro, así que se reintenta hasta 3 veces.
+    let r, res;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      if (attempt) await new Promise(ok => setTimeout(ok, 1500));
+      r = await edgeFn('drive-proxy', { action: 'list', ...(pageToken ? { pageToken } : {}) }, 65000);
+      res = r.data && typeof r.data === 'object' ? r.data : null;
+      if (res?.ok || [401, 403, 412].includes(r.status)) break;
+    }
     if (r.status === 0 || r.status === 504) {
       body.innerHTML = '<p class="field-hint">Drive tardó demasiado en responder — intenta de nuevo en un momento.</p>';
       return;
