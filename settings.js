@@ -375,14 +375,16 @@ async function _runDriveAudit() {
 
   // 1) Todas las imágenes que algún producto usa hoy (incluye archivados --
   // se pueden restaurar, así que su imagen sigue en uso real).
-  const prodR = await _posPaginatedFetch('products?select=image,images&order=id.asc');
+  // También componentes de kits (kit_items guarda la foto de cada uno) y el
+  // registro de ventas viejas: el historial de Caja muestra esas fotos aunque
+  // el producto ya no exista. Se busca cualquier URL de Drive en el JSON.
+  const prodR = await _posPaginatedFetch('products?select=image,images,kit_items&order=id.asc');
   if (!prodR.ok) { body.innerHTML = '<p class="field-hint">No se pudo leer el catálogo — intenta de nuevo.</p>'; return; }
+  const salesR = await _posPaginatedFetch('sales?select=items&order=id.asc');
+  if (!salesR.ok) { body.innerHTML = '<p class="field-hint">No se pudo leer el historial de ventas — intenta de nuevo.</p>'; return; }
   const used = new Set();
-  (prodR.data || []).forEach(p => {
-    [p.image, ...(p.images || [])].filter(Boolean).forEach(url => {
-      const id = _driveFileId(url);
-      if (id) used.add(id);
-    });
+  [...(prodR.data || []), ...(salesR.data || [])].forEach(row => {
+    for (const m of JSON.stringify(row).matchAll(/drive\.google\.com[^"]*?[?&]id=([\w-]+)/g)) used.add(m[1]);
   });
 
   // 2) Todos los archivos que de verdad existen en la carpeta de Drive.

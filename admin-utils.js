@@ -185,6 +185,20 @@ function toastUndo(msg, onUndo, onExpire) {
   }, 7000);
 }
 
+// Si la app se cierra o pasa a segundo plano con un "Deshacer" pendiente, se
+// confirma ya: antes el onExpire (p. ej. borrar las fotos de Drive de un
+// producto eliminado) nunca corría y las fotos quedaban huérfanas.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'hidden') return;
+  const el = document.getElementById('undo-bar');
+  if (!el?._t) return;
+  clearTimeout(el._t); el._t = null;
+  el.classList.remove('show');
+  const expire = el._expire;
+  el._undo = null; el._expire = null;
+  if (expire) expire();
+});
+
 function toastAction(msg, btnLabel, onAction, duration = 5000) {
   const el    = document.getElementById('action-bar');
   const msgEl = document.getElementById('action-msg');

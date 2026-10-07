@@ -187,11 +187,12 @@ function _driveFileId(url) {
 /* Drive vía la Edge Function drive-proxy (2026-10-07): el secreto del Apps
    Script ya no llega al navegador. Regresa el JSON del Apps Script
    ({ok, url|files|error}) o {ok:false, error} si falla la red o el permiso. */
-async function _driveCall(payload, timeoutMs = 45000) {
+async function _driveCall(payload, timeoutMs = 45000, keepalive = false) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   const call = token => fetch(`${SUPABASE_URL}/functions/v1/drive-proxy`, {
     method: 'POST',
+    keepalive, // borrar al cerrar la app: la petición sobrevive a la página
     signal: controller.signal,
     headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
     body: JSON.stringify(payload)
@@ -211,7 +212,7 @@ async function _driveCall(payload, timeoutMs = 45000) {
 /* Manda el archivo a la papelera de Drive (fire-and-forget, nunca bloquea) */
 async function _deleteDriveFile(fileId) {
   if (!driveEp || !fileId) return;
-  await _driveCall({ action: 'delete', fileId }, 20000);
+  await _driveCall({ action: 'delete', fileId }, 20000, true);
 }
 
 async function uploadToDrive(b64) {
