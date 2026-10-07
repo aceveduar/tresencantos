@@ -397,6 +397,14 @@ function _updateNavUI() {
   const range = getRange(_statsMode, _statsOffset);
   const lbl = document.getElementById('stats-range-label');
   if (lbl) lbl.textContent = range.rangeStr;
+  // Antes decía "Dinero de hoy" fijo, aunque se viera la semana o el mes.
+  const moneyLbl = document.getElementById('kpi-money-label');
+  if (moneyLbl) {
+    const cur = _statsOffset === 0;
+    moneyLbl.textContent = _statsMode === 'week' ? (cur ? 'Dinero de esta semana' : 'Dinero de la semana')
+      : _statsMode === 'month' ? (cur ? 'Dinero de este mes' : 'Dinero del mes')
+      : (cur ? 'Dinero de hoy' : 'Dinero del día');
+  }
   document.querySelectorAll('.smode-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===_statsMode));
   const fwd = document.getElementById('stats-nav-fwd');
   if (fwd) fwd.disabled = _statsOffset >= 0;
@@ -1165,11 +1173,13 @@ function renderRevenueChart() {
     id:'barLabels',
     afterDatasetsDraw(chart) {
       const {ctx} = chart;
-      ctx.save(); ctx.font='600 9px Inter,sans-serif'; ctx.fillStyle=_cssVar('--muted','#8A7564');
+      ctx.save(); ctx.font='600 10px Inter,sans-serif'; ctx.fillStyle=_cssVar('--muted','#8A7564');
       ctx.textAlign='center'; ctx.textBaseline='bottom';
       chart.getDatasetMeta(0).data.forEach((bar,i) => {
         const val = chart.data.datasets[0].data[i];
-        if (val !== 0) {
+        // Solo si la barra es lo bastante ancha: en celular (31 barras
+        // angostas) las etiquetas se encimaban ("$1.3k$2.1k").
+        if (val !== 0 && (bar.width || 0) >= 26) {
           const abs = Math.abs(val);
           const lbl = `${val<0?'−':''}$${abs>=1000?(abs/1000).toFixed(1)+'k':Math.round(abs)}`;
           ctx.fillText(lbl, bar.x, val < 0 ? bar.y + 12 : bar.y - 3);
@@ -1282,12 +1292,12 @@ function _renderWeekComparison(ctx, byDayCurr) {
     afterDatasetsDraw(chart) {
       const {ctx} = chart;
       ctx.save();
-      ctx.font = '600 9.5px Inter,sans-serif';
+      ctx.font = '600 10px Inter,sans-serif';
       ctx.fillStyle = _cssVar('--muted', '#8A7564');
       ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       chart.getDatasetMeta(0).data.forEach((bar, i) => {
         const val = chart.data.datasets[0].data[i];
-        if (val !== 0) {
+        if (val !== 0 && (bar.width || 0) >= 26) {
           const abs = Math.abs(val);
           ctx.fillText(`${val<0?'−':''}$${abs>=1000?(abs/1000).toFixed(1)+'k':Math.round(abs)}`, bar.x, val < 0 ? bar.y + 12 : bar.y - 3);
         }
@@ -1396,12 +1406,21 @@ function renderCatChart() {
     });
   });
 
-  const entries = Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+  // 6 principales + "Otras": con 20+ categorías la dona repetía colores y la
+  // lista se volvía larguísima con casi todo en 0–1%. Nombres con mayúscula
+  // inicial ("pulpa para manos" → "Pulpa para manos").
+  const _cap = s => String(s).charAt(0).toUpperCase() + String(s).slice(1);
+  const sortedCats = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).map(([k,v]) => [_cap(k), v]);
+  const TOP_CATS = 6;
+  const entries = sortedCats.length > TOP_CATS + 1
+    ? [...sortedCats.slice(0, TOP_CATS), ['Otras', sortedCats.slice(TOP_CATS).reduce((t, [, v]) => t + v, 0)]]
+    : sortedCats;
   if (!entries.length) { _chartNoData('cat-chart', 'Sin datos de categorías'); const _cl=document.getElementById('cat-list'); if(_cl) _cl.innerHTML=''; return; }
   const ctx = _chartReady('cat-chart');
   if (!ctx) return;
 
   const COLORS = ['#C9A462','#34d399','#60a5fa','#f472b6','#a78bfa','#fb923c','#fbbf24'];
+  if (entries.length && entries[entries.length - 1][0] === 'Otras' && sortedCats.length > TOP_CATS + 1) COLORS[entries.length - 1] = '#CFC6BC'; // "Otras" en neutro
   catChart = new Chart(ctx, {
     type: 'doughnut',
     data: {
@@ -1474,7 +1493,7 @@ function renderTopProducts() {
     <div class="tp-bar-wrap"><div class="tp-bar" style="width:${Math.round(p.qty/maxQty*100)}%"></div></div>
   </div>
   <div class="tp-stats">
-    <div class="tp-revenue">${p.qty} ud${p.qty!==1?'s':''}</div>
+    <div class="tp-revenue">${p.qty} pza${p.qty!==1?'s':''}</div>
     <div class="tp-qty">$${p.revenue.toLocaleString('es-MX',{maximumFractionDigits:0})}</div>
   </div>
 </div>`;
