@@ -34,6 +34,19 @@ function json(body: unknown, status = 200) {
   });
 }
 
+// Apps Script responde con 302 a script.googleusercontent.com. Si fetch sigue
+// solo la redirección desde este servidor, Google responde 404 (HTML); se
+// sigue a mano con un GET limpio, que es lo que hace un navegador.
+async function postToAppsScript(url: string, payload: unknown, signal?: AbortSignal): Promise<Response> {
+  const first = await fetch(url, { method: "POST", body: JSON.stringify(payload), redirect: "manual", signal });
+  const location = first.headers.get("location");
+  if (first.status >= 300 && first.status < 400 && location) {
+    await first.body?.cancel();
+    return await fetch(new URL(location, url).toString(), { method: "GET", signal });
+  }
+  return first;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
   if (req.method !== "POST") return json({ ok: false, error: "Método no permitido" }, 405);
@@ -45,6 +58,7 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { return json({ ok: false, error: "Cuerpo inválido" }, 400); }
 
   const action = body?.action || "upload";
+
   let forward: Record<string, unknown>;
   let needed: string[];
   if (action === "upload") {
@@ -85,12 +99,7 @@ Deno.serve(async (req) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), action === "list" ? 110000 : 50000);
   try {
-    // Apps Script responde con un redirect a googleusercontent; fetch lo sigue.
-    const resp = await fetch(cfg.drive_ep, {
-      method: "POST",
-      signal: controller.signal,
-      body: JSON.stringify({ secret: cfg.drive_secret, ...forward }),
-    });
+    const resp = await postToAppsScript(cfg.drive_ep, { secret: cfg.drive_secret, ...forward }, controller.signal);
     const text = await resp.text();
     let data: unknown;
     try { data = JSON.parse(text); } catch { return json({ ok: false, error: "Drive respondió algo inesperado" }, 502); }
