@@ -199,12 +199,18 @@ async function _deleteDriveFile(fileId) {
 
 async function uploadToDrive(b64) {
   if (!driveEp || !driveSecret) return null;
+  // Sin timeout, un Apps Script colgado dejaba el formulario esperando para
+  // siempre en vez de caer al respaldo base64.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
   try {
     const res = await fetch(driveEp, {
       method: 'POST',
+      signal: controller.signal,
       body: JSON.stringify({ secret: driveSecret, image: b64, name: `producto_${Date.now()}.jpg` })
     });
     const data = await res.json();
+    clearTimeout(timeoutId);
     if (!data.ok) {
       const msg = (data.error || '').toLowerCase().includes('autorizado')
         ? 'Drive: secreto incorrecto — ve a Herramientas → Google Drive, copia el secreto del campo gris y pégalo en tu Apps Script'
@@ -213,6 +219,7 @@ async function uploadToDrive(b64) {
     }
     return data.ok ? data.url : null;
   } catch(e) {
+    clearTimeout(timeoutId);
     toast('Drive no responde — imagen guardada localmente', 'error');
     return null;
   }

@@ -156,6 +156,41 @@ BEGIN
   INSERT INTO _ok(prueba) VALUES ('Caja negra ignora las ventas por RPC');
 END $$;
 
+-- ── Candados de la auditoría 2026-10-06 (cajera sin canDeleteProduct) ─────
+SELECT set_config('request.jwt.claims', '{"sub":"585d4e5a-cc26-4a90-9f1a-f6ac8bec2d0e","email":"test@tresencantos.com","role":"authenticated"}', true);
+SELECT set_config('role', 'authenticated', true);
+DO $$
+DECLARE
+  pid bigint := (SELECT v::bigint FROM _ctx WHERE k = 'pid');
+  j jsonb;
+  i int;
+BEGIN
+  -- Hacerse pasar por creadora para borrar con "deshacer duplicado"
+  BEGIN
+    UPDATE public.products SET created_by = 'test@tresencantos.com', created_at = now() WHERE id = pid;
+    RAISE EXCEPTION 'PRUEBA FALLÓ: una cajera pudo cambiar el creador de un producto';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  INSERT INTO _ok(prueba) VALUES ('Creador y fecha de creación no se pueden cambiar');
+
+  -- URL de imagen que rompe el atributo src (XSS guardado)
+  BEGIN
+    UPDATE public.products SET image = 'https://x.com/a.jpg" onerror="alert(1)' WHERE id = pid;
+    RAISE EXCEPTION 'PRUEBA FALLÓ: se guardó una URL de imagen con comillas';
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
+  INSERT INTO _ok(prueba) VALUES ('URLs de imagen peligrosas se rechazan');
+
+  -- PIN de gerente: el 6.º intento fallido en 10 min se bloquea
+  FOR i IN 1..6 LOOP
+    j := public.te_request_override('canCancelSale', 'ofe@tresencantos.com', 'x');
+  END LOOP;
+  IF coalesce(j ->> 'message', '') NOT LIKE 'Demasiados intentos%' THEN
+    RAISE EXCEPTION 'PRUEBA FALLÓ: el PIN no se bloquea tras 5 fallos (%)', j;
+  END IF;
+  INSERT INTO _ok(prueba) VALUES ('PIN de gerente se bloquea tras 5 fallos');
+END $$;
+
 INSERT INTO _ok(prueba) VALUES ('TODAS LAS PRUEBAS PASARON');
 SELECT prueba FROM _ok ORDER BY n;
 
