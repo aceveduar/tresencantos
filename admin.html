@@ -643,7 +643,7 @@
         </div>
       </div>
       <div class="form-row">
-        <div class="field">
+        <div class="field" style="grid-column:1/-1">
           <label>Categoría</label>
           <select id="f-category" style="display:none"></select>
           <button type="button" id="f-category-btn" class="f-cat-btn" onclick="openFormCatPicker()">
@@ -651,10 +651,6 @@
             <span id="f-cat-label-display">Seleccionar categoría</span>
             <span class="f-cat-arrow">▾</span>
           </button>
-        </div>
-        <div class="field" id="field-cat-label">
-          <label>Etiqueta visible</label>
-          <input type="text" id="f-category-label" placeholder="Ej: Bolsos & Carteras">
         </div>
       </div>
       <p class="form-section"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Precios</p>
@@ -742,6 +738,13 @@
           <label>Fecha de caducidad <span style="font-weight:400;color:var(--muted-light)">(opcional)</span></label>
           <input type="date" id="f-expiry-date">
           <p class="hint">Se avisa en Inventario 60 días antes.</p>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field" id="field-cat-label" style="grid-column:1/-1">
+          <label>Nombre de la categoría en la tienda <span style="font-weight:400;color:var(--muted-light)">(opcional)</span></label>
+          <input type="text" id="f-category-label" placeholder="Ej: Bolsos & Carteras">
+          <p class="hint">Se llena solo con la categoría. Cámbialo solo si quieres que la tienda muestre otro nombre.</p>
         </div>
       </div>
       <div class="form-row">

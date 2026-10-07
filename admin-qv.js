@@ -666,7 +666,7 @@ function _renderQV(p) {
     ? `<button class="qv-btn qv-btn-pub" onclick="_qvTogglePublished(${p.id})">${p.isPublished === false ? QV_ICO_GLOBE() + 'Publicar' : QV_ICO_EYEOFF() + 'Ocultar'}</button>`
     : '';
   const btnDel  = can.deleteProduct
-    ? `<button class="qv-btn qv-btn-del" onclick="closeQV();askDelete(${p.id})">✕ Eliminar</button>`
+    ? `<button class="qv-btn qv-btn-del" onclick="closeQV();askDelete(${p.id})"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>Eliminar</button>`
     : '';
   const btnFlag = flagData
     ? `<button class="qv-btn qv-btn-flagdone" onclick="unflagProduct(${p.id})">✓ Revisado</button>`

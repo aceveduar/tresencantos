@@ -125,7 +125,15 @@ function openForm(id) {
       if (moreEl) moreEl.open = true;
       if (kitEl && body) body.scrollTop = kitEl.offsetTop - 12;
     } else if (id) {
-      document.getElementById('f-name').focus();
+      // El nombre se ve desde el inicio (antes el cursor quedaba al final y se
+      // leía "esecar Cabello Rizado…"). En pantallas táctiles no se enfoca
+      // solo: el teclado tapaba medio formulario sin que se hubiera pedido.
+      const nameEl = document.getElementById('f-name');
+      if (nameEl && !window.matchMedia('(pointer:coarse)').matches) {
+        nameEl.focus({ preventScroll: true });
+        try { nameEl.setSelectionRange(0, 0); } catch {}
+      }
+      if (nameEl) nameEl.scrollLeft = 0;
     } else {
       document.querySelector('#form-overlay .modal-body').scrollTop = 0;
     }

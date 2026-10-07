@@ -1296,7 +1296,6 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .img-btns .btn{flex:1;justify-content:center;min-height:44px}
 
   /* Ocultar campo "Etiqueta visible" — se llena automáticamente */
-  #field-cat-label{display:none}
 
   /* Toggle más grande en mobile */
   .checkbox-row{gap:14px;padding:4px 0}
@@ -1788,7 +1787,6 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .qv-actions .qv-btn-edit{grid-column:1/-1;padding:12px 6px;font-size:.86rem}
 .qv-more{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding-top:7px;border-top:1px dashed var(--border)}
 .qv-more[hidden]{display:none}
-.qv-more .qv-btn-del{grid-column:1/-1}
 .qv-btn-more.active{border-color:var(--charcoal)}
 /* Menú "Agregar" como lista desplegable en escritorio */
 #add-menu-overlay.as-popover{background:transparent;align-items:flex-start;justify-content:flex-start}
@@ -1824,3 +1822,14 @@ label:has(> #f-is-kit){min-height:44px}
 .mpc-top > .mpc-star::after{content:'';position:absolute;inset:-6px}
 .mpc-top > .mpc-star.feat-active{background:none;box-shadow:none;color:var(--gold)}
 .mpc-top .mpc-name{padding-right:28px}
+/* Interruptores del formulario: ".field label" los volvía bloque y el texto
+   quedaba más abajo que el switch. */
+.field label.checkbox-row{display:flex;align-items:center;margin-bottom:0;font-size:.88rem;font-weight:500;color:var(--charcoal);letter-spacing:0}
+/* Quick View "Más": las 6 acciones iguales en cuadrícula; Archivar (la
+   recomendada) ya no se ve deshabilitada y Eliminar va en texto rojo, sin
+   ocupar todo el ancho en rosa. */
+.qv-more .qv-btn-archive{background:var(--surface-soft);color:var(--charcoal);border:1.5px solid var(--border)}
+.qv-more .qv-btn-archive:hover{background:var(--surface-soft);border-color:var(--gold);color:var(--gold-dark)}
+.qv-more .qv-btn-del{grid-column:auto;background:var(--surface-soft);color:var(--red);border:1.5px solid var(--border)}
+.qv-more .qv-btn-del:hover{background:#fff3f3;border-color:rgba(232,93,93,.45);color:var(--red)}
+
