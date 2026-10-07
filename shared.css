@@ -268,3 +268,9 @@ a{text-decoration:none}
 @keyframes teDialogFade{from{opacity:0}to{opacity:1}}
 @keyframes teDialogIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.te-dialog-backdrop,.te-dialog{animation:none}}
+
+/* Números alineados (lining) en todo el sitio (módulos admin): con Playfair, los
+   números de "estilo antiguo" por defecto hacían que $0 se leyera "$o" y
+   $108 "$1o8". Se hereda a todo; tabular-nums de cada elemento se suma. */
+body{font-feature-settings:"lnum" 1}
+
