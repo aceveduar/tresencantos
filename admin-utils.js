@@ -369,15 +369,24 @@ function openAddMenu(anchor) {
 }
 // "Pendientes" vive junto a las pestañas en pantallas anchas y en la fila de
 // filtros en celular (ahí las pestañas necesitan todo el ancho para caber).
+// En celular el botón Lista/Cuadrícula pasa junto a Escanear, para que la
+// fila de filtros (Categoría · Pendientes · Ordenar) no se apriete.
 (function _placePendWrap() {
   const mq = window.matchMedia('(max-width:640px)');
   const place = () => {
     const wrap = document.getElementById('pend-wrap');
     const tabsRow = document.querySelector('.inv-tabs-row');
     const catBtn = document.getElementById('cat-filter-btn');
+    const view = document.querySelector('.toolbar .view-toggle');
+    const scanBtn = document.getElementById('search-scan-btn');
+    const filterRow = document.querySelector('.tb-filter-row');
     if (!wrap || !tabsRow || !catBtn) return;
     if (mq.matches) catBtn.after(wrap);
     else tabsRow.appendChild(wrap);
+    if (view && scanBtn && filterRow) {
+      if (mq.matches) scanBtn.after(view);
+      else filterRow.appendChild(view);
+    }
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', place);
   else place();
