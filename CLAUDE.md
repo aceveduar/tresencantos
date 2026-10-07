@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación vigente del proyecto. Última reconciliación: 2026-10-07 · `sw.js` `CACHE_VERSION = 'v600'`.
+Documentación vigente del proyecto. Última reconciliación: 2026-10-07 · `sw.js` `CACHE_VERSION = 'v601'`.
 
 > **Fuente de verdad:** para comportamiento ejecutable manda el código; para reglas de negocio y decisiones UX manda este documento.
 > **Historial completo** (bitácora fecha por fecha, razonamiento detrás de cada decisión, bugs resueltos): [assets/HISTORIAL.md](assets/HISTORIAL.md). No se carga solo — consultarlo con grep cuando haga falta el "por qué" de algo. Este archivo solo describe el estado actual.
@@ -65,7 +65,7 @@ Inventario: `admin.js` (core, auth, carga) · `admin-render.js` (cards/tabla/inl
 Caja: `pos-core.js` (config, auth, API, catálogo, turnos) · `pos-cart.js` (carrito, corte, gastos) · `pos-ui.js` (historial, detalle) · `pos-apartados.js` · `pos-checkout.js` (cobrar, escáner, init).
 Otros: `supabase/migrations/` (SQL versionado) · `supabase/functions/create-user/` (Edge Function para crear usuarios) · `assets/MANUAL.md` (manual de usuario) · `assets/apps_script_actualizado.gs` (código del Apps Script de Drive) · `img/`.
 
-**Navegación:** topbar con íconos de Caja, Inventario, Reportes, Tienda. Actividad, Configuración, "Mi PIN", "Modo oscuro", "Avisarme al vender" (solo superadmin) y Cerrar sesión viven en el menú del avatar. Sin botón "atrás". `_applyNavPermissions()` (`shared.js`) oculta íconos según permisos.
+**Navegación:** topbar con íconos de Caja, Inventario, Reportes, Tienda. Actividad, Configuración, "Mi PIN", "Modo oscuro", "Avisarme al vender" (solo superadmin) y Cerrar sesión viven en el menú del avatar. Sin botón "atrás". Textos de la barra a 11px (`.69rem`, antes 8px) e inactivos al 75%; en celular la nav se centra en el espacio libre antes de campana/avatar (centrada en absoluto chocaba a 360px). `_applyNavPermissions()` (`shared.js`) oculta íconos según permisos.
 
 ---
 

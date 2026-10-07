@@ -120,7 +120,7 @@ a{text-decoration:none}
 .tbn-icon{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:2px;padding:5px 14px;border-radius:9px;min-width:48px;
-  text-decoration:none;background:transparent;color:rgba(255,255,255,.55);
+  text-decoration:none;background:transparent;color:rgba(255,255,255,.75);
   transition:all .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
   border:none;cursor:pointer;font-family:inherit;
 }
@@ -130,28 +130,31 @@ a{text-decoration:none}
   display:block;flex-shrink:0;
 }
 .tbn-label{
-  display:none;font-size:.5rem;font-weight:600;
-  letter-spacing:.03em;line-height:1;white-space:nowrap;
+  display:none;font-size:.69rem;font-weight:600;
+  letter-spacing:.01em;line-height:1;white-space:nowrap;
 }
 .tbn-sep{display:none}
 
-.tbn-icon.tbn-active{color:#C9A462;background:rgba(201,164,98,.22);border-radius:10px;outline:1.5px solid rgba(201,164,98,.35)}
+.tbn-icon.tbn-active{color:#D9B676;background:rgba(201,164,98,.2);border-radius:10px}
 .tbn-icon.tbn-active svg{stroke-width:2.5}
-.tbn-icon:not(.tbn-active):hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.09)}
+.tbn-icon:not(.tbn-active):hover{color:#fff;background:rgba(255,255,255,.09)}
+.tbn-icon:focus-visible{outline:2px solid #C9A462;outline-offset:2px}
 .tbn-icon:active{opacity:.6;transform:scale(.88)}
 
 /* Mobile ≤640px — touch targets + labels */
 @media(max-width:640px){
-  .tbn-icon{padding:5px 8px;min-width:44px}
+  .tbn-icon{padding:6px 6px;min-width:48px;gap:3px}
   .tbn-icon svg{width:20px;height:20px}
-  .tbn-label{display:block;font-size:.5rem;letter-spacing:.02em}
-  .topbar-nav-mobile{gap:0}
+  .tbn-label{display:block}
+  /* Con texto legible la nav centrada en absoluto chocaba con la campana a
+     360px: en celular se centra en el espacio libre antes de campana/avatar. */
+  .topbar .topbar-left{flex:0 0 auto}
+  .topbar .topbar-right{flex:1;min-width:0}
+  .topbar .topbar-nav-mobile{position:static;transform:none;margin:0 auto;gap:0}
 }
-/* Teléfonos muy chicos ≤380px */
+/* Teléfonos muy chicos ≤380px: se aprieta el espacio, nunca la letra */
 @media(max-width:380px){
-  .tbn-icon{min-width:38px;padding:5px 6px}
-  .tbn-icon svg{width:18px;height:18px}
-  .tbn-label{font-size:.44rem}
+  .tbn-icon{min-width:44px;padding:6px 4px}
 }
 /* Tableta y desktop ≥641px — separador visible */
 @media(min-width:641px){
