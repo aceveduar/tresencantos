@@ -9,7 +9,8 @@
 // Acciones:
 //   upload {image, name}  → canAddProduct | canEditProduct | canReceiveStock | canUseReceptionIA
 //   delete {fileId}       → mismos permisos (el formulario borra las fotos que se quitan)
-//   list                  → canManageSettings | canImportExport (auditoría en Configuración → Datos)
+//   list {pageToken?}     → canManageSettings | canImportExport (auditoría en Configuración → Datos);
+//                           páginas de 300, regresa nextPageToken mientras falten
 //
 // Despliegue: supabase functions deploy drive-proxy --use-api
 
@@ -54,7 +55,7 @@ Deno.serve(async (req) => {
   const jwt = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
   if (!jwt) return json({ ok: false, error: "Falta el token de sesión" }, 401);
 
-  let body: { action?: string; image?: string; name?: string; fileId?: string };
+  let body: { action?: string; image?: string; name?: string; fileId?: string; pageToken?: string };
   try { body = await req.json(); } catch { return json({ ok: false, error: "Cuerpo inválido" }, 400); }
 
   const action = body?.action || "upload";
@@ -73,7 +74,11 @@ Deno.serve(async (req) => {
     forward = { action: "delete", fileId };
     needed = INVENTORY_PERMISSIONS;
   } else if (action === "list") {
-    forward = { action: "list" };
+    // Por páginas: un listado completo tarda ~25 s y, con respuestas tan
+    // largas, Google no entrega bien el resultado a este servidor.
+    const pageToken = String(body?.pageToken || "");
+    if (pageToken && !/^[\x21-\x7e]{1,4000}$/.test(pageToken)) return json({ ok: false, error: "pageToken inválido" }, 400);
+    forward = { action: "list", pageSize: 300, ...(pageToken ? { pageToken } : {}) };
     needed = LIST_PERMISSIONS;
   } else {
     return json({ ok: false, error: "Acción inválida" }, 400);
@@ -97,7 +102,7 @@ Deno.serve(async (req) => {
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), action === "list" ? 110000 : 50000);
+  const timeoutId = setTimeout(() => controller.abort(), action === "list" ? 60000 : 50000);
   try {
     const resp = await postToAppsScript(cfg.drive_ep, { secret: cfg.drive_secret, ...forward }, controller.signal);
     const text = await resp.text();

@@ -396,18 +396,29 @@ async function _runDriveAudit() {
   // ni siquiera Apps Script logra terminar de listarla, este timeout no lo
   // resuelve, solo evita que la pantalla se quede colgada sin avisar.
   body.innerHTML = _driveAuditSpinner(`Comparando contra ${used.size} imagen(es) en uso… listando Drive, puede tardar si hay muchos archivos.`);
-  // Vía drive-proxy (el secreto ya no llega al navegador); 115s porque la
-  // función espera hasta 110s al Apps Script.
-  const r = await edgeFn('drive-proxy', { action: 'list' }, 115000);
-  const listRes = r.data && typeof r.data === 'object' ? r.data : null;
-  if (r.status === 0 || r.status === 504) {
-    body.innerHTML = '<p class="field-hint">Drive tardó demasiado en responder — puede que la carpeta tenga muchos archivos, o que el Apps Script no haya terminado de desplegarse. Intenta de nuevo en un momento.</p>';
-    return;
+  // Vía drive-proxy (el secreto ya no llega al navegador), por páginas de 300
+  // (~5 s cada una): de un solo golpe tardaba ~25 s y Google no entregaba la
+  // respuesta al servidor. Un Apps Script viejo ignora la paginación y
+  // regresa todo sin nextPageToken: el ciclo termina en la primera vuelta.
+  const allFiles = [];
+  let pageToken = null;
+  for (let page = 0; page < 100; page++) {
+    const r = await edgeFn('drive-proxy', { action: 'list', ...(pageToken ? { pageToken } : {}) }, 65000);
+    const res = r.data && typeof r.data === 'object' ? r.data : null;
+    if (r.status === 0 || r.status === 504) {
+      body.innerHTML = '<p class="field-hint">Drive tardó demasiado en responder — intenta de nuevo en un momento.</p>';
+      return;
+    }
+    if (!res?.ok) {
+      body.innerHTML = `<p class="field-hint">No se pudo listar Drive${res?.error ? ' (' + escH(String(res.error)) + ')' : ''} — confirma que ya pegaste la versión nueva del Apps Script y creaste una "Nueva versión" de la implementación.</p>`;
+      return;
+    }
+    allFiles.push(...(res.files || []));
+    pageToken = res.nextPageToken || null;
+    if (!pageToken) break;
+    body.innerHTML = _driveAuditSpinner(`Listando Drive… ${allFiles.length} archivo(s) revisados.`);
   }
-  if (!listRes?.ok) {
-    body.innerHTML = `<p class="field-hint">No se pudo listar Drive${listRes?.error ? ' (' + escH(String(listRes.error)) + ')' : ''} — confirma que ya agregaste y desplegaste el action "list" en tu Apps Script.</p>`;
-    return;
-  }
+  const listRes = { files: allFiles };
 
   _driveAuditFiles = (listRes.files || [])
     .filter(f => !used.has(f.id))

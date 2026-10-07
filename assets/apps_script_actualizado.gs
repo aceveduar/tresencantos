@@ -33,11 +33,15 @@ function doPost(e) {
 
     // Listar archivos de la carpeta -- solo lectura, no borra nada.
     // Usado por la auditoría de imágenes huérfanas (Configuración → Datos).
+    // Por páginas (pageSize + pageToken): el listado completo tarda ~25 s y
+    // Google no entrega bien respuestas tan largas al servidor de Supabase.
     if (payload.action === 'list') {
-      const folder = DriveApp.getFolderById(FOLDER_ID);
-      const files = folder.getFiles();
+      const files = payload.pageToken
+        ? DriveApp.continueFileIterator(payload.pageToken)
+        : DriveApp.getFolderById(FOLDER_ID).getFiles();
+      const pageSize = payload.pageSize || Infinity;
       const result = [];
-      while (files.hasNext()) {
+      while (files.hasNext() && result.length < pageSize) {
         const f = files.next();
         result.push({
           id: f.getId(),
@@ -46,7 +50,8 @@ function doPost(e) {
           size: f.getSize()
         });
       }
-      out.setContent(JSON.stringify({ ok: true, files: result }));
+      const nextPageToken = files.hasNext() ? files.getContinuationToken() : null;
+      out.setContent(JSON.stringify({ ok: true, files: result, nextPageToken }));
       return out;
     }
 
