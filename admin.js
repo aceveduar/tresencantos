@@ -1045,15 +1045,12 @@ function _applyRoleUI() {
   if (can.addProduct) {
     document.querySelectorAll('.capture-mode-btn, #add-menu-capture').forEach(b => b.style.removeProperty('display'));
   }
-  // "Recibir" / "Importar" (Recepción con IA) -- visibles solo si el toggle
-  // global del negocio está activo (_showRecv/_showRecvIa, Configuración →
-  // Catálogo) Y la persona tiene el permiso individual. Se reevalúa aquí
-  // porque _applyRoleUI() ya se re-llama tanto al cargar config como al
-  // cargar permisos, sin importar cuál de los dos termine primero.
-  const recvBtn = document.getElementById('btn-recv-mode');
-  if (recvBtn) recvBtn.style.display = (_showRecv && can.receiveStock) ? '' : 'none';
-  // Mismas condiciones, reflejadas en el menú unificado del FAB (mobile/
-  // tablet chico) -- ver #add-menu-overlay.
+  // "Recibir mercancía" / "Recepción con IA" -- solo en el menú "+ Agregar"
+  // (único punto de entrada; el botón "Recibir" suelto de la barra se quitó
+  // 2026-10-07 por duplicado). Visibles si el toggle global del negocio está
+  // activo (_showRecv/_showRecvIa, Configuración → Catálogo) Y la persona
+  // tiene el permiso. Se reevalúa aquí porque _applyRoleUI() se re-llama al
+  // cargar config y al cargar permisos, sin importar cuál termine primero.
   const recvMenuItem = document.getElementById('add-menu-recv');
   if (recvMenuItem) recvMenuItem.style.display = (_showRecv && can.receiveStock) ? '' : 'none';
   const recvIaMenuItem = document.getElementById('add-menu-recv-ia');
