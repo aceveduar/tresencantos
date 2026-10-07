@@ -906,3 +906,17 @@ footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
    $108 "$1o8". Se hereda a todo; tabular-nums de cada elemento se suma. */
 body{font-feature-settings:"lnum" 1}
 
+/* Catálogo en celular: "Ordenar" como botón redondo de ícono (antes
+   "Nuestra selección" ocupaba media fila y solo se veían 2 categorías). Sigue
+   siendo el <select> nativo: al tocarlo abre el selector del teléfono. */
+@media(max-width:640px){
+  .products-filters-row .sort-select{
+    width:44px;height:44px;padding:0;flex:0 0 44px;border-radius:50%;
+    color:transparent;text-indent:-999px;overflow:hidden;
+    background-color:#fff;background-repeat:no-repeat;background-position:center;background-size:18px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236B5C48' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 16 4 4 4-4'/%3E%3Cpath d='M7 20V4'/%3E%3Cpath d='m21 8-4-4-4 4'/%3E%3Cpath d='M17 4v16'/%3E%3C/svg%3E");
+  }
+  .products-filters-row .sort-select option{color:var(--text-mid,#6B5C48)}
+  .products-filters-row .sort-select.is-active{border-color:var(--gold);background-color:#FFF8EE}
+}
+

@@ -29,7 +29,9 @@ let _catalogShowAll = false;
 
 function _descHtml(desc) {
   if (!desc) return '';
-  let s = desc
+  // Viñetas pegadas en el mismo renglón ("texto • otra cosa • otra") se
+  // separan en renglones para que se lean como lista.
+  let s = String(desc).replace(/[ \t]+•[ \t]+/g, '\n• ')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
     .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g,'<em>$1</em>');
@@ -485,6 +487,7 @@ function clearProductsSearch() {
 /* ── SORT ── */
 function setSortOption(val) {
   currentSort = val;
+  document.getElementById('sort-select')?.classList.toggle('is-active', val !== 'default');
   _catalogShowAll = false;
   render();
 }
@@ -1057,10 +1060,9 @@ function openModal(id) {
   let modalBadgeArea = '';
   const modalBadgeIsPromo = !p.badgeType || p.badgeType === 'promo';
   if (pct > 0 && p.badge && !modalBadgeIsPromo) {
-    modalBadgeArea = `<span class="product-badge badge-${p.badgeType}" style="position:absolute;top:10px;left:10px">${_esc(p.badge)}</span>`
-                   + `<span class="product-badge badge-discount" style="position:absolute;top:48px;right:10px;left:auto">-${pct}%</span>`;
+    modalBadgeArea = `<span class="product-badge badge-${p.badgeType}" style="position:absolute;top:10px;left:10px">${_esc(p.badge)}</span>`;
   } else if (pct > 0) {
-    modalBadgeArea = `<span class="product-badge badge-discount" style="position:absolute;top:48px;right:10px;left:auto">-${pct}%</span>`;
+    modalBadgeArea = '';
   } else if (p.badge) {
     modalBadgeArea = `<span class="product-badge badge-${p.badgeType||'best'}" style="position:absolute;top:10px;left:10px">${_esc(p.badge)}</span>`;
   }
@@ -1108,7 +1110,7 @@ function openModal(id) {
         }).join('')}
       </div>`
     : '';
-  const allImgs = [p.image, ...(p.images || [])].filter(Boolean);
+  const allImgs = [...new Set([p.image, ...(p.images || [])].filter(Boolean))]; // sin repetidas
   const hasGallery = allImgs.length > 1;
   const galleryHTML = hasGallery
     ? `<div class="modal-gallery" id="modal-gallery" onscroll="_updateGalleryDots(this)">
