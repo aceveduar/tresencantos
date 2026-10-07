@@ -368,7 +368,7 @@ async function _bcpSelect(code) {
     return;
   }
 
-  if (!confirm(`¿Cambiar la categoría de ${selectedIds.size} producto${selectedIds.size>1?'s':''} a "${cat.label}"?`)) return;
+  if (!(await teConfirm({ title: 'Cambiar categoría', message: `¿Cambiar la categoría de ${selectedIds.size} producto${selectedIds.size>1?'s':''} a "${cat.label}"?`, confirmText: 'Cambiar' }))) return;
   closeBulkCatPicker();
 
   const ids = [...selectedIds].join(',');
@@ -392,7 +392,7 @@ async function bulkToggleFeatured() {
   const selected = products.filter(p => selectedIds.has(p.id));
   // Si todos son destacados → quitar. En cualquier otro caso → destacar todos.
   const newVal = !selected.every(p => p.featured);
-  if (!confirm(`¿${newVal ? 'Destacar' : 'Quitar destacado de'} ${selected.length} producto${selected.length>1?'s':''}?`)) return;
+  if (!(await teConfirm({ title: newVal ? 'Destacar' : 'Quitar destacado', message: `¿${newVal ? 'Destacar' : 'Quitar destacado de'} ${selected.length} producto${selected.length>1?'s':''}?`, confirmText: newVal ? 'Destacar' : 'Quitar' }))) return;
 
   if (getSupabaseUrl()) {
     const ids = [...selectedIds].join(',');
@@ -417,7 +417,7 @@ async function bulkToggleOOS() {
   if (!selectedIds.size) return;
   const selected = products.filter(p => selectedIds.has(p.id));
   const newVal = !selected.every(p => p.outOfStock);
-  if (!confirm(`¿Marcar ${selected.length} producto${selected.length>1?'s':''} como ${newVal ? 'agotados' : 'disponibles'}?`)) return;
+  if (!(await teConfirm({ title: newVal ? 'Marcar agotados' : 'Marcar disponibles', message: `¿Marcar ${selected.length} producto${selected.length>1?'s':''} como ${newVal ? 'agotados' : 'disponibles'}?`, confirmText: 'Marcar' }))) return;
 
   if (getSupabaseUrl()) {
     // PATCH base: cambiar out_of_stock para todos
@@ -526,7 +526,7 @@ async function bulkTogglePublish() {
     const agotados = selected.filter(p => p.outOfStock).length;
     if (agotados > 0) msg += `\n\n${agotados} producto(s) están agotados y no aparecerán en el sitio web aunque se publiquen.`;
   }
-  if (!confirm(msg)) return;
+  if (!(await teConfirm({ title: 'Cambiar visibilidad', message: msg, confirmText: 'Continuar' }))) return;
   if (getSupabaseUrl()) {
     const ids = [...selectedIds].join(',');
     const result = await supabaseApi(`products?id=in.(${ids})`, {
@@ -600,7 +600,7 @@ function importProducts(input) {
       if (newCount)    lines.push(`  • ${newCount} nuevo(s) se agregarán`);
       if (updateCount) lines.push(`  • ${updateCount} existente(s) se actualizarán`);
       lines.push('\nLos productos que no están en el archivo se conservarán.');
-      if (!confirm(lines.join('\n'))) return;
+      if (!(await teConfirm({ title: 'Importar catálogo', message: lines.join('\n'), confirmText: 'Importar' }))) return;
 
       toast(`Importando ${imported.length} productos...`, '');
 

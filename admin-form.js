@@ -156,9 +156,10 @@ function _syncFormMore(openIfFilled) {
   hint.textContent = filled.length ? `Con: ${filled.join(', ')}` : 'Descripción, oferta, caducidad, kit…';
 }
 
-function closeForm() {
+// Devuelve true si cerró (false si eligió quedarse por cambios sin guardar).
+async function closeForm() {
   if (_formIsDirty()) {
-    if (!confirm('Tienes cambios sin guardar. ¿Salir de todas formas?')) return;
+    if (!(await teConfirm({ title: 'Salir sin guardar', message: 'Tienes cambios sin guardar. ¿Salir de todas formas?', confirmText: 'Salir', cancelText: 'Seguir editando', danger: true }))) return false;
   }
   if (_formJustSaved) {
     _formJustSaved = false;
@@ -674,7 +675,7 @@ async function saveProduct(addAnother = false) {
     return;
   }
   if (nameWarn?.style.display !== 'none') {
-    if (!confirm('El sistema detectó un producto similar en el catálogo.\n¿Confirmas que es un producto diferente?')) return;
+    if (!(await teConfirm({ title: 'Producto similar', message: 'El sistema detectó un producto similar en el catálogo.\n¿Confirmas que es un producto diferente?', confirmText: 'Sí, es diferente' }))) return;
   }
   // Código de proveedor: solo avisa, no bloquea -- a diferencia del código
   // de barras (que se usa para cobrar en Caja, un duplicado ahí es un
@@ -682,7 +683,7 @@ async function saveProduct(addAnother = false) {
   // el producto. Si se repite, lo peor que pasa es que ese producto no se
   // auto-vincule y haya que buscarlo a mano -- molesto, no riesgoso.
   if (supplierCodeWarn?.style.display !== 'none') {
-    if (!confirm('Este código de proveedor ya lo usa otro producto.\n¿Confirmas que quieres repetirlo de todos modos?')) return;
+    if (!(await teConfirm({ title: 'Código de proveedor repetido', message: 'Este código de proveedor ya lo usa otro producto.\n¿Confirmas que quieres repetirlo de todos modos?', confirmText: 'Repetirlo' }))) return;
   }
 
   const name = document.getElementById('f-name').value.trim();
@@ -1206,7 +1207,7 @@ async function askDelete(id) {
   const kitsAfectados = products.filter(p => p.kitItems?.some(item => item.id === id));
   if (kitsAfectados.length) {
     const nombres = kitsAfectados.map(k => `"${k.name}"`).join(', ');
-    if (!confirm(`Este producto es componente de ${kitsAfectados.length === 1 ? 'el kit' : 'los kits'} ${nombres}.\n\nAl eliminarlo esos kits quedarán sin stock. ¿Continuar?`)) return;
+    if (!(await teConfirm({ title: 'Es parte de un kit', message: `Este producto es componente de ${kitsAfectados.length === 1 ? 'el kit' : 'los kits'} ${nombres}.\n\nAl eliminarlo esos kits quedarán sin stock. ¿Continuar?`, confirmText: 'Continuar', danger: true }))) return;
   }
   // Un producto que sigue en un apartado activo NUNCA se puede eliminar --
   // edit_apartado_atomic (y cancel/refund) exigen que todo lo que sigue en
@@ -1218,7 +1219,7 @@ async function askDelete(id) {
   const aptHits = hits[id];
   if (aptHits?.length) {
     const nombres = aptHits.map(a => `"${a.customer}"`).join(', ');
-    alert(`No se puede eliminar -- este producto sigue en ${aptHits.length === 1 ? 'un apartado activo' : `${aptHits.length} apartados activos`} (${nombres}), como producto o como componente de un kit.\n\nSi lo borras, ese apartado quedará bloqueado para editarse Y para cancelarse. Espera a que se liquide (se pague completo), o usa "🙈 Oculto" para dejar de venderlo sin borrarlo.`);
+    await teAlert(`Este producto sigue en ${aptHits.length === 1 ? 'un apartado activo' : `${aptHits.length} apartados activos`} (${nombres}), como producto o como componente de un kit.\n\nSi lo borras, ese apartado quedará bloqueado para editarse y para cancelarse. Espera a que se liquide (se pague completo), o usa "Oculto" para dejar de venderlo sin borrarlo.`, 'No se puede eliminar');
     return;
   }
   deleteTargetId = id;
@@ -1435,7 +1436,7 @@ async function _confirmAddToKit(kitId) {
     return;
   }
 
-  if (!confirm(`¿Agregar ${toAdd.length} producto${toAdd.length>1?'s':''} al kit "${kit.name}"?`)) return;
+  if (!(await teConfirm({ title: 'Agregar al kit', message: `¿Agregar ${toAdd.length} producto${toAdd.length>1?'s':''} al kit "${kit.name}"?`, confirmText: 'Agregar' }))) return;
   _closeAddToKit();
 
   const updated = [...(kit.kitItems || []), ...toAdd];

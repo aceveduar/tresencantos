@@ -2107,7 +2107,7 @@ async function _saveClienteProfile(id) {
 /* ── INIT ── */
 function sendDailySummaryWA() {
   if (!todaySummaryLoaded) {
-    alert('El resumen de hoy no está completo. Recarga la página antes de enviarlo.');
+    teAlert('Recarga la página antes de enviarlo.', 'El resumen de hoy no está completo');
     return;
   }
   const fmt = n => `${n < 0 ? '−' : ''}$${Math.abs(parseFloat(n)||0).toLocaleString('es-MX', {maximumFractionDigits:0})}`;

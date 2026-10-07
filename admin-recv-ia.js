@@ -160,11 +160,11 @@ function _riaSetStatus(msg) {
 }
 
 /* ── Overlay ── */
-function openRecvIaMode() {
+async function openRecvIaMode() {
   if (!can.useReceptionIA) { toast('Sin permiso para usar Recepción con IA', 'error'); return; }
   document.getElementById('recv-ia-overlay').style.display = 'flex';
   document.body.style.overflow = 'hidden';
-  if (_riaTryRestoreDraft()) {
+  if (await _riaTryRestoreDraft()) {
     // Recalcula solo lo que el usuario no había decidido a mano — así un
     // borrador viejo se beneficia de mejoras al algoritmo (o cambios en el
     // catálogo) sin perder los vínculos que ya habías confirmado.
@@ -273,11 +273,11 @@ async function riaUndoLastApply() {
   const snap = _riaLoadUndoSnapshot();
   if (!snap) return;
   const n = snap.updated.length + snap.created.length;
-  const ok = confirm(
+  const ok = await teConfirm({ title: 'Deshacer recepción', confirmText: 'Deshacer', danger: true, message:
     `¿Deshacer la recepción aplicada ${_riaAgeLabel(snap.appliedAt)} (${n} producto${n !== 1 ? 's' : ''})?\n\n` +
     `Se restará el stock que sumó, y costo/precio/código de proveedor regresan a como estaban antes. Los productos nuevos que creó se archivan (no se borran — quedan reversibles desde "📦 Archivados").\n\n` +
     `Si desde entonces editaste estos productos por otro lado (Inventario, otra recepción), esos cambios también se perderían.`
-  );
+  });
   if (!ok) return;
 
   let okCount = 0, failCount = 0;
@@ -348,7 +348,7 @@ function _riaClearDraft() {
   try { localStorage.removeItem(_RIA_DRAFT_KEY); } catch {}
 }
 
-function _riaTryRestoreDraft() {
+async function _riaTryRestoreDraft() {
   let raw;
   try { raw = localStorage.getItem(_RIA_DRAFT_KEY); } catch { return false; }
   if (!raw) return false;
@@ -358,7 +358,7 @@ function _riaTryRestoreDraft() {
 
   const ageMin = Math.round((Date.now() - (draft.savedAt || 0)) / 60000);
   const ageLabel = ageMin < 1 ? 'hace un momento' : ageMin < 60 ? `hace ${ageMin} min` : `hace ${Math.round(ageMin / 60)} h`;
-  const wantsRestore = confirm(`Tienes un pedido sin terminar (${draft.items.length} productos, guardado ${ageLabel}).\n\n¿Continuar donde lo dejaste?\n\n(Cancelar = empezar de nuevo, se descarta ese avance)`);
+  const wantsRestore = await teConfirm({ title: 'Pedido sin terminar', message: `Tienes un pedido sin terminar (${draft.items.length} productos, guardado ${ageLabel}).\n\n¿Continuar donde lo dejaste? Si empiezas de nuevo, se descarta ese avance.`, confirmText: 'Continuar', cancelText: 'Empezar de nuevo' });
   if (!wantsRestore) { _riaClearDraft(); return false; }
 
   _riaItems = draft.items;
@@ -1312,7 +1312,7 @@ ${closeEnough ? '' : `<span>Diferencia de $${Math.abs(diff).toFixed(2)} — revi
 // precio por debajo del costo (perder dinero en cada venta) y el total que
 // no cuadra contra el documento (algo se leyó mal). Si nada de eso aplica,
 // el mensaje es un resumen corto, no una advertencia.
-function _riaConfirmApply() {
+async function _riaConfirmApply() {
   const linked = _riaItems.filter(it => it.matchProductId).length;
   const nuevos = _riaItems.length - linked;
   const kitComps = _riaActionableKitComponents();
@@ -1366,14 +1366,14 @@ function _riaConfirmApply() {
     msg += `\n\n⚠️ ${untouchedKits.length} kit${untouchedKits.length !== 1 ? 's' : ''} de promoción ($${untouchedKitsValue.toFixed(2)}) sin vincular ningún componente — se van a omitir por completo, sin ningún registro. Para aplicarlos, vincula al menos un componente de cada uno (▾ Kits de promoción, arriba de este botón) antes de continuar.`;
   }
 
-  return confirm(msg);
+  return teConfirm({ title: 'Aplicar recepción', message: msg, confirmText: 'Aplicar' });
 }
 
 /* ── Aplicar cambios (o simular, mientras _RIA_DRY_RUN sea true) ── */
 async function riaApplyChanges() {
   const actionableKitComps = _riaActionableKitComponents();
   if (!_riaItems.length && !actionableKitComps.length) return;
-  if (!_RIA_DRY_RUN && !_riaConfirmApply()) return;
+  if (!_RIA_DRY_RUN && !(await _riaConfirmApply())) return;
   const btn = document.getElementById('ria-apply-btn');
   btn.disabled = true;
   btn.textContent = _RIA_DRY_RUN ? 'Simulando…' : 'Aplicando…';

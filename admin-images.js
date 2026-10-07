@@ -235,7 +235,7 @@ async function migrateBase64ToDrive() {
   const toMigrate = products.filter(p => _isRealBase64Image(p.image));
   if (!toMigrate.length) { toast('No hay imágenes base64 que migrar', ''); return; }
   if (!driveEp) { toast('Configura Google Drive primero en Herramientas → Google Drive', 'error'); return; }
-  if (!confirm(`¿Migrar ${toMigrate.length} imágenes a Google Drive automáticamente?\n\nTarda ~${toMigrate.length} segundos. No cierres la ventana.`)) return;
+  if (!(await teConfirm({ title: 'Migrar a Google Drive', message: `¿Migrar ${toMigrate.length} imágenes a Google Drive automáticamente?\n\nTarda unos ${toMigrate.length * 4} segundos. No cierres la ventana.`, confirmText: 'Migrar' }))) return;
 
   // Crear overlay de progreso
   const overlay = document.createElement('div');

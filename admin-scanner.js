@@ -365,7 +365,7 @@ async function archiveProduct(id) {
   if (!can.deleteProduct) return;
   const p = products.find(x => x.id === id);
   if (!p) return;
-  if (!confirm(`¿Archivar "${p.name}"?\nDesaparecerá del inventario y la caja. Podrás restaurarlo desde "Archivados".`)) return;
+  if (!(await teConfirm({ title: 'Archivar producto', message: `¿Archivar "${p.name}"?\nDesaparecerá del inventario y la caja. Podrás restaurarlo desde "Archivados".`, confirmText: 'Archivar' }))) return;
   const result = await supabaseApi(`products?id=eq.${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ is_archived: true, is_published: false, out_of_stock: true })
@@ -441,9 +441,9 @@ function _openFormFromKitQV(compId) {
   openForm(compId);
 }
 
-function _backToKit() {
+async function _backToKit() {
   if (_formIsDirty()) {
-    if (!confirm('Tienes cambios sin guardar en el componente. ¿Volver al kit sin guardar?')) return;
+    if (!(await teConfirm({ title: 'Salir sin guardar', message: 'Tienes cambios sin guardar en el componente. ¿Volver al kit sin guardar?', confirmText: 'Volver al kit', cancelText: 'Seguir editando', danger: true }))) return;
   }
   _formSnapshot = null;
   document.getElementById('form-overlay').classList.remove('open');
@@ -599,10 +599,10 @@ async function _deleteDupProduct(id, pairKey) {
   const aptHits = hits[id];
   if (aptHits?.length) {
     const nombres = aptHits.map(a => `"${a.customer}"`).join(', ');
-    alert(`No se puede eliminar -- este producto sigue en ${aptHits.length === 1 ? 'un apartado activo' : `${aptHits.length} apartados activos`} (${nombres}), como producto o como componente de un kit.\n\nSi lo borras, ese apartado quedará bloqueado para editarse Y para cancelarse. Espera a que se liquide (se pague completo), o usa "🙈 Oculto" para dejar de venderlo sin borrarlo.`);
+    await teAlert(`Este producto sigue en ${aptHits.length === 1 ? 'un apartado activo' : `${aptHits.length} apartados activos`} (${nombres}), como producto o como componente de un kit.\n\nSi lo borras, ese apartado quedará bloqueado para editarse y para cancelarse. Espera a que se liquide (se pague completo), o usa "Oculto" para dejar de venderlo sin borrarlo.`, 'No se puede eliminar');
     return;
   }
-  if (!confirm('¿Eliminar este producto? Tendrás 7 segundos para deshacer.')) return;
+  if (!(await teConfirm({ title: 'Eliminar producto', message: '¿Eliminar este producto? Tendrás 7 segundos para deshacer.', confirmText: 'Eliminar', danger: true }))) return;
   const deleted = products.find(p => p.id === id);
   const deletedIdx = products.findIndex(p => p.id === id);
   const result = await supabaseApi('rpc/te_delete_products', {

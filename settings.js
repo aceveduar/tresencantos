@@ -264,7 +264,7 @@ function copyDriveSecret() {
 }
 
 async function clearDrive() {
-  if (!confirm('¿Desconectar Google Drive? Las imágenes futuras se guardarán como base64.')) return;
+  if (!(await teConfirm({ title: 'Desconectar Google Drive', message: '¿Desconectar Google Drive? Las imágenes futuras se guardarán dentro de la base de datos en lugar de Drive.', confirmText: 'Desconectar', danger: true }))) return;
   // Vacío en vez de DELETE: quien lee trata '' como "no configurado", y así pasa
   // por te_save_config_value (DELETE directo solo funciona para superadmin).
   const [r1, r2] = await Promise.all([
@@ -779,7 +779,7 @@ async function _catMakeSubOf(rootCode, newParentCode) {
   const msg = children.length
     ? `¿Mover "${root.label}" y sus ${children.length} subcategoría(s) a "${newParent.label}"?`
     : `¿Mover "${root.label}" a "${newParent.label}"?`;
-  if (!confirm(msg)) { renderCatList(); return; }
+  if (!(await teConfirm({ title: 'Mover categoría', message: msg, confirmText: 'Mover' }))) { renderCatList(); return; }
   root.parent = newParentCode;
   root.color = newParent.color || root.color;
   children.forEach(c => { c.parent = newParentCode; c.color = newParent.color || c.color; });
@@ -945,7 +945,7 @@ async function deleteCategoryAt(idx) {
   const msg = count > 0
     ? `¿Eliminar "${c.label}"${childWarning}? ${count} producto(s) quedarán con una categoría que ya no existe — desaparecerán de los filtros de Inventario/Caja/Tienda aunque sigan existiendo (solo se verán en "Todos" o buscando por texto). ¿Continuar?`
     : `¿Eliminar la categoría "${c.label}"${childWarning}?`;
-  if (!confirm(msg)) return;
+  if (!(await teConfirm({ title: 'Eliminar categoría', message: msg, confirmText: 'Eliminar', danger: true }))) return;
   const removeCodes = new Set(codes);
   const snapshot = categories;
   categories = categories.filter(x => !removeCodes.has(x.code));
@@ -1274,7 +1274,7 @@ function importProducts(input) {
     try {
       const raw = JSON.parse(e.target.result);
       if (!Array.isArray(raw) || !raw.length) { toast('Archivo inválido', 'err'); return; }
-      if (!confirm(`¿Importar ${raw.length} productos? Los existentes con el mismo ID se actualizarán.`)) return;
+      if (!(await teConfirm({ title: 'Importar catálogo', message: `¿Importar ${raw.length} productos? Los existentes con el mismo ID se actualizarán.`, confirmText: 'Importar' }))) return;
       toast('Importando…', '');
       const r = await api('products', {
         method: 'POST',
@@ -1293,7 +1293,7 @@ function importProducts(input) {
 async function clearActivityLog() {
   const range = document.getElementById('log-range-select')?.value || 'all';
   const labels = { '1w':'más de 1 semana', '1m':'más de 1 mes', '3m':'más de 3 meses', '6m':'más de 6 meses', 'all':'todo el historial' };
-  if (!confirm(`¿Borrar los registros de ${labels[range]}?\nEsta acción no se puede deshacer.`)) return;
+  if (!(await teConfirm({ title: 'Limpiar historial', message: `¿Borrar los registros de ${labels[range]}?\nEsta acción no se puede deshacer.`, confirmText: 'Borrar', danger: true }))) return;
 
   let filter;
   if (range === 'all') {
@@ -1515,13 +1515,13 @@ function _renderPermsBody(email) {
 // Copia TODOS los valores de permisos (no el rol) de sourceEmail a email --
 // para el patrón real de Eduardo de "le doy a X algo, luego decido que Y
 // también debería tenerlo" sin repetir el trabajo permiso por permiso.
-function _upCopyFrom(email, sourceEmail) {
+async function _upCopyFrom(email, sourceEmail) {
   if (!sourceEmail) { toast('Elige de quién copiar', 'error'); return; }
   const sourcePerms = userPermsMap[sourceEmail];
   if (!sourcePerms) { toast('Esa persona no tiene permisos guardados todavía', 'error'); return; }
   const targetName = nameMap[email] || email.split('@')[0];
   const sourceName = nameMap[sourceEmail] || sourceEmail.split('@')[0];
-  if (!confirm(`¿Copiar todos los permisos de ${sourceName} a ${targetName}?\n\nEsto reemplaza los permisos actuales de ${targetName} (su rol se mantiene igual: ${_UP_ROLE_LABELS[userPermsMap[email]?.role||'operador']}).`)) return;
+  if (!(await teConfirm({ title: 'Copiar permisos', message: `¿Copiar todos los permisos de ${sourceName} a ${targetName}?\n\nEsto reemplaza los permisos actuales de ${targetName} (su rol se mantiene igual: ${_UP_ROLE_LABELS[userPermsMap[email]?.role||'operador']}).`, confirmText: 'Copiar' }))) return;
 
   const role = userPermsMap[email]?.role || 'operador';
   const sourceDefs = UP_ROLE_DEFAULTS[sourcePerms.role || 'operador'] || UP_ROLE_DEFAULTS.operador;
@@ -1550,14 +1550,14 @@ function _upToggleCard(el) {
   card.classList.toggle('up-card-open', !open);
 }
 
-function _upRoleChange(sel) {
+async function _upRoleChange(sel) {
   const card    = sel.closest('.up-card');
   const email   = card.dataset.email;
   const prevRole= (userPermsMap[email]?.role) || 'operador';
   const newRole = sel.value;
   const name    = nameMap[email] || email.split('@')[0];
   if (prevRole === 'superadmin' && newRole !== 'superadmin') {
-    if (!confirm(`¿Cambiar a ${name} de Superadmin a ${_UP_ROLE_LABELS[newRole]||newRole}?\nPerderá acceso a Configuración.`)) {
+    if (!(await teConfirm({ title: 'Cambiar rol', message: `¿Cambiar a ${name} de Superadmin a ${_UP_ROLE_LABELS[newRole]||newRole}?\nPerderá acceso a Configuración.`, confirmText: 'Cambiar', danger: true }))) {
       sel.value = prevRole;
       return;
     }
@@ -1567,7 +1567,7 @@ function _upRoleChange(sel) {
   // solo cuando de verdad hay algo que perder, para no interrumpir el caso
   // comun (cambiar el rol de alguien sin overrides).
   const overrideCount = _upOverrideCount(email);
-  if (overrideCount > 0 && !confirm(`${name} tiene ${overrideCount} permiso${overrideCount>1?'s':''} personalizado${overrideCount>1?'s':''} distinto${overrideCount>1?'s':''} de su rol actual.\n\nCambiar de rol los reemplaza por los defaults de ${_UP_ROLE_LABELS[newRole]||newRole}. ¿Continuar?`)) {
+  if (overrideCount > 0 && !(await teConfirm({ title: 'Cambiar rol', message: `${name} tiene ${overrideCount} permiso${overrideCount>1?'s':''} personalizado${overrideCount>1?'s':''} distinto${overrideCount>1?'s':''} de su rol actual.\n\nCambiar de rol los reemplaza por los de ${_UP_ROLE_LABELS[newRole]||newRole}. ¿Continuar?`, confirmText: 'Cambiar' }))) {
     sel.value = prevRole;
     return;
   }
@@ -1664,7 +1664,7 @@ async function _upAddUser() {
   const confirmMsg = _upAddMode === 'password'
     ? `¿Crear la cuenta de ${email} como ${_UP_ROLE_LABELS[role]||role} con esa contraseña?`
     : `¿Crear la cuenta de ${email} como ${_UP_ROLE_LABELS[role]||role}?\n\nSe le enviará un correo de invitación para que fije su propia contraseña.`;
-  if (!confirm(confirmMsg)) return;
+  if (!(await teConfirm({ title: 'Crear cuenta', message: confirmMsg, confirmText: 'Crear' }))) return;
 
   if (btn) { btn.disabled = true; btn.textContent = 'Creando…'; }
   const r = await edgeFn('create-user', { email, role, password });
@@ -1693,10 +1693,10 @@ async function _upSaveName(inp, email) {
   else { toast(r.data?.message || 'Error al guardar el nombre', 'err'); nameMap[email] = oldName; inp.value = oldName; inp.dataset.orig = oldName; }
 }
 
-function _upRemoveUser(email) {
+async function _upRemoveUser(email) {
   if (email === _myEmail) { toast('No puedes eliminarte a ti mismo', 'err'); return; }
   const name = nameMap[email] || email.split('@')[0];
-  if (!confirm(`¿Quitar a ${name} de la lista de permisos?`)) return;
+  if (!(await teConfirm({ title: 'Quitar usuario', message: `¿Quitar a ${name} de la lista de permisos?`, confirmText: 'Quitar', danger: true }))) return;
   delete userPermsMap[email];
   delete nameMap[email];
   renderUsersPerms();
@@ -1704,10 +1704,10 @@ function _upRemoveUser(email) {
   _saveConfigValue('user_names', JSON.stringify(nameMap));
 }
 
-function _upResetPerms(email) {
+async function _upResetPerms(email) {
   const name = nameMap[email] || email.split('@')[0];
   const n = _upOverrideCount(email);
-  if (!confirm(`¿Restablecer TODOS los permisos de ${name} al default de su rol?\n\nSe perderán ${n} personalización${n!==1?'es':''} — esto no se puede deshacer.`)) return;
+  if (!(await teConfirm({ title: 'Restablecer permisos', message: `¿Restablecer TODOS los permisos de ${name} a los de su rol?\n\nSe perderán ${n} personalización${n!==1?'es':''} — esto no se puede deshacer.`, confirmText: 'Restablecer', danger: true }))) return;
   const role = userPermsMap[email]?.role || 'operador';
   userPermsMap[email] = { ...UP_ROLE_DEFAULTS[role], role };
   const card = document.querySelector(`.up-card[data-email="${CSS.escape(email)}"]`);

@@ -715,7 +715,7 @@ async function _clearOrphanApartado(id) {
   if (!can.editProduct) { toast('Sin permiso para editar productos', 'error'); return; }
   const p = products.find(x => x.id === id);
   if (!p) return;
-  if (!confirm('¿Quitar la marca de apartado? Ya se verificó que no hay ningún apartado activo que lo respalde en la tabla de ventas.')) return;
+  if (!(await teConfirm({ title: 'Quitar marca de apartado', message: '¿Quitar la marca de apartado? Ya se verificó que no hay ningún apartado activo que lo respalde en la tabla de ventas.', confirmText: 'Quitar' }))) return;
   const result = await supabaseApi(`products?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ is_apartado: false }) });
   if (!result.ok) { toast('Error al quitar la marca de apartado', 'error'); return; }
   p.isApartado = false;

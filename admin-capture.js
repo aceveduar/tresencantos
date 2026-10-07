@@ -18,9 +18,9 @@ function _capIsDirty() {
   return !!(captureImageDataUrl || name || price);
 }
 
-function closeCaptureMode(force) {
+async function closeCaptureMode(force) {
   if (!force && _capIsDirty()) {
-    if (!confirm('Tienes datos sin guardar en captura rápida. ¿Salir de todas formas?')) return;
+    if (!(await teConfirm({ title: 'Salir sin guardar', message: 'Tienes datos sin guardar en captura rápida. ¿Salir de todas formas?', confirmText: 'Salir', cancelText: 'Seguir aquí', danger: true }))) return;
   }
   document.getElementById('cap-overlay').style.display = 'none';
   document.body.style.overflow = '';
@@ -268,7 +268,7 @@ async function saveCaptureProduct() {
   }
   document.addEventListener('DOMContentLoaded', () => {
     swipeDown(document.querySelector('.cap-modal'),
-      () => { if (!_capIsDirty() || confirm('Tienes datos sin guardar. ¿Salir de todas formas?')) closeCaptureMode(true); },
+      () => closeCaptureMode(),
       document.getElementById('cap-overlay'));
   });
 })();
@@ -286,11 +286,11 @@ function closeSimilarModal() {
   document.getElementById('sim-overlay').classList.remove('open');
 }
 
-function simGoEdit() {
+async function simGoEdit() {
   const id = window._simIds?.[_simCurrent];
   if (!id) return;
   closeSimilarModal();
-  closeForm();
+  if (!(await closeForm())) return; // se quedó en el formulario con cambios sin guardar
   openForm(id);
 }
 

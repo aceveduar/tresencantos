@@ -44,7 +44,7 @@ function recvSetMode(mode) {
   _renderRecvList(); // los renglones ya en la lista también deben mostrar/ocultar los campos extra
 }
 
-function closeRecvMode() {
+async function closeRecvMode() {
   const total = _recvSession.reduce((s, x) => s + x.qtyAdded, 0);
   const prods = _recvSession.length;
   if (total > 0) {
@@ -52,11 +52,11 @@ function closeRecvMode() {
     // Este mensaje existe para que quede claro antes de salir, con la opción
     // de cancelar y usar "Deshacer todo" o el deshacer por producto si algo
     // se recibió por error.
-    const ok = confirm(
-      `Recibiste ${total} unidad${total!==1?'es':''} en ${prods} producto${prods!==1?'s':''} en esta sesión — ya quedaron guardados en el inventario.\n\n` +
-      `Aceptar: cerrar esta pantalla (no se deshace nada).\n` +
-      `Cancelar: seguir aquí para revisar o deshacer algo antes de salir.`
-    );
+    const ok = await teConfirm({
+      title: 'Finalizar recepción',
+      message: `Recibiste ${total} unidad${total!==1?'es':''} en ${prods} producto${prods!==1?'s':''} en esta sesión — ya quedaron guardados en el inventario.\n\nSi quieres revisar o deshacer algo, quédate aquí.`,
+      confirmText: 'Cerrar', cancelText: 'Seguir aquí'
+    });
     if (!ok) return;
     const nuevos = _recvSession.filter(x => x.isNewlyCreated).length;
     toast(`✓ ${total} unidad${total!==1?'es':''} recibidas en ${prods} producto${prods!==1?'s':''}`);
@@ -548,7 +548,7 @@ async function recvUndoAll() {
   if (!_recvSession.length) return;
   const total = _recvSession.reduce((s, x) => s + x.qtyAdded, 0);
   const prods = _recvSession.length;
-  const ok = confirm(`¿Deshacer TODO lo recibido en esta sesión?\n\nSe revertirán ${total} unidad${total!==1?'es':''} en ${prods} producto${prods!==1?'s':''}.`);
+  const ok = await teConfirm({ title: 'Deshacer todo', message: `¿Deshacer TODO lo recibido en esta sesión?\n\nSe revertirán ${total} unidad${total!==1?'es':''} en ${prods} producto${prods!==1?'s':''}.`, confirmText: 'Deshacer todo', danger: true });
   if (!ok) return;
   const failed = await _recvUndoAllSilent();
   if (failed) toast(`${failed} producto${failed!==1?'s':''} no se pudo deshacer — revisa la conexión e intenta de nuevo`, 'error');
@@ -564,11 +564,11 @@ async function recvDiscardAndClose() {
   const total = _recvSession.reduce((s, x) => s + x.qtyAdded, 0);
   const prods = _recvSession.length;
   if (total > 0) {
-    const ok = confirm(
+    const ok = await teConfirm({ title: 'Descartar recepción', confirmText: 'Descartar', cancelText: 'Seguir aquí', danger: true, message:
       `Si cierras aquí se PERDERÁ todo lo recibido en esta sesión (${total} unidad${total!==1?'es':''} en ${prods} producto${prods!==1?'s':''}) y NO se reabastecerá.\n\n` +
       `Para guardarlo, cancela y usa "Finalizar recepción" en vez de Descartar.\n\n` +
       `¿Cerrar de todos modos y perder estos cambios?`
-    );
+    });
     if (!ok) return;
     const failed = await _recvUndoAllSilent();
     if (failed) {

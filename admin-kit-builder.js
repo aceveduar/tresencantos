@@ -83,11 +83,11 @@ function closeKitBuilder() {
   document.body.style.overflow = '';
 }
 
-function _closeKitBuilderSafe() {
+async function _closeKitBuilderSafe() {
   const name  = document.getElementById('kb-name')?.value.trim();
   const price = document.getElementById('kb-price')?.value.trim();
   const hasData = name || price || _kbComponents.length > 0 || _kbImageDataUrl;
-  if (hasData && !confirm('¿Descartar el kit? Perderás lo que llevas ingresado.')) return;
+  if (hasData && !(await teConfirm({ title: 'Descartar kit', message: '¿Descartar el kit? Perderás lo que llevas ingresado.', confirmText: 'Descartar', cancelText: 'Seguir aquí', danger: true }))) return;
   closeKitBuilder();
 }
 

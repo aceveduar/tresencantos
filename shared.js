@@ -367,19 +367,29 @@ function _themeToggleRowHtml() {
 (function () {
   let _salesNotifTimer = null;
   let _notifNameMap = null; // { email: displayName } — mismo origen que Actividad/Reportes/Configuración
+  let _salesNotifBusy = false; // evita sondeos traslapados (avisarían dos veces la misma venta)
+
+  // Sin límite de espera, una conexión colgada dejaba el sondeo pendiente
+  // para siempre y los siguientes se encimaban.
+  function _notifFetch(resource, opts = {}, ms = 15000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), ms);
+    return fetch(resource, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+  }
 
   async function _getNotifNameMap(url, key, tok) {
     if (_notifNameMap) return _notifNameMap;
-    _notifNameMap = {};
     try {
-      const r = await fetch(`${url}/rest/v1/config?id=eq.user_names&select=value`,
+      const r = await _notifFetch(`${url}/rest/v1/config?id=eq.user_names&select=value`,
         { headers: { apikey: key, Authorization: `Bearer ${tok}` } });
       if (r.ok) {
         const data = await r.json();
-        if (data?.[0]?.value) _notifNameMap = JSON.parse(data[0].value);
+        // Solo se guarda si la consulta funcionó: antes un fallo dejaba la
+        // campana sin nombres hasta recargar.
+        _notifNameMap = data?.[0]?.value ? JSON.parse(data[0].value) : {};
       }
     } catch {}
-    return _notifNameMap;
+    return _notifNameMap || {};
   }
 
   function _notifEnabled() {
@@ -469,6 +479,12 @@ function _themeToggleRowHtml() {
   }
 
   async function _pollNewSales() {
+    if (_salesNotifBusy) return;
+    _salesNotifBusy = true;
+    try { await _pollNewSalesOnce(); } finally { _salesNotifBusy = false; }
+  }
+
+  async function _pollNewSalesOnce() {
     if (!_notifEnabled()) return;
     const url = typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : '';
     const key = typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : '';
@@ -490,8 +506,8 @@ function _themeToggleRowHtml() {
 
     try {
       const [salesResponse, paymentsResponse] = await Promise.all([
-        fetch(`${url}/rest/v1/sales?select=${saleFields}&cancelled_at=is.null&${salesFilter}`, { headers }),
-        fetch(`${url}/rest/v1/sale_payments?select=id,sale_id,request_id,amount,kind,method,paid_at,collected_by_email,source,sale:sales(${saleFields})&${paymentsFilter}`, { headers })
+        _notifFetch(`${url}/rest/v1/sales?select=${saleFields}&cancelled_at=is.null&${salesFilter}`, { headers }),
+        _notifFetch(`${url}/rest/v1/sale_payments?select=id,sale_id,request_id,amount,kind,method,paid_at,collected_by_email,source,sale:sales(${saleFields})&${paymentsFilter}`, { headers })
       ]);
       if (!salesResponse.ok || !paymentsResponse.ok) return;
       const salesRows = await salesResponse.json();
@@ -952,15 +968,23 @@ async function _loadMyPerms(options = {}) {
     // La autorización efectiva se calcula en PostgreSQL a partir del usuario
     // autenticado. El caché solo sirve para pintar navegación mientras no hay
     // conexión; una pantalla restringida debe usar { requireFresh: true }.
-    const request = async currentToken => fetch(`${url}/rest/v1/rpc/get_my_permissions`, {
-      method: 'POST',
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${currentToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: '{}'
-    });
+    // Con límite de espera: sin él, una conexión colgada dejaba Reportes/
+    // Actividad/Configuración en "Cargando…" para siempre (el catch de abajo
+    // cae al caché, como cualquier otro fallo de red).
+    const request = async currentToken => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
+      return fetch(`${url}/rest/v1/rpc/get_my_permissions`, {
+        method: 'POST',
+        headers: {
+          apikey: key,
+          Authorization: `Bearer ${currentToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: '{}',
+        signal: controller.signal
+      }).finally(() => clearTimeout(timeoutId));
+    };
     let response = await request(token);
     const refreshToken =
       (typeof _refreshPosToken === 'function' && _refreshPosToken) ||
