@@ -16,7 +16,17 @@ function doPost(e) {
         out.setContent(JSON.stringify({ ok: false, error: 'fileId requerido' }));
         return out;
       }
-      DriveApp.getFileById(payload.fileId).setTrashed(true);
+      // Solo archivos de la carpeta de fotos: sin esto, quien tuviera el
+      // secreto podía mandar a la papelera cualquier archivo de la cuenta.
+      const file = DriveApp.getFileById(payload.fileId);
+      const parents = file.getParents();
+      let inFolder = false;
+      while (parents.hasNext()) { if (parents.next().getId() === FOLDER_ID) { inFolder = true; break; } }
+      if (!inFolder) {
+        out.setContent(JSON.stringify({ ok: false, error: 'archivo fuera de la carpeta de fotos' }));
+        return out;
+      }
+      file.setTrashed(true);
       out.setContent(JSON.stringify({ ok: true }));
       return out;
     }

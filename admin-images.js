@@ -3,7 +3,6 @@
 // aquí solo se sabe si hay una configurada (RPC te_ai_configured).
 let _aiConfigured = false;
 let driveEp      = null;
-let driveSecret  = null;
 let _showCreator = false;
 let _showRecv    = false;
 let _showRecvIa  = false;
@@ -125,11 +124,10 @@ function _creatorName(email) {
 
 async function loadAppConfig() {
   const aiP = supabaseApi('rpc/te_ai_configured', { method: 'POST', body: '{}' });
-  const r = await supabaseApi('config?id=in.(drive_ep,drive_secret,captura_rapida,dismissed_dups,show_creator,show_recv,show_recv_ia,user_names,user_permissions)&select=id,value');
+  const r = await supabaseApi('config?id=in.(drive_ep,captura_rapida,dismissed_dups,show_creator,show_recv,show_recv_ia,user_names,user_permissions)&select=id,value');
   if (r.ok && r.data) {
     r.data.forEach(row => {
       if (row.id === 'drive_ep')     driveEp     = row.value || null;
-      if (row.id === 'drive_secret') driveSecret = row.value || null;
       if (row.id === 'dismissed_dups') {
         try { _dismissedDupsCache = new Set(JSON.parse(row.value || '[]')); }
         catch { _dismissedDupsCache = new Set(); }
@@ -186,49 +184,56 @@ function _driveFileId(url) {
   return m ? m[1] : null;
 }
 
+/* Drive vía la Edge Function drive-proxy (2026-10-07): el secreto del Apps
+   Script ya no llega al navegador. Regresa el JSON del Apps Script
+   ({ok, url|files|error}) o {ok:false, error} si falla la red o el permiso. */
+async function _driveCall(payload, timeoutMs = 45000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const call = token => fetch(`${SUPABASE_URL}/functions/v1/drive-proxy`, {
+    method: 'POST',
+    signal: controller.signal,
+    headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload)
+  });
+  try {
+    let res = await call(_getAdminToken());
+    if (res.status === 401 && await refreshSessionIfNeeded()) res = await call(_getAdminToken());
+    const data = await res.json().catch(() => null);
+    return data && typeof data === 'object' ? data : { ok: false, error: 'Respuesta inválida de Drive' };
+  } catch (err) {
+    return { ok: false, error: err?.name === 'AbortError' ? 'Drive tardó demasiado' : 'Sin conexión con Drive', network: true };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 /* Manda el archivo a la papelera de Drive (fire-and-forget, nunca bloquea) */
 async function _deleteDriveFile(fileId) {
-  if (!driveEp || !driveSecret || !fileId) return;
-  try {
-    await fetch(driveEp, {
-      method: 'POST',
-      body: JSON.stringify({ secret: driveSecret, action: 'delete', fileId })
-    });
-  } catch { /* silencioso — el borrado nunca bloquea el flujo principal */ }
+  if (!driveEp || !fileId) return;
+  await _driveCall({ action: 'delete', fileId }, 20000);
 }
 
 async function uploadToDrive(b64) {
-  if (!driveEp || !driveSecret) return null;
-  // Sin timeout, un Apps Script colgado dejaba el formulario esperando para
-  // siempre en vez de caer al respaldo base64.
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 45000);
-  try {
-    const res = await fetch(driveEp, {
-      method: 'POST',
-      signal: controller.signal,
-      body: JSON.stringify({ secret: driveSecret, image: b64, name: `producto_${Date.now()}.jpg` })
-    });
-    const data = await res.json();
-    clearTimeout(timeoutId);
-    if (!data.ok) {
-      const msg = (data.error || '').toLowerCase().includes('autorizado')
-        ? 'Drive: secreto incorrecto — ve a Herramientas → Google Drive, copia el secreto del campo gris y pégalo en tu Apps Script'
-        : `Drive: ${data.error || 'Error al subir imagen'}`;
-      toast(msg, 'error');
-    }
-    return data.ok ? data.url : null;
-  } catch(e) {
-    clearTimeout(timeoutId);
-    toast('Drive no responde — imagen guardada localmente', 'error');
+  if (!driveEp) return null;
+  const data = await _driveCall({ action: 'upload', image: b64, name: `producto_${Date.now()}.jpg` });
+  if (!data.ok) {
+    const err = String(data.error || '');
+    const msg = data.network
+      ? 'Drive no responde — imagen guardada localmente'
+      : err.toLowerCase().includes('autorizado')
+        ? 'Drive: secreto incorrecto — ve a Configuración → Integraciones, copia el secreto del campo gris y pégalo en tu Apps Script'
+        : `Drive: ${err || 'Error al subir imagen'}`;
+    toast(msg, 'error');
     return null;
   }
+  return data.url || null;
 }
 
 async function migrateBase64ToDrive() {
   const toMigrate = products.filter(p => _isRealBase64Image(p.image));
   if (!toMigrate.length) { toast('No hay imágenes base64 que migrar', ''); return; }
-  if (!driveEp || !driveSecret) { toast('Configura Google Drive primero en Herramientas → Google Drive', 'error'); return; }
+  if (!driveEp) { toast('Configura Google Drive primero en Herramientas → Google Drive', 'error'); return; }
   if (!confirm(`¿Migrar ${toMigrate.length} imágenes a Google Drive automáticamente?\n\nTarda ~${toMigrate.length} segundos. No cierres la ventana.`)) return;
 
   // Crear overlay de progreso

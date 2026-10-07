@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación vigente del proyecto. Última reconciliación: 2026-10-02 · `sw.js` `CACHE_VERSION = 'v577'`.
+Documentación vigente del proyecto. Última reconciliación: 2026-10-07 · `sw.js` `CACHE_VERSION = 'v589'`.
 
 > **Fuente de verdad:** para comportamiento ejecutable manda el código; para reglas de negocio y decisiones UX manda este documento.
 > **Historial completo** (bitácora fecha por fecha, razonamiento detrás de cada decisión, bugs resueltos): [assets/HISTORIAL.md](assets/HISTORIAL.md). No se carga solo — consultarlo con grep cuando haga falta el "por qué" de algo. Este archivo solo describe el estado actual.
@@ -43,7 +43,7 @@ Panel de administración + POS + reportes + sitio e-commerce para **Tres Encanto
 - **Auth:** Supabase Auth JWT en `localStorage.te_admin_session` (`{access_token, refresh_token, expires_at}`; válida si `expires_at > now+60s`).
 - **Hosting:** archivos estáticos. Eduardo prueba en GitHub Pages (`https://aceveduar.github.io/tresencantos/`) y producción es Netlify (`tresencantos.netlify.app`, con error/404 desde 2026-10-02: Eduardo decide si lo paga o lo arregla). Los enlaces generados (`SITE_URL`) son relativos al sitio donde se abre, así que funcionan en ambos; solo `og:*`/`canonical` de `index.html` y el fallback local de `app.js` fijan un dominio (hoy GitHub Pages: cambiarlos si Netlify vuelve). Rutas siempre relativas (en Pages el sitio vive en `/tresencantos/`). PWA (`manifest.json` + `sw.js`).
 - **Fuentes:** Inter (UI) + Playfair Display (solo el número protagonista de una tarjeta y títulos) + Dancing Script.
-- **IA:** Groq, modelo `qwen/qwen3.8-27b` (constante `GROQ_VISION_MODEL`, `admin-images.js`). Toda llamada pasa por la Edge Function `groq-proxy` (valida permisos de Inventario con el JWT y pone la clave en el servidor); `groq_key` no es legible desde el navegador (política de `config`), el cliente solo consulta `te_ai_configured()`. Desplegar con `supabase functions deploy groq-proxy --use-api`. Imágenes en Google Drive vía Apps Script proxy.
+- **IA:** Groq, modelo `qwen/qwen3.8-27b` (constante `GROQ_VISION_MODEL`, `admin-images.js`). Toda llamada pasa por la Edge Function `groq-proxy` (valida permisos de Inventario con el JWT y pone la clave en el servidor); `groq_key` no es legible desde el navegador (política de `config`), el cliente solo consulta `te_ai_configured()`. Desplegar con `supabase functions deploy groq-proxy --use-api`. Imágenes en Google Drive vía Apps Script, siempre a través de la Edge Function `drive-proxy` (upload/delete con permisos de Inventario, list con `canManageSettings`/`canImportExport`); `drive_secret` no es legible por SELECT, Configuración lo pide con `te_get_drive_secret()` (`canManageSettings`). Desplegar con `supabase functions deploy drive-proxy --use-api`.
 
 ---
 
@@ -107,6 +107,9 @@ Permisos (`UP_PERMS`/`UP_ROLE_DEFAULTS`, `shared.js`): `canAddProduct canEditPro
 - **anon** (Tienda) solo lee: `products` publicados y solo las columnas que usa `app.js` (sin `cost`/`barcode`/`supplier_code`) + `config` `categories,wa_float,revista_url,revista_cover,sales_counts`. Solo puede ejecutar la RPC `te_log_failed_login`.
 - **`sales` no acepta INSERT/UPDATE/DELETE directo** de nadie: solo las RPC v2. Lectura abierta a autenticados.
 - **`products` no acepta DELETE directo**: solo `te_delete_products` (permiso + registro + apartados activos) y `te_undo_duplicate_product`.
+- **`products`**: `id`, `created_at` y `created_by` son inmutables por API (trigger `te_products_immutable_cols`; antes permitía borrar cualquier producto vía `te_undo_duplicate_product`). `image`/`images` tienen CHECK `products_image_safe` (solo `https://`, `data:image/`, `img/`, sin comillas/`<>`/espacios) porque se pintan en `src="…"` sin escapar.
+- **`customers`**: UPDATE directo solo con `canViewReports` (Reportes → Clientes frecuentes); Caja edita por RPC.
+- **Límites por conteo en `activity_log` (PIN, login fallido): nunca registrar el intento y luego `RAISE`** — la excepción revierte el registro y el contador queda en 0 para siempre (pasó con el PIN hasta 2026-10-06). Registrar y regresar `{ok:false, message}`.
 - **`activity_log`**: un trigger fija `user_email` y `created_at` desde el JWT en inserts directos (no se puede escribir a nombre de otra persona ni con fecha falsa).
 - Auxiliares internas sin EXECUTE para `authenticated`: `te_refund_sale_balance`, `te_rpc_store`, `te_rpc_replay`, `te_snapshot_sale_items`, `te_consume_override`, `te_log_activity` (antes una cajera podía registrar devoluciones falsas llamando la primera directo).
 - **`product_changes`** (caja negra): trigger que registra todo cambio manual de precio/costo/stock/agotado/publicado/archivado/nombre (quién, cuándo, antes→después). Excluye las RPC de venta (`rpc_v2`). Solo lectura superadmin. Se decidió esto en vez de bloquear precio/stock por permiso fino (los operadores tienen `canEditProduct` por defecto y precio/costo cambian desde 3 permisos distintos).
@@ -151,7 +154,7 @@ Supabase no tiene backups en este plan (sin PITR, lista vacía). `scripts/respal
 - **Archivar/Restaurar** desde el Quick View; vista "📦 Archivados". **En bloque, la barra ofrece Archivar** (`bulkArchive`, con Deshacer); el borrado real vive al final de "Más acciones" ("Eliminar definitivamente") con doble confirmación si son más de 10. Antes "seleccionar todo + Eliminar" borraba el catálogo con un solo Aceptar.
 - **Orden:** "Editados hace poco" (`recent`, por `recently_edited`) ≠ "Agregados hace poco" (`created-new`).
 - **Auditoría de imágenes de Drive** (Configuración → Datos): lista archivos de Drive no usados por ningún producto (requiere `action:'list'` en el Apps Script); nunca borra sin confirmación.
-- **Drive:** `drive_ep` + `drive_secret` en `config`. Al cambiar el secreto en el Apps Script hay que crear **nueva versión del despliegue** (Implementar → Administrar implementaciones → editar → Nueva versión) o sigue corriendo el viejo. Instrucciones paso a paso en Configuración → Integraciones. Si Drive falla, se guarda base64 (nunca bloquea).
+- **Drive:** `drive_ep` + `drive_secret` en `config` (el cliente solo ve `drive_ep`; todo pasa por `drive-proxy`). El Apps Script solo borra archivos de su carpeta (`FOLDER_ID`). Al cambiar el secreto en el Apps Script hay que crear **nueva versión del despliegue** (Implementar → Administrar implementaciones → editar → Nueva versión) o sigue corriendo el viejo. Instrucciones paso a paso en Configuración → Integraciones. Si Drive falla, se guarda base64 (nunca bloquea).
 - Drag & drop para ordenar (`position`) no funciona en iOS; alternativa "📌 Al inicio".
 
 ---

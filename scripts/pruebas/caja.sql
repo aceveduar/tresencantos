@@ -199,6 +199,12 @@ BEGIN
     END IF;
   END IF;
   INSERT INTO _ok(prueba) VALUES ('Clientas solo se editan con permiso de Reportes');
+
+  -- Secretos: ni la clave de Groq ni el secreto de Drive se leen por SELECT
+  IF EXISTS (SELECT 1 FROM public.config WHERE id IN ('groq_key', 'drive_secret')) THEN
+    RAISE EXCEPTION 'PRUEBA FALLÓ: una cajera puede leer groq_key o drive_secret';
+  END IF;
+  INSERT INTO _ok(prueba) VALUES ('Secretos de Groq y Drive no se leen desde la app');
 END $$;
 
 -- Sin sesión: no se puede llenar Actividad con "sesión fallida"

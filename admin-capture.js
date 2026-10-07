@@ -193,7 +193,7 @@ async function saveCaptureProduct() {
     const capCatMatch = categories.find(c => c.code === capCatCode);
     // Subir imagen a Drive antes de guardar
     let captureImgFinal = captureImageDataUrl || '';
-    if (captureImgFinal && driveEp && driveSecret) {
+    if (captureImgFinal && driveEp) {
       const driveUrl = await uploadToDrive(captureImgFinal);
       if (driveUrl) captureImgFinal = driveUrl;
     }

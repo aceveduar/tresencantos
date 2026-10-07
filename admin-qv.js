@@ -326,7 +326,7 @@ async function _qvHandleImgUpload(input) {
 
   const b64 = await _fileToBase64Resized(file);
   let finalUrl = b64;
-  if (driveEp && driveSecret) {
+  if (driveEp) {
     const driveResult = await uploadToDrive(b64);
     if (driveResult) finalUrl = driveResult;
   }

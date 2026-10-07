@@ -76,12 +76,12 @@ async function api(path, opts = {}) {
 // Invoca una Supabase Edge Function con el JWT de la sesión activa -- mismo
 // patrón que api() (refresca el token una vez si viene expirado), pero
 // contra /functions/v1/ en vez de /rest/v1/.
-async function edgeFn(name, payload = {}) {
+async function edgeFn(name, payload = {}, ms = 20000) {
   const _call = (tk) => _settingsFetchTimeout(`${SUPABASE_URL}/functions/v1/${name}`, {
     method: 'POST',
     headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
-  }).then(async r => {
+  }, ms).then(async r => {
     const text = await r.text();
     let data; try { data = JSON.parse(text); } catch { data = text || null; }
     return { ok: r.ok, status: r.status, data };
@@ -103,6 +103,10 @@ let _dragCode = null, _dragType = null;
 let _catCounts = {};
 let driveEp    = null;
 let driveSecret= null;
+// drive_secret ya no es legible por SELECT (2026-10-07): se pide con
+// te_get_drive_secret (canManageSettings). false = no se pudo leer, y entonces
+// NO se genera uno nuevo al guardar (rompería el Apps Script ya configurado).
+let _driveSecretLoaded = false;
 let nameMap    = {};
 let userPermsMap = {};  // { "email": { role, canXxx: bool, … } }
 const _myEmail = (() => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)||'{}')?.user?.email||''; } catch { return ''; } })();
@@ -115,18 +119,20 @@ function logActivity(action, summary, meta = null) {
 
 /* ── INIT ── */
 async function init() {
-  const [cfgR, catR, namesR, aiR] = await Promise.all([
-    api('config?id=in.(drive_ep,drive_secret,wa_float,captura_rapida,show_creator,show_restock,show_recv,show_recv_ia,user_permissions)&select=id,value'),
+  const [cfgR, catR, namesR, aiR, secretR] = await Promise.all([
+    api('config?id=in.(drive_ep,wa_float,captura_rapida,show_creator,show_restock,show_recv,show_recv_ia,user_permissions)&select=id,value'),
     api('config?id=eq.categories&select=value'),
     api('config?id=eq.user_names&select=value'),
-    api('rpc/te_ai_configured', { method: 'POST', body: '{}' })
+    api('rpc/te_ai_configured', { method: 'POST', body: '{}' }),
+    api('rpc/te_get_drive_secret', { method: 'POST', body: '{}' })
   ]);
   _aiConfigured = aiR.ok && aiR.data === true;
+  _driveSecretLoaded = secretR.ok;
+  driveSecret = secretR.ok && typeof secretR.data === 'string' && secretR.data ? secretR.data : null;
 
   if (cfgR.ok && cfgR.data) {
     cfgR.data.forEach(row => {
       if (row.id === 'drive_ep')          driveEp      = row.value || null;
-      if (row.id === 'drive_secret')      driveSecret  = row.value || null;
       if (row.id === 'user_permissions')  {
         try {
           userPermsMap = JSON.parse(row.value||'{}');
@@ -219,9 +225,9 @@ async function saveGroqKey() {
 
 /* ── DRIVE ── */
 function loadDriveConfig() {
-  if (!driveEp || !driveSecret) return;
+  if (!driveEp) return;
   document.getElementById('drive-endpoint-input').value = driveEp;
-  document.getElementById('drive-secret-input').value   = driveSecret;
+  document.getElementById('drive-secret-input').value   = driveSecret || '';
   const st = document.getElementById('drive-status-txt');
   st.textContent = '✓ Conectado'; st.classList.add('ok');
   document.getElementById('drive-test-btn').style.display = '';
@@ -231,6 +237,7 @@ function loadDriveConfig() {
 async function saveDriveEndpoint() {
   const ep = document.getElementById('drive-endpoint-input').value.trim();
   if (!ep) { toast('Pega primero la URL del Apps Script', 'err'); return; }
+  if (!_driveSecretLoaded) { toast('No se pudo leer el secreto actual de Drive — recarga la página antes de guardar', 'err'); return; }
   const newSecret = driveSecret || 'te_' + crypto.randomUUID().replace(/-/g, '');
   // Por te_save_config_value (no POST directo a config: ese solo funciona para superadmin).
   const [r1, r2] = await Promise.all([
@@ -361,7 +368,7 @@ async function _runDriveAudit() {
   const foot = document.getElementById('drive-audit-foot');
   foot.style.display = 'none';
   body.innerHTML = _driveAuditSpinner('Leyendo tu catálogo de productos…');
-  if (!driveEp || !driveSecret) {
+  if (!driveEp) {
     body.innerHTML = '<p class="field-hint">Conecta Google Drive primero (arriba, en Integraciones).</p>';
     return;
   }
@@ -387,23 +394,16 @@ async function _runDriveAudit() {
   // ni siquiera Apps Script logra terminar de listarla, este timeout no lo
   // resuelve, solo evita que la pantalla se quede colgada sin avisar.
   body.innerHTML = _driveAuditSpinner(`Comparando contra ${used.size} imagen(es) en uso… listando Drive, puede tardar si hay muchos archivos.`);
-  let listRes;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 100000);
-  try {
-    const r = await fetch(driveEp, { method: 'POST', body: JSON.stringify({ secret: driveSecret, action: 'list' }), signal: controller.signal });
-    listRes = await r.json();
-  } catch (err) {
-    listRes = null;
-    if (err.name === 'AbortError') {
-      body.innerHTML = '<p class="field-hint">Drive tardó demasiado en responder (más de 100s) — puede que la carpeta tenga muchos archivos, o que el Apps Script no haya terminado de desplegarse. Intenta de nuevo en un momento.</p>';
-      return;
-    }
-  } finally {
-    clearTimeout(timeoutId);
+  // Vía drive-proxy (el secreto ya no llega al navegador); 115s porque la
+  // función espera hasta 110s al Apps Script.
+  const r = await edgeFn('drive-proxy', { action: 'list' }, 115000);
+  const listRes = r.data && typeof r.data === 'object' ? r.data : null;
+  if (r.status === 0 || r.status === 504) {
+    body.innerHTML = '<p class="field-hint">Drive tardó demasiado en responder — puede que la carpeta tenga muchos archivos, o que el Apps Script no haya terminado de desplegarse. Intenta de nuevo en un momento.</p>';
+    return;
   }
   if (!listRes?.ok) {
-    body.innerHTML = '<p class="field-hint">No se pudo listar Drive — confirma que ya agregaste y desplegaste el action "list" en tu Apps Script.</p>';
+    body.innerHTML = `<p class="field-hint">No se pudo listar Drive${listRes?.error ? ' (' + escH(String(listRes.error)) + ')' : ''} — confirma que ya agregaste y desplegaste el action "list" en tu Apps Script.</p>`;
     return;
   }
 
@@ -465,11 +465,8 @@ async function _driveAuditDeleteSelected() {
   btn.disabled = true; btn.textContent = 'Eliminando…';
   const deletedIds = new Set();
   for (const f of toDelete) {
-    try {
-      const r = await fetch(driveEp, { method: 'POST', body: JSON.stringify({ secret: driveSecret, action: 'delete', fileId: f.id }) });
-      const d = await r.json().catch(() => null);
-      if (d?.ok) deletedIds.add(f.id);
-    } catch {}
+    const r = await edgeFn('drive-proxy', { action: 'delete', fileId: f.id });
+    if (r.data?.ok) deletedIds.add(f.id);
   }
   _driveAuditFiles = _driveAuditFiles.filter(f => !deletedIds.has(f.id));
   toast(`${deletedIds.size} de ${toDelete.length} archivo(s) eliminados ✓`, deletedIds.size === toDelete.length ? 'ok' : 'err');
