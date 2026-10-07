@@ -189,6 +189,29 @@ BEGIN
     RAISE EXCEPTION 'PRUEBA FALLÓ: el PIN no se bloquea tras 5 fallos (%)', j;
   END IF;
   INSERT INTO _ok(prueba) VALUES ('PIN de gerente se bloquea tras 5 fallos');
+
+  -- Clientas: solo quien ve Reportes las edita directo
+  IF NOT public.te_has_permission('canViewReports') THEN
+    UPDATE public.customers SET notes = 'prueba' WHERE id = (SELECT min(id) FROM public.customers);
+    GET DIAGNOSTICS i = ROW_COUNT;
+    IF i > 0 THEN
+      RAISE EXCEPTION 'PRUEBA FALLÓ: una cajera sin Reportes pudo editar una clienta';
+    END IF;
+  END IF;
+  INSERT INTO _ok(prueba) VALUES ('Clientas solo se editan con permiso de Reportes');
+END $$;
+
+-- Sin sesión: no se puede llenar Actividad con "sesión fallida"
+SELECT set_config('request.jwt.claims', '{"role":"anon"}', true);
+SELECT set_config('role', 'anon', true);
+SELECT public.te_log_failed_login('spam' || g || '@prueba.test') FROM generate_series(1, 25) g;
+SELECT set_config('role', 'postgres', true);
+DO $$ BEGIN
+  IF (SELECT count(*) FROM public.activity_log
+       WHERE action = 'sesion_fallida' AND meta ->> 'email' LIKE 'spam%@prueba.test') > 20 THEN
+    RAISE EXCEPTION 'PRUEBA FALLÓ: sin sesión se pudo llenar Actividad sin límite';
+  END IF;
+  INSERT INTO _ok(prueba) VALUES ('Sin sesión no se puede llenar Actividad');
 END $$;
 
 INSERT INTO _ok(prueba) VALUES ('TODAS LAS PRUEBAS PASARON');

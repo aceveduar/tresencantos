@@ -231,13 +231,14 @@ function loadDriveConfig() {
 async function saveDriveEndpoint() {
   const ep = document.getElementById('drive-endpoint-input').value.trim();
   if (!ep) { toast('Pega primero la URL del Apps Script', 'err'); return; }
-  if (!driveSecret) driveSecret = 'te_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-  driveEp = ep;
+  const newSecret = driveSecret || 'te_' + crypto.randomUUID().replace(/-/g, '');
+  // Por te_save_config_value (no POST directo a config: ese solo funciona para superadmin).
   const [r1, r2] = await Promise.all([
-    api('config', { method:'POST', headers:{ Prefer:'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id:'drive_ep',     value: ep }) }),
-    api('config', { method:'POST', headers:{ Prefer:'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id:'drive_secret', value: driveSecret }) })
+    _saveConfigValue('drive_ep', ep),
+    _saveConfigValue('drive_secret', newSecret)
   ]);
-  if (!r1.ok || !r2.ok) { toast('Error al guardar en Supabase — intenta de nuevo', 'err'); return; }
+  if (!r1.ok || !r2.ok) { toast((r1.ok ? r2 : r1).data?.message || 'Error al guardar en Supabase — intenta de nuevo', 'err'); return; }
+  driveEp = ep; driveSecret = newSecret;
   document.getElementById('drive-secret-input').value = driveSecret;
   const st = document.getElementById('drive-status-txt');
   st.textContent = '✓ Conectado'; st.classList.add('ok');
@@ -257,10 +258,13 @@ function copyDriveSecret() {
 
 async function clearDrive() {
   if (!confirm('¿Desconectar Google Drive? Las imágenes futuras se guardarán como base64.')) return;
-  await Promise.all([
-    api('config?id=eq.drive_ep',     { method:'DELETE' }),
-    api('config?id=eq.drive_secret', { method:'DELETE' })
+  // Vacío en vez de DELETE: quien lee trata '' como "no configurado", y así pasa
+  // por te_save_config_value (DELETE directo solo funciona para superadmin).
+  const [r1, r2] = await Promise.all([
+    _saveConfigValue('drive_ep', ''),
+    _saveConfigValue('drive_secret', '')
   ]);
+  if (!r1.ok || !r2.ok) { toast((r1.ok ? r2 : r1).data?.message || 'No se pudo desconectar — intenta de nuevo', 'err'); return; }
   driveEp = null; driveSecret = null;
   document.getElementById('drive-endpoint-input').value = '';
   document.getElementById('drive-secret-input').value   = '';
