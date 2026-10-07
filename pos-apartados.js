@@ -645,7 +645,7 @@ function _renderApartadoCanceladosCards(data) {
     const cancelLabel = _posFormatTimestamp(cardDate, {day:'numeric',month:'long',year:'numeric'});
     const nItems    = Array.isArray(s.items) ? s.items.length : 0;
     const custParts = (s.customer || '').split(' · 📱 ');
-    const nombre    = custParts[0] || 'Sin nombre';
+    const nombre    = _displayName(custParts[0] || 'Sin nombre');
     const telNum    = custParts[1] || '';
 
     const abonos = Array.isArray(s.payment_history) ? s.payment_history
@@ -749,14 +749,14 @@ function _renderApartadoCards(data, isLiquidado) {
     const t         = _posFormatTimestamp(cardDate, {day:'numeric',month:'short'});
     const nItems    = Array.isArray(s.items) ? s.items.length : 0;
     const custParts = (s.customer || '').split(' · 📱 ');
-    const nombre    = custParts[0] || 'Sin nombre';
+    const nombre    = _displayName(custParts[0] || 'Sin nombre');
     const telNum    = custParts[1] || '';
 
     // Fecha de vencimiento — sin sentido para un apartado ya liquidado
     let dueColor = '', dueText = '', dueHTML = '';
     if (s.due_date && !isLiquidado) {
       const diff = _posDayKeyDiff(s.due_date);
-      dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)}d` : diff === 0 ? 'Vence hoy' : `Vence ${_posFormatDayKey(s.due_date,{day:'numeric',month:'short'})}`;
+      dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)} día${Math.abs(diff)!==1?'s':''}` : diff === 0 ? 'Vence hoy' : `Vence ${_posFormatDayKey(s.due_date,{day:'numeric',month:'short'})}`;
       // Color solo cuando importa: rojo vencido, ámbar ≤7 días; lo demás gris.
       dueHTML  = `<span class="apt-h-due${diff < 0 ? ' is-overdue' : diff <= 7 ? ' is-soon' : ''}">${_uiIcoCalendar()} ${dueText}</span>`;
     }
@@ -824,7 +824,7 @@ function _renderApartadoCards(data, isLiquidado) {
       <span class="apt-h-meta">${isLiquidado ? 'Liquidado el ' : ''}${t} · ${nItems} prod.</span>
       ${dueHTML}
     </div>
-    <div class="apt-mini-bar" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="apt-mini-fill" style="width:${pct}%"></div></div>
+    ${isLiquidado ? '' : `<div class="apt-mini-bar" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="apt-mini-fill" style="width:${pct}%"></div></div>`}
   </div>
   <div class="apt-body">
     ${isOverdue ? `<div class="apt-overdue-badge">${_uiIcoWarn()} Vencido</div>` : ''}
@@ -991,7 +991,7 @@ function _renderCobranza() {
     return `
       <div class="cobranza-row${done ? ' done' : ''}">
         <div class="cobranza-info">
-          <div class="cobranza-name">${_esc(nombre || 'Sin nombre')}</div>
+          <div class="cobranza-name">${_esc(_displayName(nombre || 'Sin nombre'))}</div>
           <div class="cobranza-meta">Venció hace ${dias} día${dias !== 1 ? 's' : ''} · debe <strong>${_fmtMx(pendiente)}</strong>${(tel || '').replace(/\D/g, '') ? '' : ' · <span class="cobranza-warn">sin teléfono</span>'}</div>
           <div class="cobranza-meta">${r.sentNow ? 'Enviado ahora' : fmtRem(r.rem)}</div>
         </div>
@@ -1162,7 +1162,8 @@ function validateAbonarAmount() {
   const over = _abonarCtx && val > _abonarCtx.pendiente + _APT_MONEY_EPSILON;
   const valid = val > 0 && _abonarCtx && !over;
   btn.disabled = !valid;
-  document.getElementById('abonar-amount').style.borderColor = val > 0 && !valid ? 'var(--red)' : '';
+  const _amtEl = document.getElementById('abonar-amount');
+  (_amtEl?.closest('.money-field') || _amtEl).style.borderColor = val > 0 && !valid ? 'var(--red)' : '';
   if (hint) hint.style.color = over ? 'var(--red)' : 'var(--gold-dark)';
 
   const preview = document.getElementById('abonar-restante-preview');

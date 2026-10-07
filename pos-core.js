@@ -489,6 +489,10 @@ function _titleCaseName(name) {
   }).join(' ');
 }
 
+// Para mostrar nombres capturados antes de _titleCaseName ("rosa" → "Rosa").
+// Solo cambia palabras todas en minúscula; no toca la base de datos.
+function _displayName(name) { return _titleCaseName(name); }
+
 function _posFormatDayKey(dayKey, options = {}) {
   const date = new Date(`${dayKey}T12:00:00Z`);
   return new Intl.DateTimeFormat('es-MX', {

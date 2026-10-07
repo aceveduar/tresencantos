@@ -315,8 +315,11 @@
       Monto del abono
       <button type="button" id="abonar-max-hint" onclick="_fillAbonarMax()" style="font-size:.75rem;font-weight:600;color:var(--gold-dark);background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:2px;font-family:inherit;padding:4px"></button>
     </label>
-    <input type="number" id="abonar-amount" min="1" step="1" placeholder="0" inputmode="numeric"
-           oninput="validateAbonarAmount()">
+    <div class="money-field money-field-sm">
+      <span class="money-field-sign">$</span>
+      <input type="number" id="abonar-amount" min="1" step="1" placeholder="0" inputmode="decimal"
+             oninput="validateAbonarAmount()">
+    </div>
     <div id="abonar-restante-preview" style="font-size:.78rem;color:var(--muted);margin-top:4px;min-height:1.1em"></div>
     <label>Método de pago</label>
     <div class="abonar-pay-btns">
@@ -559,25 +562,23 @@
          frecuentes) se edita aparte, y el nombre puede ser a propósito una
          descripción ("Hija de Marlen calle torres"). -->
     <div class="cash-field edit-apt-field-wide">
-      <label><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Nombre del apartado</label>
-      <input type="text" id="edit-apt-name" maxlength="80" autocomplete="off" placeholder="Nombre de quien lo aparta"
-        style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%;background:var(--surface);box-sizing:border-box">
+      <label>Nombre del apartado</label>
+      <input type="text" id="edit-apt-name" maxlength="80" autocomplete="off" placeholder="Nombre de quien lo aparta" class="apt-input">
     </div>
     <!-- Teléfono -- antes solo se podía capturar al crear el apartado; si se
          omitía no había forma de agregarlo después salvo SQL a mano, y sin
          teléfono "Reenviar comprobante" no tiene a quién mandarle el WhatsApp. -->
     <div class="cash-field">
-      <label><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Teléfono (para WhatsApp)</label>
-      <input type="tel" id="edit-apt-phone" placeholder="10 dígitos" inputmode="numeric" maxlength="10"
-        style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%;background:var(--surface);box-sizing:border-box"
+      <label>Teléfono (para WhatsApp)</label>
+      <input type="tel" id="edit-apt-phone" placeholder="10 dígitos" inputmode="numeric" maxlength="10" class="apt-input"
         oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)">
     </div>
     <!-- Fecha límite -- visible y editable aquí (antes no aparecía en absoluto
          al editar): se conserva tal cual si no se toca, nunca se recalcula sola
          solo porque cambiaron los productos. -->
     <div class="cash-field">
-      <label><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Fecha límite de pago</label>
-      <input type="date" id="edit-apt-due-date" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;width:100%;background:var(--surface);box-sizing:border-box">
+      <label>Fecha límite de pago</label>
+      <input type="date" id="edit-apt-due-date" class="apt-input">
     </div>
     </div><!-- /.edit-apt-fields -->
     <div id="edit-apt-pagado-row" style="display:none;background:var(--gold-light);border:1px solid #EAD9B8;border-radius:9px;padding:10px 12px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">

@@ -576,7 +576,7 @@ function _renderAptPageCanceladosCards(data) {
     const t = _posFormatTimestamp(s.cancelled_at || s.updated_at || s.created_at, { day:'numeric', month:'short' });
     const nItems = Array.isArray(s.items) ? s.items.length : 0;
     const custParts = (s.customer || '').split(' · 📱 ');
-    const nombre = custParts[0] || 'Sin nombre';
+    const nombre = _displayName(custParts[0] || 'Sin nombre');
     const telNum = custParts[1] || '';
     return `<button type="button" class="apc-card apc-card-cancelado" onclick="openAptDetail(${s.id})" aria-label="Ver apartado cancelado de ${_esc(nombre)}, total $${total.toLocaleString('es-MX')}">
   <span class="apc-top">
@@ -611,7 +611,7 @@ function _renderAptPageCards(data, isLiquidado) {
     const t         = _posFormatTimestamp(cardDate, {day:'numeric',month:'short'});
     const nItems    = Array.isArray(s.items) ? s.items.length : 0;
     const custParts = (s.customer || '').split(' · 📱 ');
-    const nombre    = custParts[0] || 'Sin nombre';
+    const nombre    = _displayName(custParts[0] || 'Sin nombre');
     const telNum    = custParts[1] || '';
 
     if (isLiquidado) {
@@ -629,7 +629,7 @@ function _renderAptPageCards(data, isLiquidado) {
     if (s.due_date) {
       const diff = _posDayKeyDiff(s.due_date);
       isOverdue = diff < 0;
-      const dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)}d` : diff === 0 ? 'Vence hoy' : `Vence ${_posFormatDayKey(s.due_date,{day:'numeric',month:'short'})}`;
+      const dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)} día${Math.abs(diff)!==1?'s':''}` : diff === 0 ? 'Vence hoy' : `Vence ${_posFormatDayKey(s.due_date,{day:'numeric',month:'short'})}`;
       // Color solo cuando importa: rojo vencido, ámbar ≤7 días; lo demás gris.
       dueHTML = `<span class="apc-due${diff < 0 ? ' is-overdue' : diff <= 7 ? ' is-soon' : ''}">${_uiIcoCalendar()} ${dueText}</span>`;
     }
@@ -656,7 +656,7 @@ function openAptDetail(id) {
   const t         = _posFormatTimestamp(s.created_at, {day:'numeric',month:'short', year:'numeric'});
   const nItems    = Array.isArray(s.items) ? s.items.length : 0;
   const custParts = (s.customer || '').split(' · 📱 ');
-  const nombre    = custParts[0] || 'Sin nombre';
+  const nombre    = _displayName(custParts[0] || 'Sin nombre');
   const telNum    = custParts[1] || '';
 
   document.getElementById('adm-customer').innerHTML = _uiIcoUser() + ' ' + _esc(nombre);

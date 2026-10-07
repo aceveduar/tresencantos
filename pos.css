@@ -1056,7 +1056,8 @@ button,a{touch-action:manipulation}
 .cobranza-meta{font-size:.78rem;color:var(--muted);margin-top:2px;line-height:1.35}
 .cobranza-meta strong{color:var(--charcoal)}
 .cobranza-warn{color:var(--red);font-weight:600}
-.cobranza-send{flex-shrink:0;min-width:86px;min-height:44px;padding:0 14px;border-radius:50px;border:none;background:#25D366;color:#fff;font-size:.84rem;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation}
+.cobranza-send{flex-shrink:0;min-width:86px;min-height:44px;padding:0 14px;border-radius:50px;border:1.5px solid #25D366;background:var(--surface);color:#128C4A;font-size:.84rem;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;transition:background .15s,color .15s}
+.cobranza-send:hover{background:#25D366;color:#fff}
 .cobranza-row.done .cobranza-send{background:var(--surface);color:var(--charcoal);border:1.5px solid var(--border)}
 /* ══ CORTE DE CAJA ══════════════════════════════════════════════════
    Dos pasos en "Mi turno": contar (sin montos cobrados a la vista) y
@@ -1193,4 +1194,10 @@ button,a{touch-action:manipulation}
 #more-options-wrap .note-toggle-btn,#more-options-wrap .collected-by-btn{min-height:40px;font-size:.84rem;margin:0 0 6px}
 #more-options-wrap .note-cliente-row{margin-bottom:0}
 #more-options-wrap .note-cliente-row .note-toggle-btn{margin-bottom:6px}
+/* Paneles laterales (Apartados, Historial) a pantalla completa en celular:
+   antes dejaban una franja de Caja asomándose a la izquierda. */
+@media(max-width:640px){
+  .history-offcanvas{width:100%;max-width:none}
+}
+.edit-apt-fields .apt-input{margin-bottom:0}
 
