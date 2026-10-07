@@ -456,7 +456,7 @@ function _renderDriveAudit() {
           <input type="checkbox" ${f.selected ? 'checked' : ''} onchange="_toggleDriveAuditItem(${i}, this.checked)">
           <img src="https://drive.google.com/thumbnail?id=${f.id}&sz=w80" style="width:40px;height:40px;object-fit:cover;border-radius:6px;background:var(--surface-soft);flex-shrink:0" onerror="this.style.visibility='hidden'">
           <div style="flex:1;min-width:0">
-            <div style="font-size:.8rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(f.name)}</div>
+            <div style="font-size:.8rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escH(f.name)}</div>
             <div style="font-size:.68rem;color:var(--muted)">${new Date(f.createdDate).toLocaleDateString('es-MX')} · ${((f.size||0)/1024).toFixed(0)} KB</div>
           </div>
         </label>
@@ -480,14 +480,34 @@ function _toggleDriveAuditAll(checked) {
 async function _driveAuditDeleteSelected() {
   const toDelete = _driveAuditFiles.filter(f => f.selected);
   if (!toDelete.length) return;
-  if (!confirm(`¿Eliminar ${toDelete.length} archivo(s) de Drive? Van a la papelera, no se borran para siempre de inmediato.`)) return;
+  const ok = await teConfirm({
+    title: 'Eliminar de Drive',
+    message: `¿Eliminar ${toDelete.length} archivo(s) de Drive? Van a la papelera, no se borran para siempre de inmediato.`,
+    confirmText: 'Eliminar', danger: true
+  });
+  if (!ok) return;
   const btn = document.getElementById('drive-audit-delete-btn');
-  btn.disabled = true; btn.textContent = 'Eliminando…';
+  btn.disabled = true;
+  // 6 a la vez (de una en una, 500 fotos tardaban ~35 min) y hasta 2
+  // reintentos: Google a veces responde 404 al azar; mandar a la papelera un
+  // archivo que ya está ahí no hace daño.
   const deletedIds = new Set();
-  for (const f of toDelete) {
-    const r = await edgeFn('drive-proxy', { action: 'delete', fileId: f.id });
-    if (r.data?.ok) deletedIds.add(f.id);
-  }
+  let done = 0;
+  const queue = [...toDelete];
+  const worker = async () => {
+    while (queue.length) {
+      const f = queue.shift();
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const r = await edgeFn('drive-proxy', { action: 'delete', fileId: f.id });
+        if (r.data?.ok) { deletedIds.add(f.id); break; }
+        if ([401, 403, 412].includes(r.status)) break;
+      }
+      done++;
+      btn.textContent = `Eliminando… ${done} de ${toDelete.length}`;
+    }
+  };
+  btn.textContent = `Eliminando… 0 de ${toDelete.length}`;
+  await Promise.all(Array.from({ length: Math.min(6, toDelete.length) }, worker));
   _driveAuditFiles = _driveAuditFiles.filter(f => !deletedIds.has(f.id));
   toast(`${deletedIds.size} de ${toDelete.length} archivo(s) eliminados ✓`, deletedIds.size === toDelete.length ? 'ok' : 'err');
   if (deletedIds.size) logActivity('configuracion_editada', `Eliminó ${deletedIds.size} imagen(es) huérfana(s) de Drive`, { count: deletedIds.size });
