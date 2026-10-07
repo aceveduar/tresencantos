@@ -1810,3 +1810,17 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 /* "Este producto es un kit": una regla general de inputs la dejaba en 0px (invisible) */
 #f-is-kit{-webkit-appearance:checkbox;appearance:auto;width:20px;height:20px;min-width:20px;margin:0;flex-shrink:0;accent-color:var(--gold)}
 label:has(> #f-is-kit){min-height:44px}
+
+/* ══ PULIDO 2026-10-07 ═══════════════════════════════════════════════════ */
+/* Hojas inferiores con el mismo encabezado (asa + título + ✕) que Ordenar y
+   Categoría. Como popover en escritorio no se muestran. */
+#add-menu-sheet .sheet-only,#pend-menu-sheet .sheet-only{margin:-8px -8px 6px}
+#add-menu-overlay.as-popover .sheet-only,#pend-menu-overlay.as-popover .sheet-only{display:none}
+#pend-menu-overlay:not(.as-popover) .popover-only{display:none}
+/* Estrella de destacado: esquina de la tarjeta (lista en celular), sin
+   encimarse a la foto. Gris suave; dorada si está destacado. */
+.mpc-top{position:relative}
+.mpc-top > .mpc-star{position:absolute;top:6px;right:6px;bottom:auto;width:32px;height:32px;padding:0;display:flex;align-items:center;justify-content:center;border:none;border-radius:50%;background:none;box-shadow:none;filter:none;color:var(--muted-light);cursor:pointer;touch-action:manipulation}
+.mpc-top > .mpc-star::after{content:'';position:absolute;inset:-6px}
+.mpc-top > .mpc-star.feat-active{background:none;box-shadow:none;color:var(--gold)}
+.mpc-top .mpc-name{padding-right:28px}

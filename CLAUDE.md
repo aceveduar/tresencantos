@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación vigente del proyecto. Última reconciliación: 2026-10-07 · `sw.js` `CACHE_VERSION = 'v599'`.
+Documentación vigente del proyecto. Última reconciliación: 2026-10-07 · `sw.js` `CACHE_VERSION = 'v600'`.
 
 > **Fuente de verdad:** para comportamiento ejecutable manda el código; para reglas de negocio y decisiones UX manda este documento.
 > **Historial completo** (bitácora fecha por fecha, razonamiento detrás de cada decisión, bugs resueltos): [assets/HISTORIAL.md](assets/HISTORIAL.md). No se carga solo — consultarlo con grep cuando haga falta el "por qué" de algo. Este archivo solo describe el estado actual.
@@ -145,7 +145,7 @@ Supabase no tiene backups en este plan (sin PITR, lista vacía). `scripts/respal
 - **Inline edits:** stock y precio con popover (`.field-pop`, se reposiciona con scroll, no se cancela), categoría (select), visibilidad Web/Oculto (solo con `canPublishProduct`; si no, badge de solo lectura), estrella destacado.
 - **Formulario:** a la vista solo Fotos · Nombre · Categoría · Precio · Costo (margen debajo) · Stock · Código · Publicar; lo demás (descripción, oferta, caducidad, cód. proveedor, kit, insignia, destacado) en "Más detalles" plegado, que se abre solo si el producto ya tiene alguno de esos datos o la IA llena la descripción (`_syncFormMore`). Fotos unificadas (`_allImagesEdit`, `[0]`=principal, máx 6; galería múltiple, cámara, URL, drag&drop, Ctrl+V). Las fotos se suben a Drive al elegirlas; `_sessionUploadedUrls` borra de Drive las de una sesión cancelada; al guardar se borran las URLs que salieron del set. "✨ Completar con IA" (Groq). "+ Otro" guarda y deja el formulario listo para el siguiente, recordando la última categoría (`_lastNewProductCategory`, compartida con Kit Builder). Protección de cambios sin guardar (`_formIsDirty`). Código de barras duplicado bloquea; código de proveedor duplicado solo avisa.
 - **Agregar:** un solo punto de entrada (FAB en celular, "+ Agregar ▾" en escritorio) con Producto · Captura · Kit · Recibir · Recepción con IA.
-- **Tarjetas:** número de piezas en neutro (rojo solo Agotado); categoría con su rama solo si el nombre se repite (`_catDisplayLabel`: "Natura · Perfumería").
+- **Tarjetas:** piezas con unidad ("4 pzas", "1 pza"), en neutro (rojo solo Agotado); en la lista de celular la estrella de destacado va en la esquina de la tarjeta, no encima de la foto. Hojas inferiores siempre con asa + título + ✕; categoría con su rama solo si el nombre se repite (`_catDisplayLabel`: "Natura · Perfumería").
 - **Quick View:** acciones = Editar (ancho) · Compartir · Ocultar/Publicar · "Más" (Duplicar, Al inicio, A un kit, Revisar, Archivar, Eliminar al final); "Creado por <nombre>"; swipe ←/→ (navegar), ↓ (cerrar), ↑ (editar), doble tap = zoom; muestra ID, código de barras, código de proveedor, creador (si `show_creator` y superadmin) y "Ver historial" del producto. Layout 2 columnas en desktop.
 - **Kit Builder** (FAB 🎁): mínimo 2 componentes; sugiere categoría por nombre.
 - **Recibir mercancía** (`admin-recv.js`): modo "Con factura" (default; edita costo/precio/cód. proveedor por renglón) o "Rápido" (solo suma stock). "No encontrado" ofrece buscar por nombre antes de crear; crear un producto regresa a la sesión (`_returnToRecv`). Deshacer restaura stock por diferencia y archiva productos creados en la sesión.

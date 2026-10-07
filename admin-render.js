@@ -105,7 +105,7 @@ function renderStats() {
     const clearItem = active
       ? `<button type="button" class="bmo-item" onclick="closePendMenu();toggleStatFilter('todos')"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span class="pend-item-lbl">Quitar filtro</span></button>`
       : '';
-    sheet.innerHTML = `<div class="pend-menu-title">Pendientes por corregir</div>` + clearItem +
+    sheet.innerHTML = `<div class="sheet-only"><div class="cat-sheet-pill"></div><div class="cat-sheet-header"><span class="cat-sheet-title">Pendientes por corregir</span><button type="button" class="cat-sheet-close" onclick="closePendMenu()" aria-label="Cerrar">✕</button></div></div><div class="pend-menu-title popover-only">Pendientes por corregir</div>` + clearItem +
       items.map(([k, label, ico]) =>
         `<button type="button" class="bmo-item${active === k ? ' is-active' : ''}" role="menuitemradio" aria-checked="${active === k}" onclick="closePendMenu();toggleStatFilter('${active === k ? 'todos' : k}')">${ico()}<span class="pend-item-lbl">${label}</span><span class="pend-item-n">${counts[k]}</span></button>`
       ).join('');
@@ -417,7 +417,7 @@ function stockChip(p, editable = false) {
     ? `${AR_ICO_WARN(11)}${p.stock} · Agotado`
     : isApt
       ? `${AR_ICO_BOOKMARK(11)}${p.stock} · Apartado`
-      : p.stock;
+      : `${p.stock} pza${p.stock !== 1 ? 's' : ''}`; // con unidad: el número solo no decía qué era
   const cls = p.outOfStock ? 'sold' : isApt ? 'apt' : p.stock === 1 ? 'one' : 'ok';
   const title = isApt ? _aptTitle(p.id) : 'Clic para editar stock';
   if (editable) {
@@ -792,13 +792,14 @@ function mobileCard(p) {
                ${oos ? 'style="opacity:.5;filter:grayscale(.4)"' : ''}>
           <input type="checkbox" class="row-check mpc-check-over"
                  ${sel ? 'checked' : ''} onchange="toggleRowSelect(${p.id}, this.checked)">
-          <button class="mpc-star${p.featured ? ' feat-active' : ''}"
-                  onclick="event.stopPropagation();toggleFeatured(${p.id})"
-                  ontouchstart="event.stopPropagation()"
-                  title="${p.featured ? 'Quitar destacado' : 'Destacar'}">
-            ${_arStar(p.featured, 14)}
-          </button>
         </div>
+        <!-- Estrella en la esquina de la tarjeta, no encima de la foto (2026-10-07) -->
+        <button class="mpc-star${p.featured ? ' feat-active' : ''}"
+                onclick="event.stopPropagation();toggleFeatured(${p.id})"
+                ontouchstart="event.stopPropagation()"
+                title="${p.featured ? 'Quitar destacado' : 'Destacar'}" aria-label="${p.featured ? 'Quitar destacado' : 'Destacar'}">
+          ${_arStar(p.featured, 16)}
+        </button>
         <div class="mpc-info">
           <div class="mpc-name">${_esc(p.name)}${flagDataMC ? ' <span class="flag-dot-row" title="'+_esc(flagDataMC.note||'Pendiente de revisión')+'">'+AR_ICO_FLAG(13)+'</span>' : ''}</div>
           ${flagDataMC?.note ? `<div class="flag-note-line">${AR_ICO_FLAG(13)}"${_esc(flagDataMC.note)}"</div>` : ''}
