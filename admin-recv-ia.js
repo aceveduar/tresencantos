@@ -248,9 +248,17 @@ function _riaLoadUndoSnapshot() {
   } catch { return null; }
 }
 
+// "hace 26 días", no "hace 627 h": arriba de 2 días se cuenta en días.
+function _riaAgeFromMin(ageMin) {
+  if (ageMin < 1) return 'hace un momento';
+  if (ageMin < 60) return `hace ${ageMin} min`;
+  const h = Math.round(ageMin / 60);
+  if (h < 48) return `hace ${h} h`;
+  const d = Math.round(h / 24);
+  return `hace ${d} días`;
+}
 function _riaAgeLabel(ts) {
-  const ageMin = Math.round((Date.now() - ts) / 60000);
-  return ageMin < 1 ? 'hace un momento' : ageMin < 60 ? `hace ${ageMin} min` : `hace ${Math.round(ageMin / 60)} h`;
+  return _riaAgeFromMin(Math.round((Date.now() - ts) / 60000));
 }
 
 // Banner en la pantalla inicial (elegir PDF/foto) — para cuando ya se cerró
@@ -357,7 +365,7 @@ async function _riaTryRestoreDraft() {
   if (!draft || !draft.items || !draft.items.length) { _riaClearDraft(); return false; }
 
   const ageMin = Math.round((Date.now() - (draft.savedAt || 0)) / 60000);
-  const ageLabel = ageMin < 1 ? 'hace un momento' : ageMin < 60 ? `hace ${ageMin} min` : `hace ${Math.round(ageMin / 60)} h`;
+  const ageLabel = _riaAgeFromMin(ageMin);
   const wantsRestore = await teConfirm({ title: 'Pedido sin terminar', message: `Tienes un pedido sin terminar (${draft.items.length} productos, guardado ${ageLabel}).\n\n¿Continuar donde lo dejaste? Si empiezas de nuevo, se descarta ese avance.`, confirmText: 'Continuar', cancelText: 'Empezar de nuevo' });
   if (!wantsRestore) { _riaClearDraft(); return false; }
 

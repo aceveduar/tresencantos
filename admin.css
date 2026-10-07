@@ -1735,7 +1735,7 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
 .cap-field input:focus,.cap-field select:focus{border-color:var(--gold)}
 .cap-field input.ai-filled,.cap-field select.ai-filled{animation:aiPulse .6s ease}
 .cap-field input.cap-err{border-color:var(--red)!important;animation:capShake .3s ease}
-.cap-require-hint{font-size:.75rem;color:var(--red);margin-top:6px;text-align:center;min-height:1em}
+.cap-require-hint{font-size:.8rem;color:var(--muted);margin-top:6px;text-align:center;min-height:1em}
 @keyframes capShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .cap-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .cap-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
