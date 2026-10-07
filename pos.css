@@ -1188,4 +1188,9 @@ button,a{touch-action:manipulation}
 .abonar-footer .btn-confirm{flex:1 1 auto}
 #pos-apt-customer-hint{font-size:.8rem}
 #pos-apt-customer-hint button{font-size:.8rem}
+/* "Más opciones": los 4 renglones (descuento, Ofelia, nota, cliente) del mismo
+   alto, letra y separación (Ofelia tenía 16px abajo y otro alto). */
+#more-options-wrap .note-toggle-btn,#more-options-wrap .collected-by-btn{min-height:40px;font-size:.84rem;margin:0 0 6px}
+#more-options-wrap .note-cliente-row{margin-bottom:0}
+#more-options-wrap .note-cliente-row .note-toggle-btn{margin-bottom:6px}
 
