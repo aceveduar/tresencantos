@@ -301,8 +301,8 @@ body.admin-bar-shown .products-filters-row{top:124px}
   align-items:center;justify-content:center;gap:1px;
 }
 /* Heredar estilos de shared.css — solo ajustes específicos del admin bar */
-#admin-bar .tbn-label{display:block;font-size:.46rem}
-#admin-bar .tbn-icon{padding:5px 5px;min-width:40px}
+#admin-bar .tbn-label{display:block;font-size:.69rem;letter-spacing:.01em}
+#admin-bar .tbn-icon{padding:6px 6px;min-width:48px;gap:3px;color:rgba(255,255,255,.75)}
 #admin-bar .tbn-icon svg{width:17px;height:17px}
 #admin-bar .tbn-sep{
   width:1px;height:18px;background:rgba(255,255,255,.2);
@@ -918,5 +918,13 @@ body{font-feature-settings:"lnum" 1}
   }
   .products-filters-row .sort-select option{color:var(--text-mid,#6B5C48)}
   .products-filters-row .sort-select.is-active{border-color:var(--gold);background-color:#FFF8EE}
+}
+
+/* "Mi pedido" en escritorio: panel lateral derecho (estándar de tiendas en
+   línea) en vez de hoja pegada abajo como en celular. */
+@media(min-width:900px){
+  .cart-sheet{top:0;bottom:0;left:auto;right:0;width:420px;max-width:92vw;max-height:none;border-radius:20px 0 0 20px;transform:translateX(100%)}
+  #cart-overlay.open .cart-sheet{transform:translateX(0)}
+  .cart-sheet-handle{display:none}
 }
 

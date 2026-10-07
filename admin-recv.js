@@ -440,7 +440,7 @@ function _showRecvFeedback(p, totalQty) {
   <img class="recv-fb-img" src="${_driveSz(p.image, 80)}" onerror="this.style.display='none'" alt="">
   <div class="recv-fb-info">
     <div class="recv-fb-name">${_esc(p.name)}</div>
-    <div class="recv-fb-arrow">${p.stock - totalQty} → <strong>+${totalQty} = ${p.stock}</strong> unidades</div>
+    <div class="recv-fb-arrow">${p.stock - totalQty} → <strong>+${totalQty} = ${p.stock}</strong> unidad${p.stock !== 1 ? 'es' : ''}</div>
     <div class="recv-fb-controls">
       <button class="recv-fb-btn" onclick="recvFbAdjust(-1)">−</button>
       <span class="recv-fb-qty" id="recv-fb-qty">+${totalQty}</span>
@@ -625,7 +625,7 @@ function _recvUpdateHeader() {
   const badge = document.getElementById('recv-count-badge');
   const sessionTotal = document.getElementById('recv-session-total');
   const undoAllBtn = document.getElementById('recv-undo-all-btn');
-  if (badge) badge.textContent = total > 0 ? `· ${total} unidades` : '';
+  if (badge) badge.textContent = total > 0 ? `· ${total} unidad${total !== 1 ? 'es' : ''}` : '';
   if (sessionTotal) sessionTotal.textContent = total > 0
     ? `${total} unid. · ${_recvSession.length} producto${_recvSession.length!==1?'s':''}`
     : '';

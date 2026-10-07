@@ -930,7 +930,8 @@ function _mapPosProduct(p) {
     id: p.id,
     name: p.name,
     category: p.category,
-    categoryLabel: p.category_label,
+    // "por_revisar" es un código interno: a la vista dice "Sin categoría"
+    categoryLabel: p.category === 'por_revisar' ? 'Sin categoría' : p.category_label,
     price: p.price,
     originalPrice: p.original_price,
     description: p.description || '',

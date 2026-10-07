@@ -1832,4 +1832,6 @@ label:has(> #f-is-kit){min-height:44px}
 .qv-more .qv-btn-archive:hover{background:var(--surface-soft);border-color:var(--gold);color:var(--gold-dark)}
 .qv-more .qv-btn-del{grid-column:auto;background:var(--surface-soft);color:var(--red);border:1.5px solid var(--border)}
 .qv-more .qv-btn-del:hover{background:#fff3f3;border-color:rgba(232,93,93,.45);color:var(--red)}
+/* Recibir mercancía: el botón de WhatsApp dice qué hace */
+.recv-footer .recv-btn-wa{width:auto;padding:0 16px;gap:6px;border-radius:50px;font-family:inherit;font-size:.86rem;font-weight:700}
 

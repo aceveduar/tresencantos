@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación vigente del proyecto. Última reconciliación: 2026-10-07 · `sw.js` `CACHE_VERSION = 'v615'`.
+Documentación vigente del proyecto. Última reconciliación: 2026-10-07 · `sw.js` `CACHE_VERSION = 'v616'`.
 
 > **Fuente de verdad:** para comportamiento ejecutable manda el código; para reglas de negocio y decisiones UX manda este documento.
 > **Historial completo** (bitácora fecha por fecha, razonamiento detrás de cada decisión, bugs resueltos): [assets/HISTORIAL.md](assets/HISTORIAL.md). No se carga solo — consultarlo con grep cuando haga falta el "por qué" de algo. Este archivo solo describe el estado actual.
