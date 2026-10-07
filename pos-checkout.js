@@ -626,11 +626,14 @@ async function loadTodayStats() {
 
   const total = efectivo + transferencia + otros;
   const fmt = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('es-MX')}`;
-  const _svgIco = p => `<svg style="width:14px;height:14px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24">${p}</svg>`;
-  const _icoEfec  = _svgIco('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>');
-  const _icoTrans = _svgIco('<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>');
-  const _icoOtros = _svgIco('<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8M8 11h8M8 15h5"/>');
-  mob.innerHTML = `<span style="color:var(--gold-dark);font-weight:700">Hoy</span> &nbsp;${_icoEfec} ${fmt(efectivo)} &nbsp;${_icoTrans} ${fmt(transferencia)}${Math.abs(otros) >= .005 ? ` &nbsp;${_icoOtros} ${fmt(otros)}` : ''} &nbsp;<strong>${fmt(total)}</strong>`;
+  // Total primero; desglose con nombre y solo de los métodos con movimiento
+  // (antes "$1,410 · $0 · $1,410" con íconos, sin decir qué era cada cifra).
+  const parts = [['Efectivo', efectivo], ['Transferencia', transferencia], ['Otros', otros]]
+    .filter(([, v]) => Math.abs(v) >= .005);
+  const breakdown = parts.length > 1
+    ? parts.map(([l, v]) => `<span class="dsm-part">${l} ${fmt(v)}</span>`).join('<span class="dsm-sep">·</span>')
+    : parts.length === 1 ? `<span class="dsm-part">todo en ${parts[0][0].toLowerCase()}</span>` : '';
+  mob.innerHTML = `<span class="dsm-total">Hoy ${fmt(total)}</span>${breakdown ? `<span class="dsm-sep">·</span>${breakdown}` : ''}`;
   mob.style.display = 'flex';
 }
 

@@ -1318,9 +1318,9 @@ function productCard(p) {
     : effStock === 1
       ? ' · <span style="color:var(--gold);font-weight:700">Última</span>'
       : effStock >= 2 && effStock <= 5
-        ? ` · <span style="color:#6B9E78;font-weight:600">${effStock} uds</span>`
+        ? ` · <span style="color:#6B9E78;font-weight:600">${effStock} pzas</span>`
         : effStock > 5
-          ? ` · <span style="color:var(--muted)">${effStock} uds</span>`
+          ? ` · <span style="color:var(--muted)">${effStock} pzas</span>`
           : '';
   let expSub = '';
   if (p.expiryDate) {

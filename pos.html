@@ -35,11 +35,11 @@
       <h2 style="text-align:center;margin-bottom:4px">Abrir caja</h2>
       <p style="text-align:center;font-size:.82rem;color:var(--muted);margin-bottom:18px">Antes de vender, declara el fondo con el que empiezas tu turno.</p>
       <label for="open-shift-fondo" style="font-size:.8rem;font-weight:600;color:var(--charcoal);display:block;margin-bottom:6px">Fondo inicial</label>
-      <div style="display:flex;align-items:center;gap:6px;border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:6px">
-        <span style="font-size:1rem;color:var(--muted)">$</span>
-        <input id="open-shift-fondo" type="number" min="0" inputmode="decimal" placeholder="0" style="flex:1;border:none;outline:none;font-size:1.1rem;font-weight:700;font-family:inherit;text-align:right">
+      <div class="money-field">
+        <span class="money-field-sign">$</span>
+        <input id="open-shift-fondo" type="number" min="0" inputmode="decimal" placeholder="0">
       </div>
-      <p style="font-size:.72rem;color:var(--muted);margin-bottom:16px">Cuenta el efectivo que hay en la caja ahora mismo. Puede ser $0.</p>
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:16px">Cuenta el efectivo que hay en la caja ahora mismo. Puede ser $0.</p>
       <div id="open-shift-error" style="display:none;background:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B;border-radius:8px;padding:8px 12px;font-size:.78rem;margin-bottom:12px"></div>
       <button id="open-shift-btn" style="width:100%;padding:13px;border-radius:50px;border:none;background:var(--ink);color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit">Abrir caja e iniciar turno</button>
     </div>

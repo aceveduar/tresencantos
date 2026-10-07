@@ -883,7 +883,7 @@ button,a{touch-action:manipulation}
   flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
   padding:8px 4px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));
   border:none;background:transparent;cursor:pointer;
-  font-size:.64rem;font-weight:600;color:var(--muted);
+  font-size:.72rem;font-weight:600;color:var(--muted);
   font-family:inherit;transition:color .15s;position:relative;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation;
 }
@@ -896,8 +896,8 @@ button,a{touch-action:manipulation}
 .pos-tab-badge{
   position:absolute;top:4px;left:calc(50% + 6px);
   background:var(--gold);color:#fff;
-  font-size:.55rem;font-weight:800;
-  min-width:16px;height:16px;border-radius:50%;
+  font-size:.66rem;font-weight:800;
+  min-width:18px;height:18px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
   border:1.5px solid var(--surface);
 }
@@ -1145,3 +1145,21 @@ button,a{touch-action:manipulation}
 :root[data-theme="dark"] .apc-due.is-overdue,:root[data-theme="dark"] .apt-h-due.is-overdue,:root[data-theme="dark"] .apc-pending.is-overdue,:root[data-theme="dark"] .apt-h-pending.is-overdue{color:var(--tint-red-strong)}
 .apt-due-count{margin-left:6px;font-weight:600;opacity:.7;font-variant-numeric:tabular-nums}
 :root[data-theme="dark"] .apt-due-filter.active{background:var(--charcoal);border-color:var(--charcoal);color:var(--ink)}
+
+/* ══ PULIDO 2026-10-07 ═══════════════════════════════════════════════════ */
+/* Campo de dinero: monto grande, alineado a la izquierda junto a su signo
+   (antes el "$" quedaba a la izquierda y el número hasta la orilla derecha). */
+.money-field{display:flex;align-items:baseline;gap:6px;border:1.5px solid var(--border);border-radius:12px;padding:10px 16px;margin-bottom:6px;background:var(--surface);transition:border-color .15s,box-shadow .15s}
+.money-field:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,164,98,.15)}
+.money-field-sign{font-size:1.5rem;font-weight:600;color:var(--muted)}
+.money-field input{flex:1;min-width:0;border:none;outline:none;background:none;font-family:inherit;font-size:1.75rem;font-weight:700;color:var(--charcoal);text-align:left;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
+.money-field input::-webkit-outer-spin-button,.money-field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.money-field input::placeholder{color:var(--muted-light)}
+/* Le gana a la regla de 16px de celular (anti-zoom de iOS): más grande tampoco hace zoom */
+.money-field > input:not([type="checkbox"]){font-size:1.75rem!important}
+/* Resumen "Hoy" (celular): total primero, desglose con nombre */
+#daily-summary-mobile{font-size:.8rem!important;padding:7px 14px!important}
+.dsm-total{font-weight:700;color:var(--charcoal)}
+.dsm-sep{color:var(--muted-light)}
+.dsm-part{color:var(--muted)}
+
