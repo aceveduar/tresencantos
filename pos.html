@@ -643,8 +643,8 @@
         <label class="corte-count" for="corte-conteo">
           <span class="corte-count-lbl">Efectivo en el cajón</span>
           <span class="corte-count-hint">Cuenta billetes y monedas, con el fondo incluido</span>
-          <span class="corte-count-field">
-            <span aria-hidden="true">$</span>
+          <span class="corte-count-field money-field">
+            <span class="money-field-sign" aria-hidden="true">$</span>
             <input id="corte-conteo" type="text" inputmode="decimal" placeholder="0" autocomplete="off" oninput="_onConteoInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();compararConteo()}">
           </span>
         </label>

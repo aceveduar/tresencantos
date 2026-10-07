@@ -1022,7 +1022,7 @@ async function loadHistory() {
       const tags = [];
       if (totalDisc > 0) tags.push(`<span class="hi-tag discount">${_uiIcoTag()} −$${totalDisc.toLocaleString('es-MX')}</span>`);
       if (s.note)     tags.push(`<span class="hi-tag note">${_uiIcoEdit()} ${_esc(s.note)}</span>`);
-      if (s.customer) tags.push(`<span class="hi-tag customer">${_uiIcoUser()} ${_esc((s.customer||'').split(' · 📱 ')[0])}</span>`);
+      if (s.customer) tags.push(`<span class="hi-tag customer">${_uiIcoUser()} ${_esc(_displayName((s.customer||'').split(' · 📱 ')[0]))}</span>`);
       if (payment.is_estimated) tags.push(`<span class="hi-tag note">${_uiIcoWarn()} Histórico estimado</span>`);
       if (payment.refund_breakdown?.length > 1) {
         const breakdown = payment.refund_breakdown.map(line =>
@@ -1049,7 +1049,11 @@ async function loadHistory() {
       // viera pesado aunque casi nunca se toquen. Bajadas al pie, junto a
       // las demás etiquetas secundarias (descuento/nota/cliente) -- Cancelar
       // se queda arriba por ser la única acción realmente urgente/frecuente.
-      const footerHTML = `<div class="hi-footer${tags.length ? '' : ' hi-footer-slim'}">${tags.join('')}<span class="hi-footer-spacer"></span>${timelineBtn}${resendBtn}</div>`;
+      // Cancelar va al pie, al final (2026-10-07): como ✕ junto al monto se
+      // leía como "cerrar/quitar de la lista". Ícono de prohibido, mismo
+      // flujo de siempre (deleteSale → motivo + confirmación).
+      const cancelBtn = canCancelThis ? `<button class="hi-del hi-cancel" onclick="event.stopPropagation();deleteSale(${s.id})" title="Cancelar esta venta" aria-label="Cancelar esta venta"><svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></button>` : '';
+      const footerHTML = `<div class="hi-footer${tags.length ? '' : ' hi-footer-slim'}">${tags.join('')}<span class="hi-footer-spacer"></span>${timelineBtn}${resendBtn}${cancelBtn}</div>`;
 
       return `
 <div class="hi-card">
@@ -1058,7 +1062,6 @@ async function loadHistory() {
     ${payBadge}
     <span class="hi-spacer"></span>
     <span class="hi-total"${amount < 0 ? ' style="color:var(--red)"' : ''}>${displayTotal}</span>
-    ${canCancelThis ? `<button class="hi-del" onclick="deleteSale(${s.id})" title="Cancelar registro completo" aria-label="Cancelar registro completo">✕</button>` : ''}
   </div>
   <div class="hi-items">${itemsHTML || '<div style="color:var(--muted);font-size:.78rem;padding:4px 0">Sin detalle</div>'}</div>
   ${footerHTML}

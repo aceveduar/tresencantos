@@ -1197,7 +1197,13 @@ button,a{touch-action:manipulation}
 /* Paneles laterales (Apartados, Historial) a pantalla completa en celular:
    antes dejaban una franja de Caja asomándose a la izquierda. */
 @media(max-width:640px){
-  .history-offcanvas{width:100%;max-width:none}
+  /* !important: Corte trae max-width:420px en el HTML */
+  .history-offcanvas{width:100%;max-width:none!important}
 }
 .edit-apt-fields .apt-input{margin-bottom:0}
+/* Cancelar en el pie del Historial: separado de historial/reenviar */
+.hi-del.hi-cancel{margin-left:6px}
+/* Corte: "Efectivo en el cajón" con el mismo campo de dinero que Abrir caja */
+.corte-count-field.money-field{margin:8px 0 0}
+.corte-count-field.money-field > input:not([type="checkbox"]){font-size:1.75rem!important;font-weight:700;border:none;outline:none;background:none;padding:0;width:100%;min-width:0}
 
