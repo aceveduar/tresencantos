@@ -205,7 +205,7 @@ button,a{touch-action:manipulation}
 .total-amount{font-family:'Playfair Display',serif;font-size:1.35rem;font-weight:700}
 .total-was{display:block;text-align:right;font-family:Inter,sans-serif;font-size:.8rem;font-weight:500;color:var(--muted);text-decoration:line-through;line-height:1.1}
 .cash-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
-.cash-field label{font-size:.68rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;display:block;margin-bottom:3px}
+.cash-field label{font-size:.8rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px}
 .cash-field input{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;outline:none}
 .cash-field input:focus{border-color:var(--gold)}
 @keyframes pendientePulse{0%{background-color:#FDE68A;transform:scale(1.03)}100%{background-color:#F9F4EE;transform:scale(1)}}
@@ -823,7 +823,7 @@ button,a{touch-action:manipulation}
   #pos-customer,#pos-phone{font-size:16px!important}
   #pos-anticipo,#pos-pendiente{font-size:16px!important;padding:9px 10px}
   .cash-field input{font-size:16px!important;padding:10px 12px}
-  .cash-field label{font-size:.7rem}
+  .cash-field label{font-size:.8rem}
   .btn-green{min-height:48px;font-size:.95rem;border-radius:12px}
   .apartado-toggle-label{padding:6px 0;font-size:.85rem}
   .pos-vbtn{width:36px;height:36px}
@@ -1162,4 +1162,15 @@ button,a{touch-action:manipulation}
 .dsm-total{font-weight:700;color:var(--charcoal)}
 .dsm-sep{color:var(--muted-light)}
 .dsm-part{color:var(--muted)}
+/* Catálogo en pantallas anchas: precio y "+" juntos en una línea (antes
+   apilados a +1000px del nombre: filas el doble de altas y mucho recorrido
+   visual). En celular siguen apilados para ahorrar ancho. */
+@media(min-width:641px){
+  .pos-prod-right{flex-direction:row;align-items:center;gap:14px}
+  .pos-prod-price{font-size:1rem}
+  /* Reabastecer: diálogo centrado, no hoja pegada al borde inferior */
+  #restock-prompt{align-items:center!important;padding:16px}
+  #restock-prompt .restock-sheet{border-radius:20px!important;padding-bottom:22px!important;box-shadow:0 12px 48px rgba(0,0,0,.22)!important}
+}
+.pos-vbtn svg{display:block}
 
