@@ -502,4 +502,14 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 /* Botón "Resumen" por WhatsApp junto a la fecha (antes un punto verde) */
 .srn-btn.srn-wa{width:auto;padding:0 12px 0 10px;border-radius:50px;gap:6px;font-size:.8rem;font-weight:600;color:#128C4A}
 :root[data-theme="dark"] .srn-btn.srn-wa{color:#7EE2A8}
+/* Celular: listas sin scroll interno; primeros renglones + "Ver todo" */
+.list-more-btn{display:block;width:100%;min-height:44px;margin:0;padding:10px 16px;border:none;border-top:1px solid var(--border);background:none;font-family:inherit;font-size:.86rem;font-weight:600;color:var(--gold-dark);cursor:pointer}
+@media(max-width:640px){
+  #today-sales-list,#turnos-body,#apt-pending-body,#capital-cat-body,#clientes-body{max-height:300px!important;overflow:hidden!important;position:relative}
+  #today-sales-list.is-expanded,#turnos-body.is-expanded,#apt-pending-body.is-expanded,#capital-cat-body.is-expanded,#clientes-body.is-expanded{max-height:none!important}
+  .has-more::after{content:'';position:absolute;left:0;right:0;bottom:0;height:48px;background:linear-gradient(to bottom,transparent,var(--surface));pointer-events:none}
+  /* Encabezados: el título no se parte; el dato de la derecha baja si no cabe */
+  .card-head{flex-wrap:wrap;row-gap:4px;column-gap:10px}
+  .card-head > :first-child{white-space:nowrap}
+}
 

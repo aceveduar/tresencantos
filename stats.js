@@ -2104,6 +2104,41 @@ async function _saveClienteProfile(id) {
   }
 }
 
+// Listas largas en celular (2026-10-07): en vez de scroll dentro de la página
+// (el dedo se "atoraba" en la lista y la barra tapaba los montos), se ven los
+// primeros renglones y un botón "Ver todo / Ver menos". En escritorio siguen
+// con su scroll interno. El botón solo aparece si de verdad hay más.
+(function _mobileListExpanders() {
+  const ids = ['today-sales-list', 'turnos-body', 'apt-pending-body', 'capital-cat-body', 'clientes-body'];
+  const mq = window.matchMedia('(max-width:640px)');
+  const wire = el => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'list-more-btn';
+    el.after(btn);
+    const update = () => {
+      const expanded = el.classList.contains('is-expanded');
+      const overflowing = el.scrollHeight > el.clientHeight + 4;
+      const show = mq.matches && (overflowing || expanded);
+      btn.style.display = show ? '' : 'none';
+      btn.textContent = expanded ? 'Ver menos' : 'Ver todo';
+      el.classList.toggle('has-more', mq.matches && overflowing && !expanded);
+    };
+    btn.addEventListener('click', () => {
+      const collapsing = el.classList.contains('is-expanded');
+      el.classList.toggle('is-expanded');
+      update();
+      if (collapsing) el.closest('.card')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    });
+    new MutationObserver(() => requestAnimationFrame(update)).observe(el, { childList: true, subtree: true });
+    mq.addEventListener?.('change', update);
+    update();
+  };
+  const init = () => ids.forEach(id => { const el = document.getElementById(id); if (el) wire(el); });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+
 // Nombres capturados antes de que Caja los guardara con mayúscula inicial
 // ("lucia cristal san juan" → "Lucia Cristal San Juan"). Solo palabras todas
 // en minúscula; artículos y preposiciones intermedias se quedan igual.
