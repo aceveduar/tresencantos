@@ -651,7 +651,7 @@ function renderTodaySales() {
       : 'mv-tag-venta';
     const tag = `<span class="mv-tag ${tagClass}">${tagText}</span>`;
     const nombre = origin === 'apartado'
-      ? ((s?.customer || '').split(' · 📱 ')[0] || `Apartado #${payment.sale_id}`)
+      ? (_displayName((s?.customer || '').split(' · 📱 ')[0]) || `Apartado #${payment.sale_id}`)
       : (items.length <= 2 ? items.map(i => i.name).join(', ') : `${items[0]?.name || ''} +${items.length - 1} más`) || `Venta #${payment.sale_id}`;
     const itemsHtml = _dvItemsHtml(items);
     const collectorEmail = payment.collected_by_email || '';
@@ -1531,7 +1531,7 @@ function renderInventory() {
   const items = [];
   for (let i = 0, j = 0; items.length < 12 && (i < out.length || j < low.length);) {
     if (i < out.length) { items.push({name:out[i].name, badge:'Agotado', cls:'badge-red'}); i++; }
-    if (items.length < 12 && j < low.length) { items.push({name:low[j].name, badge:'1 ud.', cls:'badge-amber'}); j++; }
+    if (items.length < 12 && j < low.length) { items.push({name:low[j].name, badge:'1 pza', cls:'badge-amber'}); j++; }
   }
 
   el.innerHTML = items.length
@@ -1630,7 +1630,7 @@ function renderExpiringProducts() {
 
   body.innerHTML = withExpiry.map(p => {
     const color = p._days < 0 ? '#E85D5D' : p._days <= 7 ? '#D97706' : '#B45309';
-    const text  = p._days < 0 ? `Caducó hace ${Math.abs(p._days)}d` : p._days === 0 ? 'Caduca hoy' : `Caduca en ${p._days}d`;
+    const text  = p._days < 0 ? `Caducó hace ${Math.abs(p._days)} día${Math.abs(p._days) !== 1 ? 's' : ''}` : p._days === 0 ? 'Caduca hoy' : `Caduca en ${p._days} día${p._days !== 1 ? 's' : ''}`;
     const fecha = _dayKeyLabel(p.expiry_date, { day: 'numeric', month: 'short' });
     const valor = (p.price || 0) * (p.stock || 0);
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">
@@ -1761,7 +1761,7 @@ async function loadApartadosPendientes() {
     const pendiente = Math.max(0, total - pagado);
     const pct       = total > 0 ? Math.min(100, Math.round(pagado / total * 100)) : 0;
     const custParts = (s.customer || '').split(' · 📱 ');
-    const nombre    = custParts[0] || 'Sin nombre';
+    const nombre    = _displayName(custParts[0] || 'Sin nombre');
     const fecha     = _mxDateLabel(s.created_at, { day:'numeric', month:'short' });
     const summary   = Array.isArray(s.items) ? s.items.map(i=>i.name).join(', ') : '';
 
@@ -1772,7 +1772,7 @@ async function loadApartadosPendientes() {
       const dueColor = diffDays < 0 ? '#E85D5D' : diffDays <= 7 ? '#D97706' : '#2D6A4F';
       if (Number.isFinite(diffDays)) {
         const dueText = diffDays < 0
-          ? `Vencido hace ${Math.abs(diffDays)}d`
+          ? `Vencido hace ${Math.abs(diffDays)} día${Math.abs(diffDays) !== 1 ? 's' : ''}`
           : diffDays === 0 ? 'Vence hoy' : `Vence ${_dayKeyLabel(s.due_date, {day:'numeric',month:'short'})}`;
         dueBadge = `<span style="font-size:.68rem;font-weight:700;color:${dueColor};display:inline-flex;align-items:center;gap:3px"><svg style="width:13px;height:13px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${dueText}</span>`;
       }
@@ -1980,7 +1980,7 @@ function renderTopClientes() {
     const pct = Math.round(c.total / maxTotal * 100);
     return `<div style="padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openClienteProfile(${c.id})">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:.84rem;font-weight:600">${_esc(c.name)}</span>
+        <span style="font-size:.84rem;font-weight:600">${_esc(_displayName(c.name))}</span>
         <span style="font-weight:700;font-size:.88rem">$${c.total.toLocaleString('es-MX',{maximumFractionDigits:0})}</span>
       </div>
       <div style="background:var(--border);border-radius:50px;height:5px;overflow:hidden;margin-bottom:4px">
@@ -2102,6 +2102,17 @@ async function _saveClienteProfile(id) {
     showError(isDupPhone ? 'Ese teléfono ya pertenece a otro cliente.' : 'No se pudo guardar — intenta de nuevo.');
     btn.disabled = false; btn.textContent = 'Guardar cambios'; btn.style.background = 'var(--ink)';
   }
+}
+
+// Nombres capturados antes de que Caja los guardara con mayúscula inicial
+// ("lucia cristal san juan" → "Lucia Cristal San Juan"). Solo palabras todas
+// en minúscula; artículos y preposiciones intermedias se quedan igual.
+function _displayName(name) {
+  const small = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'e', 'el']);
+  return String(name || '').trim().replace(/\s+/g, ' ').split(' ').map((w, i) => {
+    if (w !== w.toLowerCase() || (i > 0 && small.has(w))) return w;
+    return w.charAt(0).toUpperCase() + w.slice(1);
+  }).join(' ');
 }
 
 /* ── INIT ── */

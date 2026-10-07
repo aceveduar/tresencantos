@@ -92,8 +92,8 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 }
 .kpi-hero-top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
 .kpi-hero-value{font-family:'Playfair Display',serif;font-size:2.6rem;font-weight:600;line-height:1;color:var(--charcoal)}
-.kpi-label{font-size:.68rem;color:var(--muted);margin-top:6px;letter-spacing:.07em;text-transform:uppercase;font-weight:600}
-.kpi-value-money{font-family:'Inter',sans-serif;font-size:.7rem;font-weight:600;color:var(--muted);vertical-align:middle}
+.kpi-label{font-size:.72rem;color:var(--muted);margin-top:6px;letter-spacing:.07em;text-transform:uppercase;font-weight:600}
+.kpi-value-money{font-family:'Inter',sans-serif;font-size:.72rem;font-weight:600;color:var(--muted);vertical-align:middle}
 .kpi-sub{font-size:.72rem;color:var(--muted-light);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpi-hero-headline .kpi-sub{margin-top:8px}
 /* Mini-gráfica de tendencia -- solo tiene sentido cuando la tarjeta es lo
@@ -114,7 +114,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .kpi-stat:first-child{padding-left:0}
 .kpi-stat:last-child{padding-right:0}
 .kpi-stat+.kpi-stat{border-left:1px solid var(--border)}
-.kpi-stat-label{display:flex;align-items:center;gap:6px;font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi-stat-label{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpi-stat-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .kpi-stat[data-accent="green"] .kpi-stat-dot{background:var(--green)}
 .kpi-stat[data-accent="violet"] .kpi-stat-dot{background:var(--violet)}
@@ -136,7 +136,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .kpi-strip-item+.kpi-strip-item{border-left:1px solid var(--border)}
 .kpi-strip-item-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .kpi-strip-value{font-family:'Inter',sans-serif;font-size:1.15rem;font-weight:700;line-height:1;color:var(--charcoal)}
-.kpi-strip-label{font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:6px;font-weight:600}
+.kpi-strip-label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:6px;font-weight:600}
 
 /* "Por cobrar" no tiene tendencia (es un saldo vivo, no dinero del período) --
    en su lugar, qué fracción de ese saldo ya está vencida se ve de un
@@ -181,7 +181,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 
 /* ── CALENDAR HEATMAP ── */
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:6px}
-.cal-hdr{text-align:center;font-size:.65rem;font-weight:700;color:var(--muted);padding-bottom:4px;letter-spacing:.03em}
+.cal-hdr{text-align:center;font-size:.72rem;font-weight:700;color:var(--muted);padding-bottom:4px;letter-spacing:.03em}
 .cal-cell{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:transform .12s,box-shadow .12s;position:relative;cursor:default}
 .cal-cell-n{font-size:.72rem;font-weight:600;line-height:1}
 .cal-cell-amt{font-size:.56rem;line-height:1.1;opacity:.85;font-weight:500}
@@ -216,7 +216,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
    (el grid y la leyenda ya tienen su propio padding), así que es seguro
    dejarla desbordar. */
 #calendar-card{overflow:visible}
-.cal-legend{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:12px;font-size:.65rem;color:var(--muted);font-weight:500}
+.cal-legend{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:12px;font-size:.72rem;color:var(--muted);font-weight:500}
 .cal-legend-cell{width:14px;height:14px;border-radius:3px}
 
 
@@ -237,7 +237,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
    protagonista de la tarjeta (mismo criterio que .kpi-stat-value/
    .inv-stat .n). */
 .tp-revenue{font-size:.82rem;font-weight:700;color:var(--charcoal)}
-.tp-qty{font-size:.7rem;color:var(--muted);margin-top:2px}
+.tp-qty{font-size:.72rem;color:var(--muted);margin-top:2px}
 
 /* ── CATEGORY LIST (debajo del donut) ── */
 .cl-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
@@ -250,7 +250,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .cl-bar-wrap{flex:1;height:4px;background:var(--surface-soft);border-radius:2px;overflow:hidden;min-width:30px}
 .cl-bar{height:100%;border-radius:2px}
 .cl-val{font-size:.78rem;font-weight:700;color:var(--charcoal);flex-shrink:0}
-.cl-pct{font-size:.68rem;color:var(--muted);flex-shrink:0;width:28px;text-align:right}
+.cl-pct{font-size:.72rem;color:var(--muted);flex-shrink:0;width:28px;text-align:right}
 
 /* ── SEGUNDA FILA ── */
 .bottom-row{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px}
@@ -270,7 +270,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .inv-stat:last-child{padding-right:0}
 .inv-stat+.inv-stat{border-left:1px solid var(--border)}
 .inv-stat .n{font-family:'Inter',sans-serif;font-size:1.3rem;font-weight:700;color:var(--charcoal)}
-.inv-stat .l{display:flex;align-items:center;gap:6px;font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600;margin-bottom:6px}
+.inv-stat .l{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600;margin-bottom:6px}
 .inv-stat .l::before{content:'';width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .inv-stat.red .l::before{background:var(--red)}
 .inv-stat.amber .l::before{background:var(--amber)}
@@ -283,13 +283,13 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .inv-list-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:.82rem}
 .inv-list-item:last-child{border-bottom:none}
 .inv-name{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;margin-right:10px}
-.badge-sm{font-size:.65rem;font-weight:700;padding:3px 9px;border-radius:50px;white-space:nowrap}
+.badge-sm{font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:50px;white-space:nowrap}
 .badge-red{background:#FEE2E2;color:#991B1B}
 .badge-amber{background:#FEF3C7;color:#92400E}
 :root[data-theme="dark"] .badge-red{background:var(--tint-red-bg);color:var(--tint-red-strong)}
 :root[data-theme="dark"] .badge-amber{background:var(--tint-amber-bg);color:var(--tint-amber-strong)}
 
-.turno-chip{font-size:.68rem;font-weight:700;border-radius:50px;padding:2px 9px;white-space:nowrap}
+.turno-chip{font-size:.72rem;font-weight:700;border-radius:50px;padding:2px 9px;white-space:nowrap}
 .turno-chip-open{color:var(--green);background:#EAF7EF}
 .turno-chip-noclose{color:var(--red);background:#FEF2F2}
 :root[data-theme="dark"] .turno-chip-open{background:var(--tint-green-bg)}
@@ -300,11 +300,11 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
    pastilla con relleno sólido por cada uno se acumula en "badge soup". El
    color (verde/rojo, ya fijo en ambos temas por convención del proyecto)
    sigue comunicando dirección sin la insignia de fondo. */
-.delta-pill{font-size:.7rem;font-weight:700}
+.delta-pill{font-size:.72rem;font-weight:700}
 .delta-up{color:var(--green)}
 .delta-down{color:var(--red)}
 
-.mv-tag{font-size:.62rem;padding:1px 6px;border-radius:50px;font-weight:700;flex-shrink:0}
+.mv-tag{font-size:.72rem;padding:1px 6px;border-radius:50px;font-weight:700;flex-shrink:0}
 .mv-tag-refund{background:#FEE2E2;color:#991B1B}
 .mv-tag-adjust{background:#FEF3C7;color:#92400E}
 .mv-tag-aptnew{background:#FFF8EE;color:#9A742D}
@@ -340,7 +340,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .dv-pay-efec{color:var(--green)}
 .dv-pay-trans{color:#1565C0}
 :root[data-theme="dark"] .dv-pay-trans{color:var(--tint-blue-strong)}
-.dv-sale-arrow{font-size:.7rem;color:var(--muted);transition:transform .2s;flex-shrink:0}
+.dv-sale-arrow{font-size:.72rem;color:var(--muted);transition:transform .2s;flex-shrink:0}
 .dv-sale.open .dv-sale-arrow{transform:rotate(90deg)}
 .dv-body{display:none;padding:4px 0 8px}
 .dv-sale.open .dv-body{display:block}
@@ -348,7 +348,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .dv-item:last-child{border-bottom:none}
 .dv-thumb{width:34px;height:34px;object-fit:cover;border-radius:6px;background:var(--surface-soft);flex-shrink:0}
 .dv-item-name{font-size:.79rem;font-weight:600;flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--charcoal)}
-.dv-item-meta{font-size:.69rem;color:var(--muted);margin-top:1px}
+.dv-item-meta{font-size:.72rem;color:var(--muted);margin-top:1px}
 .dv-item-sub{font-size:.8rem;font-weight:700;color:var(--charcoal);white-space:nowrap;flex-shrink:0}
 
 #rent-no-cost{background:var(--gold-light);color:var(--muted)}
@@ -380,18 +380,18 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
   .stats-range-nav{width:100%;justify-content:space-between}
   .srn-label{flex:1;min-width:0}
 
-  .kpi-section-label{margin:16px 0 8px;font-size:.66rem}
+  .kpi-section-label{margin:16px 0 8px;font-size:.7rem}
   .kpi-hero-card{padding:18px 18px 16px;margin-bottom:14px}
   .kpi-hero-value{font-size:1.9rem}
-  .kpi-hero-legend{font-size:.68rem;gap:8px 12px}
+  .kpi-hero-legend{font-size:.7rem;gap:8px 12px}
   .kpi-stat-row{margin-top:16px;padding-top:14px}
   .kpi-stat{padding:0 10px}
   .kpi-stat-value{font-size:1.1rem}
-  .kpi-stat-label{font-size:.6rem}
+  .kpi-stat-label{font-size:.7rem}
   .kpi-strip{margin-bottom:14px}
   .kpi-strip-item{padding:12px 12px}
   .kpi-strip-value{font-size:1.1rem}
-  .kpi-strip-label{font-size:.6rem}
+  .kpi-strip-label{font-size:.7rem}
 
   .charts-row{grid-template-columns:1fr;gap:12px}
   .chart-canvas-wrap{height:190px}
@@ -402,7 +402,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 
   .inv-stat{padding:0 10px}
   .inv-stat .n{font-size:1.1rem}
-  .inv-stat .l{font-size:.6rem}
+  .inv-stat .l{font-size:.7rem}
 }
 
 @media(max-width:480px){
@@ -452,7 +452,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 @media(max-width:360px){
   .smode-btn{font-size:.7rem;padding:10px 4px}
   .kpi-stat{padding:0 4px}
-  .kpi-stat-label{font-size:.56rem;gap:4px}
+  .kpi-stat-label{font-size:.7rem;gap:4px}
   .kpi-stat-value{font-size:.92rem;gap:4px}
 }
 
@@ -499,3 +499,7 @@ main{max-width:1080px;margin:0 auto;padding:28px 28px 60px}
 .img-lb-row{display:flex;justify-content:space-between;align-items:center;font-size:.78rem;margin-top:4px}
 .img-lb-label{color:rgba(255,255,255,.5)}
 .img-lb-val{color:rgba(255,255,255,.9);font-weight:600}
+/* Botón "Resumen" por WhatsApp junto a la fecha (antes un punto verde) */
+.srn-btn.srn-wa{width:auto;padding:0 12px 0 10px;border-radius:50px;gap:6px;font-size:.8rem;font-weight:600;color:#128C4A}
+:root[data-theme="dark"] .srn-btn.srn-wa{color:#7EE2A8}
+
