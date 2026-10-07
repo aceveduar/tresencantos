@@ -241,9 +241,10 @@ Supabase no tiene backups en este plan (sin PITR, lista vacía). `scripts/respal
 ## Pendientes
 
 **Seguridad / datos**
-- Rotar `groq_key` y `drive_secret`: estuvieron legibles públicamente hasta el 2026-09-30 (y un secreto de Drive viejo sigue en el historial de git, repo público). **El repo es público y GitHub Pages sirve todo `assets/`: nunca escribir secretos en archivos versionados** (la copia del Apps Script usa `PEGA_AQUI_EL_SECRETO`).
-- Activar "Leaked password protection" (Dashboard → Auth).
-- Supabase Auth → URL Configuration: el Site URL/Redirect probablemente sigue en Netlify (invitaciones por correo llevarían a un 404).
+- Rotar `groq_key`: estuvo legible públicamente hasta el 2026-09-30 (`drive_secret` ya se rotó el 2026-10-07). **El repo es público y GitHub Pages sirve todo `assets/`: nunca escribir secretos en archivos versionados** (la copia del Apps Script usa `PEGA_AQUI_EL_SECRETO`).
+- "Leaked password protection" requiere plan Pro (no disponible). En su lugar, Auth exige contraseñas de 10+ con letras y números (2026-10-07), y la app valida lo mismo en Configuración y `create-user`.
+- Cuando Netlify regrese: Supabase Auth → URL Configuration (Site URL/Redirect) y `og:*`/`canonical` de `index.html` + fallback de `app.js`.
+- Auditoría de Drive (Configuración → Datos) cada 1–2 meses: limpia las fotos que quedan si alguien sube fotos y cierra sin guardar ni cancelar.
 
 **Calidad / UX**
 - Duplicar producto **no** copia `supplier_code` a propósito: el código enseña a Recepción con IA a qué producto vincular, duplicarlo lo volvería ambiguo.
