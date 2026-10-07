@@ -1658,7 +1658,8 @@ async function _upAddUser() {
   const role    = roleSel?.value || 'operador';
   if (!email || !email.includes('@')) { toast('Ingresa un correo válido', 'err'); return; }
   if (userPermsMap[email]) { toast('Este usuario ya está en la lista', ''); input.value=''; return; }
-  if (_upAddMode === 'password' && password.length < 6) { toast('La contraseña debe tener al menos 6 caracteres', 'err'); return; }
+  // Mismo criterio que Supabase Auth (Sign In / Providers → Email): 10+ con letras y números.
+  if (_upAddMode === 'password' && (password.length < 10 || !/[a-zA-Z]/.test(password) || !/\d/.test(password))) { toast('La contraseña debe tener al menos 10 caracteres, con letras y números', 'err'); return; }
 
   const confirmMsg = _upAddMode === 'password'
     ? `¿Crear la cuenta de ${email} como ${_UP_ROLE_LABELS[role]||role} con esa contraseña?`

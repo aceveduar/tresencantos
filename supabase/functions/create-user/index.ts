@@ -65,7 +65,10 @@ Deno.serve(async (req) => {
   const password = body?.password || ""; // vacío = mandar invitación por correo
   if (!email || !email.includes("@")) return json({ error: "Correo inválido" }, 400);
   if (!VALID_ROLES.includes(role)) return json({ error: "Rol inválido" }, 400);
-  if (password && password.length < 6) return json({ error: "La contraseña debe tener al menos 6 caracteres" }, 400);
+  // Mismo criterio que Supabase Auth (Sign In / Providers → Email).
+  if (password && (password.length < 10 || !/[a-zA-Z]/.test(password) || !/\d/.test(password))) {
+    return json({ error: "La contraseña debe tener al menos 10 caracteres, con letras y números" }, 400);
+  }
 
   // Cliente con el JWT de quien llama -- para saber quién es y si de
   // verdad tiene el permiso, nunca confiar en el cliente sobre sí mismo.
