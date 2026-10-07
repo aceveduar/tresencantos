@@ -279,6 +279,15 @@ function _cardTap(e, id) {
   }
 }
 
+// Lista por defecto (2026-10-07). En celular se reinicia UNA vez a Lista a
+// quien tenía Cuadrícula guardada; después se respeta lo que elija en
+// "Ordenar y ver".
+try {
+  if (window.innerWidth <= 640 && !localStorage.getItem('te_admin_view_reset_20261007')) {
+    localStorage.setItem('te_admin_view', 'list');
+    localStorage.setItem('te_admin_view_reset_20261007', '1');
+  }
+} catch {}
 let currentAdminView = localStorage.getItem('te_admin_view') || 'list';
 
 function setAdminView(view) {

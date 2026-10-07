@@ -1119,12 +1119,8 @@ input.row-check{cursor:pointer;width:16px;height:16px;accent-color:var(--gold)}
   .tb-filter-row .pend-clear{display:none!important} /* en celular se quita desde el menú ("Quitar filtro") */
   .toolbar .tb-filter-row #cat-filter-btn{min-width:0}
   .tb-filter-row .pend-btn{min-height:42px;min-width:0;max-width:100%}
-  /* Lista/Cuadrícula: un solo botón que muestra la OTRA vista y cambia con un
-     toque (patrón Google Drive). Estuvo escondido en la hoja de Ordenar y no
-     se encontraba (2026-10-07). Vive junto a Escanear (ver _placePendWrap). */
-  .toolbar .view-toggle{padding:0;background:none;gap:0;flex-shrink:0}
-  .toolbar .view-toggle .view-btn.active{display:none}
-  .toolbar .view-toggle .view-btn{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface-soft);color:var(--charcoal);font-size:1.1rem}
+  /* Lista/Cuadrícula se elige en "Ordenar y ver" (botón ⇅); por defecto Lista */
+  .tb-filter-row .view-toggle{display:none}
   /* Filtros en celular: Categoría a lo ancho, Ordenar como botón de solo ícono
      (patrón Shopify móvil) -- con texto, ambos se cortaban ("Todas la…", "Edit…"). */
   .lbl-long{display:none}

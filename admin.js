@@ -339,9 +339,19 @@ function closeSortSheet() {
 function _renderSortSheetOptions() {
   const list = document.getElementById('sort-sheet-list');
   if (!list) return;
+  // En celular el selector Lista/Cuadrícula vive aquí ("Ordenar y ver") para
+  // que la fila de filtros quede limpia; la vista por defecto es Lista.
+  const viewSection = window.innerWidth <= 640
+    ? `<div class="bcp-group-label" style="padding:14px 16px 6px">Ver como</div><div style="padding:0 16px 16px"><div class="bcp-chips">${
+        [['list', 'Lista'], ['cards', 'Cuadrícula']].map(([v, l]) =>
+          `<button class="bcp-chip${currentAdminView === v ? ' selected' : ''}" onclick="setAdminView('${v}');closeSortSheet()">${l}</button>`).join('')
+      }</div></div>`
+    : '';
   list.innerHTML = `<div style="padding:10px 16px 16px"><div class="bcp-chips">${SORT_OPTIONS.map(o =>
     `<button class="bcp-chip${currentSort === o.value ? ' selected' : ''}" onclick="selectSortSheet('${o.value}')">${_esc(o.label)}</button>`
-  ).join('')}</div></div>`;
+  ).join('')}</div></div>` + viewSection;
+  const title = document.querySelector('#sort-sheet .cat-sheet-title');
+  if (title) title.textContent = viewSection ? 'Ordenar y ver' : 'Ordenar por';
 }
 
 function selectSortSheet(value) {
