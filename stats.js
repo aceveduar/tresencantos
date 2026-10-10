@@ -1835,8 +1835,17 @@ let _turnos = [];
 
 // Historial real de apertura/cierre de caja (cash_shifts) -- reemplaza el
 // "turno" que antes solo vivía en localStorage y nunca era visible aquí.
+// config.turnos_desde (2026-10-10): los turnos de la etapa de aprendizaje no
+// cuentan. Entran los abiertos desde esa fecha, los que siguen en curso y
+// los cerrados con conteo desde esa fecha (el que venía de la noche
+// anterior). Sin la fila, se ven todos como antes.
+let _turnosDesde = null;
 async function loadTurnos() {
-  const r = await _fetchAll(`cash_shifts?select=id,user_email,opened_at,closed_at,fondo_inicial,conteo_final,gastos_total,retiros_total,efectivo_otras_cuentas,esperado,diferencia,status&order=opened_at.desc&limit=60`);
+  const cfg = await api('config?id=eq.turnos_desde&select=value');
+  _turnosDesde = cfg.ok && cfg.data?.[0]?.value ? cfg.data[0].value : null;
+  const d = _turnosDesde ? encodeURIComponent(_turnosDesde) : null;
+  const filtro = d ? `&or=(opened_at.gte.${d},status.eq.abierto,and(status.eq.cerrado,closed_at.gte.${d}))` : '';
+  const r = await _fetchAll(`cash_shifts?select=id,user_email,opened_at,closed_at,fondo_inicial,conteo_final,gastos_total,retiros_total,efectivo_otras_cuentas,esperado,diferencia,status${filtro}&order=opened_at.desc&limit=60`);
   turnosLoaded = r.ok;
   _turnos = r.ok ? (r.data || []) : [];
 }
@@ -1856,14 +1865,18 @@ function renderTurnos() {
     body.innerHTML = '<p class="no-data">No disponible</p>';
     return;
   }
+  const desdeTxt = _turnosDesde
+    ? new Intl.DateTimeFormat('es-MX', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'short' }).format(new Date(_turnosDesde))
+    : '';
   if (!_turnos.length) {
-    label.textContent = '';
+    label.textContent = desdeTxt ? `Desde el ${desdeTxt}` : '';
     body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:.84rem">Aún no hay turnos registrados</div>';
     return;
   }
   const abiertos = _turnos.filter(t => t.status === 'abierto').length;
   const grandes = _turnos.filter(t => t.diferencia != null && Math.abs(Number(t.diferencia)) >= _DIFF_ALERTA_MONTO).length;
   label.textContent = [
+    desdeTxt ? `Desde el ${desdeTxt}` : '',
     abiertos ? `${abiertos} en curso` : `Últimos ${_turnos.length}`,
     grandes ? `${grandes} con diferencia grande` : ''
   ].filter(Boolean).join(' · ');
