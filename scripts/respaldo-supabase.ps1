@@ -28,21 +28,45 @@ function Write-Log($msg) {
   Add-Content -Path $Log -Value $line -Encoding UTF8
 }
 
+# El CLI devuelve {"boundary","rows":[...]} cuando detecta que lo corre un
+# agente (Claude Code) y un arreglo simple [...] en cualquier otro caso (la
+# tarea programada). Hasta 2026-10-10 solo se entendía el primero: cada noche
+# salía un zip vacío sin que nadie lo notara. Esto acepta los dos.
+function Get-CliRows($obj) {
+  if ($null -eq $obj) { return $null }
+  if ($obj -is [array]) { return ,$obj }
+  if ($obj.PSObject.Properties.Name -contains 'rows') { return ,@($obj.rows) }
+  return $null
+}
+
 # Ejecuta una consulta y guarda las filas como JSON. Devuelve el número de
 # filas, o -1 si falló.
 function Export-Query($sql, $file) {
   $raw = & supabase db query --linked --workdir $Repo $sql -o json 2>$null | Out-String
   try {
-    $obj = $raw | ConvertFrom-Json
-    if ($null -eq $obj.rows) { throw 'sin rows' }
-    # Se guarda la salida del CLI tal cual ({"rows":[...]}): re-serializar con
+    $rows = Get-CliRows ($raw | ConvertFrom-Json)
+    if ($null -eq $rows) { throw 'sin rows' }
+    # Se guarda la salida del CLI tal cual ([...] o {"rows":[...]}): re-serializar con
     # ConvertTo-Json de PowerShell 5.1 deforma arreglos de un elemento y fechas.
     [System.IO.File]::WriteAllText((Join-Path $Tmp $file), $raw, (New-Object System.Text.UTF8Encoding $false))
-    return @($obj.rows).Count
+    return @($rows).Count
   } catch {
     Write-Log "ERROR exportando $file : $($raw.Substring(0, [Math]::Min(300, $raw.Length)))"
     return -1
   }
+}
+
+# Deja el resultado en config.ultimo_respaldo para que Configuración → Datos
+# lo muestre (solo superadmin). Sin esto un respaldo podía fallar semanas sin
+# que nadie se enterara: solo quedaba en respaldo.log de esta PC.
+function Save-Status([bool]$ok, [double]$mb, [int]$nTablas, [int]$nErrores) {
+  # El JSON se arma en SQL: PowerShell 5.1 deforma las comillas dobles al
+  # pasarle argumentos a un programa externo.
+  $okS = if ($ok) { 'true' } else { 'false' }
+  $mbS = $mb.ToString('0.0', [System.Globalization.CultureInfo]::InvariantCulture)
+  $pc  = ($env:COMPUTERNAME -replace "[^A-Za-z0-9_-]", '')
+  $sql = "insert into public.config (id, value) select 'ultimo_respaldo', jsonb_build_object('at', now(), 'ok', $okS, 'mb', $mbS, 'tablas', $nTablas, 'errores', $nErrores, 'equipo', '$pc')::text on conflict (id) do update set value = excluded.value"
+  & supabase db query --linked --workdir $Repo $sql 2>$null | Out-Null
 }
 
 Write-Log "Inicio respaldo $Stamp"
@@ -51,8 +75,8 @@ $errores = 0
 # 1. Datos: todas las tablas de public (la lista se lee de la base, así una
 #    tabla nueva entra sola al respaldo).
 $tablasRaw = & supabase db query --linked --workdir $Repo "select table_name from information_schema.tables where table_schema='public' and table_type='BASE TABLE' order by 1" -o json 2>$null | Out-String
-$tablas = @(($tablasRaw | ConvertFrom-Json).rows | ForEach-Object { $_.table_name })
-if ($tablas.Count -eq 0) { Write-Log 'ERROR: no se pudo leer la lista de tablas (¿sesión del CLI vencida? correr: supabase login)'; exit 1 }
+$tablas = @((Get-CliRows ($tablasRaw | ConvertFrom-Json)) | ForEach-Object { $_.table_name } | Where-Object { $_ })
+if ($tablas.Count -eq 0) { Write-Log 'ERROR: no se pudo leer la lista de tablas (¿sesión del CLI vencida? correr: supabase login)'; Save-Status $false 0 0 1; exit 1 }
 
 $resumen = @()
 foreach ($t in $tablas) {
@@ -88,7 +112,7 @@ Filas por tabla
 $($resumen -join "`r`n")
 
 Cómo restaurar una tabla (en el SQL Editor de Supabase o con el CLI),
-pegando el arreglo "rows" del JSON entre las comillas `$`$:
+pegando el arreglo de filas del JSON (todo el archivo, o su "rows" si lo trae) entre las comillas `$`$:
   insert into public.<tabla>
   select * from json_populate_recordset(null::public.<tabla>, `$`$[...]`$`$)
   on conflict (id) do nothing;
@@ -105,9 +129,12 @@ Compress-Archive -Path (Join-Path $Tmp '*') -DestinationPath $zip -Force
 Remove-Item -Recurse -Force $Tmp
 Get-ChildItem $Destino -Filter 'TresEncantos_*.zip' | Sort-Object Name -Descending | Select-Object -Skip $Conservar | Remove-Item -Force
 
-$tam = '{0:N1} MB' -f ((Get-Item $zip).Length / 1MB)
+$mb  = (Get-Item $zip).Length / 1MB
+$tam = '{0:N1} MB' -f $mb
 if ($errores -gt 0) {
   Write-Log "TERMINÓ CON $errores ERROR(ES): $zip ($tam) -- revisar líneas ERROR arriba"
+  Save-Status $false $mb $tablas.Count $errores
   exit 2
 }
 Write-Log "OK: $zip ($tam), $($tablas.Count) tablas"
+Save-Status $true $mb $tablas.Count 0

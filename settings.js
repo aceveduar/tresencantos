@@ -326,6 +326,32 @@ async function _refreshClientErrorsTag() {
   const n = r.data.length;
   tag.innerHTML = n ? ` — <strong>${n} distinto${n !== 1 ? 's' : ''}</strong>` : ' — sin errores';
 }
+/* ── RESPALDO AUTOMÁTICO (config.ultimo_respaldo, lo escribe
+   scripts/respaldo-supabase.ps1 cada noche en la PC de Eduardo) ──
+   Antes, si el respaldo fallaba solo quedaba en un log de esa PC: estuvo
+   guardando zips vacíos del 2 al 10 de octubre sin que nadie lo notara. */
+async function _refreshAutoBackup() {
+  const desc = document.getElementById('auto-backup-desc');
+  if (!desc) return;
+  const r = await api('config?id=eq.ultimo_respaldo&select=value');
+  let st = null;
+  try { st = r.ok && r.data?.[0]?.value ? JSON.parse(r.data[0].value) : null; } catch {}
+  if (!st?.at) {
+    desc.innerHTML = '<strong style="color:var(--red)">Sin registro todavía.</strong> Se anota la primera vez que corra el respaldo nocturno (9:30 p. m.).';
+    return;
+  }
+  const at = new Date(st.at);
+  const horas = (Date.now() - at.getTime()) / 3600000;
+  const cuando = at.toLocaleString('es-MX', { timeZone: 'America/Mexico_City', weekday: 'long', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+  if (!st.ok) {
+    desc.innerHTML = `<strong style="color:var(--red)">Falló el ${escH(cuando)}</strong> (${Number(st.errores) || 0} error${st.errores == 1 ? '' : 'es'}). Revisa respaldo.log en la PC de los respaldos.`;
+  } else if (horas > 50) {
+    desc.innerHTML = `<strong style="color:var(--red)">El último respaldo fue el ${escH(cuando)}.</strong> La PC de los respaldos no lo ha hecho desde entonces (¿apagada?).`;
+  } else {
+    desc.textContent = `Último: ${cuando} · ${Number(st.mb || 0).toFixed(1)} MB, ${Number(st.tablas) || 0} tablas. Se hace cada noche.`;
+  }
+}
+
 async function openClientErrors() {
   document.getElementById('client-errors-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -1845,6 +1871,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (row) row.style.display = '';
     const errRow = document.getElementById('scard-client-errors');
     if (errRow) { errRow.style.display = ''; _refreshClientErrorsTag(); }
+    const bkRow = document.getElementById('scard-auto-backup');
+    if (bkRow) { bkRow.style.display = ''; _refreshAutoBackup(); }
   }
   // Mostrar conteo de duplicados desde última revisión en Inventario
   const dupCount = parseInt(localStorage.getItem('te_dup_last_count') || '0');

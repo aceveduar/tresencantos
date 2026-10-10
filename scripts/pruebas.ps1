@@ -13,8 +13,14 @@ if ($raw -match 'PRUEBA FALL[^"]*') {
   Write-Host "FALLÓ: $($Matches[0])" -ForegroundColor Red
   exit 1
 }
-$i = $raw.IndexOf('{')
-try { $rows = ($raw.Substring([Math]::Max($i, 0)) | ConvertFrom-Json).rows } catch { $rows = $null }
+# El CLI responde {"rows":[...]} si lo corre un agente y [...] si lo corre una
+# persona: se aceptan los dos (antes solo el primero y en la terminal de
+# Eduardo siempre decía "No se pudieron correr las pruebas").
+$m = [regex]::Match($raw, '(?m)^[\[{]')
+try {
+  $obj = $raw.Substring([Math]::Max($m.Index, 0)) | ConvertFrom-Json
+  $rows = if ($obj -is [array]) { $obj } else { $obj.rows }
+} catch { $rows = $null }
 if (-not $rows) {
   Write-Host 'No se pudieron correr las pruebas (¿sesión del CLI vencida? correr: supabase login)' -ForegroundColor Red
   Write-Host $raw.Substring(0, [Math]::Min(500, $raw.Length))

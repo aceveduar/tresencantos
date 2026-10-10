@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación vigente del proyecto. Última reconciliación: 2026-10-10 · `sw.js` `CACHE_VERSION = 'v620'`.
+Documentación vigente del proyecto. Última reconciliación: 2026-10-10 · `sw.js` `CACHE_VERSION = 'v621'`.
 
 > **Fuente de verdad:** para comportamiento ejecutable manda el código; para reglas de negocio y decisiones UX manda este documento.
 > **Historial completo** (bitácora fecha por fecha, razonamiento detrás de cada decisión, bugs resueltos): [assets/HISTORIAL.md](assets/HISTORIAL.md). No se carga solo — consultarlo con grep cuando haga falta el "por qué" de algo. Este archivo solo describe el estado actual.
@@ -112,6 +112,7 @@ Permisos (`UP_PERMS`/`UP_ROLE_DEFAULTS`, `shared.js`): `canAddProduct canEditPro
 - **Límites por conteo en `activity_log` (PIN, login fallido): nunca registrar el intento y luego `RAISE`** — la excepción revierte el registro y el contador queda en 0 para siempre (pasó con el PIN hasta 2026-10-06). Registrar y regresar `{ok:false, message}`.
 - **`activity_log`**: un trigger fija `user_email` y `created_at` desde el JWT en inserts directos (no se puede escribir a nombre de otra persona ni con fecha falsa).
 - Auxiliares internas sin EXECUTE para `authenticated`: `te_refund_sale_balance`, `te_rpc_store`, `te_rpc_replay`, `te_snapshot_sale_items`, `te_consume_override`, `te_log_activity` (antes una cajera podía registrar devoluciones falsas llamando la primera directo).
+- **Eliminar producto** (`te_delete_products`): Actividad guarda nombre en el resumen y en `meta.products` una foto de cada producto borrado (nombre, precio, costo, stock, categoría, código, imagen). Antes solo el id ("Eliminó 1 producto").
 - **`product_changes`** (caja negra): trigger que registra todo cambio manual de precio/costo/stock/agotado/publicado/archivado/nombre (quién, cuándo, antes→después). Excluye las RPC de venta (`rpc_v2`). Solo lectura superadmin. Se decidió esto en vez de bloquear precio/stock por permiso fino (los operadores tienen `canEditProduct` por defecto y precio/costo cambian desde 3 permisos distintos).
 - Políticas RLS escritas `TO anon`/`TO authenticated` (no `auth.role() = …` en `TO public`) y `get_user_role()` dentro de `(select …)`.
 - Toda función nueva nace sin EXECUTE para anon/PUBLIC (default privileges); dar `GRANT EXECUTE … TO authenticated` explícito. Helpers internos (llamados solo por otras SECURITY DEFINER) no se dan a `authenticated`.
@@ -124,7 +125,7 @@ Permisos (`UP_PERMS`/`UP_ROLE_DEFAULTS`, `shared.js`): `canAddProduct canEditPro
 - Cambiar la firma de una RPC: `DROP FUNCTION` de la firma vieja antes de crear la nueva — si no, quedan overloads y PostgREST/SQL dan "is not unique". Hoy no hay ninguna función duplicada (limpiado 2026-09-30).
 
 ### Respaldos
-Supabase no tiene backups en este plan (sin PITR, lista vacía). `scripts/respaldo-supabase.ps1` exporta todas las tablas de `public` (JSON), el esquema (funciones, políticas, triggers, columnas, permisos) y `auth.users` sin contraseñas, a `Documents\TresEncantos-Respaldos\TresEncantos_<fecha>.zip` (conserva 30; bitácora en `respaldo.log`). Tarea programada de Windows "TresEncantos - Respaldo Supabase", diaria 21:30 (corre al encender si estaba apagada). Usa la sesión del CLI: si falla con error de sesión, `supabase login`. Cómo restaurar: `LEEME.txt` dentro de cada zip.
+Supabase no tiene backups en este plan (sin PITR, lista vacía). `scripts/respaldo-supabase.ps1` exporta todas las tablas de `public` (JSON), el esquema (funciones, políticas, triggers, columnas, permisos) y `auth.users` sin contraseñas, a `Documents\TresEncantos-Respaldos\TresEncantos_<fecha>.zip` (conserva 30; bitácora en `respaldo.log`). Tarea programada de Windows "TresEncantos - Respaldo Supabase", diaria 21:30 (corre al encender si estaba apagada). Usa la sesión del CLI: si falla con error de sesión, `supabase login`. Cómo restaurar: `LEEME.txt` dentro de cada zip. Al terminar escribe `config.ultimo_respaldo` (`{at, ok, mb, tablas, errores}`), que Configuración → Datos muestra a superadmin (en rojo si falló o tiene >50 h). **El CLI responde `{"rows":[...]}` cuando lo corre un agente y `[...]` cuando lo corre una persona o la tarea programada**: los scripts aceptan los dos (`Get-CliRows`). Hasta el 2026-10-10 solo se entendía el primero y del 2 al 10 de octubre cada noche se guardó un zip vacío sin que nadie lo notara.
 
 ### Pruebas y errores
 - **Pruebas automáticas:** `powershell -ExecutionPolicy Bypass -File scripts\pruebas.ps1` corre `scripts/pruebas/caja.sql` contra la base real dentro de `BEGIN … ROLLBACK` (venta, apartado + abono, cancelación, gastos/ingresos/retiros, cierre de turno, y los candados de seguridad). Correrlo antes de publicar cualquier cambio que toque dinero, stock, turnos o permisos; al agregar una regla de negocio nueva, agregarle su verificación ahí. Usa las cuentas `test@` (cajera) y `ofe@` (cancela).
