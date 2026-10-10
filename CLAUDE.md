@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación vigente del proyecto. Última reconciliación: 2026-10-10 · `sw.js` `CACHE_VERSION = 'v622'`.
+Documentación vigente del proyecto. Última reconciliación: 2026-10-10 · `sw.js` `CACHE_VERSION = 'v623'`.
 
 > **Fuente de verdad:** para comportamiento ejecutable manda el código; para reglas de negocio y decisiones UX manda este documento.
 > **Historial completo** (bitácora fecha por fecha, razonamiento detrás de cada decisión, bugs resueltos): [assets/HISTORIAL.md](assets/HISTORIAL.md). No se carga solo — consultarlo con grep cuando haga falta el "por qué" de algo. Este archivo solo describe el estado actual.
@@ -81,7 +81,7 @@ Otros: `supabase/migrations/` (SQL versionado) · `supabase/functions/create-use
 - **`activity_log`** (`action`, `user_email`, `summary`, `meta`), **`pos_rpc_requests`** (idempotencia, privada), **`permission_overrides`** + **`user_pins`** (PIN de gerente), **`recently_edited`**, **`usage_log`**.
 
 ### Reglas de datos
-- **Stock:** marcar disponible con stock=0 → stock=1. Vender hasta 0 → `out_of_stock=true`.
+- **Disponibilidad la calcula la base** (trigger `te_products_stock_sync`, 2026-10-10) desde el stock y los apartados activos, en todo INSERT/UPDATE: stock>0 → disponible; stock 0 + apartado activo → `is_apartado` (Tienda "📌 Apartado"); stock 0 sin apartar → agotado; archivado → agotado. Marcar a mano "Agotado" con piezas → stock 0; "Disponible" con 0 → stock 1. No escribir `out_of_stock`/`is_apartado` esperando que se queden distintos: el trigger los recalcula. (Antes se contradecían: "apartado" con piezas libres, disponible con 0 piezas.)
 - **Kits:** `stock=0` y `out_of_stock=false` siempre en BD; disponibilidad = `min(floor(comp.stock/comp.qty))`. Vender/cancelar descuenta/restaura componentes.
 - **Tienda muestra** `is_published=true AND category≠por_revisar AND (out_of_stock=false OR is_apartado=true)`.
 - **Archivar** (`is_archived=true` + oculto + agotado) es el borrado reversible preferido; nunca borrado real masivo (un producto puede ser componente vivo de un kit).

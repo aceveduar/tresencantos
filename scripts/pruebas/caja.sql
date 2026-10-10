@@ -256,6 +256,22 @@ BEGIN
     RAISE EXCEPTION 'PRUEBA FALLÓ: la caja negra registró cambios de una venta por RPC';
   END IF;
   INSERT INTO _ok(prueba) VALUES ('Caja negra ignora las ventas por RPC');
+
+  -- Disponibilidad calculada por la base (2026-10-10). El producto de prueba
+  -- está en el apartado activo de arriba.
+  UPDATE public.products SET stock = 0 WHERE id = pid;
+  IF (SELECT NOT is_apartado OR out_of_stock FROM public.products WHERE id = pid) THEN
+    RAISE EXCEPTION 'PRUEBA FALLÓ: con 0 piezas y apartado activo debía quedar "apartado" (no agotado)';
+  END IF;
+  UPDATE public.products SET stock = 2 WHERE id = pid;
+  IF (SELECT is_apartado OR out_of_stock FROM public.products WHERE id = pid) THEN
+    RAISE EXCEPTION 'PRUEBA FALLÓ: con piezas libres no debía quedar apartado ni agotado';
+  END IF;
+  UPDATE public.products SET out_of_stock = true WHERE id = pid;
+  IF (SELECT stock FROM public.products WHERE id = pid) <> 0 THEN
+    RAISE EXCEPTION 'PRUEBA FALLÓ: marcar agotado a mano debía dejar 0 piezas';
+  END IF;
+  INSERT INTO _ok(prueba) VALUES ('Disponibilidad: apartado, agotado y piezas no se contradicen');
 END $$;
 
 -- ── Candados de la auditoría 2026-10-06 (cajera sin canDeleteProduct) ─────

@@ -441,7 +441,9 @@ async function bulkToggleOOS() {
     }
   }
 
-  selected.forEach(p => { p.outOfStock = newVal; });
+  // Agotado = 0 piezas: la base lo aplica sola (te_products_stock_sync), aquí
+  // solo se refleja para no mostrar "3 pzas · Agotado" hasta recargar.
+  selected.forEach(p => { p.outOfStock = newVal; if (newVal) p.stock = 0; });
   renderTable();
   renderStats();
   logActivity('producto_editado', `Marcó ${selected.length} producto(s) como ${newVal ? 'agotados' : 'disponibles'} (masivo)`, { ids: selected.map(p => p.id), names: selected.map(p => p.name), count: selected.length, outOfStock: newVal, bulk: true });
