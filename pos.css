@@ -221,6 +221,11 @@ button,a{touch-action:manipulation}
    z-index:1300 que .abonar-overlay) -- necesita quedar por encima de ambos
    casos (catálogo normal y editar apartado) sin importar desde cuál se abra. */
 #pos-scanner-overlay{z-index:1600}
+/* "Abrir caja" puede reaparecer encima de cualquier cosa si el turno se cerró
+   en otro dispositivo (ver _posShiftLost en pos-core.js). */
+#open-shift-overlay{z-index:2000}
+.open-shift-notice{background:var(--surface-soft);border:1px solid var(--border);color:var(--charcoal);border-radius:10px;padding:10px 12px;font-size:.82rem;line-height:1.45;margin-bottom:14px}
+.open-shift-notice[hidden]{display:none}
 .scan-modal{background:#111;border-radius:16px;max-width:380px;width:100%;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.4)}
 .scan-head{padding:16px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.1)}
 .scan-head h3{color:#fff;font-size:1rem;font-family:'Playfair Display',serif}

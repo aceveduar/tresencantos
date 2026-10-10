@@ -537,6 +537,7 @@ function _posDailyStorageKey(name, date = null) {
 let _currentShift = null;
 let _shiftGateResolve = null;
 let _shiftGateWired = false;
+let _shiftGateNotice = '';
 
 function _posShiftScopedKey(name) {
   const id = _currentShift?.id ?? 'sin_turno';
@@ -602,6 +603,11 @@ async function _posShiftGateAttempt() {
   }
   if (checking) checking.style.display = 'none';
   if (form) form.style.display = '';
+  const notice = document.getElementById('open-shift-notice');
+  if (notice) {
+    notice.textContent = _shiftGateNotice;
+    notice.hidden = !_shiftGateNotice;
+  }
   fondoIn?.focus();
 
   // Sugerir el fondo en cuanto se resuelva -- no bloquea mostrar el
@@ -655,7 +661,14 @@ function _posWireShiftGateButtons() {
       return;
     }
     _currentShift = r.data;
+    _shiftGateNotice = '';
     document.getElementById('open-shift-overlay')?.classList.remove('open');
+    // La misma cuenta ya tenía caja abierta hoy (otro dispositivo): el
+    // servidor regresa ese turno en vez de cerrarlo y abrir otro.
+    if (r.data.reused) {
+      const hora = _posFormatTimestamp(r.data.opened_at, { hour: 'numeric', minute: '2-digit' });
+      toast(`Ya tenías la caja abierta desde las ${hora}; sigues en el mismo turno.`, 'ok');
+    }
     _posCheckShiftReminder();
     const resolve = _shiftGateResolve;
     _shiftGateResolve = null;
@@ -673,6 +686,41 @@ function _posShiftGateInit() {
     _posShiftGateAttempt();
   });
 }
+
+/* Turno con varios dispositivos (2026-10-10): la misma cuenta puede tener
+   Caja abierta en la tablet y en su celular. Si el turno se cierra en uno,
+   el otro se entera (a) al volver a estar a la vista, (b) al abrir el Corte
+   o (c) al intentar cobrar -- el servidor rechaza cobros sin caja abierta
+   (te_assert_open_shift, HINT 'shift_closed'). En los tres casos se vuelve
+   a pedir "Abrir caja" en vez de seguir con un turno que ya no existe. */
+function _posShiftLost(message = 'Tu caja se cerró en otro dispositivo. Ábrela de nuevo para seguir cobrando.') {
+  if (_shiftGateResolve) return; // "Abrir caja" ya está a la vista
+  _currentShift = null;
+  _shiftGateNotice = message;
+  document.getElementById('shift-reminder-banner')?.classList.remove('show');
+  if (typeof closeCorte === 'function' && document.getElementById('corte-offcanvas')?.classList.contains('open')) closeCorte();
+  _posShiftGateInit();
+}
+
+// Revisa contra el servidor que el turno siga abierto (y sea el mismo).
+// Sin conexión no cambia nada: no se bloquea Caja por una red inestable.
+async function _posRecheckShift() {
+  if (!_currentShift || _shiftGateResolve) return;
+  const { ok, shift } = await _posFetchOpenShift();
+  if (!ok) return;
+  if (!shift) { _posShiftLost(); return; }
+  if (shift.id !== _currentShift.id) {
+    _currentShift = shift;
+    _posCheckShiftReminder();
+  }
+}
+
+let _posHiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { _posHiddenAt = Date.now(); return; }
+  if (_posHiddenAt && Date.now() - _posHiddenAt > 30000) _posRecheckShift();
+  _posHiddenAt = 0;
+});
 
 // Recordatorio de fin de turno (2026-09-04) -- abrir caja es obligatorio,
 // pero cerrarla depende de que alguien se acuerde de dar clic; sin este
@@ -834,6 +882,7 @@ async function posRpc(path, { operation, context = 'global', fingerprint = '', b
     // PostgreSQL usa 40001 para avisar que la versión leída por la caja ya
     // cambió. PostgREST puede exponerlo como HTTP 500, pero la transacción hizo
     // rollback: es un conflicto definitivo, no una respuesta ambigua.
+    if (result?.data?.hint === 'shift_closed') setTimeout(() => _posShiftLost(), 0);
     const staleConflict = result?.data?.code === '40001';
     if (result.ok || staleConflict || (result.status >= 400 && result.status < 500 && ![408, 429].includes(result.status))) {
       _posRpcRequestDone(request.key);

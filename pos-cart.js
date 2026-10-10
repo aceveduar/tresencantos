@@ -436,6 +436,10 @@ function setCorteMode(mode) {
 }
 
 async function openCorte() {
+  // Si el turno se cerró en otro dispositivo, no mostrar el corte de un turno
+  // que ya no existe: _posRecheckShift() pide "Abrir caja".
+  await _posRecheckShift();
+  if (!_currentShift) return;
   document.getElementById('corte-offcanvas').classList.add('open');
   document.getElementById('corte-backdrop').style.display = 'block';
   document.body.style.overflow = 'hidden';

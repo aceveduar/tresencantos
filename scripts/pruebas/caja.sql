@@ -58,6 +58,14 @@ END $$;
 SELECT set_config('request.jwt.claims', '{"sub":"585d4e5a-cc26-4a90-9f1a-f6ac8bec2d0e","email":"test@tresencantos.com","role":"authenticated"}', true);
 SELECT set_config('role', 'authenticated', true);
 INSERT INTO _ctx SELECT 'shift', (public.te_open_cash_shift(p_fondo_inicial => 100)) ->> 'id';
+-- Abrir otra vez el mismo día (otro dispositivo) reutiliza el turno, no lo cierra.
+DO $$ DECLARE j jsonb; BEGIN
+  j := public.te_open_cash_shift(p_fondo_inicial => 999);
+  IF (j ->> 'id') <> (SELECT v FROM _ctx WHERE k = 'shift') OR NOT coalesce((j ->> 'reused')::boolean, false) THEN
+    RAISE EXCEPTION 'PRUEBA FALLÓ: abrir caja con un turno abierto hoy debía reutilizarlo (%)', j;
+  END IF;
+  INSERT INTO _ok(prueba) VALUES ('Abrir caja dos veces el mismo día reutiliza el turno');
+END $$;
 
 -- 1. Venta en efectivo de 1 pieza
 INSERT INTO _ctx
@@ -109,6 +117,8 @@ SELECT public.cancel_sale_atomic(
   p_request_id => gen_random_uuid(), p_sale_id => (SELECT v::bigint FROM _ctx WHERE k='venta'), p_reason => 'prueba automática',
   p_expected_version => (SELECT version FROM public.sales WHERE id = (SELECT v::bigint FROM _ctx WHERE k='venta')));
 
+-- ── Superadmin: abre su caja (cobrar exige turno abierto de quien captura) ──
+SELECT public.te_open_cash_shift(p_fondo_inicial => 0);
 -- ── Superadmin: abona $50 al apartado de libreta, corrige el saldo, y lo cancela ──
 SELECT public.record_apartado_payment_atomic(
   p_request_id => gen_random_uuid(), p_sale_id => (SELECT v::bigint FROM _ctx WHERE k='libreta'),
@@ -149,6 +159,20 @@ SELECT public.reactivate_apartado_atomic(
 SELECT set_config('request.jwt.claims', '{"sub":"585d4e5a-cc26-4a90-9f1a-f6ac8bec2d0e","email":"test@tresencantos.com","role":"authenticated"}', true);
 INSERT INTO _ctx
 SELECT 'cierre', public.te_close_cash_shift(p_conteo_final => 100 + (SELECT v::numeric FROM _ctx WHERE k='price') + 5 + 2 - 6 - 20)::text;
+
+-- Con la caja ya cerrada, otro dispositivo de la cajera no puede seguir cobrando.
+DO $$ BEGIN
+  BEGIN
+    PERFORM public.record_apartado_payment_atomic(
+      p_request_id => gen_random_uuid(), p_sale_id => (SELECT v::bigint FROM _ctx WHERE k='apartado'),
+      p_method => 'efectivo', p_amount => 1,
+      p_expected_version => (SELECT version FROM public.sales WHERE id = (SELECT v::bigint FROM _ctx WHERE k='apartado')));
+    RAISE EXCEPTION 'PRUEBA FALLÓ: se pudo cobrar con la caja cerrada';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM LIKE 'PRUEBA FALLÓ%' THEN RAISE; END IF;
+  END;
+  INSERT INTO _ok(prueba) VALUES ('Con la caja cerrada no se puede cobrar');
+END $$;
 
 -- ── Verificaciones (como postgres, para leer todo) ───────────────────────
 SELECT set_config('role', 'postgres', true);
