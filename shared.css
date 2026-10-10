@@ -252,7 +252,7 @@ a{text-decoration:none}
 .notif-item-chevron{flex-shrink:0;color:var(--muted);transition:transform .2s}
 .notif-item-expandable.open .notif-item-chevron{transform:rotate(180deg)}
 .notif-item-body{display:block;max-height:0;overflow:hidden;opacity:0;font-weight:400!important;color:var(--muted);transition:max-height .25s ease,opacity .2s,margin-top .25s ease}
-.notif-item-expandable.open .notif-item-body{max-height:220px;opacity:1;margin-top:5px}
+.notif-item-expandable.open .notif-item-body{max-height:800px;opacity:1;margin-top:5px}
 /* Diálogo propio (teDialog en shared.js) en lugar de alert()/confirm() */
 .te-dialog-backdrop{position:fixed;inset:0;z-index:10500;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.5);animation:teDialogFade .15s ease-out}
 .te-dialog{width:100%;max-width:360px;background:var(--surface);color:var(--charcoal);border-radius:18px;padding:22px 20px 18px;box-shadow:0 12px 48px rgba(0,0,0,.3);animation:teDialogIn .18s ease-out}

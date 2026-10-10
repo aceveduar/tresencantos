@@ -195,6 +195,15 @@ function _themeToggleRowHtml() {
       title: 'En Inventario, en el celular, busca el botón + de abajo',
       text: 'Ahí se juntaron: Producto nuevo, Captura rápida, Kit/Bundle, Recibir mercancía y Recepción con IA — antes estaban repartidos en varios botones distintos. Escanear código de barras sigue en su lugar de siempre, junto al buscador.',
       until: '2026-10-03' },
+    { id: 'caja-libreta-2026-10', icon: 'book',
+      title: 'Nuevo en Caja: pasar los apartados de la libreta',
+      text: 'En <b>Apartados</b> toca el botón <b>Libreta</b>.<br>'
+        + '1. Escribe el nombre como viene en la libreta (el teléfono es opcional y sirve para mandarle su saldo).<br>'
+        + '2. Si la libreta trae el total, escríbelo y agrega cada abono con <b>+ Anotar abono</b>: junto a cada uno ves cuánto quedaba, para comparar. Si solo sabes cuánto debe, toca <b>Solo sé cuánto debe</b>.<br>'
+        + '3. Si quieres, anota qué apartó y la fecha, y tómale foto a la página.<br>'
+        + '4. Toca <b>Guardar</b>. La pantalla queda lista para la siguiente clienta.<br><br>'
+        + 'Lo que pagaron en la libreta cuenta para su saldo, pero no aparece en el corte ni en las ventas de hoy. Lo que paguen desde ahora se registra como cualquier abono. Si un monto quedó mal, abre su apartado y toca el lápiz para corregir lo que debe. Si te avisa que ya hay un apartado con ese nombre, revisa que no la estés pasando dos veces.',
+      until: '2026-10-31' },
   ];
 
   const _NOTIF_ICONS = {
@@ -206,6 +215,7 @@ function _themeToggleRowHtml() {
     lock:     '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
     flag:     '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>',
     wallet:   '<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>',
+    book:     '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M9 7h6"/><path d="M9 11h4"/>',
     info:     '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>'
   };
   function _notifIconSvg(name) {
