@@ -120,7 +120,7 @@ function logActivity(action, summary, meta = null) {
 /* ── INIT ── */
 async function init() {
   const [cfgR, catR, namesR, aiR, secretR] = await Promise.all([
-    api('config?id=in.(drive_ep,wa_float,captura_rapida,show_creator,show_restock,show_recv,show_recv_ia,user_permissions)&select=id,value'),
+    api('config?id=in.(drive_ep,wa_float,captura_rapida,show_creator,show_restock,show_recv,show_recv_ia,show_libreta,user_permissions)&select=id,value'),
     api('config?id=eq.categories&select=value'),
     api('config?id=eq.user_names&select=value'),
     api('rpc/te_ai_configured', { method: 'POST', body: '{}' }),
@@ -158,6 +158,10 @@ async function init() {
       if (row.id === 'show_restock') {
         const toggle = document.getElementById('show-restock-toggle');
         if (toggle) toggle.checked = row.value !== 'false';
+      }
+      if (row.id === 'show_libreta') {
+        const toggle = document.getElementById('show-libreta-toggle');
+        if (toggle) toggle.checked = row.value === 'true';
       }
       if (row.id === 'show_recv') {
         const toggle = document.getElementById('show-recv-toggle');
@@ -568,6 +572,17 @@ async function toggleShowRecvIa(enabled) {
   } else {
     toast(r.data?.message || 'Error al guardar', 'err');
     document.getElementById('show-recv-ia-toggle').checked = !enabled;
+  }
+}
+
+async function toggleShowLibreta(enabled) {
+  const r = await _saveConfigValue('show_libreta', String(enabled));
+  if (r.ok) {
+    logActivity('configuracion_editada', `${enabled ? 'Activó' : 'Desactivó'} Apartados de libreta`, { setting: 'show_libreta', value: enabled });
+    toast(enabled ? 'Apartados de libreta activados en Caja' : 'Apartados de libreta desactivados', 'ok');
+  } else {
+    toast(r.data?.message || 'Error al guardar', 'err');
+    document.getElementById('show-libreta-toggle').checked = !enabled;
   }
 }
 

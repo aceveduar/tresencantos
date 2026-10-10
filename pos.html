@@ -435,6 +435,96 @@
   </div>
 </div>
 
+<!-- PASAR DE LA LIBRETA — apartados que se llevaban en papel (pos-libreta.js).
+     Encabezado y pie fijos como Editar apartado; el pie siempre dice cuánto debe. -->
+<div class="abonar-overlay" id="libreta-overlay" style="display:none" onclick="if(event.target===this)closeLibreta()">
+  <div class="abonar-modal edit-apt-modal libreta-modal" role="dialog" aria-modal="true" aria-labelledby="lib-title" style="max-height:92vh">
+    <div class="eam-head">
+      <div class="lib-head-row">
+        <h3 id="lib-title">Pasar de la libreta</h3>
+        <button type="button" class="lib-close" onclick="closeLibreta()" aria-label="Cerrar">✕</button>
+      </div>
+      <p class="apt-info-lbl" id="lib-sub"></p>
+      <div class="lib-saved" id="lib-saved" role="status" hidden></div>
+    </div>
+    <div class="eam-body">
+      <div class="lib-step"><span class="lib-step-n">1</span>¿Quién es?</div>
+      <div class="edit-apt-fields">
+        <div class="cash-field edit-apt-field-wide">
+          <label for="lib-name">Nombre</label>
+          <input type="text" id="lib-name" maxlength="80" autocomplete="off" class="apt-input" placeholder="Como viene en la libreta" oninput="_libOnName()">
+        </div>
+        <div class="lib-dup edit-apt-field-wide" id="lib-dup" hidden></div>
+        <div class="cash-field edit-apt-field-wide">
+          <label for="lib-phone">Teléfono <span class="lib-opt">(opcional, para mandarle su saldo)</span></label>
+          <input type="tel" id="lib-phone" placeholder="10 dígitos" inputmode="numeric" maxlength="10" class="apt-input"
+            oninput="this.value=this.value.replace(/\D/g,'').slice(0,10);_libRecalc()">
+        </div>
+      </div>
+
+      <div class="lib-step"><span class="lib-step-n">2</span>La cuenta</div>
+      <div class="lib-mode" id="lib-mode-toggle" role="group" aria-label="Qué dice la libreta">
+        <button type="button" data-mode="total" onclick="setLibretaMode('total')">Tiene el total</button>
+        <button type="button" data-mode="debe" onclick="setLibretaMode('debe')">Solo sé cuánto debe</button>
+      </div>
+      <div id="lib-total-block" class="lib-ledger">
+        <label for="lib-total">Total del apartado</label>
+        <div class="money-field money-field-sm">
+          <span class="money-field-sign">$</span>
+          <input type="number" id="lib-total" min="0" step="any" placeholder="0" inputmode="decimal" oninput="_libRecalc()">
+        </div>
+        <div id="lib-abonos"></div>
+        <button type="button" class="lib-add-abono" onclick="addLibretaAbono()">+ Anotar abono</button>
+        <p class="lib-hint">Copia cada abono como está en la libreta. La fecha es opcional.</p>
+      </div>
+      <div id="lib-debe-block" hidden>
+        <label for="lib-debe" id="lib-debe-label">¿Cuánto debe?</label>
+        <div class="money-field money-field-sm">
+          <span class="money-field-sign">$</span>
+          <input type="number" id="lib-debe" min="0" step="any" placeholder="0" inputmode="decimal" oninput="_libRecalc()">
+        </div>
+        <p class="lib-hint" id="lib-edit-paid" hidden></p>
+      </div>
+
+      <div class="lib-step"><span class="lib-step-n">3</span>Detalles <span class="lib-opt">(opcional)</span></div>
+      <div class="edit-apt-fields">
+        <div class="cash-field edit-apt-field-wide">
+          <label for="lib-note">¿Qué apartó?</label>
+          <input type="text" id="lib-note" maxlength="300" autocomplete="off" class="apt-input" placeholder="Ej. bolsa café, perfume Ekos" oninput="_libRecalc()">
+        </div>
+        <div class="cash-field" id="lib-opened-wrap">
+          <label for="lib-opened">Fecha del apartado</label>
+          <input type="date" id="lib-opened" class="apt-input">
+          <p class="lib-hint">Si no viene en la libreta, déjala vacía.</p>
+        </div>
+        <div class="cash-field">
+          <label for="lib-due">Fecha límite para pagar</label>
+          <input type="date" id="lib-due" class="apt-input">
+        </div>
+        <div class="lib-photo edit-apt-field-wide" id="lib-photo-wrap">
+          <button type="button" class="lib-photo-btn" id="lib-photo-btn" onclick="document.getElementById('lib-photo-input').click()"></button>
+          <input type="file" id="lib-photo-input" accept="image/*" hidden onchange="_libPickPhoto(this)">
+          <div class="lib-photo-prev" id="lib-photo-prev" hidden></div>
+        </div>
+      </div>
+    </div>
+    <div class="edit-apt-foot">
+      <div class="lib-error" id="lib-error" role="alert"></div>
+      <div class="edit-apt-summary">
+        <div>
+          <div class="eas-sub">Le queda por pagar</div>
+          <div class="eas-total" id="lib-foot-total">$0</div>
+        </div>
+        <div class="lib-foot-detail" id="lib-foot-detail"></div>
+      </div>
+      <div class="abonar-footer">
+        <button class="btn-cancel" onclick="closeLibreta()">Cerrar</button>
+        <button class="btn-confirm" id="lib-save-btn" onclick="saveLibreta()" disabled>Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- RONDA DE COBRANZA — recordatorios a apartados vencidos, uno tras otro -->
 <div class="abonar-overlay" id="cobranza-overlay" style="display:none" onclick="if(event.target===this)closeCobranza()">
   <div class="abonar-modal" style="max-height:85vh;display:flex;flex-direction:column">
@@ -717,6 +807,7 @@
       <div class="history-oc-title" id="apt-oc-title"><svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Apartados pendientes</div>
       <div id="apt-oc-count" style="font-size:.74rem;color:var(--muted);margin-top:1px"></div>
     </div>
+    <button type="button" class="libreta-entry" hidden onclick="openLibreta()" aria-label="Pasar apartados de la libreta"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M9 7h6"/><path d="M9 11h4"/></svg><span>Libreta</span></button>
     <button type="button" class="history-oc-close" onclick="closeApartados()" aria-label="Cerrar apartados">✕</button>
   </div>
   <div style="padding:8px 12px 4px;border-bottom:1px solid var(--border)">
@@ -755,6 +846,7 @@
     <button type="button" class="apt-page-back" onclick="closeAptPage()" aria-label="Volver a Caja">← Caja</button>
     <span class="apt-page-title" id="apt-page-title"><svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Apartados</span>
     <span class="apt-page-count" id="apt-page-count"></span>
+    <button type="button" class="libreta-entry" hidden onclick="openLibreta()" aria-label="Pasar apartados de la libreta"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M9 7h6"/><path d="M9 11h4"/></svg><span>Pasar de la libreta</span></button>
     <div class="apt-view-toggle" id="apt-view-toggle-page" role="tablist" aria-label="Estado de los apartados" onkeydown="aptViewTabKeydown(event,'page')">
       <button type="button" class="active" role="tab" aria-selected="true" aria-controls="apt-page-list" data-mode="activos" onclick="selectAptView('activos','page')">Activos</button>
       <button type="button" role="tab" aria-selected="false" aria-controls="apt-page-list" tabindex="-1" data-mode="liquidados" onclick="selectAptView('liquidados','page')">Liquidados</button>
@@ -831,6 +923,7 @@
 <script src="pos-cart.js"></script>
 <script src="pos-ui.js"></script>
 <script src="pos-apartados.js"></script>
+<script src="pos-libreta.js"></script>
 <script src="pos-checkout.js"></script>
 <div class="pos-preview" id="pos-preview" onclick="closePosPreview()">
   <div class="pos-preview-inner" onclick="event.stopPropagation()">

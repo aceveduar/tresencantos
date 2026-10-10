@@ -42,6 +42,15 @@ Justo después de cobrar, en la ventana de confirmación, toca **Era apartado**.
 ### Abonos, liquidar, editar y cancelar apartados
 En **Apartados** busca a la clienta y abre su ficha para abonar, liquidar, editar productos/datos o cancelar. Después de cada pago el sistema ofrece enviarle el comprobante por WhatsApp; mándalo siempre, es su respaldo y el tuyo.
 
+### Pasar apartados de la libreta
+Para apartados que se anotaron en papel y no están en el sistema. En **Apartados** toca **Libreta** (en computadora: **Pasar de la libreta**).
+1. Escribe el **nombre** como viene en la libreta y, si lo tienes, su teléfono. Si ya hay un apartado con ese nombre, te avisa para que no la pases dos veces.
+2. **La cuenta:** si la libreta trae el total, escríbelo y toca **+ Anotar abono** por cada resta (Enter pasa al siguiente). Junto a cada abono ves cuánto quedaba, para compararlo con lo que dice la libreta. Si solo sabes cuánto debe, toca **Solo sé cuánto debe**.
+3. Lo demás es opcional: qué apartó, la fecha del apartado, la fecha límite y una foto de la página.
+4. Toca **Guardar**. La ventana se queda abierta para la siguiente clienta; ciérrala cuando termines.
+
+Lo que la clienta pagó en la libreta cuenta para su saldo, pero **no** aparece en Reportes ni en el corte de caja (ese dinero entró antes). Lo que te pague desde hoy se registra como cualquier abono. Si te equivocaste en un monto, abre su ficha y toca el lápiz para **corregir lo que debe**.
+
 ### Recordar a las clientas con apartado vencido
 En **Apartados**, toca **Recordar a vencidas**. Sale la lista de apartados vencidos con cuánto deben y cuándo se les recordó por última vez (por cualquier persona). Toca **Enviar** en cada una: se abre WhatsApp con el mensaje listo; solo envíalo y regresa a la lista para la siguiente. Primero aparecen las que no tienen recordatorio hoy.
 

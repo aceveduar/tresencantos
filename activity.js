@@ -253,6 +253,7 @@ const ACTION_CFG = {
   venta:              { type:'venta',      badge:'venta',     icon:_actIcoCash(),     label:'Venta'     },
   venta_cancelada:    { type:'venta',      badge:'eliminado', icon:_actIcoX(),        label:'Venta cancelada' },
   apartado_nuevo:     { type:'apartado',   badge:'apartado',  icon:_actIcoBookmark(), label:'Apartado'  },
+  apartado_libreta:   { type:'apartado',   badge:'apartado',  icon:_actIco('<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M9 7h6"/><path d="M9 11h4"/>'), label:'Pasado de la libreta' },
   apartado_abono:     { type:'apartado',   badge:'apartado',  icon:_actIcoCard(),     label:'Abono'     },
   apartado_editado:   { type:'apartado',   badge:'apartado',  icon:_actIcoEdit(),     label:'Apartado editado' },
   apartado_liquidado: { type:'apartado',   badge:'apartado',  icon:_actIcoCheck(),    label:'Liquidado' },

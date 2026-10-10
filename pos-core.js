@@ -125,7 +125,8 @@ function _openCancelModal(id, sale, kind) {
   _cancelAptCtx = { id, sale, kind, nombre, total, pagado, nItems };
 
   document.getElementById('cancel-apt-title').textContent = isVenta ? '¿Cancelar esta venta?' : '¿Cancelar este apartado?';
-  document.getElementById('cancel-apt-info').textContent = `${nombre} · $${fmt(total)} MXN · ${nItems} producto${nItems !== 1 ? 's' : ''}`;
+  const isLib = typeof _isLibretaSale === 'function' && _isLibretaSale(sale);
+  document.getElementById('cancel-apt-info').textContent = `${nombre} · $${fmt(total)} MXN · ${isLib ? 'apartado de libreta' : `${nItems} producto${nItems !== 1 ? 's' : ''}`}`;
   // Estado limpio en cada apertura: sin motivo elegido, casilla sin marcar.
   _cancelAptReason = '';
   // "No pagó (vencido)" solo tiene sentido en un apartado activo; en una venta
@@ -150,8 +151,8 @@ function _openCancelModal(id, sale, kind) {
   const undoNote = isVenta ? 'Esta acción no se puede deshacer.' : 'Solo el administrador puede deshacerlo después.';
   const warnIco = '<svg style="width:13px;height:13px;vertical-align:-2px;margin-right:3px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
   document.getElementById('cancel-apt-warning').innerHTML = pagado > 0
-    ? `${warnIco}${isVenta ? 'Esta venta se cobró por' : 'Ya se pagaron'} <strong>$${fmt(pagado)}</strong>. Al cancelar se registrará la devolución por los mismos métodos de pago y se restaurará el stock.<br>${undoNote}`
-    : `Se restaurará el stock. ${undoNote}`;
+    ? `${warnIco}${isVenta ? 'Esta venta se cobró por' : 'Ya se pagaron'} <strong>$${fmt(pagado)}</strong>. Al cancelar se registrará la devolución por los mismos métodos de pago${isLib ? ' (lo anotado en la libreta no sale de la caja de hoy)' : ' y se restaurará el stock'}.<br>${undoNote}`
+    : `${isLib ? '' : 'Se restaurará el stock. '}${undoNote}`;
   const confirmBtn = document.getElementById('cancel-apt-confirm-btn');
   if (confirmBtn) confirmBtn.textContent = _cancelConfirmLabel();
   _updateCancelAptConfirm();
@@ -264,11 +265,12 @@ async function reactivateApartado(id) {
   // Devoluciones de la cancelación: mismo instante que cancelled_at.
   const cancelTs = sale.cancelled_at ? new Date(sale.cancelled_at).getTime() : 0;
   const restored = (Array.isArray(sale.payment_history) ? sale.payment_history : [])
-    .filter(p => p.kind === 'refund' && cancelTs && Math.abs(new Date(p.paid_at).getTime() - cancelTs) < 5000)
+    .filter(p => p.kind === 'refund' && cancelTs && Math.abs(new Date(p.paid_at || p.meta?.devuelto_en).getTime() - cancelTs) < 5000)
     .reduce((n, p) => n + Math.abs(parseFloat(p.amount) || 0), 0);
 
+  const isLib = typeof _isLibretaSale === 'function' && _isLibretaSale(sale);
   const ok = await teConfirm({ title: `¿Reactivar el apartado de ${nombre}?`, confirmText: 'Reactivar', message:
-    `• Se vuelven a apartar ${nItems} producto${nItems !== 1 ? 's' : ''} (se descuentan del stock).\n` +
+    (isLib ? '• Vuelve a Activos con lo que debía.\n' : `• Se vuelven a apartar ${nItems} producto${nItems !== 1 ? 's' : ''} (se descuentan del stock).\n`) +
     (restored > 0 ? `• Se revierte la devolución de $${restored.toLocaleString('es-MX')} — vuelve a contar como pagado.\n` : '') +
     `• La reversa queda a nombre de quien registró la devolución, así su turno de caja cuadra.\n\n` +
     `Si algún producto ya se vendió, no se reactiva y te diremos cuál.`

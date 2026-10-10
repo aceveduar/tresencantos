@@ -397,6 +397,18 @@ function _apartadoPaymentMeta(payment) {
   // 'adjustment' positivo. Sin rotularlo, en el historial del apartado se leería
   // como un pago extra de la clienta en vez de la reversa de la devolución.
   const isReactivation = payment?.source === 'rpc_apartado_reactivation';
+  // Abonos (y su devolución) de una libreta de papel: sin fecha de cobro; la
+  // fecha escrita en la libreta, si la había, viene en meta.fecha.
+  const isLibreta = payment?.source === 'libreta' || payment?.meta?.libreta === true;
+  if (isLibreta) {
+    const f = payment?.meta?.fecha;
+    return {
+      amount, isReactivation: false, isLibreta: true,
+      dateLabel: f ? _posFormatDayKey(f, { day:'numeric', month:'short' }) : 'Sin fecha',
+      method: amount < 0 ? 'devolución (libreta)' : 'anotado en libreta',
+      icon: _libIco(13)
+    };
+  }
   const method = isReactivation ? 'reactivación'
     : payment?.method === 'transferencia' ? 'transferencia'
     : payment?.method === 'efectivo' ? 'efectivo' : 'método sin registrar';
@@ -406,7 +418,7 @@ function _apartadoPaymentMeta(payment) {
     : method === 'transferencia' ? _ip('<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>')
     : method === 'efectivo' ? _ip('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>')
     : _ip('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>');
-  return { amount, dateLabel, method, icon, isReactivation };
+  return { amount, dateLabel, method, icon, isReactivation, isLibreta: false };
 }
 
 async function _hydrateApartadoPayments(rows) {
@@ -415,7 +427,7 @@ async function _hydrateApartadoPayments(rows) {
   for (let index = 0; index < ids.length; index += 100) {
     const chunk = ids.slice(index, index + 100);
     const result = await _posFetchAll(
-      `sale_payments?sale_id=in.(${chunk.join(',')})&select=id,sale_id,amount,kind,method,paid_at,recorded_at,is_estimated,source&order=paid_at.asc.nullsfirst,recorded_at.asc,id.asc`
+      `sale_payments?sale_id=in.(${chunk.join(',')})&select=id,sale_id,amount,kind,method,paid_at,recorded_at,is_estimated,source,meta&order=paid_at.asc.nullsfirst,recorded_at.asc,id.asc`
     );
     if (!result.ok) {
       (rows || []).forEach(sale => { sale.payment_history_error = true; });
@@ -668,7 +680,7 @@ function _renderApartadoCanceladosCards(data) {
     const amountLabel = `${meta.amount < 0 ? '−' : ''}$${Math.abs(meta.amount).toLocaleString('es-MX')}`;
     // La reversa de una reactivación no se reenvía, pero conserva el hueco del
     // botón (invisible) para que su monto quede alineado con los demás renglones.
-    const resendBtn = meta.isReactivation ? `<button class="hi-del hi-send" style="padding:2px 4px;visibility:hidden" tabindex="-1" aria-hidden="true" disabled>${_uiIcoSend(12)}</button>` : a.id != null
+    const resendBtn = (meta.isReactivation || meta.isLibreta) ? `<button class="hi-del hi-send" style="padding:2px 4px;visibility:hidden" tabindex="-1" aria-hidden="true" disabled>${_uiIcoSend(12)}</button>` : a.id != null
       ? `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendReceipt('${a.id}')" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`
       : `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendLegacyAbono(${s.id},${idx})" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`;
     return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span style="display:flex;align-items:center;gap:2px"><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${amountLabel}</span>${resendBtn}</span></div>`;
@@ -676,6 +688,7 @@ function _renderApartadoCanceladosCards(data) {
 </div>` : '');
 
     const itemsListHTML = nItems ? s.items.map(i => {
+      if (i.libreta) return _libretaItemRowHTML(i);
       const prod  = products.find(x => x.id === i.id);
       const img   = _driveSz(prod?.image || i.image || '', 80);
       const qty   = i.qty || 1;
@@ -703,7 +716,7 @@ function _renderApartadoCanceladosCards(data) {
       </div>
     </div>
     <div class="apt-header-r2">
-      <span class="apt-h-meta">Cancelado el ${t} · ${nItems} prod.</span>
+      <span class="apt-h-meta">Cancelado el ${t} · ${_isLibretaSale(s) ? _libretaChipHTML() : `${nItems} prod.`}</span>
     </div>
   </div>
   <div class="apt-body">
@@ -782,7 +795,7 @@ function _renderApartadoCards(data, isLiquidado) {
     const amountLabel = `${meta.amount < 0 ? '−' : ''}$${Math.abs(meta.amount).toLocaleString('es-MX')}`;
     // La reversa de una reactivación no se reenvía, pero conserva el hueco del
     // botón (invisible) para que su monto quede alineado con los demás renglones.
-    const resendBtn = meta.isReactivation ? `<button class="hi-del hi-send" style="padding:2px 4px;visibility:hidden" tabindex="-1" aria-hidden="true" disabled>${_uiIcoSend(12)}</button>` : a.id != null
+    const resendBtn = (meta.isReactivation || meta.isLibreta) ? `<button class="hi-del hi-send" style="padding:2px 4px;visibility:hidden" tabindex="-1" aria-hidden="true" disabled>${_uiIcoSend(12)}</button>` : a.id != null
       ? `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendReceipt('${a.id}')" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`
       : `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendLegacyAbono(${s.id},${idx})" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`;
     return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span style="display:flex;align-items:center;gap:2px"><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${amountLabel}</span>${resendBtn}</span></div>`;
@@ -791,6 +804,7 @@ function _renderApartadoCards(data, isLiquidado) {
 
     // Items
     const itemsListHTML = nItems ? s.items.map(i => {
+      if (i.libreta) return _libretaItemRowHTML(i);
       const prod  = products.find(x => x.id === i.id);
       const img   = _driveSz(prod?.image || i.image || '', 80);
       const qty   = i.qty || 1;
@@ -821,7 +835,9 @@ function _renderApartadoCards(data, isLiquidado) {
       </div>
     </div>
     <div class="apt-header-r2">
-      <span class="apt-h-meta">${isLiquidado ? 'Liquidado el ' : ''}${t} · ${nItems} prod.</span>
+      <span class="apt-h-meta">${_isLibretaSale(s)
+        ? (isLiquidado ? `Liquidado el ${t} · ${_libretaChipHTML()}` : `${_libretaChipHTML()}${_libretaDateLabel(s)}`)
+        : `${isLiquidado ? 'Liquidado el ' : ''}${t} · ${nItems} prod.`}</span>
       ${dueHTML}
     </div>
     ${isLiquidado ? '' : `<div class="apt-mini-bar" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="apt-mini-fill" style="width:${pct}%"></div></div>`}
@@ -890,7 +906,9 @@ function sendApartadoReminder(id, sale = null) {
   const total     = parseFloat(s.total) || 0;
   const pagado    = parseFloat(s.paid_amount || 0);
   const pendiente = Math.max(0, total - pagado);
-  const productos = Array.isArray(s.items) ? s.items.map(i => `• ${i.name}`).join('\n') : '';
+  const productos = Array.isArray(s.items) ? s.items.map(i => i.libreta
+    ? `• Apartado anotado en nuestra libreta${i.nota ? ` (${i.nota})` : ''}`
+    : `• ${i.name}`).join('\n') : '';
   const liquidado = _isApartadoLiquidado(s);
   let fechaTexto  = '';
   if (s.due_date) {
@@ -1236,6 +1254,8 @@ async function confirmAbonar() {
 let _editAptCtx = null;
 
 async function openEditApartado(id) {
+  // Un apartado de libreta no tiene productos: se corrige en su propio formulario.
+  if (_isLibretaSale(_apartadosData[id])) return openLibretaEdit(id);
   if (!canEditApartado()) {
     const granted = await requestOverride('canEditApartado', 'Editar apartado');
     if (!granted) return;

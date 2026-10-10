@@ -272,6 +272,13 @@ let categories = [];
 let _statsReloadGeneration = 0;
 
 const _SALE_COLS = 'id,total,created_at,items,payment_method,type,origin_type,status,liquidated_at,seller_email,discount,customer,due_date,paid_amount,note,cancelled_at';
+// Apartados de libreta (pos-libreta.js): su único renglón {libreta:true} no es
+// un producto. No cuentan como "apartado nuevo" del día en que se pasaron
+// (filtro NOLIB en las consultas por created_at) ni como piezas, categoría o
+// Top productos al liquidarse; el dinero que se cobre por ellos sí cuenta.
+const _NOLIB = '&items->0->>libreta=is.null';
+const _realItems = items => (Array.isArray(items) ? items : []).filter(i => i && !i.libreta);
+const _unitsOf = items => _realItems(items).reduce((a, i) => a + (i.qty || 1), 0);
 const _PAYMENT_COLS = 'id,sale_id,request_id,request_line,amount,kind,method,paid_at,collected_by,collected_by_email,is_estimated,source';
 
 function _paymentAmount(payment) {
@@ -474,7 +481,7 @@ async function loadSales(mode = _statsMode, offset = _statsOffset, generation = 
     // Un apartado creado con $0 de anticipo no genera fila en sale_payments
     // (record_sale_atomic_v2 solo inserta pago si v_paid>0) — sin esto,
     // "Movimientos de hoy" no reflejaba que se creó un apartado nuevo.
-    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&paid_amount=eq.0&cancelled_at=is.null&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=created_at.desc,id.desc`),
+    _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&paid_amount=eq.0&cancelled_at=is.null${_NOLIB}&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=created_at.desc,id.desc`),
     // Apartados nuevos del período (KPI) — se cuentan por fecha de creación,
     // sin importar su estado actual (activo/liquidado/cancelado), igual que
     // "cuántos abrí". Antes filtraba cancelled_at=is.null, contradiciendo su
@@ -482,7 +489,7 @@ async function loadSales(mode = _statsMode, offset = _statsOffset, generation = 
     // este conteo al ver el reporte de aquel día, aunque su anticipo (dinero,
     // que sí sigue la fecha real del movimiento sin importar el estado
     // actual) siguiera apareciendo — dos cifras del mismo día en desacuerdo.
-    _fetchAll(`sales?select=id&origin_type=eq.apartado&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=id.asc`)
+    _fetchAll(`sales?select=id&origin_type=eq.apartado${_NOLIB}&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=id.asc`)
   ]);
   const directSales = (directSalesR.ok && Array.isArray(directSalesR.data)) ? directSalesR.data : [];
   const apartadoSales = (apartadoSalesR.ok && Array.isArray(apartadoSalesR.data)) ? apartadoSalesR.data : [];
@@ -516,7 +523,7 @@ async function loadPreviousSales(mode = _statsMode, offset = _statsOffset, gener
     _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.venta&status=eq.liquidado&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=created_at.desc,id.desc`),
     _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(from)}&liquidated_at=lte.${encodeURIComponent(to)}&order=liquidated_at.desc,id.desc`),
     _fetchAll(`sale_payments?select=${_PAYMENT_COLS}&paid_at=gte.${encodeURIComponent(from)}&paid_at=lte.${encodeURIComponent(to)}&order=paid_at.desc,id.desc`),
-    _fetchAll(`sales?select=id&origin_type=eq.apartado&cancelled_at=is.null&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=id.asc`)
+    _fetchAll(`sales?select=id&origin_type=eq.apartado&cancelled_at=is.null${_NOLIB}&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=id.asc`)
   ]);
   const nextSalesLoaded = directSalesR.ok && apartadoSalesR.ok;
   const nextPayments = (paymentsR.ok && Array.isArray(paymentsR.data)) ? paymentsR.data : [];
@@ -547,7 +554,7 @@ async function loadTodaySales(generation = null) {
   todaySummaryLoaded = false;
   const { from, to } = getRange('day', 0);
   const [salesR, paymentsR, liquidatedR] = await Promise.all([
-    _fetchAll(`sales?select=${_SALE_COLS}&cancelled_at=is.null&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=created_at.desc,id.desc`),
+    _fetchAll(`sales?select=${_SALE_COLS}&cancelled_at=is.null${_NOLIB}&created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&order=created_at.desc,id.desc`),
     _fetchAll(`sale_payments?select=${_PAYMENT_COLS}&paid_at=gte.${encodeURIComponent(from)}&paid_at=lte.${encodeURIComponent(to)}&order=paid_at.desc,id.desc`),
     _fetchAll(`sales?select=${_SALE_COLS}&origin_type=eq.apartado&status=eq.liquidado&liquidated_at=gte.${encodeURIComponent(from)}&liquidated_at=lte.${encodeURIComponent(to)}&order=liquidated_at.desc,id.desc`)
   ]);
@@ -901,7 +908,7 @@ function kpiDelta(curr, prev) {
 function renderKPIs() {
   const totalRev  = _paymentTotal(payments);
   const count     = sales.length;
-  const units     = sales.reduce((s,v) => s + (v.items||[]).reduce((a,i) => a + (i.qty||1), 0), 0);
+  const units     = sales.reduce((s,v) => s + _unitsOf(v.items), 0);
 
   const salesTotal = _paymentTotal(_salesCashPayments(payments));
   const abonoPaymentsArr = _abonoPayments(payments);
@@ -914,7 +921,7 @@ function renderKPIs() {
 
   const prevRev   = _paymentTotal(prevPayments);
   const prevCount = prevSales.length;
-  const prevUnits = prevSales.reduce((s,v) => s + (v.items||[]).reduce((a,i) => a + (i.qty||1), 0), 0);
+  const prevUnits = prevSales.reduce((s,v) => s + _unitsOf(v.items), 0);
   const prevSalesTotal = _paymentTotal(_salesCashPayments(prevPayments));
   const prevAbonoPaymentsArr = _abonoPayments(prevPayments);
   const prevAbonoCount = prevAbonoPaymentsArr.length;
@@ -1030,7 +1037,7 @@ function renderKPIs() {
   // calculadas aparte para no acoplar el sparkline al ciclo de vida de la
   // gráfica grande de Chart.js.
   _revSparkChart = _drawSparkline('kpi-revenue-spark', _revSparkChart, paymentsLoaded ? _sparklineBuckets(payments, _paymentAmount) : [], _cssVar('--green', '#2D6A4F'));
-  _unitsSparkChart = _drawSparkline('kpi-avg-spark', _unitsSparkChart, salesLoaded ? _sparklineBuckets(sales, s => (s.items||[]).reduce((a,i)=>a+(i.qty||1),0), _completionDate) : [], _cssVar('--gold-dark', '#A67C3A'));
+  _unitsSparkChart = _drawSparkline('kpi-avg-spark', _unitsSparkChart, salesLoaded ? _sparklineBuckets(sales, s => _unitsOf(s.items), _completionDate) : [], _cssVar('--gold-dark', '#A67C3A'));
 }
 
 // Agrupa una lista (pagos o ventas) en cubetas por hora (modo Día) o por día
@@ -1399,7 +1406,7 @@ function renderCatChart() {
   const catMap = {};
   sales.forEach(s => {
     if (!Array.isArray(s.items)) return;
-    s.items.forEach(item => {
+    _realItems(s.items).forEach(item => {
       const prod = products.find(p => +p.id === +item.id);
       const cat = prod?.category_label || prod?.category || 'Otro';
       catMap[cat] = (catMap[cat]||0) + (item.subtotal||0);
@@ -1465,7 +1472,7 @@ function aggregateProducts() {
   const map = {};
   sales.forEach(s => {
     if (!Array.isArray(s.items)) return;
-    s.items.forEach(item => {
+    _realItems(s.items).forEach(item => {
       if (!map[item.id]) map[item.id] = { id: item.id, name: item.name, qty:0, revenue:0 };
       map[item.id].qty += item.qty||1;
       map[item.id].revenue += item.subtotal||0;

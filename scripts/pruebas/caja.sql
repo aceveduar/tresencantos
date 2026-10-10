@@ -33,6 +33,27 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM _ctx WHERE k = 'pid') THEN RAISE EXCEPTION 'PRUEBA FALLÓ: no hay producto con stock para probar'; END IF;
 END $$;
 
+-- ── Superadmin: pasa un apartado de la libreta (antes de las ventas, para
+--    probar que un renglón sin producto no rompe el inventario de las demás) ──
+-- Total 500, abonos anotados 100 (con fecha) y 150 (sin fecha) → debe 250.
+SELECT set_config('request.jwt.claims', '{"sub":"a8c980c1-33b0-46a1-ac2c-761801ede2aa","email":"ofe@tresencantos.com","role":"authenticated"}', true);
+SELECT set_config('role', 'authenticated', true);
+INSERT INTO _ctx
+SELECT 'libreta', (public.te_libreta_apartado_create(
+  p_request_id => gen_random_uuid(), p_name => 'Prueba libreta', p_phone => null,
+  p_total => 500, p_balance => null,
+  p_payments => '[{"amount":100,"date":"2025-12-28"},{"amount":150}]'::jsonb,
+  p_opened_on => '2025-12-20', p_due_date => current_date + 30, p_note => 'bolsa café')) -> 'sale' ->> 'id';
+DO $$ BEGIN
+  BEGIN
+    PERFORM public.te_libreta_apartado_create(p_request_id => gen_random_uuid(), p_name => 'x', p_total => 100,
+      p_payments => '[{"amount":100}]'::jsonb);
+    RAISE EXCEPTION 'PRUEBA FALLÓ: se pudo pasar de la libreta un apartado ya pagado';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL;
+  END;
+  INSERT INTO _ok(prueba) VALUES ('Libreta: rechaza un apartado que ya está pagado');
+END $$;
+
 -- ── Cajera: abre turno con $100 ──────────────────────────────────────────
 SELECT set_config('request.jwt.claims', '{"sub":"585d4e5a-cc26-4a90-9f1a-f6ac8bec2d0e","email":"test@tresencantos.com","role":"authenticated"}', true);
 SELECT set_config('role', 'authenticated', true);
@@ -88,6 +109,40 @@ SELECT public.cancel_sale_atomic(
   p_request_id => gen_random_uuid(), p_sale_id => (SELECT v::bigint FROM _ctx WHERE k='venta'), p_reason => 'prueba automática',
   p_expected_version => (SELECT version FROM public.sales WHERE id = (SELECT v::bigint FROM _ctx WHERE k='venta')));
 
+-- ── Superadmin: abona $50 al apartado de libreta, corrige el saldo, y lo cancela ──
+SELECT public.record_apartado_payment_atomic(
+  p_request_id => gen_random_uuid(), p_sale_id => (SELECT v::bigint FROM _ctx WHERE k='libreta'),
+  p_method => 'efectivo', p_amount => 50,
+  p_expected_version => (SELECT version FROM public.sales WHERE id = (SELECT v::bigint FROM _ctx WHERE k='libreta')));
+-- Pagado 300 (250 libreta + 50 hoy); "debe 180" → total 480
+SELECT public.te_libreta_apartado_edit(
+  p_request_id => gen_random_uuid(), p_sale_id => (SELECT v::bigint FROM _ctx WHERE k='libreta'),
+  p_expected_version => (SELECT version FROM public.sales WHERE id = (SELECT v::bigint FROM _ctx WHERE k='libreta')),
+  p_due_date => current_date + 15, p_balance => 180);
+INSERT INTO _ctx SELECT 'libreta_total', total::text FROM public.sales WHERE id = (SELECT v::bigint FROM _ctx WHERE k='libreta');
+DO $$ BEGIN
+  BEGIN
+    PERFORM public.edit_apartado_atomic(p_request_id => gen_random_uuid(), p_sale_id => (SELECT v::bigint FROM _ctx WHERE k='libreta'),
+      p_items => '[{"id":1,"qty":1}]'::jsonb,
+      p_expected_version => (SELECT version FROM public.sales WHERE id = (SELECT v::bigint FROM _ctx WHERE k='libreta')));
+    RAISE EXCEPTION 'PRUEBA FALLÓ: se le pudieron poner productos a un apartado de libreta';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM LIKE 'PRUEBA FALLÓ%' THEN RAISE; END IF;
+  END;
+  INSERT INTO _ok(prueba) VALUES ('Libreta: no se le pueden poner productos');
+END $$;
+SELECT public.cancel_sale_atomic(
+  p_request_id => gen_random_uuid(), p_sale_id => (SELECT v::bigint FROM _ctx WHERE k='libreta'), p_reason => 'prueba automática',
+  p_expected_version => (SELECT version FROM public.sales WHERE id = (SELECT v::bigint FROM _ctx WHERE k='libreta')));
+-- La devolución del dinero de papel ($250) va sin fecha de cobro; la de los $50 de hoy, con fecha.
+INSERT INTO _ctx SELECT 'libreta_cancel_sum', coalesce(sum(amount), 0)::text FROM public.sale_payments WHERE sale_id = (SELECT v::bigint FROM _ctx WHERE k='libreta');
+INSERT INTO _ctx SELECT 'libreta_dated_refunds', coalesce(sum(amount), 0)::text FROM public.sale_payments
+ WHERE sale_id = (SELECT v::bigint FROM _ctx WHERE k='libreta') AND kind = 'refund' AND paid_at IS NOT NULL;
+-- Reactivar lo deja como estaba: $300 pagados otra vez.
+SELECT public.reactivate_apartado_atomic(
+  p_request_id => gen_random_uuid(), p_sale_id => (SELECT v::bigint FROM _ctx WHERE k='libreta'), p_reason => 'prueba automática',
+  p_expected_version => (SELECT version FROM public.sales WHERE id = (SELECT v::bigint FROM _ctx WHERE k='libreta')));
+
 -- ── Cajera: cierra turno contando exactamente lo esperado ────────────────
 -- Esperado = fondo 100 + venta (precio) + anticipo 5 + abono 2 − (gasto 10 − ingreso 4) − retiro 20
 -- (la devolución de la cancelación la registró Ofelia: no toca este cajón)
@@ -135,6 +190,29 @@ BEGIN
     RAISE EXCEPTION 'PRUEBA FALLÓ: gastos % / retiros % (esperado 6 / 20)', cierre ->> 'gastos_total', cierre ->> 'retiros_total';
   END IF;
   INSERT INTO _ok(prueba) VALUES ('Cierre de turno cuadra con gastos, ingresos y retiros');
+
+  -- Libreta: los abonos de papel quedan sin fecha de cobro (no cuentan en
+  -- Reportes ni en el corte), el saldo corregido movió el total, la fecha del
+  -- apartado es la de la libreta, y la cancelación dejó el libro en 0.
+  SELECT count(*) INTO x FROM public.sale_payments
+   WHERE sale_id = (SELECT v::bigint FROM _ctx WHERE k='libreta') AND source = 'libreta' AND paid_at IS NULL AND kind = 'payment';
+  IF x <> 2 THEN RAISE EXCEPTION 'PRUEBA FALLÓ: el apartado de libreta debía tener 2 abonos de papel sin fecha de cobro (tiene %)', x; END IF;
+  IF (SELECT v::numeric FROM _ctx WHERE k='libreta_total') <> 480 THEN
+    RAISE EXCEPTION 'PRUEBA FALLÓ: corregir "debe 180" con $300 pagados debía dejar total 480 (quedó %)', (SELECT v FROM _ctx WHERE k='libreta_total');
+  END IF;
+  SELECT (created_at AT TIME ZONE 'America/Mexico_City')::date::text INTO t FROM public.sales WHERE id = (SELECT v::bigint FROM _ctx WHERE k='libreta');
+  IF t <> '2025-12-20' THEN RAISE EXCEPTION 'PRUEBA FALLÓ: la fecha del apartado de libreta quedó %', t; END IF;
+  IF (SELECT v::numeric FROM _ctx WHERE k='libreta_cancel_sum') <> 0 THEN
+    RAISE EXCEPTION 'PRUEBA FALLÓ: el libro del apartado de libreta cancelado suma % (debía ser 0)', (SELECT v FROM _ctx WHERE k='libreta_cancel_sum');
+  END IF;
+  IF (SELECT v::numeric FROM _ctx WHERE k='libreta_dated_refunds') <> -50 THEN
+    RAISE EXCEPTION 'PRUEBA FALLÓ: con fecha de cobro solo debía devolverse lo cobrado hoy (-50), salió %', (SELECT v FROM _ctx WHERE k='libreta_dated_refunds');
+  END IF;
+  SELECT coalesce(sum(amount), 0) INTO x FROM public.sale_payments WHERE sale_id = (SELECT v::bigint FROM _ctx WHERE k='libreta');
+  IF x <> 300 OR (SELECT status FROM public.sales WHERE id = (SELECT v::bigint FROM _ctx WHERE k='libreta')) <> 'activo' THEN
+    RAISE EXCEPTION 'PRUEBA FALLÓ: reactivar el apartado de libreta debía regresar $300 pagados (libro %)', x;
+  END IF;
+  INSERT INTO _ok(prueba) VALUES ('Libreta: dinero de papel fuera del corte, saldo corregible, cancelar y reactivar');
 
   -- Actividad sellada con la sesión real
   SELECT user_email || ' ' || created_at::date INTO t FROM public.activity_log WHERE action = 'prueba_forja';

@@ -502,7 +502,7 @@ async function loadCorte() {
 
   const [paymentsResult, createdResult] = await Promise.all([
     _posFetchAll(`sale_payments?paid_at=gte.${from}&paid_at=lte.${to}&select=sale_id,amount,kind,method,paid_at,source,collected_by_email,sale:sales(origin_type,status,customer,items)&order=paid_at.asc,id.asc`),
-    _posFetchAll(`sales?created_at=gte.${from}&created_at=lte.${to}&select=id,origin_type,status,seller_email&order=created_at.asc,id.asc`)
+    _posFetchAll(`sales?created_at=gte.${from}&created_at=lte.${to}&items->0->>libreta=is.null&select=id,origin_type,status,seller_email&order=created_at.asc,id.asc`)
   ]);
   if (!paymentsResult.ok || !createdResult.ok) {
     _corteLoadError = true;

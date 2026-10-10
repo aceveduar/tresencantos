@@ -544,6 +544,22 @@ function openApartados(dueFilter = 'todos') {
   loadApartados();
 }
 
+// Celular usa el panel lateral y escritorio la página completa. Si el ancho
+// cruza 768px con Apartados abierto (girar una tablet, o DevTools), cambiar al
+// panel que corresponde -- si no, el panel de celular se estira a escritorio
+// con las tarjetas encimadas.
+window.matchMedia('(min-width: 768px)').addEventListener('change', e => {
+  const offcanvasOpen = document.getElementById('apt-offcanvas')?.classList.contains('open');
+  const pageOpen = document.getElementById('apt-page')?.style.display === 'flex';
+  if (e.matches && offcanvasOpen) {
+    closeApartados();
+    openApartados(_aptDueFilter);
+  } else if (!e.matches && pageOpen) {
+    closeAptPage();
+    openApartados(_aptDueFilter);
+  }
+});
+
 function closeApartados() {
   const offcanvas = document.getElementById('apt-offcanvas');
   offcanvas.classList.remove('open');
@@ -583,7 +599,7 @@ function _renderAptPageCanceladosCards(data) {
     <span class="apc-name">${_uiIcoUser()} ${_esc(nombre)}</span>
     <span class="apc-amount is-muted">${_fmtMx(total)}</span>
   </span>
-  <span class="apc-meta">Cancelado el ${t} · ${nItems} prod.</span>
+  <span class="apc-meta">Cancelado el ${t} · ${_isLibretaSale(s) ? _libretaChipHTML() : `${nItems} prod.`}</span>
 </button>`;
   }).join('');
 }
@@ -620,7 +636,7 @@ function _renderAptPageCards(data, isLiquidado) {
     <span class="apc-name">${_uiIcoUser()} ${_esc(nombre)}</span>
     <span class="apc-amount">${_fmtMx(total)}</span>
   </span>
-  <span class="apc-meta">Liquidado el ${t} · ${nItems} prod.</span>
+  <span class="apc-meta">Liquidado el ${t} · ${_isLibretaSale(s) ? _libretaChipHTML() : `${nItems} prod.`}</span>
 </button>`;
     }
 
@@ -638,7 +654,7 @@ function _renderAptPageCards(data, isLiquidado) {
     <span class="apc-name">${_uiIcoUser()} ${_esc(nombre)}</span>
     <span class="apc-pending${pendiente === 0 ? ' zero' : ''}${isOverdue ? ' is-overdue' : ''}">${pendiente === 0 ? 'Pagado' : 'Falta ' + _fmtMx(pendiente)}</span>
   </span>
-  <span class="apc-meta">${t} · ${nItems} prod.</span>
+  <span class="apc-meta">${_isLibretaSale(s) ? `${_libretaChipHTML()}${_libretaDateLabel(s)}` : `${t} · ${nItems} prod.`}</span>
   ${dueHTML}
   <span class="apc-bar" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span class="apc-fill" style="width:${pct}%"></span></span>
 </button>`;
@@ -660,11 +676,15 @@ function openAptDetail(id) {
   const telNum    = custParts[1] || '';
 
   document.getElementById('adm-customer').innerHTML = _uiIcoUser() + ' ' + _esc(nombre);
-  document.getElementById('adm-meta').innerHTML = _esc(t + ' · ' + nItems + ' producto' + (nItems !== 1 ? 's' : '')) + (telNum ? ' · ' + _uiIcoPhone() + ' ' + _esc(telNum) : '') +
+  const isLib = _isLibretaSale(s);
+  document.getElementById('adm-meta').innerHTML = (isLib
+      ? _libretaChipHTML() + _esc(_libretaDateLabel(s, { day:'numeric', month:'short', year:'numeric' }))
+      : _esc(t + ' · ' + nItems + ' producto' + (nItems !== 1 ? 's' : ''))) + (telNum ? ' · ' + _uiIcoPhone() + ' ' + _esc(telNum) : '') +
     ` · <a href="#" onclick="event.preventDefault();openTransactionTimeline(${id})" style="color:var(--gold-dark);font-weight:700;text-decoration:underline">${_uiIcoClock(11)} Ver historial</a>`;
 
   // Items
   const itemsHTML = (s.items || []).map(i => {
+    if (i.libreta) return _libretaItemRowHTML(i);
     const prod     = products.find(x => x.id === i.id);
     const img      = _driveSz(prod?.image || i.image || '', 80);
     const qty      = i.qty || 1;
@@ -725,7 +745,7 @@ function openAptDetail(id) {
     // en vez de depender de un id que nunca existió.
     // La reversa de una reactivación no se reenvía, pero conserva el hueco del
     // botón (invisible) para que su monto quede alineado con los demás renglones.
-    const resendBtn = meta.isReactivation ? `<button class="hi-del hi-send" style="padding:2px 4px;visibility:hidden" tabindex="-1" aria-hidden="true" disabled>${_uiIcoSend(12)}</button>` : a.id != null
+    const resendBtn = (meta.isReactivation || meta.isLibreta) ? `<button class="hi-del hi-send" style="padding:2px 4px;visibility:hidden" tabindex="-1" aria-hidden="true" disabled>${_uiIcoSend(12)}</button>` : a.id != null
       ? `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendReceipt('${a.id}')" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`
       : `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendLegacyAbono(${id},${idx})" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`;
     return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span style="display:flex;align-items:center;gap:2px"><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${amountLabel}</span>${resendBtn}</span></div>`;
@@ -733,7 +753,7 @@ function openAptDetail(id) {
 
   document.getElementById('adm-body').innerHTML = `
     ${dueAlertHTML}
-    <div class="adm-section-title">Productos</div>
+    <div class="adm-section-title">${isLib ? 'Apartado' : 'Productos'}</div>
     <div class="apt-items-list">${itemsHTML}</div>
     <div class="apt-summary">
       ${summaryRows.join('')}

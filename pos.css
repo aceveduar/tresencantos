@@ -1207,3 +1207,83 @@ button,a{touch-action:manipulation}
 .corte-count-field.money-field{margin:8px 0 0}
 .corte-count-field.money-field > input:not([type="checkbox"]){font-size:1.75rem!important;font-weight:700;border:none;outline:none;background:none;padding:0;width:100%;min-width:0}
 
+
+/* ── APARTADOS DE LIBRETA (pos-libreta.js) ───────────────────────────────
+   Neutro a propósito (minimalismo): la libreta se distingue por su ícono y
+   la palabra "Libreta", no por color. */
+.libreta-entry{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--charcoal);font-family:inherit;font-size:.8rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
+.libreta-entry[hidden]{display:none}
+.libreta-entry svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.libreta-entry:hover{border-color:var(--gold)}
+.history-oc-head .libreta-entry{margin-left:auto;margin-right:4px}
+.apt-page-head .libreta-entry{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.22);color:#fff}
+.apt-page-head .libreta-entry:hover{background:rgba(255,255,255,.15)}
+
+.lib-chip{display:inline-flex;align-items:center;gap:3px;font-size:.68rem;font-weight:700;letter-spacing:.02em;color:var(--muted);border:1px solid var(--border);border-radius:50px;padding:1px 7px;margin-right:4px;vertical-align:1px;white-space:nowrap}
+.lib-item-row{cursor:default}
+.lib-item-ico{width:32px;height:32px;border-radius:8px;background:var(--surface-soft);color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.lib-item-note{font-size:.76rem;color:var(--muted);margin-top:1px;overflow-wrap:anywhere}
+.lib-photo-link{background:none;border:none;padding:6px 0;min-height:32px;font-family:inherit;font-size:.76rem;font-weight:600;color:var(--gold-dark);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+
+.libreta-modal .eam-head{padding-bottom:10px}
+.lib-head-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lib-close{background:none;border:none;color:var(--muted);font-size:1.1rem;min-width:44px;min-height:44px;margin:-10px -10px -10px 0;border-radius:10px;cursor:pointer}
+.lib-close:hover{background:var(--surface-soft)}
+.lib-saved{display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--surface-soft);border:1px solid var(--border);font-size:.84rem;color:var(--charcoal);line-height:1.35}
+.lib-saved[hidden]{display:none}
+.lib-saved svg{color:var(--green);flex-shrink:0}
+.lib-saved-count{margin-left:auto;font-size:.74rem;font-weight:600;color:var(--muted);white-space:nowrap}
+.lib-step{display:flex;align-items:center;gap:8px;font-size:.88rem;font-weight:700;color:var(--charcoal);margin:16px 0 10px}
+.lib-step:first-child{margin-top:12px}
+.lib-step-n{width:22px;height:22px;border-radius:50%;background:var(--ink);color:#fff;font-size:.72rem;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.lib-opt{font-weight:500;color:var(--muted);font-size:.78rem}
+.lib-dup{font-size:.8rem;color:var(--charcoal);background:var(--surface-soft);border:1px solid var(--border);border-radius:10px;padding:9px 12px;margin:-4px 0 14px;line-height:1.4}
+.lib-dup[hidden]{display:none}
+.lib-mode{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.lib-mode[hidden]{display:none}
+.lib-mode button{min-height:44px;padding:8px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);font-family:inherit;font-size:.8rem;font-weight:600;cursor:pointer;transition:.15s}
+.lib-mode button.active{border-color:var(--ink);background:var(--ink);color:#fff}
+.libreta-modal label{display:block;font-size:.8rem;font-weight:600;color:var(--muted);margin-bottom:6px}
+.lib-ledger[hidden],#lib-debe-block[hidden]{display:none}
+.lib-hint{font-size:.76rem;color:var(--muted);margin:6px 0 0;line-height:1.4}
+.lib-hint[hidden]{display:none}
+
+/* Abonos: renglón tipo libreta, con lo que quedaba después de cada resta. */
+#lib-abonos{margin-top:6px}
+.lib-abono{display:grid;grid-template-columns:auto 1fr auto auto;grid-template-areas:"n amt date x" ". left left left";align-items:center;column-gap:8px;padding:8px 0;border-bottom:1px dashed var(--border)}
+.lib-abono-n{grid-area:n;font-size:.78rem;font-weight:600;color:var(--muted);white-space:nowrap}
+.lib-abono-field{grid-area:amt;display:flex;align-items:baseline;gap:4px;border:1.5px solid var(--border);border-radius:10px;padding:0 10px;min-height:44px;background:var(--surface);min-width:0}
+.lib-abono-field:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,164,98,.15)}
+.lib-abono-sign{font-size:.95rem;font-weight:600;color:var(--muted);align-self:center}
+/* Misma especificidad que la regla anti-zoom de Caja (input:not([type=checkbox])),
+   que si no le pone su propio borde y fondo dentro del campo. */
+.lib-abono-field input.lib-abono-amount:not([type="checkbox"]){flex:1;min-width:0;width:100%;border:none!important;outline:none;background:none!important;box-shadow:none!important;margin:0!important;font-family:inherit;font-size:1.05rem!important;font-weight:700;color:var(--charcoal);padding:8px 0!important;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
+.lib-abono-amount::-webkit-outer-spin-button,.lib-abono-amount::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.lib-abono-datebtn{grid-area:date;min-height:44px;padding:0 10px;border-radius:10px;border:1.5px dashed var(--border);background:none;color:var(--muted);font-family:inherit;font-size:.76rem;font-weight:600;cursor:pointer;white-space:nowrap}
+.lib-abono-datebtn[hidden]{display:none}
+.lib-abono-date{grid-area:date;min-height:44px;max-width:150px;padding:6px 8px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);color:var(--charcoal);font-family:inherit;font-size:.82rem}
+.lib-abono-date[hidden]{display:none}
+.lib-abono-x{grid-area:x;width:44px;height:44px;border:none;background:none;color:var(--muted);border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.lib-abono-x:hover{color:var(--red);background:var(--surface-soft)}
+.lib-abono-left{grid-area:left;font-size:.76rem;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:3px}
+.lib-abono-left:empty{display:none}
+.lib-abono-left.neg{color:var(--red);font-weight:600}
+.lib-add-abono{width:100%;min-height:44px;margin-top:10px;border-radius:10px;border:1.5px dashed var(--border);background:none;color:var(--charcoal);font-family:inherit;font-size:.86rem;font-weight:600;cursor:pointer}
+.lib-add-abono:hover{border-color:var(--gold)}
+
+.lib-photo-btn{width:100%;min-height:48px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:10px;border:1.5px dashed var(--border);background:none;color:var(--charcoal);font-family:inherit;font-size:.86rem;font-weight:600;cursor:pointer}
+.lib-photo-btn[hidden]{display:none}
+.lib-photo-prev{position:relative;width:96px}
+.lib-photo-prev[hidden]{display:none}
+.lib-photo-prev img{width:96px;height:96px;object-fit:cover;border-radius:10px;border:1px solid var(--border);cursor:zoom-in;display:block}
+.lib-photo-x{position:absolute;top:-10px;right:-10px;width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--charcoal);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.lib-photo-x::after{content:'';position:absolute;inset:-8px}
+
+.lib-error{font-size:.8rem;font-weight:600;color:var(--red);line-height:1.4}
+.lib-error:empty{display:none}
+.lib-error:not(:empty){margin-bottom:8px}
+.lib-foot-detail{font-size:.78rem;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+#lib-save-btn:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:380px){
+  .lib-abono{grid-template-columns:1fr auto auto;grid-template-areas:"n n n" "amt date x" "left left left";row-gap:4px}
+}
