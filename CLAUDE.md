@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación vigente del proyecto. Última reconciliación: 2026-10-10 · `sw.js` `CACHE_VERSION = 'v628'`.
+Documentación vigente del proyecto. Última reconciliación: 2026-10-10 · `sw.js` `CACHE_VERSION = 'v629'`.
 
 > **Fuente de verdad:** para comportamiento ejecutable manda el código; para reglas de negocio y decisiones UX manda este documento.
 > **Historial completo** (bitácora fecha por fecha, razonamiento detrás de cada decisión, bugs resueltos): [assets/HISTORIAL.md](assets/HISTORIAL.md). No se carga solo — consultarlo con grep cuando haga falta el "por qué" de algo. Este archivo solo describe el estado actual.
@@ -186,6 +186,7 @@ Supabase no tiene backups en este plan (sin PITR, lista vacía). `scripts/respal
 - Ventas/unidades cuentan al completarse (`created_at` directa, `liquidated_at` apartado). Un fallo de consulta muestra "No disponible", nunca 0.
 - Montos sin centavos (`maximumFractionDigits:0`), **excepto Turnos de caja**, donde una diferencia de centavos es información real.
 - Dos zonas: arriba la historia del período; abajo lo operativo, con lo que pide atención primero (Turnos de caja, Apartados pendientes, Por caducar, Estado del inventario) y luego consulta (Valor en venta, Clientes frecuentes, Rentabilidad). Turnos muestra esperado, retiros y efectivo de otras cuentas de cada cierre. Turnos solo cuenta desde `config.turnos_desde` (2026-10-10: lo anterior fue etapa de aprendizaje; los turnos que seguían abiertos desde antes del 9 oct se cerraron sin conteo, migración `20261010_05`). Cards: Dinero de hoy (hero + barra de composición solo con ≥2 segmentos + sparklines ≥1300px), Otros indicadores (artículos, por cobrar con barra vencido/al corriente), Movimientos de hoy, gráficas (hora/día, categoría, día de semana, mapa del mes), Top productos, Apartados pendientes, Productos por caducar, Clientes frecuentes (perfil editable: nombre, teléfono, notas), Turnos de caja (acumulado por cajera, diferencias), Estado del inventario, Valor en venta por categoría (`price×stock`, Natura+Avon fusionados), Rentabilidad, Por vendedor.
+- **Inventario de Reportes** (Estado del inventario, Valor en venta, Rentabilidad, Por caducar) usa `_invProducts()`: sin archivados ni kits, mismos criterios que Inventario → Pendientes. `products` completo solo para nombres/categorías de ventas pasadas. Rentabilidad enlaza a `admin.html#pendiente=sin-costo` (Inventario abre con ese pendiente; sirve con cualquier clave de `_PEND_ITEMS`).
 - **Listas largas en celular** (Movimientos, Turnos, Apartados, Valor por categoría, Clientes): sin scroll interno; primeros renglones + "Ver todo / Ver menos" (`_mobileListExpanders`). En escritorio conservan su scroll interno.
 - Chart.js lee colores con `_cssVar()` y se repinta al cambiar el tema (MutationObserver).
 

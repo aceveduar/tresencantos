@@ -544,9 +544,18 @@ async function loadPreviousSales(mode = _statsMode, offset = _statsOffset, gener
 }
 
 async function loadProducts() {
-  const r = await _fetchAll('products?select=id,name,category,category_label,price,cost,stock,out_of_stock,image,images,expiry_date&order=position.asc,id.asc');
+  const r = await _fetchAll('products?select=id,name,category,category_label,price,cost,stock,out_of_stock,image,images,expiry_date,is_archived,kit_items&order=position.asc,id.asc');
   productsLoaded = r.ok;
   products = (r.ok && Array.isArray(r.data)) ? r.data : [];
+}
+
+// Inventario real para Estado del inventario, Valor en venta y Rentabilidad:
+// sin archivados ni kits (los kits guardan stock 0 y se arman con piezas de
+// otros productos). Mismos criterios que Inventario → Pendientes; antes
+// Reportes contaba los archivados y no cuadraba con Inventario. `products`
+// completo se sigue usando para nombres/categorías de ventas pasadas.
+function _invProducts() {
+  return products.filter(p => !p.is_archived && !(Array.isArray(p.kit_items) && p.kit_items.length));
 }
 
 let todaySales = [];
@@ -1517,27 +1526,27 @@ function renderInventory() {
     document.getElementById('inv-list').innerHTML = '<p class="no-data" style="padding:16px 0">No disponible</p>';
     return;
   }
-  const out  = products.filter(p => p.stock===0 || p.out_of_stock);
-  const low  = products.filter(p => p.stock===1 && !p.out_of_stock);
-  const ok   = products.filter(p => p.stock>1  && !p.out_of_stock);
+  const out  = _invProducts().filter(p => p.stock===0 || p.out_of_stock);
+  const low  = _invProducts().filter(p => p.stock===1 && !p.out_of_stock);
+  const ok   = _invProducts().filter(p => p.stock>1  && !p.out_of_stock);
 
   document.getElementById('inv-out').textContent = out.length;
   document.getElementById('inv-low').textContent = low.length;
   document.getElementById('inv-ok').textContent  = ok.length;
-  document.getElementById('inv-total-label').textContent = `${products.length} productos`;
+  document.getElementById('inv-total-label').textContent = `${_invProducts().length} productos`;
 
-  const valorVenta = products.reduce((s, p) => s + (p.stock > 0 ? p.price * p.stock : 0), 0);
+  const valorVenta = _invProducts().reduce((s, p) => s + (p.stock > 0 ? p.price * p.stock : 0), 0);
   document.getElementById('inv-valor-venta').textContent = '$' + Math.round(valorVenta).toLocaleString('es-MX',{maximumFractionDigits:0});
-  const valorCosto = products.reduce((s, p) => s + (p.cost > 0 && p.stock > 0 ? p.cost * p.stock : 0), 0);
+  const valorCosto = _invProducts().reduce((s, p) => s + (p.cost > 0 && p.stock > 0 ? p.cost * p.stock : 0), 0);
   const costoWrap = document.getElementById('inv-valor-costo-wrap');
   const costoNote = document.getElementById('inv-valor-costo-note');
   if (valorCosto > 0) {
     document.getElementById('inv-valor-costo').textContent = '$' + Math.round(valorCosto).toLocaleString('es-MX',{maximumFractionDigits:0});
     costoWrap.style.display = '';
-    const withCostCount = products.filter(p => p.cost > 0).length;
+    const withCostCount = _invProducts().filter(p => p.cost > 0).length;
     if (costoNote) {
-      if (withCostCount < products.length) {
-        costoNote.textContent = `${withCostCount} de ${products.length} con costo registrado`;
+      if (withCostCount < _invProducts().length) {
+        costoNote.textContent = `${withCostCount} de ${_invProducts().length} con costo registrado`;
         costoNote.style.display = '';
       } else {
         costoNote.style.display = 'none';
@@ -1584,7 +1593,7 @@ function renderCapitalCategoria() {
     return;
   }
 
-  const withStock = products.filter(p => p.price > 0 && p.stock > 0);
+  const withStock = _invProducts().filter(p => p.price > 0 && p.stock > 0);
   if (!withStock.length) { card.style.display = 'none'; return; }
 
   const map = {};
@@ -1640,7 +1649,7 @@ function renderExpiringProducts() {
 
   const todayKey = _localDay(new Date());
   const todayNumber = _civilDayNumber(_parseDayKey(todayKey));
-  const withExpiry = products
+  const withExpiry = _invProducts()
     .filter(p => p.expiry_date)
     .map(p => ({ ...p, _days: _civilDayNumber(_parseDayKey(p.expiry_date)) - todayNumber }))
     .filter(p => Number.isFinite(p._days))
@@ -1684,8 +1693,8 @@ function renderRentabilidad() {
   const margin = p => p.cost > 0 && p.price > 0
     ? Math.round((p.price - p.cost) / p.price * 100) : null;
 
-  const withCost = products.filter(p => p.cost > 0 && p.price > 0);
-  const noCost   = products.filter(p => !p.cost || p.cost <= 0);
+  const withCost = _invProducts().filter(p => p.cost > 0 && p.price > 0);
+  const noCost   = _invProducts().filter(p => !p.cost || p.cost <= 0);
   const high = withCost.filter(p => margin(p) >= 30);
   const mid  = withCost.filter(p => margin(p) >= 10 && margin(p) < 30);
   const low  = withCost.filter(p => margin(p) < 10);

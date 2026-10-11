@@ -56,14 +56,14 @@
     <span>Usuarios y permisos</span>
     <div class="up-view-switch">
       <button type="button" class="up-view-btn up-view-active" id="up-view-btn-list" onclick="_upSetView('list')">☰ Lista</button>
-      <button type="button" class="up-view-btn" id="up-view-btn-matrix" onclick="_upSetView('matrix')">▦ Matriz</button>
+      <button type="button" class="up-view-btn" id="up-view-btn-matrix" onclick="_upSetView('matrix')"><svg aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Matriz</button>
     </div>
   </div>
   <div class="settings-card" style="padding:0;overflow:hidden" id="up-list-card">
     <div id="up-list"><div class="up-loading">Cargando usuarios…</div></div>
     <div class="up-mode-toggle" style="margin:12px 16px 0">
-      <button type="button" class="up-mode-btn active" id="up-mode-invite" onclick="_upSetAddMode('invite')">✉️ Invitar por correo</button>
-      <button type="button" class="up-mode-btn" id="up-mode-password" onclick="_upSetAddMode('password')">🔑 Fijar contraseña</button>
+      <button type="button" class="up-mode-btn active" id="up-mode-invite" onclick="_upSetAddMode('invite')"><svg aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>Invitar por correo</button>
+      <button type="button" class="up-mode-btn" id="up-mode-password" onclick="_upSetAddMode('password')"><svg aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>Fijar contraseña</button>
     </div>
     <div class="up-add-row">
       <input type="email" class="field-input" id="up-new-email" placeholder="correo@ejemplo.com" style="flex:1;min-width:0" onkeydown="if(event.key==='Enter')_upAddUser()">
@@ -78,7 +78,7 @@
     <p class="field-hint" id="up-add-hint" style="padding:0 16px 12px">Se crea la cuenta y se le envía un correo de invitación para que fije su propia contraseña — no hace falta entrar a Supabase.</p>
   </div>
   <div class="settings-card" style="padding:12px;display:none" id="up-matrix-card">
-    <input type="text" class="field-input" id="up-matrix-search" placeholder="🔍 Buscar un permiso…" oninput="_renderUpMatrix()" style="margin-bottom:10px">
+    <input type="text" class="field-input" id="up-matrix-search" placeholder="Buscar un permiso…" oninput="_renderUpMatrix()" style="margin-bottom:10px">
     <div class="up-mx-legend">
       <span class="up-mx-legend-item"><i class="up-mx-legend-dot up-mx-legend-on"></i>Activo</span>
       <span class="up-mx-legend-item"><i class="up-mx-legend-dot"></i>Inactivo</span>

@@ -33,6 +33,8 @@ const _PEND_ITEMS = [
   ['revisar',           'Marcados para revisar',   () => AR_ICO_FLAG(16)],
   ['sin-publicar',      'Sin publicar',            () => AR_ICO_EYEOFF(16)],
   ['sin-precio',        'Sin precio',              () => AR_ICO_DOLLAR(16)],
+  // Sin costo no hay margen ni "Capital invertido" real en Reportes.
+  ['sin-costo',         'Sin costo',               () => AR_ICO_DOLLAR(16)],
   ['sin-categ',         'Sin categoría',           () => AR_ICO_WARN(16)],
   ['sin-codigo',        'Sin código de barras',    () => AR_ICO_BARCODE(16)],
   ['sin-cod-proveedor', 'Sin código de proveedor', () => AR_ICO_TAG(16)],
@@ -48,6 +50,7 @@ function _pendCounts() {
     'revisar':           _flagged.filter(f => products.find(x => x.id === f.id)).length,
     'sin-publicar':      n(p => p.isPublished === false),
     'sin-precio':        can.publishProduct ? n(p => !p.price || p.price === 0) : 0,
+    'sin-costo':         can.publishProduct ? n(p => p.cost == null || Number(p.cost) === 0) : 0,
     'sin-categ':         n(p => p.category === 'por_revisar'),
     'sin-codigo':        n(p => !p.barcode),
     'sin-cod-proveedor': n(p => !p.supplierCode),

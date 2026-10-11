@@ -847,7 +847,6 @@ function _renderApartadoCards(data, isLiquidado) {
     ${isLiquidado ? '' : `<div class="apt-mini-bar" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="apt-mini-fill" style="width:${pct}%"></div></div>`}
   </div>
   <div class="apt-body">
-    ${isOverdue && !_aptPuedeLiberar(s) ? `<div class="apt-overdue-badge">${_uiIcoWarn()} Vencido</div>` : ''}
     ${isLiquidado ? '' : _liberarBannerHTML(s)}
     <div class="apt-items-list">${itemsListHTML}</div>
     <div class="apt-summary">

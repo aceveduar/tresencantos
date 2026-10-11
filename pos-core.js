@@ -164,7 +164,7 @@ function _openCancelModal(id, sale, kind, opts = {}) {
 
   const undoNote = isVenta ? 'Esta acción no se puede deshacer.' : 'Solo el administrador puede deshacerlo después.';
   const warnIco = '<svg style="width:13px;height:13px;vertical-align:-2px;margin-right:3px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
-  const stockTxt = isLib ? '' : liberar
+  const stockTxt = isLib || fiado ? '' : liberar
     ? `${warnIco}<strong>Solo si el producto sigue en la tienda.</strong> Vuelve a la venta. Si la clienta se lo llevó, no lo liberes: márcalo como fiado en Editar (lápiz).<br>`
     : 'El producto regresa al inventario. ';
   document.getElementById('cancel-apt-warning').innerHTML =

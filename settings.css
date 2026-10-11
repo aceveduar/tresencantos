@@ -286,7 +286,13 @@ button,a,[onclick]{touch-action:manipulation}
   .up-perm-label{font-size:.84rem}
   .up-perm-row{min-height:36px}
   .up-perm-cb{width:18px;height:18px}
-  .up-head{gap:6px;padding:12px 14px}
+  .up-head{gap:6px;padding:12px 14px;flex-wrap:wrap}
+  /* Antes avatar + nombre + rol + ✕ en una sola fila: a 390px el nombre
+     quedaba en "A.." y no se sabía quién era quién. */
+  .up-toggle-area{flex:1 1 100%}
+  .up-role-sel{margin-left:46px;flex:1;max-width:240px}
+  .up-remove-btn{margin-left:auto;width:44px;height:44px;font-size:1rem}
+  .up-name-inp{max-width:none}
   .up-add-row{flex-wrap:wrap}
   #up-new-email{width:100%;flex:none}
   #up-new-password{flex:1}

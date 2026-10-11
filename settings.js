@@ -594,7 +594,7 @@ async function toggleShowRecvIa(enabled) {
   const r = await _saveConfigValue('show_recv_ia', String(enabled));
   if (r.ok) {
     logActivity('configuracion_editada', `${enabled ? 'Activó' : 'Desactivó'} Recepción con IA`, { setting: 'show_recv_ia', value: enabled });
-    toast(enabled ? '📄 Recepción con IA activada en Inventario' : '📄 Recepción con IA desactivada', 'ok');
+    toast(enabled ? 'Recepción con IA activada en Inventario' : 'Recepción con IA desactivada', 'ok');
   } else {
     toast(r.data?.message || 'Error al guardar', 'err');
     document.getElementById('show-recv-ia-toggle').checked = !enabled;
@@ -616,7 +616,7 @@ async function toggleShowRestock(enabled) {
   const r = await _saveConfigValue('show_restock', String(enabled));
   if (r.ok) {
     logActivity('configuracion_editada', `${enabled ? 'Activó' : 'Desactivó'} Reabastecimiento en Caja`, { setting: 'show_restock', value: enabled });
-    toast(enabled ? '📦 Reabastecimiento activado en Caja' : '📦 Reabastecimiento desactivado en Caja', 'ok');
+    toast(enabled ? 'Reabastecimiento activado en Caja' : 'Reabastecimiento desactivado en Caja', 'ok');
   } else {
     toast(r.data?.message || 'Error al guardar', 'err');
     document.getElementById('show-restock-toggle').checked = !enabled;

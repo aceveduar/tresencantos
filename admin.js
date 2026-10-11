@@ -553,6 +553,7 @@ function _productPassesNonSearchFilters(p, cat, creatorVal) {
     (_statFilter === 'sin-categ'    && p.category === 'por_revisar') ||
     (_statFilter === 'ultima-pieza' && (isKit ? kitStockNow === 1 : (p.stock === 1 && !p.outOfStock))) ||
     (_statFilter === 'sin-precio'   && (!p.price || p.price === 0)) ||
+    (_statFilter === 'sin-costo'    && (p.cost == null || Number(p.cost) === 0)) ||
     (_statFilter === 'imagen-base64' && _isRealBase64Image(p.image)) ||
     (_statFilter === 'kits'         && isKit) ||
     (_statFilter === 'por-caducar'  && ['soon','expired'].includes(_expiryStatus(p)?.state)) ||
@@ -1139,6 +1140,13 @@ async function showApp() {
   if (location.hash === '#dup-review') {
     history.replaceState(null, '', location.pathname);
     setTimeout(openDupReview, 500);
+  }
+  // Enlaces desde otros módulos: admin.html#pendiente=sin-costo abre
+  // Inventario con ese pendiente aplicado (p. ej. desde Reportes → Rentabilidad).
+  const pendHash = location.hash.match(/^#pendiente=([a-z0-9-]+)$/);
+  if (pendHash && _PEND_ITEMS.some(([k]) => k === pendHash[1])) {
+    history.replaceState(null, '', location.pathname);
+    toggleStatFilter(pendHash[1]);
   }
 }
 
