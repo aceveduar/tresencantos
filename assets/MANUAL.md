@@ -68,7 +68,7 @@ Los saldos a favor se ven en **Apartados → Cancelados** ("A favor $300"). Cuan
 ### Recordar a las clientas con apartado vencido
 En **Apartados**, toca **Recordar a vencidas**. Sale la lista de apartados vencidos con cuánto deben y cuándo se les recordó por última vez (por cualquier persona). Toca **Enviar** en cada una: se abre WhatsApp con el mensaje listo; solo envíalo y regresa a la lista para la siguiente. Primero aparecen las que no tienen recordatorio hoy.
 
-**Cancelar** (una venta o un apartado) pide un motivo y, si hubo dinero, que confirmes que lo devolviste.
+**Cancelar** (una venta o un apartado) pide un motivo. En un apartado con dinero pregunta qué pasa con lo que pagó: **queda a su favor** (no sale dinero hoy; ver "Saldo a favor") o **se lo devuelvo ahora** (sale del cajón y confirmas la devolución).
 
 ### Si un producto aparece agotado
 Si lo tienes físicamente, tócalo: Caja ofrece **Reabastecer** (sumar stock) y lo agrega al carrito.

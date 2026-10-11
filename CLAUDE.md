@@ -1,6 +1,6 @@
 # CLAUDE.md — Tres Encantos
 
-Documentación vigente del proyecto. Última reconciliación: 2026-10-10 · `sw.js` `CACHE_VERSION = 'v625'`.
+Documentación vigente del proyecto. Última reconciliación: 2026-10-10 · `sw.js` `CACHE_VERSION = 'v626'`.
 
 > **Fuente de verdad:** para comportamiento ejecutable manda el código; para reglas de negocio y decisiones UX manda este documento.
 > **Historial completo** (bitácora fecha por fecha, razonamiento detrás de cada decisión, bugs resueltos): [assets/HISTORIAL.md](assets/HISTORIAL.md). No se carga solo — consultarlo con grep cuando haga falta el "por qué" de algo. Este archivo solo describe el estado actual.
@@ -224,6 +224,7 @@ Supabase no tiene backups en este plan (sin PITR, lista vacía). `scripts/respal
 - **Modo oscuro** (los 5 módulos admin): `data-theme-ready="1"` + script anti-flash en `<head>`; `:root[data-theme="dark"]` en cada CSS; tintes `--tint-{red,amber,green,blue,violet}-{bg,border,strong}`. Usar tokens (`--surface`, `--surface-soft`, `--charcoal`, `--muted`, `--border`), no hex. **Fondo oscuro fijo = `var(--ink)`, nunca `var(--charcoal)`** (este se invierte). Un `style=""` inline no responde al tema: mover a clase. Elementos sobre fotos (fondo blanco) usan colores fijos. Fotos de producto con `object-fit:contain` sobre `#fff`.
 - **PostgREST:** batch PATCH con máx. 10 ids en `in.(…)`; no se puede castear columnas dentro de `or=(…)` (usar RPC); RPC por `POST /rest/v1/rpc/<nombre>` con argumentos nombrados.
 - **Gestos:** handlers `{passive:true}`, sin `stopPropagation` en swipes; detectar dirección en `touchmove`.
+- **Ayuda** (`openHelp()` en `shared.js`, "Ayuda" en el menú del avatar, los 5 módulos): buscador sobre `assets/MANUAL.md` (cada `###`, cada `##` sin subtemas y cada pregunta en negritas de "Preguntas frecuentes" es una entrada). Ignora acentos, entiende familias de palabras y sinónimos (`_SINONIMOS`); sin búsqueda muestra primero el módulo actual. **El manual es la ayuda: todo cambio que el equipo deba saber se escribe ahí.**
 - **Diálogos:** nunca `alert()`/`confirm()` nativos (salen como cuadro gris del navegador, sin tema ni tamaño de letra): usar `await teConfirm({title, message, confirmText, danger})` / `await teAlert(msg, title)` de `shared.js`; validaciones menores con `toast`. Todos los módulos migrados (2026-10-07): no queda ningún nativo. Al volver `async` una función por usar `teConfirm`, revisar si alguien usa su valor de retorno (`closeForm()` devuelve si cerró).
 - **Campos de dinero** (Caja): clase `.money-field` (`pos.css`) = monto grande junto a su "$". En celular Caja fuerza 16px en inputs (anti-zoom iOS) con `!important`; para agrandar un campo hay que igualar esa especificidad (`:not([type=checkbox])`). Piezas siempre "pzas" (nunca "uds").
 - **Offline:** banner en `shared.js` (y copia en `app.js`); `cobrar()` bloquea sin conexión.

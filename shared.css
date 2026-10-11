@@ -274,3 +274,35 @@ a{text-decoration:none}
    $108 "$1o8". Se hereda a todo; tabular-nums de cada elemento se suma. */
 body{font-feature-settings:"lnum" 1}
 
+/* ── AYUDA (shared.js openHelp) ── */
+#help-overlay{position:fixed;inset:0;z-index:100000;background:rgba(20,15,12,.5);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center}
+#help-pop{background:var(--surface);color:var(--charcoal);width:100%;height:92dvh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -8px 32px rgba(0,0,0,.18)}
+@media(min-width:641px){#help-overlay{align-items:center;padding:24px}#help-pop{max-width:620px;height:min(80vh,760px);border-radius:20px}}
+.help-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 8px}
+.help-head h2{font-family:'Playfair Display',serif;font-size:1.25rem;margin:0}
+.help-close{min-width:44px;min-height:44px;border:none;background:none;color:var(--muted);font-size:1.1rem;border-radius:10px;cursor:pointer;margin-right:-10px}
+.help-close:hover{background:var(--surface-soft)}
+.help-search-wrap{position:relative;margin:0 20px 10px}
+.help-search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:1.75;stroke-linecap:round;pointer-events:none}
+#help-search{width:100%;box-sizing:border-box;min-height:48px;padding:10px 14px 10px 42px;border:1.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:16px;background:var(--surface);color:var(--charcoal);outline:none}
+#help-search:focus{border-color:var(--gold)}
+.help-body{position:relative;flex:1;min-height:0}
+#help-list,#help-view{position:absolute;inset:0;overflow-y:auto;padding:4px 20px 24px;overscroll-behavior:contain}
+#help-view{display:none;background:var(--surface)}
+#help-pop.show-view #help-view{display:block}
+#help-pop.show-view #help-list{visibility:hidden}
+.help-group{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:16px 2px 6px}
+.help-item{display:block;width:100%;text-align:left;padding:12px 14px;margin-bottom:8px;border:1px solid var(--border);border-radius:12px;background:var(--surface);font-family:inherit;color:var(--charcoal);cursor:pointer}
+.help-item:hover{border-color:var(--gold)}
+.help-item-title{display:block;font-size:.95rem;font-weight:700}
+.help-item-mod{display:inline-block;margin-top:3px;font-size:.72rem;font-weight:600;color:var(--muted);border:1px solid var(--border);border-radius:50px;padding:1px 8px}
+.help-item-snip{display:block;margin-top:4px;font-size:.84rem;color:var(--muted);line-height:1.45}
+.help-empty{padding:28px 6px;text-align:center;color:var(--muted);font-size:.9rem;line-height:1.5}
+.help-back{min-height:44px;padding:0 4px;border:none;background:none;font-family:inherit;font-size:.9rem;font-weight:700;color:var(--gold-dark);cursor:pointer}
+.help-view-mod{font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.help-view-title{font-family:'Playfair Display',serif;font-size:1.3rem;margin:4px 0 12px}
+.help-view-body{font-size:1rem;line-height:1.6}
+.help-view-body p{margin:0 0 12px}
+.help-view-body ol,.help-view-body ul{margin:0 0 12px;padding-left:22px}
+.help-view-body li{margin-bottom:6px}
+.help-view-body code{font-size:.9em;background:var(--surface-soft);padding:1px 5px;border-radius:5px}

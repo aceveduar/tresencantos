@@ -92,6 +92,10 @@ function _themeToggleRowHtml() {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           Actividad
         </a>` : '') +
+      `<button class="ud-link" style="width:100%;text-align:left;background:none;border:none;font-family:inherit;cursor:pointer" onclick="openHelp()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Ayuda
+      </button>` +
       `<button class="ud-link" style="width:100%;text-align:left;background:none;border:none;font-family:inherit;cursor:pointer" onclick="document.getElementById('ud-pop')?.remove();openMyPinModal()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
         Mi PIN de autorización
@@ -1050,3 +1054,235 @@ document.addEventListener('DOMContentLoaded', () => {
   _applyNavPermissions(_getMyPermsCached());
   _loadMyPerms().then(up => { if (up) _applyNavPermissions(up); });
 });
+
+/* ── AYUDA (2026-10-10) ─────────────────────────────────────────────────
+   "Ayuda" en el menú del avatar: buscador sobre assets/MANUAL.md, el mismo
+   manual que se mantiene en el repo (una sola fuente: actualizar el manual
+   actualiza la ayuda). Cada "###" es una entrada; un "##" sin subtemas es
+   una entrada; cada pregunta en negritas de "Preguntas frecuentes" también.
+   La búsqueda ignora acentos, entiende plurales/derivados ("devoluciones"
+   → "devolución", "devolver") y algunos sinónimos de la tienda. Sin texto,
+   muestra primero lo del módulo donde estás. ── */
+(function () {
+  let _helpEntries = null;
+  let _helpLoading = null;
+
+  const _norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const _escH = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  // Palabras de la tienda que la gente busca con otro nombre.
+  const _SINONIMOS = {
+    devolucion: ['devolver', 'reembolso', 'saldo a favor', 'cancelar'],
+    devolver: ['devolucion', 'reembolso', 'saldo a favor'],
+    reembolso: ['devolver', 'devolucion', 'saldo a favor'],
+    fiado: ['se lo lleva', 'se lo llevo', 'confianza'],
+    credito: ['fiado', 'saldo a favor'],
+    corte: ['cerrar turno', 'conteo'],
+    turno: ['abrir caja', 'corte'],
+    vencido: ['vencidos', 'liberar', 'recordar'],
+    liberar: ['vencido', 'saldo a favor'],
+    libreta: ['papel', 'pasar de la libreta'],
+    existencia: ['stock', 'piezas', 'agotado'],
+    stock: ['piezas', 'agotado', 'reabastecer'],
+    borrar: ['eliminar', 'archivar'],
+    eliminar: ['borrar', 'archivar']
+  };
+
+  // Palabras que no dicen de qué trata la búsqueda.
+  const _VACIAS = new Set(['que', 'como', 'una', 'los', 'las', 'del', 'por', 'para', 'con', 'sin', 'mas', 'hay', 'hago', 'puedo', 'esta', 'este', 'cuando', 'donde', 'porque']);
+
+  function _parseManual(md) {
+    const lines = md.replace(/\r\n/g, '\n').split('\n');
+    const entries = [];
+    let mod = '', cur = null, modIntro = null;
+    const push = e => { if (e && e.body.join('\n').trim()) entries.push({ title: e.title, mod: e.mod, body: e.body.join('\n').trim() }); };
+    for (const line of lines) {
+      if (/^#\s/.test(line)) continue;
+      if (/^---\s*$/.test(line)) continue;
+      const h2 = line.match(/^##\s+(.*)/);
+      const h3 = line.match(/^###\s+(.*)/);
+      if (h2) { push(cur); push(modIntro); cur = null; mod = h2[1].trim(); modIntro = { title: mod, mod, body: [] }; continue; }
+      if (h3) { push(cur); push(modIntro); modIntro = null; cur = { title: h3[1].trim(), mod, body: [] }; continue; }
+      // Preguntas frecuentes: cada "**¿…?**" es su propia entrada.
+      const q = mod === 'Preguntas frecuentes' && line.match(/^\*\*(.+\?)\*\*\s*$/);
+      if (q) { push(cur); push(modIntro); modIntro = null; cur = { title: q[1], mod, body: [] }; continue; }
+      (cur || modIntro)?.body.push(line);
+    }
+    push(cur); push(modIntro);
+    return entries.map(e => ({ ...e, nTitle: _norm(e.title), nBody: _norm(e.body), nMod: _norm(e.mod) }));
+  }
+
+  function _loadHelp() {
+    if (_helpEntries) return Promise.resolve(_helpEntries);
+    if (!_helpLoading) {
+      _helpLoading = fetch('assets/MANUAL.md', { cache: 'no-cache' })
+        .then(r => { if (!r.ok) throw new Error(); return r.text(); })
+        .then(md => (_helpEntries = _parseManual(md)))
+        .catch(() => { _helpLoading = null; return null; });
+    }
+    return _helpLoading;
+  }
+
+  // "devoluciones" → raíz "devoluci", que también encuentra "devolución".
+  function _root(w) { return w.length <= 4 ? w : w.slice(0, Math.max(4, w.length - 3)); }
+
+  // Sinónimos de la palabra o de su familia ("devoluciones" usa los de "devolucion").
+  function _sinonimos(t) {
+    const rt = _root(t);
+    return Object.keys(_SINONIMOS)
+      .filter(k => k === t || rt.startsWith(_root(k)) || _root(k).startsWith(rt))
+      .flatMap(k => _SINONIMOS[k]);
+  }
+
+  function _score(e, terms) {
+    let total = 0;
+    for (const t of terms) {
+      const variants = [t, ..._sinonimos(t)];
+      let best = 0;
+      for (const v of variants) {
+        const nv = _norm(v);
+        const r = nv.includes(' ') ? nv : _root(nv);
+        if (e.nTitle.includes(r)) best = Math.max(best, v === t ? 6 : 4);
+        else if (e.nMod.includes(r)) best = Math.max(best, 2);
+        else if (e.nBody.includes(r)) best = Math.max(best, v === t ? 2 : 1);
+      }
+      if (!best) return 0; // todas las palabras deben aparecer (o un sinónimo)
+      total += best;
+    }
+    return total;
+  }
+
+  function _currentModule() {
+    const p = location.pathname.split('/').pop() || '';
+    return { 'pos.html': 'Caja', 'admin.html': 'Inventario', 'stats.html': 'Reportes', 'activity.html': 'Actividad', 'settings.html': 'Configuración' }[p] || '';
+  }
+
+  // Markdown mínimo del manual: párrafos, listas, **negritas**.
+  function _mdToHtml(md) {
+    const inline = s => _escH(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`(.+?)`/g, '<code>$1</code>');
+    const out = [];
+    let list = null;
+    const close = () => { if (list) { out.push(`</${list}>`); list = null; } };
+    for (const raw of md.split('\n')) {
+      const line = raw.trim();
+      const ol = line.match(/^\d+\.\s+(.*)/);
+      const ul = line.match(/^[-*]\s+(.*)/);
+      if (ol || ul) {
+        const kind = ol ? 'ol' : 'ul';
+        if (list !== kind) { close(); out.push(`<${kind}>`); list = kind; }
+        out.push(`<li>${inline((ol || ul)[1])}</li>`);
+      } else if (!line) {
+        close();
+      } else {
+        close();
+        out.push(`<p>${inline(line)}</p>`);
+      }
+    }
+    close();
+    return out.join('');
+  }
+
+  function _snippet(e, terms) {
+    const plain = e.body.replace(/\*\*|`/g, '').replace(/^\s*(\d+\.|[-*])\s+/gm, '').replace(/\s+/g, ' ');
+    let i = 0;
+    if (terms.length) {
+      const n = _norm(plain);
+      const hit = terms.map(t => n.indexOf(_root(t))).filter(x => x >= 0).sort((a, b) => a - b)[0];
+      if (hit > 40) i = hit - 40;
+    }
+    const s = plain.slice(i, i + 130);
+    return (i > 0 ? '…' : '') + s + (plain.length > i + 130 ? '…' : '');
+  }
+
+  function _render(query) {
+    const list = document.getElementById('help-list');
+    if (!list || !_helpEntries) return;
+    const terms = _norm(query).split(/[^a-z0-9ñ]+/).filter(w => w.length >= 3 && !_VACIAS.has(w));
+    let items;
+    if (terms.length) {
+      items = _helpEntries.map(e => ({ e, s: _score(e, terms) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s).map(x => x.e);
+    } else {
+      const here = _currentModule();
+      items = [..._helpEntries.filter(e => e.mod === here), ..._helpEntries.filter(e => e.mod !== here)];
+    }
+    if (!items.length) {
+      list.innerHTML = `<div class="help-empty">No encontré nada sobre “${_escH(query)}”. Prueba con otra palabra, por ejemplo “apartado”, “corte” o “devolver”.</div>`;
+      return;
+    }
+    let lastMod = null;
+    list.innerHTML = items.map((e, i) => {
+      const head = !terms.length && e.mod !== lastMod ? `<div class="help-group">${_escH(e.mod)}</div>` : '';
+      lastMod = e.mod;
+      return `${head}<button type="button" class="help-item" data-i="${_helpEntries.indexOf(e)}">
+        <span class="help-item-title">${_escH(e.title)}</span>
+        ${terms.length ? `<span class="help-item-mod">${_escH(e.mod)}</span>` : ''}
+        <span class="help-item-snip">${_escH(_snippet(e, terms))}</span>
+      </button>`;
+    }).join('');
+  }
+
+  function _showEntry(i) {
+    const e = _helpEntries?.[i];
+    const view = document.getElementById('help-view');
+    if (!e || !view) return;
+    view.innerHTML = `<button type="button" class="help-back" onclick="_helpBack()">← Ayuda</button>
+      <div class="help-view-mod">${_escH(e.mod)}</div>
+      <h3 class="help-view-title">${_escH(e.title)}</h3>
+      <div class="help-view-body">${_mdToHtml(e.body)}</div>`;
+    document.getElementById('help-pop').classList.add('show-view');
+    view.scrollTop = 0;
+    view.querySelector('.help-back')?.focus();
+  }
+
+  window._helpBack = function () {
+    document.getElementById('help-pop')?.classList.remove('show-view');
+    document.getElementById('help-search')?.focus();
+  };
+
+  window.closeHelp = function () {
+    document.getElementById('help-overlay')?.remove();
+    document.removeEventListener('keydown', _helpKey, true);
+  };
+  function _helpKey(e) {
+    if (e.key !== 'Escape') return;
+    e.stopPropagation();
+    if (document.getElementById('help-pop')?.classList.contains('show-view')) window._helpBack();
+    else window.closeHelp();
+  }
+
+  window.openHelp = async function (query = '') {
+    document.getElementById('ud-pop')?.remove();
+    window.closeHelp();
+    const ov = document.createElement('div');
+    ov.id = 'help-overlay';
+    ov.innerHTML = `<div id="help-pop" role="dialog" aria-modal="true" aria-labelledby="help-title">
+      <div class="help-head">
+        <h2 id="help-title">Ayuda</h2>
+        <button type="button" class="help-close" onclick="closeHelp()" aria-label="Cerrar ayuda">✕</button>
+      </div>
+      <div class="help-search-wrap">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="help-search" placeholder="¿Qué necesitas? Ej. devolver, apartado, corte" autocomplete="off" value="${_escH(query)}">
+      </div>
+      <div class="help-body">
+        <div id="help-list"><div class="help-empty">Cargando…</div></div>
+        <div id="help-view"></div>
+      </div>
+    </div>`;
+    ov.addEventListener('click', e => { if (e.target === ov) window.closeHelp(); });
+    document.body.appendChild(ov);
+    document.addEventListener('keydown', _helpKey, true);
+    const input = document.getElementById('help-search');
+    input.addEventListener('input', () => _render(input.value));
+    document.getElementById('help-list').addEventListener('click', e => {
+      const b = e.target.closest('.help-item');
+      if (b) _showEntry(Number(b.dataset.i));
+    });
+    setTimeout(() => input.focus(), 50);
+    const ok = await _loadHelp();
+    if (!ok) {
+      document.getElementById('help-list').innerHTML = '<div class="help-empty">No se pudo cargar la ayuda. Revisa tu conexión.</div>';
+      return;
+    }
+    _render(input.value);
+  };
+})();
