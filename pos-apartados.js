@@ -651,62 +651,12 @@ function _renderApartadoCanceladosCards(data) {
   }
   ocList.innerHTML = data.map(s => {
     const total     = parseFloat(s.total) || 0;
-    const cardDate  = s.cancelled_at || s.updated_at || s.created_at;
-    const t         = _posFormatTimestamp(cardDate, {day:'numeric',month:'short'});
-    const cancelLabel = _posFormatTimestamp(cardDate, {day:'numeric',month:'long',year:'numeric'});
+    const t         = _posFormatTimestamp(s.cancelled_at || s.updated_at || s.created_at, {day:'numeric',month:'short'});
     const nItems    = Array.isArray(s.items) ? s.items.length : 0;
-    const custParts = (s.customer || '').split(' · 📱 ');
-    const nombre    = _displayName(custParts[0] || 'Sin nombre');
-    const telNum    = custParts[1] || '';
-
-    const abonos = Array.isArray(s.payment_history) ? s.payment_history
-      : Array.isArray(s.abonos) ? s.abonos : [];
-    const historyWarning = s.payment_history_error
-      ? `<div style="font-size:.72rem;color:var(--red);padding:6px 0">${_uiIcoWarn()} Historial incompleto; recarga para consultar el libro de pagos.</div>`
-      : '';
-    // El botón ✉️ "Reenviar comprobante" solo existía en openAptDetail() (el
-    // panel de detalle que abre la vista de escritorio, apt-page-list →
-    // _renderAptPageCards/_renderAptPageCanceladosCards). El offcanvas de
-    // mobile (este render) nunca lo tuvo -- por eso "en desktop siempre
-    // aparece y en mobile no aparece". Mismo patrón que openAptDetail:
-    // resendReceipt() para pagos del ledger (id real), resendLegacyAbono()
-    // para abonos legado sin id.
-    const abonosHTML = historyWarning + (abonos.length ? `
-<div class="apt-abonos-section-inline">
-  <div class="adm-section-title" style="font-size:.65rem;margin-bottom:4px">Pagos realizados</div>
-  ${abonos.map((a, idx) => {
-    const meta = _apartadoPaymentMeta(a);
-    const amountLabel = `${meta.amount < 0 ? '−' : ''}$${Math.abs(meta.amount).toLocaleString('es-MX')}`;
-    // La reversa de una reactivación no se reenvía, pero conserva el hueco del
-    // botón (invisible) para que su monto quede alineado con los demás renglones.
-    const resendBtn = (meta.isReactivation || meta.isLibreta) ? `<button class="hi-del hi-send" style="padding:2px 4px;visibility:hidden" tabindex="-1" aria-hidden="true" disabled>${_uiIcoSend(12)}</button>` : a.id != null
-      ? `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendReceipt('${a.id}')" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`
-      : `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendLegacyAbono(${s.id},${idx})" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`;
-    return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span style="display:flex;align-items:center;gap:2px"><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${amountLabel}</span>${resendBtn}</span></div>`;
-  }).join('')}
-</div>` : '');
-
-    const itemsListHTML = nItems ? s.items.map(i => {
-      if (i.libreta) return _libretaItemRowHTML(i);
-      const prod  = products.find(x => x.id === i.id);
-      const img   = _driveSz(prod?.image || i.image || '', 80);
-      const qty   = i.qty || 1;
-      const sub   = i.subtotal ?? i.price * qty;
-      const priceLabel = qty > 1
-        ? `<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span><span class="apt-item-qty">$${i.price.toLocaleString('es-MX')} ×${qty}</span>`
-        : `<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span>`;
-      return `<div class="apt-item-row" onclick="event.stopPropagation();_aptItemPopup(${i.id},this)">
-        <img class="apt-item-thumb" src="${img}" onerror="this.style.visibility='hidden'" alt="">
-        <div class="apt-item-info"><div class="apt-item-name">${_esc(i.name)}</div></div>
-        <div class="apt-item-right">${priceLabel}</div>
-      </div>`;
-    }).join('') : '';
-
-    const disc = Math.round(((parseFloat(s.discount) || 0) + _itemsDiscountTotal(s.items)) * 100) / 100;
-
+    const nombre    = _displayName((s.customer || '').split(' · 📱 ')[0] || 'Sin nombre');
     return `
 <div class="apartado-item apt-cancelado">
-  <div class="apt-header" role="button" tabindex="0" aria-expanded="false" aria-label="Ver detalle del apartado cancelado de ${_esc(nombre)}" onclick="_toggleApt(this.parentElement,${s.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_toggleApt(this.parentElement,${s.id})}">
+  <div class="apt-header" role="button" tabindex="0" aria-label="Ver detalle del apartado cancelado de ${_esc(nombre)}" onclick="openAptDetail(${s.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openAptDetail(${s.id})}">
     <div class="apt-header-r1">
       <span class="apt-h-name">${_uiIcoUser()} ${_esc(nombre)}</span>
       <div class="apt-h-right">
@@ -717,16 +667,6 @@ function _renderApartadoCanceladosCards(data) {
     <div class="apt-header-r2">
       <span class="apt-h-meta">${_saldoFavor(s) > 0 ? _favorChipHTML(s) : ''}Cancelado el ${t} · ${_isLibretaSale(s) ? _libretaChipHTML() : `${nItems} prod.`}</span>
     </div>
-  </div>
-  <div class="apt-body">
-    <div class="apt-items-list">${itemsListHTML}</div>
-    <div class="apt-summary">
-      ${disc > 0 ? `<div class="apt-sum-row"><span>Subtotal</span><span>$${(total+disc).toLocaleString('es-MX')}</span></div><div class="apt-sum-row apt-sum-disc"><span>${_uiIcoTag()} Descuento</span><span>−$${disc.toLocaleString('es-MX')}</span></div>` : ''}
-      <div class="apt-sum-row apt-sum-total"><span>Total</span><span>$${total.toLocaleString('es-MX')}</span></div>
-    </div>
-    <div style="font-size:.76rem;color:var(--muted);font-weight:600;margin:10px 0 2px">${_uiIcoX('var(--red)')} Cancelado el ${cancelLabel}</div>
-    ${abonosHTML}
-    ${_saldoFavor(s) > 0 ? `<div class="apt-btns"><button type="button" class="btn-favor" onclick="event.stopPropagation();devolverSaldoFavor(${s.id})">Devolver saldo a favor ${_fmtMx(_saldoFavor(s))}</button></div>` : ''}
   </div>
 </div>`;
   }).join('');
@@ -753,6 +693,11 @@ function _renderApartadoCards(data, isLiquidado) {
     ocList.innerHTML = `<div class="history-empty" style="grid-column:1/-1"><div style="margin-bottom:8px">${isLiquidado ? _uiIcoCheck('var(--green)', 30) : _uiIcoSearch(30)}</div>Sin ${isLiquidado ? 'apartados liquidados' : 'resultados'}</div>`;
     return;
   }
+  // Celular (2026-10-10): la tarjeta solo resume; tocarla abre el mismo
+  // detalle que escritorio (openAptDetail) como hoja desde abajo, con las
+  // acciones fijas al pie. Antes se desplegaba dentro de la lista: con varios
+  // productos y pagos los botones quedaban fuera de la pantalla, la lista
+  // brincaba y había dos versiones del detalle que mantener.
   const itemsHTML = data.map(s => {
     const total     = parseFloat(s.total) || 0;
     const pagado    = parseFloat(s.paid_amount || 0);
@@ -761,72 +706,21 @@ function _renderApartadoCards(data, isLiquidado) {
     const cardDate  = isLiquidado ? (s.liquidated_at || s.last_payment_at || s.created_at) : s.created_at;
     const t         = _posFormatTimestamp(cardDate, {day:'numeric',month:'short'});
     const nItems    = Array.isArray(s.items) ? s.items.length : 0;
-    const custParts = (s.customer || '').split(' · 📱 ');
-    const nombre    = _displayName(custParts[0] || 'Sin nombre');
-    const telNum    = custParts[1] || '';
+    const nombre    = _displayName((s.customer || '').split(' · 📱 ')[0] || 'Sin nombre');
 
     // Fecha de vencimiento — sin sentido para un apartado ya liquidado
-    let dueColor = '', dueText = '', dueHTML = '';
+    let dueHTML = '';
     if (s.due_date && !isLiquidado) {
       const diff = _posDayKeyDiff(s.due_date);
-      dueText  = diff < 0 ? `Venció hace ${Math.abs(diff)} día${Math.abs(diff)!==1?'s':''}` : diff === 0 ? 'Vence hoy' : `Vence ${_posFormatDayKey(s.due_date,{day:'numeric',month:'short'})}`;
+      const dueText = diff < 0 ? `Venció hace ${Math.abs(diff)} día${Math.abs(diff)!==1?'s':''}` : diff === 0 ? 'Vence hoy' : `Vence ${_posFormatDayKey(s.due_date,{day:'numeric',month:'short'})}`;
       // Color solo cuando importa: rojo vencido, ámbar ≤7 días; lo demás gris.
       dueHTML  = `<span class="apt-h-due${diff < 0 ? ' is-overdue' : diff <= 7 ? ' is-soon' : ''}">${_uiIcoCalendar()} ${dueText}</span>`;
     }
     const isOverdue = !isLiquidado && s.due_date && _posDayKeyDiff(s.due_date) < 0;
 
-    const abonos = Array.isArray(s.payment_history) ? s.payment_history
-      : Array.isArray(s.abonos) ? s.abonos : [];
-    const historyWarning = s.payment_history_error
-      ? `<div style="font-size:.72rem;color:var(--red);padding:6px 0">${_uiIcoWarn()} Historial incompleto; recarga para consultar el libro de pagos.</div>`
-      : '';
-    // El botón ✉️ "Reenviar comprobante" solo existía en openAptDetail() (el
-    // panel de detalle que abre la vista de escritorio, apt-page-list →
-    // _renderAptPageCards/_renderAptPageCanceladosCards). El offcanvas de
-    // mobile (este render) nunca lo tuvo -- por eso "en desktop siempre
-    // aparece y en mobile no aparece". Mismo patrón que openAptDetail:
-    // resendReceipt() para pagos del ledger (id real), resendLegacyAbono()
-    // para abonos legado sin id.
-    const abonosHTML = historyWarning + (abonos.length ? `
-<div class="apt-abonos-section-inline">
-  <div class="adm-section-title" style="font-size:.65rem;margin-bottom:4px">Pagos realizados</div>
-  ${abonos.map((a, idx) => {
-    const meta = _apartadoPaymentMeta(a);
-    const amountLabel = `${meta.amount < 0 ? '−' : ''}$${Math.abs(meta.amount).toLocaleString('es-MX')}`;
-    // La reversa de una reactivación no se reenvía, pero conserva el hueco del
-    // botón (invisible) para que su monto quede alineado con los demás renglones.
-    const resendBtn = (meta.isReactivation || meta.isLibreta) ? `<button class="hi-del hi-send" style="padding:2px 4px;visibility:hidden" tabindex="-1" aria-hidden="true" disabled>${_uiIcoSend(12)}</button>` : a.id != null
-      ? `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendReceipt('${a.id}')" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`
-      : `<button class="hi-del hi-send" style="padding:2px 4px" onclick="event.stopPropagation();resendLegacyAbono(${s.id},${idx})" title="Reenviar comprobante por WhatsApp" aria-label="Reenviar comprobante por WhatsApp">${_uiIcoSend(12)}</button>`;
-    return `<div class="apt-abono-row"><span>${meta.dateLabel} · ${meta.icon} ${_esc(meta.method)}</span><span style="display:flex;align-items:center;gap:2px"><span class="apt-abono-amount"${meta.amount < 0 ? ' style="color:var(--red)"' : ''}>${amountLabel}</span>${resendBtn}</span></div>`;
-  }).join('')}
-</div>` : '');
-
-    // Items
-    const itemsListHTML = nItems ? s.items.map(i => {
-      if (i.libreta) return _libretaItemRowHTML(i);
-      const prod  = products.find(x => x.id === i.id);
-      const img   = _driveSz(prod?.image || i.image || '', 80);
-      const qty   = i.qty || 1;
-      const sub   = i.subtotal ?? i.price * qty;
-      const origSub = i.original_price != null
-        ? `<span style="text-decoration:line-through;opacity:.45;font-size:.68rem;margin-right:3px">$${(i.original_price * qty).toLocaleString('es-MX')}</span>`
-        : '';
-      const priceLabel = qty > 1
-        ? `${origSub}<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span><span class="apt-item-qty">$${i.price.toLocaleString('es-MX')} ×${qty}</span>`
-        : `${origSub}<span class="apt-item-price">$${sub.toLocaleString('es-MX')}</span>`;
-      return `<div class="apt-item-row" onclick="event.stopPropagation();_aptItemPopup(${i.id},this)">
-        <img class="apt-item-thumb" src="${img}" onerror="this.style.visibility='hidden'" alt="">
-        <div class="apt-item-info"><div class="apt-item-name">${_esc(i.name)}</div></div>
-        <div class="apt-item-right">${priceLabel}</div>
-      </div>`;
-    }).join('') : '';
-
-    const disc = Math.round(((parseFloat(s.discount) || 0) + _itemsDiscountTotal(s.items)) * 100) / 100;
-
     return `
 <div class="apartado-item${isOverdue ? ' apt-overdue' : ''}">
-  <div class="apt-header" role="button" tabindex="0" aria-expanded="false" aria-label="Ver detalle del apartado de ${_esc(nombre)}" onclick="_toggleApt(this.parentElement,${s.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_toggleApt(this.parentElement,${s.id})}">
+  <div class="apt-header" role="button" tabindex="0" aria-label="Ver detalle del apartado de ${_esc(nombre)}" onclick="openAptDetail(${s.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openAptDetail(${s.id})}">
     <div class="apt-header-r1">
       <span class="apt-h-name">${_uiIcoUser()} ${_esc(nombre)}</span>
       <div class="apt-h-right">
@@ -842,46 +736,9 @@ function _renderApartadoCards(data, isLiquidado) {
     </div>
     ${isLiquidado ? '' : `<div class="apt-mini-bar" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="apt-mini-fill" style="width:${pct}%"></div></div>`}
   </div>
-  <div class="apt-body">
-    ${isLiquidado ? '' : _liberarBannerHTML(s)}
-    <div class="apt-items-list">${itemsListHTML}</div>
-    <div class="apt-summary">
-      ${disc > 0 ? `<div class="apt-sum-row"><span>Subtotal</span><span>$${(total+disc).toLocaleString('es-MX')}</span></div><div class="apt-sum-row apt-sum-disc"><span>${_uiIcoTag()} Descuento</span><span>−$${disc.toLocaleString('es-MX')}</span></div>` : ''}
-      <div class="apt-sum-row apt-sum-total"><span>Total</span><span>$${total.toLocaleString('es-MX')}</span></div>
-    </div>
-    <div class="apt-progress-section">
-      <div class="apt-progress-track" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="apt-progress-fill" style="width:${pct}%"></div></div>
-      <div class="apt-amounts-row">
-        <span class="apt-paid-lbl">✓ Pagado $${pagado.toLocaleString('es-MX')}</span>
-        <span class="apt-pending-lbl">${pendiente > 0 ? 'Falta $' + pendiente.toLocaleString('es-MX') : '✓ Liquidado'}</span>
-      </div>
-    </div>
-    ${abonosHTML}
-    <div class="apt-btns">
-      <button class="btn-wa-reminder" onclick="event.stopPropagation();sendApartadoReminder(${s.id})" title="${isLiquidado ? 'Enviar confirmación por WhatsApp' : 'Enviar recordatorio por WhatsApp'}" aria-label="${isLiquidado ? 'Enviar confirmación por WhatsApp' : 'Enviar recordatorio por WhatsApp'}">${_uiIcoWA()}</button>
-      ${(isLiquidado || pendiente <= _APT_MONEY_EPSILON) ? `<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--green)">✓ Liquidado</span>` : `
-      <button class="btn-wa-reminder" onclick="event.stopPropagation();openEditApartado(${s.id})" title="Editar" style="background:var(--cream);color:var(--charcoal);border:1.5px solid var(--border)">${_uiIcoEdit()}</button>
-      <button class="btn-abonar" onclick="event.stopPropagation();abonarApartado('${s.id}','${total}','${pagado}','${_esc(nombre).replace(/'/g,"\\'")}')">Registrar abono</button>
-      <button class="btn-liquidar" onclick="event.stopPropagation();openLiqModal(${s.id})">Cobrar saldo $${pendiente.toLocaleString('es-MX')}</button>
-      <button class="btn-cancelar-apt" onclick="event.stopPropagation();cancelApartado(${s.id})" title="Cancelar apartado">✕</button>`}
-    </div>
-  </div>
 </div>`;
   }).join('');
   ocList.innerHTML = itemsHTML;
-}
-
-/* ── APARTADO TOGGLE ── */
-function _toggleApt(el, id) {
-  const isOpen = el.classList.contains('open');
-  document.querySelectorAll('#apt-offcanvas-list .apartado-item.open').forEach(c => {
-    c.classList.remove('open');
-    c.querySelector('.apt-header')?.setAttribute('aria-expanded', 'false');
-  });
-  if (!isOpen) {
-    el.classList.add('open');
-    el.querySelector('.apt-header')?.setAttribute('aria-expanded', 'true');
-  }
 }
 
 /* ── POPUP IMAGEN PRODUCTO EN APARTADO ── */

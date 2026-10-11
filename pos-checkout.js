@@ -760,6 +760,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('abonar-overlay'));
   initSwipeDown(document.querySelector('#liquidar-overlay .abonar-modal'), closeLiqModal,
     document.getElementById('liquidar-overlay'));
+  // Detalle de apartado como hoja en celular: deslizar hacia abajo la cierra.
+  if (isTabMode()) initSwipeDown(document.querySelector('#apt-detail-modal .adm-box'), closeAptDetail,
+    document.getElementById('apt-detail-modal'));
 
   // Inicializar pestañas en teléfonos
   if (isTabMode()) switchPosTab('catalog');

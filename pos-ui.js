@@ -139,7 +139,7 @@ function initSwipeDown(sheetEl, closeFn, overlayEl) {
     if (!tracking) {
       if (dy < 10) return;
       // Solo activar si el contenido scrollable está en el tope
-      const sc = sheetEl.querySelector('.abonar-modal,.modal-body,.oc-body,[style*="overflow-y"]');
+      const sc = sheetEl.querySelector('.abonar-modal,.modal-body,.oc-body,.adm-body,[style*="overflow-y"]');
       if (sc && sc.scrollTop > 4) return;
       tracking = true;
     }
@@ -775,7 +775,7 @@ function openAptDetail(id) {
       <div class="apt-progress-track" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="apt-progress-fill" style="width:${pct}%"></div></div>
       <div class="apt-amounts-row">
         <span class="apt-paid-lbl">✓ Pagado $${pagado.toLocaleString('es-MX')}</span>
-        <span class="apt-pending-lbl">${pendiente > 0 ? 'Pendiente $' + pendiente.toLocaleString('es-MX') : '✓ Liquidado'}</span>
+        <span class="apt-pending-lbl">${pendiente > 0 ? 'Falta $' + pendiente.toLocaleString('es-MX') : '✓ Liquidado'}</span>
       </div>
     </div>`}
     ${abonosVisible || paymentHistoryWarning ? `<div class="apt-abonos-section"><div class="adm-section-title">Historial de pagos</div>${paymentHistoryWarning}${abonosVisible}</div>` : ''}`;
@@ -815,7 +815,8 @@ function openAptDetail(id) {
        ${reopenBtn || '<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--green)">✓ Liquidado</span>'}`;
   } else {
     const editBtn = `<button type="button" class="btn-edit-apt" onclick="closeAptDetail();openEditApartado(${id})" aria-label="Editar apartado" title="Editar apartado">${_uiIcoEdit()}</button>`;
-    const cancelBtn = `<button type="button" class="btn-cancelar-apt" onclick="cancelApartado(${id})" aria-label="Cancelar apartado" title="Cancelar apartado">✕</button>`;
+    // ⊘ y no ✕: una ✕ en el pie se leía como "cerrar" (mismo criterio que Historial).
+    const cancelBtn = `<button type="button" class="btn-cancelar-apt" onclick="cancelApartado(${id})" aria-label="Cancelar apartado" title="Cancelar apartado"><svg aria-hidden="true" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg></button>`;
     document.getElementById('adm-footer').innerHTML = `
       <button type="button" class="btn-wa-reminder" onclick="sendApartadoReminder(${id})" aria-label="Enviar recordatorio por WhatsApp" title="Recordatorio WhatsApp">${_uiIcoWA()}</button>
       ${editBtn}
