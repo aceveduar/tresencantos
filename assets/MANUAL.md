@@ -43,7 +43,7 @@ Justo después de cobrar, en la ventana de confirmación, toca **Era apartado**.
 En **Apartados** busca a la clienta y abre su ficha para abonar, liquidar, editar productos/datos o cancelar. Después de cada pago el sistema ofrece enviarle el comprobante por WhatsApp; mándalo siempre, es su respaldo y el tuyo.
 
 ### Pasar apartados de la libreta
-Para apartados que se anotaron en papel y no están en el sistema. En **Apartados** toca **+ Nuevo → De la libreta**.
+Para apartados que se anotaron en papel y no están en el sistema. En **Apartados** toca **Libreta** (en computadora: **Pasar de la libreta**).
 1. Escribe el **nombre** como viene en la libreta y, si lo tienes, su teléfono. Si ya hay un apartado con ese nombre, te avisa para que no la pases dos veces.
 2. **La cuenta:** si la libreta trae el total, escríbelo y toca **+ Anotar abono** por cada resta (Enter pasa al siguiente). Junto a cada abono ves cuánto quedaba, para compararlo con lo que dice la libreta. Si solo sabes cuánto debe, toca **Solo sé cuánto debe**.
 3. Lo demás es opcional: qué apartó, la fecha del apartado, la fecha límite y una foto de la página.
@@ -53,8 +53,6 @@ Lo que la clienta pagó en la libreta cuenta para su saldo, pero **no** aparece 
 
 ### Ver apartados sin abrir caja
 En la pantalla **Abrir caja**, toca **Solo ver apartados, sin abrir caja**. Puedes buscar, revisar cuánto deben, mandar recordatorios y pasar apartados de la libreta. Para cobrar un abono, liquidar o hacer un apartado nuevo, el sistema te pedirá abrir caja.
-
-También puedes empezar un apartado desde **Apartados → + Nuevo → Apartado nuevo**: te lleva al catálogo para elegir los productos; al terminar toca **Registrar apartado** y escribe los datos de la clienta.
 
 ### Fiado: cuando la persona se lleva el producto
 Si una persona de confianza se lleva el producto y paga después, al hacer el apartado toca **Se lo lleva hoy (fiado)** (lo autoriza Ofelia o con su PIN). Si ya existe el apartado, ábrelo, toca el lápiz y marca **Se lo llevó**. Un fiado nunca se libera: solo se le sigue cobrando, y sus recordatorios hablan de saldo pendiente, no de "pasar a recoger".

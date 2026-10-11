@@ -635,7 +635,10 @@ button,a{touch-action:manipulation}
 .apt-h-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .apt-h-pending{font-size:.88rem;font-weight:700;color:var(--charcoal)}
 .apt-h-pending.zero{color:var(--green)}
-.apt-h-pending.is-overdue{color:var(--red)}
+/* Vencido: el rojo va solo en la fecha ("Venció hace N días"); el monto queda
+   en color normal (2026-10-10: con 38 de 89 vencidos, dos rojos por tarjeta
+   volvían la pantalla una alarma). */
+.apt-h-pending.is-overdue{color:var(--charcoal)}
 .apt-h-pending.cancelado{color:var(--muted)}
 .apc-card-cancelado{opacity:.82}
 .apt-h-meta{font-size:.72rem;color:var(--muted)}
@@ -711,7 +714,7 @@ button,a{touch-action:manipulation}
 .apc-name{font-size:.88rem;font-weight:700;color:var(--charcoal);line-height:1.2}
 .apc-pending{font-size:.92rem;font-weight:800;color:var(--charcoal);white-space:nowrap;flex-shrink:0}
 .apc-pending.zero{color:var(--green)}
-.apc-pending.is-overdue{color:var(--red)}
+.apc-pending.is-overdue{color:var(--charcoal)}
 .apc-amount{font-size:.92rem;font-weight:700;color:var(--charcoal);white-space:nowrap;flex-shrink:0;font-variant-numeric:tabular-nums}
 .apc-amount.is-muted{color:var(--muted)}
 .apc-meta{display:block;font-size:.72rem;color:var(--muted);margin-bottom:4px}
@@ -1149,7 +1152,7 @@ button,a{touch-action:manipulation}
 .apc-due.is-overdue,.apt-h-due.is-overdue{color:var(--red)}
 .apt-h-due{color:var(--muted)}
 :root[data-theme="dark"] .apc-due.is-soon,:root[data-theme="dark"] .apt-h-due.is-soon{color:var(--tint-amber-strong)}
-:root[data-theme="dark"] .apc-due.is-overdue,:root[data-theme="dark"] .apt-h-due.is-overdue,:root[data-theme="dark"] .apc-pending.is-overdue,:root[data-theme="dark"] .apt-h-pending.is-overdue{color:var(--tint-red-strong)}
+:root[data-theme="dark"] .apc-due.is-overdue,:root[data-theme="dark"] .apt-h-due.is-overdue{color:var(--tint-red-strong)}
 .apt-due-count{margin-left:6px;font-weight:600;opacity:.7;font-variant-numeric:tabular-nums}
 :root[data-theme="dark"] .apt-due-filter.active{background:var(--charcoal);border-color:var(--charcoal);color:var(--ink)}
 
@@ -1231,16 +1234,12 @@ button,a{touch-action:manipulation}
    Neutro a propósito (minimalismo): la libreta se distingue por su ícono y
    la palabra "Libreta", no por color. */
 .apt-new-btn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--charcoal);font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:.15s}
-.apt-new-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;flex-shrink:0}
+.apt-new-btn[hidden]{display:none}
+.apt-new-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .apt-new-btn:hover{border-color:var(--gold)}
 .history-oc-head .apt-new-btn{margin-left:auto;margin-right:4px}
 .apt-page-head .apt-new-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.22);color:#fff}
 .apt-page-head .apt-new-btn:hover{background:rgba(255,255,255,.15)}
-.apt-new-menu{position:fixed;z-index:1400;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px;min-width:230px;box-shadow:0 8px 28px rgba(28,24,23,.18)}
-.apt-new-menu button{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:8px 12px;border:none;background:none;border-radius:8px;font-family:inherit;font-size:.88rem;font-weight:600;color:var(--charcoal);cursor:pointer;text-align:left}
-.apt-new-menu button:hover,.apt-new-menu button:focus-visible{background:var(--surface-soft)}
-.apt-new-menu button svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;color:var(--muted)}
-.apt-new-menu small{display:block;font-size:.74rem;font-weight:500;color:var(--muted)}
 .open-shift-viewonly{display:block;width:100%;margin-top:10px;min-height:44px;background:none;border:none;font-family:inherit;font-size:.84rem;font-weight:600;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .open-shift-viewonly:hover{color:var(--charcoal)}
 

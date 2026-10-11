@@ -570,7 +570,6 @@ function closeApartados() {
   if (bd) { bd.classList.remove('open'); setTimeout(() => { bd.style.display = 'none'; }, 280); }
   document.body.style.overflow = '';
   _aptPanelLastFocus?.focus?.();
-  _closeAptNewMenu();
   if (!_aptSwapping) _posBackToGateIfViewOnly();
 }
 
@@ -580,60 +579,14 @@ function closeAptPage() {
   page.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
   _aptPanelLastFocus?.focus?.();
-  _closeAptNewMenu();
   if (!_aptSwapping) _posBackToGateIfViewOnly();
 }
 
-/* "+ Nuevo" en Apartados: apartado nuevo (mismo flujo de Caja: primero los
-   datos de la clienta, luego los productos) o pasar de la libreta. Si la
-   libreta está apagada en Configuración, el botón va directo al apartado. */
-const _APT_MENU_ICO_BAG = '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>';
-const _APT_MENU_ICO_BOOK = '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M9 7h6"/><path d="M9 11h4"/>';
+// Botón "Libreta" del encabezado de Apartados (2026-10-10). Hubo un "+ Nuevo"
+// con "Apartado nuevo", pero un apartado empieza en el carrito (productos
+// primero, como Shopify POS/Square): el atajo casi no ahorraba pasos y
+// confundía. Se quitó; queda solo pasar apartados de la libreta.
 let _aptSwapping = false;
-function _closeAptNewMenu() { document.getElementById('apt-new-menu')?.remove(); }
-function openAptNewMenu(btn) {
-  if (document.getElementById('apt-new-menu')) { _closeAptNewMenu(); return; }
-  if (typeof _showLibreta === 'undefined' || !_showLibreta) { nuevoApartadoDesdeApartados(); return; }
-  const menu = document.createElement('div');
-  menu.id = 'apt-new-menu';
-  menu.className = 'apt-new-menu';
-  menu.setAttribute('role', 'menu');
-  menu.innerHTML = `
-    <button type="button" role="menuitem" onclick="_closeAptNewMenu();nuevoApartadoDesdeApartados()"><svg viewBox="0 0 24 24">${_APT_MENU_ICO_BAG}</svg><span>Apartado nuevo<small>Elegir productos y cobrar anticipo</small></span></button>
-    <button type="button" role="menuitem" onclick="_closeAptNewMenu();openLibreta()"><svg viewBox="0 0 24 24">${_APT_MENU_ICO_BOOK}</svg><span>De la libreta<small>Apartados que se anotaron en papel</small></span></button>`;
-  document.body.appendChild(menu);
-  const r = btn.getBoundingClientRect();
-  const w = Math.max(230, menu.offsetWidth);
-  menu.style.top = `${r.bottom + 6}px`;
-  menu.style.left = `${Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8))}px`;
-  menu.querySelector('button')?.focus();
-  setTimeout(() => document.addEventListener('click', function close(e) {
-    if (!menu.contains(e.target) && !btn.contains(e.target)) { _closeAptNewMenu(); document.removeEventListener('click', close); }
-  }), 0);
-}
-
-// Apartado nuevo desde Apartados: deja Caja en modo apartado y lleva al
-// catálogo para elegir productos primero (como siempre). Los datos de la
-// clienta se piden al tocar "Registrar apartado". Antes abría el sheet de la
-// clienta sin productos y no se sabía cómo agregarlos.
-function nuevoApartadoDesdeApartados() {
-  if (!_posNeedShift('Para hacer un apartado nuevo abre la caja.')) return;
-  if (document.getElementById('apt-offcanvas')?.classList.contains('open')) closeApartados();
-  if (document.getElementById('apt-page')?.style.display === 'flex') closeAptPage();
-  const cb = document.getElementById('pos-is-apartado');
-  if (!cb) return;
-  if (!cb.checked) { cb.checked = true; toggleApartadoMode(); }
-  closeApartadoSheet();
-  if (typeof cart !== 'undefined' && cart.length) {
-    // Ya había productos en el carrito: esos son los del apartado.
-    if (typeof isTabMode === 'function' && isTabMode()) switchPosTab('cart');
-    toast('Modo apartado con los productos del carrito. Toca "Registrar apartado".', 'ok');
-    return;
-  }
-  if (typeof isTabMode === 'function' && isTabMode()) switchPosTab('catalog');
-  toast('Apartado nuevo: elige los productos. Al terminar toca "Registrar apartado" para poner los datos de la clienta.', 'ok');
-  setTimeout(() => document.getElementById('pos-search')?.focus(), 150);
-}
 
 function _renderAptPageCanceladosCards(data) {
   const grid = document.getElementById('apt-page-list');
