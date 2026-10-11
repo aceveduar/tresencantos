@@ -580,19 +580,15 @@ async function loadApartados() {
     alertBtn.style.display = vencidos > 0 ? '' : 'none';
     alertCount.textContent = vencidos === 1 ? '1 vencido' : `${vencidos} vencidos`;
   }
-  // Banner prominente debajo del topbar -- descartable por hoy (no para
-  // siempre: el número de vencidos cambia día a día y no debe dejar de
-  // avisar solo porque alguien lo cerró una vez).
-  const banner = document.getElementById('apt-venc-banner');
-  const bannerTxt = document.getElementById('apt-venc-banner-txt');
-  if (banner && bannerTxt) {
-    const dismissedToday = localStorage.getItem(_posDailyStorageKey('apt_venc_dismissed'));
-    if (vencidos > 0 && !dismissedToday) {
-      bannerTxt.textContent = `${vencidos} apartado${vencidos>1?'s':''} vencido${vencidos>1?'s':''} — requieren atención`;
-      banner.style.display = 'flex';
-    } else {
-      banner.style.display = 'none';
-    }
+  // Celular: número en la pestaña "Apartados" de abajo (2026-10-10). Antes
+  // era un banner rojo grande arriba de Caja todos los días; casi todos los
+  // vencidos son fiados de confianza que pagan lento y la alarma diaria se
+  // volvía ruido. En tablet/escritorio avisa el chip de la topbar.
+  const tabBadge = document.getElementById('tab-apt-badge');
+  if (tabBadge) {
+    tabBadge.textContent = vencidos > 99 ? '99+' : String(vencidos);
+    tabBadge.style.display = vencidos > 0 ? '' : 'none';
+    tabBadge.title = `${vencidos} vencido${vencidos !== 1 ? 's' : ''}`;
   }
 
   if (failed) {
