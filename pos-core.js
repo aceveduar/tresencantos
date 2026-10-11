@@ -99,6 +99,8 @@ let _cancelAptCtx = null;
 // camino cancelaba apartados Y ventas con un solo confirm() nativo, sin motivo,
 // saltándose por completo las protecciones de este modal.
 async function cancelApartado(id) {
+  // Con dinero pagado, cancelar registra una devolución: va contra un cajón.
+  if (parseFloat((_apartadosData || {})[id]?.paid_amount || 0) > 0 && !_posNeedShift('Para cancelar un apartado con dinero (se registra la devolución) abre la caja.')) return;
   if (!canCancelApartado()) {
     const granted = await requestOverride('canEditApartado', 'Cancelar apartado');
     if (!granted) return;
@@ -662,6 +664,7 @@ function _posWireShiftGateButtons() {
     }
     _currentShift = r.data;
     _shiftGateNotice = '';
+    _posViewOnly = false;
     document.getElementById('open-shift-overlay')?.classList.remove('open');
     // La misma cuenta ya tenía caja abierta hoy (otro dispositivo): el
     // servidor regresa ese turno en vez de cerrarlo y abrir otro.
@@ -685,6 +688,35 @@ function _posShiftGateInit() {
     _shiftGateResolve = resolve;
     _posShiftGateAttempt();
   });
+}
+
+/* "Solo ver apartados" (2026-10-10): consultar, mandar recordatorios,
+   corregir datos o pasar de la libreta sin abrir caja (Ofelia desde casa).
+   Init sigue cargando todo; cobrar, liquidar, devolver o un apartado nuevo
+   piden abrir caja con _posNeedShift(). Cerrar Apartados regresa a
+   "Abrir caja". */
+let _posViewOnly = false;
+function _posViewApartadosOnly() {
+  _posViewOnly = true;
+  _shiftGateNotice = '';
+  document.getElementById('open-shift-overlay')?.classList.remove('open');
+  const resolve = _shiftGateResolve;
+  _shiftGateResolve = null;
+  resolve?.();
+  openApartados();
+}
+function _posBackToGateIfViewOnly() {
+  if (_posViewOnly && !_currentShift) _posShiftGateInit();
+}
+// true = hay caja abierta. Si no, cierra Apartados y pide abrirla.
+function _posNeedShift(message = 'Para cobrar o devolver dinero abre la caja.') {
+  if (_currentShift) return true;
+  document.getElementById('apt-detail-modal')?.style.display === 'flex' && closeAptDetail?.();
+  _posViewOnly = false;
+  if (document.getElementById('apt-offcanvas')?.classList.contains('open')) closeApartados();
+  if (document.getElementById('apt-page')?.style.display === 'flex') closeAptPage();
+  _posShiftLost(message);
+  return false;
 }
 
 /* Turno con varios dispositivos (2026-10-10): la misma cuenta puede tener

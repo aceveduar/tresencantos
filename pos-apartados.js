@@ -258,6 +258,12 @@ function _confirmApartadoSheet() {
     return;
   }
   closeApartadoSheet();
+  // Apartado empezado desde Apartados → "+ Nuevo": aún no hay productos.
+  if (typeof cart !== 'undefined' && Array.isArray(cart) && !cart.length) {
+    if (typeof isTabMode === 'function' && isTabMode()) switchPosTab('catalog');
+    toast(`Ahora agrega los productos del apartado de ${name}`, 'ok');
+    setTimeout(() => document.getElementById('pos-search')?.focus(), 150);
+  }
 }
 function _cancelApartadoSheet() {
   document.getElementById('pos-is-apartado').checked = false;
@@ -1143,6 +1149,7 @@ function filterApartados(q, target) {
 }
 
 function abonarApartado(id, total, pagado, nombre) {
+  if (!_posNeedShift('Para registrar un abono abre la caja.')) return;
   total  = parseFloat(total)  || 0;
   pagado = parseFloat(pagado) || 0;
   const sale = _apartadosData[id];
@@ -1301,6 +1308,7 @@ async function _editAptAnularPago() {
 }
 
 async function refundApartado(id, source = 'detail') {
+  if (!_posNeedShift('Para registrar una devolución abre la caja.')) return;
   const sale = _apartadosData[id] || (source === 'edit' ? _editAptCtx?.sale : null);
   if (!sale) { toast('Apartado no encontrado', 'error'); return; }
   const pagado = _aptMoney(sale.paid_amount);
@@ -1595,6 +1603,7 @@ async function saveEditApt() {
 let _liqCtx = null, _liqMethod = 'efectivo';
 
 function openLiqModal(id) {
+  if (!_posNeedShift('Para cobrar el saldo abre la caja.')) return;
   const sale = _apartadosData[id];
   if (!sale) return;
   const total    = parseFloat(sale.total || 0);

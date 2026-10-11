@@ -43,6 +43,7 @@
       <p style="font-size:.8rem;color:var(--muted);margin-bottom:16px">Cuenta el efectivo que hay en la caja ahora mismo. Puede ser $0.</p>
       <div id="open-shift-error" style="display:none;background:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B;border-radius:8px;padding:8px 12px;font-size:.78rem;margin-bottom:12px"></div>
       <button id="open-shift-btn" style="width:100%;padding:13px;border-radius:50px;border:none;background:var(--ink);color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit">Abrir caja e iniciar turno</button>
+      <button type="button" class="open-shift-viewonly" onclick="_posViewApartadosOnly()">Solo ver apartados, sin abrir caja</button>
     </div>
     <div id="open-shift-retry-wrap" style="display:none;text-align:center;padding:12px 0">
       <p style="font-size:.84rem;color:var(--red);margin-bottom:12px">No se pudo verificar tu turno. Revisa tu conexión.</p>
@@ -808,7 +809,7 @@
       <div class="history-oc-title" id="apt-oc-title"><svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Apartados pendientes</div>
       <div id="apt-oc-count" style="font-size:.74rem;color:var(--muted);margin-top:1px"></div>
     </div>
-    <button type="button" class="libreta-entry" hidden onclick="openLibreta()" aria-label="Pasar apartados de la libreta"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M9 7h6"/><path d="M9 11h4"/></svg><span>Libreta</span></button>
+    <button type="button" class="apt-new-btn" onclick="openAptNewMenu(this)" aria-haspopup="menu" aria-label="Nuevo apartado"><svg aria-hidden="true" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Nuevo</span></button>
     <button type="button" class="history-oc-close" onclick="closeApartados()" aria-label="Cerrar apartados">✕</button>
   </div>
   <div style="padding:8px 12px 4px;border-bottom:1px solid var(--border)">
@@ -847,7 +848,7 @@
     <button type="button" class="apt-page-back" onclick="closeAptPage()" aria-label="Volver a Caja">← Caja</button>
     <span class="apt-page-title" id="apt-page-title"><svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Apartados</span>
     <span class="apt-page-count" id="apt-page-count"></span>
-    <button type="button" class="libreta-entry" hidden onclick="openLibreta()" aria-label="Pasar apartados de la libreta"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M9 7h6"/><path d="M9 11h4"/></svg><span>Pasar de la libreta</span></button>
+    <button type="button" class="apt-new-btn" onclick="openAptNewMenu(this)" aria-haspopup="menu" aria-label="Nuevo apartado"><svg aria-hidden="true" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Nuevo</span></button>
     <div class="apt-view-toggle" id="apt-view-toggle-page" role="tablist" aria-label="Estado de los apartados" onkeydown="aptViewTabKeydown(event,'page')">
       <button type="button" class="active" role="tab" aria-selected="true" aria-controls="apt-page-list" data-mode="activos" onclick="selectAptView('activos','page')">Activos</button>
       <button type="button" role="tab" aria-selected="false" aria-controls="apt-page-list" tabindex="-1" data-mode="liquidados" onclick="selectAptView('liquidados','page')">Liquidados</button>

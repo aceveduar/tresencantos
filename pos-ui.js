@@ -551,6 +551,7 @@ function openApartados(dueFilter = 'todos') {
 window.matchMedia('(min-width: 768px)').addEventListener('change', e => {
   const offcanvasOpen = document.getElementById('apt-offcanvas')?.classList.contains('open');
   const pageOpen = document.getElementById('apt-page')?.style.display === 'flex';
+  _aptSwapping = true;
   if (e.matches && offcanvasOpen) {
     closeApartados();
     openApartados(_aptDueFilter);
@@ -558,6 +559,7 @@ window.matchMedia('(min-width: 768px)').addEventListener('change', e => {
     closeAptPage();
     openApartados(_aptDueFilter);
   }
+  _aptSwapping = false;
 });
 
 function closeApartados() {
@@ -568,6 +570,8 @@ function closeApartados() {
   if (bd) { bd.classList.remove('open'); setTimeout(() => { bd.style.display = 'none'; }, 280); }
   document.body.style.overflow = '';
   _aptPanelLastFocus?.focus?.();
+  _closeAptNewMenu();
+  if (!_aptSwapping) _posBackToGateIfViewOnly();
 }
 
 function closeAptPage() {
@@ -576,6 +580,46 @@ function closeAptPage() {
   page.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
   _aptPanelLastFocus?.focus?.();
+  _closeAptNewMenu();
+  if (!_aptSwapping) _posBackToGateIfViewOnly();
+}
+
+/* "+ Nuevo" en Apartados: apartado nuevo (mismo flujo de Caja: primero los
+   datos de la clienta, luego los productos) o pasar de la libreta. Si la
+   libreta está apagada en Configuración, el botón va directo al apartado. */
+const _APT_MENU_ICO_BAG = '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>';
+const _APT_MENU_ICO_BOOK = '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M9 7h6"/><path d="M9 11h4"/>';
+let _aptSwapping = false;
+function _closeAptNewMenu() { document.getElementById('apt-new-menu')?.remove(); }
+function openAptNewMenu(btn) {
+  if (document.getElementById('apt-new-menu')) { _closeAptNewMenu(); return; }
+  if (typeof _showLibreta === 'undefined' || !_showLibreta) { nuevoApartadoDesdeApartados(); return; }
+  const menu = document.createElement('div');
+  menu.id = 'apt-new-menu';
+  menu.className = 'apt-new-menu';
+  menu.setAttribute('role', 'menu');
+  menu.innerHTML = `
+    <button type="button" role="menuitem" onclick="_closeAptNewMenu();nuevoApartadoDesdeApartados()"><svg viewBox="0 0 24 24">${_APT_MENU_ICO_BAG}</svg><span>Apartado nuevo<small>Elegir productos y cobrar anticipo</small></span></button>
+    <button type="button" role="menuitem" onclick="_closeAptNewMenu();openLibreta()"><svg viewBox="0 0 24 24">${_APT_MENU_ICO_BOOK}</svg><span>De la libreta<small>Apartados que se anotaron en papel</small></span></button>`;
+  document.body.appendChild(menu);
+  const r = btn.getBoundingClientRect();
+  const w = Math.max(230, menu.offsetWidth);
+  menu.style.top = `${r.bottom + 6}px`;
+  menu.style.left = `${Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8))}px`;
+  menu.querySelector('button')?.focus();
+  setTimeout(() => document.addEventListener('click', function close(e) {
+    if (!menu.contains(e.target) && !btn.contains(e.target)) { _closeAptNewMenu(); document.removeEventListener('click', close); }
+  }), 0);
+}
+
+function nuevoApartadoDesdeApartados() {
+  if (!_posNeedShift('Para hacer un apartado nuevo abre la caja.')) return;
+  if (document.getElementById('apt-offcanvas')?.classList.contains('open')) closeApartados();
+  if (document.getElementById('apt-page')?.style.display === 'flex') closeAptPage();
+  const cb = document.getElementById('pos-is-apartado');
+  if (!cb) return;
+  if (!cb.checked) { cb.checked = true; toggleApartadoMode(); }
+  else openApartadoSheet();
 }
 
 function _renderAptPageCanceladosCards(data) {

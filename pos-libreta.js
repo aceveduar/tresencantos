@@ -25,7 +25,6 @@ async function loadLibretaConfig() {
     const r = await api('config?id=eq.show_libreta&select=value');
     _showLibreta = !!(r.ok && r.data?.[0]?.value === 'true');
   } catch { _showLibreta = false; }
-  document.querySelectorAll('.libreta-entry').forEach(b => { b.hidden = !_showLibreta; });
 }
 
 /* ── Helpers que usan los renders de apartados (pos-apartados / pos-ui) ── */
