@@ -207,6 +207,7 @@ async function cobrar() {
   // depende de meta.id para saber si esconder el evento de una venta de prueba.
   _lastSale = { id: rpcResult.data?.sale?.id ?? null, total, paidAmount, change, disc, note, items, payMethod,
     isApartado: apartadoActivo, apartadoLiquidado: apartadoPagadoCompleto,
+    fiado: apartadoActivo && !apartadoPagadoCompleto && _formEsFiado(),
     customer, dueDate: dueDateVal };
 
   // Reset UI
@@ -261,6 +262,14 @@ function showSaleDone() {
     ? '<svg style="width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>'
     : '<svg style="width:32px;height:32px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
   document.getElementById('sd-title').textContent        = isApt ? 'Apartado registrado' : s.apartadoLiquidado ? 'Apartado liquidado' : 'Venta completada';
+  const sdSub = document.getElementById('sd-sub');
+  if (sdSub) {
+    sdSub.textContent = isApt ? (s.fiado ? 'Se lo lleva hoy y paga después' : 'El producto queda guardado en la tienda') : '';
+    sdSub.hidden = !isApt;
+  }
+  // Sin anticipo no se cobró nada: el método de pago no dice nada.
+  const methodRow = document.getElementById('sd-method')?.closest('.sd-row');
+  if (methodRow) methodRow.style.display = isApt && !(s.paidAmount > 0) ? 'none' : '';
   document.getElementById('sd-total-label').textContent  = isAptFlow ? 'Total del pedido' : 'Total cobrado';
   document.getElementById('sd-cash-label').textContent   = isApt ? 'Anticipo recibido' : s.apartadoLiquidado ? 'Pago completo recibido' : 'Recibido';
   document.getElementById('sd-total').textContent        = fmt(s.total);
@@ -334,6 +343,8 @@ function sendWhatsAppTicket() {
       ? `✅ *Pago completo recibido: $${(s.total||0).toLocaleString('es-MX')} MXN* (${metodo})`
       : (s.paidAmount||0) > 0
       ? `✅ Anticipo recibido: $${(s.paidAmount||0).toLocaleString('es-MX')} (${metodo})\n⏳ *Pendiente: $${pendiente.toLocaleString('es-MX')} MXN*`
+      : s.fiado
+      ? `⏳ *Pendiente: $${pendiente.toLocaleString('es-MX')} MXN* (te lo llevas hoy y pagas después)`
       : `⏳ *Total a pagar al entregar: $${pendiente.toLocaleString('es-MX')} MXN*`;
     let dueLine = '';
     if (s.dueDate) {
@@ -341,7 +352,9 @@ function sendWhatsAppTicket() {
       dueLine = `\n📅 Fecha límite: *${due.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'})}*`;
     }
     const title = s.apartadoLiquidado ? 'Apartado liquidado' : 'Apartado';
-    const closing = s.apartadoLiquidado ? 'Tu apartado quedó pagado por completo. ¡Gracias! 💛' : 'Te avisamos cuando esté listo. ¡Gracias! 💛';
+    const closing = s.apartadoLiquidado ? 'Tu apartado quedó pagado por completo. ¡Gracias! 💛'
+      : s.fiado ? '¡Gracias por tu confianza! 💛'
+      : 'Tu producto queda guardado aquí hasta tu fecha límite. ¡Gracias! 💛';
     msg = `📌 *${title} — Tres Encantos*\n━━━━━━━━━━━━━━\n👤 ${nombre}\n${lines}${disc}\n━━━━━━━━━━━━━━\n*Total pedido: $${(s.total||0).toLocaleString('es-MX')} MXN*\n${anticipoLine}${dueLine}${note}\n\n${closing}`;
     const telLimpio = telNum.replace(/\D/g,'');
     window.open(telLimpio ? `https://wa.me/52${telLimpio}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');

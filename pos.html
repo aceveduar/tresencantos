@@ -568,6 +568,7 @@
     <button class="sd-close" onclick="closeSaleDone()" aria-label="Cerrar">✕</button>
     <div class="sd-icon" id="sd-icon">✓</div>
     <h2 id="sd-title">Venta completada</h2>
+    <p class="sd-sub" id="sd-sub" hidden></p>
     <div class="sd-row"><span id="sd-total-label">Total cobrado</span><strong id="sd-total"></strong></div>
     <div class="sd-row" id="sd-discount-row" style="display:none"><span>Descuento aplicado</span><strong id="sd-discount" style="color:var(--red)"></strong></div>
     <div class="sd-row"><span>Método de pago</span><strong id="sd-method"></strong></div>
@@ -599,6 +600,7 @@
     <div class="sd-row"><span id="ad-amount-label">Abono recibido</span><strong id="ad-amount"></strong></div>
     <div class="sd-row"><span>Método de pago</span><strong id="ad-method"></strong></div>
     <div class="sd-row" id="ad-pending-row"><span>Saldo pendiente</span><strong id="ad-pending" style="color:var(--red)"></strong></div>
+    <p class="ad-handover" id="ad-handover" hidden></p>
     <div id="ad-phone-row" style="display:none;text-align:left;margin-top:10px">
       <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:4px">Sin teléfono guardado — captúralo para enviarle directo:</label>
       <input type="tel" id="ad-phone-input" placeholder="10 dígitos" inputmode="numeric" maxlength="10"

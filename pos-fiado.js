@@ -14,6 +14,15 @@ const _fiadoIco = (px = 11) => `<svg aria-hidden="true" style="width:${px}px;hei
 
 function _isFiado(s) { return !!s?.se_lo_llevo; }
 function _fiadoChipHTML() { return `<span class="lib-chip">${_fiadoIco()} Se lo llevó</span>`; }
+// En tarjetas se marca lo que hay que tener presente: el producto sigue
+// guardado aquí ("En tienda"). Casi todos los apartados son fiado, y una
+// etiqueta que sale en todas las tarjetas ya no distingue nada.
+function _enTiendaChipHTML(s) {
+  if (!s || _isFiado(s) || s.status !== 'activo' || (typeof _isLibretaSale === 'function' && _isLibretaSale(s))) return '';
+  return `<span class="lib-chip">${_uiIcoBookmark(11)} En tienda</span>`;
+}
+// ¿El apartado que se está capturando en Caja es fiado?
+function _formEsFiado() { return !!document.getElementById('apt-se-lo-lleva')?.classList.contains('active'); }
 function _saldoFavor(s) { return Math.max(0, parseFloat(s?.saldo_favor) || 0); }
 function _favorChipHTML(s) { return `<span class="lib-chip">A favor ${_fmtMx(_saldoFavor(s))}</span>`; }
 
@@ -53,6 +62,7 @@ async function toggleSeLoLleva(btn) {
   btn.classList.toggle('active');
   btn.setAttribute('aria-pressed', String(btn.classList.contains('active')));
   if (typeof updateAnticipoInfo === 'function') updateAnticipoInfo();
+  if (typeof _renderApartadoSummary === 'function') _renderApartadoSummary();
 }
 
 // Después de crear el apartado (pos-checkout.js), si se marcó "Se lo lleva".

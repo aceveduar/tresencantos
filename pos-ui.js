@@ -712,7 +712,7 @@ function _renderAptPageCards(data, isLiquidado) {
     <span class="apc-name">${_uiIcoUser()} ${_esc(nombre)}</span>
     <span class="apc-pending${pendiente === 0 ? ' zero' : ''}${isOverdue ? ' is-overdue' : ''}">${pendiente === 0 ? 'Pagado' : 'Falta ' + _fmtMx(pendiente)}</span>
   </span>
-  <span class="apc-meta">${_isLibretaSale(s) ? `${_libretaChipHTML()}${_libretaDateLabel(s)}` : `${_isFiado(s) ? _fiadoChipHTML() : ''}${t} · ${nItems} prod.`}</span>
+  <span class="apc-meta">${_isLibretaSale(s) ? `${_libretaChipHTML()}${_libretaDateLabel(s)}` : `${_enTiendaChipHTML(s)}${t} · ${nItems} prod.`}</span>
   ${dueHTML}
   <span class="apc-bar" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span class="apc-fill" style="width:${pct}%"></span></span>
 </button>`;
@@ -737,7 +737,7 @@ function openAptDetail(id) {
   const isLib = _isLibretaSale(s);
   document.getElementById('adm-meta').innerHTML = (isLib
       ? _libretaChipHTML() + _esc(_libretaDateLabel(s, { day:'numeric', month:'short', year:'numeric' }))
-      : (_isFiado(s) && s.status === 'activo' ? _fiadoChipHTML() : '') + (_saldoFavor(s) > 0 ? _favorChipHTML(s) : '')
+      : (s.status === 'activo' ? (_isFiado(s) ? _fiadoChipHTML() : _enTiendaChipHTML(s)) : '') + (_saldoFavor(s) > 0 ? _favorChipHTML(s) : '')
         + _esc(t + ' · ' + nItems + ' producto' + (nItems !== 1 ? 's' : ''))) + (telNum ? ' · ' + _uiIcoPhone() + ' ' + _esc(telNum) : '') +
     ` · <a href="#" onclick="event.preventDefault();openTransactionTimeline(${id})" style="color:var(--gold-dark);font-weight:700;text-decoration:underline">${_uiIcoClock(11)} Ver historial</a>`;
 

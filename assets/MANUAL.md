@@ -59,6 +59,9 @@ También puedes empezar un apartado desde **Apartados → + Nuevo → Apartado n
 ### Fiado: cuando la persona se lleva el producto
 Si una persona de confianza se lleva el producto y paga después, al hacer el apartado toca **Se lo lleva hoy (fiado)** (lo autoriza Ofelia o con su PIN). Si ya existe el apartado, ábrelo, toca el lápiz y marca **Se lo llevó**. Un fiado nunca se libera: solo se le sigue cobrando, y sus recordatorios hablan de saldo pendiente, no de "pasar a recoger".
 
+### Apartado en tienda o fiado: cómo distinguirlos
+En la lista de Apartados, los que tienen el producto **guardado en la tienda** llevan la etiqueta **En tienda**. Los que no la llevan son fiado: la persona ya se llevó su producto. Al liquidar un apartado En tienda, el sistema te recuerda **entregarle su producto**.
+
 ### Liberar un apartado vencido
 Cuando un apartado (no fiado) lleva **30 días o más vencido**, aparece **Liberar producto** en su ficha y en "Recordar a vencidas". Úsalo solo si el producto sigue en la tienda: vuelve a la venta y lo que pagó la clienta **queda a su favor** (o elige "Se lo devuelvo ahora" si está presente). Nada se libera solo: siempre lo decide una persona.
 

@@ -290,7 +290,7 @@ function _renderApartadoSummary() {
   } else if (anticipo > 0 && pendiente === 0) {
     parts.push(`anticipo $${anticipo.toLocaleString('es-MX')} (cubierto ✓)`);
   } else {
-    parts.push(`$${total.toLocaleString('es-MX')} al entregar`);
+    parts.push(_formEsFiado() ? `se lo lleva · paga $${total.toLocaleString('es-MX')} después` : `$${total.toLocaleString('es-MX')} al entregar`);
   }
   if (dueStr) parts.push(`vence ${dueStr}`);
   summary.innerHTML = `<span>${_uiIcoBookmark()} ${parts.join(' · ')}</span><span class="apt-summary-edit">${_uiIcoEdit()} Editar</span>`;
@@ -361,7 +361,7 @@ function updateAnticipoInfo() {
         hint.textContent = 'Ingresa el nombre del cliente para continuar';
         hint.style.color = 'var(--muted)'; hint.style.display = '';
       } else if (anticipo <= 0) {
-        hint.innerHTML = '<svg style="width:13px;height:13px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> Sin anticipo — se cobrará al entregar';
+        hint.innerHTML = '<svg style="width:13px;height:13px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> ' + (_formEsFiado() ? 'Se lo lleva hoy — paga después' : 'Sin anticipo — se cobrará al entregar');
         hint.style.color = 'var(--gold-dark)'; hint.style.display = '';
       } else {
         hint.style.display = 'none';
@@ -841,7 +841,7 @@ function _renderApartadoCards(data, isLiquidado) {
     <div class="apt-header-r2">
       <span class="apt-h-meta">${_isLibretaSale(s)
         ? (isLiquidado ? `Liquidado el ${t} · ${_libretaChipHTML()}` : `${_libretaChipHTML()}${_libretaDateLabel(s)}`)
-        : `${_isFiado(s) && !isLiquidado ? _fiadoChipHTML() : ''}${isLiquidado ? 'Liquidado el ' : ''}${t} · ${nItems} prod.`}</span>
+        : `${isLiquidado ? '' : _enTiendaChipHTML(s)}${isLiquidado ? 'Liquidado el ' : ''}${t} · ${nItems} prod.`}</span>
       ${dueHTML}
     </div>
     ${isLiquidado ? '' : `<div class="apt-mini-bar" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="apt-mini-fill" style="width:${pct}%"></div></div>`}
@@ -1020,7 +1020,7 @@ function _renderCobranza() {
     return `
       <div class="cobranza-row${done ? ' done' : ''}">
         <div class="cobranza-info">
-          <div class="cobranza-name">${_esc(_displayName(nombre || 'Sin nombre'))} ${_isFiado(s) ? _fiadoChipHTML() : ''}</div>
+          <div class="cobranza-name">${_esc(_displayName(nombre || 'Sin nombre'))}</div>
           <div class="cobranza-meta">Venció hace ${dias} día${dias !== 1 ? 's' : ''} · debe <strong>${_fmtMx(pendiente)}</strong>${(tel || '').replace(/\D/g, '') ? '' : ' · <span class="cobranza-warn">sin teléfono</span>'}</div>
           <div class="cobranza-meta">${r.sentNow ? 'Enviado ahora' : fmtRem(r.rem)}</div>
         </div>
@@ -1068,6 +1068,15 @@ function showPaymentDone({ id, nombre, monto, metodo, pendiente, esLiquidacion }
   document.getElementById('ad-method').textContent = metodo === 'transferencia' ? 'Transferencia' : 'Efectivo';
   document.getElementById('ad-pending-row').style.display = esLiquidacion ? 'none' : '';
   document.getElementById('ad-pending').textContent = `$${pendiente.toLocaleString('es-MX')}`;
+  const handover = document.getElementById('ad-handover');
+  if (handover) {
+    const enTienda = esLiquidacion && sale && !sale.se_lo_llevo && !_isLibretaSale(sale);
+    const nombres = enTienda ? (sale.items || []).map(i => i.name).filter(Boolean) : [];
+    handover.hidden = !nombres.length;
+    handover.innerHTML = nombres.length
+      ? `<strong>Entrégale su producto:</strong> ${_esc(nombres.slice(0, 3).join(', '))}${nombres.length > 3 ? ` y ${nombres.length - 3} más` : ''}`
+      : '';
+  }
   // Sin telefono registrado, wa.me abre el picker de contactos de WhatsApp
   // en vez de mandarlo directo -- se ofrece capturarlo aqui mismo para esta
   // venta puntual (no se guarda en el apartado, solo se usa para este envío).
