@@ -213,7 +213,7 @@ function _themeToggleRowHtml() {
       text: 'Ahora hay dos tipos de apartado:<br>'
         + '<b>Apartado:</b> el producto se queda en la tienda hasta que termine de pagar.<br>'
         + '<b>Fiado:</b> una persona de confianza se lleva el producto hoy y paga después. Al hacer el apartado toca <b>Se lo lleva hoy (fiado)</b>. Solo Ofelia lo autoriza (o con su PIN).<br><br>'
-        + '<b>Revisen los apartados que ya existen:</b> si la persona ya se llevó el producto, abran el apartado, toquen el lápiz y marquen <b>Se lo llevó</b>.<br><br>'
+        + 'Todos los apartados que ya existían quedaron marcados como <b>Se lo llevó</b>. Desde hoy, al hacer un apartado decidan si se queda en la tienda o se lo lleva. Si alguno está mal marcado, ábranlo, toquen el lápiz y cámbienlo.<br><br>'
         + '<b>Liberar producto:</b> si un apartado (no fiado) lleva 30 días o más vencido, aparece el botón <b>Liberar producto</b>. El producto vuelve a la venta y lo que pagó la clienta <b>queda a su favor</b>. Solo liberen si el producto sigue en la tienda.<br>'
         + '<b>Saldo a favor:</b> está en Apartados → Cancelados. Cuando la clienta regrese, toquen <b>Devolver saldo a favor</b>; si lo quiere usar para comprar algo, devuélvanselo y cobren la compra normal.<br><br>'
         + 'También nuevo: <b>+ Nuevo</b> en Apartados para empezar un apartado o pasar uno de la libreta, y <b>Solo ver apartados</b> en la pantalla de Abrir caja para consultar sin abrir turno.',
