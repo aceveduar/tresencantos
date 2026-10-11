@@ -52,6 +52,7 @@ async function toggleSeLoLleva(btn) {
   }
   btn.classList.toggle('active');
   btn.setAttribute('aria-pressed', String(btn.classList.contains('active')));
+  if (typeof updateAnticipoInfo === 'function') updateAnticipoInfo();
 }
 
 // Después de crear el apartado (pos-checkout.js), si se marcó "Se lo lleva".

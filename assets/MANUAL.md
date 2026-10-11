@@ -54,7 +54,7 @@ Lo que la clienta pagó en la libreta cuenta para su saldo, pero **no** aparece 
 ### Ver apartados sin abrir caja
 En la pantalla **Abrir caja**, toca **Solo ver apartados, sin abrir caja**. Puedes buscar, revisar cuánto deben, mandar recordatorios y pasar apartados de la libreta. Para cobrar un abono, liquidar o hacer un apartado nuevo, el sistema te pedirá abrir caja.
 
-También puedes empezar un apartado desde **Apartados → + Nuevo → Apartado nuevo**: primero escribes los datos de la clienta y luego agregas los productos.
+También puedes empezar un apartado desde **Apartados → + Nuevo → Apartado nuevo**: te lleva al catálogo para elegir los productos; al terminar toca **Registrar apartado** y escribe los datos de la clienta.
 
 ### Fiado: cuando la persona se lleva el producto
 Si una persona de confianza se lleva el producto y paga después, al hacer el apartado toca **Se lo lleva hoy (fiado)** (lo autoriza Ofelia o con su PIN). Si ya existe el apartado, ábrelo, toca el lápiz y marca **Se lo llevó**. Un fiado nunca se libera: solo se le sigue cobrando, y sus recordatorios hablan de saldo pendiente, no de "pasar a recoger".

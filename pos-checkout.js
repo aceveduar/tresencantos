@@ -84,7 +84,12 @@ async function cobrar() {
   let paidAmount, change;
 
   if (isApartado) {
-    if (!customerName) { toast('Ingresa el nombre del cliente', 'error'); document.getElementById('pos-apt-customer')?.focus(); _cobrandoAhora = false; return; }
+    if (!customerName) {
+      // El nombre vive en el sheet del apartado: abrirlo, no enfocar un campo oculto.
+      toast('Escribe el nombre de la clienta', 'error');
+      if (typeof openApartadoSheet === 'function') openApartadoSheet();
+      _cobrandoAhora = false; return;
+    }
     paidAmount = Math.round((parseFloat(document.getElementById('pos-anticipo')?.value) || 0) * 100) / 100;
     if (paidAmount > total + _APT_MONEY_EPSILON) { toast('El anticipo no puede ser mayor al total del pedido', 'error'); document.getElementById('pos-anticipo').focus(); _cobrandoAhora = false; return; }
     if (paidAmount >= total - _APT_MONEY_EPSILON) paidAmount = total;

@@ -258,12 +258,6 @@ function _confirmApartadoSheet() {
     return;
   }
   closeApartadoSheet();
-  // Apartado empezado desde Apartados → "+ Nuevo": aún no hay productos.
-  if (typeof cart !== 'undefined' && Array.isArray(cart) && !cart.length) {
-    if (typeof isTabMode === 'function' && isTabMode()) switchPosTab('catalog');
-    toast(`Ahora agrega los productos del apartado de ${name}`, 'ok');
-    setTimeout(() => document.getElementById('pos-search')?.focus(), 150);
-  }
 }
 function _cancelApartadoSheet() {
   document.getElementById('pos-is-apartado').checked = false;
@@ -337,7 +331,9 @@ function updateAnticipoInfo() {
     } else if (anticipo > 0 && pendiente === 0) {
       el.value = ''; el.placeholder = 'Cubierto ✓'; el.style.color = 'var(--green)';
     } else if (total > 0) {
-      el.value = ''; el.placeholder = 'Cobrar al entregar'; el.style.color = 'var(--muted)';
+      // Fiado: el producto ya se entregó, no se "cobra al entregar".
+      const fiado = document.getElementById('apt-se-lo-lleva')?.classList.contains('active');
+      el.value = ''; el.placeholder = fiado ? 'Lo paga después (se lo lleva hoy)' : 'Cobrar al entregar'; el.style.color = 'var(--muted)';
     } else {
       el.value = ''; el.placeholder = '—'; el.style.color = 'var(--muted)';
     }

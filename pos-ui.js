@@ -612,6 +612,10 @@ function openAptNewMenu(btn) {
   }), 0);
 }
 
+// Apartado nuevo desde Apartados: deja Caja en modo apartado y lleva al
+// catálogo para elegir productos primero (como siempre). Los datos de la
+// clienta se piden al tocar "Registrar apartado". Antes abría el sheet de la
+// clienta sin productos y no se sabía cómo agregarlos.
 function nuevoApartadoDesdeApartados() {
   if (!_posNeedShift('Para hacer un apartado nuevo abre la caja.')) return;
   if (document.getElementById('apt-offcanvas')?.classList.contains('open')) closeApartados();
@@ -619,7 +623,16 @@ function nuevoApartadoDesdeApartados() {
   const cb = document.getElementById('pos-is-apartado');
   if (!cb) return;
   if (!cb.checked) { cb.checked = true; toggleApartadoMode(); }
-  else openApartadoSheet();
+  closeApartadoSheet();
+  if (typeof cart !== 'undefined' && cart.length) {
+    // Ya había productos en el carrito: esos son los del apartado.
+    if (typeof isTabMode === 'function' && isTabMode()) switchPosTab('cart');
+    toast('Modo apartado con los productos del carrito. Toca "Registrar apartado".', 'ok');
+    return;
+  }
+  if (typeof isTabMode === 'function' && isTabMode()) switchPosTab('catalog');
+  toast('Apartado nuevo: elige los productos. Al terminar toca "Registrar apartado" para poner los datos de la clienta.', 'ok');
+  setTimeout(() => document.getElementById('pos-search')?.focus(), 150);
 }
 
 function _renderAptPageCanceladosCards(data) {

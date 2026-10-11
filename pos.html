@@ -373,9 +373,11 @@
         <button class="pay-btn active" id="apt-pay-efectivo" onclick="setPayMethod('efectivo')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>Efectivo</button>
         <button class="pay-btn" id="apt-pay-transferencia" onclick="setPayMethod('transferencia')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>Transferencia</button>
       </div>
-      <button type="button" class="collected-by-btn" id="apt-se-lo-lleva" aria-pressed="false" style="margin-top:10px" onclick="toggleSeLoLleva(this)"><svg style="width:13px;height:13px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Se lo lleva hoy (fiado, persona de confianza)</button>
       <button type="button" class="collected-by-btn" id="apt-collected-ofelia" style="margin-top:2px" onclick="this.classList.toggle('active')"><svg style="width:13px;height:13px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>Ya lo cobró Ofelia (no está en la caja)</button>
     </div>
+    <!-- Fuera del bloque del anticipo: ese bloque se oculta con anticipo $0 y el
+         fiado casi siempre es sin anticipo. -->
+    <button type="button" class="collected-by-btn" id="apt-se-lo-lleva" aria-pressed="false" style="margin:0 0 14px" onclick="toggleSeLoLleva(this)"><svg style="width:13px;height:13px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Se lo lleva hoy (fiado, persona de confianza)</button>
     <div class="cash-field">
       <label>Fecha límite de pago</label>
       <input type="date" id="pos-due-date" class="apt-input">
