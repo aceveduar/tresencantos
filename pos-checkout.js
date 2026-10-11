@@ -214,6 +214,13 @@ async function cobrar() {
     else cart[idx].qty -= qty;
   });
   ['pos-cash','pos-discount','pos-note'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  // "Se lo lleva hoy" (fiado): se marca aparte, después de crear el apartado.
+  const seLoLleva = document.getElementById('apt-se-lo-lleva');
+  if (apartadoActivo && !apartadoPagadoCompleto && seLoLleva?.classList.contains('active') && rpcResult.data?.sale?.id) {
+    _marcarSeLoLlevo(rpcResult.data.sale.id, true).then(ok => { if (ok) loadApartados(); });
+  }
+  seLoLleva?.classList.remove('active');
+  seLoLleva?.setAttribute('aria-pressed', 'false');
   ['pos-collected-ofelia','apt-collected-ofelia'].forEach(id => { document.getElementById(id)?.classList.remove('active'); });
   document.getElementById('pos-is-apartado').checked = false;
   toggleApartadoMode(); // limpia phone/anticipo/pendiente/fecha/cliente-apartado y cierra el sheet

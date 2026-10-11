@@ -204,6 +204,16 @@ function _themeToggleRowHtml() {
         + '4. Toca <b>Guardar</b>. La pantalla queda lista para la siguiente clienta.<br><br>'
         + 'Lo que pagaron en la libreta cuenta para su saldo, pero no aparece en el corte ni en las ventas de hoy. Lo que paguen desde ahora se registra como cualquier abono. Si un monto quedó mal, abre su apartado y toca el lápiz para corregir lo que debe. Si te avisa que ya hay un apartado con ese nombre, revisa que no la estés pasando dos veces.',
       until: '2026-10-31' },
+    { id: 'caja-fiado-liberar-2026-10', icon: 'info',
+      title: 'Apartados: fiado, liberar y saldo a favor',
+      text: 'Ahora hay dos tipos de apartado:<br>'
+        + '<b>Apartado:</b> el producto se queda en la tienda hasta que termine de pagar.<br>'
+        + '<b>Fiado:</b> una persona de confianza se lleva el producto hoy y paga después. Al hacer el apartado toca <b>Se lo lleva hoy (fiado)</b>. Solo Ofelia lo autoriza (o con su PIN).<br><br>'
+        + '<b>Revisen los apartados que ya existen:</b> si la persona ya se llevó el producto, abran el apartado, toquen el lápiz y marquen <b>Se lo llevó</b>.<br><br>'
+        + '<b>Liberar producto:</b> si un apartado (no fiado) lleva 30 días o más vencido, aparece el botón <b>Liberar producto</b>. El producto vuelve a la venta y lo que pagó la clienta <b>queda a su favor</b>. Solo liberen si el producto sigue en la tienda.<br>'
+        + '<b>Saldo a favor:</b> está en Apartados → Cancelados. Cuando la clienta regrese, toquen <b>Devolver saldo a favor</b>; si lo quiere usar para comprar algo, devuélvanselo y cobren la compra normal.<br><br>'
+        + 'También nuevo: <b>+ Nuevo</b> en Apartados para empezar un apartado o pasar uno de la libreta, y <b>Solo ver apartados</b> en la pantalla de Abrir caja para consultar sin abrir turno.',
+      until: '2026-11-07' },
   ];
 
   const _NOTIF_ICONS = {

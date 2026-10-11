@@ -56,6 +56,15 @@ En la pantalla **Abrir caja**, toca **Solo ver apartados, sin abrir caja**. Pued
 
 También puedes empezar un apartado desde **Apartados → + Nuevo → Apartado nuevo**: primero escribes los datos de la clienta y luego agregas los productos.
 
+### Fiado: cuando la persona se lleva el producto
+Si una persona de confianza se lleva el producto y paga después, al hacer el apartado toca **Se lo lleva hoy (fiado)** (lo autoriza Ofelia o con su PIN). Si ya existe el apartado, ábrelo, toca el lápiz y marca **Se lo llevó**. Un fiado nunca se libera: solo se le sigue cobrando, y sus recordatorios hablan de saldo pendiente, no de "pasar a recoger".
+
+### Liberar un apartado vencido
+Cuando un apartado (no fiado) lleva **30 días o más vencido**, aparece **Liberar producto** en su ficha y en "Recordar a vencidas". Úsalo solo si el producto sigue en la tienda: vuelve a la venta y lo que pagó la clienta **queda a su favor** (o elige "Se lo devuelvo ahora" si está presente). Nada se libera solo: siempre lo decide una persona.
+
+### Saldo a favor
+Los saldos a favor se ven en **Apartados → Cancelados** ("A favor $300"). Cuando la clienta regrese, abre su apartado y toca **Devolver saldo a favor** (necesita caja abierta). Si lo quiere usar para comprar algo, devuélveselo ahí y cobra la compra normal con ese dinero.
+
 ### Recordar a las clientas con apartado vencido
 En **Apartados**, toca **Recordar a vencidas**. Sale la lista de apartados vencidos con cuánto deben y cuándo se les recordó por última vez (por cualquier persona). Toca **Enviar** en cada una: se abre WhatsApp con el mensaje listo; solo envíalo y regresa a la lista para la siguiente. Primero aparecen las que no tienen recordatorio hoy.
 

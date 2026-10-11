@@ -1213,6 +1213,15 @@ button,a{touch-action:manipulation}
 .corte-count-field.money-field > input:not([type="checkbox"]){font-size:1.75rem!important;font-weight:700;border:none;outline:none;background:none;padding:0;width:100%;min-width:0}
 
 
+/* ── FIADO / LIBERAR / SALDO A FAVOR (pos-fiado.js) ── */
+.apt-liberar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 12px;margin-bottom:10px;border:1px solid var(--border);border-radius:10px;background:var(--surface-soft);font-size:.82rem;color:var(--charcoal)}
+.apt-liberar button{min-height:44px;padding:0 14px;border-radius:10px;border:1.5px solid var(--ink);background:var(--surface);color:var(--charcoal);font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer}
+.apt-liberar button:hover{background:var(--ink);color:#fff}
+.cancel-money-hint{font-size:.78rem;color:var(--muted);line-height:1.45;margin:0 0 12px}
+.cancel-money-hint:empty{display:none}
+.cobranza-liberar{flex-shrink:0;min-height:44px;padding:0 12px;border-radius:50px;border:1.5px solid var(--border);background:var(--surface);color:var(--charcoal);font-size:.8rem;font-weight:700;font-family:inherit;cursor:pointer}
+.btn-favor{flex:1;min-height:44px;padding:10px 14px;border-radius:10px;border:1.5px solid var(--ink);background:var(--surface);color:var(--charcoal);font-family:inherit;font-size:.84rem;font-weight:700;cursor:pointer}
+
 /* ── APARTADOS DE LIBRETA (pos-libreta.js) ───────────────────────────────
    Neutro a propósito (minimalismo): la libreta se distingue por su ícono y
    la palabra "Libreta", no por color. */

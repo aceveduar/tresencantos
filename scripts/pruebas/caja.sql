@@ -119,6 +119,23 @@ SELECT public.cancel_sale_atomic(
 
 -- ── Superadmin: abre su caja (cobrar exige turno abierto de quien captura) ──
 SELECT public.te_open_cash_shift(p_fondo_inicial => 0);
+-- ── Superadmin: apartado de $10 de anticipo que se libera dejando el dinero a su favor,
+--    y luego se le devuelve ──
+INSERT INTO _ctx
+SELECT 'aptfavor', (public.record_sale_atomic_v2(
+  p_request_id => gen_random_uuid(),
+  p_items => jsonb_build_array(jsonb_build_object('id', (SELECT v::bigint FROM _ctx WHERE k='pid'), 'name', 'prueba', 'price', (SELECT v::numeric FROM _ctx WHERE k='price'), 'qty', 1)),
+  p_total => (SELECT v::numeric FROM _ctx WHERE k='price'), p_discount => 0, p_payment_method => 'efectivo',
+  p_note => null, p_is_apartado => true, p_paid_amount => 10,
+  p_customer => 'Prueba a favor', p_due_date => (current_date + 30))) -> 'sale' ->> 'id';
+SELECT public.cancel_sale_atomic(
+  p_request_id => gen_random_uuid(), p_sale_id => (SELECT v::bigint FROM _ctx WHERE k='aptfavor'), p_reason => 'No pagó (vencido)',
+  p_expected_version => (SELECT version FROM public.sales WHERE id = (SELECT v::bigint FROM _ctx WHERE k='aptfavor')),
+  p_keep_credit => true);
+INSERT INTO _ctx SELECT 'favor_saldo', saldo_favor::text FROM public.sales WHERE id = (SELECT v::bigint FROM _ctx WHERE k='aptfavor');
+INSERT INTO _ctx SELECT 'favor_refunds', count(*)::text FROM public.sale_payments WHERE sale_id = (SELECT v::bigint FROM _ctx WHERE k='aptfavor') AND kind = 'refund';
+SELECT public.te_refund_credit(p_request_id => gen_random_uuid(), p_sale_id => (SELECT v::bigint FROM _ctx WHERE k='aptfavor'));
+
 -- ── Superadmin: abona $50 al apartado de libreta, corrige el saldo, y lo cancela ──
 SELECT public.record_apartado_payment_atomic(
   p_request_id => gen_random_uuid(), p_sale_id => (SELECT v::bigint FROM _ctx WHERE k='libreta'),
@@ -272,6 +289,25 @@ BEGIN
     RAISE EXCEPTION 'PRUEBA FALLÓ: marcar agotado a mano debía dejar 0 piezas';
   END IF;
   INSERT INTO _ok(prueba) VALUES ('Disponibilidad: apartado, agotado y piezas no se contradicen');
+
+  -- Fiado: si se lo llevó, con 0 piezas el producto queda agotado (no "apartado").
+  UPDATE public.sales SET se_lo_llevo = true WHERE id = apt;
+  UPDATE public.products SET stock = 0 WHERE id = pid;
+  IF (SELECT is_apartado OR NOT out_of_stock FROM public.products WHERE id = pid) THEN
+    RAISE EXCEPTION 'PRUEBA FALLÓ: un fiado (se lo llevó) no debe dejar el producto como apartado en tienda';
+  END IF;
+  INSERT INTO _ok(prueba) VALUES ('Fiado: lo que se llevó no aparece apartado en la Tienda');
+
+  -- Saldo a favor: liberar sin devolver, luego devolverlo.
+  IF (SELECT v::numeric FROM _ctx WHERE k='favor_saldo') <> 10 OR (SELECT v::int FROM _ctx WHERE k='favor_refunds') <> 0 THEN
+    RAISE EXCEPTION 'PRUEBA FALLÓ: liberar dejando a favor debía guardar $10 sin devolución (saldo %, devoluciones %)',
+      (SELECT v FROM _ctx WHERE k='favor_saldo'), (SELECT v FROM _ctx WHERE k='favor_refunds');
+  END IF;
+  SELECT coalesce(sum(amount), 0) INTO x FROM public.sale_payments WHERE sale_id = (SELECT v::bigint FROM _ctx WHERE k='aptfavor');
+  IF x <> 0 OR (SELECT saldo_favor FROM public.sales WHERE id = (SELECT v::bigint FROM _ctx WHERE k='aptfavor')) <> 0 THEN
+    RAISE EXCEPTION 'PRUEBA FALLÓ: devolver el saldo a favor debía dejar el libro y el saldo en 0 (libro %)', x;
+  END IF;
+  INSERT INTO _ok(prueba) VALUES ('Saldo a favor: se guarda al liberar y se devuelve después');
 END $$;
 
 -- ── Candados de la auditoría 2026-10-06 (cajera sin canDeleteProduct) ─────

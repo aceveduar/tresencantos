@@ -466,7 +466,7 @@ async function _hydrateApartadoPayments(rows) {
 
 async function loadApartadosLiquidados() {
   const loadGeneration = ++_apartadosLiquidatedLoadGeneration;
-  const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,cancelled_at,updated_at,version,items,abonos,discount';
+  const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,cancelled_at,updated_at,version,items,abonos,discount,se_lo_llevo,saldo_favor';
   // Vista acotada a los más recientes, igual que antes de la reescritura —
   // no una consulta paginada sin tope de todo el histórico de la tienda.
   const result = await api(`sales?origin_type=eq.apartado&status=eq.liquidado&select=${fields}&order=liquidated_at.desc.nullslast,created_at.desc,id.desc&limit=200`);
@@ -485,7 +485,7 @@ async function loadApartadosLiquidados() {
 
 async function loadApartadosCancelados() {
   const loadGeneration = ++_apartadosCanceladosLoadGeneration;
-  const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,cancelled_at,updated_at,version,items,abonos,discount';
+  const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,cancelled_at,updated_at,version,items,abonos,discount,se_lo_llevo,saldo_favor';
   const result = await api(`sales?origin_type=eq.apartado&status=eq.cancelado&select=${fields}&order=cancelled_at.desc.nullslast,created_at.desc,id.desc&limit=200`);
   if (loadGeneration !== _apartadosCanceladosLoadGeneration) return false;
   if (!result.ok) return null;
@@ -549,7 +549,7 @@ function _updateAptOcActivosCount(rowsParam) {
 
 async function loadApartados() {
   const loadGeneration = ++_apartadosLoadGeneration;
-  const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,updated_at,version,items,abonos,discount';
+  const fields = 'id,type,origin_type,status,total,paid_amount,payment_method,customer,created_at,due_date,liquidated_at,last_payment_at,updated_at,version,items,abonos,discount,se_lo_llevo,saldo_favor';
   // Paginado completo: antes limit=100 -- con más de 100 activos los más
   // antiguos (justo los vencidos) dejaban de aparecer sin aviso.
   const result = await _posFetchAll(`sales?origin_type=eq.apartado&status=eq.activo&select=${fields}&order=created_at.desc,id.desc`);
@@ -651,7 +651,8 @@ function _renderApartadoCanceladosCards(data) {
   const ocCount = document.getElementById('apt-oc-count');
   if (!ocList) return;
   if (ocTitle) ocTitle.innerHTML = '<svg style="width:16px;height:16px;vertical-align:-3px;margin-right:5px;stroke:var(--red);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Apartados cancelados';
-  if (ocCount) ocCount.textContent = data.length ? `${data.length} cancelado${data.length !== 1 ? 's' : ''}` : '';
+  const favorTotal = data.reduce((t, s) => t + _saldoFavor(s), 0);
+  if (ocCount) ocCount.textContent = data.length ? `${data.length} cancelado${data.length !== 1 ? 's' : ''}${favorTotal > 0 ? ` · ${_fmtMx(favorTotal)} a favor de clientas` : ''}` : '';
   if (!data.length) {
     ocList.innerHTML = `<div class="history-empty"><div style="margin-bottom:8px">${_uiIcoX('var(--red)', 30)}</div>Sin apartados cancelados</div>`;
     return;
@@ -722,7 +723,7 @@ function _renderApartadoCanceladosCards(data) {
       </div>
     </div>
     <div class="apt-header-r2">
-      <span class="apt-h-meta">Cancelado el ${t} · ${_isLibretaSale(s) ? _libretaChipHTML() : `${nItems} prod.`}</span>
+      <span class="apt-h-meta">${_saldoFavor(s) > 0 ? _favorChipHTML(s) : ''}Cancelado el ${t} · ${_isLibretaSale(s) ? _libretaChipHTML() : `${nItems} prod.`}</span>
     </div>
   </div>
   <div class="apt-body">
@@ -733,6 +734,7 @@ function _renderApartadoCanceladosCards(data) {
     </div>
     <div style="font-size:.76rem;color:var(--muted);font-weight:600;margin:10px 0 2px">${_uiIcoX('var(--red)')} Cancelado el ${cancelLabel}</div>
     ${abonosHTML}
+    ${_saldoFavor(s) > 0 ? `<div class="apt-btns"><button type="button" class="btn-favor" onclick="event.stopPropagation();devolverSaldoFavor(${s.id})">Devolver saldo a favor ${_fmtMx(_saldoFavor(s))}</button></div>` : ''}
   </div>
 </div>`;
   }).join('');
@@ -843,13 +845,14 @@ function _renderApartadoCards(data, isLiquidado) {
     <div class="apt-header-r2">
       <span class="apt-h-meta">${_isLibretaSale(s)
         ? (isLiquidado ? `Liquidado el ${t} · ${_libretaChipHTML()}` : `${_libretaChipHTML()}${_libretaDateLabel(s)}`)
-        : `${isLiquidado ? 'Liquidado el ' : ''}${t} · ${nItems} prod.`}</span>
+        : `${_isFiado(s) && !isLiquidado ? _fiadoChipHTML() : ''}${isLiquidado ? 'Liquidado el ' : ''}${t} · ${nItems} prod.`}</span>
       ${dueHTML}
     </div>
     ${isLiquidado ? '' : `<div class="apt-mini-bar" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="apt-mini-fill" style="width:${pct}%"></div></div>`}
   </div>
   <div class="apt-body">
-    ${isOverdue ? `<div class="apt-overdue-badge">${_uiIcoWarn()} Vencido</div>` : ''}
+    ${isOverdue && !_aptPuedeLiberar(s) ? `<div class="apt-overdue-badge">${_uiIcoWarn()} Vencido</div>` : ''}
+    ${isLiquidado ? '' : _liberarBannerHTML(s)}
     <div class="apt-items-list">${itemsListHTML}</div>
     <div class="apt-summary">
       ${disc > 0 ? `<div class="apt-sum-row"><span>Subtotal</span><span>$${(total+disc).toLocaleString('es-MX')}</span></div><div class="apt-sum-row apt-sum-disc"><span>${_uiIcoTag()} Descuento</span><span>−$${disc.toLocaleString('es-MX')}</span></div>` : ''}
@@ -920,7 +923,11 @@ function sendApartadoReminder(id, sale = null) {
   if (s.due_date) {
     const dias = _posDayKeyDiff(s.due_date);
     const label = _posFormatDayKey(s.due_date, { weekday:'long', day:'numeric', month:'long' });
-    fechaTexto = dias < 0
+    fechaTexto = s.se_lo_llevo
+      ? (dias < 0
+          ? `⚠️ Tu fecha de pago fue hace ${Math.abs(dias)} día${Math.abs(dias)>1?'s':''}. ¿Nos ayudas con un abono?`
+          : dias === 0 ? `📅 Hoy es tu fecha de pago.` : `📅 Tu fecha de pago es el *${label}*.`)
+      : dias < 0
       ? `⚠️ Tu apartado venció hace ${Math.abs(dias)} día${Math.abs(dias)>1?'s':''}. Por favor contáctanos para arreglar tu pedido.`
       : dias === 0
         ? `📅 Tu apartado *vence hoy*. ¡Pasa a recogerlo cuando puedas!`
@@ -928,7 +935,9 @@ function sendApartadoReminder(id, sale = null) {
   }
   const msg = liquidado
     ? `Hola *${nombre}* 👋\n\nTe confirmamos que tu apartado de *Tres Encantos* quedó liquidado ✅\n\n*Productos:*\n${productos}\n\n💰 Total pagado: *$${total.toLocaleString('es-MX')} MXN*\n\n¡Gracias por tu compra! 💛`
-    : `Hola *${nombre}* 👋\n\nTe escribimos de *Tres Encantos* con un recordatorio de tu apartado 📌\n\n*Productos:*\n${productos}\n\n💰 Anticipo pagado: *$${pagado.toLocaleString('es-MX')}*\n⏳ Pendiente: *$${pendiente.toLocaleString('es-MX')}*\n${fechaTexto}\n\n¡Te esperamos! 🛍`;
+    : s.se_lo_llevo
+      ? `Hola *${nombre}* 👋\n\nTe escribimos de *Tres Encantos* con un recordatorio de tu saldo 💛\n\n*Productos:*\n${productos}\n\n💰 Pagado: *$${pagado.toLocaleString('es-MX')}*\n⏳ Pendiente: *$${pendiente.toLocaleString('es-MX')}*\n${fechaTexto}\n\n¡Gracias por tu confianza! 🛍`
+      : `Hola *${nombre}* 👋\n\nTe escribimos de *Tres Encantos* con un recordatorio de tu apartado 📌\n\n*Productos:*\n${productos}\n\n💰 Anticipo pagado: *$${pagado.toLocaleString('es-MX')}*\n⏳ Pendiente: *$${pendiente.toLocaleString('es-MX')}*\n${fechaTexto}\n\n¡Te esperamos! 🛍`;
   const telLimpio = telRaw.replace(/\D/g, '');
   const url = telLimpio
     ? `https://wa.me/52${telLimpio}?text=${encodeURIComponent(msg)}`
@@ -961,7 +970,7 @@ async function openCobranza() {
   sub.textContent = '';
 
   const today = _posMexicoDayKey();
-  const fields = 'id,origin_type,status,total,paid_amount,customer,due_date,items';
+  const fields = 'id,origin_type,status,total,paid_amount,customer,due_date,items,se_lo_llevo,version';
   const [aptR, remR] = await Promise.all([
     _posFetchAll(`sales?origin_type=eq.apartado&status=eq.activo&due_date=lt.${today}&select=${fields}&order=due_date.asc,id.asc`),
     api('rpc/te_apartado_reminders', { method: 'POST', body: '{}' })
@@ -1015,13 +1024,23 @@ function _renderCobranza() {
     return `
       <div class="cobranza-row${done ? ' done' : ''}">
         <div class="cobranza-info">
-          <div class="cobranza-name">${_esc(_displayName(nombre || 'Sin nombre'))}</div>
+          <div class="cobranza-name">${_esc(_displayName(nombre || 'Sin nombre'))} ${_isFiado(s) ? _fiadoChipHTML() : ''}</div>
           <div class="cobranza-meta">Venció hace ${dias} día${dias !== 1 ? 's' : ''} · debe <strong>${_fmtMx(pendiente)}</strong>${(tel || '').replace(/\D/g, '') ? '' : ' · <span class="cobranza-warn">sin teléfono</span>'}</div>
           <div class="cobranza-meta">${r.sentNow ? 'Enviado ahora' : fmtRem(r.rem)}</div>
         </div>
+        ${_aptPuedeLiberar({ ...s, status: 'activo' }) ? `<button type="button" class="cobranza-liberar" onclick="_cobranzaLiberar(${i})" title="Lleva ${dias} días vencido">Liberar</button>` : ''}
         <button type="button" class="cobranza-send" onclick="_cobranzaSend(${i})">${done ? 'Reenviar' : 'Enviar'}</button>
       </div>`;
   }).join('');
+}
+
+function _cobranzaLiberar(i) {
+  const r = _cobranzaRows[i];
+  if (!r) return;
+  // La ronda trae su propia copia: asegurar que la ficha completa esté cargada.
+  if (!(_apartadosData || {})[r.sale.id]) _apartadosData[r.sale.id] = r.sale;
+  closeCobranza();
+  liberarApartado(r.sale.id);
 }
 
 function _cobranzaSend(i) {
@@ -1297,6 +1316,11 @@ async function openEditApartado(id) {
     if (refundBtn) { refundBtn.disabled = false; refundBtn.textContent = 'Reembolsar'; }
   } else if (pagadoRow) {
     pagadoRow.style.display = 'none';
+  }
+  const fiadoBtn = document.getElementById('edit-apt-fiado');
+  if (fiadoBtn) {
+    fiadoBtn.classList.toggle('active', !!sale.se_lo_llevo);
+    fiadoBtn.setAttribute('aria-pressed', String(!!sale.se_lo_llevo));
   }
   renderEditAptItems();
   document.getElementById('edit-apt-overlay').style.display = 'flex';

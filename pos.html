@@ -373,7 +373,8 @@
         <button class="pay-btn active" id="apt-pay-efectivo" onclick="setPayMethod('efectivo')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>Efectivo</button>
         <button class="pay-btn" id="apt-pay-transferencia" onclick="setPayMethod('transferencia')"><svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>Transferencia</button>
       </div>
-      <button type="button" class="collected-by-btn" id="apt-collected-ofelia" style="margin-top:10px" onclick="this.classList.toggle('active')"><svg style="width:13px;height:13px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>Ya lo cobró Ofelia (no está en la caja)</button>
+      <button type="button" class="collected-by-btn" id="apt-se-lo-lleva" aria-pressed="false" style="margin-top:10px" onclick="toggleSeLoLleva(this)"><svg style="width:13px;height:13px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Se lo lleva hoy (fiado, persona de confianza)</button>
+      <button type="button" class="collected-by-btn" id="apt-collected-ofelia" style="margin-top:2px" onclick="this.classList.toggle('active')"><svg style="width:13px;height:13px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>Ya lo cobró Ofelia (no está en la caja)</button>
     </div>
     <div class="cash-field">
       <label>Fecha límite de pago</label>
@@ -422,6 +423,14 @@
       <button type="button" class="cancel-reason-btn" role="radio" aria-checked="false" data-reason="No pagó (vencido)" onclick="_selectCancelReason(this)">No pagó (vencido)</button>
       <button type="button" class="cancel-reason-btn" role="radio" aria-checked="false" data-reason="Error de captura" onclick="_selectCancelReason(this)">Error de captura</button>
       <button type="button" class="cancel-reason-btn" role="radio" aria-checked="false" data-reason="Otro" onclick="_selectCancelReason(this)">Otro</button>
+    </div>
+    <div id="cancel-apt-money" style="display:none">
+      <div class="adm-section-title" id="cancel-apt-money-title">¿Qué pasa con lo que pagó?</div>
+      <div class="cancel-reasons" role="radiogroup" aria-label="Qué pasa con su dinero" style="margin-bottom:6px">
+        <button type="button" class="cancel-reason-btn" role="radio" aria-checked="false" data-money="favor" onclick="_selectCancelMoney('favor')">Queda a su favor</button>
+        <button type="button" class="cancel-reason-btn" role="radio" aria-checked="false" data-money="devolver" onclick="_selectCancelMoney('devolver')">Se lo devuelvo ahora</button>
+      </div>
+      <p class="cancel-money-hint" id="cancel-apt-money-hint"></p>
     </div>
     <input type="text" id="cancel-apt-reason" placeholder="Cuéntanos qué pasó…" maxlength="140" aria-label="Otro motivo" oninput="_updateCancelAptConfirm()" style="display:none;width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;font-family:inherit;margin-bottom:12px;box-sizing:border-box;background:var(--surface);color:var(--charcoal)">
     <!-- Solo si ya hay pagos: cancelar registra una salida de dinero de la caja
@@ -673,6 +682,7 @@
       <input type="date" id="edit-apt-due-date" class="apt-input">
     </div>
     </div><!-- /.edit-apt-fields -->
+    <button type="button" class="collected-by-btn" id="edit-apt-fiado" aria-pressed="false" onclick="_editAptToggleFiado(this)"><svg style="width:13px;height:13px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Se lo llevó (fiado): ya tiene el producto</button>
     <div id="edit-apt-pagado-row" style="display:none;background:var(--gold-light);border:1px solid #EAD9B8;border-radius:9px;padding:10px 12px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
       <div>
         <div style="font-size:.74rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Anticipo registrado</div>
@@ -926,6 +936,7 @@
 <script src="pos-ui.js"></script>
 <script src="pos-apartados.js"></script>
 <script src="pos-libreta.js"></script>
+<script src="pos-fiado.js"></script>
 <script src="pos-checkout.js"></script>
 <div class="pos-preview" id="pos-preview" onclick="closePosPreview()">
   <div class="pos-preview-inner" onclick="event.stopPropagation()">

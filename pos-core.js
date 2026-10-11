@@ -98,21 +98,23 @@ let _cancelAptCtx = null;
 // (pos-ui.js), que termina en el MISMO modal vía _openCancelModal(): antes ese
 // camino cancelaba apartados Y ventas con un solo confirm() nativo, sin motivo,
 // saltándose por completo las protecciones de este modal.
-async function cancelApartado(id) {
-  // Con dinero pagado, cancelar registra una devolución: va contra un cajón.
-  if (parseFloat((_apartadosData || {})[id]?.paid_amount || 0) > 0 && !_posNeedShift('Para cancelar un apartado con dinero (se registra la devolución) abre la caja.')) return;
+async function cancelApartado(id, opts = {}) {
   if (!canCancelApartado()) {
-    const granted = await requestOverride('canEditApartado', 'Cancelar apartado');
+    const granted = await requestOverride('canEditApartado', opts.liberar ? 'Liberar producto' : 'Cancelar apartado');
     if (!granted) return;
   }
   const sale = (_apartadosData || {})[id];
   if (!sale) { toast('Apartado no encontrado', 'error'); return; }
-  _openCancelModal(id, sale, 'apartado');
+  _openCancelModal(id, sale, 'apartado', opts);
 }
 
 // Modal único para cancelar un apartado ('apartado') o una venta directa
-// ('venta'): motivo obligatorio y, si hubo cobro, casilla de devolución.
-function _openCancelModal(id, sale, kind) {
+// ('venta'): motivo obligatorio y, si hubo cobro, qué pasa con el dinero.
+// Apartado con dinero (2026-10-10): "Queda a su favor" (no sale dinero hoy;
+// sales.saldo_favor) o "Se lo devuelvo ahora" (devolución + casilla de
+// confirmación, exige caja abierta). opts.liberar = "Liberar producto" de un
+// apartado con 30+ días vencido: motivo y "a su favor" ya elegidos.
+function _openCancelModal(id, sale, kind, opts = {}) {
   const isVenta   = kind === 'venta';
   const custParts = (sale.customer || '').split(' · 📱 ');
   const nombre    = custParts[0] || (isVenta ? 'Venta directa' : 'Sin nombre');
@@ -122,14 +124,19 @@ function _openCancelModal(id, sale, kind) {
   const pagado    = isVenta ? total : parseFloat(sale.paid_amount || 0);
   const nItems    = Array.isArray(sale.items) ? sale.items.length : 0;
   const isActiveApt = !isVenta && sale.status === 'activo' && !sale.cancelled_at;
+  const liberar   = !!opts.liberar;
+  const fiado     = !isVenta && !!sale.se_lo_llevo;
   const fmt = n => n.toLocaleString('es-MX');
+  // Con dinero en un apartado se elige qué pasa con él; al liberar, por
+  // defecto queda a su favor (casi nunca está la clienta presente).
+  const moneyChoice = !isVenta && pagado > 0 ? (liberar ? 'favor' : '') : (pagado > 0 ? 'devolver' : '');
 
-  _cancelAptCtx = { id, sale, kind, nombre, total, pagado, nItems };
+  _cancelAptCtx = { id, sale, kind, nombre, total, pagado, nItems, liberar, moneyChoice };
 
-  document.getElementById('cancel-apt-title').textContent = isVenta ? '¿Cancelar esta venta?' : '¿Cancelar este apartado?';
+  document.getElementById('cancel-apt-title').textContent = isVenta ? '¿Cancelar esta venta?'
+    : liberar ? '¿Liberar el producto?' : '¿Cancelar este apartado?';
   const isLib = typeof _isLibretaSale === 'function' && _isLibretaSale(sale);
   document.getElementById('cancel-apt-info').textContent = `${nombre} · $${fmt(total)} MXN · ${isLib ? 'apartado de libreta' : `${nItems} producto${nItems !== 1 ? 's' : ''}`}`;
-  // Estado limpio en cada apertura: sin motivo elegido, casilla sin marcar.
   _cancelAptReason = '';
   // "No pagó (vencido)" solo tiene sentido en un apartado activo; en una venta
   // o un apartado ya liquidado la 2ª opción es "Producto con defecto".
@@ -138,31 +145,68 @@ function _openCancelModal(id, sale, kind) {
     b.textContent = labels[i]; b.dataset.reason = labels[i];
     b.classList.remove('active'); b.setAttribute('aria-checked', 'false');
   });
+  if (liberar) {
+    const vencBtn = document.querySelector('#cancel-apt-reasons .cancel-reason-btn[data-reason="No pagó (vencido)"]');
+    if (vencBtn) { vencBtn.classList.add('active'); vencBtn.setAttribute('aria-checked', 'true'); _cancelAptReason = 'No pagó (vencido)'; }
+  }
   const reasonEl = document.getElementById('cancel-apt-reason');
   if (reasonEl) { reasonEl.value = ''; reasonEl.style.display = 'none'; }
-  const refundWrap = document.getElementById('cancel-apt-refund-wrap');
-  const refundOk   = document.getElementById('cancel-apt-refund-ok');
-  if (refundOk) refundOk.checked = false;
-  if (refundWrap) {
-    refundWrap.style.display = pagado > 0 ? 'flex' : 'none';
-    document.getElementById('cancel-apt-refund-txt').textContent =
-      `Confirmo que le voy a devolver $${fmt(pagado)} a la clienta por el mismo método con que pagó`;
+
+  const moneyWrap = document.getElementById('cancel-apt-money');
+  if (moneyWrap) {
+    moneyWrap.style.display = !isVenta && pagado > 0 ? '' : 'none';
+    document.getElementById('cancel-apt-money-title').textContent = `¿Qué pasa con los $${fmt(pagado)} que pagó?`;
   }
-  // Un apartado cancelado se puede reactivar (solo administrador,
-  // reactivate_apartado_atomic); una venta directa cancelada no tiene camino de vuelta.
+  const refundOk = document.getElementById('cancel-apt-refund-ok');
+  if (refundOk) refundOk.checked = false;
+  document.getElementById('cancel-apt-refund-txt').textContent =
+    `Confirmo que le voy a devolver $${fmt(pagado)} ${isVenta ? 'al cliente' : 'a la clienta'} por el mismo método con que pagó`;
+
   const undoNote = isVenta ? 'Esta acción no se puede deshacer.' : 'Solo el administrador puede deshacerlo después.';
   const warnIco = '<svg style="width:13px;height:13px;vertical-align:-2px;margin-right:3px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
-  document.getElementById('cancel-apt-warning').innerHTML = pagado > 0
-    ? `${warnIco}${isVenta ? 'Esta venta se cobró por' : 'Ya se pagaron'} <strong>$${fmt(pagado)}</strong>. Al cancelar se registrará la devolución por los mismos métodos de pago${isLib ? ' (lo anotado en la libreta no sale de la caja de hoy)' : ' y se restaurará el stock'}.<br>${undoNote}`
-    : `${isLib ? '' : 'Se restaurará el stock. '}${undoNote}`;
-  const confirmBtn = document.getElementById('cancel-apt-confirm-btn');
-  if (confirmBtn) confirmBtn.textContent = _cancelConfirmLabel();
-  _updateCancelAptConfirm();
+  const stockTxt = isLib ? '' : liberar
+    ? `${warnIco}<strong>Solo si el producto sigue en la tienda.</strong> Vuelve a la venta. Si la clienta se lo llevó, no lo liberes: márcalo como fiado en Editar (lápiz).<br>`
+    : 'El producto regresa al inventario. ';
+  document.getElementById('cancel-apt-warning').innerHTML =
+    (fiado ? `${warnIco}<strong>Este apartado se lo llevó.</strong> Cancelar regresa el producto al inventario: hazlo solo si de verdad lo devolvió.<br>` : '')
+    + (isVenta && pagado > 0
+        ? `${warnIco}Esta venta se cobró por <strong>$${fmt(pagado)}</strong>. Se registrará la devolución por el mismo método y el producto regresa al inventario.<br>`
+        : stockTxt)
+    + undoNote;
+  _syncCancelMoney();
   document.getElementById('cancel-apt-overlay').style.display = 'flex';
 }
 
+function _selectCancelMoney(choice) {
+  if (!_cancelAptCtx) return;
+  _cancelAptCtx.moneyChoice = choice;
+  _syncCancelMoney();
+}
+
+// Botones "a su favor / devolver", casilla de devolución y texto del botón.
+function _syncCancelMoney() {
+  const ctx = _cancelAptCtx;
+  if (!ctx) return;
+  const choice = ctx.moneyChoice;
+  document.querySelectorAll('#cancel-apt-money .cancel-reason-btn').forEach(b => {
+    const on = b.dataset.money === choice;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-checked', String(on));
+  });
+  const hint = document.getElementById('cancel-apt-money-hint');
+  if (hint) hint.textContent = choice === 'favor'
+    ? 'No sale dinero hoy. Queda guardado a su nombre en Cancelados: cuando vuelva, se le devuelve o lo usa para comprar.'
+    : choice === 'devolver' ? 'Sale del cajón de tu turno ahora.' : '';
+  const refundWrap = document.getElementById('cancel-apt-refund-wrap');
+  if (refundWrap) refundWrap.style.display = choice === 'devolver' && ctx.pagado > 0 ? 'flex' : 'none';
+  const confirmBtn = document.getElementById('cancel-apt-confirm-btn');
+  if (confirmBtn) confirmBtn.textContent = _cancelConfirmLabel();
+  _updateCancelAptConfirm();
+}
+
 function _cancelConfirmLabel() {
-  return _cancelAptCtx?.kind === 'venta' ? 'Sí, cancelar venta' : 'Sí, cancelar apartado';
+  if (_cancelAptCtx?.kind === 'venta') return 'Sí, cancelar venta';
+  return _cancelAptCtx?.liberar ? 'Sí, liberar producto' : 'Sí, cancelar apartado';
 }
 
 // Motivo elegido en el modal de cancelar ('' = ninguno todavía).
@@ -195,11 +239,13 @@ function _cancelAptReasonValue() {
 function _updateCancelAptConfirm() {
   const btn = document.getElementById('cancel-apt-confirm-btn');
   if (!btn || !_cancelAptCtx) return;
-  const needsRefund = _cancelAptCtx.pagado > 0;
+  const ctx = _cancelAptCtx;
+  const needsChoice = ctx.kind !== 'venta' && ctx.pagado > 0 && !ctx.moneyChoice;
+  const needsRefund = ctx.pagado > 0 && ctx.moneyChoice === 'devolver';
   const refundOk = !needsRefund || !!document.getElementById('cancel-apt-refund-ok')?.checked;
-  btn.disabled = !(_cancelAptReasonValue() && refundOk);
+  btn.disabled = !(_cancelAptReasonValue() && refundOk && !needsChoice);
   btn.title = btn.disabled
-    ? `Elige un motivo${needsRefund ? ' y confirma la devolución' : ''} para continuar`
+    ? `Elige un motivo${needsChoice ? ', qué pasa con su dinero' : ''}${needsRefund ? ' y confirma la devolución' : ''} para continuar`
     : '';
 }
 
@@ -210,8 +256,11 @@ function _closeCancelAptModal() {
 
 async function _confirmCancelApartado() {
   if (!_cancelAptCtx) return;
-  const { id, sale, kind, nombre, total, pagado, nItems } = _cancelAptCtx;
+  const { id, sale, kind, nombre, total, pagado, nItems, liberar, moneyChoice } = _cancelAptCtx;
   const isVenta = kind === 'venta';
+  const keepCredit = !isVenta && pagado > 0 && moneyChoice === 'favor';
+  // Devolver dinero sale del cajón: exige caja abierta ("Solo ver apartados").
+  if (pagado > 0 && !keepCredit && !_posNeedShift('Para devolver dinero abre la caja.')) { _closeCancelAptModal(); return; }
   const btnLabel = _cancelConfirmLabel();
   // Defensa en profundidad: el botón ya está deshabilitado sin motivo, pero un
   // Enter o un click programático no debe saltarse el requisito.
@@ -230,7 +279,7 @@ async function _confirmCancelApartado() {
   // p_reason viaja hasta activity_log.meta.reason. Antes era texto libre
   // opcional (casi siempre vacío); ahora es obligatorio: una de 4 opciones o,
   // con "Otro", lo que escribió la cajera.
-  const delResult = await _posCancelSaleAtomic(id, sale, reasonVal);
+  const delResult = await _posCancelSaleAtomic(id, sale, reasonVal, keepCredit);
   if (!delResult.ok) {
     toast(_posRpcError(delResult, `Error al cancelar ${isVenta ? 'la venta' : 'el apartado'}`), 'error');
     btn.textContent = btnLabel;
@@ -248,7 +297,11 @@ async function _confirmCancelApartado() {
   delete salesCache[id]; // Historial: quita el registro cancelado de la caché local
   await _refreshPosFinancialState();
   const refundAmount = parseFloat(delResult.data?.sale?.refund_amount) || 0;
-  toast(`${isVenta ? 'Venta cancelada' : `Apartado de ${nombre} cancelado`} — stock restaurado${refundAmount > 0 ? ` y devolución de $${refundAmount.toLocaleString('es-MX')} registrada` : ''} ✓`, 'success');
+  const credit = parseFloat(delResult.data?.sale?.saldo_favor) || 0;
+  const nom = _displayName(nombre);
+  toast(isVenta
+    ? `Venta cancelada${refundAmount > 0 ? ` — devolución de ${_fmtMx(refundAmount)} registrada` : ''}`
+    : `${liberar ? 'Producto liberado' : `Apartado de ${nom} cancelado`}${credit > 0 ? ` — ${_fmtMx(credit)} quedan a favor de ${nom}` : refundAmount > 0 ? ` — devolución de ${_fmtMx(refundAmount)} registrada` : ''}`, 'success');
 }
 
 // Deshace una cancelación hecha por error (solo superadmin — el servidor lo
@@ -988,16 +1041,17 @@ function _itemsDiscountTotal(items) {
 // resolvedPrior/staleConflict), igual que ya hacían abonar/editar/reembolsar
 // en pos-apartados.js — evita dejar el botón de cancelar accionable sobre
 // datos locales desactualizados tras un rechazo del servidor.
-async function _posCancelSaleAtomic(id, sale, reason) {
+async function _posCancelSaleAtomic(id, sale, reason, keepCredit = false) {
   const pagado = parseFloat(sale?.paid_amount ?? sale?.total) || 0;
   const result = await posRpc('cancel_sale_atomic', {
     operation: 'cancel_sale',
     context: id,
-    fingerprint: `${id}:${sale?.version ?? 0}:${pagado}`,
+    fingerprint: `${id}:${sale?.version ?? 0}:${pagado}:${keepCredit ? 'favor' : 'devolver'}`,
     body: {
       p_sale_id: id,
       p_expected_version: sale?.version ?? 0,
       p_reason: reason,
+      p_keep_credit: !!keepCredit,
       p_override_tickets: _collectOverrideTickets(['canCancelSale', 'canEditApartado'])
     }
   });

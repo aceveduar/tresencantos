@@ -626,7 +626,8 @@ function _renderAptPageCanceladosCards(data) {
   const grid = document.getElementById('apt-page-list');
   if (!grid) return;
   const count = document.getElementById('apt-page-count');
-  if (count) count.textContent = data.length ? `${data.length} cancelado${data.length !== 1 ? 's' : ''}` : '';
+  const favorTotal = data.reduce((t, s) => t + _saldoFavor(s), 0);
+  if (count) count.textContent = data.length ? `${data.length} cancelado${data.length !== 1 ? 's' : ''}${favorTotal > 0 ? ` · ${_fmtMx(favorTotal)} a favor de clientas` : ''}` : '';
   if (!data.length) {
     grid.innerHTML = `<div class="history-empty" style="grid-column:1/-1"><div style="margin-bottom:8px">${_uiIcoX('var(--red)', 30)}</div>Sin apartados cancelados</div>`;
     return;
@@ -643,7 +644,7 @@ function _renderAptPageCanceladosCards(data) {
     <span class="apc-name">${_uiIcoUser()} ${_esc(nombre)}</span>
     <span class="apc-amount is-muted">${_fmtMx(total)}</span>
   </span>
-  <span class="apc-meta">Cancelado el ${t} · ${_isLibretaSale(s) ? _libretaChipHTML() : `${nItems} prod.`}</span>
+  <span class="apc-meta">${_saldoFavor(s) > 0 ? _favorChipHTML(s) : ''}Cancelado el ${t} · ${_isLibretaSale(s) ? _libretaChipHTML() : `${nItems} prod.`}</span>
 </button>`;
   }).join('');
 }
@@ -698,7 +699,7 @@ function _renderAptPageCards(data, isLiquidado) {
     <span class="apc-name">${_uiIcoUser()} ${_esc(nombre)}</span>
     <span class="apc-pending${pendiente === 0 ? ' zero' : ''}${isOverdue ? ' is-overdue' : ''}">${pendiente === 0 ? 'Pagado' : 'Falta ' + _fmtMx(pendiente)}</span>
   </span>
-  <span class="apc-meta">${_isLibretaSale(s) ? `${_libretaChipHTML()}${_libretaDateLabel(s)}` : `${t} · ${nItems} prod.`}</span>
+  <span class="apc-meta">${_isLibretaSale(s) ? `${_libretaChipHTML()}${_libretaDateLabel(s)}` : `${_isFiado(s) ? _fiadoChipHTML() : ''}${t} · ${nItems} prod.`}</span>
   ${dueHTML}
   <span class="apc-bar" role="progressbar" aria-label="Progreso de pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span class="apc-fill" style="width:${pct}%"></span></span>
 </button>`;
@@ -723,7 +724,8 @@ function openAptDetail(id) {
   const isLib = _isLibretaSale(s);
   document.getElementById('adm-meta').innerHTML = (isLib
       ? _libretaChipHTML() + _esc(_libretaDateLabel(s, { day:'numeric', month:'short', year:'numeric' }))
-      : _esc(t + ' · ' + nItems + ' producto' + (nItems !== 1 ? 's' : ''))) + (telNum ? ' · ' + _uiIcoPhone() + ' ' + _esc(telNum) : '') +
+      : (_isFiado(s) && s.status === 'activo' ? _fiadoChipHTML() : '') + (_saldoFavor(s) > 0 ? _favorChipHTML(s) : '')
+        + _esc(t + ' · ' + nItems + ' producto' + (nItems !== 1 ? 's' : ''))) + (telNum ? ' · ' + _uiIcoPhone() + ' ' + _esc(telNum) : '') +
     ` · <a href="#" onclick="event.preventDefault();openTransactionTimeline(${id})" style="color:var(--gold-dark);font-weight:700;text-decoration:underline">${_uiIcoClock(11)} Ver historial</a>`;
 
   // Items
@@ -797,6 +799,7 @@ function openAptDetail(id) {
 
   document.getElementById('adm-body').innerHTML = `
     ${dueAlertHTML}
+    ${isCancelado || isLiquidado ? '' : _liberarBannerHTML(s)}
     <div class="adm-section-title">${isLib ? 'Apartado' : 'Productos'}</div>
     <div class="apt-items-list">${itemsHTML}</div>
     <div class="apt-summary">
@@ -821,8 +824,12 @@ function openAptDetail(id) {
     const reactivateBtn = canReactivateApartado()
       ? `<button type="button" class="btn-abonar" id="adm-reactivate-btn" onclick="reactivateApartado(${id})">${_uiIco('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>')} Reactivar</button>`
       : '';
-    document.getElementById('adm-footer').innerHTML =
-      `<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--muted)">✕ Cancelado${canceladoFecha}</span>${reactivateBtn}`;
+    const favorBtn = _saldoFavor(s) > 0
+      ? `<button type="button" class="btn-favor" onclick="devolverSaldoFavor(${id})">Devolver saldo a favor ${_fmtMx(_saldoFavor(s))}</button>`
+      : '';
+    document.getElementById('adm-footer').innerHTML = favorBtn
+      ? `${favorBtn}${reactivateBtn}`
+      : `<span style="flex:1;text-align:center;font-size:.82rem;font-weight:700;color:var(--muted)">✕ Cancelado${canceladoFecha}</span>${reactivateBtn}`;
     const modal = document.getElementById('apt-detail-modal');
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');
