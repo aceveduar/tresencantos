@@ -212,7 +212,7 @@ function _themeToggleRowHtml() {
       title: 'Apartados: fiado, liberar y saldo a favor',
       text: 'Ahora hay dos tipos de apartado:<br>'
         + '<b>Apartado:</b> el producto se queda en la tienda hasta que termine de pagar.<br>'
-        + '<b>Fiado:</b> una persona de confianza se lleva el producto hoy y paga después. Al hacer el apartado toca <b>Se lo lleva hoy (fiado)</b>. Solo Ofelia lo autoriza (o con su PIN).<br><br>'
+        + '<b>Fiado:</b> una persona de confianza se lleva el producto hoy y paga después. Al hacer el apartado toca <b>Se lo lleva hoy (fiado)</b>. Lo autoriza Ofelia: si ella no está, se pide su PIN; si lo indica por teléfono, regístralo como apartado normal y ella lo marca como fiado desde su celular.<br><br>'
         + 'Todos los apartados que ya existían quedaron marcados como <b>Se lo llevó</b>. Desde hoy, al hacer un apartado decidan si se queda en la tienda o se lo lleva. Si alguno está mal marcado, ábranlo, toquen el lápiz y cámbienlo.<br><br>'
         + '<b>Liberar producto:</b> si un apartado (no fiado) lleva 30 días o más vencido, aparece el botón <b>Liberar producto</b>. El producto vuelve a la venta y lo que pagó la clienta <b>queda a su favor</b>. Solo liberen si el producto sigue en la tienda.<br>'
         + '<b>Saldo a favor:</b> está en Apartados → Cancelados. Cuando la clienta regrese, toquen <b>Devolver saldo a favor</b>; si lo quiere usar para comprar algo, devuélvanselo y cobren la compra normal.<br><br>'
@@ -635,6 +635,7 @@ const UP_PERMS = [
   {key:'canBulkDelete',     label:'Borrado masivo',      group:'Inventario', desc:'Eliminar varios productos seleccionados a la vez'},
   {key:'canCancelSale',     label:'Cancelar ventas',     group:'Caja', desc:'Anular una venta ya cobrada y restaurar el stock'},
   {key:'canEditApartado',   label:'Editar apartados',    group:'Caja', desc:'Modificar, cancelar o reembolsar un apartado existente'},
+  {key:'canGiveCredit',     label:'Dar fiado',           group:'Caja', desc:'Marcar que la persona se lleva el producto sin terminar de pagar ("Se lo lleva hoy")'},
   {key:'canOverridePrice',  label:'Modificar precio al cobrar', group:'Caja', desc:'Cambiar el precio de un producto en el carrito antes de cobrar'},
   {key:'canApplyDiscount',  label:'Aplicar descuentos',  group:'Caja', desc:'Usar el campo "Agregar descuento" al cobrar'},
   {key:'canCloseShiftUnsupervised', label:'Cerrar turno con diferencia grande', group:'Caja', desc:'Cerrar un turno de caja sin pedir autorización aunque la diferencia sea de $100 o más'},
@@ -645,9 +646,9 @@ const UP_PERMS = [
   {key:'canImportExport',   label:'Importar/Exportar catálogo', group:'Módulos', desc:'Entra a Configuración pero solo ve Datos (JSON, nombres de usuario, revisión de duplicados) — sin Usuarios y Permisos, Notificaciones ni Integraciones'},
 ];
 const UP_ROLE_DEFAULTS = {
-  superadmin:{canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canCancelSale:true, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canViewReports:true, canViewActivity:true, canManageSettings:true, canManageCatalogSettings:false, canCloseShiftUnsupervised:true, canUseReceptionIA:true, canReceiveStock:true, canImportExport:true},
-  encargado: {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canCancelSale:true, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false, canCloseShiftUnsupervised:true, canUseReceptionIA:true, canReceiveStock:true, canImportExport:false},
-  operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:false, canPublishProduct:false, canBulkDelete:false, canCancelSale:false, canEditApartado:false, canOverridePrice:false, canApplyDiscount:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false, canCloseShiftUnsupervised:false, canUseReceptionIA:false, canReceiveStock:true, canImportExport:false},
+  superadmin:{canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canCancelSale:true, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canViewReports:true, canViewActivity:true, canManageSettings:true, canManageCatalogSettings:false, canCloseShiftUnsupervised:true, canUseReceptionIA:true, canReceiveStock:true, canImportExport:true, canGiveCredit:true},
+  encargado: {canAddProduct:true, canEditProduct:true, canDeleteProduct:true, canPublishProduct:true, canBulkDelete:true, canCancelSale:true, canEditApartado:true, canOverridePrice:true, canApplyDiscount:true, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false, canCloseShiftUnsupervised:true, canUseReceptionIA:true, canReceiveStock:true, canImportExport:false, canGiveCredit:false},
+  operador:  {canAddProduct:true, canEditProduct:true, canDeleteProduct:false, canPublishProduct:false, canBulkDelete:false, canCancelSale:false, canEditApartado:false, canOverridePrice:false, canApplyDiscount:false, canViewReports:false, canViewActivity:false, canManageSettings:false, canManageCatalogSettings:false, canCloseShiftUnsupervised:false, canUseReceptionIA:false, canReceiveStock:true, canImportExport:false, canGiveCredit:false},
 };
 
 /* ── PIN DE AUTORIZACIÓN (override puntual de un permiso bloqueado) ──

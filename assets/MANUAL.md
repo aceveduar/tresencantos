@@ -55,7 +55,7 @@ Lo que la clienta pagó en la libreta cuenta para su saldo, pero **no** aparece 
 En la pantalla **Abrir caja**, toca **Solo ver apartados, sin abrir caja**. Puedes buscar, revisar cuánto deben, mandar recordatorios y pasar apartados de la libreta. Para cobrar un abono, liquidar o hacer un apartado nuevo, el sistema te pedirá abrir caja.
 
 ### Fiado: cuando la persona se lleva el producto
-Si una persona de confianza se lleva el producto y paga después, al hacer el apartado toca **Se lo lleva hoy (fiado)** (lo autoriza Ofelia o con su PIN). Si ya existe el apartado, ábrelo, toca el lápiz y marca **Se lo llevó**. Un fiado nunca se libera: solo se le sigue cobrando, y sus recordatorios hablan de saldo pendiente, no de "pasar a recoger".
+Si una persona de confianza se lleva el producto y paga después, al hacer el apartado toca **Se lo lleva hoy (fiado)**. Necesita el permiso **Dar fiado** (Ofelia lo tiene); si no lo tienes, el sistema pide el PIN de Ofelia. Si Ofelia lo indica por teléfono, registra un apartado normal y ella lo marca como fiado desde su celular (Apartados → abrir el apartado → lápiz → **Se lo llevó**; puede hacerlo con **Solo ver apartados**, sin abrir caja). Si ya existe el apartado, ábrelo, toca el lápiz y marca **Se lo llevó**. Un fiado nunca se libera: solo se le sigue cobrando, y sus recordatorios hablan de saldo pendiente, no de "pasar a recoger".
 
 ### Apartado en tienda o fiado: cómo distinguirlos
 En la lista de Apartados, los que tienen el producto **guardado en la tienda** llevan la etiqueta **En tienda**. Los que no la llevan son fiado: la persona ya se llevó su producto. Al liquidar un apartado En tienda, el sistema te recuerda **entregarle su producto**.

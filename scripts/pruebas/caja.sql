@@ -327,6 +327,14 @@ BEGIN
   END;
   INSERT INTO _ok(prueba) VALUES ('Creador y fecha de creación no se pueden cambiar');
 
+  -- Dar fiado es un permiso propio: una cajera no lo marca sin PIN
+  BEGIN
+    PERFORM public.te_set_apartado_se_lo_llevo((SELECT v::bigint FROM _ctx WHERE k = 'apartado'), true);
+    RAISE EXCEPTION 'PRUEBA FALLÓ: una cajera pudo marcar un fiado sin permiso';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  INSERT INTO _ok(prueba) VALUES ('Dar fiado exige su propio permiso o PIN');
+
   -- URL de imagen que rompe el atributo src (XSS guardado)
   BEGIN
     UPDATE public.products SET image = 'https://x.com/a.jpg" onerror="alert(1)' WHERE id = pid;

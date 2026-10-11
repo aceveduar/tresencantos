@@ -5,6 +5,8 @@
      a la venta y lo que pagó queda A SU FAVOR (o se le devuelve si está).
    - Fiado ("se lo llevó"): persona de confianza que se lleva el producto y
      paga después. Nunca se ofrece liberar; solo se le sigue cobrando.
+   Marcar fiado exige el permiso "Dar fiado" (canGiveCredit: superadmin por
+   defecto; los demás con PIN o si se los activan en Configuración).
    Servidor: sales.se_lo_llevo / sales.saldo_favor, te_set_apartado_se_lo_llevo,
    cancel_sale_atomic(p_keep_credit), te_refund_credit.                     */
 
@@ -55,8 +57,8 @@ function liberarApartado(id) {
    con permiso de editar apartados o el PIN de quien lo tenga: es prestar
    mercancía. */
 async function toggleSeLoLleva(btn) {
-  if (!btn.classList.contains('active') && !canEditApartado()) {
-    const granted = await requestOverride('canEditApartado', 'Fiado: se lleva el producto');
+  if (!btn.classList.contains('active') && !canGiveCredit()) {
+    const granted = await requestOverride('canGiveCredit', 'Dar fiado: se lleva el producto');
     if (!granted) return;
   }
   btn.classList.toggle('active');
@@ -69,9 +71,9 @@ async function toggleSeLoLleva(btn) {
 async function _marcarSeLoLlevo(saleId, value = true) {
   const r = await api('rpc/te_set_apartado_se_lo_llevo', {
     method: 'POST',
-    body: JSON.stringify({ p_sale_id: saleId, p_value: value, p_override_tickets: _collectOverrideTickets(['canEditApartado']) })
+    body: JSON.stringify({ p_sale_id: saleId, p_value: value, p_override_tickets: _collectOverrideTickets(['canGiveCredit']) })
   });
-  _clearOverrideTicket('canEditApartado');
+  _clearOverrideTicket('canGiveCredit');
   if (!r.ok) toast(r.data?.message || 'No se pudo marcar como fiado; márcalo en Editar apartado', 'error');
   return r.ok;
 }
@@ -80,6 +82,10 @@ async function _marcarSeLoLlevo(saleId, value = true) {
 async function _editAptToggleFiado(btn) {
   if (!_editAptCtx) return;
   const next = !btn.classList.contains('active');
+  if (!canGiveCredit()) {
+    const granted = await requestOverride('canGiveCredit', next ? 'Dar fiado: se lo llevó' : 'Quitar fiado');
+    if (!granted) return;
+  }
   btn.disabled = true;
   const ok = await _marcarSeLoLlevo(_editAptCtx.id, next);
   btn.disabled = false;

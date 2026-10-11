@@ -56,6 +56,13 @@ function canEditApartado() {
   if (up && 'canEditApartado' in up) return up.canEditApartado;
   const r = getPosRole(); return r === 'superadmin' || r === 'encargado';
 }
+// Dar fiado ("Se lo lleva hoy"): solo superadmin por defecto; el servidor lo
+// vuelve a exigir en te_set_apartado_se_lo_llevo.
+function canGiveCredit() {
+  const up = _getMyPermsCached();
+  if (up && 'canGiveCredit' in up) return up.canGiveCredit;
+  return getPosRole() === 'superadmin';
+}
 function canCancelApartado() {
   return canEditApartado() || canCancelSale();
 }
