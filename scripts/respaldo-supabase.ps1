@@ -6,14 +6,16 @@
 # ya enlazado (supabase db query --linked), más el esquema (funciones,
 # políticas, triggers, columnas) y los usuarios de Auth (sin contraseñas).
 #
-# Resultado: un .zip por día en $Destino; se conservan los últimos $Conservar.
+# Resultado: un .zip por día en $Destino; se conservan los últimos $Conservar,
+# y una copia en Google Drive (carpeta privada) con los últimos $ConservarDrive.
 # Cómo restaurar: ver LEEME.txt dentro de cada .zip.
 #
 # Uso manual:  powershell -ExecutionPolicy Bypass -File scripts\respaldo-supabase.ps1
 
 param(
   [string]$Destino   = (Join-Path $env:USERPROFILE 'Documents\TresEncantos-Respaldos'),
-  [int]   $Conservar = 30
+  [int]   $Conservar = 30,
+  [int]   $ConservarDrive = 3
 )
 
 $ErrorActionPreference = 'Continue'
@@ -59,13 +61,13 @@ function Export-Query($sql, $file) {
 # Deja el resultado en config.ultimo_respaldo para que Configuración → Datos
 # lo muestre (solo superadmin). Sin esto un respaldo podía fallar semanas sin
 # que nadie se enterara: solo quedaba en respaldo.log de esta PC.
-function Save-Status([bool]$ok, [double]$mb, [int]$nTablas, [int]$nErrores) {
+function Save-Status([bool]$ok, [double]$mb, [int]$nTablas, [int]$nErrores, [string]$drive = 'no') {
   # El JSON se arma en SQL: PowerShell 5.1 deforma las comillas dobles al
   # pasarle argumentos a un programa externo.
   $okS = if ($ok) { 'true' } else { 'false' }
   $mbS = $mb.ToString('0.0', [System.Globalization.CultureInfo]::InvariantCulture)
   $pc  = ($env:COMPUTERNAME -replace "[^A-Za-z0-9_-]", '')
-  $sql = "insert into public.config (id, value) select 'ultimo_respaldo', jsonb_build_object('at', now(), 'ok', $okS, 'mb', $mbS, 'tablas', $nTablas, 'errores', $nErrores, 'equipo', '$pc')::text on conflict (id) do update set value = excluded.value"
+  $sql = "insert into public.config (id, value) select 'ultimo_respaldo', jsonb_build_object('at', now(), 'ok', $okS, 'mb', $mbS, 'tablas', $nTablas, 'errores', $nErrores, 'equipo', '$pc', 'drive', '$drive')::text on conflict (id) do update set value = excluded.value"
   & supabase db query --linked --workdir $Repo $sql 2>$null | Out-Null
 }
 
@@ -129,6 +131,35 @@ Compress-Archive -Path (Join-Path $Tmp '*') -DestinationPath $zip -Force
 Remove-Item -Recurse -Force $Tmp
 Get-ChildItem $Destino -Filter 'TresEncantos_*.zip' | Sort-Object Name -Descending | Select-Object -Skip $Conservar | Remove-Item -Force
 
+# 4. Copia en Google Drive (2026-10-13): si la PC se pierde o se descompone,
+#    los 30 zips locales se van con ella. Usa el mismo Apps Script de las
+#    fotos (action 'backup'), que lo guarda en una carpeta privada aparte y
+#    conserva solo los últimos $ConservarDrive. Si falla no tumba el respaldo
+#    local: solo se anota (drive = 'error') y Configuración → Datos lo avisa.
+function Send-ToDrive($zipPath) {
+  try {
+    $raw = & supabase db query --linked --workdir $Repo "select id, value from public.config where id in ('drive_ep','drive_secret')" -o json 2>$null | Out-String
+    $cfg = @{}
+    foreach ($r in @(Get-CliRows ($raw | ConvertFrom-Json))) { $cfg[$r.id] = $r.value }
+    if (-not $cfg['drive_ep'] -or -not $cfg['drive_secret']) { Write-Log 'Drive: sin drive_ep/drive_secret en config'; return 'error' }
+    $body = @{
+      secret = $cfg['drive_secret']
+      action = 'backup'
+      name   = [System.IO.Path]::GetFileName($zipPath)
+      keep   = $ConservarDrive
+      data   = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($zipPath))
+    } | ConvertTo-Json -Compress
+    # Apps Script responde 302; Invoke-RestMethod la sigue con GET, que es lo que Google espera.
+    $res = Invoke-RestMethod -Uri $cfg['drive_ep'] -Method Post -Body $body -ContentType 'application/json' -TimeoutSec 180
+    if ($res.ok) { Write-Log "Drive: copia subida (quedan $($res.kept))"; return 'ok' }
+    Write-Log "Drive: ERROR $($res.error)"
+    return 'error'
+  } catch {
+    Write-Log "Drive: ERROR $($_.Exception.Message)"
+    return 'error'
+  }
+}
+
 $mb  = (Get-Item $zip).Length / 1MB
 $tam = '{0:N1} MB' -f $mb
 if ($errores -gt 0) {
@@ -136,5 +167,8 @@ if ($errores -gt 0) {
   Save-Status $false $mb $tablas.Count $errores
   exit 2
 }
+# Solo se sube un respaldo completo: uno con errores podría desplazar en Drive
+# a una copia buena (allá solo se conservan $ConservarDrive).
+$drive = Send-ToDrive $zip
 Write-Log "OK: $zip ($tam), $($tablas.Count) tablas"
-Save-Status $true $mb $tablas.Count 0
+Save-Status $true $mb $tablas.Count 0 $drive

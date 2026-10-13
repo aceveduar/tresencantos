@@ -347,8 +347,10 @@ async function _refreshAutoBackup() {
     desc.innerHTML = `<strong style="color:var(--red)">Falló el ${escH(cuando)}</strong> (${Number(st.errores) || 0} error${st.errores == 1 ? '' : 'es'}). Revisa respaldo.log en la PC de los respaldos.`;
   } else if (horas > 50) {
     desc.innerHTML = `<strong style="color:var(--red)">El último respaldo fue el ${escH(cuando)}.</strong> La PC de los respaldos no lo ha hecho desde entonces (¿apagada?).`;
+  } else if (st.drive === 'error') {
+    desc.innerHTML = `Último: ${escH(cuando)} · ${Number(st.mb || 0).toFixed(1)} MB. <strong style="color:var(--red)">No se pudo subir la copia a Google Drive</strong> (se guardó solo en la PC; revisa respaldo.log).`;
   } else {
-    desc.textContent = `Último: ${cuando} · ${Number(st.mb || 0).toFixed(1)} MB, ${Number(st.tablas) || 0} tablas. Se hace cada noche.`;
+    desc.textContent = `Último: ${cuando} · ${Number(st.mb || 0).toFixed(1)} MB, ${Number(st.tablas) || 0} tablas${st.drive === 'ok' ? ', con copia en Google Drive' : ''}. Se hace cada noche.`;
   }
 }
 

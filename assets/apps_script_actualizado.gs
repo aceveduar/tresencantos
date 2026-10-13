@@ -1,5 +1,6 @@
 const FOLDER_ID = '1KRy8Aj5bd7bz4f0TpkIKMURthWBCS7om';
 const SECRET    = 'PEGA_AQUI_EL_SECRETO'; // el mismo que drive_secret en Configuración → Integraciones. Nunca subirlo al repo (es público).
+const BACKUP_FOLDER = 'Respaldos Tres Encantos'; // carpeta privada en "Mi unidad" (se crea sola)
 
 function doPost(e) {
   const out = ContentService.createTextOutput().setMimeType(ContentService.MimeType.JSON);
@@ -52,6 +53,33 @@ function doPost(e) {
       }
       const nextPageToken = files.hasNext() ? files.getContinuationToken() : null;
       out.setContent(JSON.stringify({ ok: true, files: result, nextPageToken }));
+      return out;
+    }
+
+    // Copia del respaldo nocturno (scripts/respaldo-supabase.ps1). Va a una
+    // carpeta PRIVADA aparte -- nunca a la de fotos, que es pública -- porque
+    // el zip trae teléfonos de clientas y las claves de config. Se conservan
+    // solo los últimos `keep` (máx. 5) para no llenar el Drive.
+    if (payload.action === 'backup') {
+      if (!/^[A-Za-z0-9]+_[0-9_-]+\.zip$/.test(payload.name || '') || !payload.data) {
+        out.setContent(JSON.stringify({ ok: false, error: 'respaldo inválido' }));
+        return out;
+      }
+      const it = DriveApp.getRootFolder().getFoldersByName(BACKUP_FOLDER);
+      const folder = it.hasNext() ? it.next() : DriveApp.getRootFolder().createFolder(BACKUP_FOLDER);
+      const blob = Utilities.newBlob(Utilities.base64Decode(payload.data), 'application/zip', payload.name);
+      folder.createFile(blob);
+      const prefix = payload.name.split('_')[0] + '_';
+      const keep = Math.min(Math.max(parseInt(payload.keep, 10) || 3, 1), 5);
+      const zips = [];
+      const files = folder.getFiles();
+      while (files.hasNext()) {
+        const f = files.next();
+        if (f.getName().indexOf(prefix) === 0) zips.push(f);
+      }
+      zips.sort((a, b) => b.getName().localeCompare(a.getName()));
+      zips.slice(keep).forEach(f => f.setTrashed(true));
+      out.setContent(JSON.stringify({ ok: true, kept: Math.min(zips.length, keep) }));
       return out;
     }
 
