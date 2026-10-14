@@ -53,6 +53,18 @@ function _setBack() {
   window.scrollTo(0, 0);
 }
 
+// Subtítulo de grupo (scard-divider-label) sin ninguna fila visible debajo: se oculta.
+window._setTidyDividers = function () {
+  document.querySelectorAll('.scard-divider-label').forEach(lab => {
+    let el = lab.nextElementSibling, any = false;
+    while (el && !el.classList.contains('scard-divider-label')) {
+      if (el.classList.contains('scard-row') && getComputedStyle(el).display !== 'none') any = true;
+      el = el.nextElementSibling;
+    }
+    lab.style.display = any ? '' : 'none';
+  });
+};
+
 // Lo llama settings.js después de aplicar los permisos (antes de init()).
 function _setNavInit() {
   const main = document.querySelector('.main');

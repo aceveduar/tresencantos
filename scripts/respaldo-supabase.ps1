@@ -140,7 +140,10 @@ function Send-ToDrive($zipPath) {
   try {
     $raw = & supabase db query --linked --workdir $Repo "select id, value from public.config where id in ('drive_ep','drive_secret')" -o json 2>$null | Out-String
     $cfg = @{}
-    foreach ($r in @(Get-CliRows ($raw | ConvertFrom-Json))) { $cfg[$r.id] = $r.value }
+    # Asignar primero: @(Get-CliRows ...) envolvía el arreglo en otro y $r era la lista completa
+    # (cada noche: 'sin drive_ep/drive_secret' aunque sí estaban).
+    $rows = Get-CliRows ($raw | ConvertFrom-Json)
+    foreach ($r in @($rows)) { $cfg[$r.id] = $r.value }
     if (-not $cfg['drive_ep'] -or -not $cfg['drive_secret']) { Write-Log 'Drive: sin drive_ep/drive_secret en config'; return 'error' }
     $body = @{
       secret = $cfg['drive_secret']

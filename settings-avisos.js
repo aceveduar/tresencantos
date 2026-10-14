@@ -35,8 +35,24 @@ function _ntResetForm() {
   document.getElementById('nt-until').value = _ntPlusDays(21);
   document.getElementById('nt-until').min = _ntToday();
   document.getElementById('nt-save-btn').textContent = 'Publicar aviso';
-  document.getElementById('nt-cancel-btn').style.display = 'none';
+  document.getElementById('nt-form-title').textContent = 'Nuevo aviso';
   _ntPreview();
+}
+
+// Lo primero que se ve es la lista (qué hay activo y quién lo leyó); el
+// formulario se abre con "+ Nuevo aviso" o "Editar".
+function _ntShowForm(show) {
+  document.getElementById('nt-form-card').hidden = !show;
+  document.getElementById('nt-new-btn').hidden = show;
+}
+function _ntOpenForm() {
+  _ntResetForm();
+  _ntShowForm(true);
+  document.getElementById('nt-title').focus();
+}
+function _ntCloseForm() {
+  _ntResetForm();
+  _ntShowForm(false);
 }
 
 async function _ntSave() {
@@ -55,7 +71,7 @@ async function _ntSave() {
   btn.disabled = false;
   if (!r.ok) { toast(r.data?.message || 'No se pudo guardar el aviso', 'err'); return; }
   toast(_ntEditingId ? 'Aviso actualizado' : 'Aviso publicado: ya aparece en la campana', 'ok');
-  _ntResetForm();
+  _ntCloseForm();
   _ntLoad();
   window._reloadTeamNotices?.();
 }
@@ -70,9 +86,10 @@ function _ntEdit(id) {
   document.getElementById('nt-audience').value = n.audience;
   document.getElementById('nt-until').value = n.until;
   document.getElementById('nt-save-btn').textContent = 'Guardar cambios';
-  document.getElementById('nt-cancel-btn').style.display = '';
+  document.getElementById('nt-form-title').textContent = 'Editar aviso';
   _ntPreview();
-  document.getElementById('section-notices').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  _ntShowForm(true);
+  document.getElementById('nt-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 async function _ntRemove(id) {
@@ -82,7 +99,7 @@ async function _ntRemove(id) {
   if (!ok) return;
   const r = await api('rpc/te_remove_notice', { method: 'POST', body: JSON.stringify({ p_id: id }) });
   if (!r.ok) { toast(r.data?.message || 'No se pudo quitar', 'err'); return; }
-  if (_ntEditingId === id) _ntResetForm();
+  if (_ntEditingId === id) _ntCloseForm();
   toast('Aviso quitado', 'ok');
   _ntLoad();
   window._reloadTeamNotices?.();
@@ -101,7 +118,7 @@ async function _ntLoad() {
   (rR.ok && Array.isArray(rR.data) ? rR.data : []).forEach(x => { (readers[x.notice_id] ||= []).push(x.user_email); });
   // El equipo = las cuentas de Usuarios y permisos; a quien publicó no se le cuenta como pendiente.
   const team = Object.keys(userPermsMap || {}).map(e => e.toLowerCase());
-  if (!_ntNotices.length) { list.innerHTML = '<div class="nt-empty">No hay avisos activos.</div>'; return; }
+  if (!_ntNotices.length) { list.innerHTML = '<div class="nt-empty">No hay avisos activos. Toca <b>+ Nuevo aviso</b> para escribir uno.</div>'; return; }
   list.innerHTML = _ntNotices.map(n => {
     const read = (readers[n.id] || []);
     const pending = team.filter(e => e !== String(n.created_by).toLowerCase() && !read.includes(e));

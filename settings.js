@@ -1880,6 +1880,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const bkRow = document.getElementById('scard-auto-backup');
     if (bkRow) { bkRow.style.display = ''; _refreshAutoBackup(); }
   }
+  window._setTidyDividers?.(); // subtítulos de grupos que quedaron vacíos por permiso
   // Mostrar conteo de duplicados desde última revisión en Inventario
   const dupCount = parseInt(localStorage.getItem('te_dup_last_count') || '0');
   const dupTag = document.getElementById('dup-count-tag');
