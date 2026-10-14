@@ -58,7 +58,7 @@ Usar siempre estos nombres en UI y conversación (nunca "Admin", "POS", "Stats")
 | `pos.html` `pos.css` `pos-*.js` | **Caja** | Punto de venta |
 | `stats.html` `stats.css` `stats.js` | **Reportes** | Estadísticas |
 | `activity.html` `activity.css` `activity.js` | **Actividad** | Log de auditoría |
-| `settings.html` `settings.css` `settings.js` `settings-avisos.js` | **Configuración** | Ajustes globales |
+| `settings.html` `settings.css` `settings.js` `settings-avisos.js` `settings-nav.js` | **Configuración** | Ajustes globales |
 | `shared.js` `shared.css` | — | Común a los 5 módulos admin (menú avatar, PIN, campana, offline, permisos de nav, tema) |
 
 Inventario: `admin.js` (core, auth, carga) · `admin-render.js` (cards/tabla/inline edits) · `admin-form.js` (formulario, kits, fotos) · `admin-images.js` (Drive, Groq) · `admin-bulk.js` · `admin-scanner.js` (escáner, duplicados, archivar) · `admin-utils.js` · `admin-recv.js` (Recibir mercancía) · `admin-recv-ia.js` (Recepción con IA) · `admin-capture.js` (Captura rápida) · `admin-qv.js` (Quick View) · `admin-kit-builder.js`.
@@ -214,6 +214,7 @@ Supabase no tiene backups en este plan (sin PITR, lista vacía). `scripts/respal
 ## Actividad y Configuración
 
 - **Actividad:** feed de `activity_log` (300), filtros período/usuario/tipo, búsqueda (incluye productos dentro de ventas vía RPC `te_search_activity_meta`), resumen KPIs, chip "🌙 Fuera de horario" (23:00–06:00, excluye superadmins). **Todo `logActivity()`/acción nueva necesita su entrada en `ACTION_CFG` (`activity.js`)**, o cae como badge genérico.
+- **Configuración — navegación** (`settings-nav.js`, 2026-10-14; antes una sola página de ~4,500 px en celular): patrón Shopify Admin. Celular = índice de secciones (ícono + nombre + qué hay adentro) y cada una se abre sola con "‹ Configuración"; escritorio (≥900px) = menú fijo a la izquierda + una sección a la derecha. Direcciones `#usuarios #avisos #catalogo #datos #integraciones` (Atrás del celular funciona). Se arma después de que `settings.js` oculta por permiso; si queda una sola sección, se abre directo sin índice. No reintentar la página larga con todo apilado.
 - **Configuración** (acceso según `canManageSettings`, o parcial con `canManageCatalogSettings` → solo Catálogo, o `canImportExport` → solo Datos):
   - Catálogo: toggles (WhatsApp flotante, Captura rápida, Ver creador, Reabastecimiento, Recibir mercancía, Recepción con IA), categorías, Revista Natura.
   - Usuarios y Permisos: crear usuario, rol, permisos (lista/matriz), copiar permisos de otra persona, revertir uno o todos.

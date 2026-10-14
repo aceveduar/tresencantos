@@ -363,3 +363,45 @@ button,a,[onclick]{touch-action:manipulation}
   .nt-item{flex-direction:column;align-items:stretch}
   .nt-item-actions .btn{flex:1}
 }
+
+/* ── Navegación de Configuración (settings-nav.js) ─────────────────────────
+   Celular: índice de secciones → una sección a la vez con "‹ Configuración".
+   Escritorio (≥900px): menú fijo a la izquierda + una sección a la derecha. */
+.main:not(.set-main) > [id^="section-"]{visibility:hidden} /* mientras se confirman permisos */
+.set-main > [id^="section-"]{display:none}
+.set-main > .set-active{display:block}
+.set-nav-title{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:700;color:var(--charcoal);margin:4px 2px 16px;line-height:1.2}
+.set-nav-list{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.set-nav-item{display:flex;align-items:center;gap:14px;width:100%;min-height:64px;padding:12px 14px;border:none;border-bottom:1px solid var(--border);
+  background:none;font:inherit;text-align:left;color:var(--charcoal);cursor:pointer;transition:background .15s}
+.set-nav-item:last-child{border-bottom:none}
+.set-nav-item:hover{background:var(--surface-soft)}
+.set-nav-ico{flex-shrink:0;width:38px;height:38px;border-radius:10px;background:var(--surface-soft);display:flex;align-items:center;justify-content:center;color:var(--charcoal)}
+.set-nav-ico svg,.set-nav-chev svg,.set-back svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.set-nav-txt{flex:1;min-width:0}
+.set-nav-txt b{display:block;font-size:1rem;font-weight:600}
+.set-nav-txt small{display:block;font-size:.84rem;color:var(--muted);margin-top:2px;line-height:1.35}
+.set-nav-chev{flex-shrink:0;color:var(--muted-light);display:flex}
+/* Encabezado de cada sección */
+.set-main .section-label{font-size:1.35rem;font-weight:700;letter-spacing:0;text-transform:none;color:var(--charcoal);margin:0;padding:0}
+.set-sec-desc{font-size:.9rem;color:var(--muted);margin:4px 2px 18px}
+.set-back{display:inline-flex;align-items:center;gap:2px;min-height:44px;margin:-8px 0 2px -6px;padding:0 6px;border:none;background:none;
+  font:inherit;font-size:.95rem;font-weight:600;color:var(--gold-dark);cursor:pointer}
+/* Celular: o se ve el índice o se ve una sección */
+@media(max-width:899px){
+  .set-nav{display:none}
+  body.set-index .set-nav{display:block}
+  body.set-single .set-back{display:none}
+}
+/* Escritorio: menú a la izquierda, una sección a la derecha */
+@media(min-width:900px){
+  .main.set-main{max-width:1100px;display:grid;grid-template-columns:270px minmax(0,1fr);gap:36px;align-items:start;padding-top:28px}
+  .set-nav{grid-column:1;grid-row:1 / span 6;position:sticky;top:84px}
+  .set-main > [id^="section-"]{grid-column:2}
+  .set-nav-chev,.set-back{display:none}
+  .set-nav-item{min-height:56px}
+  .set-nav-item.active{background:var(--surface-soft)}
+  .set-nav-item.active .set-nav-ico{background:var(--ink);color:#fff}
+  body.set-single .main.set-main{grid-template-columns:minmax(0,1fr);max-width:760px}
+  body.set-single .set-nav{display:none}
+}

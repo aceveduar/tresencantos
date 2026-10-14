@@ -158,6 +158,8 @@ Las clientas ven el catálogo, arman su pedido en **Mi pedido** y lo envían por
 
 ## Configuración
 
+Al entrar ves las secciones: Usuarios y permisos, Avisos al equipo, Catálogo y Tienda, Datos y respaldos, e Integraciones. Toca una para abrirla; **‹ Configuración** regresa a la lista. En computadora la lista se queda a la izquierda.
+
 ### Avisos al equipo
 
 Configuración → **Avisos al equipo** (solo dueñas). Escribe un título y un texto corto: qué cambió, en una o dos líneas. Elige dónde se ve (todos los módulos, solo Caja o solo Inventario) y hasta qué fecha. Si hay pasos, escríbelos en Ayuda y pon la palabra a buscar en "Ver cómo en Ayuda". Abajo ves la vista previa antes de publicar.

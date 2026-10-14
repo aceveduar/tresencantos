@@ -1858,6 +1858,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // se muestran solo con canViewReports (mismo criterio que Reportes).
   const csvCard = document.getElementById('scard-export-apartados');
   if (csvCard && permissions?.canViewReports === true) csvCard.style.display = '';
+  // Menú por secciones (settings-nav.js): después de ocultar lo que el permiso no deja ver
+  if (typeof _setNavInit === 'function') _setNavInit();
   if (permissions.role) ROLE = permissions.role;
   try {
     const _s = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
