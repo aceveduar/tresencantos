@@ -1832,7 +1832,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
   if (isCatalogOnly) {
-    ['section-users', 'section-data', 'section-integrations'].forEach(id => {
+    ['section-users', 'section-notices', 'section-data', 'section-integrations'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
@@ -1842,7 +1842,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // únicamente esa sección (JSON, nombres de usuario, revisión de
     // duplicados) -- "Limpiar historial" sigue oculto por su propio check
     // ROLE==='superadmin' más abajo, sin importar este permiso.
-    ['section-users', 'section-catalog', 'section-integrations'].forEach(id => {
+    ['section-users', 'section-notices', 'section-catalog', 'section-integrations'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
@@ -1868,7 +1868,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (_av) _av.textContent = _n ? _n[0].toUpperCase() : '?';
     if (_nl) _nl.textContent = _n;
   } catch {}
-  init();
+  // Avisos al equipo (settings-avisos.js) necesita nameMap/userPermsMap de init()
+  init().then(() => { if (isFullSettings && typeof _ntLoad === 'function') _ntLoad(); });
   if (ROLE === 'superadmin') {
     const row = document.getElementById('clear-log-row');
     if (row) row.style.display = '';

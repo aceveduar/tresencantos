@@ -10,6 +10,7 @@ Guía para el equipo de la tienda: Caja, Inventario, Reportes, Actividad y Confi
 - Entra con tu correo y contraseña. Los íconos de arriba llevan a **Caja**, **Inventario**, **Reportes** y **Tienda**. Lo demás (Actividad, Configuración, Mi PIN, Modo oscuro, Cerrar sesión) está en el menú de tu foto o iniciales.
 - **Permisos:** cada persona tiene los suyos (los define la dueña en Configuración → Usuarios y Permisos). Si algo te pide autorización, una persona que sí tenga ese permiso escribe **su PIN** en tu dispositivo y la acción sigue. Esa autorización sirve para una sola acción y dura 5 minutos.
 - **Mi PIN:** si autorizas acciones de otras personas, configura tu PIN de 4 a 6 dígitos en el menú de tu foto → Mi PIN.
+- **Campana (avisos):** el número rojo son avisos que no has leído. Toca uno para leerlo completo; así la dueña sabe que ya lo viste. La ✕ lo quita de tu lista.
 
 ---
 
@@ -152,6 +153,16 @@ Registro de todo lo que pasa en el sistema: ventas, cancelaciones, cambios de pr
 ## Tienda (sitio web)
 
 Las clientas ven el catálogo, arman su pedido en **Mi pedido** y lo envían por WhatsApp (no hay pago en línea). Un producto aparece en la Tienda si está **publicado**, no está en "Por revisar" y tiene stock (o está apartado).
+
+---
+
+## Configuración
+
+### Avisos al equipo
+
+Configuración → **Avisos al equipo** (solo dueñas). Escribe un título y un texto corto: qué cambió, en una o dos líneas. Elige dónde se ve (todos los módulos, solo Caja o solo Inventario) y hasta qué fecha. Si hay pasos, escríbelos en Ayuda y pon la palabra a buscar en "Ver cómo en Ayuda". Abajo ves la vista previa antes de publicar.
+
+En la lista de avisos activos ves **quién ya lo leyó** y a quién le falta. **Editar** corrige el aviso; **Quitar** lo deja de mostrar a todos.
 
 ---
 

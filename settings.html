@@ -211,6 +211,42 @@
   </div>
   </div>
 
+  <!-- ─── AVISOS AL EQUIPO ──────────────────────────────────── -->
+  <div id="section-notices">
+  <div class="section-label">Avisos al equipo</div>
+  <div class="settings-card nt-card">
+    <p class="field-hint" style="margin:0 0 12px">Aparecen en la campana de todo el equipo. Que sean cortos: qué cambió, en una o dos líneas. Si hay pasos, ponlos en Ayuda y enlázalos.</p>
+    <label class="field-label" for="nt-title">Título <span class="nt-count" id="nt-title-count">0/60</span></label>
+    <input type="text" class="field-input" id="nt-title" maxlength="60" placeholder="Ej.: Fotos: ahora quedan cuadradas solas" oninput="_ntPreview()">
+    <label class="field-label nt-gap" for="nt-body">Texto <span class="nt-count" id="nt-body-count">0/280</span></label>
+    <textarea class="field-input nt-body" id="nt-body" maxlength="280" rows="4" placeholder="Qué cambia para el equipo, en pocas palabras." oninput="_ntPreview()"></textarea>
+    <p class="field-hint">Para negritas escribe **así**.</p>
+    <div class="nt-row">
+      <div class="nt-col">
+        <label class="field-label" for="nt-audience">Mostrar en</label>
+        <select class="field-input" id="nt-audience" onchange="_ntPreview()">
+          <option value="todos">Todos los módulos</option>
+          <option value="caja">Solo Caja</option>
+          <option value="inventario">Solo Inventario</option>
+        </select>
+      </div>
+      <div class="nt-col">
+        <label class="field-label" for="nt-until">Mostrar hasta</label>
+        <input type="date" class="field-input" id="nt-until">
+      </div>
+    </div>
+    <label class="field-label nt-gap" for="nt-help">Enlace "Ver cómo en Ayuda" <span class="nt-opt">(opcional)</span></label>
+    <input type="text" class="field-input" id="nt-help" maxlength="60" placeholder="Palabra que se busca en Ayuda, ej.: fotos" oninput="_ntPreview()">
+    <div class="field-label nt-gap">Así se verá</div>
+    <div class="nt-preview" id="nt-preview"></div>
+    <div class="nt-actions">
+      <button type="button" class="btn btn-outline" id="nt-cancel-btn" onclick="_ntResetForm()" style="display:none">Cancelar</button>
+      <button type="button" class="btn btn-gold" id="nt-save-btn" onclick="_ntSave()">Publicar aviso</button>
+    </div>
+  </div>
+  <div class="settings-card nt-list-card" id="nt-list"><div class="nt-empty">Cargando avisos…</div></div>
+  </div>
+
   <!-- ─── DATOS ─────────────────────────────────────────────── -->
   <div id="section-data">
   <div class="section-label">Datos</div>
@@ -479,6 +515,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="settings.js"></script>
+<script src="settings-avisos.js"></script>
 <script src="shared.js"></script>
 </body>
 </html>

@@ -58,7 +58,7 @@ Usar siempre estos nombres en UI y conversación (nunca "Admin", "POS", "Stats")
 | `pos.html` `pos.css` `pos-*.js` | **Caja** | Punto de venta |
 | `stats.html` `stats.css` `stats.js` | **Reportes** | Estadísticas |
 | `activity.html` `activity.css` `activity.js` | **Actividad** | Log de auditoría |
-| `settings.html` `settings.css` `settings.js` | **Configuración** | Ajustes globales |
+| `settings.html` `settings.css` `settings.js` `settings-avisos.js` | **Configuración** | Ajustes globales |
 | `shared.js` `shared.css` | — | Común a los 5 módulos admin (menú avatar, PIN, campana, offline, permisos de nav, tema) |
 
 Inventario: `admin.js` (core, auth, carga) · `admin-render.js` (cards/tabla/inline edits) · `admin-form.js` (formulario, kits, fotos) · `admin-images.js` (Drive, Groq) · `admin-bulk.js` · `admin-scanner.js` (escáner, duplicados, archivar) · `admin-utils.js` · `admin-recv.js` (Recibir mercancía) · `admin-recv-ia.js` (Recepción con IA) · `admin-capture.js` (Captura rápida) · `admin-qv.js` (Quick View) · `admin-kit-builder.js`.
@@ -78,6 +78,7 @@ Otros: `supabase/migrations/` (SQL versionado) · `supabase/functions/create-use
 - **`customers`** — `name`, `phone` (único parcial, 10 dígitos), `notes`. Alta solo vía `te_find_or_create_customer`.
 - **`cash_shifts`** — turnos de caja (`opened_at`, `closed_at`, `fondo_inicial`, `conteo_final`, `efectivo_neto`, `gastos_total`, `esperado`, `diferencia`, `status abierto|cerrado|cerrado_auto`). **`cash_shift_expenses`** — gastos del turno.
 - **`config`** — `categories`, `revista_url`, `revista_cover`, `wa_float`, `groq_key`, `drive_ep`, `drive_secret`, `user_names`, `user_permissions`, toggles (`captura_rapida`, `show_creator`, `show_recv`, `show_recv_ia`, `show_restock`), etc.
+- **`team_notices`** (avisos de la campana: `title` ≤60, `body` ≤280, `help_query`, `audience` `todos|caja|inventario`, `until`, `active`) + **`team_notice_reads`** (`notice_id`, `user_email`). Escritura solo por RPC (`te_save_notice`, `te_remove_notice` con `canManageSettings`; `te_mark_notice_read` cualquiera); cada quien lee solo sus lecturas, `te_notice_readers()` da todas a quien administra.
 - **`activity_log`** (`action`, `user_email`, `summary`, `meta`), **`pos_rpc_requests`** (idempotencia, privada), **`permission_overrides`** + **`user_pins`** (PIN de gerente), **`recently_edited`**, **`usage_log`**.
 
 ### Reglas de datos
@@ -218,6 +219,9 @@ Supabase no tiene backups en este plan (sin PITR, lista vacía). `scripts/respal
   - Usuarios y Permisos: crear usuario, rol, permisos (lista/matriz), copiar permisos de otra persona, revertir uno o todos.
   - Datos: catálogo JSON (exportar/importar; importar nunca publica sin `isPublished:true` explícito), apartados y pagos en CSV (con `canViewReports`), **Exportar todo** (incluye secretos; solo `canManageSettings`; no es restauración — la recuperación real es el backup de Supabase), nombres de usuarios, duplicados, auditoría de Drive, limpiar historial (solo superadmin).
   - Integraciones: Groq key, Google Drive.
+  - **Avisos al equipo** (`settings-avisos.js`, solo `canManageSettings`): publicar/editar/quitar avisos de la campana con vista previa, y ver quién los leyó y a quién le falta.
+- **Campana** (`shared.js`): junta los avisos de `team_notices` (filtrados por módulo: `pos*` = caja, `admin*` = inventario) con los que quedan en `SYS_NOTICES` (código; ya no se agregan ahí). **Leído = desplegado** (antes: abrir la campana marcaba todo); se registra en el servidor. ✕ descarta solo en ese dispositivo. Avisos cortos a propósito: los pasos van en Ayuda y el aviso enlaza con "Ver cómo en Ayuda" (`openHelp(help_query)`).
+- **Avisarme al vender**: sondeo cada 25 s **solo con la app abierta** (el celular la duerme al bloquearse); más de 3 movimientos juntos llegan como un resumen. Pendiente propuesto: Web Push real para que llegue con la app cerrada.
 
 ---
 
@@ -261,6 +265,7 @@ Supabase no tiene backups en este plan (sin PITR, lista vacía). `scripts/respal
 - Auditoría de Drive (Configuración → Datos) cada 1–2 meses: limpia las fotos que quedan si alguien sube fotos y cierra sin guardar ni cancelar.
 
 **Calidad / UX**
+- Notificaciones push reales (Web Push: VAPID + Edge Function + suscripciones) para "Avisarme al vender" con la app cerrada; en iPhone requiere instalar la app en la pantalla de inicio. Y que la campana avise cosas del negocio (apartados vencidos hoy, respaldo fallido, errores). Propuesto 2026-10-14, sin decidir.
 - Fotos no cuadradas: el 2026-10-14 eran ~259 de 698 visibles (218 verticales, 41 horizontales). Se ven con bandas en la tarjeta; volver a tomarlas o recortarlas a cuadrado al subirlas. Hay 8 productos ocultos por foto rota en Drive (Actividad, mismo día) que vuelven al subirles foto.
 - Código QR imprimible de la Tienda (`https://aceveduar.github.io/tresencantos/`) para el mostrador (pedido 2026-10-14, sin fecha).
 - Duplicar producto **no** copia `supplier_code` a propósito: el código enseña a Recepción con IA a qué producto vincular, duplicarlo lo volvería ambiguo.

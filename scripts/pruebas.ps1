@@ -9,7 +9,7 @@ $Repo = Split-Path -Parent $PSScriptRoot
 # 2>&1: el CLI manda los errores de SQL (incluido "PRUEBA FALLÓ") por stderr.
 $ErrorActionPreference = 'Continue'
 $falla = $false
-foreach ($f in @('caja.sql', 'kits_y_apartados.sql')) {
+foreach ($f in @('caja.sql', 'kits_y_apartados.sql', 'avisos.sql')) {
   Write-Host "== $f"
   $raw = (& supabase db query --linked --workdir $Repo -f (Join-Path $PSScriptRoot "pruebas\$f") -o json 2>&1 | Out-String)
   if ($raw -match 'PRUEBA FALL[^"]*') {

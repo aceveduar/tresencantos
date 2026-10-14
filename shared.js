@@ -187,7 +187,8 @@ function _themeToggleRowHtml() {
    Compatibilidad: reutiliza la misma llave `te_notice_${id}` que ya usaba
    el banner viejo -- un aviso ya descartado antes de este cambio sigue
    contando como leído, sin migración.
-   Para agregar un aviso futuro: nuevo objeto {id, text, until} al arreglo. ── */
+   Avisos nuevos: Configuración → Avisos al equipo (tabla team_notices), ya no
+   aquí. Este arreglo queda para los que ya existían hasta que caduquen. ── */
 (function () {
   // `icon` referencia un ícono SVG fijo (_NOTIF_ICONS más abajo) en vez de un
   // emoji embebido en el texto -- un emoji se ve distinto (a veces roto) según
@@ -214,15 +215,6 @@ function _themeToggleRowHtml() {
         + '<b>Saldo a favor:</b> está en Apartados → Cancelados. Cuando la clienta regrese, toquen <b>Devolver saldo a favor</b>; si lo quiere usar para comprar algo, devuélvanselo y cobren la compra normal.<br><br>'
         + 'También nuevo: <b>Solo ver apartados</b> en la pantalla de Abrir caja, para consultar sin abrir turno.',
       until: '2026-11-07' },
-    { id: 'fotos-cuadradas-2026-10b', icon: 'info',
-      title: 'Fotos: ahora quedan cuadradas solas',
-      text: 'De preferencia toma las fotos en <b>formato cuadrado</b> (en la cámara del celular: opción 1:1). Si sale vertical u horizontal, el sistema la hace cuadrada al subirla: no recorta el producto, solo rellena los lados con el color del fondo.<br><br>'
-        + '<b>Para quitar la estrellita ✦:</b><br>'
-        + '1. Abre la foto en <b>Snapseed</b> (gratis).<br>'
-        + '2. <b>Herramientas → Pincel corrector</b>.<br>'
-        + '3. Pasa el dedo sobre la estrellita.<br>'
-        + '4. ✓ y <b>Exportar → Guardar</b>.',
-      until: '2026-11-15' },
   ];
 
   const _NOTIF_ICONS = {
@@ -249,24 +241,82 @@ function _themeToggleRowHtml() {
     } catch { return false; }
   }
 
-  function _activeNotices() {
-    const todayKey = new Date().toISOString().slice(0, 10);
-    return SYS_NOTICES.filter(n => !n.until || n.until >= todayKey);
+  /* Avisos al equipo (2026-10-14): además de SYS_NOTICES (escritos en código),
+     la campana muestra los que se publican en Configuración → Avisos
+     (tabla team_notices). Cada aviso se normaliza a {key, title, html, help}.
+     Leído = se desplegó (antes bastaba con abrir la campana); para los de la
+     base también se registra en el servidor y Configuración muestra quién leyó.
+     Descartar (✕) sigue siendo de este dispositivo. */
+  const _PAGE = location.pathname.split('/').pop() || '';
+  const _MODULE = _PAGE.startsWith('pos') ? 'caja' : _PAGE.startsWith('admin') ? 'inventario' : '';
+  const _escN = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // Texto escrito en Configuración: se escapa; saltos de línea y **negritas** se respetan.
+  const _noticeBodyHtml = t => _escN(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+  window._noticeBodyHtml = _noticeBodyHtml; // la vista previa de Configuración usa el mismo formato
+  const _todayMx = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(new Date());
+
+  let _srvNotices = [];
+  let _srvReads = new Set();
+  try {
+    const c = JSON.parse(localStorage.getItem('te_team_notices_cache') || 'null');
+    if (c) { _srvNotices = c.notices || []; _srvReads = new Set(c.reads || []); }
+  } catch {}
+
+  function _noticeApi(path, opts = {}) {
+    let token = '';
+    try { token = JSON.parse(localStorage.getItem('te_admin_session') || '{}').access_token || ''; } catch {}
+    if (typeof SUPABASE_URL === 'undefined' || !token) return Promise.reject(new Error('sin sesión'));
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 12000);
+    return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      ...opts, signal: ctrl.signal,
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(opts.headers || {}) }
+    }).finally(() => clearTimeout(t));
   }
 
-  function _isRead(id) { return !!localStorage.getItem(`te_notice_${id}`); }
-  // "Descartado" es independiente de "leído" -- abrir el panel ya marca todo
-  // como leído de golpe (para el badge), pero eso no debe hacer que la fila
-  // desaparezca de la lista sola; solo el ✕ (o "Descartar todo") la quita.
-  function _isDismissed(id) { return !!localStorage.getItem(`te_notice_dismissed_${id}`); }
-  function _visibleNotices() { return _activeNotices().filter(n => !_isDismissed(n.id)); }
-  function _markDismissed(id) {
-    localStorage.setItem(`te_notice_dismissed_${id}`, '1');
-    localStorage.setItem(`te_notice_${id}`, '1');
+  async function _loadSrvNotices() {
+    try {
+      const [n, r] = await Promise.all([
+        _noticeApi(`team_notices?active=eq.true&until=gte.${_todayMx()}&select=id,title,body,help_query,audience,created_at&order=created_at.desc`),
+        _noticeApi('team_notice_reads?select=notice_id')
+      ]);
+      if (!n.ok || !r.ok) return;
+      _srvNotices = await n.json();
+      _srvReads = new Set((await r.json()).map(x => x.notice_id));
+      localStorage.setItem('te_team_notices_cache', JSON.stringify({ notices: _srvNotices, reads: [..._srvReads] }));
+      const bell = document.getElementById('notif-bell');
+      if (bell) _updateBadge(bell);
+    } catch {}
+  }
+  window._reloadTeamNotices = _loadSrvNotices; // Configuración la llama al publicar/quitar
+
+  function _allNotices() {
+    const today = _todayMx();
+    const srv = _srvNotices
+      .filter(n => n.audience === 'todos' || n.audience === _MODULE)
+      .map(n => ({ key: `srv-${n.id}`, srvId: n.id, icon: 'info', title: _escN(n.title), html: _noticeBodyHtml(n.body), help: n.help_query }));
+    const code = SYS_NOTICES.filter(n => !n.until || n.until >= today).slice().reverse()
+      .map(n => ({ key: n.id, icon: n.icon, title: n.title, html: n.text }));
+    return [...srv, ...code];
+  }
+  function _isRead(n) { return (n.srvId && _srvReads.has(n.srvId)) || !!localStorage.getItem(`te_notice_${n.key}`); }
+  function _isDismissed(key) { return !!localStorage.getItem(`te_notice_dismissed_${key}`); }
+  function _visibleNotices() { return _allNotices().filter(n => !_isDismissed(n.key)); }
+  function _markRead(n) {
+    if (_isRead(n)) return;
+    localStorage.setItem(`te_notice_${n.key}`, '1');
+    if (n.srvId) {
+      _srvReads.add(n.srvId);
+      _noticeApi('rpc/te_mark_notice_read', { method: 'POST', body: JSON.stringify({ p_id: n.srvId }) }).catch(() => {});
+    }
+  }
+  function _markDismissed(n) {
+    localStorage.setItem(`te_notice_dismissed_${n.key}`, '1');
+    _markRead(n);
   }
 
   function _updateBadge(bell) {
-    const count = _visibleNotices().filter(n => !_isRead(n.id)).length;
+    const count = _visibleNotices().filter(n => !_isRead(n)).length;
     let badge = bell.querySelector('.notif-badge');
     if (count > 0) {
       if (!badge) {
@@ -284,70 +334,62 @@ function _themeToggleRowHtml() {
     const existing = document.getElementById('notif-pop');
     if (existing) { existing.remove(); return; }
 
-    const notices = _visibleNotices().slice().reverse(); // más reciente primero
-    const unreadIds = new Set(notices.filter(n => !_isRead(n.id)).map(n => n.id));
+    const notices = _visibleNotices();
+    const byKey = new Map(notices.map(n => [n.key, n]));
+    const empty = '<div class="notif-empty">Sin notificaciones por ahora.</div>';
 
     const pop = document.createElement('div');
     pop.id = 'notif-pop';
-
-    const dismissBtnHtml = id => `<button type="button" class="notif-item-dismiss" data-id="${id}" aria-label="Descartar aviso">✕</button>`;
-    const renderRows = list => list.map(n => n.title
-        // Avisos largos: título siempre visible, el detalle se desglosa al
-        // tocar -- evita un bloque de texto largo por default en una lista
-        // que se supone hojear rápido. Es <div>, no <button>, porque ya
-        // lleva un botón real (✕) adentro y un botón no puede anidar otro.
-        ? `<div class="notif-item notif-item-expandable${unreadIds.has(n.id) ? ' unread' : ''}" data-notice-id="${n.id}">
-            <span class="notif-item-icon">${_notifIconSvg(n.icon)}</span>
-            <span class="notif-item-text notif-item-toggle-zone">
-              <span class="notif-item-title">${n.title}<svg class="notif-item-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
-              <span class="notif-item-body">${n.text}</span>
-            </span>
-            ${dismissBtnHtml(n.id)}
-          </div>`
-        : `<div class="notif-item${unreadIds.has(n.id) ? ' unread' : ''}" data-notice-id="${n.id}">
-            <span class="notif-item-icon">${_notifIconSvg(n.icon)}</span>
-            <span class="notif-item-text">${n.text}</span>
-            ${dismissBtnHtml(n.id)}
-          </div>`
-      ).join('');
+    // Título siempre visible; el detalle se despliega al tocar (y ahí cuenta como
+    // leído). Es <div>, no <button>, porque lleva adentro botones reales.
+    const row = n => `<div class="notif-item notif-item-expandable${_isRead(n) ? '' : ' unread'}" data-notice-id="${_escN(n.key)}">
+        <span class="notif-item-icon">${_notifIconSvg(n.icon)}</span>
+        <span class="notif-item-text notif-item-toggle-zone">
+          <span class="notif-item-title">${n.title}<svg class="notif-item-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+          <span class="notif-item-body">${n.html}${n.help ? `<button type="button" class="notif-item-help" data-help="${_escN(n.help)}">Ver cómo en Ayuda →</button>` : ''}</span>
+        </span>
+        <button type="button" class="notif-item-dismiss" aria-label="Descartar aviso">✕</button>
+      </div>`;
 
     pop.innerHTML = `
       <div class="notif-pop-head">
         <span class="notif-pop-title">Notificaciones</span>
         ${notices.length ? '<button type="button" id="notif-dismiss-all">Descartar todo</button>' : ''}
       </div>
-      <div id="notif-pop-list">${notices.length ? renderRows(notices) : '<div class="notif-empty">Sin notificaciones por ahora.</div>'}</div>`;
+      <div id="notif-pop-list">${notices.length ? notices.map(row).join('') : empty}</div>`;
     document.body.appendChild(pop);
 
-    // Un solo listener delegado cubre las 3 interacciones nuevas: descartar
-    // un aviso, descartar todos, y el acordeón (abrir uno cierra los demás,
-    // para que la lista no se vuelva un scroll interminable de avisos
-    // abiertos a la vez).
     pop.addEventListener('click', e => {
-      const dismissBtn = e.target.closest('.notif-item-dismiss');
-      if (dismissBtn) {
+      const help = e.target.closest('.notif-item-help');
+      if (help) { pop.remove(); window.openHelp?.(help.dataset.help); return; }
+      const itemEl = e.target.closest('[data-notice-id]');
+      const n = itemEl && byKey.get(itemEl.dataset.noticeId);
+      if (e.target.closest('.notif-item-dismiss') && n) {
         e.stopPropagation();
-        const id = dismissBtn.dataset.id;
-        _markDismissed(id);
-        dismissBtn.closest('[data-notice-id]')?.remove();
+        _markDismissed(n);
+        itemEl.remove();
         _updateBadge(bell);
         if (!pop.querySelector('[data-notice-id]')) {
-          document.getElementById('notif-pop-list').innerHTML = '<div class="notif-empty">Sin notificaciones por ahora.</div>';
+          document.getElementById('notif-pop-list').innerHTML = empty;
           document.getElementById('notif-dismiss-all')?.remove();
         }
         return;
       }
       if (e.target.closest('#notif-dismiss-all')) {
-        _visibleNotices().forEach(n => _markDismissed(n.id));
+        _visibleNotices().forEach(_markDismissed);
         _updateBadge(bell);
         pop.remove();
         return;
       }
-      const item = e.target.closest('.notif-item-expandable');
-      if (item) {
-        const wasOpen = item.classList.contains('open');
+      if (n) {
+        const wasOpen = itemEl.classList.contains('open');
         pop.querySelectorAll('.notif-item-expandable.open').forEach(el => el.classList.remove('open'));
-        if (!wasOpen) item.classList.add('open');
+        if (!wasOpen) {
+          itemEl.classList.add('open');
+          itemEl.classList.remove('unread');
+          _markRead(n);
+          _updateBadge(bell);
+        }
       }
     });
 
@@ -357,10 +399,7 @@ function _themeToggleRowHtml() {
     if (left < 8) left = 8;
     pop.style.cssText += `top:${r.bottom + 6}px;left:${left}px`;
 
-    // Marcar leído al abrir -- el resaltado de "no leído" se queda visible
-    // en esta misma vista (ya se calculó unreadIds antes de este paso).
-    unreadIds.forEach(id => localStorage.setItem(`te_notice_${id}`, '1'));
-    _updateBadge(bell);
+    _loadSrvNotices(); // por si se publicó algo mientras la página estaba abierta
 
     setTimeout(() => {
       document.addEventListener('click', function close(e) {
@@ -387,6 +426,7 @@ function _themeToggleRowHtml() {
 
     avatar.parentElement.insertBefore(bell, avatar);
     _updateBadge(bell);
+    _loadSrvNotices();
   }
 
   document.addEventListener('DOMContentLoaded', _initNotifBell);
