@@ -312,9 +312,9 @@ async function _fetchAllPages(path, pageSize = 1000) {
 // "cargando" para siempre sin un render() posterior).
 async function _fetchProductsList() {
   // Publicados con stock O apartados activos
-  const result = await supabaseApi('products?select=id,name,category,category_label,price,original_price,description,image,badge,badge_type,featured,out_of_stock,is_apartado,stock,images,kit_items&is_published=eq.true&category=neq.por_revisar&or=(out_of_stock.eq.false,is_apartado.eq.true)&order=position.asc,id.asc');
+  const result = await _fetchAllPages('products?select=id,name,category,category_label,price,original_price,description,image,badge,badge_type,featured,out_of_stock,is_apartado,stock,images,kit_items&is_published=eq.true&category=neq.por_revisar&or=(out_of_stock.eq.false,is_apartado.eq.true)&order=position.asc,id.asc');
   if (result.ok && Array.isArray(result.data) && result.data.length) {
-    return result.data.map(p => ({
+    const list = result.data.map(p => ({
       id: p.id,
       name: p.name,
       category: p.category,
@@ -332,6 +332,13 @@ async function _fetchProductsList() {
       images: Array.isArray(p.images) ? p.images.map(_safeImg).filter(Boolean) : null,
       kitItems: p.kit_items || null
     }));
+    // Un kit siempre trae out_of_stock=false en BD; su disponibilidad son sus
+    // componentes. Si alguno está agotado (o no se publica) no viene en esta
+    // lista y kitStock() no lo puede calcular: antes el kit se mostraba como
+    // disponible y se podía pedir. Solo se ofrecen kits que se pueden armar.
+    const byId = new Map(list.map(p => [p.id, p]));
+    return list.filter(p => !Array.isArray(p.kitItems) || (p.kitItems.length > 0 &&
+      p.kitItems.every(c => { const comp = byId.get(c.id); return comp && Math.floor(comp.stock / (c.qty || 1)) > 0; })));
   }
   return result.ok ? [] : null; // null = fetch falló (distinto de "catálogo vacío")
 }
