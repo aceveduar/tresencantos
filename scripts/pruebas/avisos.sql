@@ -52,6 +52,12 @@ DO $$ BEGIN
   PERFORM public.te_mark_notice_read((SELECT v::bigint FROM _c WHERE k = 'id'));
   INSERT INTO _r SELECT '5 cajera lee', 'lecturas propias=' || count(*) FROM public.team_notice_reads;
 EXCEPTION WHEN OTHERS THEN INSERT INTO _r VALUES ('5 cajera lee', 'ERROR ' || SQLERRM); END $$;
+-- 5b. Descartar (✕) queda registrado por persona y sigue contando como leído
+DO $$ BEGIN
+  PERFORM public.te_mark_notice_read((SELECT v::bigint FROM _c WHERE k = 'id'), true);
+  PERFORM public.te_mark_notice_read((SELECT v::bigint FROM _c WHERE k = 'id'));  -- abrirlo otra vez no lo "des-descarta"
+  INSERT INTO _r SELECT '5b cajera descarta', 'descartado=' || (dismissed_at IS NOT NULL) FROM public.team_notice_reads;
+EXCEPTION WHEN OTHERS THEN INSERT INTO _r VALUES ('5b cajera descarta', 'ERROR ' || SQLERRM); END $$;
 DO $$ BEGIN
   PERFORM * FROM public.te_notice_readers();
   INSERT INTO _r VALUES ('6 cajera ve lectores', 'ACEPTADO');
@@ -80,6 +86,7 @@ BEGIN
     ('4a cajera publica', 'rechazado', 'una cajera no publica avisos'),
     ('4b cajera quita', 'rechazado', 'una cajera no quita avisos'),
     ('5 cajera lee', 'lecturas propias=1', 'leer dos veces cuenta una vez y cada quien ve solo lo suyo'),
+    ('5b cajera descarta', 'descartado=true', 'descartar queda por persona (no por dispositivo) y no se deshace al abrirlo'),
     ('6 cajera ve lectores', 'rechazado', 'una cajera no ve quién leyó'),
     ('7 escribir directo', 'rechazado', 'nadie escribe avisos sin la RPC'),
     ('8 dueña ve lectores', 'cajera@prueba.test', 'la dueña ve quién leyó'),

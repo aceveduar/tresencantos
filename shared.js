@@ -195,27 +195,10 @@ function _themeToggleRowHtml() {
   // el teléfono/SO; un ícono propio se ve igual en todos. `text` se acortó a
   // una sola línea, en el lenguaje de "qué cambia para ti", no un reporte
   // técnico del bug.
-  const SYS_NOTICES = [
-    { id: 'caja-libreta-2026-10', icon: 'book',
-      title: 'Nuevo en Caja: pasar los apartados de la libreta',
-      text: 'En <b>Apartados</b> toca el botón <b>Libreta</b>.<br>'
-        + '1. Escribe el nombre como viene en la libreta (el teléfono es opcional y sirve para mandarle su saldo).<br>'
-        + '2. Si la libreta trae el total, escríbelo y agrega cada abono con <b>+ Anotar abono</b>: junto a cada uno ves cuánto quedaba, para comparar. Si solo sabes cuánto debe, toca <b>Solo sé cuánto debe</b>.<br>'
-        + '3. Si quieres, anota qué apartó y la fecha, y tómale foto a la página.<br>'
-        + '4. Toca <b>Guardar</b>. La pantalla queda lista para la siguiente clienta.<br><br>'
-        + 'Lo que pagaron en la libreta cuenta para su saldo, pero no aparece en el corte ni en las ventas de hoy. Lo que paguen desde ahora se registra como cualquier abono. Si un monto quedó mal, abre su apartado y toca el lápiz para corregir lo que debe. Si te avisa que ya hay un apartado con ese nombre, revisa que no la estés pasando dos veces.',
-      until: '2026-10-31' },
-    { id: 'caja-fiado-liberar-2026-10', icon: 'info',
-      title: 'Apartados: fiado, liberar y saldo a favor',
-      text: 'Ahora hay dos tipos de apartado:<br>'
-        + '<b>Apartado:</b> el producto se queda en la tienda hasta que termine de pagar.<br>'
-        + '<b>Fiado:</b> una persona de confianza se lleva el producto hoy y paga después. Al hacer el apartado toca <b>Se lo lleva hoy (fiado)</b>. Lo autoriza Ofelia: si ella no está, se pide su PIN; si lo indica por teléfono, regístralo como apartado normal y ella lo marca como fiado desde su celular.<br><br>'
-        + 'Todos los apartados que ya existían quedaron marcados como <b>Se lo llevó</b>. Desde hoy, al hacer un apartado decidan si se queda en la tienda o se lo lleva. Si alguno está mal marcado, ábranlo, toquen el lápiz y cámbienlo.<br><br>'
-        + '<b>Liberar producto:</b> si un apartado (no fiado) lleva 30 días o más vencido, aparece el botón <b>Liberar producto</b>. El producto vuelve a la venta y lo que pagó la clienta <b>queda a su favor</b>. Solo liberen si el producto sigue en la tienda.<br>'
-        + '<b>Saldo a favor:</b> está en Apartados → Cancelados. Cuando la clienta regrese, toquen <b>Devolver saldo a favor</b>; si lo quiere usar para comprar algo, devuélvanselo y cobren la compra normal.<br><br>'
-        + 'También nuevo: <b>Solo ver apartados</b> en la pantalla de Abrir caja, para consultar sin abrir turno.',
-      until: '2026-11-07' },
-  ];
+  // Vacío a propósito: los avisos se publican en Configuración → Avisos al equipo
+  // (team_notices). Los que estaban aquí (libreta, fiado) se pasaron a la base el
+  // 2026-10-14 para que leído/descartado sea por persona y no por dispositivo.
+  const SYS_NOTICES = [];
 
   const _NOTIF_ICONS = {
     plus:     '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
@@ -244,9 +227,10 @@ function _themeToggleRowHtml() {
   /* Avisos al equipo (2026-10-14): además de SYS_NOTICES (escritos en código),
      la campana muestra los que se publican en Configuración → Avisos
      (tabla team_notices). Cada aviso se normaliza a {key, title, html, help}.
-     Leído = se desplegó (antes bastaba con abrir la campana); para los de la
-     base también se registra en el servidor y Configuración muestra quién leyó.
-     Descartar (✕) sigue siendo de este dispositivo. */
+     Leído = se desplegó (antes bastaba con abrir la campana). Leído y
+     descartado (✕) se guardan en el servidor por persona: valen en todos sus
+     dispositivos y no se mezclan en la tablet compartida. Configuración
+     muestra quién leyó. */
   const _PAGE = location.pathname.split('/').pop() || '';
   const _MODULE = _PAGE.startsWith('pos') ? 'caja' : _PAGE.startsWith('admin') ? 'inventario' : '';
   const _escN = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -255,12 +239,20 @@ function _themeToggleRowHtml() {
   window._noticeBodyHtml = _noticeBodyHtml; // la vista previa de Configuración usa el mismo formato
   const _todayMx = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(new Date());
 
+  // Leído y descartado son de la PERSONA (servidor), no del dispositivo: la
+  // tablet de la tienda la comparten varias cajeras. La copia local solo sirve
+  // para pintar la campana al instante y va marcada con el correo de su dueña.
+  const _me = (() => { try { return String(JSON.parse(localStorage.getItem('te_admin_session') || '{}')?.user?.email || '').toLowerCase(); } catch { return ''; } })();
   let _srvNotices = [];
   let _srvReads = new Set();
+  let _srvDismissed = new Set();
   try {
     const c = JSON.parse(localStorage.getItem('te_team_notices_cache') || 'null');
-    if (c) { _srvNotices = c.notices || []; _srvReads = new Set(c.reads || []); }
+    if (c && c.email === _me) { _srvNotices = c.notices || []; _srvReads = new Set(c.reads || []); _srvDismissed = new Set(c.dismissed || []); }
   } catch {}
+  function _saveCache() {
+    try { localStorage.setItem('te_team_notices_cache', JSON.stringify({ email: _me, notices: _srvNotices, reads: [..._srvReads], dismissed: [..._srvDismissed] })); } catch {}
+  }
 
   function _noticeApi(path, opts = {}) {
     let token = '';
@@ -277,13 +269,15 @@ function _themeToggleRowHtml() {
   async function _loadSrvNotices() {
     try {
       const [n, r] = await Promise.all([
-        _noticeApi(`team_notices?active=eq.true&until=gte.${_todayMx()}&select=id,title,body,help_query,audience,created_at&order=created_at.desc`),
-        _noticeApi('team_notice_reads?select=notice_id')
+        _noticeApi(`team_notices?active=eq.true&until=gte.${_todayMx()}&select=id,title,body,help_query,audience,created_by,created_at&order=created_at.desc`),
+        _noticeApi('team_notice_reads?select=notice_id,dismissed_at')
       ]);
       if (!n.ok || !r.ok) return;
       _srvNotices = await n.json();
-      _srvReads = new Set((await r.json()).map(x => x.notice_id));
-      localStorage.setItem('te_team_notices_cache', JSON.stringify({ notices: _srvNotices, reads: [..._srvReads] }));
+      const reads = await r.json();
+      _srvReads = new Set(reads.map(x => x.notice_id));
+      _srvDismissed = new Set(reads.filter(x => x.dismissed_at).map(x => x.notice_id));
+      _saveCache();
       const bell = document.getElementById('notif-bell');
       if (bell) _updateBadge(bell);
     } catch {}
@@ -294,25 +288,28 @@ function _themeToggleRowHtml() {
     const today = _todayMx();
     const srv = _srvNotices
       .filter(n => n.audience === 'todos' || n.audience === _MODULE)
-      .map(n => ({ key: `srv-${n.id}`, srvId: n.id, icon: 'info', title: _escN(n.title), html: _noticeBodyHtml(n.body), help: n.help_query }));
+      // El aviso que yo publiqué ya lo conozco: no me cuenta como pendiente.
+      .map(n => ({ key: `srv-${n.id}`, srvId: n.id, mine: String(n.created_by || '').toLowerCase() === _me, icon: 'info', title: _escN(n.title), html: _noticeBodyHtml(n.body), help: n.help_query }));
+    // Los de código (SYS_NOTICES, solo los que ya existían) siguen guardando
+    // leído/descartado en el dispositivo hasta que caduquen.
     const code = SYS_NOTICES.filter(n => !n.until || n.until >= today).slice().reverse()
       .map(n => ({ key: n.id, icon: n.icon, title: n.title, html: n.text }));
     return [...srv, ...code];
   }
-  function _isRead(n) { return (n.srvId && _srvReads.has(n.srvId)) || !!localStorage.getItem(`te_notice_${n.key}`); }
-  function _isDismissed(key) { return !!localStorage.getItem(`te_notice_dismissed_${key}`); }
-  function _visibleNotices() { return _allNotices().filter(n => !_isDismissed(n.key)); }
+  function _isRead(n) { return n.srvId ? (n.mine || _srvReads.has(n.srvId)) : !!localStorage.getItem(`te_notice_${n.key}`); }
+  function _isDismissed(n) { return n.srvId ? _srvDismissed.has(n.srvId) : !!localStorage.getItem(`te_notice_dismissed_${n.key}`); }
+  function _visibleNotices() { return _allNotices().filter(n => !_isDismissed(n)); }
+  function _sendMark(n, dismiss) {
+    _noticeApi('rpc/te_mark_notice_read', { method: 'POST', body: JSON.stringify({ p_id: n.srvId, p_dismiss: dismiss }) }).catch(() => {});
+  }
   function _markRead(n) {
     if (_isRead(n)) return;
-    localStorage.setItem(`te_notice_${n.key}`, '1');
-    if (n.srvId) {
-      _srvReads.add(n.srvId);
-      _noticeApi('rpc/te_mark_notice_read', { method: 'POST', body: JSON.stringify({ p_id: n.srvId }) }).catch(() => {});
-    }
+    if (n.srvId) { _srvReads.add(n.srvId); _saveCache(); _sendMark(n, false); }
+    else localStorage.setItem(`te_notice_${n.key}`, '1');
   }
   function _markDismissed(n) {
-    localStorage.setItem(`te_notice_dismissed_${n.key}`, '1');
-    _markRead(n);
+    if (n.srvId) { _srvReads.add(n.srvId); _srvDismissed.add(n.srvId); _saveCache(); _sendMark(n, true); }
+    else { localStorage.setItem(`te_notice_dismissed_${n.key}`, '1'); localStorage.setItem(`te_notice_${n.key}`, '1'); }
   }
 
   function _updateBadge(bell) {

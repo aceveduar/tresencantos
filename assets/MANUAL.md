@@ -10,7 +10,7 @@ Guía para el equipo de la tienda: Caja, Inventario, Reportes, Actividad y Confi
 - Entra con tu correo y contraseña. Los íconos de arriba llevan a **Caja**, **Inventario**, **Reportes** y **Tienda**. Lo demás (Actividad, Configuración, Mi PIN, Modo oscuro, Cerrar sesión) está en el menú de tu foto o iniciales.
 - **Permisos:** cada persona tiene los suyos (los define la dueña en Configuración → Usuarios y Permisos). Si algo te pide autorización, una persona que sí tenga ese permiso escribe **su PIN** en tu dispositivo y la acción sigue. Esa autorización sirve para una sola acción y dura 5 minutos.
 - **Mi PIN:** si autorizas acciones de otras personas, configura tu PIN de 4 a 6 dígitos en el menú de tu foto → Mi PIN.
-- **Campana (avisos):** el número rojo son avisos que no has leído. Toca uno para leerlo completo; así la dueña sabe que ya lo viste. La ✕ lo quita de tu lista.
+- **Campana (avisos):** el número rojo son avisos que no has leído. Toca uno para leerlo completo; así la dueña sabe que ya lo viste. La ✕ lo quita de tu lista. Lo que lees o quitas vale para tu cuenta en todos tus dispositivos (en la tablet compartida, cada quien ve los suyos). Cada aviso desaparece solo en la fecha que puso la dueña.
 
 ---
 
