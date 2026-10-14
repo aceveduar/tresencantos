@@ -115,6 +115,8 @@ Pulsa **+ Agregar**, llena nombre, categoría, precio y fotos (cámara, galería
 
 **Fotos:** el sistema deja cada foto cuadrada al subirla, sin recortar nada: si la tomaste vertical u horizontal, completa los lados con el color del fondo. Para que se vea mejor en la Tienda, toma la foto con el producto al centro, sobre un fondo liso y con buena luz.
 
+**Quitar la estrellita ✦ de una foto:** ábrela en Snapseed (gratis) → Herramientas → Pincel corrector → pasa el dedo sobre la estrellita → ✓ → Exportar → Guardar. Sube esa foto.
+
 ### Recibir mercancía
 Botón **Recibir**. Modo **Con factura** (también corrige costo, precio y código de proveedor) o **Rápido** (solo suma stock). Escanea o busca cada producto; si no existe, primero búscalo por nombre antes de crearlo. Al terminar pulsa **Finalizar recepción**.
 

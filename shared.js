@@ -214,6 +214,14 @@ function _themeToggleRowHtml() {
         + '<b>Saldo a favor:</b> está en Apartados → Cancelados. Cuando la clienta regrese, toquen <b>Devolver saldo a favor</b>; si lo quiere usar para comprar algo, devuélvanselo y cobren la compra normal.<br><br>'
         + 'También nuevo: <b>Solo ver apartados</b> en la pantalla de Abrir caja, para consultar sin abrir turno.',
       until: '2026-11-07' },
+    { id: 'fotos-cuadradas-2026-10', icon: 'info',
+      title: 'Fotos: quitar la estrellita ✦',
+      text: '1. Abre la foto en <b>Snapseed</b> (gratis).<br>'
+        + '2. <b>Herramientas → Pincel corrector</b>.<br>'
+        + '3. Pasa el dedo sobre la estrellita.<br>'
+        + '4. ✓ y <b>Exportar → Guardar</b>.<br><br>'
+        + 'Sube esa foto. El sistema la deja cuadrada solo.',
+      until: '2026-11-15' },
   ];
 
   const _NOTIF_ICONS = {
