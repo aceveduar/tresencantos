@@ -111,6 +111,10 @@ Un solo buscador encuentra por nombre, categoría, código de barras, precio o c
 - El stock y el precio se editan tocándolos directamente en la lista.
 - **Web / Oculto** indica si el producto se ve en la Tienda. Solo quien tiene permiso de publicar puede cambiarlo; si alguien sin ese permiso crea un producto, este queda oculto hasta que lo revisen.
 
+### Pendientes: productos por revisar
+
+En Inventario, el botón **Pendientes** junta lo que hay que corregir: **Marcados para revisar**, Sin precio, Sin categoría, Sin código, Sin stock, Por caducar, Sin publicar y otros. Elige uno, corrige cada producto (toca el producto → **Editar**) y la lista se va vaciando. Cuando termines con un producto marcado, ábrelo y toca **✓ Revisado** para quitarle la marca.
+
 ### Agregar un producto
 Pulsa **+ Agregar**, llena nombre, categoría, precio y fotos (cámara, galería o pegar). **Completar con IA** sugiere nombre, descripción y categoría a partir de la foto. **+ Otro** guarda y deja el formulario listo para el siguiente.
 
