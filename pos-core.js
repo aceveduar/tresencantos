@@ -1093,7 +1093,7 @@ function _mapPosProduct(p) {
 let _productsLoadGeneration = 0;
 async function loadProducts() {
   const loadGeneration = ++_productsLoadGeneration;
-  const result = await _posFetchAll('products?select=id,name,category,category_label,price,original_price,description,image,barcode,stock,out_of_stock,badge,badge_type,kit_items,expiry_date&is_archived=eq.false&order=position.asc,id.asc');
+  const result = await _posFetchAll('products?select=id,name,category,category_label,price,original_price,description,image,barcode,stock,out_of_stock,badge,badge_type,kit_items,expiry_date&is_archived=eq.false&order=position.asc,id.asc', 1000);
   if (loadGeneration !== _productsLoadGeneration) return false;
   if (result.ok && Array.isArray(result.data)) {
     products = result.data.map(_mapPosProduct);

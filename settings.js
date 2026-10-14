@@ -661,7 +661,7 @@ function openCatManager() {
   populateCatParent();
   document.getElementById('cat-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
-  api('products?select=category').then(r => {
+  _posPaginatedFetch('products?select=category&order=id.asc', { pageSize: 1000 }).then(r => {
     if (!r.ok || !Array.isArray(r.data)) return;
     _catCounts = {};
     r.data.forEach(p => { if (p.category) _catCounts[p.category] = (_catCounts[p.category]||0)+1; });
@@ -975,7 +975,7 @@ async function deleteCategoryAt(idx) {
   // solo consultaba productos con category=eq.<código de la raíz>.
   const children = !c.parent ? subCats(c.code) : [];
   const codes = [c.code, ...children.map(x => x.code)];
-  const r = await api(`products?category=in.(${codes.join(',')})&select=id`);
+  const r = await _posPaginatedFetch(`products?category=in.(${codes.join(',')})&select=id&order=id.asc`, { pageSize: 1000 });
   const count = r.ok && Array.isArray(r.data) ? r.data.length : 0;
   const childWarning = children.length
     ? ` (incluye ${children.length} subcategoría${children.length !== 1 ? 's' : ''}: ${children.map(x => x.label).join(', ')})`
@@ -1299,8 +1299,9 @@ async function exportPagosCsv() {
 
 /* ── EXPORT / IMPORT ── */
 async function exportProducts() {
-  const r = await api('products?select=*&order=position.asc');
-  if (!r.ok || !r.data?.length) { toast('Sin productos para exportar', ''); return; }
+  const r = await _posPaginatedFetch('products?select=*&order=position.asc,id.asc', { pageSize: 1000 });
+  if (!r.ok) { toast('No se pudo leer el catálogo, intenta de nuevo', 'error'); return; }
+  if (!r.data?.length) { toast('Sin productos para exportar', ''); return; }
   const blob = new Blob([JSON.stringify(r.data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);

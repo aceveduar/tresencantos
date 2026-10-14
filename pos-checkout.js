@@ -719,6 +719,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       filterApartados(document.getElementById('apt-page-search')?.value || '', 'page');
     }
   });
+  // El catálogo y lo demás empiezan a bajar ya, en paralelo con la revisión
+  // del turno (y mientras la cajera teclea el fondo): antes se pedían hasta
+  // después de abrir caja y Caja tardaba de más en mostrar productos.
+  const _initData = Promise.all([loadProducts(), loadPosCategories(), loadTopProductsFromSales(), loadPosNameMap(), loadPosConfig(), loadPosRecentlyEdited(), loadLibretaConfig()]);
   // Turno de caja: bloquea el resto de Caja hasta declarar la apertura real
   // (fondo inicial) en el servidor -- ver _posShiftGateInit() en pos-core.js.
   await _posShiftGateInit();
@@ -736,7 +740,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (_av) _av.textContent = _initial;
   } catch {}
   initDivider();
-  await Promise.all([loadProducts(), loadPosCategories(), loadTopProductsFromSales(), loadPosNameMap(), loadPosConfig(), loadPosRecentlyEdited(), loadLibretaConfig()]);
+  await _initData;
   renderCategoryChips();
   setPosView(posView);
   _restoreCart();

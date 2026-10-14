@@ -1106,6 +1106,9 @@ async function showApp() {
   // más en cada carga aunque la sesión ya fuera válida.
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
+  // El catálogo (lo más pesado) empieza a bajar ya, en paralelo con permisos,
+  // categorías y ajustes; antes esperaba a que terminaran uno tras otro.
+  const productsLoad = loadProductsFromSupabase();
   const userPerms = await _loadMyPerms();
   try {
     const { name, initial } = _getUserDisplay();
@@ -1126,8 +1129,7 @@ async function showApp() {
   </td></tr>`;
 
   await loadCategories();
-  await Promise.all([loadAppConfig(), loadFlagged(), loadRecentlyEdited(), loadApartadosMap()]);
-  await loadProductsFromSupabase();
+  await Promise.all([loadAppConfig(), loadFlagged(), loadRecentlyEdited(), loadApartadosMap(), productsLoad]);
   _syncFlagFilter();
   renderStats();
   _refreshCreatorFilter();
@@ -1180,8 +1182,22 @@ function mapProduct(p) {
   };
 }
 
+// Supabase entrega como máximo 1,000 renglones por consulta (max_rows): con un
+// catálogo más grande, pedirlo de un jalón dejaba fuera productos sin avisar
+// (pasó el 2026-10-14 con 1,013). Se pide por páginas con orden estable; si una
+// página falla, falla todo (nunca un catálogo a medias).
+async function _fetchAllPages(path, pageSize = 1000) {
+  const rows = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const r = await supabaseApi(`${path}&limit=${pageSize}&offset=${offset}`);
+    if (!r.ok || !Array.isArray(r.data)) return { ...r, ok: false };
+    rows.push(...r.data);
+    if (r.data.length < pageSize) return { ...r, data: rows };
+  }
+}
+
 async function loadProductsFromSupabase() {
-  const result = await supabaseApi('products?select=*&order=position.asc');
+  const result = await _fetchAllPages('products?select=*&order=position.asc,id.asc');
   const data = result.data;
   if (result.ok && Array.isArray(data) && data.length) {
     products = data.map(mapProduct);

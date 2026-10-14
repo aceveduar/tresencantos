@@ -150,7 +150,7 @@ let _apartadosMap    = {}; // { productId: totalUnits }
 let _apartadosDetail = {}; // { productId: [{ saleId, customer, qty, total, paidAmount, dueDate, createdAt }] }
 
 async function loadApartadosMap() {
-  const r = await supabaseApi('sales?type=eq.apartado&cancelled_at=is.null&select=id,items,total,paid_amount,customer,due_date,created_at');
+  const r = await _fetchAllPages('sales?type=eq.apartado&cancelled_at=is.null&select=id,items,total,paid_amount,customer,due_date,created_at&order=id.asc');
   if (!r.ok || !Array.isArray(r.data)) return;
   const map = {};
   const detail = {};
