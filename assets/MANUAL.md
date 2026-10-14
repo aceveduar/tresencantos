@@ -113,7 +113,7 @@ Un solo buscador encuentra por nombre, categoría, código de barras, precio o c
 ### Agregar un producto
 Pulsa **+ Agregar**, llena nombre, categoría, precio y fotos (cámara, galería o pegar). **Completar con IA** sugiere nombre, descripción y categoría a partir de la foto. **+ Otro** guarda y deja el formulario listo para el siguiente.
 
-**Fotos:** tómala como siempre, vertical u horizontal. Al subirla, el sistema la hace cuadrada: no recorta el producto, solo rellena los lados con el color del fondo. Se ve mejor con el producto al centro, fondo liso y buena luz.
+**Fotos:** de preferencia tómalas en formato cuadrado (en la cámara del celular: opción 1:1), con el producto al centro, fondo liso y buena luz. Si sale vertical u horizontal, el sistema la hace cuadrada al subirla: no recorta el producto, solo rellena los lados con el color del fondo.
 
 **Quitar la estrellita ✦ de una foto:** ábrela en Snapseed (gratis) → Herramientas → Pincel corrector → pasa el dedo sobre la estrellita → ✓ → Exportar → Guardar. Sube esa foto.
 

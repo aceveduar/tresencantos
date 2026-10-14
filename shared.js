@@ -216,7 +216,7 @@ function _themeToggleRowHtml() {
       until: '2026-11-07' },
     { id: 'fotos-cuadradas-2026-10b', icon: 'info',
       title: 'Fotos: ahora quedan cuadradas solas',
-      text: 'Toma la foto como siempre, vertical u horizontal. Al subirla, el sistema la hace <b>cuadrada</b>: <b>no recorta</b> el producto, solo rellena los lados con el color del fondo.<br><br>'
+      text: 'De preferencia toma las fotos en <b>formato cuadrado</b> (en la cámara del celular: opción 1:1). Si sale vertical u horizontal, el sistema la hace cuadrada al subirla: no recorta el producto, solo rellena los lados con el color del fondo.<br><br>'
         + '<b>Para quitar la estrellita ✦:</b><br>'
         + '1. Abre la foto en <b>Snapseed</b> (gratis).<br>'
         + '2. <b>Herramientas → Pincel corrector</b>.<br>'
