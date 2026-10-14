@@ -364,7 +364,7 @@ async function _saveKit() {
     body: JSON.stringify({
       name, category: catCode, category_label: catLabel,
       price, description: '', image: kitImage,
-      badge: '🎁 Kit', badge_type: 'new', featured: false,
+      badge: 'Kit', badge_type: 'new', featured: false,
       out_of_stock: false, original_price: null,
       barcode: null, stock: 0, cost: null,
       is_published: isPublished, kit_items: kitItems, images: null, position
@@ -383,7 +383,7 @@ async function _saveKit() {
   products.push({
     id: newId, name, category: catCode, categoryLabel: catLabel,
     price, originalPrice: null, description: null, image: kitImage,
-    badge: '🎁 Kit', badgeType: 'new', featured: false, outOfStock: false,
+    badge: 'Kit', badgeType: 'new', featured: false, outOfStock: false,
     barcode: null, stock: 0, cost: null, isPublished, kitItems, images: null, position
   });
   _lastNewProductCategory = catCode;
@@ -396,6 +396,6 @@ async function _saveKit() {
   _statFilter = null;
   renderTable();
   renderStats();
-  toast(`🎁 Kit "${name}" creado`, '');
+  toast(`Kit "${name}" creado`, '');
 }
 

@@ -486,7 +486,7 @@ async function recvUndo(id) {
       _recvSession.splice(idx, 1);
       _renderRecvList();
       _recvUpdateHeader();
-      toast(`📦 "${p.name}" archivado — reversible desde "📦 Archivados"`);
+      toast(`"${p.name}" archivado — reversible desde "Archivados"`);
     } else {
       toast('No se pudo archivar — el servidor no respondió, intenta de nuevo', 'error');
     }
@@ -517,7 +517,7 @@ async function recvUndo(id) {
     })
   });
   if (result.ok) {
-    toast(`↩ ${p.name} revertido`);
+    toast(`${p.name} revertido`);
   } else {
     p.stock = curStock; p.outOfStock = curOutOfStock;
     p.cost = curCost; p.price = curPrice; p.supplierCode = curSupplierCode;
@@ -552,7 +552,7 @@ async function recvUndoAll() {
   if (!ok) return;
   const failed = await _recvUndoAllSilent();
   if (failed) toast(`${failed} producto${failed!==1?'s':''} no se pudo deshacer — revisa la conexión e intenta de nuevo`, 'error');
-  else toast('↩ Toda la sesión fue revertida');
+  else toast('Toda la sesión fue revertida');
 }
 
 // "✕ Descartar" (antes "Cerrar/Salir") -- a diferencia de "Finalizar
@@ -592,7 +592,7 @@ function _renderRecvList() {
   <div class="recv-item">
     <img class="recv-item-img" src="${_driveSz(p.image, 80)}" onerror="this.src='${PH}'" alt="">
     <div class="recv-item-info">
-      <div class="recv-item-name">${_esc(p.name)}${isNewlyCreated ? '<span class="recv-new-badge">✨ Nuevo</span>' : ''}</div>
+      <div class="recv-item-name">${_esc(p.name)}${isNewlyCreated ? '<span class="recv-new-badge">Nuevo</span>' : ''}</div>
       <div class="recv-item-arrow">${prevStock} → <strong>+${qtyAdded} = ${p.stock}</strong> uds.</div>
     </div>
     <span class="recv-badge" onclick="_recvEditQty(event,${p.id},this)" title="Toca para corregir la cantidad recibida" style="cursor:pointer">+${qtyAdded}</span>

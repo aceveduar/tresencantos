@@ -17,7 +17,7 @@ async function bulkFlag() {
   _adminPage = savedPage;
   requestAnimationFrame(() => window.scrollTo({ top: scrollTop, behavior: 'instant' }));
   clearBulkSelection();
-  toast(`🚩 ${ids.length} producto${ids.length > 1 ? 's' : ''} marcado${ids.length > 1 ? 's' : ''} para revisar`);
+  toast(`${ids.length} producto${ids.length > 1 ? 's' : ''} marcado${ids.length > 1 ? 's' : ''} para revisar`);
 }
 
 async function bulkDelete() {
@@ -410,7 +410,7 @@ async function bulkToggleFeatured() {
   renderTable();
   renderStats();
   logActivity('producto_editado', `${newVal ? 'Destacó' : 'Quitó destacado de'} ${selected.length} producto(s) (masivo)`, { ids: selected.map(p => p.id), names: selected.map(p => p.name), count: selected.length, featured: newVal, bulk: true });
-  toast(newVal ? `${selectedIds.size} producto(s) marcados como destacados ⭐` : `Destacado removido de ${selectedIds.size} producto(s)`, 'success');
+  toast(newVal ? `${selectedIds.size} producto(s) marcados como destacados` : `Destacado removido de ${selectedIds.size} producto(s)`, 'success');
 }
 
 async function bulkToggleOOS() {
@@ -542,8 +542,8 @@ async function bulkTogglePublish() {
   renderStats();
   logActivity('producto_editado', `${newVal ? 'Publicó' : 'Ocultó'} ${selected.length} producto(s) en el sitio web (masivo)`, { ids: selected.map(p => p.id), names: selected.map(p => p.name), count: selected.length, isPublished: newVal, bulk: true });
   toast(newVal
-    ? `${selectedIds.size} producto(s) publicados en sitio web 🌐`
-    : `${selectedIds.size} producto(s) ocultados del sitio web 🙈`, 'success');
+    ? `${selectedIds.size} producto(s) publicados en la Tienda`
+    : `${selectedIds.size} producto(s) ocultos de la Tienda`, 'success');
 }
 
 /* ── EXPORT / IMPORT ── */

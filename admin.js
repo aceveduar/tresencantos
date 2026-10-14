@@ -247,7 +247,7 @@ function renderCategorySelects() {
   if (fSel) {
     const cur = fSel.value;
     const roots = rootCats();
-    fSel.innerHTML = `<option value="por_revisar">📋 Por revisar</option>` + roots.filter(r => r.code !== 'por_revisar').map(r => {
+    fSel.innerHTML = `<option value="por_revisar">Por revisar</option>` + roots.filter(r => r.code !== 'por_revisar').map(r => {
       const subs = subCats(r.code);
       if (subs.length) {
         return `<optgroup label="${_esc(r.label)}"><option value="${r.code}">${_esc(r.label)} — General</option>${subs.map(s => `<option value="${s.code}">${_esc(s.label)}</option>`).join('')}</optgroup>`;
@@ -1121,12 +1121,7 @@ async function showApp() {
   _applyUserPermsToAdmin(userPerms || _getMyPermsCached());
   _applyRoleUI();
 
-  // Mostrar skeleton mientras cargan datos
-  const tbody = document.getElementById('products-table');
-  if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:48px;color:var(--muted)">
-    <div style="display:inline-block;width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:12px"></div>
-    <br>Cargando catálogo…
-  </td></tr>`;
+  _showAdminSkeleton();
 
   await loadCategories();
   await Promise.all([loadAppConfig(), loadFlagged(), loadRecentlyEdited(), loadApartadosMap(), productsLoad]);
@@ -1194,6 +1189,35 @@ async function _fetchAllPages(path, pageSize = 1000) {
     rows.push(...r.data);
     if (r.data.length < pageSize) return { ...r, data: rows };
   }
+}
+
+// Esqueleto mientras carga el catálogo: misma forma que los renglones/tarjetas
+// reales (patrón Shopify; antes un círculo girando con "Cargando catálogo…").
+// En celular y tablet la tabla se pinta como tarjetas .mpc con las mismas clases.
+function _showAdminSkeleton() {
+  const tbody = document.getElementById('products-table');
+  const grid  = document.getElementById('products-card-grid');
+  const useCards = (localStorage.getItem('te_admin_view') || 'list') === 'cards';
+  document.getElementById('products-table-el').style.display = useCards ? 'none' : '';
+  if (grid) grid.style.display = useCards ? '' : 'none';
+  const row = `<tr class="sk-row" aria-hidden="true">
+    <td class="col-check"></td>
+    <td class="col-product"><div class="sk-prod"><span class="sk sk-thumb"></span>
+      <span class="sk-lines"><span class="sk sk-line" style="width:62%"></span><span class="sk sk-line sk-line-sm" style="width:28%"></span></span></div></td>
+    <td class="col-price"><span class="sk sk-line" style="width:64px"></span></td>
+    <td class="col-state"><span class="sk sk-pill"></span></td></tr>`;
+  const card = `<div class="admin-card sk-card" aria-hidden="true"><span class="sk sk-card-img"></span>
+    <span class="sk sk-line" style="width:80%;margin:12px 12px 8px"></span><span class="sk sk-line sk-line-sm" style="width:40%;margin:0 12px 14px"></span></div>`;
+  const mpc = `<tr class="mpc-row sk-row" aria-hidden="true"><td><div class="mpc"><div class="mpc-top">
+    <span class="sk sk-mpc-img"></span><div class="mpc-info">
+      <span class="sk sk-line" style="width:78%"></span><span class="sk sk-line sk-line-sm" style="width:38%"></span>
+      <div class="mpc-price-row"><span class="sk sk-line" style="width:58px;height:18px"></span><span class="sk sk-pill"></span></div>
+    </div></div></div></td></tr>`;
+  const rows = window.innerWidth <= 1024 ? mpc : row;
+  if (tbody) tbody.innerHTML = '<tr class="sr-only"><td colspan="4">Cargando catálogo…</td></tr>' + rows.repeat(8);
+  if (grid) grid.innerHTML = card.repeat(8);
+  const tabs = document.getElementById('stats');
+  if (tabs && !tabs.textContent.trim()) tabs.innerHTML = '<span class="sk sk-tab"></span><span class="sk sk-tab"></span><span class="sk sk-tab"></span>';
 }
 
 async function loadProductsFromSupabase() {

@@ -53,7 +53,7 @@ function dictate(fieldId) {
   if (!btn.dataset.iconOnly) btn.innerHTML = stopLabel;
   btn.classList.add('recording');
   field.classList.add('field-recording');
-  toast('🎤 Grabando… toca el botón para detener', '');
+  toast('Grabando… toca el botón para detener', '');
 
   // FIX Android: blur cierra el teclado del sistema → su micrófono deja de escuchar
   field.blur();
@@ -256,7 +256,7 @@ async function flagProduct(id, note) {
   _flagged.unshift({ id, note: (note || '').trim(), ts: new Date().toISOString() });
   await _saveFlagged();
   _flagAndRender(id);
-  toast('🚩 Marcado para revisar', 'success');
+  toast('Marcado para revisar', 'success');
 }
 
 async function unflagProduct(id) {

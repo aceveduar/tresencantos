@@ -262,6 +262,19 @@ main{max-width:1080px;margin:0 auto;padding:28px 32px}
 .filter-select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,164,98,.12);background-color:var(--surface)}
 
 /* ══ TABLE ═════════════════════════════════════════════════════════════ */
+/* Esqueleto de carga (la animación .sk vive en shared.css) */
+.sk-prod{display:flex;align-items:center;gap:12px}
+.sk-thumb{width:52px;height:52px;border-radius:10px;flex-shrink:0}
+.sk-lines{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0}
+.sk-line{height:13px}
+.sk-line-sm{height:11px}
+.sk-pill{width:72px;height:26px;border-radius:99px}
+.sk-row:hover td{background:none}
+.sk-mpc-img{width:72px;height:72px;border-radius:11px;flex-shrink:0}
+.sk-row .mpc-info{gap:8px}
+.sk-card{pointer-events:none}
+.sk-card-img{aspect-ratio:1;border-radius:0}
+.sk-tab{width:72px;height:14px;align-self:center;flex-shrink:0;margin:16px 0}
 .table-wrap{
   background:var(--surface);border-radius:16px;
   border:1px solid var(--border);overflow:hidden;

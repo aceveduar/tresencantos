@@ -22,6 +22,16 @@
   --surface:#fff;--surface-soft:#F8F4EF;
 }
 
+/* ── Esqueleto de carga ───────────────────────────────────────────────
+   Bloques grises con la forma del contenido que viene (patrón Shopify):
+   se siente más rápido que un círculo girando y la página no brinca. */
+.sk{display:block;border-radius:6px;
+  background:linear-gradient(90deg,var(--surface-soft) 0%,var(--border) 50%,var(--surface-soft) 100%);
+  background-size:200% 100%;animation:sk-shine 1.3s ease-in-out infinite}
+@keyframes sk-shine{from{background-position:100% 0}to{background-position:-100% 0}}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
 /* ── Reset mínimo ──────────────────────────────────────────────────── */
 html{-webkit-text-size-adjust:100%}
 button,input,select,textarea{font-family:inherit}

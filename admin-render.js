@@ -696,7 +696,7 @@ async function togglePublished(id) {
   p.isPublished = newVal;
   renderTable();
   renderStats();
-  toast(newVal ? '🌐 Publicado en sitio web' : '🙈 Oculto del sitio web', 'success');
+  toast(newVal ? 'Publicado en la Tienda' : 'Oculto de la Tienda', 'success');
 }
 
 let _catEditActive = false;
@@ -1012,7 +1012,7 @@ async function toggleFeatured(id) {
   p.featured = newVal;
   renderTable();
   renderStats();
-  toast(newVal ? 'Marcado como destacado ⭐' : 'Quitado de destacados');
+  toast(newVal ? 'Marcado como destacado' : 'Quitado de destacados');
 }
 
 /* ── DUPLICATE — POST single product ── */

@@ -483,7 +483,7 @@ function render(data) {
     <div class="act-top">
       <span class="act-badge badge-${cfg.badge}">${cfg.icon} ${cfg.label}</span>
       <span class="act-user">${_esc(name)}</span>
-      <span class="act-time">${nightFlag ? '🌙 ' : ''}${time}</span>
+      <span class="act-time">${nightFlag ? '<svg style="width:13px;height:13px;vertical-align:-2px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> ' : ''}${time}</span>
     </div>
     <div class="act-summary">${_esc(item.summary)}</div>
     ${detail ? `<div class="act-detail">${detail}</div>` : ''}

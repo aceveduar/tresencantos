@@ -416,7 +416,7 @@ function _initOfflineBanner() {
   let hideTimer = null;
   const goOffline = () => {
     clearTimeout(hideTimer);
-    banner.textContent = '⚡ Sin conexión a internet';
+    banner.textContent = 'Sin conexión a internet';
     banner.className = 'ob-offline';
   };
   const goOnline = () => {
@@ -1128,8 +1128,10 @@ function openModal(id) {
   const hasGallery = allImgs.length > 1;
   const galleryHTML = hasGallery
     ? `<div class="modal-gallery" id="modal-gallery" onscroll="_updateGalleryDots(this)">
-        ${allImgs.map((src, i) => `<img class="modal-gallery-img" src="${src}" alt="${_esc(p.name)} ${i+1}" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'" onclick="_openModalZoom(this)"${oos && i===0 ? ' style="filter:grayscale(.4)"' : ''}>`).join('')}
+        ${allImgs.map((src, i) => `<img class="modal-gallery-img" src="${src}" alt="${_esc(p.name)} ${i+1}" onload="this.classList.add('is-loaded')" onerror="this.onerror=null;this.classList.add('is-loaded');this.src='${PROD_PLACEHOLDER}'" onclick="_openModalZoom(this)"${oos && i===0 ? ' style="filter:grayscale(.4)"' : ''}>`).join('')}
        </div>
+       <button type="button" class="mg-arrow mg-prev" onclick="_stepGallery(-1)" aria-label="Foto anterior" hidden>‹</button>
+       <button type="button" class="mg-arrow mg-next" onclick="_stepGallery(1)" aria-label="Foto siguiente">›</button>
        <div class="modal-gallery-dots" id="modal-gallery-dots">
          ${allImgs.map((_,i) => `<span class="mgd${i===0?' mgd-active':''}" onclick="_goToGalleryImg(${i})"></span>`).join('')}
        </div>`
@@ -1221,6 +1223,18 @@ function closeModal() {
 function _updateGalleryDots(gallery) {
   const idx = Math.round(gallery.scrollLeft / gallery.offsetWidth);
   document.querySelectorAll('#modal-gallery-dots .mgd').forEach((d, i) => d.classList.toggle('mgd-active', i === idx));
+  // Flechas (computadora): se ocultan en los extremos
+  const total = gallery.querySelectorAll('.modal-gallery-img').length;
+  const prev = document.querySelector('.mg-prev'), next = document.querySelector('.mg-next');
+  if (prev) prev.hidden = idx <= 0;
+  if (next) next.hidden = idx >= total - 1;
+}
+
+function _stepGallery(dir) {
+  const g = document.getElementById('modal-gallery');
+  if (!g) return;
+  const idx = Math.round(g.scrollLeft / g.offsetWidth) + dir;
+  _goToGalleryImg(Math.max(0, Math.min(idx, g.querySelectorAll('.modal-gallery-img').length - 1)));
 }
 
 function _goToGalleryImg(idx) {

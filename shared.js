@@ -153,7 +153,7 @@ function _themeToggleRowHtml() {
 
     const goOffline = () => {
       clearTimeout(hideTimer);
-      banner.textContent = '⚡ Sin conexión a internet — los cambios no se guardarán';
+      banner.textContent = 'Sin conexión a internet — los cambios no se guardarán';
       banner.className = 'ob-offline';
     };
 

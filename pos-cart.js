@@ -173,7 +173,7 @@ async function _confirmRestock() {
     searchProducts(document.getElementById('pos-search')?.value || '');
     addToCart(id);
     logActivity('producto_editado', `Reabasteció "${p.name}" desde Caja: ${prevStock} → ${newStock}`, { id, name: p.name, prevStock, newStock, source: 'caja_restock' });
-    toast(`📦 +${_restockQty} en stock — agregado al carrito`, '');
+    toast(`+${_restockQty} en stock — agregado al carrito`, '');
   } else {
     toast('Error al reabastecer', 'error');
     btn.disabled = false;

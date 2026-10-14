@@ -9,11 +9,21 @@
 --
 -- Correr con:  powershell -ExecutionPolicy Bypass -File scripts\pruebas.ps1
 --
--- Actores: test@tresencantos.com (cajera, abre y cierra turno) y
--- ofe@tresencantos.com (superadmin, cancela). Si cambian sus ids en Auth,
--- actualizar los "sub" de abajo.
+-- Actores: duena@prueba.test (superadmin, cancela) y cajera@prueba.test
+-- (operador, abre y cierra turno). Se crean aquí mismo y desaparecen con el
+-- ROLLBACK: no dependen de ninguna cuenta real del negocio.
 
 BEGIN;
+INSERT INTO auth.users (id, instance_id, aud, role, email, raw_app_meta_data, raw_user_meta_data, email_confirmed_at, created_at, updated_at)
+VALUES
+  ('00000000-0000-4000-8000-0000000000d1', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+   'duena@prueba.test', '{"role":"superadmin"}', '{}', now(), now(), now()),
+  ('00000000-0000-4000-8000-0000000000c1', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+   'cajera@prueba.test', '{"role":"operador"}', '{}', now(), now(), now());
+INSERT INTO public.config (id, value) VALUES ('user_permissions', '{}') ON CONFLICT (id) DO NOTHING;
+UPDATE public.config
+   SET value = (value::jsonb || '{"duena@prueba.test":{"role":"superadmin"},"cajera@prueba.test":{"role":"operador"}}'::jsonb)::text
+ WHERE id = 'user_permissions';
 
 CREATE TEMP TABLE _ctx (k text PRIMARY KEY, v text);
 GRANT ALL ON _ctx TO authenticated;
@@ -36,7 +46,7 @@ END $$;
 -- ── Superadmin: pasa un apartado de la libreta (antes de las ventas, para
 --    probar que un renglón sin producto no rompe el inventario de las demás) ──
 -- Total 500, abonos anotados 100 (con fecha) y 150 (sin fecha) → debe 250.
-SELECT set_config('request.jwt.claims', '{"sub":"a8c980c1-33b0-46a1-ac2c-761801ede2aa","email":"ofe@tresencantos.com","role":"authenticated"}', true);
+SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000000d1","email":"duena@prueba.test","role":"authenticated"}', true);
 SELECT set_config('role', 'authenticated', true);
 INSERT INTO _ctx
 SELECT 'libreta', (public.te_libreta_apartado_create(
@@ -55,7 +65,7 @@ DO $$ BEGIN
 END $$;
 
 -- ── Cajera: abre turno con $100 ──────────────────────────────────────────
-SELECT set_config('request.jwt.claims', '{"sub":"585d4e5a-cc26-4a90-9f1a-f6ac8bec2d0e","email":"test@tresencantos.com","role":"authenticated"}', true);
+SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000000c1","email":"cajera@prueba.test","role":"authenticated"}', true);
 SELECT set_config('role', 'authenticated', true);
 INSERT INTO _ctx SELECT 'shift', (public.te_open_cash_shift(p_fondo_inicial => 100)) ->> 'id';
 -- Abrir otra vez el mismo día (otro dispositivo) reutiliza el turno, no lo cierra.
@@ -106,13 +116,13 @@ DO $$ BEGIN
   END;
   INSERT INTO _ok(prueba) VALUES ('Cajera no puede registrar devoluciones sueltas');
 
-  INSERT INTO public.activity_log(action, user_email, summary, created_at) VALUES ('prueba_forja', 'ofe@tresencantos.com', 'x', '2020-01-01');
+  INSERT INTO public.activity_log(action, user_email, summary, created_at) VALUES ('prueba_forja', 'duena@prueba.test', 'x', '2020-01-01');
 
   DELETE FROM public.products WHERE id = (SELECT v::bigint FROM _ctx WHERE k='pid');
 END $$;
 
 -- ── Superadmin: cancela la venta ─────────────────────────────────────────
-SELECT set_config('request.jwt.claims', '{"sub":"a8c980c1-33b0-46a1-ac2c-761801ede2aa","email":"ofe@tresencantos.com","role":"authenticated"}', true);
+SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000000d1","email":"duena@prueba.test","role":"authenticated"}', true);
 SELECT public.cancel_sale_atomic(
   p_request_id => gen_random_uuid(), p_sale_id => (SELECT v::bigint FROM _ctx WHERE k='venta'), p_reason => 'prueba automática',
   p_expected_version => (SELECT version FROM public.sales WHERE id = (SELECT v::bigint FROM _ctx WHERE k='venta')));
@@ -172,8 +182,8 @@ SELECT public.reactivate_apartado_atomic(
 
 -- ── Cajera: cierra turno contando exactamente lo esperado ────────────────
 -- Esperado = fondo 100 + venta (precio) + anticipo 5 + abono 2 − (gasto 10 − ingreso 4) − retiro 20
--- (la devolución de la cancelación la registró Ofelia: no toca este cajón)
-SELECT set_config('request.jwt.claims', '{"sub":"585d4e5a-cc26-4a90-9f1a-f6ac8bec2d0e","email":"test@tresencantos.com","role":"authenticated"}', true);
+-- (la devolución de la cancelación la registró la dueña: no toca este cajón)
+SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000000c1","email":"cajera@prueba.test","role":"authenticated"}', true);
 INSERT INTO _ctx
 SELECT 'cierre', public.te_close_cash_shift(p_conteo_final => 100 + (SELECT v::numeric FROM _ctx WHERE k='price') + 5 + 2 - 6 - 20)::text;
 
@@ -257,7 +267,7 @@ BEGIN
 
   -- Actividad sellada con la sesión real
   SELECT user_email || ' ' || created_at::date INTO t FROM public.activity_log WHERE action = 'prueba_forja';
-  IF t NOT LIKE 'test@tresencantos.com %' OR t LIKE '%2020-01-01' THEN
+  IF t NOT LIKE 'cajera@prueba.test %' OR t LIKE '%2020-01-01' THEN
     RAISE EXCEPTION 'PRUEBA FALLÓ: Actividad aceptó correo/fecha falsos (%)', t;
   END IF;
   INSERT INTO _ok(prueba) VALUES ('Actividad no acepta correo ni fecha falsos');
@@ -311,7 +321,7 @@ BEGIN
 END $$;
 
 -- ── Candados de la auditoría 2026-10-06 (cajera sin canDeleteProduct) ─────
-SELECT set_config('request.jwt.claims', '{"sub":"585d4e5a-cc26-4a90-9f1a-f6ac8bec2d0e","email":"test@tresencantos.com","role":"authenticated"}', true);
+SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000000c1","email":"cajera@prueba.test","role":"authenticated"}', true);
 SELECT set_config('role', 'authenticated', true);
 DO $$
 DECLARE
@@ -321,7 +331,7 @@ DECLARE
 BEGIN
   -- Hacerse pasar por creadora para borrar con "deshacer duplicado"
   BEGIN
-    UPDATE public.products SET created_by = 'test@tresencantos.com', created_at = now() WHERE id = pid;
+    UPDATE public.products SET created_by = 'cajera@prueba.test', created_at = now() WHERE id = pid;
     RAISE EXCEPTION 'PRUEBA FALLÓ: una cajera pudo cambiar el creador de un producto';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
@@ -345,7 +355,7 @@ BEGIN
 
   -- PIN de gerente: el 6.º intento fallido en 10 min se bloquea
   FOR i IN 1..6 LOOP
-    j := public.te_request_override('canCancelSale', 'ofe@tresencantos.com', 'x');
+    j := public.te_request_override('canCancelSale', 'duena@prueba.test', 'x');
   END LOOP;
   IF coalesce(j ->> 'message', '') NOT LIKE 'Demasiados intentos%' THEN
     RAISE EXCEPTION 'PRUEBA FALLÓ: el PIN no se bloquea tras 5 fallos (%)', j;

@@ -273,7 +273,7 @@ function _riaRenderChoiceUndoBanner() {
   el.innerHTML = `
 <div class="ria-undo-card">
   <span>Tu última recepción con IA (${n} producto${n !== 1 ? 's' : ''}, aplicada ${_riaAgeLabel(snap.appliedAt)}) se puede deshacer.</span>
-  <button class="ria-undo-btn" onclick="riaUndoLastApply()">↩ Deshacer esa recepción</button>
+  <button class="ria-undo-btn" onclick="riaUndoLastApply()">Deshacer esa recepción</button>
 </div>`;
 }
 
@@ -283,7 +283,7 @@ async function riaUndoLastApply() {
   const n = snap.updated.length + snap.created.length;
   const ok = await teConfirm({ title: 'Deshacer recepción', confirmText: 'Deshacer', danger: true, message:
     `¿Deshacer la recepción aplicada ${_riaAgeLabel(snap.appliedAt)} (${n} producto${n !== 1 ? 's' : ''})?\n\n` +
-    `Se restará el stock que sumó, y costo/precio/código de proveedor regresan a como estaban antes. Los productos nuevos que creó se archivan (no se borran — quedan reversibles desde "📦 Archivados").\n\n` +
+    `Se restará el stock que sumó, y costo/precio/código de proveedor regresan a como estaban antes. Los productos nuevos que creó se archivan (no se borran — quedan reversibles desde "Archivados").\n\n` +
     `Si desde entonces editaste estos productos por otro lado (Inventario, otra recepción), esos cambios también se perderían.`
   });
   if (!ok) return;
@@ -1054,7 +1054,7 @@ function _riaAutoGrow(el) {
 // vez de duplicar la estructura de categorías.
 function _riaCategoryOptions(selectedCode) {
   const sel = selectedCode || 'por_revisar';
-  let html = `<option value="por_revisar"${sel === 'por_revisar' ? ' selected' : ''}>📋 Por revisar</option>`;
+  let html = `<option value="por_revisar"${sel === 'por_revisar' ? ' selected' : ''}>Por revisar</option>`;
   html += rootCats().filter(r => r.code !== 'por_revisar').map(r => {
     const subs = subCats(r.code);
     const rootOpt = `<option value="${r.code}"${sel === r.code ? ' selected' : ''}>${_esc(r.label)}${subs.length ? ' — General' : ''}</option>`;

@@ -527,7 +527,7 @@ Formato: {"name":"...","description":"...","category":"","price":null}`;
     const filled = [parsed.name ? 'nombre' : null, parsed.description ? 'descripción' : null,
                     parsed.category ? 'categoría' : null, (rawPrice && Number(rawPrice) > 0) ? 'precio' : null]
                    .filter(Boolean).join(', ');
-    toast(`✨ Completado: ${filled}`, 'success');
+    toast(`Completado: ${filled}`, 'success');
     icon.innerHTML = _AI_ICON_CHECK;
     lbl.textContent = 'Analizado — edita si es necesario';
     btn.style.borderColor = 'var(--green)'; btn.style.color = 'var(--green)';
