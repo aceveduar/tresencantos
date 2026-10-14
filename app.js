@@ -600,7 +600,9 @@ function isLastPiece(p) {
   return p.stock === 1 && !p.isApartado;
 }
 
-function cardHTML(p) {
+// i = lugar en la cuadrícula: las primeras 4 fotos se ven sin bajar, así que se
+// piden de inmediato; las demás esperan a acercarse a la pantalla.
+function cardHTML(p, i = 99) {
   const oos = isOos(p);
   const apt = p.isApartado && p.stock <= 1;
   const pct = discountPct(p);
@@ -633,7 +635,7 @@ function cardHTML(p) {
   return `
 <article class="product-card reveal${oos ? ' card-oos' : ''}" onclick="openModal(${p.id})">
   <div class="product-img-wrap">
-    <img src="${_driveSz(p.image,400)}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
+    <img src="${_driveSz(p.image,400)}" alt="${_esc(p.name)}" ${i < 4 ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
     ${oosTag}${badgeArea}
   </div>
   <div class="product-body">
@@ -672,7 +674,7 @@ function renderHeroVisual() {
   if (!items.length) return;
   container.innerHTML = items.map(p => `
 <div class="hc" onclick="openModal(${p.id})">
-  <img src="${_driveSz(p.image,300)}" alt="${_esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
+  <img src="${_driveSz(p.image,300)}" alt="${_esc(p.name)}" fetchpriority="high" onerror="this.onerror=null;this.src='${PROD_PLACEHOLDER}'">
   <div class="hc-info">
     <div class="hc-name">${_esc(p.name)}</div>
     <div class="hc-price">$${p.price.toLocaleString('es-MX')}</div>

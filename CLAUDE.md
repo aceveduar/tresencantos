@@ -199,6 +199,10 @@ Supabase no tiene backups en este plan (sin PITR, lista vacía). `scripts/respal
 - "Todo" muestra 12 + "Ver más"; filtrando/buscando, sin límite. Filtro de categoría jerárquico (`catMatchesFilter`, usa `publicCategories`).
 - **Carrito "Mi pedido"** (`localStorage.te_cart`): tope por stock, se reconcilia con el catálogo al abrir, un solo mensaje de WhatsApp. WhatsApp directo de un producto desde el modal; productos "📌 Apartado" solo "Consultar".
 - **Modal 3 zonas:** imagen (`object-fit:contain`, galería con dots) / info con scroll / CTA fijo. Bottom sheet en mobile; swipe y teclas ←/→ navegan productos.
+- **Kits:** la Tienda solo ofrece kits con todos sus componentes disponibles (`_fetchProductsList`); un componente agotado no viene en la lista y antes el kit se mostraba como disponible y se podía pedir.
+- **Curaduría del frente** (2026-10-14, a pedido de Eduardo): los primeros 24 de "Todo" (`position` 1–24) y los 10 destacados se eligieron por ventas + valor + **foto cuadrada** (una foto vertical u horizontal deja bandas en la tarjeta y se ve como franja en la ficha). Lo demás conservó su orden relativo (+100). Respaldo del orden anterior: Actividad, registro 7678 (`meta.respaldo_orden` = `[id, position, featured]`). Destacados: los 3 primeros salen en la portada de escritorio y todos en la tira de celular, por eso pocos.
+- **Rapidez:** las 4 primeras fotos de la cuadrícula y las 3 de la portada se piden con `fetchpriority="high"` (el resto `loading="lazy"`); `preconnect` a Supabase y a `lh3.googleusercontent.com`; logo a 3× su tamaño en pantalla (65 KB, antes 269 KB). Medido en 4G simulado: productos en ~1.3 s la primera visita.
+- **Drive frena (429) ráfagas de fotos desde una misma conexión:** al auditar fotos o medir con Playwright aparecen todas vacías; no es la Tienda. Probar con `Referer: https://aceveduar.github.io/` o esperar.
 - "⚡ Última pieza disponible" cuando `stock===1 && !isApartado` (tarjeta, modal y mensajes WA). Nunca "pieza única".
 - Badges: descuento % gana sobre badge `promo`; otros badges conviven con el %.
 - Sección Natura: primeros 8 por `position`. Barra admin solo con sesión válida. Acceso staff: candado discreto en el header. WhatsApp flotante solo ≤768px.
@@ -256,6 +260,7 @@ Supabase no tiene backups en este plan (sin PITR, lista vacía). `scripts/respal
 - Auditoría de Drive (Configuración → Datos) cada 1–2 meses: limpia las fotos que quedan si alguien sube fotos y cierra sin guardar ni cancelar.
 
 **Calidad / UX**
+- Fotos no cuadradas: el 2026-10-14 eran ~259 de 698 visibles (218 verticales, 41 horizontales). Se ven con bandas en la tarjeta; volver a tomarlas o recortarlas a cuadrado al subirlas. Hay 8 productos ocultos por foto rota en Drive (Actividad, mismo día) que vuelven al subirles foto.
 - Código QR imprimible de la Tienda (`https://aceveduar.github.io/tresencantos/`) para el mostrador (pedido 2026-10-14, sin fecha).
 - Duplicar producto **no** copia `supplier_code` a propósito: el código enseña a Recepción con IA a qué producto vincular, duplicarlo lo volvería ambiguo.
 
