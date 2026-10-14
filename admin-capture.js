@@ -70,15 +70,8 @@ async function handleCapturePhoto(input) {
   reader.onload = e => {
     const raw = new Image();
     raw.onload = async () => {
-      // Comprimir igual que el formulario: max 900px, JPEG 0.82
-      const canvas = document.createElement('canvas');
-      const MAX = 900;
-      let w = raw.width, h = raw.height;
-      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
-      if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(raw, 0, 0, w, h);
-      captureImageDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      // Mismo estándar que el formulario: cuadrada sin recortar, máx. 900 px
+      captureImageDataUrl = _squareImageDataUrl(raw);
 
       const img = document.getElementById('cap-preview-img');
       img.src = captureImageDataUrl;

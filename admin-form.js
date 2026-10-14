@@ -1083,6 +1083,39 @@ function changeKitQty(productId, delta) {
 }
 
 /* ── ADDITIONAL IMAGES ── */
+// Estándar de fotos (2026-10-14): toda foto que se sube queda CUADRADA, sin
+// recortar. Se completa el cuadrado con el color del borde de la propia foto
+// (fondo gris → relleno gris), así una foto vertical u horizontal no deja
+// bandas blancas en la Tienda. Recortar se descartó: a un perfume fotografiado
+// de pie se le cortaba la tapa. Máx. 900 px, JPEG 0.82.
+function _squareImageDataUrl(img, MAX = 900) {
+  const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+  const side = Math.min(MAX, Math.max(iw, ih));
+  const scale = side / Math.max(iw, ih);
+  const w = Math.round(iw * scale), h = Math.round(ih * scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = side;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = (w === side && h === side) ? '#fff' : _imgEdgeColor(img);
+  ctx.fillRect(0, 0, side, side);
+  ctx.drawImage(img, Math.round((side - w) / 2), Math.round((side - h) / 2), w, h);
+  return canvas.toDataURL('image/jpeg', 0.82);
+}
+// Color promedio del borde de la foto (los lados que van a quedar junto al relleno).
+function _imgEdgeColor(img) {
+  try {
+    const c = document.createElement('canvas'); c.width = c.height = 48;
+    const x = c.getContext('2d'); x.drawImage(img, 0, 0, 48, 48);
+    const d = x.getImageData(0, 0, 48, 48).data;
+    const portrait = (img.naturalHeight || img.height) > (img.naturalWidth || img.width);
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let i = 0; i < 48; i++) for (const j of [0, 1, 46, 47]) {
+      const px = portrait ? (i * 48 + j) : (j * 48 + i); // columnas izq/der o renglones arriba/abajo
+      r += d[px * 4]; g += d[px * 4 + 1]; b += d[px * 4 + 2]; n++;
+    }
+    return `rgb(${Math.round(r / n)},${Math.round(g / n)},${Math.round(b / n)})`;
+  } catch { return '#fff'; }
+}
 function _fileToBase64Resized(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1090,16 +1123,7 @@ function _fileToBase64Resized(file) {
     reader.onload = e => {
       const img = new Image();
       img.onerror = reject;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX = 900;
-        let w = img.width, h = img.height;
-        if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
-        if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', 0.82));
-      };
+      img.onload = () => resolve(_squareImageDataUrl(img));
       img.src = e.target.result;
     };
     reader.readAsDataURL(file);
