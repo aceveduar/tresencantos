@@ -399,7 +399,13 @@ button,a,[onclick]{touch-action:manipulation}
   .set-nav{grid-column:1;grid-row:1 / span 6;position:sticky;top:84px}
   .set-main > [id^="section-"]{grid-column:2}
   .set-nav-chev,.set-back{display:none}
-  .set-nav-item{min-height:56px}
+  /* En escritorio el título de la sección ya dice qué hay adentro: menú compacto, solo ícono y nombre */
+  .main.set-main{grid-template-columns:240px minmax(0,1fr)}
+  .set-nav-item{min-height:48px;padding:8px 12px;gap:12px}
+  .set-nav-txt small{display:none}
+  .set-nav-txt b{font-size:.95rem}
+  .set-nav-ico{width:32px;height:32px}
+  .set-nav-ico svg{width:18px;height:18px}
   .set-nav-item.active{background:var(--surface-soft)}
   .set-nav-item.active .set-nav-ico{background:var(--ink);color:#fff}
   body.set-single .main.set-main{grid-template-columns:minmax(0,1fr);max-width:760px}
@@ -411,3 +417,6 @@ button,a,[onclick]{touch-action:manipulation}
 .nt-form-title{font-size:1rem;font-weight:700;color:var(--charcoal);margin-bottom:8px}
 .nt-card[hidden],.nt-toolbar .btn[hidden]{display:none}
 .nt-card{margin-bottom:12px}
+/* El marco de foco solo con teclado (tras un clic se veía un recuadro negro grueso) */
+.set-nav-item:focus{outline:none}
+.set-nav-item:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
