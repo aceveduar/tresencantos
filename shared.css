@@ -220,7 +220,7 @@ a{text-decoration:none}
 #notif-pop{
   position:fixed;z-index:99999;
   background:var(--surface);border:1px solid var(--border);border-radius:14px;
-  padding:10px;width:300px;max-width:calc(100vw - 16px);max-height:70vh;overflow-y:auto;
+  padding:10px;width:340px;max-width:calc(100vw - 16px);max-height:70vh;overflow-y:auto;
   box-shadow:0 8px 32px rgba(28,24,23,.18);
   animation:ud-in .15s ease;
 }
@@ -230,8 +230,8 @@ a{text-decoration:none}
 #notif-dismiss-all:hover{background:var(--cream)}
 .notif-item{
   display:flex;align-items:flex-start;gap:10px;
-  font-size:.8rem;line-height:1.45;color:var(--charcoal);
-  padding:9px 8px;border-radius:8px;border-bottom:1px solid var(--border);
+  font-size:.9rem;line-height:1.45;color:var(--charcoal);
+  padding:10px 8px;border-radius:8px;border-bottom:1px solid var(--border);
   transition:background .15s;
 }
 .notif-item:last-child{border-bottom:none}
@@ -250,6 +250,9 @@ a{text-decoration:none}
   cursor:pointer;display:flex;align-items:center;justify-content:center;
   transition:background .15s,color .15s;
 }
+.notif-item-dismiss{position:relative}
+/* La ✕ se ve chica pero se toca en 44px (regla de tamaño táctil) */
+.notif-item-dismiss::after{content:'';position:absolute;inset:-11px}
 .notif-item-dismiss:hover{background:var(--border);color:var(--red)}
 .notif-empty{font-size:.8rem;color:var(--muted);padding:14px 8px;text-align:center}
 

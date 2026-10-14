@@ -195,10 +195,6 @@ function _themeToggleRowHtml() {
   // una sola línea, en el lenguaje de "qué cambia para ti", no un reporte
   // técnico del bug.
   const SYS_NOTICES = [
-    { id: 'inv-add-menu-2026-09', icon: 'plus',
-      title: 'En Inventario, en el celular, busca el botón + de abajo',
-      text: 'Ahí se juntaron: Producto nuevo, Captura rápida, Kit/Bundle, Recibir mercancía y Recepción con IA — antes estaban repartidos en varios botones distintos. Escanear código de barras sigue en su lugar de siempre, junto al buscador.',
-      until: '2026-10-03' },
     { id: 'caja-libreta-2026-10', icon: 'book',
       title: 'Nuevo en Caja: pasar los apartados de la libreta',
       text: 'En <b>Apartados</b> toca el botón <b>Libreta</b>.<br>'
@@ -347,7 +343,7 @@ function _themeToggleRowHtml() {
     });
 
     const r = bell.getBoundingClientRect();
-    const pw = 300;
+    const pw = 340;
     let left = r.right - pw;
     if (left < 8) left = 8;
     pop.style.cssText += `top:${r.bottom + 6}px;left:${left}px`;
@@ -483,7 +479,8 @@ function _themeToggleRowHtml() {
   };
 
   function _showSaleNotification(title, body, tag) {
-    const opts = { body, icon: 'icono-192.png', badge: 'icono-192.png', tag };
+    // Ruta real del ícono (antes 'icono-192.png' a secas: 404 y la notificación salía sin logo)
+    const opts = { body, icon: 'img/icono-192.png', badge: 'img/icono-192.png', tag };
     const fallback = () => {
       try {
         const n = new Notification(title, opts);
@@ -554,6 +551,10 @@ function _themeToggleRowHtml() {
       if (!newSales.length && !newPayments.length) return;
 
       const nameMap = await _getNotifNameMap(url, key, token);
+      // Se juntan antes de mostrarse: si la pestaña estuvo dormida (celular
+      // bloqueado) al despertar llegaban todas de golpe, una por movimiento.
+      const pending = [];
+      const notify = (title, body, tag, amountValue) => pending.push({ title, body, tag, amountValue });
       const personName = email => email ? (nameMap[email] || email.split('@')[0]) : '';
       newSales.forEach(sale => {
         const amount = `$${parseFloat(sale.total || 0).toLocaleString('es-MX')}`;
@@ -563,7 +564,7 @@ function _themeToggleRowHtml() {
         const title = isApartado
           ? (sale.status === 'liquidado' ? '✅ Apartado liquidado' : '📌 Nuevo apartado')
           : '🛍️ Nueva venta';
-        _showSaleNotification(title, [amount, customer, actor].filter(Boolean).join(' · '), `te-sale-${sale.id}`);
+        notify(title, [amount, customer, actor].filter(Boolean).join(' · '), `te-sale-${sale.id}`, parseFloat(sale.total) || 0);
       });
 
       // Una devolución puede generar una línea por método; agrupar por request_id
@@ -600,9 +601,17 @@ function _themeToggleRowHtml() {
           title = _isApartadoLiquidationPayment(payment, sale)
             ? '✅ Apartado liquidado' : '💳 Abono recibido';
         }
-        _showSaleNotification(title, [amount, customer, actor].filter(Boolean).join(' · '),
-          `te-payment-${payment.request_id || payment.id}`);
+        notify(title, [amount, customer, actor].filter(Boolean).join(' · '),
+          `te-payment-${payment.request_id || payment.id}`, rawAmount);
       });
+
+      if (pending.length <= 3) {
+        pending.forEach(n => _showSaleNotification(n.title, n.body, n.tag));
+      } else {
+        const total = pending.reduce((s, n) => s + n.amountValue, 0);
+        _showSaleNotification(`${pending.length} movimientos nuevos`,
+          `Total $${total.toLocaleString('es-MX')} · ábrelos en Actividad`, 'te-sales-batch');
+      }
 
       if (maxSaleId > lastSaleId) localStorage.setItem('te_last_seen_sale_id', String(maxSaleId));
       if (maxPaymentId > lastPaymentId) localStorage.setItem('te_last_seen_payment_id', String(maxPaymentId));
