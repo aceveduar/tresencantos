@@ -678,7 +678,7 @@
         <div class="field">
           <label>Código de barras <span style="font-weight:400;color:var(--muted-light)">(opcional)</span></label>
           <div style="display:flex;gap:8px">
-            <input type="text" id="f-barcode" placeholder="Escanea o escribe el código..." style="flex:1" onblur="checkBarcodeConflict()">
+            <input type="text" id="f-barcode" placeholder="Escanea o escribe el código..." style="flex:1" autocomplete="off" onblur="checkBarcodeConflict()" onfocus="this.select()" onkeydown="if(event.key==='Enter'){event.preventDefault();checkBarcodeConflict();this.select()}">
             <button type="button" class="btn btn-outline btn-sm" onclick="openFormScanner()" title="Escanear código de barras"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5v14"/><path d="M7 5v14"/><path d="M11 5v14"/><path d="M14 5v14"/><path d="M18 5v14"/><path d="M21 5v14"/></svg></button>
           </div>
           <div id="f-barcode-warn" class="dup-warn" style="display:none"></div>

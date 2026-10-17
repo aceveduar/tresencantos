@@ -1128,8 +1128,12 @@ function initRealtime() {
   });
   load.then(() => {
     try {
+      // accessToken: sin esto Realtime entra como anónimo (la Tienda), que no ve
+      // códigos de barras ni productos ocultos: cada aviso borraba el código de
+      // la copia local y escanearlo decía "no registrado" (2026-10-17).
       const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        global: { headers: { Authorization: `Bearer ${_getPosToken()}` } }
+        global: { headers: { Authorization: `Bearer ${_getPosToken()}` } },
+        accessToken: async () => _getPosToken()
       });
       client
         .channel('pos-products')
@@ -1154,7 +1158,12 @@ function _handleRealtimeProduct({ eventType, new: row, old }) {
     if (row.is_archived) {
       if (idx >= 0) products.splice(idx, 1);
     } else if (idx >= 0) {
-      products[idx] = { ...products[idx], ..._mapPosProduct(row) };
+      // Solo los campos que trae el aviso: uno incompleto no borra el código.
+      const m = _mapPosProduct(row);
+      const cols = { categoryLabel: 'category_label', originalPrice: 'original_price', outOfStock: 'out_of_stock',
+        badgeType: 'badge_type', kitItems: 'kit_items', expiryDate: 'expiry_date' };
+      for (const k of Object.keys(m)) if (!((cols[k] || k) in row)) delete m[k];
+      products[idx] = { ...products[idx], ...m };
     } else {
       products.push(_mapPosProduct(row));
     }

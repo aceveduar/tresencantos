@@ -670,6 +670,19 @@ function _focusAdminScanTrap() {
   }
 }
 
+function _wedgeScanCtx() {
+  const shown = id => {
+    const el = document.getElementById(id);
+    return !!el && (el.classList.contains('open') || el.style.display === 'flex' || el.style.display === 'block');
+  };
+  if (shown('ria-match-overlay'))   return 'ria-match';
+  if (shown('form-overlay'))        return 'form';
+  if (shown('kit-builder-overlay')) return 'kb';
+  if (shown('cap-overlay'))         return 'capture';
+  if (shown('recv-overlay'))        return 'recv';
+  return 'search';
+}
+
 ;(function _initAdminKeyboardWedge() {
   let buf = '', t = null;
   document.addEventListener('keydown', e => {
@@ -683,10 +696,16 @@ function _focusAdminScanTrap() {
     if (document.getElementById('scanner-overlay')?.classList.contains('open')) return;
 
     if (e.key === 'Enter') {
-      if (buf.length >= 4) {
+      // Respaldo para lectores lentos (Bluetooth): lo tecleado quedó en la trampa.
+      const code = buf.length >= 4 ? buf : (active?.id === 'admin-scan-trap' ? active.value.trim() : '');
+      if (active?.id === 'admin-scan-trap') active.value = '';
+      if (code.length >= 4) {
         e.preventDefault();
-        const code = buf;
         buf = ''; clearTimeout(t);
+        // El contexto sale de la pantalla abierta, no de _scanCtx: ese es el de
+        // la última vez que se abrió la cámara, y con él la pistola mandaba el
+        // código a un formulario ya cerrado en vez de buscarlo.
+        _scanCtx = _wedgeScanCtx();
         _onAdminScan(code);
         setTimeout(_focusAdminScanTrap, 200);
         return;

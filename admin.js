@@ -1177,6 +1177,18 @@ function mapProduct(p) {
   };
 }
 
+// Solo los campos cuya columna viene en el renglón: un aviso de Realtime al que
+// le falte una columna no debe dejarla en null en la copia local.
+const _PRODUCT_COLS = { categoryLabel: 'category_label', badgeType: 'badge_type', outOfStock: 'out_of_stock',
+  originalPrice: 'original_price', isPublished: 'is_published', kitItems: 'kit_items', isApartado: 'is_apartado',
+  createdBy: 'created_by', createdAt: 'created_at', isArchived: 'is_archived', expiryDate: 'expiry_date',
+  supplierCode: 'supplier_code' };
+function _mapProductPresent(row) {
+  const m = mapProduct(row);
+  for (const k of Object.keys(m)) if (!((_PRODUCT_COLS[k] || k) in row)) delete m[k];
+  return m;
+}
+
 // Supabase entrega como máximo 1,000 renglones por consulta (max_rows): con un
 // catálogo más grande, pedirlo de un jalón dejaba fuera productos sin avisar
 // (pasó el 2026-10-14 con 1,013). Se pide por páginas con orden estable; si una
@@ -1257,8 +1269,13 @@ function initRealtime() {
   });
   load.then(() => {
     try {
+      // accessToken: sin esto Realtime entra como anónimo (la Tienda), que no ve
+      // código, costo ni código de proveedor, ni productos ocultos. Cada aviso
+      // llegaba sin esas columnas y las borraba de la copia local; el siguiente
+      // guardado del formulario las borraba en la base (2026-10-17).
       const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        global: { headers: { Authorization: `Bearer ${_getAdminToken()}` } }
+        global: { headers: { Authorization: `Bearer ${_getAdminToken()}` } },
+        accessToken: async () => _getAdminToken()
       });
       _realtimeChannel = client
         .channel('admin-products')
@@ -1277,7 +1294,7 @@ function _handleRealtimeProduct({ eventType, new: row, old }) {
   if (eventType === 'UPDATE') {
     const idx = products.findIndex(x => x.id === row.id);
     if (idx >= 0) {
-      products[idx] = { ...products[idx], ...mapProduct(row) };
+      products[idx] = { ...products[idx], ..._mapProductPresent(row) };
       renderTable(); renderStats(); _qvRefresh(row.id);
     }
   } else if (eventType === 'INSERT') {

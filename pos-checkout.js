@@ -787,6 +787,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     const raw   = e.target.value.trim();
     const terms = _norm(raw).split(/\s+/).filter(Boolean);
     if (!terms.length) return;
+    // Código exacto (pistola lectora): sin piezas → Reabastecer, como al tocar
+    // la tarjeta; antes no pasaba nada y no se sabía si el lector había leído.
+    const byCode = products.find(p => p.barcode && p.barcode === raw);
+    if (byCode && (getKitStock(byCode) <= 0 || (!Array.isArray(byCode.kitItems) && byCode.outOfStock))) {
+      e.target.value = '';
+      _togglePosSearchClear();
+      showAllProducts();
+      if (_showRestock) _showRestockPrompt(byCode.id);
+      else toast(`"${byCode.name}" no tiene piezas en el sistema`, 'error');
+      return;
+    }
+    if (!byCode && /^\d{6,}$/.test(raw)) {
+      toast(`Código "${raw}" — no está registrado en el catálogo`, 'error');
+      return;
+    }
     // getKitStock() devuelve p.stock tal cual para no-kits -- antes un kit
     // nunca hacía match aquí (Enter en el buscador, o el lector de código de
     // barras USB que dispara este mismo listener) porque p.stock de un kit
@@ -847,16 +862,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (document.getElementById('sale-done-overlay')?.classList.contains('open')) return;
 
       if (e.key === 'Enter') {
-        if (buf.length >= 4) {
+        // Un lector Bluetooth lento puede pasar de 50 ms entre dígitos y vaciar
+        // buf; lo tecleado también quedó en la trampa, que sirve de respaldo.
+        const code = buf.length >= 4 ? buf : (active?.id === 'scan-trap' ? active.value.trim() : '');
+        if (code.length >= 4) {
           e.preventDefault();
           const si = document.getElementById('pos-search');
           if (si) {
-            si.value = buf;
+            si.value = code;
             si.dispatchEvent(new Event('input', { bubbles: true }));
             si.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
           }
           setTimeout(_focusScanTrap, 150); // devolver foco a trampa tras agregar al carrito
         }
+        if (active?.id === 'scan-trap') active.value = '';
         buf = '';
         clearTimeout(t);
         return;
