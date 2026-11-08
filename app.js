@@ -666,7 +666,11 @@ function cardHTML(p, i = 99) {
 
   let badgeArea = '';
   const badgeIsPromo = !p.badgeType || p.badgeType === 'promo';
-  if (pct > 0 && p.badge && !badgeIsPromo) {
+  if (oosTag) {
+    // Apartado/Agotado ocupa la esquina izquierda: "Nuevo"/"Más vendido" se le encimaba.
+    // El estado gana; el % va en la esquina opuesta y no estorba.
+    if (pct > 0) badgeArea = `<span class="product-badge badge-discount">-${pct}%</span>`;
+  } else if (pct > 0 && p.badge && !badgeIsPromo) {
     // Badge aporta info diferente al descuento (Nuevo, Más vendido, Natura) → mostrar ambos en esquinas opuestas
     badgeArea = `<span class="product-badge badge-${p.badgeType}">${_esc(p.badge)}</span>`
               + `<span class="product-badge badge-discount">-${pct}%</span>`;
@@ -1136,7 +1140,9 @@ function openModal(id) {
 
   let modalBadgeArea = '';
   const modalBadgeIsPromo = !p.badgeType || p.badgeType === 'promo';
-  if (pct > 0 && p.badge && !modalBadgeIsPromo) {
+  if (apt || oos) {
+    modalBadgeArea = ''; // el estado (Apartado/Agotado) ocupa la misma esquina
+  } else if (pct > 0 && p.badge && !modalBadgeIsPromo) {
     modalBadgeArea = `<span class="product-badge badge-${p.badgeType}" style="position:absolute;top:10px;left:10px">${_esc(p.badge)}</span>`;
   } else if (pct > 0) {
     modalBadgeArea = '';
