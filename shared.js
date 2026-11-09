@@ -40,6 +40,42 @@ function _themeToggleRowHtml() {
     </label>`;
 }
 
+/* ── INSTALAR APP (2026-11-09) ──
+   "Instalar app" en el menú del avatar. Chrome (Android/computadora) avisa con
+   `beforeinstallprompt` cuando se puede instalar: se guarda el evento (sin
+   preventDefault, para no quitar el aviso propio de Chrome) y el botón abre su
+   ventana. iPhone no tiene ese evento: se explican los pasos. La opción no
+   aparece si la app ya se abrió desde su ícono (display-mode standalone). */
+let _teInstallEvt = null;
+window.addEventListener('beforeinstallprompt', e => { _teInstallEvt = e; });
+window.addEventListener('appinstalled', () => { _teInstallEvt = null; });
+
+function _isInstalledApp() {
+  return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+}
+
+function _installRowHtml() {
+  if (_isInstalledApp()) return '';
+  return `<button class="ud-link" style="width:100%;text-align:left;background:none;border:none;font-family:inherit;cursor:pointer" onclick="document.getElementById('ud-pop')?.remove();_installApp()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Instalar app
+      </button>`;
+}
+
+async function _installApp() {
+  if (_teInstallEvt) {
+    const evt = _teInstallEvt;
+    _teInstallEvt = null; // cada evento se usa una sola vez; Chrome manda otro si se cancela
+    try { await evt.prompt(); await evt.userChoice; } catch (e) {}
+    return;
+  }
+  const iOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (iOS) {
+    return teAlert('En Safari toca el botón Compartir (el cuadro con la flecha hacia arriba) y luego "Agregar a inicio". Después abre la app desde el ícono nuevo.', 'Instalar la app en iPhone');
+  }
+  teAlert('En Chrome abre el menú ⋮ (arriba a la derecha) y toca "Instalar app" o "Agregar a pantalla de inicio". Si no aparece esa opción, la app ya está instalada en este aparato.', 'Instalar la app');
+}
+
 (function () {
   function _initUserDropdown() {
     const avatar = document.getElementById('user-avatar');
@@ -96,6 +132,7 @@ function _themeToggleRowHtml() {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         Ayuda
       </button>` +
+      _installRowHtml() +
       `<button class="ud-link" style="width:100%;text-align:left;background:none;border:none;font-family:inherit;cursor:pointer" onclick="document.getElementById('ud-pop')?.remove();openMyPinModal()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
         Mi PIN de autorización

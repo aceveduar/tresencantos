@@ -19,6 +19,9 @@ Si autorizas acciones de otras personas, configura tu PIN de 4 a 6 dígitos en e
 ### Campana (avisos)
 El número rojo son avisos que no has leído. Toca uno para leerlo completo; así la dueña sabe que ya lo viste. Si trae **Ver cómo en Ayuda**, ahí están los pasos. La ✕ lo quita de tu lista. Lo que lees o quitas vale para tu cuenta en todos tus dispositivos (en la tablet compartida, cada quien ve los suyos). Cada aviso desaparece solo en la fecha que puso la dueña.
 
+### Instalar la app
+En el menú de tu foto toca **Instalar app**. En Android o en la computadora se abre la ventana para instalarla: toca **Instalar**. En iPhone te dice los pasos: en Safari, botón **Compartir** → **Agregar a inicio**. Queda un ícono como cualquier app y se actualiza sola cada vez que hay cambios (si no ves un cambio, ciérrala por completo y vuelve a abrirla). Si ya la abriste desde su ícono, esa opción no aparece.
+
 ### Avisarme al vender
 Solo para dueñas, en el menú de tu foto. Te avisa en ese dispositivo cada venta, abono o devolución, **mientras tengas el sistema abierto** (si el celular está bloqueado o cerraste la página, no llega). Si se juntan varios movimientos, llega un solo aviso con el total.
 
@@ -225,7 +228,7 @@ Un producto aparece en la Tienda si está **publicado (Web)**, tiene categoría 
 La dirección de la tienda es **tresencantos.pages.dev**. Para un producto, ábrelo (en la Tienda o en la vista rápida de Inventario) y toca **Compartir**: manda su enlace directo.
 
 ### Cambio de dirección (noviembre 2026)
-La tienda y la app se mudaron de **aceveduar.github.io/tresencantos** a **tresencantos.pages.dev**. Es la misma app con los mismos productos, ventas y apartados. En la dirección nueva hay que **volver a iniciar sesión** una vez y, si tenías la app instalada en el celular o la tableta, **instalarla de nuevo** desde la dirección nueva (en Chrome: menú ⋮ → Agregar a pantalla de inicio; en iPhone: Compartir → Agregar a inicio) y borrar la anterior.
+La tienda y la app se mudaron de **aceveduar.github.io/tresencantos** a **tresencantos.pages.dev**. Es la misma app con los mismos productos, ventas y apartados. En la dirección nueva hay que **volver a iniciar sesión** una vez y, si tenías la app instalada en el celular o la tableta, **instalarla de nuevo** desde la dirección nueva y borrar la anterior (ver **Instalar la app**).
 
 ---
 

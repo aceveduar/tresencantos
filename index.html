@@ -415,9 +415,12 @@
 <script src="app.js"></script>
 <script>
   if ('serviceWorker' in navigator) {
-    // Desregistrar SWs viejos que quedaron registrados en scope raíz (antes de mover a subdirectorio)
+    // Desregistrar SWs de otra carpeta (quedaron de cuando el sitio vivía en otra ruta).
+    // Se compara contra la carpeta actual: antes se exigía '/tresencantos/' en la dirección
+    // y en tresencantos.pages.dev (raíz) eso borraba el SW propio en cada visita.
+    const _swScope = new URL('./', location.href).href;
     navigator.serviceWorker.getRegistrations().then(regs => {
-      regs.forEach(r => { if (!r.scope.includes('/tresencantos/')) r.unregister(); });
+      regs.forEach(r => { if (r.scope !== _swScope) r.unregister(); });
     });
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
