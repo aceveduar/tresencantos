@@ -1,6 +1,5 @@
-// Relativo a donde está publicado el panel (hoy GitHub Pages, /tresencantos/):
-// antes apuntaba fijo a tresencantos.netlify.app, que ya no existe, y todo
-// enlace de producto compartido desde Inventario llevaba a un 404.
+// Relativo a donde está publicado el panel (hoy tresencantos.pages.dev; la dirección vieja de
+// GitHub Pages redirige ahí). En local se usa la dirección oficial para que el enlace sirva.
 const SITE_URL     = new URL('./', window.location.href).href.replace(/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//, 'https://tresencantos.pages.dev/');
 const SESSION_KEY  = "te_admin_session";
 const LOCKOUT_KEY  = "te_admin_lock";
