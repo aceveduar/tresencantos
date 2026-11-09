@@ -353,7 +353,7 @@ body.admin-bar-shown{scroll-padding-top:calc(134px + env(safe-area-inset-top))}
 /* ── FOOTER ── */
 footer{background:#0F0D0C;color:rgba(255,255,255,.58);padding:60px 20px 28px}
 .footer-grid{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:44px;padding-bottom:40px;border-bottom:1px solid rgba(255,255,255,.08)}
-.footer-brand img{height:44px;margin-bottom:14px;filter:brightness(0) invert(1);opacity:.8;border-radius:4px}
+.footer-brand img{height:44px;margin-bottom:14px}
 .footer-brand p{font-size:.85rem;line-height:1.75;max-width:250px}
 .footer-col h4{color:#fff;font-family:'Playfair Display',serif;font-size:.97rem;margin-bottom:14px}
 .footer-col ul{list-style:none;display:flex;flex-direction:column;gap:9px}
