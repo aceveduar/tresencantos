@@ -1,5 +1,5 @@
 // ⚠️ Incrementar CACHE_VERSION en cada deploy para invalidar caché anterior
-const CACHE_VERSION = 'v660';
+const CACHE_VERSION = 'v661';
 const CACHE = `tres-encantos-${CACHE_VERSION}`;
 
 // Base path dinámica — funciona en GitHub Pages (/tresencantos) y en dominio raíz ("")
@@ -62,6 +62,25 @@ function _clean(res) {
   }));
 }
 
+// La misma página tiene dos direcciones: los enlaces dicen "pos.html" y Cloudflare la
+// guarda como "/pos" (y "index.html" como "/"). Sin conexión se busca también la otra.
+function _altPath(path) {
+  if (path.endsWith('/index.html')) return path.slice(0, -10);
+  if (path.endsWith('/')) return path + 'index.html';
+  if (path.endsWith('.html')) return path.slice(0, -5);
+  if (!/\.[a-z0-9]+$/i.test(path)) return path + '.html';
+  return null;
+}
+function _matchPage(req) {
+  return caches.match(req).then(hit => {
+    if (hit || req.mode !== 'navigate') return hit;
+    const u = new URL(req.url);
+    const alt = _altPath(u.pathname);
+    return caches.match(u.origin + u.pathname, { ignoreSearch: true })
+      .then(h => h || (alt && caches.match(u.origin + alt, { ignoreSearch: true })));
+  });
+}
+
 // Fetch: solo interceptar GET
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
@@ -82,7 +101,7 @@ self.addEventListener('fetch', e => {
 
   // Archivos propios — cache first, actualiza en background (stale-while-revalidate)
   e.respondWith(
-    caches.match(e.request).then(cached => {
+    _matchPage(e.request).then(cached => {
       const networkFetch = fetch(e.request).then(res => {
         if (res.ok) {
           Promise.resolve(_clean(res.clone()))
