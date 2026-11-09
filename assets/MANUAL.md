@@ -222,7 +222,10 @@ Ven el catálogo, arman su pedido en **Mi pedido** y lo envían por WhatsApp (no
 Un producto aparece en la Tienda si está **publicado (Web)**, tiene categoría (no "Sin categoría") y tiene piezas (o está apartado). Los kits salen solo si se pueden armar.
 
 ### Compartir la tienda o un producto
-La dirección de la tienda es **aceveduar.github.io/tresencantos**. Para un producto, ábrelo (en la Tienda o en la vista rápida de Inventario) y toca **Compartir**: manda su enlace directo.
+La dirección de la tienda es **tresencantos.pages.dev**. Para un producto, ábrelo (en la Tienda o en la vista rápida de Inventario) y toca **Compartir**: manda su enlace directo.
+
+### Cambio de dirección (noviembre 2026)
+La tienda y la app se mudaron de **aceveduar.github.io/tresencantos** a **tresencantos.pages.dev**. Es la misma app con los mismos productos, ventas y apartados. En la dirección nueva hay que **volver a iniciar sesión** una vez y, si tenías la app instalada en el celular o la tableta, **instalarla de nuevo** desde la dirección nueva (en Chrome: menú ⋮ → Agregar a pantalla de inicio; en iPhone: Compartir → Agregar a inicio) y borrar la anterior.
 
 ---
 

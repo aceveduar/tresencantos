@@ -1862,3 +1862,10 @@ Pendientes de higiene documental/local que no afectan la ejecución:
 - Se envió el formulario de soporte (Support → Billing & plans → "Downgrade or cancel a plan" → Free). Netlify pidió confirmar por correo; se contestó "Yes" + contexto de la factura vencida (pagar o condonar y pasar a Free). Ticket **#1186842**; las respuestas llegan al Gmail de Ofelia.
 - Motivo de Eduardo para no quedarse en GitHub Pages: no quiere su dominio personal `aceveduar.github.io` en la tienda y el repo es público; prefiere `*.netlify.app` y Ofelia no pagará dominio propio. Revierte el "no regresar a Netlify" del 2026-10-14.
 - Plan B si soporte no resuelve: cuenta Netlify nueva sin tarjeta (otro subdominio; `tresencantos.netlify.app` queda en la cuenta vieja).
+
+## 2026-11-09 — Mudanza a Cloudflare Pages
+
+- Netlify respondió el ticket #1186842: condonó la factura de $9 y pasó el equipo a Free (300 créditos/mes; al agotarse apaga el sitio). Se publicó a mano y funcionó en `tresencantos.netlify.app`.
+- Problema descubierto: el plan Free de Netlify inyecta en todas las páginas un botón "Powered by Netlify" (iframe fijo abajo a la derecha, z-index máximo). Su propio script dice que en Free no se puede ocultar. Tapa el WhatsApp flotante de la Tienda (≤768px), el FAB de Inventario y las acciones de las hojas inferiores. Se descartó ocultarlo con código (va contra el plan).
+- Decisión de Eduardo, recomendada por Claude: **Cloudflare Pages** (`tresencantos.pages.dev`), gratis, sin botón, ~500 builds/mes, publica desde repos privados. Cuenta con el correo de Ofelia; GitHub conectado solo al repo `tresencantos`; sin build.
+- Cloudflare redirige `x.html` → `/x` (308, conserva la query). Se probó con un servidor local que imita esas redirecciones + Chrome real: el service worker actual abre bien `index.html` y `pos.html` (un arreglo preventivo al SW resultó innecesario y se deshizo). Ajustes: `_currentModule` (Ayuda) compara sin `.html`; enlaces para compartir (`SITE_URL`), `og:*`/`canonical` y `start_url` del manifest apuntan a la dirección nueva.

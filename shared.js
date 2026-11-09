@@ -1208,8 +1208,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function _currentModule() {
-    const p = location.pathname.split('/').pop() || '';
-    return { 'pos.html': 'Caja', 'admin.html': 'Inventario', 'stats.html': 'Reportes', 'activity.html': 'Actividad', 'settings.html': 'Configuración' }[p] || '';
+    // Cloudflare Pages sirve "pos.html" como "/pos": se compara sin la extensión
+    const p = (location.pathname.split('/').pop() || '').replace(/\.html$/, '');
+    return { 'pos': 'Caja', 'admin': 'Inventario', 'stats': 'Reportes', 'activity': 'Actividad', 'settings': 'Configuración' }[p] || '';
   }
 
   // Markdown mínimo del manual: párrafos, listas, **negritas**.

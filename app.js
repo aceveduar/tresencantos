@@ -873,7 +873,7 @@ function filterTo(cat) {
 /* ── SHARE ── */
 const _isLocal = ['localhost','127.0.0.1'].includes(window.location.hostname);
 const SITE_URL = _isLocal
-  ? 'https://aceveduar.github.io/tresencantos/index.html'
+  ? 'https://tresencantos.pages.dev/'
   : window.location.origin + window.location.pathname;
 
 function _productUrl(id) {
