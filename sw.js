@@ -1,5 +1,5 @@
 // ⚠️ Incrementar CACHE_VERSION en cada deploy para invalidar caché anterior
-const CACHE_VERSION = 'v659';
+const CACHE_VERSION = 'v660';
 const CACHE = `tres-encantos-${CACHE_VERSION}`;
 
 // Base path dinámica — funciona en GitHub Pages (/tresencantos) y en dominio raíz ("")
@@ -52,6 +52,16 @@ self.addEventListener('notificationclick', e => {
   );
 });
 
+// Cloudflare Pages redirige x.html → /x (308). Una respuesta que pasó por una redirección
+// no se puede entregar a una navegación: Chrome la rechaza con ERR_FAILED (pasó al tocar
+// "Tienda" en la app instalada, 2026-11-09). Se re-empaqueta como respuesta limpia.
+function _clean(res) {
+  if (!res || !res.redirected) return res;
+  return res.blob().then(body => new Response(body, {
+    status: res.status, statusText: res.statusText, headers: res.headers,
+  }));
+}
+
 // Fetch: solo interceptar GET
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
@@ -75,13 +85,13 @@ self.addEventListener('fetch', e => {
     caches.match(e.request).then(cached => {
       const networkFetch = fetch(e.request).then(res => {
         if (res.ok) {
-          const resClone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, resClone));
+          Promise.resolve(_clean(res.clone()))
+            .then(clean => caches.open(CACHE).then(c => c.put(e.request, clean)));
         }
-        return res;
-      }).catch(() => cached || new Response('', { status: 503 }));
+        return _clean(res);
+      }).catch(() => _clean(cached) || new Response('', { status: 503 }));
 
-      return cached || networkFetch;
+      return cached ? _clean(cached) : networkFetch;
     })
   );
 });
